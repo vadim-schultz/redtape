@@ -1,0 +1,139 @@
+# Incremental MVP roadmap (hour-sized steps)
+
+This roadmap matches [00-master-summary.md](00-master-summary.md) and the strand docs under [directions/](directions/). Order is **backend → web → mobile**. Each step is scoped so a focused Cursor session (~**1 hour**) can complete it, including smoke checks.
+
+## Consolidated free tier (recommended baseline)
+
+Use **one Supabase project** for as much as possible:
+
+| Concern | Supabase capability | When to touch it |
+|--------|----------------------|------------------|
+| PostgreSQL | Built-in | From step B3 onward (migrations + seed). |
+| Auth (email/OAuth) + JWT | Built-in | After read-only graph MVP (wave 2); API validates JWT with project JWKS. |
+| Object storage (screenshots, evidence) | Storage buckets | Social / crawler waves; not needed for the 1-city / 3-deps read MVP. |
+
+**Still separate (typical):** Litestar API **hosting** (Fly.io, Render, Railway, or VPS)—Supabase does not run your Python app. **Web** static hosting (Supabase Hosting, Cloudflare Pages, Netlify, or Vercel). **Flutter** builds locally / store pipelines.
+
+---
+
+## MVP definition (smallest shippable slice)
+
+- **One country** (Germany), **one Land**, **one municipality** (your example city).
+- **Four documents** in the catalog: one *target* document and **three distinct dependencies** (edges: target → each required doc).
+- **Read-only HTTP API** + **web** list/detail + **mobile** read same data.
+- **No** social layer, **no** crawlers, **no** vault, **no** push reminders until later waves.
+
+Jurisdiction **fallback** (city → Land → country) can be **seeded but unused** in the first slice: attach all MVP edges to the municipality row so resolution logic can wait one step.
+
+---
+
+## Wave 0 — Repository and contracts (optional precursors)
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| 0a | Add monorepo folders `apps/api`, `apps/web`, `apps/mobile` (empty or placeholder README) | No framework yet; aligns with [devops-ci-cd](directions/devops-ci-cd/README.md). |
+| 0b | Root `.gitignore` + document Python/Node/Flutter ignores | Prevents noise in commits. |
+
+---
+
+## Wave 1 — Backend (`apps/api`): skeleton to seeded graph
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| B1 | `pyproject.toml` (or Poetry) with Litestar, uvicorn, pydantic-settings, SQLAlchemy 2.x, asyncpg or psycopg, alembic | Pin loosely; upgrade later. |
+| B2 | Minimal Litestar app: `GET /health` → JSON `{ "status": "ok" }` | Run locally with uvicorn. |
+| B3 | `.env.example`: `DATABASE_URL` (Supabase connection string), optional `SUPABASE_URL` / keys for later | **Manual:** create Supabase project, copy **Session mode** URI if using SQLAlchemy server-side. |
+| B4 | `Settings` via pydantic-settings; load `.env`; wire Litestar **lifespan** to create/dispose DB engine | No routes except health yet. |
+| B5 | SQLAlchemy **declarative base** + `sessionmaker`; Litestar dependency provides `AsyncSession` (or sync session if you keep stack simpler for hour-1) | Pick one style and stay consistent. |
+| B6 | Alembic initialized; `env.py` reads `DATABASE_URL`; `alembic revision --autogenerate` workflow documented | First revision can be empty `pass` to verify chain. |
+| B7 | **Migration:** tables `country`, `region`, `municipality` (or names per [01-jurisdiction-hierarchy](directions/data-model-migrations/01-jurisdiction-hierarchy.md)) with FKs `region.country_id`, `municipality.region_id` | Keep columns minimal (`code`, `name`, `slug`). |
+| B8 | **Migration:** `document` (id, slug, title, …) + `document_requirement` (`from_document_id`, `to_document_id`, `municipality_id` nullable for future fallback) | Matches adjacency idea in [02-documents-and-requirements](directions/data-model-migrations/02-documents-and-requirements.md). |
+| B9 | **Seed script** (idempotent): insert DE, one Land, one city, **4 documents**, **3** `document_requirement` rows for one target | Use stable UUIDs or natural keys so re-runs do not duplicate. |
+| B10 | `GET /api/v1/documents` — returns all MVP documents (or paginated stub) | Pydantic response models. |
+| B11 | `GET /api/v1/documents/{id}` — document + **direct** `requirements[]` (the three deps) | Join or second query; no full tree yet. |
+| B12 | **CORS** plugin: allow local Vite origin + production web origin env var | Required before web app hits API. |
+| B13 | Enable Litestar **OpenAPI** / Swagger UI for manual QA | Helps web/mobile contract alignment. |
+
+**Checkpoint:** Postman or browser can load document with three dependencies against local or Supabase-hosted DB.
+
+---
+
+## Wave 2 — Web (`apps/web`): Vite + React + Chakra
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| W1 | `npm create vite@latest` (React + TS) in `apps/web`; install `@chakra-ui/react` + peers | Follow Chakra v3 docs if that is current default. |
+| W2 | `ChakraProvider` wrapping router root; basic theme | One layout component. |
+| W3 | `VITE_API_URL` in `.env.example`; small `fetch` helper with typed errors | Points to `http://localhost:8000` during dev. |
+| W4 | Route `/documents` — fetch `GET /documents`, render **SimpleList** (titles + links to detail) | Expect 4 rows from seed. |
+| W5 | Route `/documents/:id` — fetch `GET /documents/:id`, show title + **List** of three dependencies (each links to its id) | Smallest navigation loop. |
+| W6 | Optional: breadcrumb “Germany / Land / City” from **static** copy or tiny `GET /jurisdictions/mvp` if you add a 1-hour endpoint | Can be hardcoded for true 1-hour cap. |
+
+**Checkpoint:** Click through target → dependency → back; matches backend seed.
+
+---
+
+## Wave 3 — Mobile (`apps/mobile`): Flutter read-only
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| M1 | `flutter create` in `apps/mobile`; add `http` (or `dio`) dependency | Same API base via `--dart-define` or config file (gitignored). |
+| M2 | One **screen**: hardcode target document UUID/slug from seed OR call list and pick first | Fastest path: hardcoded id. |
+| M3 | Parse JSON; show **AppBar** title + `ListView` of three dependency titles | Tap opens second route with placeholder body or same pattern as web. |
+| M4 | Optional: second screen `DocumentDetailScreen(id)` reusing fetch | Second hour if M2–M3 finished early. |
+
+**Checkpoint:** Android emulator or device shows the same graph as web for the MVP document.
+
+---
+
+## Wave 4 — Jurisdiction resolution (still small)
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| R1 | Document in DB a **second** requirement only at `region` level for a spare doc; implement **single** resolution function: municipality → region → country | Align with [03-graph-resolution-and-views](directions/data-model-migrations/03-graph-resolution-and-views.md). |
+| R2 | `GET /documents/{id}?municipality_id=` merges inherited edges without duplicates | **Tests:** unit test resolver only (fast). |
+
+---
+
+## Wave 5 — Supabase Auth + protected writes (prep for social)
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| A1 | Enable email provider in Supabase; document **JWT** validation steps for Litestar | Use JWKS URL from Supabase. |
+| A2 | Middleware/guard: optional auth; `GET` stays public | Matches public knowledge + future accounts. |
+| A3 | Web: Supabase JS client; login form; store session; attach `Authorization` on mutating routes (later) | Hour may be tight—split A3a login UI / A3b session storage. |
+
+---
+
+## Wave 6+ — Toward full product (each item stays ≤ ~1h if scoped tightly)
+
+Repeat pattern: **migration → seed/fixture → endpoint → one UI surface → test**.
+
+Examples of **single-hour** slices:
+
+- Add `proposal` + `proposal_vote` tables (no storage yet); `POST` proposal behind auth (title + URL only).
+- Supabase **Storage** bucket + signed upload URL endpoint for one screenshot.
+- **Audit log** table + decorator logging votes only.
+- **Tree endpoint** `GET /documents/{id}/tree?max_depth=` BFS in Python (cap depth 10).
+- Web: **React Flow** (or similar) minimal tree for same JSON.
+- Flutter: **local-only** “saved document ids” with `shared_preferences` (no vault files yet).
+- Flutter: **local notification** scheduled from one hardcoded reminder row.
+- Crawler: **one** GitHub Action workflow that `curl`s a stored URL and writes `last_checked_at` (no parsing).
+
+---
+
+## Suggested Cursor session order (next 5 sessions)
+
+1. B1–B4 + B6 (tooling + health + DB connection).
+2. B7–B9 (schema + seed for 1 city / 3 deps).
+3. B10–B13 (read API + CORS + OpenAPI).
+4. W1–W5 (web list + detail).
+5. M1–M3 (Flutter list screen).
+
+---
+
+## Related planning files
+
+- Stack and hosting: [01-stack-and-free-tier.md](01-stack-and-free-tier.md) — update mentally: **Supabase = Postgres + Auth + Storage** hub; API host remains separate.
+- Data model detail: [directions/data-model-migrations/](directions/data-model-migrations/).
+- API strand: [directions/backend-api/](directions/backend-api/).
