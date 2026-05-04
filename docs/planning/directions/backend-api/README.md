@@ -10,6 +10,7 @@
 ## Dependencies on other strands
 
 - **data-model-migrations:** schema and resolution rules drive endpoint design.
+- **i18n-localization:** translation bundle + locale negotiation contracts.
 - **social-moderation:** state machine and audit events must match server behavior.
 - **security-privacy-gdpr:** authn/authz, PII boundaries, retention.
 - **devops-ci-cd:** deployment, secrets, environment configuration.
@@ -19,12 +20,13 @@
 | File | Topic |
 |------|--------|
 | `01-app-structure-and-dependencies.md` | (TBD) Project layout, DI, DB session, settings. |
-| `02-rest-resource-map.md` | (TBD) Resource map and OpenAPI strategy. |
+| `02-rest-resource-map.md` | (TBD) Resource map and OpenAPI strategy; include **`GET /api/v1/translations`**, **`GET /api/v1/locales`**, and **locale negotiation** on all user-facing reads. |
 | `03-auth-and-roles.md` | (TBD) Anonymous vs user vs moderator; JWT or session. |
-| `04-graph-and-jurisdiction-endpoints.md` | (TBD) List/get document, edges, tree, scope resolution. |
+| `04-graph-and-jurisdiction-endpoints.md` | (TBD) List/get document, edges, tree, scope resolution; **localized fields** in responses. |
 | `05-social-endpoints.md` | (TBD) Proposals, votes, evidence upload URLs. |
 
 ## Links
 
 - Master: [../../00-master-summary.md](../../00-master-summary.md)
 - Stack: [../../01-stack-and-free-tier.md](../../01-stack-and-free-tier.md)
+- i18n: [../i18n-localization/README.md](../i18n-localization/README.md)

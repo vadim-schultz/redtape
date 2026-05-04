@@ -3,6 +3,7 @@
 ## Scope
 
 - Flutter app modules: **browse** public dependency data (API client), **local vault** for user-owned files/metadata, **reminders** (local notifications MVP; optional FCM for metadata-only sync).
+- **Localization:** mirror web — fetch translation bundle, keep current locale in app state, send **`Accept-Language`** on HTTP calls; prefer localized strings from API over hardcoding. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Storage modes:** strictly on-device; optional **BYO cloud** behind a narrow `CloudSyncProvider` interface (WebDAV, Dropbox, Google Drive, etc.) with user OAuth—no Redtape server storage of blobs in that mode.
 - Organization by **domain** and **life situation** (folders/tags); encryption at rest using platform secure storage for keys.
 - Platform-specific packaging (iOS/Android), store policies, and deep links (optional).

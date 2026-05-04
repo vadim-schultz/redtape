@@ -6,8 +6,8 @@ This directory holds the **hierarchical product and implementation plans** for R
 
 1. [00-master-summary.md](00-master-summary.md) — vision, pillars, scope boundaries, glossary.
 2. [01-stack-and-free-tier.md](01-stack-and-free-tier.md) — technology choices and hosting/storage options (free tier first).
-3. [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) — smallest MVP (1 city, 1 document, 3 deps), hour-sized backend → web → mobile steps, Supabase consolidation.
-4. [directions/](directions/) — one folder per development strand; each contains a `README.md` overview and links to deeper chapters. See [directions/README.md](directions/README.md) for a strand index.
+3. [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) — smallest MVP (1 city, 1 document, 3 deps), hour-sized backend → web → mobile steps, Supabase consolidation, **and early DB-backed i18n** (de + en).
+4. [directions/](directions/) — one folder per development strand; each contains a `README.md` overview and links to deeper chapters. See [directions/README.md](directions/README.md) for a strand index (includes [i18n-localization](directions/i18n-localization/README.md)).
 
 ## Directory layout
 
@@ -16,9 +16,12 @@ docs/planning/
   README.md                 ← you are here
   00-master-summary.md
   01-stack-and-free-tier.md
+  02-incremental-mvp-roadmap.md
+  discussion.txt            ← informal design notes (cross-check with numbered docs)
   directions/
     backend-api/
     data-model-migrations/
+    i18n-localization/
     web-frontend/
     mobile-flutter/
     crawlers-jobs/

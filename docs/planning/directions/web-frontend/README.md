@@ -4,6 +4,7 @@
 
 - SPA bootstrapping, routing, API client (typed from OpenAPI or hand-written contracts), error and loading states.
 - **Information architecture:** jurisdiction picker, document search/list, document detail, dependency list, full **tree** visualization (library choice: React Flow vs lightweight tree — decide in a child plan).
+- **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; domain text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Social flows:** proposal form (URL, file upload, preview), proposal list/detail, voting UI.
 - **Moderation (later):** audit log views for privileged roles.
 - Accessibility and Chakra theming aligned with product branding (TBD).

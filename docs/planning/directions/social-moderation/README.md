@@ -6,10 +6,12 @@
 - **Voting:** up/down (or richer reactions); thresholds for promotion or rejection; anti-abuse basics (rate limits, account age—TBD).
 - **Roles:** normal user → **moderator** (promotion path TBD); moderators resolve disputes using **audit** data.
 - **Audit log:** append-only record of votes, proposal edits, moderator actions, crawler-attributed creates—full trace for disputes.
+- **Future (optional):** community-submitted **`ui_translation`** rows (same review/vote workflow as graph edits) once the core product stabilizes—see [../i18n-localization/README.md](../i18n-localization/README.md).
 
 ## Dependencies on other strands
 
 - **data-model-migrations:** entities for proposals, votes, audit events, attachments.
+- **i18n-localization:** (future) moderated contributions for `ui_translation` keys.
 - **backend-api:** authorization and endpoint behavior.
 - **crawlers-jobs:** proposal creation and screenshot pipeline.
 - **object storage:** evidence blobs (see stack doc).
@@ -27,3 +29,4 @@
 
 - Master: [../../00-master-summary.md](../../00-master-summary.md)
 - Stack: [../../01-stack-and-free-tier.md](../../01-stack-and-free-tier.md)
+- i18n: [../i18n-localization/README.md](../i18n-localization/README.md)

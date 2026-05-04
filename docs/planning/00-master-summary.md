@@ -26,6 +26,12 @@ Redtape helps people navigate **which official documents** they need for German 
 - **Germany-first** in content and UX defaults, but **data structures and APIs** must allow other countries with layered administration (e.g. Italy, France) without a redesign.
 - Separate **canonical graph** (moderated / accepted) from **proposed** edges and **audit** metadata.
 
+## Localization (cross-cutting, MVP)
+
+- **Single source of truth in PostgreSQL** for MVP locales **German (`de`)** and **English (`en`)**: domain copy in JSONB on entities (e.g. `title_i18n`, `description_i18n`, `name_i18n`), **all UI strings** in an `ui_translation` table (dot-notation keys). No parallel “Git JSON + DB” split for MVP; seed files may be used only as input to load the DB.
+- Clients negotiate locale with **`Accept-Language`** (optional **`?locale=`** for debugging). Changing language refetches the UI bundle and graph payloads so the experience stays dynamic.
+- Full conventions, schema sketch, and API shapes: [directions/i18n-localization/README.md](directions/i18n-localization/README.md). Build order: early roadmap steps in [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) (Wave 0 continued) **before** shipping user-visible copy beyond placeholders.
+
 ## Non-goals (initial phases)
 
 - Legal interpretation, guaranteed correctness, or liability for outcomes.
@@ -42,6 +48,8 @@ Redtape helps people navigate **which official documents** they need for German 
 | Fallback resolution | At read time, use the most specific available rule set, then walk up the hierarchy. |
 | Proposal | A user- or crawler-suggested addition or change, subject to evidence and votes. |
 | Audit log | Append-only record of social and moderation actions for accountability. |
+| Locale | Request language for API and UI (`de`, `en`, …); drives which JSONB keys / `ui_translation` rows are selected. |
+| UI translation | A row in `ui_translation` (key + locale + value) for chrome, errors, and labels—not document domain copy. |
 
 ## Related plans
 

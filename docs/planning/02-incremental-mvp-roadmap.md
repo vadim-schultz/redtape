@@ -36,6 +36,24 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 
 ---
 
+## Wave 0 (continued) — DB-backed i18n before user-facing copy
+
+Aligns with [directions/i18n-localization/README.md](directions/i18n-localization/README.md). **MVP locales: `de` + `en` only** (both required for every shipped UI key and seeded domain JSONB).
+
+| Step | Outcome | Notes |
+|------|---------|--------|
+| I1 | Migration: `supported_locale` + `ui_translation` (+ seed `de` / `en` rows enabled) | Enables locale picker and validation. |
+| I2 | Seed pipeline: nested JSON (or flat CSV) **imported into** `ui_translation` — files are authoring convenience, **not** a second runtime source | Keeps “DB only” for production behavior. |
+| I3 | `GET /api/v1/translations?locale=` — returns `{ locale, translations: { key: value } }` | Long-cache headers when stable. |
+| I4 | `GET /api/v1/locales` — lists enabled locales for pickers | Driven by `supported_locale`. |
+| I5 | Locale resolution: `Accept-Language` + optional `?locale=` override; fallback **requested → `de` → `en`** | Document in [backend-api](directions/backend-api/README.md). |
+| I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). |
+| I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). |
+
+**Checkpoint:** Switching `de`/`en` updates UI chrome and API-returned domain strings without redeploy.
+
+---
+
 ## Wave 1 — Backend (`apps/api`): skeleton to seeded graph
 
 | Step | Outcome | Notes |
@@ -46,11 +64,11 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 | B4 | `Settings` via pydantic-settings; load `.env`; wire Litestar **lifespan** to create/dispose DB engine | No routes except health yet. |
 | B5 | SQLAlchemy **declarative base** + `sessionmaker`; Litestar dependency provides `AsyncSession` (or sync session if you keep stack simpler for hour-1) | Pick one style and stay consistent. |
 | B6 | Alembic initialized; `env.py` reads `DATABASE_URL`; `alembic revision --autogenerate` workflow documented | First revision can be empty `pass` to verify chain. |
-| B7 | **Migration:** tables `country`, `region`, `municipality` (or names per [01-jurisdiction-hierarchy](directions/data-model-migrations/01-jurisdiction-hierarchy.md)) with FKs `region.country_id`, `municipality.region_id` | Keep columns minimal (`code`, `name`, `slug`). |
-| B8 | **Migration:** `document` (id, slug, title, …) + `document_requirement` (`from_document_id`, `to_document_id`, `municipality_id` nullable for future fallback) | Matches adjacency idea in [02-documents-and-requirements](directions/data-model-migrations/02-documents-and-requirements.md). |
-| B9 | **Seed script** (idempotent): insert DE, one Land, one city, **4 documents**, **3** `document_requirement` rows for one target | Use stable UUIDs or natural keys so re-runs do not duplicate. |
-| B10 | `GET /api/v1/documents` — returns all MVP documents (or paginated stub) | Pydantic response models. |
-| B11 | `GET /api/v1/documents/{id}` — document + **direct** `requirements[]` (the three deps) | Join or second query; no full tree yet. |
+| B7 | **Migration:** unified `jurisdiction` (`id`, `kind` enum: COUNTRY \| REGION \| MUNICIPALITY, `parent_id` self-FK, `code`, `levels` text[] for “which administrative levels this unit satisfies”, `name_i18n` JSONB) | Matches [01-jurisdiction-hierarchy](directions/data-model-migrations/01-jurisdiction-hierarchy.md) + discussion (e.g. Dresden `levels` including DISTRICT+MUNICIPALITY). |
+| B8 | **Migration:** `document` (`title_i18n`, `description_i18n` JSONB, `jurisdiction_id`, `slug`, …) + `requirement` / `document_requirement` (`parent_document_id`, `required_document_id`, `jurisdiction_id`, `notes_i18n` JSONB optional, `source`, `valid_from` / `valid_to`) | Matches [02-documents-and-requirements](directions/data-model-migrations/02-documents-and-requirements.md); list/detail responses expose **resolved** `title`/`description` strings for the request locale, not raw JSONB. |
+| B9 | **Seed script** (idempotent): insert DE, one Land, one city, **4 documents** (each `title_i18n` / `description_i18n` with **both** `de` and `en`), **3** requirement rows for one target | Use stable UUIDs or natural keys so re-runs do not duplicate. |
+| B10 | `GET /api/v1/documents` — returns MVP documents with **localized** titles for `Accept-Language` | Same session can add `?jurisdiction_id=` filter; pagination stub OK. |
+| B11 | `GET /api/v1/documents/{id}` — document + **direct** `requirements[]` (localized titles/notes) | Join or second query; no full tree yet. |
 | B12 | **CORS** plugin: allow local Vite origin + production web origin env var | Required before web app hits API. |
 | B13 | Enable Litestar **OpenAPI** / Swagger UI for manual QA | Helps web/mobile contract alignment. |
 
@@ -63,11 +81,12 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 | Step | Outcome | Notes |
 |------|---------|--------|
 | W1 | `npm create vite@latest` (React + TS) in `apps/web`; install `@chakra-ui/react` + peers | Follow Chakra v3 docs if that is current default. |
-| W2 | `ChakraProvider` wrapping router root; basic theme | One layout component. |
-| W3 | `VITE_API_URL` in `.env.example`; small `fetch` helper with typed errors | Points to `http://localhost:8000` during dev. |
-| W4 | Route `/documents` — fetch `GET /documents`, render **SimpleList** (titles + links to detail) | Expect 4 rows from seed. |
-| W5 | Route `/documents/:id` — fetch `GET /documents/:id`, show title + **List** of three dependencies (each links to its id) | Smallest navigation loop. |
-| W6 | Optional: breadcrumb “Germany / Land / City” from **static** copy or tiny `GET /jurisdictions/mvp` if you add a 1-hour endpoint | Can be hardcoded for true 1-hour cap. |
+| W2 | `ChakraProvider` + **LocaleProvider** (or equivalent) wrapping router root; basic theme | LocaleProvider loads `GET /api/v1/translations` (see Wave 0 continued). |
+| W3 | `VITE_API_URL` in `.env.example`; small `fetch` helper with typed errors; **default `Accept-Language` from locale state** | Points to `http://localhost:8000` during dev. |
+| W4 | **Locale switcher** (header): `de` / `en`; triggers bundle + data refetch | Must not hardcode user-visible strings in components. |
+| W5 | Route `/documents` — fetch `GET /documents`, render **SimpleList** (localized titles + links to detail) | Expect 4 rows from seed. |
+| W6 | Route `/documents/:id` — fetch `GET /documents/:id`, show localized title + **List** of three dependencies (each links to its id) | Smallest navigation loop. |
+| W7 | Optional: breadcrumb “Germany / Land / City” from **static** copy or tiny `GET /jurisdictions/mvp` if you add a 1-hour endpoint | Can be hardcoded for true 1-hour cap; prefer localized jurisdiction names from API when available. |
 
 **Checkpoint:** Click through target → dependency → back; matches backend seed.
 
@@ -78,9 +97,10 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 | Step | Outcome | Notes |
 |------|---------|--------|
 | M1 | `flutter create` in `apps/mobile`; add `http` (or `dio`) dependency | Same API base via `--dart-define` or config file (gitignored). |
-| M2 | One **screen**: hardcode target document UUID/slug from seed OR call list and pick first | Fastest path: hardcoded id. |
-| M3 | Parse JSON; show **AppBar** title + `ListView` of three dependency titles | Tap opens second route with placeholder body or same pattern as web. |
-| M4 | Optional: second screen `DocumentDetailScreen(id)` reusing fetch | Second hour if M2–M3 finished early. |
+| M2 | **Locale state**: load `GET /api/v1/translations`; set `Accept-Language` on client | Matches web Wave 0 continued. |
+| M3 | One **screen**: hardcode target document UUID/slug from seed OR call list and pick first | Fastest path: hardcoded id. |
+| M4 | Parse JSON; show **AppBar** title + `ListView` of three dependency titles (localized) | Tap opens second route with placeholder body or same pattern as web. |
+| M5 | Optional: second screen `DocumentDetailScreen(id)` reusing fetch | Second hour if M3–M4 finished early. |
 
 **Checkpoint:** Android emulator or device shows the same graph as web for the MVP document.
 
@@ -111,6 +131,7 @@ Repeat pattern: **migration → seed/fixture → endpoint → one UI surface →
 
 Examples of **single-hour** slices:
 
+- **(After i18n wave)** Add or adjust `ui_translation` rows + cache headers for `GET /api/v1/translations`.
 - Add `proposal` + `proposal_vote` tables (no storage yet); `POST` proposal behind auth (title + URL only).
 - Supabase **Storage** bucket + signed upload URL endpoint for one screenshot.
 - **Audit log** table + decorator logging votes only.
@@ -124,11 +145,11 @@ Examples of **single-hour** slices:
 
 ## Suggested Cursor session order (next 5 sessions)
 
-1. B1–B4 + B6 (tooling + health + DB connection).
-2. B7–B9 (schema + seed for 1 city / 3 deps).
-3. B10–B13 (read API + CORS + OpenAPI).
-4. W1–W5 (web list + detail).
-5. M1–M3 (Flutter list screen).
+1. **0a–0b + I1–I5** (repo + i18n schema + translation API + locale rules on the API).
+2. **B1–B6 + B7–B9** (tooling + health + DB connection + unified jurisdiction + localized document/requirement schema + seed).
+3. **B10–B13** (read API returns localized fields + CORS + OpenAPI).
+4. **I6–I7 + W1–W6** (web locale wiring + list + detail).
+5. **M1–M4** (Flutter list/detail with locale + `Accept-Language`).
 
 ---
 
@@ -136,4 +157,5 @@ Examples of **single-hour** slices:
 
 - Stack and hosting: [01-stack-and-free-tier.md](01-stack-and-free-tier.md) — update mentally: **Supabase = Postgres + Auth + Storage** hub; API host remains separate.
 - Data model detail: [directions/data-model-migrations/](directions/data-model-migrations/).
+- **Localization:** [directions/i18n-localization/README.md](directions/i18n-localization/README.md) — DB-only MVP (`de`/`en`); same wave order as **Wave 0 (continued)** above.
 - API strand: [directions/backend-api/](directions/backend-api/).

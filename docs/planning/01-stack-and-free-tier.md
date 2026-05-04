@@ -11,6 +11,8 @@ This document aligns **your stated preferences** with **free-tier–friendly** m
 | Web app | Vite + React + TypeScript + Chakra UI |
 | Mobile | Flutter (iOS + Android) |
 
+**Localization:** domain and UI strings are stored in **Postgres** (JSONB + `ui_translation`); the API serves localized payloads and translation bundles. See [directions/i18n-localization/README.md](directions/i18n-localization/README.md).
+
 ## Hosting and data services (free tier first)
 
 Prices and limits change; treat the links as authoritative.

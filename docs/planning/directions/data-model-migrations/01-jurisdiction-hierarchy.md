@@ -2,17 +2,24 @@
 
 ## Goal
 
-Model administrative levels so Germany (Bundesland, Gemeinde) fits naturally and other countries (e.g. regioni, départements) can be added without schema surgery.
+Model administrative levels so Germany (Bundesland, Gemeinde, Kreisfreie Stadt) fits naturally and other countries (e.g. regioni, départements) can be added without schema surgery.
 
 ## Core entities (conceptual)
 
-- **Country** — top-level sovereign scope; ISO-3166-1 alpha-2 as stable external key where possible.
-- **Region** — first subdivision below country (Land, regione, …); nullable parent only when future nested regions are needed (prefer a self-referencing `region` table or a generic `jurisdiction_node` pattern—pick one in implementation).
-- **Municipality** — optional finest scope (Gemeinde, Stadt); references parent region and country for integrity and query convenience.
+**Recommended implementation:** a single self-referencing **`jurisdiction`** table (see open decision below) rather than three separate tables, so every rule attaches with one FK.
+
+- **Country** — top-level sovereign scope; ISO-3166-1 alpha-2 as stable external key where possible (`code`, `kind=COUNTRY`).
+- **Region** — first subdivision below country (Land, …); `kind=REGION`, `parent_id` → country.
+- **Municipality** — finest scope when present (`kind=MUNICIPALITY`, `parent_id` → region or another jurisdiction as modeled).
+
+### `levels[]` (discussion alignment)
+
+Some German units satisfy **more than one** administrative level at once (e.g. a **Kreisfreie Stadt** behaves as both district and municipality; **Hamburg** collapses multiple levels). Store a PostgreSQL `text[]` (or equivalent) **`levels`** on `jurisdiction`: values such as `COUNTRY`, `REGION`, `DISTRICT`, `MUNICIPALITY`. Resolution walks the **parent chain** and treats applicability by containment, not by assuming a fixed depth everywhere.
 
 ## Fields (minimum)
 
-- Stable **codes** where official registers exist (e.g. AGS for German municipalities); human-readable **name** and optional **name_i18n** (JSONB or satellite table).
+- Stable **`code`** where official registers exist (e.g. AGS for German municipalities); **`name_i18n` JSONB** (at least `de` and `en` for MVP) instead of a single free-text `name` column.
+- **`levels`** as above (can be empty only for transitional data—prefer explicit values at seed time).
 - **Effective dating** (`valid_from` / `valid_to`) if boundaries or mergers matter for historical accuracy; MVP may omit if only “current” data is loaded.
 
 ## Inheritance rule (read path)
@@ -27,13 +34,13 @@ Document this order in code and tests; do not rely on implicit sort without a de
 
 ## Implementation checklist
 
-- [ ] Alembic migration: `countries`, `regions`, `municipalities` (or unified `jurisdictions` with `type` enum—decide and document tradeoff: fewer joins vs clearer semantics).
-- [ ] Unique constraints on `(country_id, region_code)` and `(region_id, municipality_code)` as applicable.
-- [ ] Seed script: Germany + 16 Länder + optional sample municipalities for dev.
+- [ ] Alembic migration: unified **`jurisdiction`** table (`kind`, `parent_id`, `code`, `levels` text[], `name_i18n` JSONB) — **do not** ship MVP with parallel `countries` / `regions` / `municipalities` tables unless you document why the split is needed.
+- [ ] Unique constraints appropriate to `code` + `parent_id` (and country root uniqueness).
+- [ ] Seed script: Germany + 16 Länder + at least one sample municipality (with realistic `levels`) for dev.
 
 ## Open decisions
 
-- **Unified `jurisdictions` table vs split tables:** unified simplifies “attach rule to any level” with one FK; split tables are more explicit for German forms. Recommendation: **unified `jurisdiction` with `kind` enum** and self-FK `parent_id` for simpler graph APIs.
+- **Unified `jurisdiction` table vs split tables:** **Choose unified** for Redtape unless a strong reason appears later. It matches the discussion’s “list of levels this unit satisfies” model, keeps FK shapes stable for requirements, and pairs cleanly with [i18n-localization](../i18n-localization/README.md) (`name_i18n`).
 
 ## Related chapters
 
