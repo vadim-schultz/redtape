@@ -29,10 +29,10 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 
 ## Wave 0 — Repository and contracts (optional precursors)
 
-| Step | Outcome | Notes |
-|------|---------|--------|
-| 0a | Add monorepo folders `apps/api`, `apps/web`, `apps/mobile` (empty or placeholder README) | No framework yet; aligns with [devops-ci-cd](directions/devops-ci-cd/README.md). |
-| 0b | Root `.gitignore` + document Python/Node/Flutter ignores | Prevents noise in commits. |
+| Step | Outcome | Notes | Status |
+|------|---------|--------|--------|
+| 0a | Add monorepo folders `apps/api`, `apps/web`, `apps/mobile` (empty or placeholder README) | No framework yet; aligns with [devops-ci-cd](directions/devops-ci-cd/README.md). | Done — see [wave-0-repo-i18n](directions/wave-0-repo-i18n/README.md) |
+| 0b | Root `.gitignore` + document Python/Node/Flutter ignores | Prevents noise in commits. | Done |
 
 ---
 
@@ -40,15 +40,15 @@ Jurisdiction **fallback** (city → Land → country) can be **seeded but unused
 
 Aligns with [directions/i18n-localization/README.md](directions/i18n-localization/README.md). **MVP locales: `de` + `en` only** (both required for every shipped UI key and seeded domain JSONB).
 
-| Step | Outcome | Notes |
-|------|---------|--------|
-| I1 | Migration: `supported_locale` + `ui_translation` (+ seed `de` / `en` rows enabled) | Enables locale picker and validation. |
-| I2 | Seed pipeline: nested JSON (or flat CSV) **imported into** `ui_translation` — files are authoring convenience, **not** a second runtime source | Keeps “DB only” for production behavior. |
-| I3 | `GET /api/v1/translations?locale=` — returns `{ locale, translations: { key: value } }` | Long-cache headers when stable. |
-| I4 | `GET /api/v1/locales` — lists enabled locales for pickers | Driven by `supported_locale`. |
-| I5 | Locale resolution: `Accept-Language` + optional `?locale=` override; fallback **requested → `de` → `en`** | Document in [backend-api](directions/backend-api/README.md). |
-| I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). |
-| I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). |
+| Step | Outcome | Notes | Status |
+|------|---------|--------|--------|
+| I1 | Migration: `supported_locale` + `ui_translation` (+ seed `de` / `en` rows enabled) | Enables locale picker and validation. | Done — [`apps/api/alembic/versions`](../../apps/api/alembic/versions) |
+| I2 | Seed pipeline: nested JSON (or flat CSV) **imported into** `ui_translation` — files are authoring convenience, **not** a second runtime source | Keeps “DB only” for production behavior. | Done — [`apps/api/scripts/seed_data/translations`](../../apps/api/scripts/seed_data/translations) + [`seed_i18n.py`](../../apps/api/scripts/seed_i18n.py) |
+| I3 | `GET /api/v1/translations?locale=` — returns `{ locale, translations: { key: value } }` | Long-cache headers when stable. | Done — [`apps/api/app/routes.py`](../../apps/api/app/routes.py) |
+| I4 | `GET /api/v1/locales` — lists enabled locales for pickers | Driven by `supported_locale`. | Done |
+| I5 | Locale resolution: `Accept-Language` + optional `?locale=` override; fallback **requested → `de` → `en`** | Document in [backend-api](directions/backend-api/README.md). | Done — [`apps/api/app/locale_resolution.py`](../../apps/api/app/locale_resolution.py) + middleware |
+| I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). | Draft — [`apps/web/src/contexts/LocaleContext.tsx.draft`](../../apps/web/src/contexts/LocaleContext.tsx.draft) (Wave 2 W2) |
+| I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). | Draft — [`apps/mobile/lib/providers/locale_provider.dart.draft`](../../apps/mobile/lib/providers/locale_provider.dart.draft) (Wave 3 M2) |
 
 **Checkpoint:** Switching `de`/`en` updates UI chrome and API-returned domain strings without redeploy.
 

@@ -1,0 +1,44 @@
+// DRAFT — Wave 0 placeholder (not part of a `flutter create` project yet).
+//
+// Full implementation: Wave 3 step M2 per docs/planning/02-incremental-mvp-roadmap.md
+// Pattern: load GET /api/v1/translations, keep locale in state, set Accept-Language on HTTP client.
+//
+// ```dart
+// import 'dart:convert';
+// import 'package:flutter/foundation.dart';
+// import 'package:http/http.dart' as http;
+//
+// class LocaleProvider extends ChangeNotifier {
+//   LocaleProvider({required this.apiBase});
+//
+//   final String apiBase;
+//   String locale = 'de';
+//   Map<String, String> translations = {};
+//   bool isLoading = true;
+//
+//   Future<void> setLocale(String next) async {
+//     locale = next;
+//     isLoading = true;
+//     notifyListeners();
+//     final uri = Uri.parse('$apiBase/api/v1/translations').replace(queryParameters: {'locale': next});
+//     final res = await http.get(uri, headers: {'Accept-Language': next});
+//     if (res.statusCode != 200) {
+//       isLoading = false;
+//       notifyListeners();
+//       return;
+//     }
+//     final data = jsonDecode(res.body) as Map<String, dynamic>;
+//     translations = Map<String, String>.from(data['translations'] as Map);
+//     isLoading = false;
+//     notifyListeners();
+//   }
+//
+//   String t(String key, {Map<String, Object?>? params}) {
+//     var value = translations[key] ?? key;
+//     params?.forEach((k, v) {
+//       value = value.replaceAll('{$k}', '$v');
+//     });
+//     return value;
+//   }
+// }
+// ```

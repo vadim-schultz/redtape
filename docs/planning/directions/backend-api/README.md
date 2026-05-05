@@ -15,6 +15,17 @@
 - **security-privacy-gdpr:** authn/authz, PII boundaries, retention.
 - **devops-ci-cd:** deployment, secrets, environment configuration.
 
+## Locale negotiation (Wave 0 baseline)
+
+Implemented in [`apps/api`](../../../../apps/api) (see [wave-0-repo-i18n](../wave-0-repo-i18n/README.md)):
+
+1. **Query override:** optional `?locale=` (ISO 639-1 primary subtag, e.g. `de`, `en`).
+2. **Header:** `Accept-Language` with simple `q` weighting; only tags present in `supported_locale` and `enabled` are considered.
+3. **Fallback:** if the requested tag is missing/disabled → **`de` → `en`** → first enabled code (lexicographic).
+4. **Request state:** resolved locale is stored on `request.state["locale"]` for handlers (e.g. `GET /api/v1/translations` uses it when `locale` query is omitted).
+
+Document-specific resolution (JSONB `*_i18n`) arrives in Wave 1; this wave covers **UI bundles** + **picker metadata** only.
+
 ## Child plans (expand next)
 
 | File | Topic |

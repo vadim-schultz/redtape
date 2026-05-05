@@ -1,0 +1,36 @@
+{
+  "common": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "home": "Home",
+    "browse_documents": "Browse Documents",
+    "about": "About"
+  },
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password"
+  },
+  "documents": {
+    "list_title": "Documents",
+    "detail_title": "Document Details",
+    "requirements": "Required Documents",
+    "no_requirements": "No requirements",
+    "official_source": "Official Source"
+  },
+  "errors": {
+    "validation_error": "Input validation error",
+    "document_not_found": "Document not found: {id}",
+    "unauthorized": "Unauthorized",
+    "server_error": "Server error. Please try again later."
+  }
+}

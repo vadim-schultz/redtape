@@ -13,5 +13,6 @@ Each subdirectory is a **development strand**: overview in `README.md`, with num
 | [social-moderation](social-moderation/) | Proposals, votes, evidence, audit log, roles |
 | [security-privacy-gdpr](security-privacy-gdpr/) | Lawful basis, retention, local-first posture |
 | [devops-ci-cd](devops-ci-cd/) | Monorepo layout, CI, migrations, secrets, observability |
+| [wave-0-repo-i18n](wave-0-repo-i18n/) | **Shipped slice:** `apps/*` layout + API i18n tables/endpoints (see roadmap Wave 0) |
 
 Return to [../README.md](../README.md) for reading order and conventions.

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "submit": "Absenden",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "search": "Suchen",
+    "loading": "Lädt...",
+    "error": "Fehler",
+    "success": "Erfolgreich"
+  },
+  "nav": {
+    "home": "Startseite",
+    "browse_documents": "Dokumente durchsuchen",
+    "about": "Über uns"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort"
+  },
+  "documents": {
+    "list_title": "Dokumente",
+    "detail_title": "Dokumentdetails",
+    "requirements": "Erforderliche Dokumente",
+    "no_requirements": "Keine Voraussetzungen",
+    "official_source": "Offizielle Quelle"
+  },
+  "errors": {
+    "validation_error": "Validierungsfehler bei der Eingabe",
+    "document_not_found": "Dokument nicht gefunden: {id}",
+    "unauthorized": "Nicht autorisiert",
+    "server_error": "Serverfehler. Bitte versuchen Sie es später erneut."
+  }
+}

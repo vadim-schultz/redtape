@@ -14,8 +14,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Python packaging artifacts at repo root only (do not use bare `lib/` — it ignores Flutter `apps/mobile/lib/`)
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -179,3 +180,32 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# --- Node.js / Vite / frontend (apps/web) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+.vite/
+*.local
+.next/
+out/
+coverage/
+.nyc_output/
+
+# --- Flutter / Dart (apps/mobile) ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
