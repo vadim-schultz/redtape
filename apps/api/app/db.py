@@ -9,8 +9,24 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import settings
 
 
+def _connect_args_for_url(url: str) -> dict[str, object]:
+    """Supabase requires TLS; ensure sslmode when URL omits it."""
+    lower = url.lower()
+    if (
+        "supabase.co" in lower or "pooler.supabase.com" in lower
+    ) and "sslmode" not in lower:
+        return {"sslmode": "require"}
+    return {}
+
+
 def _create_engine() -> Engine:
-    return create_engine(settings.database_url, echo=False, future=True)
+    url = settings.database_url
+    return create_engine(
+        url,
+        echo=False,
+        future=True,
+        connect_args=_connect_args_for_url(url),
+    )
 
 
 engine = _create_engine()

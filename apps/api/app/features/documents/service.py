@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+from uuid import UUID
+
+from app.features.documents.repository import DocumentRepository
+from app.models.document import Document, DocumentRequirement
+from app.schema.document.read import (
+    DocumentDetail,
+    DocumentListResponse,
+    DocumentSummary,
+    RequirementRead,
+)
+
+
+def _pick_i18n(
+    values: dict[str, object] | None,
+    *,
+    locale: str,
+    enabled: Iterable[str],
+) -> str:
+    """Resolve JSONB i18n map: requested → de → en → first enabled key → any value."""
+    if not values:
+        return ""
+    enabled_set = set(enabled)
+    for code in (locale, "de", "en"):
+        if code in values and str(values[code]).strip():
+            return str(values[code])
+    for key in sorted(enabled_set):
+        if key in values and str(values[key]).strip():
+            return str(values[key])
+    for _k, v in values.items():
+        if v is not None and str(v).strip():
+            return str(v)
+    return ""
+
+
+class DocumentService:
+    """Domain logic for localized document reads."""
+
+    def __init__(self, repository: DocumentRepository) -> None:
+        self._repo = repository
+
+    def list_documents(
+        self,
+        *,
+        locale: str,
+        enabled_locales: set[str],
+        jurisdiction_id: UUID | None,
+        offset: int,
+        limit: int,
+    ) -> DocumentListResponse:
+        total = self._repo.count(jurisdiction_id=jurisdiction_id)
+        rows = self._repo.list_page(
+            jurisdiction_id=jurisdiction_id, offset=offset, limit=limit
+        )
+        items = [self._to_summary(row, locale=locale, enabled_locales=enabled_locales) for row in rows]
+        return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+
+    def get_document_detail(
+        self,
+        *,
+        document_id: UUID,
+        locale: str,
+        enabled_locales: set[str],
+    ) -> DocumentDetail | None:
+        doc = self._repo.get_by_id(document_id)
+        if doc is None:
+            return None
+        reqs: list[RequirementRead] = []
+        for edge in doc.outgoing_requirements:
+            req_doc = edge.required_document
+            reqs.append(
+                RequirementRead(
+                    id=edge.id,
+                    required_document=self._to_summary(
+                        req_doc, locale=locale, enabled_locales=enabled_locales
+                    ),
+                    notes=_pick_i18n(edge.notes_i18n, locale=locale, enabled=enabled_locales)
+                    or None,
+                )
+            )
+        return DocumentDetail(
+            id=doc.id,
+            slug=doc.slug,
+            title=_pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
+            description=_pick_i18n(
+                doc.description_i18n, locale=locale, enabled=enabled_locales
+            ),
+            official_url=doc.official_url,
+            jurisdiction_id=doc.jurisdiction_id,
+            requirements=reqs,
+        )
+
+    def _to_summary(
+        self, doc: Document, *, locale: str, enabled_locales: set[str]
+    ) -> DocumentSummary:
+        return DocumentSummary(
+            id=doc.id,
+            slug=doc.slug,
+            title=_pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
+            description=_pick_i18n(
+                doc.description_i18n, locale=locale, enabled=enabled_locales
+            ),
+        )
