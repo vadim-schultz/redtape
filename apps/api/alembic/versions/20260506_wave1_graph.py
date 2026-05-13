@@ -27,9 +27,6 @@ jurisdiction_kind = postgresql.ENUM(
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    jurisdiction_kind.create(bind, checkfirst=True)
-
     op.create_table(
         "jurisdiction",
         sa.Column("id", sa.Uuid(), nullable=False),
