@@ -67,6 +67,6 @@ class OpenPLZLocality(_OpenPLZBaseModel):
     """GET /{lang}/Localities... item."""
 
     name: str
-    postal_code: str = Field(alias="postalcode")
+    postal_code: str = Field(alias="postalCode")
     municipality: OpenPLZMunicipalityRef | None = Field(alias="municipality", default=None)
 

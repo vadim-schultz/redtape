@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.db import SessionLocal
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -280,6 +281,11 @@ class OpenPLZLocationsImporter:
         )
         self._dry_run = dry_run
         self._stats = _ImportStats()
+        self._country_id: uuid.UUID | None = None
+        # Maps OpenPLZ municipality key -> DB id.
+        # We can't rely solely on deterministic UUIDs if the DB already contains
+        # partially-imported rows created by earlier runs with mismatched ids.
+        self._municipality_id_by_code: dict[str, uuid.UUID] = {}
 
     def import_all(self) -> None:
         try:
@@ -295,19 +301,34 @@ class OpenPLZLocationsImporter:
 
     def _import_country(self) -> None:
         country_code = "DE"
-        country_id = _stable_uuid(f"jurisdiction:COUNTRY:{country_code}")
-        self._db.upsert_jurisdiction(
-            jurisdiction_id=country_id,
-            kind=JurisdictionKind.COUNTRY,
-            geographic_parent_id=None,
-            code=country_code,
-            openplz_type="Country",
-            name_de="Deutschland",
-            administrative_roles=["COUNTRY"],
-            postal_code=None,
-            multiple_postal_codes=False,
-        )
+        try:
+            country = self._db.upsert_jurisdiction(
+                jurisdiction_id=_stable_uuid(f"jurisdiction:COUNTRY:{country_code}"),
+                kind=JurisdictionKind.COUNTRY,
+                geographic_parent_id=None,
+                code=country_code,
+                openplz_type="Country",
+                name_de="Deutschland",
+                administrative_roles=["COUNTRY"],
+                postal_code=None,
+                multiple_postal_codes=False,
+            )
+        except IntegrityError as e:
+            raise RuntimeError(
+                f"Failed to upsert COUNTRY {country_code}: {e}"
+            ) from e
+        # Ensure the parent jurisdiction exists before inserting regions.
+        # Otherwise, batched flushes can violate FK constraints.
+        self._session.flush()
         self._bump_and_maybe_commit()
+        self._country_id = country.id
+        parent_exists = (
+            self._session.execute(
+                select(Jurisdiction.id).where(Jurisdiction.id == self._country_id)
+            ).scalar_one_or_none()
+        )
+        if parent_exists is None:
+            raise RuntimeError(f"Country parent not found after upsert: {self._country_id}")
 
     def _import_states(self) -> None:
         states_payload = self._client.get_json("FederalStates") or []
@@ -316,22 +337,31 @@ class OpenPLZLocationsImporter:
 
     def _import_state(self, state: OpenPLZFederalState) -> None:
         state_code = state.key
-        country_id = _stable_uuid("jurisdiction:COUNTRY:DE")
-        state_id = _stable_uuid(f"jurisdiction:REGION:{state_code}")
+        if self._country_id is None:
+            raise RuntimeError("Country parent id is not set.")
 
-        self._db.upsert_jurisdiction(
-            jurisdiction_id=state_id,
-            kind=JurisdictionKind.REGION,
-            geographic_parent_id=country_id,
-            code=state_code,
-            openplz_type=None,
-            name_de=state.name,
-            administrative_roles=["REGION"],
-            postal_code=None,
-            multiple_postal_codes=False,
-        )
+        try:
+            state = self._db.upsert_jurisdiction(
+                jurisdiction_id=_stable_uuid(f"jurisdiction:REGION:{state_code}"),
+                kind=JurisdictionKind.REGION,
+                geographic_parent_id=self._country_id,
+                code=state_code,
+                openplz_type=None,
+                name_de=state.name,
+                administrative_roles=["REGION"],
+                postal_code=None,
+                multiple_postal_codes=False,
+            )
+        except IntegrityError as e:
+            raise RuntimeError(
+                "Failed to upsert REGION "
+                f"code={state_code!r} expected_parent_country_id={self._country_id} "
+                f"(kind={JurisdictionKind.COUNTRY.value}) error={e}"
+            ) from e
+        # Ensure the parent jurisdiction exists before inserting districts.
+        self._session.flush()
         self._bump_and_maybe_commit()
-
+        state_id = state.id
         self._import_districts_for_state(state_code=state_code, state_id=state_id)
 
     def _import_districts_for_state(self, *, state_code: str, state_id: uuid.UUID) -> None:
@@ -341,20 +371,27 @@ class OpenPLZLocationsImporter:
         ):
             district = OpenPLZDistrict.model_validate(district_item)
             district_code = district.key
-            district_id = _stable_uuid(f"jurisdiction:REGION:{district_code}")
-
-            self._db.upsert_jurisdiction(
-                jurisdiction_id=district_id,
-                kind=JurisdictionKind.REGION,
-                geographic_parent_id=state_id,
-                code=district_code,
-                openplz_type=district.type,
-                name_de=district.name,
-                administrative_roles=["DISTRICT"],
-                postal_code=None,
-                multiple_postal_codes=False,
-            )
+            try:
+                district = self._db.upsert_jurisdiction(
+                    jurisdiction_id=_stable_uuid(f"jurisdiction:REGION:{district_code}"),
+                    kind=JurisdictionKind.REGION,
+                    geographic_parent_id=state_id,
+                    code=district_code,
+                    openplz_type=district.type,
+                    name_de=district.name,
+                    administrative_roles=["DISTRICT"],
+                    postal_code=None,
+                    multiple_postal_codes=False,
+                )
+            except IntegrityError as e:
+                raise RuntimeError(
+                    f"Failed to upsert DISTRICT region code={district_code!r} "
+                    f"expected_parent_state_id={state_id} error={e}"
+                ) from e
+            # Ensure the district exists before inserting its municipalities.
+            self._session.flush()
             self._bump_and_maybe_commit()
+            district_id = district.id
 
             self._import_municipalities_for_district(
                 district_code=district_code,
@@ -370,21 +407,29 @@ class OpenPLZLocationsImporter:
         ):
             muni = OpenPLZMunicipality.model_validate(muni_item)
             muni_code = muni.key
-            muni_id = _stable_uuid(f"jurisdiction:MUNICIPALITY:{muni_code}")
-
-            self._db.upsert_jurisdiction(
-                jurisdiction_id=muni_id,
-                kind=JurisdictionKind.MUNICIPALITY,
-                geographic_parent_id=district_id,
-                code=muni_code,
-                openplz_type=muni.type,
-                name_de=muni.name,
-                administrative_roles=_municipality_roles(muni.type),
-                postal_code=muni.postal_code,
-                multiple_postal_codes=muni.multiple_postal_codes,
-            )
+            try:
+                muni = self._db.upsert_jurisdiction(
+                    jurisdiction_id=_stable_uuid(f"jurisdiction:MUNICIPALITY:{muni_code}"),
+                    kind=JurisdictionKind.MUNICIPALITY,
+                    geographic_parent_id=district_id,
+                    code=muni_code,
+                    openplz_type=muni.type,
+                    name_de=muni.name,
+                    administrative_roles=_municipality_roles(muni.type),
+                    postal_code=muni.postal_code,
+                    multiple_postal_codes=muni.multiple_postal_codes,
+                )
+            except IntegrityError as e:
+                raise RuntimeError(
+                    f"Failed to upsert MUNICIPALITY code={muni_code!r} "
+                    f"expected_parent_district_id={district_id} error={e}"
+                ) from e
+            muni_id = muni.id
+            self._municipality_id_by_code[muni_code] = muni_id
             self._bump_and_maybe_commit()
 
+        # Ensure all municipalities exist before inserting localities.
+        self._session.flush()
         self._import_localities_for_district(district_code=district_code)
 
     def _import_localities_for_district(self, *, district_code: str) -> None:
@@ -399,7 +444,9 @@ class OpenPLZLocationsImporter:
                 continue
 
             muni_code = muni_ref.key
-            muni_id = _stable_uuid(f"jurisdiction:MUNICIPALITY:{muni_code}")
+            muni_id = self._municipality_id_by_code.get(
+                muni_code, _stable_uuid(f"jurisdiction:MUNICIPALITY:{muni_code}")
+            )
             loc_id = _stable_uuid(f"locality:{muni_code}:{loc.postal_code}:{loc.name}")
 
             self._db.upsert_locality(
