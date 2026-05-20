@@ -48,6 +48,18 @@ class DocumentDetail(BaseModel):
     official_url: str | None
     jurisdiction_id: UUID
     requirements: list[RequirementRead] = Field(default_factory=list)
+    jurisdiction_path: list["JurisdictionPathNode"] = Field(default_factory=list)
+
+
+class JurisdictionPathNode(BaseModel):
+    """Resolved jurisdiction breadcrumb node."""
+
+    model_config = ConfigDict(from_attributes=False)
+
+    code: str
+    name: str
+    kind: str
+    openplz_type: str | None = None
 
 
 class DocumentListResponse(BaseModel):

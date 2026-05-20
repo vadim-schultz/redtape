@@ -26,6 +26,9 @@ class DocumentsController(Controller):
         request: Request,
         document_service: DocumentService,
         jurisdiction_id: UUID | None = Parameter(query="jurisdiction_id", default=None),
+        municipality_code: str | None = Parameter(
+            query="municipality_code", default=None
+        ),
         offset: int = Parameter(query="offset", default=0, ge=0),
         limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> DocumentListResponse:
@@ -35,6 +38,7 @@ class DocumentsController(Controller):
             locale=locale,
             enabled_locales=enabled,
             jurisdiction_id=jurisdiction_id,
+            municipality_code=municipality_code,
             offset=offset,
             limit=limit,
         )

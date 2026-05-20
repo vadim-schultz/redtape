@@ -6,6 +6,7 @@ from app.schema.document import (
     DocumentListResponse,
     DocumentSummary,
     RequirementRead,
+    JurisdictionPathNode,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "DocumentListResponse",
     "DocumentSummary",
     "RequirementRead",
+    "JurisdictionPathNode",
 ]

@@ -8,6 +8,7 @@ from litestar.plugins.pydantic import PydanticPlugin
 
 from app.db import provide_session
 from app.features.documents.router import documents_router
+from app.features.locations.router import locations_router
 from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
 from app.middleware.locale import LocaleResolverMiddleware
@@ -16,7 +17,13 @@ from app.routes import health, list_locales, translations_bundle
 
 def create_app() -> Litestar:
     return Litestar(
-        route_handlers=[health, list_locales, translations_bundle, documents_router],
+        route_handlers=[
+            health,
+            list_locales,
+            translations_bundle,
+            documents_router,
+            locations_router,
+        ],
         dependencies={"session": Provide(provide_session)},
         middleware=[DefineMiddleware(LocaleResolverMiddleware)],
         lifespan=[app_lifespan],
