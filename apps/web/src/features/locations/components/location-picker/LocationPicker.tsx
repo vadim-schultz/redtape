@@ -1,13 +1,13 @@
-import { Box, VStack } from '@chakra-ui/react';
-import { useMemo, useState } from 'react';
+import { Box, VStack } from "@chakra-ui/react";
+import { useMemo, useState } from "react";
 
-import { useLocale } from '../../../../contexts/LocaleContext';
-import { useDistrictsQuery } from '../../hooks/useDistrictsQuery';
-import { useMunicipalitiesQuery } from '../../hooks/useMunicipalitiesQuery';
-import { useStatesQuery } from '../../hooks/useStatesQuery';
+import { useLocale } from "../../../../contexts/LocaleContext";
+import { useDistrictsQuery } from "../../hooks/useDistrictsQuery";
+import { useMunicipalitiesQuery } from "../../hooks/useMunicipalitiesQuery";
+import { useStatesQuery } from "../../hooks/useStatesQuery";
 
-import LocationPickerHeader from './LocationPickerHeader';
-import LocationSelect from './LocationSelect';
+import LocationPickerHeader from "./LocationPickerHeader";
+import LocationSelect from "./LocationSelect";
 
 export interface LocationPickerProps {
   onMunicipalityChange: (municipalityCode: string | null) => void;
@@ -18,9 +18,9 @@ export default function LocationPicker({
 }: LocationPickerProps) {
   const { locale, t } = useLocale();
 
-  const [stateCode, setStateCode] = useState<string>('');
-  const [districtCode, setDistrictCode] = useState<string>('');
-  const [municipalityCode, setMunicipalityCode] = useState<string>('');
+  const [stateCode, setStateCode] = useState<string>("");
+  const [districtCode, setDistrictCode] = useState<string>("");
+  const [municipalityCode, setMunicipalityCode] = useState<string>("");
 
   const statesQuery = useStatesQuery(locale);
   const districtsQuery = useDistrictsQuery({ locale, stateCode });
@@ -30,13 +30,13 @@ export default function LocationPicker({
   });
 
   const canReset = useMemo(() => {
-    return stateCode !== '' || districtCode !== '' || municipalityCode !== '';
+    return stateCode !== "" || districtCode !== "" || municipalityCode !== "";
   }, [stateCode, districtCode, municipalityCode]);
 
   const handleReset = () => {
-    setStateCode('');
-    setDistrictCode('');
-    setMunicipalityCode('');
+    setStateCode("");
+    setDistrictCode("");
+    setMunicipalityCode("");
     onMunicipalityChange(null);
   };
 
@@ -50,7 +50,7 @@ export default function LocationPicker({
     >
       <VStack gap={3} align="stretch">
         <LocationPickerHeader
-          cancelLabel={t('common.cancel')}
+          cancelLabel={t("common.cancel")}
           localeLabel={locale.toUpperCase()}
           canReset={canReset}
           onReset={handleReset}
@@ -62,11 +62,11 @@ export default function LocationPicker({
             value={stateCode}
             disabled={false}
             options={statesQuery.data?.items}
-            placeholder={t('documents.list_title')}
+            placeholder={t("documents.list_title")}
             onChange={(next) => {
               setStateCode(next);
-              setDistrictCode('');
-              setMunicipalityCode('');
+              setDistrictCode("");
+              setMunicipalityCode("");
               onMunicipalityChange(null);
             }}
             isLoading={statesQuery.isLoading}
@@ -79,10 +79,10 @@ export default function LocationPicker({
             value={districtCode}
             disabled={!stateCode}
             options={districtsQuery.data?.items}
-            placeholder={t('documents.list_title')}
+            placeholder={t("documents.list_title")}
             onChange={(next) => {
               setDistrictCode(next);
-              setMunicipalityCode('');
+              setMunicipalityCode("");
               onMunicipalityChange(null);
             }}
             isLoading={districtsQuery.isLoading}
@@ -95,7 +95,7 @@ export default function LocationPicker({
             value={municipalityCode}
             disabled={!districtCode}
             options={municipalitiesQuery.data?.items}
-            placeholder={t('documents.list_title')}
+            placeholder={t("documents.list_title")}
             onChange={(next) => {
               setMunicipalityCode(next);
               onMunicipalityChange(next || null);
@@ -107,4 +107,3 @@ export default function LocationPicker({
     </Box>
   );
 }
-

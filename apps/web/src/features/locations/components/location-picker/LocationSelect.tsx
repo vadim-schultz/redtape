@@ -1,10 +1,10 @@
-import { Select, Text, VStack } from '@chakra-ui/react';
-import { useMemo } from 'react';
-import { createListCollection } from '@ark-ui/react/select';
+import { Select, Text, VStack } from "@chakra-ui/react";
+import { useMemo } from "react";
+import { createListCollection } from "@ark-ui/react/select";
 
-import type { LocationNode } from '../../types';
+import type { LocationNode } from "../../types";
 
-import LocationSelectSkeleton from './LocationSelectSkeleton';
+import LocationSelectSkeleton from "./LocationSelectSkeleton";
 
 export interface LocationSelectProps {
   label: string;
@@ -26,7 +26,7 @@ export default function LocationSelect({
   isLoading,
 }: LocationSelectProps) {
   const items = useMemo(() => {
-    const base = [{ code: '', name: placeholder }];
+    const base = [{ code: "", name: placeholder }];
     const rest = (options ?? []).map((o) => ({ code: o.code, name: o.name }));
     return [...base, ...rest];
   }, [options, placeholder]);
@@ -51,7 +51,7 @@ export default function LocationSelect({
         collection={collection}
         onValueChange={(details) => {
           const v = (details as unknown as { value?: string[] }).value;
-          onChange(v?.[0] ?? '');
+          onChange(v?.[0] ?? "");
         }}
       >
         <Select.Trigger>
@@ -78,4 +78,3 @@ export default function LocationSelect({
     </VStack>
   );
 }
-

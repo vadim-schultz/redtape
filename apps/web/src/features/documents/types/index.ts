@@ -35,4 +35,3 @@ export type DocumentDetail = {
   jurisdiction_path: JurisdictionPathNode[];
   requirements: RequirementRead[];
 };
-

@@ -1,11 +1,14 @@
-import { Heading, Text } from '@chakra-ui/react';
+import { Heading, Text } from "@chakra-ui/react";
 
 export interface DocumentHeaderProps {
   title: string;
   description?: string | null;
 }
 
-export default function DocumentHeader({ title, description }: DocumentHeaderProps) {
+export default function DocumentHeader({
+  title,
+  description,
+}: DocumentHeaderProps) {
   return (
     <>
       <Heading size="lg">{title}</Heading>
@@ -15,4 +18,3 @@ export default function DocumentHeader({ title, description }: DocumentHeaderPro
     </>
   );
 }
-

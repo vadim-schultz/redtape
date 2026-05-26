@@ -1,7 +1,7 @@
-import { Suspense } from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Suspense } from "react";
+import { Route, Routes, Navigate } from "react-router-dom";
 
-import { routes } from './routes';
+import { routes } from "./routes";
 
 function App() {
   return (
@@ -17,4 +17,3 @@ function App() {
 }
 
 export default App;
-

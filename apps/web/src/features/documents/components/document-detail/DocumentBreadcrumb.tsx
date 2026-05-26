@@ -1,6 +1,6 @@
-import { Text } from '@chakra-ui/react';
+import { Text } from "@chakra-ui/react";
 
-import type { JurisdictionPathNode } from '../../types';
+import type { JurisdictionPathNode } from "../../types";
 
 export interface DocumentBreadcrumbProps {
   nodes: JurisdictionPathNode[];
@@ -9,7 +9,7 @@ export interface DocumentBreadcrumbProps {
 
 export default function DocumentBreadcrumb({
   nodes,
-  separator = ' › ',
+  separator = " › ",
 }: DocumentBreadcrumbProps) {
   if (!nodes.length) {
     return null;
@@ -23,4 +23,3 @@ export default function DocumentBreadcrumb({
     </Text>
   );
 }
-

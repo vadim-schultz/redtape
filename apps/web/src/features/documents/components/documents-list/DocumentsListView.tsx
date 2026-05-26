@@ -1,10 +1,10 @@
-import { Box, VStack } from '@chakra-ui/react';
+import { Box, VStack } from "@chakra-ui/react";
 
-import type { DocumentSummary } from '../../types';
-import LocationPicker from '../../../locations/components/location-picker/LocationPicker';
+import type { DocumentSummary } from "../../types";
+import LocationPicker from "../../../locations/components/location-picker/LocationPicker";
 
-import DocumentsListHeader from './DocumentsListHeader';
-import DocumentsListQueryStatus from './DocumentsListQueryStatus';
+import DocumentsListHeader from "./DocumentsListHeader";
+import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 export interface DocumentsListViewProps {
   title: string;
@@ -47,4 +47,3 @@ export default function DocumentsListView({
     </Box>
   );
 }
-

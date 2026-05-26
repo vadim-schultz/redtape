@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useDocumentsListQuery } from '../hooks/useDocumentsListQuery';
-import { useLocale } from '../../../contexts/LocaleContext';
-import DocumentsListView from '../components/documents-list/DocumentsListView';
+import { useDocumentsListQuery } from "../hooks/useDocumentsListQuery";
+import { useLocale } from "../../../contexts/LocaleContext";
+import DocumentsListView from "../components/documents-list/DocumentsListView";
 
 export default function DocumentsListPage() {
   const { t } = useLocale();
@@ -12,8 +12,8 @@ export default function DocumentsListPage() {
 
   return (
     <DocumentsListView
-      title={t('documents.list_title')}
-      listTitleLabel={t('documents.list_title')}
+      title={t("documents.list_title")}
+      listTitleLabel={t("documents.list_title")}
       documents={docsQuery.data?.items}
       isLoading={docsQuery.isLoading}
       isError={docsQuery.isError}
@@ -22,4 +22,3 @@ export default function DocumentsListPage() {
     />
   );
 }
-

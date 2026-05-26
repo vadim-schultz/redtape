@@ -1,6 +1,6 @@
-import { apiRequest } from '../../../services/api';
+import { apiRequest } from "../../../services/api";
 
-import type { DocumentDetail, DocumentListResponse } from '../types';
+import type { DocumentDetail, DocumentListResponse } from "../types";
 
 export async function fetchDocuments(params: {
   locale: string;
@@ -8,10 +8,12 @@ export async function fetchDocuments(params: {
 }): Promise<DocumentListResponse> {
   const { locale, municipalityCode } = params;
 
-  return apiRequest<DocumentListResponse>('/api/v1/documents', {
-    method: 'GET',
+  return apiRequest<DocumentListResponse>("/api/v1/documents", {
+    method: "GET",
     locale,
-    query: municipalityCode ? { municipality_code: municipalityCode } : undefined,
+    query: municipalityCode
+      ? { municipality_code: municipalityCode }
+      : undefined,
   });
 }
 
@@ -23,7 +25,6 @@ export async function fetchDocumentDetail(params: {
 
   return apiRequest<DocumentDetail>(`/api/v1/documents/${id}`, {
     locale,
-    method: 'GET',
+    method: "GET",
   });
 }
-

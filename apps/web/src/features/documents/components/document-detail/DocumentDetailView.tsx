@@ -1,9 +1,9 @@
-import { Box, VStack } from '@chakra-ui/react';
+import { Box, VStack } from "@chakra-ui/react";
 
-import type { DocumentDetail } from '../../types';
+import type { DocumentDetail } from "../../types";
 
-import DocumentBackButton from './DocumentBackButton';
-import DocumentDetailQueryStatus from './DocumentDetailQueryStatus';
+import DocumentBackButton from "./DocumentBackButton";
+import DocumentDetailQueryStatus from "./DocumentDetailQueryStatus";
 
 export interface DocumentDetailViewProps {
   document: DocumentDetail | undefined;
@@ -43,4 +43,3 @@ export default function DocumentDetailView({
     </Box>
   );
 }
-

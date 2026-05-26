@@ -1,4 +1,4 @@
-export type LocationKind = 'COUNTRY' | 'REGION' | 'MUNICIPALITY' | 'LOCALITY';
+export type LocationKind = "COUNTRY" | "REGION" | "MUNICIPALITY" | "LOCALITY";
 
 export type LocationNode = {
   code: string;
@@ -10,4 +10,3 @@ export type LocationNode = {
 export type LocationListResponse = {
   items: LocationNode[];
 };
-

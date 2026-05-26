@@ -1,11 +1,11 @@
-import { Box, Heading, Skeleton, Text } from '@chakra-ui/react';
+import { Box, Heading, Skeleton, Text } from "@chakra-ui/react";
 
-import type { DocumentDetail } from '../../types';
+import type { DocumentDetail } from "../../types";
 
-import DocumentHeader from './DocumentHeader';
-import DocumentBreadcrumb from './DocumentBreadcrumb';
-import RequirementsList from './requirements/RequirementsList';
-import RequirementsEmpty from './requirements/RequirementsEmpty';
+import DocumentHeader from "./DocumentHeader";
+import DocumentBreadcrumb from "./DocumentBreadcrumb";
+import RequirementsList from "./requirements/RequirementsList";
+import RequirementsEmpty from "./requirements/RequirementsEmpty";
 
 export interface DocumentDetailQueryStatusProps {
   isLoading: boolean;
@@ -44,7 +44,10 @@ export default function DocumentDetailQueryStatus({
 
   return (
     <>
-      <DocumentHeader title={document.title} description={document.description} />
+      <DocumentHeader
+        title={document.title}
+        description={document.description}
+      />
       <DocumentBreadcrumb nodes={document.jurisdiction_path ?? []} />
 
       <Box mt={4}>
@@ -69,4 +72,3 @@ export default function DocumentDetailQueryStatus({
     </>
   );
 }
-

@@ -1,4 +1,4 @@
-import { Button, HStack, Text } from '@chakra-ui/react';
+import { Button, HStack, Text } from "@chakra-ui/react";
 
 export interface LocationPickerHeaderProps {
   cancelLabel: string;
@@ -29,4 +29,3 @@ export default function LocationPickerHeader({
     </HStack>
   );
 }
-

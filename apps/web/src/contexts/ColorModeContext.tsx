@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 /**
  * Placeholder Wave 2 provider.
@@ -9,4 +9,3 @@ import type { ReactNode } from 'react';
 export function ColorModeProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
-

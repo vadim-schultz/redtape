@@ -1,7 +1,7 @@
-import { Box, Skeleton, Text } from '@chakra-ui/react';
+import { Box, Skeleton, Text } from "@chakra-ui/react";
 
-import type { DocumentSummary } from '../../types';
-import DocumentCard from './DocumentCard';
+import type { DocumentSummary } from "../../types";
+import DocumentCard from "./DocumentCard";
 
 export interface DocumentsListQueryStatusProps {
   isLoading: boolean;
@@ -28,7 +28,7 @@ export default function DocumentsListQueryStatus({
   return (
     <>
       <Text mb={2} color="muted" fontSize="sm">
-        {(documents?.length ?? 0)} {listTitleLabel}
+        {documents?.length ?? 0} {listTitleLabel}
       </Text>
       <Box display="flex" flexDirection="column" gap={3}>
         {(documents ?? []).map((d) => (
@@ -38,4 +38,3 @@ export default function DocumentsListQueryStatus({
     </>
   );
 }
-

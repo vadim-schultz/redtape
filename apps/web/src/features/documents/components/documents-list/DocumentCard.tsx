@@ -1,7 +1,7 @@
-import { Heading, Text } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Heading, Text } from "@chakra-ui/react";
+import { Link as RouterLink } from "react-router-dom";
 
-import type { DocumentSummary } from '../../types';
+import type { DocumentSummary } from "../../types";
 
 export interface DocumentCardProps {
   document: DocumentSummary;
@@ -11,7 +11,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
   return (
     <RouterLink
       to={`/documents/${document.id}`}
-      style={{ textDecoration: 'none' }}
+      style={{ textDecoration: "none" }}
     >
       <Heading size="sm">{document.title}</Heading>
       {document.description ? (
@@ -22,4 +22,3 @@ export default function DocumentCard({ document }: DocumentCardProps) {
     </RouterLink>
   );
 }
-

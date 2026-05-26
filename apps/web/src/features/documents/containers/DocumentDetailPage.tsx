@@ -1,8 +1,8 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from "react-router-dom";
 
-import { useLocale } from '../../../contexts/LocaleContext';
-import { useDocumentDetailQuery } from '../hooks/useDocumentDetailQuery';
-import DocumentDetailView from '../components/document-detail/DocumentDetailView';
+import { useLocale } from "../../../contexts/LocaleContext";
+import { useDocumentDetailQuery } from "../hooks/useDocumentDetailQuery";
+import DocumentDetailView from "../components/document-detail/DocumentDetailView";
 
 export default function DocumentDetailPage() {
   const { t } = useLocale();
@@ -17,11 +17,10 @@ export default function DocumentDetailPage() {
       isLoading={docQuery.isLoading}
       isError={docQuery.isError}
       error={docQuery.error}
-      onBack={() => navigate('/documents')}
-      requirementsTitle={t('documents.requirements')}
-      noRequirementsLabel={t('documents.no_requirements')}
-      officialSourceTitle={t('documents.official_source')}
+      onBack={() => navigate("/documents")}
+      requirementsTitle={t("documents.requirements")}
+      noRequirementsLabel={t("documents.no_requirements")}
+      officialSourceTitle={t("documents.official_source")}
     />
   );
 }
-

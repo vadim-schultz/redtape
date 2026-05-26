@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useLocale } from '../contexts/LocaleContext';
+import { useMemo } from "react";
+import { useLocale } from "../contexts/LocaleContext";
 
 export type ApiError = {
   status: number;
@@ -20,20 +20,20 @@ export class ApiRequestError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export async function apiRequest<T>(
   endpoint: string,
   opts: {
     locale: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     query?: Record<string, string | number | boolean | undefined>;
     body?: unknown;
     headers?: HeadersInit;
     signal?: AbortSignal;
   },
 ): Promise<T> {
-  const { locale, method = 'GET', query, body, headers, signal } = opts;
+  const { locale, method = "GET", query, body, headers, signal } = opts;
 
   const url = new URL(API_BASE + endpoint);
   if (query) {
@@ -46,10 +46,10 @@ export async function apiRequest<T>(
   const res = await fetch(url.toString(), {
     method,
     headers: {
-      Accept: 'application/json',
-      'Accept-Language': locale,
+      Accept: "application/json",
+      "Accept-Language": locale,
       ...(headers ?? {}),
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal,
@@ -57,7 +57,11 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const bodyText = await res.text();
-    throw new ApiRequestError({ status: res.status, url: url.toString(), bodyText });
+    throw new ApiRequestError({
+      status: res.status,
+      url: url.toString(),
+      bodyText,
+    });
   }
 
   return (await res.json()) as T;
@@ -69,14 +73,14 @@ export async function apiRequest<T>(
 export function useApi() {
   const { locale } = useLocale();
 
-  type ApiRequestInit = Omit<
-    Parameters<typeof apiRequest>[1],
-    'locale'
-  >;
+  type ApiRequestInit = Omit<Parameters<typeof apiRequest>[1], "locale">;
 
   return useMemo(() => {
     return {
-      request: async <T,>(endpoint: string, init?: ApiRequestInit): Promise<T> => {
+      request: async <T>(
+        endpoint: string,
+        init?: ApiRequestInit,
+      ): Promise<T> => {
         return apiRequest<T>(endpoint, {
           locale,
           ...(init ?? {}),
@@ -85,4 +89,3 @@ export function useApi() {
     };
   }, [locale]);
 }
-
