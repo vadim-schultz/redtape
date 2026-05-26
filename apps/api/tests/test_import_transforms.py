@@ -1,24 +1,18 @@
-import unittest
-
 from scripts.import_openplz_locations import _municipality_roles, _stable_uuid
 
 
-class TestImportTransforms(unittest.TestCase):
-    def test_stable_uuid_is_deterministic(self) -> None:
-        u1 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
-        u2 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
-        self.assertEqual(u1, u2)
-
-    def test_municipality_roles_kreisfreie_stadt(self) -> None:
-        roles = _municipality_roles("Kreisfreie Stadt")
-        self.assertIn("MUNICIPALITY", roles)
-        self.assertIn("DISTRICT", roles)
-
-    def test_municipality_roles_default(self) -> None:
-        roles = _municipality_roles("Landkreis")
-        self.assertEqual(roles, ["MUNICIPALITY"])
+def test_stable_uuid_is_deterministic() -> None:
+    u1 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
+    u2 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
+    assert u1 == u2
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_municipality_roles_kreisfreie_stadt() -> None:
+    roles = _municipality_roles("Kreisfreie Stadt")
+    assert "MUNICIPALITY" in roles
+    assert "DISTRICT" in roles
 
+
+def test_municipality_roles_default() -> None:
+    roles = _municipality_roles("Landkreis")
+    assert roles == ["MUNICIPALITY"]

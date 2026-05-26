@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from litestar import Controller, Request, get
-from litestar.exceptions import NotFoundException
 from litestar.params import Parameter
 
 from app.features.locations.service import LocationsService
@@ -44,11 +43,11 @@ class LocationsController(Controller):
         self,
         request: Request,
         locations_service: LocationsService,
-        state: str = Parameter(query="state"),
+        state_code: str = Parameter(query="state"),
     ) -> LocationListResponse:
         locale = _request_locale(request)
         enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_districts(state_code=state, locale=locale, enabled_locales=enabled)
+        return locations_service.list_districts(state_code=state_code, locale=locale, enabled_locales=enabled)
 
     @get("/cities", sync_to_thread=True)
     def list_cities(
@@ -71,4 +70,3 @@ class LocationsController(Controller):
         locale = _request_locale(request)
         enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
         return locations_service.list_localities(municipality_code=city, locale=locale, enabled_locales=enabled)
-

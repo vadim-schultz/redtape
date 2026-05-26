@@ -26,9 +26,7 @@ class DocumentsController(Controller):
         request: Request,
         document_service: DocumentService,
         jurisdiction_id: UUID | None = Parameter(query="jurisdiction_id", default=None),
-        municipality_code: str | None = Parameter(
-            query="municipality_code", default=None
-        ),
+        municipality_code: str | None = Parameter(query="municipality_code", default=None),
         offset: int = Parameter(query="offset", default=0, ge=0),
         limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> DocumentListResponse:
@@ -52,9 +50,7 @@ class DocumentsController(Controller):
     ) -> DocumentDetail:
         locale = _request_locale(request)
         enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        detail = document_service.get_document_detail(
-            document_id=document_id, locale=locale, enabled_locales=enabled
-        )
+        detail = document_service.get_document_detail(document_id=document_id, locale=locale, enabled_locales=enabled)
         if detail is None:
             raise NotFoundException("Document not found")
         return detail

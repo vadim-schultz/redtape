@@ -1,0 +1,17 @@
+name: Keep Render API Awake
+
+on:
+  schedule:
+    # Every 10 minutes during EU business hours (CET/CEST-ish approximation in UTC)
+    # Adjust if your Render region/time expectations differ.
+    - cron: "*/10 7-23 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          curl -fsS --max-time 10 "https://redtape-api.onrender.com/health" || true
+

@@ -28,9 +28,7 @@ target_metadata = Base.metadata
 def _connect_args_for_url(url: str) -> dict[str, object]:
     """Supabase requires TLS; ensure sslmode when URL omits it (common with dashboard copy-paste)."""
     lower = url.lower()
-    if (
-        "supabase.co" in lower or "pooler.supabase.com" in lower
-    ) and "sslmode" not in lower:
+    if ("supabase.co" in lower or "pooler.supabase.com" in lower) and "sslmode" not in lower:
         return {"sslmode": "require"}
     return {}
 

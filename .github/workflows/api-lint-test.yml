@@ -1,0 +1,54 @@
+name: API Lint & Test
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-lint-test.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-lint-test.yml"
+
+defaults:
+  run:
+    working-directory: apps/api
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: .
+      DATABASE_URL: sqlite:///test.db
+      PIP_INDEX_URL: https://pypi.rsint.net/api/pypi/rs_pypi_virtual/simple
+      PIP_EXTRA_INDEX_URL: https://pypi.packages.rsint.net/api/pypi/rs_common_components/simple
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install API + dev dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Ruff lint check
+        run: ruff check .
+
+      - name: Mypy type check
+        run: mypy app scripts
+
+      - name: Pytest
+        run: pytest
+

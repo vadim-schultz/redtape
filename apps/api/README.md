@@ -40,3 +40,19 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Then open `http://127.0.0.1:8000/schema/swagger` for OpenAPI UI.
 
 See [../../docs/planning/02-incremental-mvp-roadmap.md](../../docs/planning/02-incremental-mvp-roadmap.md) for wave order.
+
+## Development / CI checks
+
+Install dev tooling:
+```bash
+cd apps/api
+pip install -e ".[dev]"
+```
+
+Run the standard checks (these mirror the GitHub Actions workflow):
+```bash
+ruff format --check .
+ruff check .
+mypy app scripts
+pytest -v
+```

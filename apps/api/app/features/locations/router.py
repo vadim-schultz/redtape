@@ -13,4 +13,3 @@ locations_router = Router(
     dependencies=router_dependencies,
     tags=["locations"],
 )
-

@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
 
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, Uuid, func, text
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Boolean, DateTime
-from sqlalchemy import ForeignKey, String, UniqueConstraint, Uuid, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import func
 
 from app.models.base import Base
 
+if TYPE_CHECKING:
+    from app.models.locality import Locality
 
-class JurisdictionKind(str, enum.Enum):
+
+class JurisdictionKind(enum.StrEnum):
     """Primary classification of a jurisdiction row."""
 
     COUNTRY = "COUNTRY"
@@ -34,9 +36,7 @@ class Jurisdiction(Base):
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     kind: Mapped[JurisdictionKind] = mapped_column(
         SAEnum(JurisdictionKind, name="jurisdiction_kind", native_enum=True),
         nullable=False,
@@ -85,7 +85,7 @@ class Jurisdiction(Base):
         back_populates="geographic_parent",
     )
 
-    localities: Mapped[list["Locality"]] = relationship(
+    localities: Mapped[list[Locality]] = relationship(
         "Locality",
         back_populates="municipality",
         foreign_keys="Locality.municipality_id",

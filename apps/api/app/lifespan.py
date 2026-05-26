@@ -19,9 +19,7 @@ async def app_lifespan(app: Litestar):
     def load_enabled_locales() -> set[str]:
         try:
             with SessionLocal() as session:
-                rows = session.scalars(
-                    select(SupportedLocale.code).where(SupportedLocale.enabled.is_(True))
-                ).all()
+                rows = session.scalars(select(SupportedLocale.code).where(SupportedLocale.enabled.is_(True))).all()
                 return {str(code) for code in rows}
         except Exception:
             return set()

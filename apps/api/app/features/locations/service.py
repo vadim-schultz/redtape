@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.features.locations.repository import LocationsRepository
-from app.schema.location.read import LocationListResponse, LocationNode
-from app.models.jurisdiction import Jurisdiction, JurisdictionKind
+from app.models.jurisdiction import JurisdictionKind
 from app.models.locality import Locality
+from app.schema.location.read import LocationListResponse, LocationNode
 
 
 def _pick_i18n(
@@ -48,12 +48,8 @@ class LocationsService:
         ]
         return LocationListResponse(items=items)
 
-    def list_states(
-        self, *, country_code: str, locale: str, enabled_locales: set[str]
-    ) -> LocationListResponse:
-        country = self._repo._get_jurisdiction_by_kind_and_code(
-            kind=JurisdictionKind.COUNTRY, code=country_code
-        )
+    def list_states(self, *, country_code: str, locale: str, enabled_locales: set[str]) -> LocationListResponse:
+        country = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.COUNTRY, code=country_code)
         if country is None or country.id is None:
             return LocationListResponse(items=[])
         rows = self._repo.list_by_parent_and_kind(
@@ -73,12 +69,8 @@ class LocationsService:
         ]
         return LocationListResponse(items=items)
 
-    def list_districts(
-        self, *, state_code: str, locale: str, enabled_locales: set[str]
-    ) -> LocationListResponse:
-        state = self._repo._get_jurisdiction_by_kind_and_code(
-            kind=JurisdictionKind.REGION, code=state_code
-        )
+    def list_districts(self, *, state_code: str, locale: str, enabled_locales: set[str]) -> LocationListResponse:
+        state = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.REGION, code=state_code)
         if state is None:
             return LocationListResponse(items=[])
         rows = self._repo.list_by_parent_and_kind(
@@ -98,12 +90,8 @@ class LocationsService:
         ]
         return LocationListResponse(items=items)
 
-    def list_cities(
-        self, *, district_code: str, locale: str, enabled_locales: set[str]
-    ) -> LocationListResponse:
-        district = self._repo._get_jurisdiction_by_kind_and_code(
-            kind=JurisdictionKind.REGION, code=district_code
-        )
+    def list_cities(self, *, district_code: str, locale: str, enabled_locales: set[str]) -> LocationListResponse:
+        district = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.REGION, code=district_code)
         if district is None:
             return LocationListResponse(items=[])
         rows = self._repo.list_by_parent_and_kind(
@@ -125,9 +113,7 @@ class LocationsService:
     def list_localities(
         self, *, municipality_code: str, locale: str, enabled_locales: set[str]
     ) -> LocationListResponse:
-        city = self._repo._get_jurisdiction_by_kind_and_code(
-            kind=JurisdictionKind.MUNICIPALITY, code=municipality_code
-        )
+        city = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.MUNICIPALITY, code=municipality_code)
         if city is None:
             return LocationListResponse(items=[])
         rows: list[Locality] = self._repo.list_localities_for_city(municipality_id=city.id)
@@ -141,4 +127,3 @@ class LocationsService:
             for loc in rows
         ]
         return LocationListResponse(items=items)
-

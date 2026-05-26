@@ -48,7 +48,7 @@ class DocumentDetail(BaseModel):
     official_url: str | None
     jurisdiction_id: UUID
     requirements: list[RequirementRead] = Field(default_factory=list)
-    jurisdiction_path: list["JurisdictionPathNode"] = Field(default_factory=list)
+    jurisdiction_path: list[JurisdictionPathNode] = Field(default_factory=list)
 
 
 class JurisdictionPathNode(BaseModel):

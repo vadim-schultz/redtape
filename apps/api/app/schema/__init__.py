@@ -5,8 +5,8 @@ from app.schema.document import (
     DocumentListQuery,
     DocumentListResponse,
     DocumentSummary,
-    RequirementRead,
     JurisdictionPathNode,
+    RequirementRead,
 )
 
 __all__ = [

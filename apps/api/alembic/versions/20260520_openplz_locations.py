@@ -112,4 +112,3 @@ def downgrade() -> None:
     op.drop_column("jurisdiction", "multiple_postal_codes")
     op.drop_column("jurisdiction", "postal_code")
     op.drop_column("jurisdiction", "type")
-

@@ -3,8 +3,8 @@ from app.schema.document.read import (
     DocumentListQuery,
     DocumentListResponse,
     DocumentSummary,
-    RequirementRead,
     JurisdictionPathNode,
+    RequirementRead,
 )
 
 __all__ = [

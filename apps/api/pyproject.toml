@@ -18,9 +18,77 @@ dependencies = [
     "psycopg[binary]>=3.2,<4",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.15",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.25",
+]
+
 [project.scripts]
 redtape-api = "app.main:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*", "scripts*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["app", "scripts", "tests"]
+extend-exclude = ["alembic/**"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # line too long (formatter handles)
+    "B008", # Litestar uses `Parameter(...)` defaults in handler signatures
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]     # allow assert in tests
+"scripts/*" = ["T201"]   # allow print in scripts
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+
+# Start lenient: don't require full typing coverage immediately.
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["alembic.*", "litestar.*", "sqlalchemy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.openplz_client",
+    "app.middleware.locale",
+    "app.features.locations.repository",
+    "app.features.documents.service",
+]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["--strict-markers", "--strict-config"]

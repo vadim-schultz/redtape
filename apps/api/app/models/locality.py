@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 import uuid
+from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Uuid, text
+from sqlalchemy import DateTime, ForeignKey, String, Uuid, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import func
 
 from app.models.base import Base
 
@@ -18,9 +17,7 @@ class Locality(Base):
 
     __table_args__ = ()
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     municipality_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
@@ -34,9 +31,7 @@ class Locality(Base):
     # Native OpenPLZ name (German) used as a stable identifier for uniqueness.
     name: Mapped[str] = mapped_column(String(256), nullable=False)
 
-    name_i18n: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, server_default=text("'{}'::jsonb")
-    )
+    name_i18n: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
 
     last_updated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -49,4 +44,3 @@ class Locality(Base):
         back_populates="localities",
         foreign_keys=[municipality_id],
     )
-

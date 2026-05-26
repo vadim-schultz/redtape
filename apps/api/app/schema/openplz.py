@@ -32,9 +32,7 @@ class OpenPLZDistrict(_OpenPLZBaseModel):
     key: str
     name: str
     type: str
-    administrative_headquarters: str | None = Field(
-        alias="administrativeHeadquarters", default=None
-    )
+    administrative_headquarters: str | None = Field(alias="administrativeHeadquarters", default=None)
     federalState: OpenPLZFederalStateRef | None = Field(alias="federalState", default=None)
 
 
@@ -51,9 +49,7 @@ class OpenPLZMunicipality(_OpenPLZBaseModel):
     type: str
 
     postal_code: str | None = Field(alias="postalCode", default=None)
-    multiple_postal_codes: bool = Field(
-        alias="multiplePostalCodes", default=False
-    )
+    multiple_postal_codes: bool = Field(alias="multiplePostalCodes", default=False)
 
     district: OpenPLZDistrictRef | None = Field(alias="district", default=None)
 
@@ -69,4 +65,3 @@ class OpenPLZLocality(_OpenPLZBaseModel):
     name: str
     postal_code: str = Field(alias="postalCode")
     municipality: OpenPLZMunicipalityRef | None = Field(alias="municipality", default=None)
-

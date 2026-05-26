@@ -24,4 +24,3 @@ router_dependencies = {
         sync_to_thread=False,
     ),
 }
-

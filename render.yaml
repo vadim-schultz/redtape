@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: redtape-api
+    env: python
+    region: frankfurt
+    plan: free
+
+    # Build from repo source (monorepo): install the API package
+    buildCommand: cd apps/api && pip install -e .
+
+    # Render provides $PORT at runtime for the service listener.
+    startCommand: cd apps/api && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # Ensure schema is up-to-date before the API starts.
+    preDeployCommand: cd apps/api && alembic upgrade head
+
+    # Health endpoint used by Render + GitHub keep-alive.
+    healthCheckPath: /health
+
+    # NOTE: Supabase credentials are stored in Render "Environment" variables
+    # (recommended). These can also be set via Render UI or secrets.
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      # CORS: allow the Cloudflare Pages URL used by this plan (redtape-web).
+      # Keep localhost entries for local dev as well.
+      - key: CORS_ALLOWED_ORIGINS
+        value: http://localhost:5173,http://localhost:3000,https://redtape-web.pages.dev
+
+      # DATABASE_URL is required and should be set in the Render dashboard.
+      # It is intentionally omitted here to avoid committing secrets.

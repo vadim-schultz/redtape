@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import uuid
-
-from sqlalchemy import select
+from datetime import UTC, datetime
 
 from app.db import SessionLocal
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
-
+from sqlalchemy import select
 
 UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
 
@@ -48,9 +45,7 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     """
 
     openplz_jurisdiction_ids: list[uuid.UUID] = []
-    jurisdiction_rows = session.execute(
-        select(Jurisdiction.id, Jurisdiction.kind, Jurisdiction.code)
-    ).all()
+    jurisdiction_rows = session.execute(select(Jurisdiction.id, Jurisdiction.kind, Jurisdiction.code)).all()
     for jid, kind, code in jurisdiction_rows:
         expected = _expected_jurisdiction_id(kind, code)
         if expected is not None and jid == expected:
@@ -70,9 +65,7 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     for loc_id, postal_code, name, muni_code in locality_rows:
         if muni_code is None:
             continue
-        expected_locality_id = _stable_uuid(
-            f"locality:{muni_code}:{postal_code}:{name}"
-        )
+        expected_locality_id = _stable_uuid(f"locality:{muni_code}:{postal_code}:{name}")
         if loc_id == expected_locality_id:
             openplz_locality_ids.append(loc_id)
 
@@ -82,7 +75,7 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
 def cleanup_openplz_data(*, dry_run: bool) -> None:
     session = SessionLocal()
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         jurisdiction_ids, locality_ids = _compute_openplz_ids(session)
 
         # Determine deletion order due to FK constraints on jurisdiction.geographic_parent_id.
@@ -90,26 +83,38 @@ def cleanup_openplz_data(*, dry_run: bool) -> None:
         # 2) Municipalities (FK -> districts/states regions)
         # 3) Regions (FK -> country)
         # 4) Country (root)
-        muni_ids = session.execute(
-            select(Jurisdiction.id).where(
-                Jurisdiction.id.in_(jurisdiction_ids),
-                Jurisdiction.kind == JurisdictionKind.MUNICIPALITY,
+        muni_ids = (
+            session.execute(
+                select(Jurisdiction.id).where(
+                    Jurisdiction.id.in_(jurisdiction_ids),
+                    Jurisdiction.kind == JurisdictionKind.MUNICIPALITY,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
-        region_ids = session.execute(
-            select(Jurisdiction.id).where(
-                Jurisdiction.id.in_(jurisdiction_ids),
-                Jurisdiction.kind == JurisdictionKind.REGION,
+        region_ids = (
+            session.execute(
+                select(Jurisdiction.id).where(
+                    Jurisdiction.id.in_(jurisdiction_ids),
+                    Jurisdiction.kind == JurisdictionKind.REGION,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
-        country_ids = session.execute(
-            select(Jurisdiction.id).where(
-                Jurisdiction.id.in_(jurisdiction_ids),
-                Jurisdiction.kind == JurisdictionKind.COUNTRY,
+        country_ids = (
+            session.execute(
+                select(Jurisdiction.id).where(
+                    Jurisdiction.id.in_(jurisdiction_ids),
+                    Jurisdiction.kind == JurisdictionKind.COUNTRY,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         print(f"[cleanup_openplz_data] started_at={now.isoformat()}")
         print(
@@ -125,27 +130,19 @@ def cleanup_openplz_data(*, dry_run: bool) -> None:
         # Use a transaction: if something goes wrong, rollback to keep DB consistent.
         # (SQLAlchemy session is already transactional; commit only at end.)
         if locality_ids:
-            session.execute(
-                Locality.__table__.delete().where(Locality.id.in_(locality_ids))
-            )
+            session.execute(Locality.__table__.delete().where(Locality.id.in_(locality_ids)))
             print(f"[cleanup_openplz_data] deleted_localities={len(locality_ids)}")
 
         if muni_ids:
-            session.execute(
-                Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(muni_ids))
-            )
+            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(muni_ids)))
             print(f"[cleanup_openplz_data] deleted_municipalities={len(muni_ids)}")
 
         if region_ids:
-            session.execute(
-                Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(region_ids))
-            )
+            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(region_ids)))
             print(f"[cleanup_openplz_data] deleted_regions={len(region_ids)}")
 
         if country_ids:
-            session.execute(
-                Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(country_ids))
-            )
+            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(country_ids)))
             print(f"[cleanup_openplz_data] deleted_countries={len(country_ids)}")
 
         session.commit()
@@ -192,4 +189,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

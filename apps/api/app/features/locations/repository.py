@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -17,9 +15,7 @@ class LocationsRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def _get_jurisdiction_by_kind_and_code(
-        self, *, kind: JurisdictionKind, code: str
-    ) -> Jurisdiction | None:
+    def _get_jurisdiction_by_kind_and_code(self, *, kind: JurisdictionKind, code: str) -> Jurisdiction | None:
         stmt = select(Jurisdiction).where(Jurisdiction.kind == kind, Jurisdiction.code == code)
         return self._session.scalar(stmt)
 
@@ -41,9 +37,7 @@ class LocationsRepository:
 
     def list_countries(self) -> list[Jurisdiction]:
         stmt = (
-            select(Jurisdiction)
-            .where(Jurisdiction.kind == JurisdictionKind.COUNTRY)
-            .order_by(Jurisdiction.code.asc())
+            select(Jurisdiction).where(Jurisdiction.kind == JurisdictionKind.COUNTRY).order_by(Jurisdiction.code.asc())
         )
         return list(self._session.scalars(stmt).all())
 
@@ -54,4 +48,3 @@ class LocationsRepository:
             .order_by(Locality.postal_code.asc(), Locality.name.asc())
         )
         return list(self._session.scalars(stmt).all())
-

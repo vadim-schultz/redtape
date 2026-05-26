@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import uuid
-
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from app.db import SessionLocal
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -18,7 +15,8 @@ from app.schema.openplz import (
     OpenPLZMunicipality,
 )
 from app.services.openplz_client import OpenPLZClient
-
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
 
@@ -29,7 +27,7 @@ def _stable_uuid(key: str) -> uuid.UUID:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _municipality_roles(type_str: str | None) -> list[str]:
@@ -314,19 +312,15 @@ class OpenPLZLocationsImporter:
                 multiple_postal_codes=False,
             )
         except IntegrityError as e:
-            raise RuntimeError(
-                f"Failed to upsert COUNTRY {country_code}: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to upsert COUNTRY {country_code}: {e}") from e
         # Ensure the parent jurisdiction exists before inserting regions.
         # Otherwise, batched flushes can violate FK constraints.
         self._session.flush()
         self._bump_and_maybe_commit()
         self._country_id = country.id
-        parent_exists = (
-            self._session.execute(
-                select(Jurisdiction.id).where(Jurisdiction.id == self._country_id)
-            ).scalar_one_or_none()
-        )
+        parent_exists = self._session.execute(
+            select(Jurisdiction.id).where(Jurisdiction.id == self._country_id)
+        ).scalar_one_or_none()
         if parent_exists is None:
             raise RuntimeError(f"Country parent not found after upsert: {self._country_id}")
 
@@ -366,9 +360,7 @@ class OpenPLZLocationsImporter:
 
     def _import_districts_for_state(self, *, state_code: str, state_id: uuid.UUID) -> None:
         districts_endpoint = f"FederalStates/{state_code}/Districts"
-        for district_item in self._client.iter_paged(
-            endpoint=districts_endpoint, page_size=50
-        ):
+        for district_item in self._client.iter_paged(endpoint=districts_endpoint, page_size=50):
             district = OpenPLZDistrict.model_validate(district_item)
             district_code = district.key
             try:
@@ -398,13 +390,9 @@ class OpenPLZLocationsImporter:
                 district_id=district_id,
             )
 
-    def _import_municipalities_for_district(
-        self, *, district_code: str, district_id: uuid.UUID
-    ) -> None:
+    def _import_municipalities_for_district(self, *, district_code: str, district_id: uuid.UUID) -> None:
         municipalities_endpoint = f"Districts/{district_code}/Municipalities"
-        for muni_item in self._client.iter_paged(
-            endpoint=municipalities_endpoint, page_size=50
-        ):
+        for muni_item in self._client.iter_paged(endpoint=municipalities_endpoint, page_size=50):
             muni = OpenPLZMunicipality.model_validate(muni_item)
             muni_code = muni.key
             try:
@@ -479,4 +467,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

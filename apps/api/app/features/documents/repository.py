@@ -27,20 +27,14 @@ class DocumentRepository:
             stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
         return int(self._session.scalar(stmt) or 0)
 
-    def list_page(
-        self, *, jurisdiction_id: UUID | None, offset: int, limit: int
-    ) -> list[Document]:
+    def list_page(self, *, jurisdiction_id: UUID | None, offset: int, limit: int) -> list[Document]:
         stmt = self._base_select(jurisdiction_id).offset(offset).limit(limit)
         return list(self._session.scalars(stmt).all())
 
     def get_by_id(self, document_id: UUID) -> Document | None:
         stmt = (
             select(Document)
-            .options(
-                selectinload(Document.outgoing_requirements).selectinload(
-                    DocumentRequirement.required_document
-                )
-            )
+            .options(selectinload(Document.outgoing_requirements).selectinload(DocumentRequirement.required_document))
             .where(Document.id == document_id)
         )
         return self._session.scalar(stmt)
@@ -53,9 +47,7 @@ class DocumentRepository:
         for _ in range(10):
             if current_id is None:
                 break
-            row = self._session.scalar(
-                select(Jurisdiction).where(Jurisdiction.id == current_id)
-            )
+            row = self._session.scalar(select(Jurisdiction).where(Jurisdiction.id == current_id))
             if row is None:
                 break
             path.append(row)

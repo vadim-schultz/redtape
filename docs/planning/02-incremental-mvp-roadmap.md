@@ -48,7 +48,7 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 | I4 | `GET /api/v1/locales` — lists enabled locales for pickers | Driven by `supported_locale`. | Done |
 | I5 | Locale resolution: `Accept-Language` + optional `?locale=` override; fallback **requested → `de` → `en`** | Document in [backend-api](directions/backend-api/README.md). | Done — [`apps/api/app/locale_resolution.py`](../../apps/api/app/locale_resolution.py) + middleware |
 | I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). | Draft — [`apps/web/src/contexts/LocaleContext.tsx.draft`](../../apps/web/src/contexts/LocaleContext.tsx.draft) (Wave 2 W2) |
-| I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). | Draft — [`apps/mobile/lib/providers/locale_provider.dart.draft`](../../apps/mobile/lib/providers/locale_provider.dart.draft) (Wave 3 M2) |
+| I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). | Draft — [`apps/mobile/lib/providers/locale_provider.dart.draft`](../../apps/mobile/lib/providers/locale_provider.dart.draft) (Wave 4 M2) |
 
 **Checkpoint:** Switching `de`/`en` updates UI chrome and API-returned domain strings without redeploy.
 
@@ -92,7 +92,29 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 ---
 
-## Wave 3 — Mobile (`apps/mobile`): Flutter read-only
+## Wave 3 — Deployment & Production Readiness
+
+This wave deploys the already-built MVP slice on free-tier–friendly services.
+
+| Step | Outcome | Notes |
+|------|---------|-------|
+| D1 | Render account + API Web service created | Manual dashboard work |
+| D2 | `render.yaml` committed at repo root | Agent step |
+| D3 | Render environment variables configured | Manual: `DATABASE_URL`, secrets |
+| D4 | Backend deployed + health endpoint verified | Manual: push + check logs |
+| D5 | Cloudflare Pages project created and connected | Manual dashboard work |
+| D6 | Frontend deployed + `VITE_API_URL` configured | Manual: set env var + rebuild |
+| D7 | CORS allows the Pages frontend origin | Agent step (production origin) |
+| D8 | Keep-alive workflow enabled (Render free tier) | Agent step: GitHub Actions cron ping |
+| D9 | Production smoke tests pass for list/detail | Use the deployment checklist |
+| D10 | Environment/URL notes captured for later waves | Record Render + Pages URLs |
+| D11 | Deployment checklist document updated | Agent step |
+| D12 | Optional: monitoring/log retention setup | Manual or agent as time allows |
+
+**Checkpoint:** Backend + frontend are live; browser API calls work without CORS failures.
+
+---
+## Wave 4 — Mobile (`apps/mobile`): Flutter read-only
 
 | Step | Outcome | Notes |
 |------|---------|--------|
@@ -106,7 +128,7 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 ---
 
-## Wave 4 — Jurisdiction resolution (still small)
+## Wave 5 — Jurisdiction resolution (still small)
 
 | Step | Outcome | Notes |
 |------|---------|--------|
@@ -115,7 +137,7 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 ---
 
-## Wave 5 — Supabase Auth + protected writes (prep for social)
+## Wave 6 — Supabase Auth + protected writes (prep for social)
 
 | Step | Outcome | Notes |
 |------|---------|--------|
@@ -125,7 +147,7 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 ---
 
-## Wave 6+ — Toward full product (each item stays ≤ ~1h if scoped tightly)
+## Wave 7+ — Toward full product (each item stays ≤ ~1h if scoped tightly)
 
 Repeat pattern: **migration → seed/fixture → endpoint → one UI surface → test**.
 

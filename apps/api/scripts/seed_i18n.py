@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.db import SessionLocal
+from app.models.locale import SupportedLocale, UITranslation
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-
-from app.db import SessionLocal
-from app.models.locale import SupportedLocale, UITranslation
 
 
 def _flatten_dict(data: dict[str, object], parent: str = "", sep: str = ".") -> dict[str, str]:

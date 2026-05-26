@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy.orm import Session
-
 from app.db import SessionLocal
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
+from sqlalchemy.orm import Session
 
 # Stable UUIDs (re-runs merge by primary key)
 ID_DE = uuid.UUID("11111111-1111-1111-1111-111111111101")

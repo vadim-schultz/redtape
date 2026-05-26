@@ -5,8 +5,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Iterable
-from typing import Any, Callable, Protocol, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, TypeVar
 
 TParsed = TypeVar("TParsed")
 
@@ -97,9 +97,7 @@ class OpenPLZClient:
         body_text = self._fetch_text(url=url)
         return self._parse_json(body_text)
 
-    def _select_paged_payload_handler(
-        self, payload: Any
-    ) -> Callable[[Any], list[Any]]:
+    def _select_paged_payload_handler(self, payload: Any) -> Callable[[Any], list[Any]]:
         """
         Small adapter/factory: choose the appropriate extraction handler
         based on the payload runtime shape.
@@ -169,4 +167,3 @@ class OpenPLZClient:
             page += 1
             if max_pages is not None and page > max_pages:
                 return
-

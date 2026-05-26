@@ -3,9 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-_ACCEPT_LANG_PART = re.compile(
-    r"^\s*(?P<tag>[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)(?:\s*;\s*q=(?P<q>[0-9.]+))?\s*$"
-)
+_ACCEPT_LANG_PART = re.compile(r"^\s*(?P<tag>[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)(?:\s*;\s*q=(?P<q>[0-9.]+))?\s*$")
 
 
 def parse_accept_language(header: str | None, enabled: set[str]) -> str | None:
@@ -53,9 +51,7 @@ def resolve_locale(
     if not enabled_set:
         enabled_set = {"de", "en"}
 
-    requested = normalize_locale_tag(query_locale) or parse_accept_language(
-        accept_language, enabled_set
-    )
+    requested = normalize_locale_tag(query_locale) or parse_accept_language(accept_language, enabled_set)
 
     if requested and requested in enabled_set:
         return requested
