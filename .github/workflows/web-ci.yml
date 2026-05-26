@@ -1,0 +1,53 @@
+name: Web CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/web-ci.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/web-ci.yml"
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  lint-format-typecheck-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      # `npm ci` can intermittently fail on ubuntu-latest (npm 10.x). npm install with a committed package-lock is
+      # equivalent for CI purposes.
+      - name: Install dependencies
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm install --foreground-scripts --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm run build
+

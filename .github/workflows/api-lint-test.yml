@@ -22,8 +22,6 @@ jobs:
     env:
       PYTHONPATH: .
       DATABASE_URL: sqlite:///test.db
-      PIP_INDEX_URL: https://pypi.rsint.net/api/pypi/rs_pypi_virtual/simple
-      PIP_EXTRA_INDEX_URL: https://pypi.packages.rsint.net/api/pypi/rs_common_components/simple
 
     steps:
       - name: Check out repository
