@@ -199,12 +199,20 @@ def upgrade() -> None:
     # Clean up
     op.execute("DROP TABLE IF EXISTS duplicate_mapping")
 
-    # Add the missing unique constraint.
-    op.create_unique_constraint(
-        "uq_jurisdiction_parent_code",
-        "jurisdiction",
-        ["geographic_parent_id", "code"],
-    )
+    # Add the unique constraint (if it doesn't already exist).
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint 
+                WHERE conname = 'uq_jurisdiction_parent_code'
+            ) THEN
+                ALTER TABLE jurisdiction 
+                ADD CONSTRAINT uq_jurisdiction_parent_code 
+                UNIQUE (geographic_parent_id, code);
+            END IF;
+        END $$;
+    """)
 
 
 def downgrade() -> None:
