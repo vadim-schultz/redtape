@@ -74,40 +74,49 @@ def upgrade() -> None:
         WHERE j2.id != j.id
     """)
     
-    # Step 3a: Update FK references to colliding children to point to their keepers
+    # Step 3a: Find all descendants of colliding children (including the colliding children themselves)
+    op.execute("""
+        CREATE TEMP TABLE all_colliding_descendants AS
+        WITH RECURSIVE descendants AS (
+            SELECT colliding_id AS id, keeper_id FROM colliding_child_mapping
+            UNION
+            SELECT j.id, d.keeper_id
+            FROM jurisdiction j
+            JOIN descendants d ON j.geographic_parent_id = d.id
+        )
+        SELECT id, keeper_id FROM descendants
+    """)
+    
+    # Step 3b: Update ALL FK references to colliding descendants to point to keepers
     op.execute("""
         UPDATE locality
-        SET municipality_id = ccm.keeper_id
-        FROM colliding_child_mapping ccm
-        WHERE locality.municipality_id = ccm.colliding_id
+        SET municipality_id = acd.keeper_id
+        FROM all_colliding_descendants acd
+        WHERE locality.municipality_id = acd.id
     """)
     
     op.execute("""
         UPDATE document
-        SET jurisdiction_id = ccm.keeper_id
-        FROM colliding_child_mapping ccm
-        WHERE document.jurisdiction_id = ccm.colliding_id
+        SET jurisdiction_id = acd.keeper_id
+        FROM all_colliding_descendants acd
+        WHERE document.jurisdiction_id = acd.id
     """)
     
     op.execute("""
         UPDATE document_requirement
-        SET jurisdiction_id = ccm.keeper_id
-        FROM colliding_child_mapping ccm
-        WHERE document_requirement.jurisdiction_id = ccm.colliding_id
+        SET jurisdiction_id = acd.keeper_id
+        FROM all_colliding_descendants acd
+        WHERE document_requirement.jurisdiction_id = acd.id
     """)
     
-    # Step 3b: Delete colliding children and their descendants
+    # Step 3c: Now delete colliding children and their descendants (safe, nothing references them)
     op.execute("""
-        WITH RECURSIVE all_descendants AS (
-            SELECT colliding_id AS id FROM colliding_child_mapping
-            UNION
-            SELECT j.id
-            FROM jurisdiction j
-            JOIN all_descendants ad ON j.geographic_parent_id = ad.id
-        )
         DELETE FROM jurisdiction
-        WHERE id IN (SELECT id FROM all_descendants)
+        WHERE id IN (SELECT id FROM all_colliding_descendants)
     """)
+    
+    # Clean up temp tables
+    op.execute("DROP TABLE all_colliding_descendants")
     
     # Clean up temp table
     op.execute("DROP TABLE colliding_child_mapping")
