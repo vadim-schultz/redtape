@@ -62,8 +62,58 @@ def upgrade() -> None:
         WHERE document_requirement.jurisdiction_id = dm.duplicate_id
     """)
     
-    # Step 3: Update self-referential FK (children pointing to duplicate parents)
-    # Point all children to the keeper parent
+    # Step 3: Identify children that would collide when reparented and map them to their keepers
+    op.execute("""
+        CREATE TEMP TABLE colliding_child_mapping AS
+        SELECT 
+            j.id AS colliding_id,
+            j2.id AS keeper_id
+        FROM jurisdiction j
+        JOIN duplicate_mapping dm ON j.geographic_parent_id = dm.duplicate_id
+        JOIN jurisdiction j2 ON j2.geographic_parent_id = dm.keeper_id AND j2.code = j.code
+        WHERE j2.id != j.id
+    """)
+    
+    # Step 3a: Update FK references to colliding children to point to their keepers
+    op.execute("""
+        UPDATE locality
+        SET municipality_id = ccm.keeper_id
+        FROM colliding_child_mapping ccm
+        WHERE locality.municipality_id = ccm.colliding_id
+    """)
+    
+    op.execute("""
+        UPDATE document
+        SET jurisdiction_id = ccm.keeper_id
+        FROM colliding_child_mapping ccm
+        WHERE document.jurisdiction_id = ccm.colliding_id
+    """)
+    
+    op.execute("""
+        UPDATE document_requirement
+        SET jurisdiction_id = ccm.keeper_id
+        FROM colliding_child_mapping ccm
+        WHERE document_requirement.jurisdiction_id = ccm.colliding_id
+    """)
+    
+    # Step 3b: Delete colliding children and their descendants
+    op.execute("""
+        WITH RECURSIVE all_descendants AS (
+            SELECT colliding_id AS id FROM colliding_child_mapping
+            UNION
+            SELECT j.id
+            FROM jurisdiction j
+            JOIN all_descendants ad ON j.geographic_parent_id = ad.id
+        )
+        DELETE FROM jurisdiction
+        WHERE id IN (SELECT id FROM all_descendants)
+    """)
+    
+    # Clean up temp table
+    op.execute("DROP TABLE colliding_child_mapping")
+    
+    # Step 4: Update self-referential FK (children pointing to duplicate parents)
+    # Point remaining children to the keeper parent (safe now, no collisions)
     op.execute("""
         UPDATE jurisdiction
         SET geographic_parent_id = dm.keeper_id
@@ -71,13 +121,13 @@ def upgrade() -> None:
         WHERE jurisdiction.geographic_parent_id = dm.duplicate_id
     """)
     
-    # Step 4: Now delete the duplicates (safe because nothing references them anymore)
+    # Step 5: Now delete the duplicates (safe because nothing references them anymore)
     op.execute("""
         DELETE FROM jurisdiction
         WHERE id IN (SELECT duplicate_id FROM duplicate_mapping)
     """)
     
-    # Step 5: Handle secondary duplicates created by reparenting
+    # Step 6: Handle secondary duplicates created by reparenting
     # After moving children to keeper parents, some children might now be duplicates themselves
     # Repeat the process until no duplicates remain
     op.execute("""
