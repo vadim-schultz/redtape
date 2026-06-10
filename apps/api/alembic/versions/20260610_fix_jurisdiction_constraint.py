@@ -18,22 +18,45 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Clean up duplicate jurisdictions before adding constraint.
     # Keep the most recently updated row for each (geographic_parent_id, code) pair.
+    
+    # Step 1: Identify duplicates and the keeper for each group.
+    # Create a mapping of (duplicate_id -> keeper_id).
+    op.execute("""
+        CREATE TEMP TABLE duplicate_mapping AS
+        WITH ranked AS (
+            SELECT
+                id,
+                FIRST_VALUE(id) OVER (
+                    PARTITION BY COALESCE(geographic_parent_id::text, 'NULL'), COALESCE(code, 'NULL')
+                    ORDER BY last_updated DESC, id
+                ) AS keeper_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY COALESCE(geographic_parent_id::text, 'NULL'), COALESCE(code, 'NULL')
+                    ORDER BY last_updated DESC, id
+                ) AS rn
+            FROM jurisdiction
+        )
+        SELECT id AS duplicate_id, keeper_id
+        FROM ranked
+        WHERE rn > 1
+    """)
+    
+    # Step 2: Update child jurisdictions to point to the keeper instead of the duplicate.
+    op.execute("""
+        UPDATE jurisdiction
+        SET geographic_parent_id = dm.keeper_id
+        FROM duplicate_mapping dm
+        WHERE jurisdiction.geographic_parent_id = dm.duplicate_id
+    """)
+    
+    # Step 3: Delete the duplicate rows (now safe since no FKs reference them).
     op.execute("""
         DELETE FROM jurisdiction
-        WHERE id IN (
-            SELECT id
-            FROM (
-                SELECT
-                    id,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY COALESCE(geographic_parent_id::text, 'NULL'), COALESCE(code, 'NULL')
-                        ORDER BY last_updated DESC, id
-                    ) AS rn
-                FROM jurisdiction
-            ) sub
-            WHERE rn > 1
-        )
+        WHERE id IN (SELECT duplicate_id FROM duplicate_mapping)
     """)
+    
+    # Clean up temp table.
+    op.execute("DROP TABLE duplicate_mapping")
 
     # Add the missing unique constraint.
     op.create_unique_constraint(
