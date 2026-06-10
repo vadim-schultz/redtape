@@ -7,9 +7,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db import SessionLocal
+from app.db import SessionLocal, engine as db_engine
 from app.models import Base
-from app.db import engine as db_engine
 
 
 @pytest.fixture(scope="function")
@@ -59,4 +58,3 @@ def _set_test_environment() -> None:
 
     # Touch settings to make sure env-based configuration is loaded.
     _ = settings.database_url
-

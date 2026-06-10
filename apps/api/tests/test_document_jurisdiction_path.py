@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import uuid
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
+
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
 from app.models.document import Document, DocumentRequirement
@@ -24,7 +26,9 @@ def test_jurisdiction_path_is_root_to_leaf(db_session) -> None:
     req2_id = uuid.uuid5(ns, "doc:req2")
 
     session.execute(
-        sa.delete(DocumentRequirement).where(DocumentRequirement.parent_document_id == target_doc_id)
+        sa.delete(DocumentRequirement).where(
+            DocumentRequirement.parent_document_id == target_doc_id
+        )
     )
 
     session.execute(sa.delete(Document).where(Document.id == target_doc_id))
@@ -137,7 +141,9 @@ def test_jurisdiction_path_is_root_to_leaf(db_session) -> None:
     session.commit()
 
     service = DocumentService(DocumentRepository(session))
-    detail = service.get_document_detail(document_id=target_doc_id, locale="de", enabled_locales={"de", "en"})
+    detail = service.get_document_detail(
+        document_id=target_doc_id, locale="de", enabled_locales={"de", "en"}
+    )
     assert detail is not None
 
     # Expect full breadcrumb: country -> state -> district -> municipality
