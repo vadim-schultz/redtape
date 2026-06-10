@@ -4,11 +4,11 @@ import uuid
 from collections.abc import Generator
 
 import pytest
-from sqlalchemy.orm import Session
-
 from app.config import settings
-from app.db import SessionLocal, engine as db_engine
+from app.db import SessionLocal
+from app.db import engine as db_engine
 from app.models import Base
+from sqlalchemy.orm import Session
 
 
 @pytest.fixture(scope="function")
