@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import uuid
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
+
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
 from app.models.document import Document, DocumentRequirement
