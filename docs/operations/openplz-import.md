@@ -55,7 +55,7 @@ The importer uses deterministic UUIDs so re-running does not create duplicates.
 
 It also updates `last_updated` for rows it touches, so Supabase connection/security policies and any cache-busting logic based on timestamps can keep working.
 
-## GitLab nightly updates
+## Scheduled nightly updates
 
-See: `docs/operations/gitlab-schedules.md`.
+Runs on GitHub Actions, not GitLab. See: [`docs/operations/scheduled-jobs.md`](scheduled-jobs.md).
 

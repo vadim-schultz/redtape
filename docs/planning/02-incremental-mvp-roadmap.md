@@ -47,7 +47,7 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 | I3 | `GET /api/v1/translations?locale=` — returns `{ locale, translations: { key: value } }` | Long-cache headers when stable. | Done — [`apps/api/app/routes.py`](../../apps/api/app/routes.py) |
 | I4 | `GET /api/v1/locales` — lists enabled locales for pickers | Driven by `supported_locale`. | Done |
 | I5 | Locale resolution: `Accept-Language` + optional `?locale=` override; fallback **requested → `de` → `en`** | Document in [backend-api](directions/backend-api/README.md). | Done — [`apps/api/app/locale_resolution.py`](../../apps/api/app/locale_resolution.py) + middleware |
-| I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). | Draft — [`apps/web/src/contexts/LocaleContext.tsx.draft`](../../apps/web/src/contexts/LocaleContext.tsx.draft) (Wave 2 W2) |
+| I6 | Web: `LocaleProvider` / context — fetch bundle on load; `setLocale` refetches bundle + graph requests with new header | See [web-frontend](directions/web-frontend/README.md). | Done — [`apps/web/src/contexts/LocaleContext.tsx`](../../apps/web/src/contexts/LocaleContext.tsx) (landed with Wave 2 W2; the old `LocaleContext.tsx.draft` scaffold is stale and superseded) |
 | I7 | Mobile: same pattern — provider + `Accept-Language` on API client | See [mobile-flutter](directions/mobile-flutter/README.md). | Draft — [`apps/mobile/lib/providers/locale_provider.dart.draft`](../../apps/mobile/lib/providers/locale_provider.dart.draft) (Wave 4 M2) |
 
 **Checkpoint:** Switching `de`/`en` updates UI chrome and API-returned domain strings without redeploy.
@@ -55,6 +55,8 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 ---
 
 ## Wave 1 — Backend (`apps/api`): skeleton to seeded graph
+
+**Status: Done.** B1–B13 all landed — see [`apps/api/app/`](../../apps/api/app/), migration [`20260506_wave1_graph.py`](../../apps/api/alembic/versions/20260506_wave1_graph.py), and [`apps/api/scripts/seed_documents.py`](../../apps/api/scripts/seed_documents.py). Live status detail: [STATUS.md](STATUS.md).
 
 | Step | Outcome | Notes |
 |------|---------|--------|
@@ -74,9 +76,13 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 **Checkpoint:** Postman or browser can load document with three dependencies against local or Supabase-hosted DB.
 
+**Note:** an additional, undocumented-until-now subsystem also shipped alongside Wave 1/2 — a full German location hierarchy (`locality` table + `/countries`/`/states`/`/districts`/`/cities`/`/localities` endpoints) imported from the OpenPLZ API. See [directions/data-model-migrations/04-openplz-location-import.md](directions/data-model-migrations/04-openplz-location-import.md).
+
 ---
 
 ## Wave 2 — Web (`apps/web`): Vite + React + Chakra
+
+**Status: Done**, and beyond W1–W7: the shipped app also includes a location-picker filter (state → district → city) backed by the OpenPLZ endpoints, which isn't part of this wave's original deliverable list. See [`apps/web/src/`](../../apps/web/src/) and [STATUS.md](STATUS.md).
 
 | Step | Outcome | Notes |
 |------|---------|--------|

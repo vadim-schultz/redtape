@@ -9,6 +9,10 @@ This directory holds the **hierarchical product and implementation plans** for R
 3. [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) — smallest MVP (1 city, 1 document, 3 deps), hour-sized backend → web → mobile steps, Supabase consolidation, **and early DB-backed i18n** (de + en).
 4. [directions/](directions/) — one folder per development strand; each contains a `README.md` overview and links to deeper chapters. See [directions/README.md](directions/README.md) for a strand index (includes [i18n-localization](directions/i18n-localization/README.md)).
 
+## Current status
+
+[STATUS.md](STATUS.md) is the living "what's done / what's next" summary — check it before assuming a roadmap step's status marker is current.
+
 ## Directory layout
 
 ```text

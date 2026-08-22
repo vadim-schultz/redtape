@@ -22,6 +22,7 @@
 | [01-jurisdiction-hierarchy.md](01-jurisdiction-hierarchy.md) | Unified `jurisdiction`, `levels[]`, `name_i18n`, ordering. |
 | [02-documents-and-requirements.md](02-documents-and-requirements.md) | Document entities, directed requirements, scope attachment. |
 | [03-graph-resolution-and-views.md](03-graph-resolution-and-views.md) | Query patterns, tree expansion, performance notes. |
+| [04-openplz-location-import.md](04-openplz-location-import.md) | Shipped OpenPLZ import: `locality` table, location endpoints, nightly job, duplicate-jurisdiction incident. |
 
 ## Links
 
