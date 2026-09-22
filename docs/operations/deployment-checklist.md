@@ -7,11 +7,11 @@ This checklist is intended for the **Wave 3 deployment**:
 
 Update the stored service URLs if you change project/service names.
 
-> **Last verified: 2026-08-22.** `render.yaml`, CORS config, and the keep-alive workflow are all committed and correctly wired, but nothing below was confirmed live from this repo's evidence alone:
-> - `https://redtape-api.onrender.com/health` returned **HTTP 503 with `Retry-After`** on two direct checks — consistent with a real Render service that exists but is asleep/cold (free tier) or currently unhealthy. Not confirmed as a working `200 {"status":"ok"}`.
-> - `https://redtape-web.pages.dev` **failed DNS resolution entirely** (`ENOTFOUND`) — this Cloudflare Pages project does not appear to exist right now. Treat the frontend as **not deployed** until a Pages project is actually created and connected (Wave 3 steps D5–D6 look undone in practice, even though CORS/env-var config for it is already in place).
+> **Last verified: 2026-09-22.** `render.yaml`, CORS config, and the keep-alive workflow are committed.
+> - `https://redtape-api.onrender.com/health` returns `{"status":"ok"}` after the Render free-tier cold start. The August 2026 HTTP 503 with `Retry-After` was the service asleep.
+> - `https://redtape-web.pages.dev` is the planned Cloudflare Pages hostname and is **not reachable**. The Pages project was never created (Wave 3 D5–D6). CORS and env examples already name this origin.
 >
-> See [STATUS.md](../planning/STATUS.md) for the current live-status summary. Re-run this checklist for real once a Pages project exists and the Render service has been woken/checked from a normal browser, then update this note.
+> See [STATUS.md](../planning/STATUS.md). Re-run the checks below once a Pages project exists, then update this note.
 
 ---
 
@@ -40,6 +40,30 @@ How to troubleshoot quickly:
 ---
 
 ## Frontend (Cloudflare Pages)
+
+### One-time setup (Wave 3 D5–D6)
+
+Create the project in the [Cloudflare dashboard](https://dash.cloudflare.com/) (Workers & Pages → Create → Pages → Connect to Git):
+
+| Setting | Value |
+|---------|--------|
+| Git repository | `vadim-schultz/redtape` |
+| Project name | `redtape-web` (hostname `https://redtape-web.pages.dev`) |
+| Production branch | `main` |
+| Root directory | `apps/web` |
+| Build command | `npm run build` (or `npm install --no-audit --no-fund && npm run build` if install fails) |
+| Build output directory | `dist` |
+
+Production environment variables (required before the first successful build):
+
+| Name | Value |
+|------|--------|
+| `NODE_VERSION` | `22` |
+| `VITE_API_URL` | `https://redtape-api.onrender.com` (no trailing slash) |
+
+Do not rely on preview deployments for API smoke tests: preview hostnames are not in the API CORS allow list.
+
+The repo includes [`apps/web/public/_redirects`](../../apps/web/public/_redirects) so client routes (`/documents`, `/documents/:id`) work on refresh.
 
 Prereqs:
 - Cloudflare Pages project is connected to the repo.
