@@ -5,10 +5,23 @@ from collections.abc import Generator
 
 import pytest
 from app.config import settings
-from app.db import SessionLocal
 from app.db import engine as db_engine
 from app.models import Base
+from sqlalchemy import event
 from sqlalchemy.orm import Session
+
+# pysqlite intercepts BEGIN/SAVEPOINT handling in ways that break nested
+# transactions unless its own implicit transaction control is disabled.
+# No-op against Postgres/other dialects.
+if db_engine.dialect.name == "sqlite":
+
+    @event.listens_for(db_engine, "connect")
+    def _sqlite_disable_pysqlite_txn_control(dbapi_connection, connection_record) -> None:
+        dbapi_connection.isolation_level = None
+
+    @event.listens_for(db_engine, "begin")
+    def _sqlite_emit_explicit_begin(conn) -> None:
+        conn.exec_driver_sql("BEGIN")
 
 
 @pytest.fixture(scope="function")
@@ -30,9 +43,14 @@ def _try_create_schema() -> None:
 @pytest.fixture(scope="function")
 def db_session() -> Generator[Session, None, None]:
     """
-    Provide a SQLAlchemy session with the app schema created.
+    Provide a SQLAlchemy session wrapped in an outer transaction that is always
+    rolled back at teardown, so tests never leak state to each other.
 
-    Integration tests will be skipped if the configured database is unreachable.
+    Test code may call session.commit() freely: with
+    join_transaction_mode="create_savepoint", commit() releases/restarts a
+    SAVEPOINT rather than ending the real transaction, so the final rollback
+    still discards everything. Integration tests will be skipped if the
+    configured database is unreachable.
     """
 
     try:
@@ -40,11 +58,15 @@ def db_session() -> Generator[Session, None, None]:
     except Exception as e:  # pragma: no cover
         pytest.skip(f"Database unavailable for tests: {e}")
 
-    session = SessionLocal()
+    connection = db_engine.connect()
+    outer_transaction = connection.begin()
+    session = Session(bind=connection, autoflush=False, join_transaction_mode="create_savepoint")
     try:
         yield session
     finally:
         session.close()
+        outer_transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture(autouse=True)
