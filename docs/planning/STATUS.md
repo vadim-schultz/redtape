@@ -41,6 +41,12 @@ Neither issue has been re-tested against an actual Cloudflare Pages build yet �
 
 **Not yet done:** re-confirm the live preflight succeeds after Render redeploys with the new env var (Render can take a few minutes, or may need a manual Blueprint sync, to pick up a `render.yaml` env var change), then click through the actual deployed frontend end-to-end.
 
+**Update, 2026-09-23 (third pass)** — with CORS fixed, the browser console showed a second, unrelated bug: every API call from the deployed frontend targeted `localhost:8000` (`ERR_CONNECTION_REFUSED`), meaning `VITE_API_URL` was never actually baked into the production bundle, so Vite fell back to its dev default ([apps/web/src/services/api.ts](../../apps/web/src/services/api.ts)). Root cause: **this Cloudflare project is a git-connected Workers Build, not classic Pages** (hence the `workers.dev` domain) — dashboard-set variables on these only apply to the deployment you set them on and get reset on the next git-triggered build, because Workers Builds re-syncs config from a `wrangler.toml`/`wrangler.jsonc` **in the repo**, which didn't exist. This is also why the earlier "Root directory" fix and the CORS origin were both real, separate config gaps rather than one root cause — three independent deploy-config issues stacked on the same rollout.
+
+Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committing `name` (`redtape-web`), `assets.directory` (`./dist`, confirmed against a local `npm run build`), `assets.not_found_handling: single-page-application` (so direct navigation to client routes like `/documents` doesn't 404), and `vars.VITE_API_URL` pointing at the Render API. This makes the config durable across future Workers Builds deploys instead of dashboard-only.
+
+**Not yet done:** confirm a fresh deploy picks up `wrangler.jsonc` and the frontend successfully calls the API end-to-end (no `ERR_CONNECTION_REFUSED`, no CORS errors).
+
 ## Known documentation/code drift (fixed in this pass)
 
 - `docs/operations/gitlab-schedules.md` described a `.gitlab-ci.yml` job that never existed — there is no GitLab anywhere in this project. Renamed/rewritten as [`docs/operations/scheduled-jobs.md`](../operations/scheduled-jobs.md), describing the real GitHub Actions workflow.

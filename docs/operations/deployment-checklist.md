@@ -45,7 +45,7 @@ How to troubleshoot quickly:
 
 Prereqs:
 - Cloudflare Pages project is connected to the repo.
-- `VITE_API_URL` env var points at the Render API base URL.
+- `VITE_API_URL` is set in [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc) (`vars.VITE_API_URL`), **not** just the dashboard — this project is a git-connected Workers Build, and dashboard-only variables get reset on the next deploy. `wrangler.jsonc` is the durable source of truth.
 
 Checks:
 - [ ] Cloudflare Pages shows the latest commit deployed successfully.

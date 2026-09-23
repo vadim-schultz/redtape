@@ -185,6 +185,7 @@ cython_debug/
 
 # --- Node.js / Vite / frontend (apps/web) ---
 node_modules/
+.wrangler/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
