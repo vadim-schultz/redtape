@@ -13,6 +13,8 @@ Update the stored service URLs if you change project/service names.
 >
 > See [STATUS.md](../planning/STATUS.md) for the current live-status summary. Re-run this checklist for real once a Pages project exists and the Render service has been woken/checked from a normal browser, then update this note.
 
+> **Update, 2026-09-23:** the frontend is now deployed, but under `https://redtape-web.vadim-schultz.workers.dev` — a `workers.dev` domain, not the `pages.dev` domain assumed above and throughout this checklist. That mismatch broke CORS between the two hosts (fixed in `render.yaml` and `apps/api/app/middleware/cors.py`; see [STATUS.md](../planning/STATUS.md) for details). This checklist still needs a real run against both live URLs once the CORS fix is confirmed deployed.
+
 ---
 
 ## Backend (Render)
@@ -31,7 +33,7 @@ Checks:
 - [ ] `GET /api/v1/documents/{id}` returns:
   - Localized `title` and `description`
   - `requirements[]` (3 direct dependencies)
-- [ ] No CORS errors from `https://<frontend>.pages.dev` (or configured frontend origin).
+- [ ] No CORS errors from `https://redtape-web.vadim-schultz.workers.dev` (or configured frontend origin — check `render.yaml`'s `CORS_ALLOWED_ORIGINS`).
 
 How to troubleshoot quickly:
 - [ ] Check Render logs for startup/DB connection/a​lembic migration failures.
