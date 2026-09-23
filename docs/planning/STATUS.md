@@ -2,7 +2,7 @@
 
 **This file is the source of truth for "what's done" and "what's next."** When a wave or milestone changes state, update this file rather than editing status markers scattered across [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) or the `directions/` docs (those keep their per-step detail; this page tracks the current, top-level picture).
 
-Last updated: **2026-08-22**.
+Last updated: **2026-09-23**.
 
 ## Wave-by-wave state
 
@@ -12,7 +12,7 @@ Last updated: **2026-08-22**.
 | Wave 1 — backend graph (`jurisdiction`, `document`, `document_requirement`) | — | **Done.** Migrations, models, and `GET /api/v1/documents`, `GET /api/v1/documents/{id}` implemented. | [`apps/api/alembic/versions/20260506_wave1_graph.py`](../../apps/api/alembic/versions/20260506_wave1_graph.py), [`apps/api/app/features/documents/`](../../apps/api/app/features/documents/) |
 | *(not in original plan)* — OpenPLZ location import | Not mentioned anywhere in the roadmap or direction docs | **Done and shipped.** Full German location hierarchy (states/districts/municipalities/localities), 5 read endpoints, nightly GitHub Actions job, and a production data-repair migration for a duplicate-row incident. Now documented — see [directions/data-model-migrations/04-openplz-location-import.md](directions/data-model-migrations/04-openplz-location-import.md). | [`apps/api/app/features/locations/`](../../apps/api/app/features/locations/), [`.github/workflows/openplz-import.yml`](../../.github/workflows/openplz-import.yml) |
 | Wave 2 — web MVP list/detail UI | — | **Done**, and beyond: documents list + detail, locale switcher, and a location-picker filter (state → district → city) riding on the OpenPLZ work above — not in the original Wave 2 deliverable list. | [`apps/web/src/features/`](../../apps/web/src/features/) |
-| Wave 3 — deployment | Deploy MVP on Render + Cloudflare Pages, keep-alive cron | **Infra configured, live status unconfirmed/negative.** See "Verified deployment status" below — the API host may exist but isn't confirmed healthy, and the frontend does not appear deployed at all. | [`render.yaml`](../../render.yaml), [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml), [deployment-checklist.md](../operations/deployment-checklist.md) |
+| Wave 3 — deployment | Deploy MVP on Render + Cloudflare Pages, keep-alive cron | **Backend reported reachable (not independently re-verified this session); frontend build blocker fixed but live deploy still unconfirmed.** See "Verified deployment status" below — a real blocker in the frontend build (corrupted lockfile) was found and fixed, but the Cloudflare Pages project's root directory still needs a dashboard fix and no successful live deploy has been confirmed yet. | [`render.yaml`](../../render.yaml), [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml), [deployment-checklist.md](../operations/deployment-checklist.md) |
 | Wave 4 — mobile (Flutter) | Read-only Flutter client | **Not started.** `apps/mobile` has only a README and one `.draft` provider file — no `pubspec.yaml`, no real Dart source. | [`apps/mobile/`](../../apps/mobile/) |
 | Wave 5 — jurisdiction fallback resolution | Deferred by design (seed MVP edges to one municipality) | **Unverified.** A full jurisdiction hierarchy and document→jurisdiction breadcrumb already exist and are tested, but it hasn't been directly confirmed whether real municipality→region→country precedence resolution (per [directions/data-model-migrations/03-graph-resolution-and-views.md](directions/data-model-migrations/03-graph-resolution-and-views.md)) is implemented, or whether the deferred-MVP shortcut is still all there is. | [`apps/api/tests/test_document_jurisdiction_path.py`](../../apps/api/tests/test_document_jurisdiction_path.py) |
 | Wave 6 — Supabase Auth | Auth after MVP, prep for social layer | **Not started.** No auth/session/JWT code anywhere in `apps/api`. | — |
@@ -27,6 +27,13 @@ Checked directly (not inferred from config) on 2026-08-22:
 
 Wave 3's backend steps (D1–D4, D7, D8) look genuinely done from config; frontend steps (D5–D6) do not — Cloudflare Pages needs to actually be set up and connected before D9 (smoke tests) can mean anything.
 
+**Update, 2026-09-23** — user reports the Render API host is now reachable (not independently re-checked in this session). A Cloudflare Pages deploy attempt for the frontend surfaced two real issues:
+
+1. `npm error enoent ... Could not read package.json` at `/opt/buildhome/repo/package.json` — the Pages project's **Root directory** setting is not pointed at `apps/web` (this repo is not an npm-workspace monorepo, so there is no root `package.json`; this is a dashboard setting, not something fixable in-repo). **Still needs to be set by hand in the Cloudflare Pages project settings.**
+2. `npm error network ... getaddrinfo ENOTFOUND npm.rsint.net` — [`apps/web/package-lock.json`](../../apps/web/package-lock.json) had 468 `resolved` URLs pointing at a corporate Artifactory mirror (`npm.rsint.net`) instead of the public npm registry, almost certainly from a lockfile generated on a machine with a corporate npm proxy configured. `npm ci`/`npm install` fetches from the exact `resolved` URL regardless of the configured registry, so Cloudflare's sandboxed build (no route to that corporate host) failed. **Fixed**: lockfile regenerated from scratch against `registry.npmjs.org`; `npm run build` verified locally.
+
+Neither issue has been re-tested against an actual Cloudflare Pages build yet — that requires the Root directory fix above, then a fresh deploy.
+
 ## Known documentation/code drift (fixed in this pass)
 
 - `docs/operations/gitlab-schedules.md` described a `.gitlab-ci.yml` job that never existed — there is no GitLab anywhere in this project. Renamed/rewritten as [`docs/operations/scheduled-jobs.md`](../operations/scheduled-jobs.md), describing the real GitHub Actions workflow.
@@ -36,10 +43,10 @@ Wave 3's backend steps (D1–D4, D7, D8) look genuinely done from config; fronte
 
 ## Next step
 
-**Get the frontend actually deployed to Cloudflare Pages (Wave 3, D5–D6),** then re-run [deployment-checklist.md](../operations/deployment-checklist.md) for real against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
+**Get the frontend actually deployed to Cloudflare Pages (Wave 3, D5–D6):** set the Pages project's Root directory to `apps/web` in the dashboard, redeploy, and confirm it builds clean now that the lockfile is fixed. Then re-run [deployment-checklist.md](../operations/deployment-checklist.md) for real against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
 
 Known follow-ups, not yet scheduled:
-- Confirm the Render API host is actually reachable (wake it from a browser, check the Render dashboard directly — this session's `Retry-After` result is ambiguous).
+- Independently re-verify the Render API host is healthy (this session relied on the user's report; the last direct check, on 2026-08-22, got an ambiguous `Retry-After` 503).
 - Verify Wave 5 fallback-resolution behavior by reading the documents service directly.
 - Before starting Wave 6 (Supabase Auth): write `directions/backend-api/03-auth-and-roles.md`, still marked TBD.
 - The `apps/api` CI (`api-lint-test.yml`) runs against SQLite while the schema needs Postgres (JSONB, native enums) — the two DB-backed test files likely skip silently in CI. Not fixed in this pass (out of scope — documentation only); flagged here for a future session.
