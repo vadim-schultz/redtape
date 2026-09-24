@@ -1,4 +1,4 @@
-/** Redtape brand scales. Anchors: blush, wine, deep, and accent. */
+/** Redtape brand scales. Anchors: Swiss red, deep, and accent. */
 
 /** `#EE4C7C` at 40% alpha, and the accent.400 step at the same alpha. */
 export const accentRing = {
@@ -8,18 +8,18 @@ export const accentRing = {
 
 export const customColors = {
   primary: {
-    DEFAULT: { value: "#9A1750" },
-    50: { value: "#E3AFBC" },
-    100: { value: "#D693A5" },
-    200: { value: "#C9778F" },
-    300: { value: "#BA5B79" },
-    400: { value: "#AA3D64" },
-    500: { value: "#9A1750" },
-    600: { value: "#8A1143" },
-    700: { value: "#7B0A36" },
-    800: { value: "#6C042A" },
-    900: { value: "#5D001E" },
-    950: { value: "#2A0009" },
+    DEFAULT: { value: "#DA291C" },
+    50: { value: "#F3B8B4" },
+    100: { value: "#EE9D97" },
+    200: { value: "#E98179" },
+    300: { value: "#E4655C" },
+    400: { value: "#E0493E" },
+    500: { value: "#DA291C" },
+    600: { value: "#B32217" },
+    700: { value: "#8C1A12" },
+    800: { value: "#66130D" },
+    900: { value: "#480E09" },
+    950: { value: "#1C0504" },
   },
   accent: {
     DEFAULT: { value: "#EE4C7C" },

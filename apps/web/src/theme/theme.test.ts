@@ -13,8 +13,17 @@ function semanticBase(path: string): unknown {
   return conditions.base;
 }
 
-it("theme · primary.500 is wine #9A1750", () => {
-  expect(system.token("colors.primary.500")).toBe("#9A1750");
+it("theme · primary.500 is Swiss red #DA291C", () => {
+  expect(system.token("colors.primary.500")).toBe("#DA291C");
+});
+
+it("theme · text.heading is the same Swiss red in light and dark mode", () => {
+  const heading = semanticBase("colors.text.heading") as string | undefined;
+  const headingDark = system.tokens.getByName("colors.text.heading")?.extensions
+    .conditions as { _dark?: string } | undefined;
+
+  expect(heading).toBe("{colors.primary.500}");
+  expect(headingDark?._dark).toBe("{colors.primary.500}");
 });
 
 it("theme · accent.500 is #EE4C7C", () => {
