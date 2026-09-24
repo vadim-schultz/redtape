@@ -1,4 +1,4 @@
-import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
+import { ChakraProvider } from "@chakra-ui/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { BrowserRouter } from "react-router-dom";
@@ -9,6 +9,7 @@ import AppLayout from "../components/layout/AppLayout";
 
 import { ColorModeProvider } from "../contexts/ColorModeContext";
 import { LocaleProvider } from "../contexts/LocaleContext";
+import { system } from "../theme";
 
 /**
  * Provider stack (Wave 2): Query + Chakra + Router.
@@ -17,7 +18,7 @@ import { LocaleProvider } from "../contexts/LocaleContext";
 const AppBootstrap = () => (
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ChakraProvider value={defaultSystem}>
+      <ChakraProvider value={system}>
         <ColorModeProvider>
           <LocaleProvider>
             <BrowserRouter>

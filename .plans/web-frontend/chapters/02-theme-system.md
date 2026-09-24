@@ -4,22 +4,22 @@ overview: "Port test-storage token layout into apps/web with red primary/accent,
 todos:
   - id: tokens
     content: "theme/tokens and semantic-tokens recolored to red anchors"
-    status: pending
+    status: completed
   - id: fonts
     content: "fonts.ts with fontsource iceberg, inter, jetbrains-mono"
-    status: pending
+    status: completed
   - id: system
     content: "createSystem export; AppBootstrap uses system not defaultSystem"
-    status: pending
+    status: completed
   - id: tests
     content: "theme/token tests for primary.500, bg.canvas, heading weight"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 2 — Theme system
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-theme-system` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-theme-system` · **Status:** done
 
 **Depends on:** [1](01-test-harness.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3–5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -66,6 +66,7 @@ rejected ([gaps-and-decisions.md](../gaps-and-decisions.md) D3).
 | --- | --- |
 | `apps/web/package.json` | `@fontsource/iceberg`, `@fontsource/inter`, `@fontsource/jetbrains-mono` |
 | `apps/web/src/app/AppBootstrap.tsx` | `import { system } from '../theme'`; `ChakraProvider value={system}` |
+| `apps/web/src/test/renderWithProviders.tsx` | Same `system`, so tests mount the production theme |
 | `apps/web/src/main.tsx` | Optional: align `MinimalAppShell` colors to canvas/wine (full polish ch.4) |
 
 **Do not edit** — feature components (chapters 5–10). Delete placeholder `components/ui/color-mode.tsx` export of `theme: unknown` only if replacing in ch.3.
@@ -99,6 +100,8 @@ Fix invalid props in existing components only if build fails (`color="muted"` �
 - **`theme/index.ts`.** Must not declare colors and textStyles if both grow — extract textStyles.
 
 Report outcome; re-run `npm run test -- src/theme/theme.test.ts` after each split.
+
+**Outcome:** split semantic colors by role at port (`surfaces`, `text`, `borders`, `interactive`, `focus`, `palettes`, `status`, `badge`, `navigation`, `fields`, `table`). `colors.ts` is the aggregate (28 lines). `textStyles.ts` holds heading styles at `fontWeight: normal`; `theme/index.ts` is 56 lines and only assembles the system. `mode()`, `palette()`, `statusColors()`, and `badgeColors()` cover the repeated light/dark shapes. Inlined the one-line `tokenValue` test wrapper. Narrow suite re-run after that inline: 7 passed.
 
 ## Verification
 
