@@ -7,7 +7,7 @@
 - **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; domain text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Social flows:** proposal form (URL, file upload, preview), proposal list/detail, voting UI.
 - **Moderation (later):** audit log views for privileged roles.
-- Accessibility and Chakra theming aligned with product branding (TBD).
+- Accessibility and Chakra theming aligned with product branding — executable visual chapters in [`.plans/web-frontend/`](../../../.plans/web-frontend/) (red palette, Iceberg headings, Wave 2 screen polish).
 
 ## Dependencies on other strands
 
@@ -23,6 +23,10 @@
 | `02-jurisdiction-and-document-views.md` | (TBD) Screens and data hooks. |
 | `03-dependency-tree-visualization.md` | (TBD) Library choice and interaction model. |
 | `04-social-proposals-ui.md` | (TBD) Forms, uploads, previews. |
+
+## Visual alignment (Wave 2 polish)
+
+Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../.plans/web-frontend/) — start at [chapters/01-test-harness.md](../../../.plans/web-frontend/chapters/01-test-harness.md).
 
 ## Links
 
