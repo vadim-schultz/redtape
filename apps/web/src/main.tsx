@@ -1,9 +1,15 @@
 import { Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 
+import { canvas } from "./theme/semantic-tokens/surfaces";
+import { customColors } from "./theme/tokens/colors";
 import "./style.css";
 
 const AppBootstrap = lazy(() => import("./app/AppBootstrap"));
+
+const deep = customColors.primary[900].value;
+const blush = customColors.primary[50].value;
+const wine = customColors.primary[500].value;
 
 export const MinimalAppShell = () => (
   <div
@@ -14,9 +20,8 @@ export const MinimalAppShell = () => (
       alignItems: "center",
       justifyContent: "center",
       gap: "12px",
-      background:
-        "radial-gradient(circle at 20% 20%, #E3AFBC 0, transparent 25%), #E3E2DF",
-      color: "#5D001E",
+      background: `radial-gradient(circle at 20% 20%, ${blush} 0, transparent 25%), ${canvas}`,
+      color: deep,
       fontFamily:
         "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
       textAlign: "center",
@@ -31,13 +36,11 @@ export const MinimalAppShell = () => (
         width: "36px",
         height: "36px",
         borderRadius: "50%",
-        border: "3px solid #E3AFBC",
-        borderTopColor: "#9A1750",
+        border: `3px solid ${blush}`,
+        borderTopColor: wine,
       }}
     />
-    <div style={{ color: "#9A1750", fontSize: "15px" }}>
-      Loading interface...
-    </div>
+    <div style={{ color: wine, fontSize: "15px" }}>Loading interface...</div>
   </div>
 );
 

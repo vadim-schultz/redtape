@@ -1,6 +1,6 @@
 import { mode } from "./mode";
 
-const canvas = "#E3E2DF";
+export const canvas = "#E3E2DF";
 
 /** Page and section backgrounds. Light canvas is the warm gray anchor. */
 export const bg = {
