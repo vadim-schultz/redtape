@@ -47,7 +47,7 @@ Chapters 5 and 6 both depend on 2 only; 7 depends on 5 and 6; 9 depends on 5 and
 | --- | --- | --- | --- | --- |
 | 1 | Test harness + not-found | vitest + `./ci.sh` | [01-test-harness.md](chapters/01-test-harness.md) | done |
 | 2 | Theme system (red + Iceberg/Inter) | vitest + `./ci.sh` | [02-theme-system.md](chapters/02-theme-system.md) | done |
-| 3 | Color mode | vitest + `./ci.sh` | [03-color-mode.md](chapters/03-color-mode.md) | planned |
+| 3 | Color mode | vitest + `./ci.sh` | [03-color-mode.md](chapters/03-color-mode.md) | done |
 | 4 | App shell | vitest + `./ci.sh` + manual | [04-app-shell.md](chapters/04-app-shell.md) | planned |
 | 5 | Page titles | vitest + `./ci.sh` | [05-page-titles.md](chapters/05-page-titles.md) | planned |
 | 6 | Document card | vitest + `./ci.sh` | [06-document-card.md](chapters/06-document-card.md) | planned |

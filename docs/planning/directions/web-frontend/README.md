@@ -26,7 +26,7 @@
 
 ## Visual alignment (Wave 2 polish)
 
-Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../.plans/web-frontend/) — start at [chapters/01-test-harness.md](../../../.plans/web-frontend/chapters/01-test-harness.md).
+Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../.plans/web-frontend/). Chapters 1–3 are done (test harness, theme, color mode). Continue at [chapters/04-app-shell.md](../../../.plans/web-frontend/chapters/04-app-shell.md).
 
 ## Links
 

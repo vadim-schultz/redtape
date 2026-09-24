@@ -7,13 +7,12 @@ import { queryClient } from "./queryClient";
 import App from "./App";
 import AppLayout from "../components/layout/AppLayout";
 
-import { ColorModeProvider } from "../contexts/ColorModeContext";
+import { ColorModeProvider } from "../components/ui/color-mode";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
 /**
- * Provider stack (Wave 2): Query + Chakra + Router.
- * LocaleProvider and color mode toggles are added in later todos.
+ * Provider stack: Query + Chakra theme + color mode + locale + router.
  */
 const AppBootstrap = () => (
   <StrictMode>

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
-import { ColorModeProvider } from "../contexts/ColorModeContext";
+import { ColorModeProvider } from "../components/ui/color-mode";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
@@ -33,7 +33,7 @@ function createWrapper(initialEntries: string[]) {
     return (
       <QueryClientProvider client={queryClient}>
         <ChakraProvider value={system}>
-          <ColorModeProvider>
+          <ColorModeProvider defaultTheme="light" enableSystem={false}>
             <LocaleProvider>
               <MemoryRouter initialEntries={initialEntries}>
                 {children}

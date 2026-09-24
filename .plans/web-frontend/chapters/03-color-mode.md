@@ -4,22 +4,22 @@ overview: "Wire next-themes through components/ui/color-mode.tsx and replace the
 todos:
   - id: next-themes
     content: "Add next-themes dependency and ColorModeProvider"
-    status: pending
+    status: completed
   - id: toggle
     content: "ColorModeToggle component with Button + icons"
-    status: pending
+    status: completed
   - id: bootstrap
     content: "Mount provider in AppBootstrap; remove placeholder ColorModeContext passthrough"
-    status: pending
+    status: completed
   - id: tests
     content: "useColorMode tests with mocked next-themes"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 3 — Color mode
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-color-mode` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-color-mode` · **Status:** done
 
 **Depends on:** [2](02-theme-system.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6.3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -88,6 +88,8 @@ documents no-op behavior.
   re-export only if import paths are widespread.
 
 Report outcome; re-run `npm run test -- src/components/ui/color-mode.test.tsx`.
+
+**Outcome:** deleted `contexts/ColorModeContext.tsx`. `ColorModeProvider` and `useColorMode` live only in `components/ui/color-mode.tsx`. `toggleTheme` holds the forced-theme no-op; `iconFor` holds the sun/moon choice. No further split — both files stay under 50 lines, and each decision has two arms. Narrow suite re-run: 4 passed.
 
 ## Verification
 
