@@ -9,7 +9,7 @@ export const bg = {
   tertiary: mode("{colors.gray.100}", "{colors.gray.800}"),
   muted: mode("{colors.gray.100}", "{colors.gray.900}"),
   subtle: mode(canvas, "{colors.gray.900}"),
-  canvas: mode(canvas, "{colors.primary.950}"),
+  canvas: mode(canvas, "{colors.gray.950}"),
 };
 
 /** Card, overlay, and selection surfaces. */
