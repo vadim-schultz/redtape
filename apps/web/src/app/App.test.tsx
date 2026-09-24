@@ -14,10 +14,10 @@ function renderAppAt(path: string) {
   );
 }
 
-it("app · renders RedTape in the layout header", async () => {
+it("app · renders Redtape in the layout header", async () => {
   renderAppAt("/documents");
 
-  expect(await screen.findByRole("banner")).toHaveTextContent("RedTape");
+  expect(await screen.findByRole("banner")).toHaveTextContent("Redtape");
 });
 
 it("app · renders not-found for an unregistered path", async () => {

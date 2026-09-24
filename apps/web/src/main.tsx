@@ -28,7 +28,7 @@ export const MinimalAppShell = () => (
       padding: "24px",
     }}
   >
-    <div style={{ fontSize: "22px", fontWeight: 700 }}>RedTape</div>
+    <div style={{ fontSize: "22px", fontWeight: 700 }}>Redtape</div>
     <div
       role="status"
       aria-label="Loading interface"

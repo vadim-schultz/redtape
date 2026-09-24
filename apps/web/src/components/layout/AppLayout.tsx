@@ -26,10 +26,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <Heading
               asChild
               textStyle="appTitle"
-              color="white"
               _hover={{ color: "interactive.hover" }}
             >
-              <RouterLink to="/">RedTape</RouterLink>
+              <RouterLink to="/">Redtape</RouterLink>
             </Heading>
             <HStack gap={4}>
               <LocaleSwitcher />
