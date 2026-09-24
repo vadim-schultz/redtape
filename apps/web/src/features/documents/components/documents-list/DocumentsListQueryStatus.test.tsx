@@ -52,7 +52,9 @@ it("DocumentsListQueryStatus · empty list renders empty state", async () => {
     />,
   );
 
-  expect(container.querySelector(".chakra-empty-state__root")).toBeInTheDocument();
+  expect(
+    container.querySelector(".chakra-empty-state__root"),
+  ).toBeInTheDocument();
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });
 
