@@ -4,19 +4,19 @@ overview: "Documents list and detail headers use pageTitle Iceberg textStyle and
 todos:
   - id: list-header
     content: "DocumentsListHeader pageTitle"
-    status: pending
+    status: done
   - id: detail-header
     content: "DocumentHeader pageTitle + secondary description"
-    status: pending
+    status: done
   - id: tests
     content: "Header component tests"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 5 — Page titles
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-page-titles` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-page-titles` · **Status:** done
 
 **Depends on:** [2](02-theme-system.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -24,8 +24,13 @@ isProject: false
 
 ## Goal
 
-List and detail primary titles use `Heading` with `textStyle="pageTitle"` (Iceberg). Descriptions use
+List and detail primary titles use `Heading` with `textStyle="pageTitle"` (Inter bold, per the
+theme system — Iceberg is reserved for the `appTitle` brand wordmark). Descriptions use
 `Text` with `color="text.secondary"`. No bare `size="lg"` headings remain on these surfaces.
+
+**Implementation note:** `pageTitle` was bumped from `2xl` to `3xl` in `textStyles.ts` for
+clearer, larger page-level headings (both `DocumentsListHeader` and `DocumentHeader` pick this
+up automatically).
 
 ## Design decisions
 
