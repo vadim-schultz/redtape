@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
+import NotFoundView from "../views/NotFoundView";
 import { routes } from "./routes";
 
 function App() {
@@ -10,7 +11,7 @@ function App() {
         {routes.map((route) => (
           <Route key={route.path} path={route.path} element={route.element} />
         ))}
-        <Route path="*" element={<Navigate to="/documents" replace />} />
+        <Route path="*" element={<NotFoundView />} />
       </Routes>
     </Suspense>
   );

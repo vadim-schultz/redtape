@@ -64,5 +64,5 @@ bar, data tables, new API endpoints, translating hardcoded `"Server error"`, `"S
 | Seam | Placeholder | Forcing condition |
 | --- | --- | --- |
 | Product branding beyond palette | Strand README still says "TBD" | Marketing sign-off; update strand README when settled |
-| Dedicated 404 route vs redirect | Today `*` redirects to `/documents` | Chapter 1 introduces an explicit not-found view for unknown paths |
+| Dedicated 404 route vs redirect | Unknown paths render `NotFoundView`. `/` still redirects to `/documents`. | Closed in chapter 1 |
 | `docs/planning/directions/web-frontend/01–04` TBD files | This suite is `.plans/web-frontend/`, not a replacement for product IA chapters | Expand strand files when building tree/social |

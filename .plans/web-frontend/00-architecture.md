@@ -10,7 +10,7 @@ isProject: true
 
 **Sibling docs:** [01-rollout.md](01-rollout.md) — chapter sequence · [gaps-and-decisions.md](gaps-and-decisions.md) — settled brand · [chapters/](chapters/) — executable plans · Product IA (tree, social): [docs/planning/directions/web-frontend/README.md](../../docs/planning/directions/web-frontend/README.md).
 
-**Status:** chapters 1–10 planned, not implemented.
+**Status:** chapter 1 done; chapters 2–10 planned.
 
 ---
 
