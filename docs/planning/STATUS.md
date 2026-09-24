@@ -2,7 +2,7 @@
 
 **This file is the source of truth for "what's done" and "what's next."** When a wave or milestone changes state, update this file rather than editing status markers scattered across [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) or the `directions/` docs (those keep their per-step detail; this page tracks the current, top-level picture).
 
-Last updated: **2026-09-23**.
+Last updated: **2026-09-24**.
 
 ## Wave-by-wave state
 
@@ -47,6 +47,8 @@ Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committ
 
 **Not yet done:** confirm a fresh deploy picks up `wrangler.jsonc` and the frontend successfully calls the API end-to-end (no `ERR_CONNECTION_REFUSED`, no CORS errors).
 
+**Update, 2026-09-24 (fourth pass)** — production browsers on some networks (e.g. corporate Zscaler) returned **403** on direct calls to `redtape-api.onrender.com` while the Workers frontend loaded fine. That is not a CORS allowlist gap (`render.yaml` already lists the `workers.dev` origin; Litestar would return **400** for a bad CORS origin). Fix: **same-origin API** — the Cloudflare Worker in [`apps/web/src/worker.ts`](../../apps/web/src/worker.ts) proxies `/api/*` to Render (`API_ORIGIN` in [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc)); the SPA uses [`apps/web/src/services/apiOrigin.ts`](../../apps/web/src/services/apiOrigin.ts) so production builds call `/api/v1/...` on the Workers host. Render `CORS_ALLOWED_ORIGINS` stays for direct clients (local dev, curl). **Not yet done:** deploy and confirm Network tab shows `…workers.dev/api/v1/…` with `200`s.
+
 ## Known documentation/code drift (fixed in this pass)
 
 - `docs/operations/gitlab-schedules.md` described a `.gitlab-ci.yml` job that never existed — there is no GitLab anywhere in this project. Renamed/rewritten as [`docs/operations/scheduled-jobs.md`](../operations/scheduled-jobs.md), describing the real GitHub Actions workflow.
@@ -56,7 +58,7 @@ Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committ
 
 ## Next step
 
-**Confirm the live frontend can actually talk to the live API (Wave 3, D9 smoke tests):** wait for Render to pick up the corrected `CORS_ALLOWED_ORIGINS`, re-check the preflight, then click through `https://redtape-web.vadim-schultz.workers.dev` end-to-end against `https://redtape-api.onrender.com`. Then re-run [deployment-checklist.md](../operations/deployment-checklist.md) for real against both live URLs (update its URLs first — it still references the old `pages.dev` assumption). Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
+**Confirm the live frontend can actually talk to the live API (Wave 3, D9 smoke tests):** deploy the Worker + SPA (same-origin `/api` proxy), then click through `https://redtape-web.vadim-schultz.workers.dev` and confirm DevTools → Network shows same-origin `…/api/v1/…` requests succeeding. Re-run [deployment-checklist.md](../operations/deployment-checklist.md) against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
 
 Known follow-ups, not yet scheduled:
 - Confirm whether Render auto-deploys on `render.yaml` env var changes for this service, or whether a manual Blueprint sync is required — unclear from this session.

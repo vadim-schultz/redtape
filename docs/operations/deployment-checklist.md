@@ -33,7 +33,7 @@ Checks:
 - [ ] `GET /api/v1/documents/{id}` returns:
   - Localized `title` and `description`
   - `requirements[]` (3 direct dependencies)
-- [ ] No CORS errors from `https://redtape-web.vadim-schultz.workers.dev` (or configured frontend origin — check `render.yaml`'s `CORS_ALLOWED_ORIGINS`).
+- [ ] `CORS_ALLOWED_ORIGINS` in `render.yaml` still includes the Workers origin (for direct API clients). Production browser traffic should be **same-origin** via the Worker proxy, not cross-origin to Render.
 
 How to troubleshoot quickly:
 - [ ] Check Render logs for startup/DB connection/a​lembic migration failures.
@@ -44,16 +44,16 @@ How to troubleshoot quickly:
 ## Frontend (Cloudflare Pages)
 
 Prereqs:
-- Cloudflare Pages project is connected to the repo.
-- `VITE_API_URL` is set in [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc) (`vars.VITE_API_URL` and `previews.vars.VITE_API_URL`), **not** just the dashboard — this project is a git-connected Workers Build, and dashboard-only variables get reset on the next deploy. `wrangler preview` fails without the `previews` block. `wrangler.jsonc` is the durable source of truth.
+- Cloudflare Workers Build project is connected to the repo (serves `https://redtape-web.vadim-schultz.workers.dev`).
+- [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc) defines `main` (`src/worker.ts`), `assets.run_worker_first` for `/api/*`, and `API_ORIGIN` (`vars` + `previews.vars`) pointing at the Render API — **not** dashboard-only; git-triggered builds sync from the repo.
 
 Checks:
-- [ ] Cloudflare Pages shows the latest commit deployed successfully.
+- [ ] Cloudflare shows the latest commit deployed successfully.
 - [ ] Opening the production URL shows no white-screen errors.
 - [ ] Locale switcher changes UI language (if implemented in the current wave).
 - [ ] Visiting `/documents` shows localized document titles.
 - [ ] Visiting `/documents/{id}` shows the dependency list.
-- [ ] Browser DevTools → Network shows API calls succeed (`200`s), not CORS blocks.
+- [ ] Browser DevTools → Network shows same-origin API calls to `https://redtape-web.vadim-schultz.workers.dev/api/v1/…` with `200`s (not direct `redtape-api.onrender.com` from the browser).
 
 ---
 

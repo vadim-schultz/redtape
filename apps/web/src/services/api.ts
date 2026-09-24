@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocale } from "../contexts/LocaleContext";
+import { buildApiUrl } from "./apiOrigin";
 
 export type ApiError = {
   status: number;
@@ -20,8 +21,6 @@ export class ApiRequestError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
 export async function apiRequest<T>(
   endpoint: string,
   opts: {
@@ -35,7 +34,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const { locale, method = "GET", query, body, headers, signal } = opts;
 
-  const url = new URL(API_BASE + endpoint);
+  const url = buildApiUrl(endpoint);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined) continue;
