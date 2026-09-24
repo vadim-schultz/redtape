@@ -183,6 +183,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# --- Local dev stack (scripts/dev-up.sh) ---
+.dev-logs/
+
 # --- Node.js / Vite / frontend (apps/web) ---
 node_modules/
 .wrangler/
