@@ -1,7 +1,7 @@
 import { mode } from "./mode";
 
 /**
- * Header chrome — neutral gray/white. Wine is reserved for header text
+ * Header chrome — neutral gray/white. Swiss red is reserved for header text
  * (see text.heading), never for backgrounds.
  */
 export const nav = {

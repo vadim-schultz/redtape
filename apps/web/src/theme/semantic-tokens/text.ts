@@ -9,5 +9,5 @@ export const text = {
   muted: mode("{colors.gray.400}", "{colors.gray.600}"),
   inverse: mode("white", "{colors.gray.900}"),
   link: mode("{colors.primary.600}", "{colors.primary.400}"),
-  heading: mode("{colors.primary.500}", "{colors.primary.300}"),
+  heading: mode("{colors.primary.500}", "{colors.primary.500}"),
 };

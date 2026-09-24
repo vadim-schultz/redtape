@@ -9,7 +9,7 @@ const AppBootstrap = lazy(() => import("./app/AppBootstrap"));
 
 const deep = customColors.primary[900].value;
 const blush = customColors.primary[50].value;
-const wine = customColors.primary[500].value;
+const red = customColors.primary[500].value;
 
 export const MinimalAppShell = () => (
   <div
@@ -37,10 +37,10 @@ export const MinimalAppShell = () => (
         height: "36px",
         borderRadius: "50%",
         border: `3px solid ${blush}`,
-        borderTopColor: wine,
+        borderTopColor: red,
       }}
     />
-    <div style={{ color: wine, fontSize: "15px" }}>Loading interface...</div>
+    <div style={{ color: red, fontSize: "15px" }}>Loading interface...</div>
   </div>
 );
 
