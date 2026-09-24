@@ -1,4 +1,4 @@
-import { Box, Skeleton, Text } from "@chakra-ui/react";
+import { Alert, Box, Skeleton, Text } from "@chakra-ui/react";
 
 import type { DocumentSummary } from "../../types";
 import DocumentCard from "./DocumentCard";
@@ -22,7 +22,12 @@ export default function DocumentsListQueryStatus({
   }
 
   if (isError) {
-    return <Text color="muted">Server error</Text>;
+    return (
+      <Alert.Root status="error">
+        <Alert.Indicator />
+        <Alert.Title>Server error</Alert.Title>
+      </Alert.Root>
+    );
   }
 
   return (
