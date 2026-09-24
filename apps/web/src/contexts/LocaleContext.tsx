@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { buildApiUrl } from "../services/apiOrigin";
 
 type TranslationBundle = Record<string, string>;
 
@@ -20,8 +21,6 @@ export type LocaleContextValue = {
 };
 
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 function initialLocale() {
   return (
@@ -45,13 +44,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     abortRef.current = abort;
 
     setIsLoading(true);
-    fetch(
-      `${API_BASE}/api/v1/translations?locale=${encodeURIComponent(locale)}`,
-      {
-        headers: { "Accept-Language": locale },
-        signal: abort.signal,
-      },
-    )
+    const translationsUrl = buildApiUrl("/api/v1/translations");
+    translationsUrl.searchParams.set("locale", locale);
+    fetch(translationsUrl.toString(), {
+      headers: { "Accept-Language": locale },
+      signal: abort.signal,
+    })
       .then(async (res) => {
         if (!res.ok)
           throw new Error(`Translations request failed: ${res.status}`);

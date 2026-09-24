@@ -104,13 +104,13 @@ own terminal tab/pane:
   and a Postgres upsert (`scripts/seed_i18n.py`). Running `postgres:16-alpine`
   locally gives the same dialect instead of fighting portability against
   SQLite.
-- **Frontend**: `apps/web/.env.production` (committed) is only read by
-  `vite build` — the command Cloudflare Workers Build runs. `npm run dev`
-  runs plain `vite`, which loads `.env`/`.env.development` only, never
-  `.env.production`. So local dev cannot accidentally hit the production API;
-  `VITE_API_URL` already defaults to `http://localhost:8000` in code
-  (`apps/web/src/services/api.ts`, `apps/web/src/contexts/LocaleContext.tsx`)
-  with zero configuration.
+- **Frontend**: `npm run dev` uses development mode and `apiOrigin()` →
+  `http://localhost:8000` (override with `apps/web/.env` if needed). Start
+  the API locally (`./scripts/dev-up.sh` or `uvicorn` in `apps/api`). Committed
+  `apps/web/.env.production` intentionally omits `VITE_API_URL` so `vite build`
+  (Cloudflare Workers Build) bakes same-origin `/api` URLs; the Worker proxies
+  to Render. After deploy, the browser must not call `redtape-api.onrender.com`
+  directly — only `…workers.dev/api/v1/…`.
 
 ## Known gaps (not addressed by this setup)
 
