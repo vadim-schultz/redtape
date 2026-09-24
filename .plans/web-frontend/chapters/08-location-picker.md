@@ -4,19 +4,19 @@ overview: "Location picker framed in Card.Root; select labels use Field compound
 todos:
   - id: card-frame
     content: "Wrap LocationPicker content in Card.Root"
-    status: pending
+    status: done
   - id: field-labels
     content: "LocationSelect uses Field.Root and Field.Label"
-    status: pending
+    status: done
   - id: tests
     content: "LocationPicker and LocationSelect tests"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 8 — Location picker
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-location-picker` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-location-picker` · **Status:** done
 
 **Depends on:** [2](02-theme-system.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §2 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -36,6 +36,12 @@ audit counts four decision paths (three selects + reset header). Extract shared 
 containing `LocationPicker` exceeds structure rules after styling edits.
 
 **Hardcoded English labels** (`State`, `District`, `City`) remain until i18n — styling only.
+
+**Implementation note:** the three select blocks stayed inline in `LocationPicker` — the refactor gate
+wasn't tripped (styling edits didn't add new branches, only reframed existing ones), so per the design
+decision above no `LocationSelectRow` extraction happened. Added `ResizeObserver`/`Element.scrollTo`
+polyfills to `src/test/setup.ts` since Ark UI's `Select` popover machine needs them under jsdom for the
+click-through-to-select interaction test.
 
 ## Files
 
