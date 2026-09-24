@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  buildUpstreamRequest,
-  isApiPath,
-  proxyApiRequest,
-} from "./proxyApi";
+import { buildUpstreamRequest, isApiPath, proxyApiRequest } from "./proxyApi";
 
 describe("isApiPath", () => {
   it("returns false for SPA routes", () => {

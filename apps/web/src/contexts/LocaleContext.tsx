@@ -47,10 +47,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     const translationsUrl = buildApiUrl("/api/v1/translations");
     translationsUrl.searchParams.set("locale", locale);
     fetch(translationsUrl.toString(), {
-        headers: { "Accept-Language": locale },
-        signal: abort.signal,
-      },
-    )
+      headers: { "Accept-Language": locale },
+      signal: abort.signal,
+    })
       .then(async (res) => {
         if (!res.ok)
           throw new Error(`Translations request failed: ${res.status}`);
