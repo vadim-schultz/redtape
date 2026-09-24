@@ -29,15 +29,18 @@ python -m scripts.seed_i18n
 python -m scripts.seed_documents
 cd ../..
 
-# Web, from the repo root. Copy .env.example to .env and set NPM_REGISTRY
-# on the corporate network; otherwise this uses the public npm registry.
+# Web, from the repo root. Optional: copy .env.example to .env and set
+# NPM_REGISTRY there when the public registry is unreachable. That file is
+# gitignored; scripts/npm.sh is the only reader.
 ./scripts/npm.sh install
 ```
 
 No `apps/api/.env` or `apps/web/.env` is required for this path — both apps'
 built-in defaults already point at the local stack (see "Why this mirrors
-Render/Cloudflare" below). A repo-root `.env` is optional and only selects
-the corporate npm mirror.
+Render/Cloudflare" below). A repo-root `.env` is optional. When `NPM_REGISTRY`
+is set, `scripts/npm.sh` uses it for the install and rewrites
+`apps/web/package-lock.json` back to `https://registry.npmjs.org`. Committed
+files stay on the public registry.
 
 ## Day-to-day workflow
 

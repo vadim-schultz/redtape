@@ -46,6 +46,7 @@ How to troubleshoot quickly:
 Prereqs:
 - Cloudflare Pages project is connected to the repo.
 - `VITE_API_URL` is set in [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc) (`vars.VITE_API_URL` and `previews.vars.VITE_API_URL`), **not** just the dashboard — this project is a git-connected Workers Build, and dashboard-only variables get reset on the next deploy. `wrangler preview` fails without the `previews` block. `wrangler.jsonc` is the durable source of truth.
+- Do not set `NPM_CONFIG_REGISTRY` or `npm_config_registry` on the Cloudflare project. [`apps/web/.npmrc`](../../apps/web/.npmrc) pins the public registry and `replace-registry-host=never`, so `npm clean-install` uses `package-lock.json` URLs. A private mirror belongs only in the gitignored repo-root `.env`, which Workers Builds do not receive.
 
 Checks:
 - [ ] Cloudflare Pages shows the latest commit deployed successfully.

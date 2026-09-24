@@ -2,7 +2,7 @@
 
 **This file is the source of truth for "what's done" and "what's next."** When a wave or milestone changes state, update this file rather than editing status markers scattered across [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) or the `directions/` docs (those keep their per-step detail; this page tracks the current, top-level picture).
 
-Last updated: **2026-09-23**.
+Last updated: **2026-09-24**.
 
 ## Wave-by-wave state
 
@@ -30,7 +30,7 @@ Wave 3's backend steps (D1–D4, D7, D8) look genuinely done from config; fronte
 **Update, 2026-09-23** — user reports the Render API host is now reachable (not independently re-checked in this session). A Cloudflare Pages deploy attempt for the frontend surfaced two real issues:
 
 1. `npm error enoent ... Could not read package.json` at `/opt/buildhome/repo/package.json` — the Pages project's **Root directory** setting is not pointed at `apps/web` (this repo is not an npm-workspace monorepo, so there is no root `package.json`; this is a dashboard setting, not something fixable in-repo). **Still needs to be set by hand in the Cloudflare Pages project settings.**
-2. `npm` could not resolve a private registry host — [`apps/web/package-lock.json`](../../apps/web/package-lock.json) had 468 `resolved` URLs pointing at that mirror instead of the public npm registry, almost certainly from a lockfile generated on a machine with a private npm proxy configured. `npm ci`/`npm install` fetches from the exact `resolved` URL regardless of the configured registry, so Cloudflare's sandboxed build (no route to that host) failed. **Fixed**: lockfile regenerated from scratch against `registry.npmjs.org`; `npm run build` verified locally.
+2. `npm` could not resolve a private registry host — [`apps/web/package-lock.json`](../../apps/web/package-lock.json) had `resolved` URLs pointing at that mirror instead of the public npm registry, from a lockfile generated where a private npm registry was configured. **Partly addressed the same day**: those URLs were rewritten to `registry.npmjs.org`. That was not sufficient on its own — see the 2026-09-24 update below.
 
 Neither issue has been re-tested against an actual Cloudflare Pages build yet — that requires the Root directory fix above, then a fresh deploy.
 
@@ -46,6 +46,8 @@ Neither issue has been re-tested against an actual Cloudflare Pages build yet �
 Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committing `name` (`redtape-web`), `assets.directory` (`./dist`, confirmed against a local `npm run build`), `assets.not_found_handling: single-page-application` (so direct navigation to client routes like `/documents` doesn't 404), and `vars.VITE_API_URL` pointing at the Render API. This makes the config durable across future Workers Builds deploys instead of dashboard-only.
 
 **Not yet done:** confirm a fresh deploy picks up `wrangler.jsonc` and the frontend successfully calls the API end-to-end (no `ERR_CONNECTION_REFUSED`, no CORS errors).
+
+**Update, 2026-09-24** — a Workers Build still failed `npm clean-install` by requesting the private npm host, even though `package-lock.json` already listed `https://registry.npmjs.org`. npm's default `replace-registry-host=npmjs` rewrites those lockfile URLs to the registry configured for the install, so `NPM_CONFIG_REGISTRY` / `npm_config_registry` in the build environment sends every fetch to that host. The private registry URL lives only in the gitignored repo-root `.env`. Only [`scripts/npm.sh`](../../scripts/npm.sh) reads it, for local installs, then rewrites the lockfile back to the public registry. [`apps/web/.npmrc`](../../apps/web/.npmrc) now sets `replace-registry-host=never` so Workers Builds and GitHub Actions use the lockfile URLs as written. Remove any npm registry variable from the Cloudflare project settings if one was added there.
 
 ## Known documentation/code drift (fixed in this pass)
 

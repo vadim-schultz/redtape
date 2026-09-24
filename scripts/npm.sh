@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Run npm in apps/web. Uses NPM_REGISTRY from the repo-root .env when present,
-# and rewrites any corporate resolved URLs back to the public registry.
+# Run npm in apps/web. Reads NPM_REGISTRY from the gitignored repo-root .env
+# when present, then rewrites lockfile resolved URLs back to the public registry.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,6 +14,9 @@ fi
 
 if [ -n "${NPM_REGISTRY:-}" ]; then
   export npm_config_registry="$NPM_REGISTRY"
+  # apps/web/.npmrc sets replace-registry-host=never so CI keeps public URLs.
+  # Local installs through NPM_REGISTRY need the default host rewrite.
+  export npm_config_replace_registry_host=npmjs
 fi
 
 cd "$ROOT/apps/web"

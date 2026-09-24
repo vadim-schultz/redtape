@@ -49,6 +49,11 @@ if grep '"resolved":' package-lock.json | grep -v 'https://registry.npmjs.org/' 
   exit 1
 fi
 
+if ! grep -q '^replace-registry-host=never$' .npmrc; then
+  echo "error: apps/web/.npmrc must set replace-registry-host=never" >&2
+  exit 1
+fi
+
 NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 NODE_OPTIONS="--max-old-space-size=8192" npm run format:check
 NODE_OPTIONS="--max-old-space-size=8192" npm run typecheck
