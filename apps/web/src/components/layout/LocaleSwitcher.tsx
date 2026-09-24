@@ -64,6 +64,7 @@ export default function LocaleSwitcher() {
         >
           <Text>{current?.flag_emoji ?? (locale === "de" ? "🇩🇪" : "🌐")}</Text>
           <Select.Root
+            size="sm"
             value={[locale]}
             collection={collection}
             onValueChange={(details) => {

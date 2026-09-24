@@ -4,22 +4,22 @@ overview: "Sticky header on nav tokens, canvas main, Iceberg appTitle wordmark l
 todos:
   - id: header
     content: "Extract or restyle AppHeader with nav.bg, border, sticky"
-    status: pending
+    status: completed
   - id: layout
     content: "AppLayout bg.canvas, main region, container widths"
-    status: pending
+    status: completed
   - id: loading
     content: "MinimalAppShell uses theme-aligned colors"
-    status: pending
+    status: completed
   - id: tests
     content: "AppLayout.test.tsx for header, main, wordmark link"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 4 — App shell
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-app-shell` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-app-shell` · **Status:** done
 
 **Depends on:** [2](02-theme-system.md), [3](03-color-mode.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §2 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -85,6 +85,17 @@ Empty page content still shows header + main landmarks.
   extract `MainContent` box — mirror reference only if file >100 LOC.
 
 Report outcome; re-run layout tests after extraction.
+
+**Outcome:** `AppLayout.tsx` stayed a single ~45-line file — header, cluster, and main composition
+each read as flat JSX with no branching, well under the extraction threshold, so no separate
+`AppHeader.tsx` was added. Wordmark uses Chakra's `Heading asChild` wrapping `RouterLink` (not a
+plain anchor wrapper) so `textStyle="appTitle"` and the `_hover` → `interactive.hover` token apply
+directly to the rendered `<a>`. `LocaleSwitcher` picked up `size="sm"` on `Select.Root` to match the
+`ColorModeToggle` button height in the cluster — no logic change. `MinimalAppShell` in `main.tsx`
+swapped its blue/gray placeholder palette for the brand hex values directly (deep `#5D001E`, canvas
+`#E3E2DF`, blush `#E3AFBC`, wine `#9A1750`) since it renders before `ChakraProvider` mounts and has
+no access to semantic tokens; no test was added for it per the chapter's Red tests table. Full suite
+re-run: 26 passed (7 files).
 
 ## Verification
 
