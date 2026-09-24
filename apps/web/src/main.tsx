@@ -15,8 +15,8 @@ export const MinimalAppShell = () => (
       justifyContent: "center",
       gap: "12px",
       background:
-        "radial-gradient(circle at 20% 20%, #f3f6fb 0, transparent 25%), #ffffff",
-      color: "#1a202c",
+        "radial-gradient(circle at 20% 20%, #E3AFBC 0, transparent 25%), #E3E2DF",
+      color: "#5D001E",
       fontFamily:
         "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
       textAlign: "center",
@@ -31,11 +31,11 @@ export const MinimalAppShell = () => (
         width: "36px",
         height: "36px",
         borderRadius: "50%",
-        border: "3px solid #cbd5e1",
-        borderTopColor: "#2563eb",
+        border: "3px solid #E3AFBC",
+        borderTopColor: "#9A1750",
       }}
     />
-    <div style={{ color: "#4a5568", fontSize: "15px" }}>
+    <div style={{ color: "#9A1750", fontSize: "15px" }}>
       Loading interface...
     </div>
   </div>
