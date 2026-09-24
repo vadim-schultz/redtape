@@ -1,4 +1,4 @@
-import { Box, VStack } from "@chakra-ui/react";
+import { Card, VStack } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
@@ -41,69 +41,65 @@ export default function LocationPicker({
   };
 
   return (
-    <Box
-      bg="bg.subtle"
-      borderWidth="1px"
-      borderColor="border"
-      borderRadius="md"
-      p={4}
-    >
-      <VStack gap={3} align="stretch">
-        <LocationPickerHeader
-          cancelLabel={t("common.cancel")}
-          localeLabel={locale.toUpperCase()}
-          canReset={canReset}
-          onReset={handleReset}
-        />
-
-        <VStack gap={2} align="stretch">
-          <LocationSelect
-            label="State"
-            value={stateCode}
-            disabled={false}
-            options={statesQuery.data?.items}
-            placeholder={t("documents.list_title")}
-            onChange={(next) => {
-              setStateCode(next);
-              setDistrictCode("");
-              setMunicipalityCode("");
-              onMunicipalityChange(null);
-            }}
-            isLoading={statesQuery.isLoading}
+    <Card.Root bg="surface.base" borderColor="border">
+      <Card.Body>
+        <VStack gap={3} align="stretch">
+          <LocationPickerHeader
+            cancelLabel={t("common.cancel")}
+            localeLabel={locale.toUpperCase()}
+            canReset={canReset}
+            onReset={handleReset}
           />
-        </VStack>
 
-        <VStack gap={2} align="stretch">
-          <LocationSelect
-            label="District"
-            value={districtCode}
-            disabled={!stateCode}
-            options={districtsQuery.data?.items}
-            placeholder={t("documents.list_title")}
-            onChange={(next) => {
-              setDistrictCode(next);
-              setMunicipalityCode("");
-              onMunicipalityChange(null);
-            }}
-            isLoading={districtsQuery.isLoading}
-          />
-        </VStack>
+          <VStack gap={2} align="stretch">
+            <LocationSelect
+              label="State"
+              value={stateCode}
+              disabled={false}
+              options={statesQuery.data?.items}
+              placeholder={t("documents.list_title")}
+              onChange={(next) => {
+                setStateCode(next);
+                setDistrictCode("");
+                setMunicipalityCode("");
+                onMunicipalityChange(null);
+              }}
+              isLoading={statesQuery.isLoading}
+            />
+          </VStack>
 
-        <VStack gap={2} align="stretch">
-          <LocationSelect
-            label="City"
-            value={municipalityCode}
-            disabled={!districtCode}
-            options={municipalitiesQuery.data?.items}
-            placeholder={t("documents.list_title")}
-            onChange={(next) => {
-              setMunicipalityCode(next);
-              onMunicipalityChange(next || null);
-            }}
-            isLoading={municipalitiesQuery.isLoading}
-          />
+          <VStack gap={2} align="stretch">
+            <LocationSelect
+              label="District"
+              value={districtCode}
+              disabled={!stateCode}
+              options={districtsQuery.data?.items}
+              placeholder={t("documents.list_title")}
+              onChange={(next) => {
+                setDistrictCode(next);
+                setMunicipalityCode("");
+                onMunicipalityChange(null);
+              }}
+              isLoading={districtsQuery.isLoading}
+            />
+          </VStack>
+
+          <VStack gap={2} align="stretch">
+            <LocationSelect
+              label="City"
+              value={municipalityCode}
+              disabled={!districtCode}
+              options={municipalitiesQuery.data?.items}
+              placeholder={t("documents.list_title")}
+              onChange={(next) => {
+                setMunicipalityCode(next);
+                onMunicipalityChange(next || null);
+              }}
+              isLoading={municipalitiesQuery.isLoading}
+            />
+          </VStack>
         </VStack>
-      </VStack>
-    </Box>
+      </Card.Body>
+    </Card.Root>
   );
 }

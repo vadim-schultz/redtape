@@ -1,4 +1,4 @@
-import { Select, Text, VStack } from "@chakra-ui/react";
+import { Field, Select, VStack } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { createListCollection } from "@ark-ui/react/select";
 
@@ -40,41 +40,43 @@ export default function LocationSelect({
   }, [items]);
 
   return (
-    <VStack gap={2} align="stretch">
-      <Text fontSize="sm" color="muted">
+    <Field.Root>
+      <Field.Label fontSize="sm" color="muted">
         {label}
-      </Text>
+      </Field.Label>
 
-      <Select.Root
-        value={[value]}
-        disabled={disabled}
-        collection={collection}
-        onValueChange={(details) => {
-          const v = (details as unknown as { value?: string[] }).value;
-          onChange(v?.[0] ?? "");
-        }}
-      >
-        <Select.Trigger>
-          <Select.ValueText />
-          <Select.IndicatorGroup>
-            <Select.Indicator />
-          </Select.IndicatorGroup>
-        </Select.Trigger>
+      <VStack gap={2} align="stretch" width="full">
+        <Select.Root
+          value={[value]}
+          disabled={disabled}
+          collection={collection}
+          onValueChange={(details) => {
+            const v = (details as unknown as { value?: string[] }).value;
+            onChange(v?.[0] ?? "");
+          }}
+        >
+          <Select.Trigger borderColor="input.border">
+            <Select.ValueText />
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Trigger>
 
-        <Select.Positioner>
-          <Select.Content>
-            <Select.List>
-              {items.map((item) => (
-                <Select.Item key={item.code} item={item}>
-                  <Select.ItemText>{item.name}</Select.ItemText>
-                </Select.Item>
-              ))}
-            </Select.List>
-          </Select.Content>
-        </Select.Positioner>
-      </Select.Root>
+          <Select.Positioner>
+            <Select.Content>
+              <Select.List>
+                {items.map((item) => (
+                  <Select.Item key={item.code} item={item}>
+                    <Select.ItemText>{item.name}</Select.ItemText>
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
 
-      {isLoading ? <LocationSelectSkeleton /> : null}
-    </VStack>
+        {isLoading ? <LocationSelectSkeleton /> : null}
+      </VStack>
+    </Field.Root>
   );
 }
