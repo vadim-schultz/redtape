@@ -36,15 +36,16 @@ echo "Installing/updating frontend dependencies (if needed)..."
 #
 # In some environments, `npm ci` can be flaky due to DNS/network variability.
 # Keep CI deterministic and fast by only running a fresh install if `eslint` isn't present.
-if [ ! -x node_modules/.bin/eslint ]; then
+if [ ! -x node_modules/.bin/eslint ] || [ ! -x node_modules/.bin/vitest ]; then
   npm install --foreground-scripts --no-audit --no-fund
 else
-  echo "eslint binary present; skipping npm install"
+  echo "eslint and vitest binaries present; skipping npm install"
 fi
 
 NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 NODE_OPTIONS="--max-old-space-size=8192" npm run format:check
 NODE_OPTIONS="--max-old-space-size=8192" npm run typecheck
+NODE_OPTIONS="--max-old-space-size=8192" npm test
 NODE_OPTIONS="--max-old-space-size=8192" npm run build
 
 echo "✅ All CI checks passed!"

@@ -4,22 +4,22 @@ overview: "Vitest + jsdom wired into apps/web and ci.sh, renderWithProviders hel
 todos:
   - id: vitest
     content: "Add vitest, @testing-library/react, jest-dom; configure in vite.config.ts"
-    status: pending
+    status: completed
   - id: render-helper
     content: "src/test/setup.ts and renderWithProviders.tsx matching AppBootstrap stack"
-    status: pending
+    status: completed
   - id: not-found
     content: "NotFoundView and Route path=* replacement for redirect-only behavior"
-    status: pending
+    status: completed
   - id: ci
     content: "npm test script and ci.sh web section"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 1 — Test harness and not-found
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-test-harness` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-test-harness` · **Status:** done
 
 **Depends on:** — · **Architecture:** [../00-architecture.md](../00-architecture.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -64,6 +64,7 @@ Alternative: keep redirect and test redirect — rejected per [gaps-and-decision
 | `apps/web/vite.config.ts` | `test` block |
 | `apps/web/src/app/App.tsx` | `path="*"` → `<NotFoundView />` |
 | `ci.sh` | After typecheck, run `npm test` in `apps/web` |
+| `.github/workflows/web-ci.yml` | Same `npm test` step after typecheck |
 
 **Do not edit** — theme tokens (chapter 2), feature API hooks.
 
@@ -95,6 +96,8 @@ Alternative: keep redirect and test redirect — rejected per [gaps-and-decision
   tests — trigger is three+ special cases, not two.
 
 Report outcome; re-run `npm run test -- src/app/App.test.tsx` after each extraction.
+
+**Outcome:** no extraction. `renderWithProviders` repeats the `AppBootstrap` provider stack in about ten lines, under the ~15-line trigger for `AppProviders`. `App` has two route cases (the route table and the catch-all). Narrow suite re-run after the audit: 5 passed.
 
 ## Verification
 
