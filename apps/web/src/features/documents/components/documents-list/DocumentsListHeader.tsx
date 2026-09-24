@@ -7,5 +7,9 @@ export interface DocumentsListHeaderProps {
 export default function DocumentsListHeader({
   title,
 }: DocumentsListHeaderProps) {
-  return <Heading size="lg">{title}</Heading>;
+  return (
+    <Heading textStyle="pageTitle" color="text.primary">
+      {title}
+    </Heading>
+  );
 }

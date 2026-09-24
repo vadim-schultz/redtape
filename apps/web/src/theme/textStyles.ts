@@ -29,7 +29,7 @@ export const textStyles = {
   pageTitle: {
     value: {
       ...subheading,
-      fontSize: "2xl",
+      fontSize: "3xl",
       letterSpacing: "tight",
     },
   },

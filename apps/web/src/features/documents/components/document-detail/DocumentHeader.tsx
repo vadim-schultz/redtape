@@ -11,10 +11,14 @@ export default function DocumentHeader({
 }: DocumentHeaderProps) {
   return (
     <>
-      <Heading size="lg">{title}</Heading>
-      <Text color="muted" mt={-2}>
-        {description}
-      </Text>
+      <Heading textStyle="pageTitle" color="text.primary">
+        {title}
+      </Heading>
+      {description && (
+        <Text color="text.secondary" mt={-2}>
+          {description}
+        </Text>
+      )}
     </>
   );
 }
