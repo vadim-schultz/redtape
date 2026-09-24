@@ -1,3 +1,42 @@
-// Chakra v3: we rely on `defaultSystem` from `@chakra-ui/react` in AppBootstrap.
-// This file remains as a placeholder so imports don't break during Wave 2 iteration.
-export const theme: unknown = undefined;
+/* eslint-disable react-refresh/only-export-components */
+import { ThemeProvider, useTheme } from "next-themes";
+import type { ThemeProviderProps } from "next-themes";
+
+export type ColorModeProviderProps = ThemeProviderProps;
+
+/** Apply light/dark class on the document via next-themes. */
+export function ColorModeProvider(props: ColorModeProviderProps) {
+  return (
+    <ThemeProvider attribute="class" disableTransitionOnChange {...props} />
+  );
+}
+
+export type ColorMode = "light" | "dark";
+
+export interface UseColorModeReturn {
+  colorMode: ColorMode;
+  setColorMode: (colorMode: ColorMode) => void;
+  toggleColorMode: () => void;
+}
+
+/** Read and switch the resolved color mode. A forced theme makes toggle a no-op. */
+export function useColorMode(): UseColorModeReturn {
+  const { resolvedTheme, setTheme, forcedTheme } = useTheme();
+
+  return {
+    colorMode: (forcedTheme || resolvedTheme) as ColorMode,
+    setColorMode: (colorMode) => setTheme(colorMode),
+    toggleColorMode: () => toggleTheme(forcedTheme, resolvedTheme, setTheme),
+  };
+}
+
+function toggleTheme(
+  forcedTheme: string | undefined,
+  resolvedTheme: string | undefined,
+  setTheme: (theme: string) => void,
+): void {
+  if (forcedTheme) {
+    return;
+  }
+  setTheme(resolvedTheme === "dark" ? "light" : "dark");
+}
