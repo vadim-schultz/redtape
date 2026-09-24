@@ -27,17 +27,17 @@ pip install -e ".[dev]"
 alembic upgrade head
 python -m scripts.seed_i18n
 python -m scripts.seed_documents
-cd ..
+cd ../..
 
-# Web
-cd apps/web
-npm install
-cd ..
+# Web, from the repo root. Copy .env.example to .env and set NPM_REGISTRY
+# on the corporate network; otherwise this uses the public npm registry.
+./scripts/npm.sh install
 ```
 
 No `apps/api/.env` or `apps/web/.env` is required for this path — both apps'
 built-in defaults already point at the local stack (see "Why this mirrors
-Render/Cloudflare" below).
+Render/Cloudflare" below). A repo-root `.env` is optional and only selects
+the corporate npm mirror.
 
 ## Day-to-day workflow
 
