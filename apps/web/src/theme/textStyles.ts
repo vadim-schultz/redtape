@@ -1,29 +1,41 @@
-/** Heading styles stay at Iceberg's only weight. Emphasis comes from size. */
+/**
+ * appTitle keeps Iceberg's only weight, sized up for emphasis. pageTitle and
+ * sectionHeader use Inter bold instead — Iceberg is too decorative at
+ * smaller sizes.
+ */
 
-const heading = {
+const headingBase = {
   fontFamily: "heading",
   fontWeight: "normal",
   lineHeight: "tight",
+  color: "text.heading",
+} as const;
+
+const subheading = {
+  fontFamily: "body",
+  fontWeight: "bold",
+  lineHeight: "tight",
+  color: "text.heading",
 } as const;
 
 export const textStyles = {
   appTitle: {
     value: {
-      ...heading,
-      fontSize: "3xl",
+      ...headingBase,
+      fontSize: "4xl",
       letterSpacing: "tight",
     },
   },
   pageTitle: {
     value: {
-      ...heading,
+      ...subheading,
       fontSize: "2xl",
       letterSpacing: "tight",
     },
   },
   sectionHeader: {
     value: {
-      ...heading,
+      ...subheading,
       fontSize: "xl",
     },
   },

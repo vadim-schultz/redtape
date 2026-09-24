@@ -4,21 +4,24 @@ import { it, expect } from "vitest";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import AppLayout from "./AppLayout";
 
-it("AppLayout · renders RedTape with appTitle in the header", async () => {
+it("AppLayout · renders Redtape with appTitle in the header", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
   const header = await screen.findByRole("banner");
-  const wordmark = within(header).getByRole("link", { name: "RedTape" });
+  const wordmark = within(header).getByRole("link", { name: "Redtape" });
 
   expect(getComputedStyle(wordmark).fontSize).toBe(
-    "var(--chakra-font-sizes-3xl)",
+    "var(--chakra-font-sizes-4xl)",
+  );
+  expect(getComputedStyle(wordmark).color).toBe(
+    "var(--chakra-colors-text-heading)",
   );
 });
 
 it("AppLayout · wordmark links to home", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  const wordmark = await screen.findByRole("link", { name: "RedTape" });
+  const wordmark = await screen.findByRole("link", { name: "Redtape" });
 
   expect(wordmark).toHaveAttribute("href", "/");
 });

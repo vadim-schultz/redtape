@@ -1,8 +1,11 @@
 import { mode } from "./mode";
 
-/** Header chrome. Light nav is deep; dark nav is wine. */
+/**
+ * Header chrome — neutral gray/white. Wine is reserved for header text
+ * (see text.heading), never for backgrounds.
+ */
 export const nav = {
-  bg: mode("{colors.primary.900}", "{colors.primary.500}"),
+  bg: mode("white", "{colors.gray.900}"),
   border: mode("{colors.gray.200}", "{colors.gray.800}"),
   item: {
     DEFAULT: mode("{colors.gray.600}", "{colors.gray.400}"),

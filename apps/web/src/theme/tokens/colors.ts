@@ -1,4 +1,4 @@
-/** RedTape brand scales. Anchors: blush, wine, deep, and accent. */
+/** Redtape brand scales. Anchors: blush, wine, deep, and accent. */
 
 /** `#EE4C7C` at 40% alpha, and the accent.400 step at the same alpha. */
 export const accentRing = {

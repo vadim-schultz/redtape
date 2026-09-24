@@ -33,11 +33,11 @@ it("theme · body font token names Inter", () => {
   expect(system.token("fonts.body")).toContain("Inter");
 });
 
-it("theme · pageTitle text style does not set bold weight", () => {
+it("theme · pageTitle text style is bold", () => {
   const pageTitle = system._config.theme?.textStyles?.pageTitle?.value as
     { fontWeight?: string } | undefined;
 
-  expect(pageTitle?.fontWeight ?? "normal").toBe("normal");
+  expect(pageTitle?.fontWeight).toBe("bold");
 });
 
 it("theme · rejects unregistered semantic token lookup", () => {

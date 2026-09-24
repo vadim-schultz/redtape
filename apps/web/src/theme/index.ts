@@ -52,5 +52,5 @@ const config = defineConfig({
   },
 });
 
-/** RedTape Chakra system: wine primary, accent ring, Iceberg headings. */
+/** Redtape Chakra system: wine primary, accent ring, Iceberg headings. */
 export const system = createSystem(defaultConfig, config);

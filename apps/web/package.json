@@ -12,7 +12,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.30.0",
