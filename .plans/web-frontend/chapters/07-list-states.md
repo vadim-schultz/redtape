@@ -4,16 +4,16 @@ overview: "DocumentsListQueryStatus uses Skeleton, EmptyState, and Alert for loa
 todos:
   - id: states
     content: "Branch isLoading/isError/empty/success with Chakra components"
-    status: pending
+    status: done
   - id: tests
     content: "DocumentsListQueryStatus.test.tsx all branches"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 7 — List states
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-list-states` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-list-states` · **Status:** done
 
 **Depends on:** [5](05-page-titles.md), [6](06-document-card.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6.2 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -24,6 +24,12 @@ isProject: false
 The documents list communicates four states with native Chakra UI: loading (`Skeleton`), error
 (`Alert` + status.error tokens), empty success (`EmptyState`), and populated list (count + one
 `DocumentCard` per row). No custom status panel component.
+
+**Implementation note:** the four state arms (loading/error/empty/success) exceeded the rule-of-three
+threshold, so the branches were extracted into small per-state components (`LoadingSkeleton`,
+`ErrorAlert`, `EmptyDocumentsState`, `PopulatedDocumentsList`) behind a `renderListContent` dispatcher,
+all colocated in `DocumentsListQueryStatus.tsx` since none are reused elsewhere. Empty-state copy
+("No documents found") wasn't specified in the plan and was chosen as a placeholder pending i18n.
 
 ## Design decisions
 
