@@ -40,3 +40,33 @@ it("DocumentsListQueryStatus · error renders alert and zero cards", async () =>
   expect(await screen.findByText("Server error")).toBeInTheDocument();
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });
+
+it("DocumentsListQueryStatus · empty list renders empty state", async () => {
+  const { container } = renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isError={false}
+      error={undefined}
+      listTitleLabel="documents"
+      documents={[]}
+    />,
+  );
+
+  expect(container.querySelector(".chakra-empty-state__root")).toBeInTheDocument();
+  expect(screen.queryAllByRole("link")).toHaveLength(0);
+});
+
+it("DocumentsListQueryStatus · populated list renders count and cards", async () => {
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isError={false}
+      error={undefined}
+      listTitleLabel="documents"
+      documents={documents}
+    />,
+  );
+
+  expect(await screen.findByText("2 documents")).toBeInTheDocument();
+  expect(screen.getAllByRole("link")).toHaveLength(2);
+});
