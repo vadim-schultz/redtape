@@ -4,16 +4,16 @@ overview: "DocumentCard becomes a Chakra Card compound with surface, shadow, hov
 todos:
   - id: card
     content: "Card.Root/Body/Title/Description with RouterLink wrapper"
-    status: pending
+    status: done
   - id: tests
     content: "DocumentCard.test.tsx happy and negative"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 6 — Document card
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-document-card` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-document-card` · **Status:** done
 
 **Depends on:** [2](02-theme-system.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
