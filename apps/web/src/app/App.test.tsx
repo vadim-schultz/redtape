@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { it, expect } from "vitest";
 
 import AppLayout from "../components/layout/AppLayout";
@@ -18,7 +18,8 @@ it("app · shows a list skeleton while the documents page code loads", async () 
   window.localStorage.setItem("locale", "en");
   renderAppAt("/documents");
 
-  expect(screen.getByRole("status", { name: "Loading..." })).toHaveAttribute(
+  const main = within(screen.getByRole("main"));
+  expect(main.getByRole("status", { name: "Loading..." })).toHaveAttribute(
     "aria-busy",
     "true",
   );
