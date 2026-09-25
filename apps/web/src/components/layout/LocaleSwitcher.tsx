@@ -76,6 +76,9 @@ export default function LocaleSwitcher() {
             aria-label={t("common.language")}
             variant="ghost"
             size="sm"
+            justifyContent="center"
+            px={0}
+            w="8"
           >
             {current?.flag_emoji ?? "🌐"}
           </IconButton>
