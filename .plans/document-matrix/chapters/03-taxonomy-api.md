@@ -4,22 +4,22 @@ overview: "New features/taxonomy package with repository, service, controller an
 todos:
   - id: repo
     content: "TaxonomyRepository: ordered list of domains and situations; lookup ids by code"
-    status: pending
+    status: completed
   - id: service
     content: "TaxonomyService: resolves i18n, exposes code->id resolution for other features"
-    status: pending
+    status: completed
   - id: http
     content: "Controller, router, dependencies; router registered in main.py"
-    status: pending
+    status: completed
   - id: schema
     content: "Pydantic read models under app/schema/taxonomy"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 3 — Taxonomy API
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-taxonomy-api` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-taxonomy-api` · **Status:** done
 
 **Depends on:** [2](02-germany-seed.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -119,3 +119,10 @@ refactor(api): share i18n resolution between features
 
 feat(api): list domains and life situations with resolved names
 ```
+
+## Outcome
+
+- `pick_i18n` extracted to `app/i18n_resolution.py` (own unit tests); documents feature imports it.
+- Repository, service, controller stay under 40 LOC each; both endpoints and both code resolvers go through one private helper per layer.
+- `TaxonomyCodeError` is raised by the service. No endpoint consumes codes yet, so the HTTP 422 mapping lands with chapter 4 rather than as dead code here.
+- DB-backed tests skip under the SQLite `ci.sh` run like the existing ones; verified against local Postgres (dev DB drift makes a few older seed/model tests fail there independent of this change).

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from uuid import UUID
 
 from app.features.documents.repository import DocumentRepository
+from app.i18n_resolution import pick_i18n
 from app.models.document import Document
 from app.models.jurisdiction import JurisdictionKind
 from app.schema.document.read import (
@@ -13,28 +13,6 @@ from app.schema.document.read import (
     JurisdictionPathNode,
     RequirementRead,
 )
-
-
-def _pick_i18n(
-    values: dict[str, object] | None,
-    *,
-    locale: str,
-    enabled: Iterable[str],
-) -> str:
-    """Resolve JSONB i18n map: requested → de → en → first enabled key → any value."""
-    if not values:
-        return ""
-    enabled_set = set(enabled)
-    for code in (locale, "de", "en"):
-        if code in values and str(values[code]).strip():
-            return str(values[code])
-    for key in sorted(enabled_set):
-        if key in values and str(values[key]).strip():
-            return str(values[key])
-    for _k, v in values.items():
-        if v is not None and str(v).strip():
-            return str(v)
-    return ""
 
 
 class DocumentService:
@@ -92,14 +70,14 @@ class DocumentService:
                 RequirementRead(
                     id=edge.id,
                     required_document=self._to_summary(req_doc, locale=locale, enabled_locales=enabled_locales),
-                    notes=_pick_i18n(edge.notes_i18n, locale=locale, enabled=enabled_locales) or None,
+                    notes=pick_i18n(edge.notes_i18n, locale=locale, enabled=enabled_locales) or None,
                 )
             )
         return DocumentDetail(
             id=doc.id,
             slug=doc.slug,
-            title=_pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
-            description=_pick_i18n(doc.description_i18n, locale=locale, enabled=enabled_locales),
+            title=pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
+            description=pick_i18n(doc.description_i18n, locale=locale, enabled=enabled_locales),
             official_url=doc.official_url,
             jurisdiction_id=doc.jurisdiction_id,
             jurisdiction_path=jurisdiction_path,
@@ -126,7 +104,7 @@ class DocumentService:
 
         return JurisdictionPathNode(
             code=str(getattr(j, "code", "") or ""),
-            name=_pick_i18n(j.name_i18n, locale=locale, enabled=enabled),
+            name=pick_i18n(j.name_i18n, locale=locale, enabled=enabled),
             kind=kind,
             openplz_type=getattr(j, "openplz_type", None),
         )
@@ -135,6 +113,6 @@ class DocumentService:
         return DocumentSummary(
             id=doc.id,
             slug=doc.slug,
-            title=_pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
-            description=_pick_i18n(doc.description_i18n, locale=locale, enabled=enabled_locales),
+            title=pick_i18n(doc.title_i18n, locale=locale, enabled=enabled_locales),
+            description=pick_i18n(doc.description_i18n, locale=locale, enabled=enabled_locales),
         )
