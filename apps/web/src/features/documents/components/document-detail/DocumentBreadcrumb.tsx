@@ -1,25 +1,35 @@
-import { Text } from "@chakra-ui/react";
+import { Fragment } from "react";
+import { Breadcrumb } from "@chakra-ui/react";
 
 import type { JurisdictionPathNode } from "../../types";
 
 export interface DocumentBreadcrumbProps {
   nodes: JurisdictionPathNode[];
-  separator?: string;
 }
 
-export default function DocumentBreadcrumb({
-  nodes,
-  separator = " › ",
-}: DocumentBreadcrumbProps) {
+export default function DocumentBreadcrumb({ nodes }: DocumentBreadcrumbProps) {
   if (!nodes.length) {
     return null;
   }
 
-  const label = nodes.map((n) => n.name).join(separator);
+  const lastIndex = nodes.length - 1;
 
   return (
-    <Text mt={2} fontSize="sm" color="muted">
-      {label}
-    </Text>
+    <Breadcrumb.Root>
+      <Breadcrumb.List>
+        {nodes.map((node, index) => (
+          <Fragment key={node.code}>
+            <Breadcrumb.Item>
+              {index === lastIndex ? (
+                <Breadcrumb.CurrentLink>{node.name}</Breadcrumb.CurrentLink>
+              ) : (
+                <Breadcrumb.Link>{node.name}</Breadcrumb.Link>
+              )}
+            </Breadcrumb.Item>
+            {index < lastIndex ? <Breadcrumb.Separator /> : null}
+          </Fragment>
+        ))}
+      </Breadcrumb.List>
+    </Breadcrumb.Root>
   );
 }
