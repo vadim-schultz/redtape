@@ -1,4 +1,4 @@
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Link } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 
 import type { RequirementRead } from "../../../types";
@@ -10,19 +10,21 @@ export interface RequirementItemProps {
 export default function RequirementItem({ requirement }: RequirementItemProps) {
   return (
     <Box>
-      <Text fontWeight={600}>
-        <RouterLink
-          to={`/documents/${requirement.required_document.id}`}
-          style={{ textDecoration: "none", color: "inherit" }}
-        >
+      <Link
+        asChild
+        color="text.link"
+        fontWeight="semibold"
+        _hover={{ textDecoration: "underline" }}
+      >
+        <RouterLink to={`/documents/${requirement.required_document.id}`}>
           {requirement.required_document.title}
         </RouterLink>
-      </Text>
+      </Link>
 
       {requirement.notes ? (
-        <Text color="muted" mt={1}>
+        <Box as="p" mt={1} color="text.secondary">
           {requirement.notes}
-        </Text>
+        </Box>
       ) : null}
     </Box>
   );
