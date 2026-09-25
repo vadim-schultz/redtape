@@ -71,7 +71,8 @@ Anchors from the red board ([gaps-and-decisions.md](gaps-and-decisions.md) D2):
 
 | Token | Font stack |
 | --- | --- |
-| `fonts.heading` | `'Iceberg', system-ui, sans-serif` |
+| `fonts.heading` | `'Space Grotesk', system-ui, sans-serif` |
+| `fonts.brand` | `'Iceberg', system-ui, sans-serif` (wordmark only) |
 | `fonts.body` | `'Inter', system-ui, -apple-system, sans-serif` |
 | `fonts.mono` | `'JetBrains Mono', ui-monospace, …` |
 
@@ -82,13 +83,16 @@ Load via `theme/fonts.ts` importing `@fontsource/iceberg`, `@fontsource/inter`,
 
 | Style | Font | Notes |
 | --- | --- | --- |
-| `appTitle` | heading | Wordmark; `fontWeight: normal`, large size, tight tracking |
-| `pageTitle` | heading | List/detail H1 |
-| `sectionHeader` | heading | Requirements, official source |
+| `appTitle` | brand | Wordmark; Iceberg is single-weight, `fontWeight: normal`, red |
+| `pageTitle` | heading | List/detail H1; bold, red (large text only) |
+| `sectionHeader` | heading | Section headings on the canvas; near-black |
+| `subsectionHeader` | heading | Card titles; near-black |
 | `body`, `caption` | body | Descriptions, counts |
 | `mono`, `code` | mono | IDs if shown later |
 
-Never set `fontWeight: bold` on heading text styles.
+Red is reserved for large text (`appTitle`, `pageTitle`); section and card headings are near-black.
+
+**Cards.** Every card uses `components/data-display/AppCard` (linked cards lift on hover). The detail page shows one card per document / required document, with section headings on the bare canvas.
 
 ---
 
