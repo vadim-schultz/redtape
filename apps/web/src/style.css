@@ -20,3 +20,15 @@ body {
   outline: 2px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
+
+@keyframes redtape-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="redtape-spin"] {
+    animation-duration: 3s !important;
+  }
+}

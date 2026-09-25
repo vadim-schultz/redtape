@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { initialLocale } from "../i18n/initialLocale";
 import { fallbackBundle, type TranslationBundle } from "../i18n/fallback";
 import { buildApiUrl } from "../services/apiOrigin";
 
@@ -20,14 +21,6 @@ export type LocaleContextValue = {
 };
 
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
-
-function initialLocale() {
-  return (
-    window.localStorage.getItem("locale") ??
-    navigator.language.slice(0, 2) ??
-    "de"
-  );
-}
 
 async function fetchTranslations(
   locale: string,
