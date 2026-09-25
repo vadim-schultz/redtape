@@ -86,7 +86,7 @@ it("DocumentFilters · taxonomy error shows compact error and no chips", async (
 
   await waitFor(() =>
     expect(
-      screen.getAllByRole("button", { name: /retry/i }).length,
+      screen.getAllByRole("button", { name: /try again/i }).length,
     ).toBeGreaterThan(0),
   );
   expect(screen.queryByRole("button", { name: "Housing" })).toBeNull();

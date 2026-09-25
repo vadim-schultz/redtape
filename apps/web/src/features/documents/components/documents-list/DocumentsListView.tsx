@@ -1,4 +1,5 @@
 import { Box, VStack } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 
 import type { DocumentSummary } from "../../types";
 import LocationPicker from "../../../locations/components/location-picker/LocationPicker";
@@ -8,6 +9,7 @@ import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 export interface DocumentsListViewProps {
   title: string;
+  filters: ReactNode;
   documents: DocumentSummary[] | undefined;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -19,6 +21,7 @@ export interface DocumentsListViewProps {
 
 export default function DocumentsListView({
   title,
+  filters,
   documents,
   isLoading,
   isRefreshing,
@@ -34,6 +37,8 @@ export default function DocumentsListView({
       <Box mt={6}>
         <LocationPicker onMunicipalityChange={onMunicipalityChange} />
       </Box>
+
+      <Box mt={6}>{filters}</Box>
 
       <Box mt={6}>
         <VStack align="stretch" gap={3}>

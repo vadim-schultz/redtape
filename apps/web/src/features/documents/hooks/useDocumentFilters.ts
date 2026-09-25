@@ -28,9 +28,7 @@ export function useDocumentFilters(): DocumentFilters {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete(axis);
-      toggled(readCodes(prev, axis), code).forEach((c) =>
-        next.append(axis, c),
-      );
+      toggled(readCodes(prev, axis), code).forEach((c) => next.append(axis, c));
       return next;
     });
 
