@@ -18,6 +18,7 @@
   "nav": {
     "home": "Home",
     "browse_documents": "Browse Documents",
+    "matrix": "Matrix",
     "about": "About"
   },
   "auth": {
@@ -67,6 +68,8 @@
     "all_for_situation": "All documents for this situation",
     "all_in_domain": "All documents in this domain",
     "empty_cell": "No documents in this cell",
+    "empty_title": "No tagged documents",
+    "empty_description": "Documents appear here once they are tagged with a domain and life situation.",
     "cell_aria": "{situation} × {domain}: {count} documents"
   },
   "filters": {

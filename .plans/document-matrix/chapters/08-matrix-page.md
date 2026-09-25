@@ -4,22 +4,22 @@ overview: "A /matrix route showing life situations as rows and domains as column
 todos:
   - id: page
     content: "MatrixPage container with query status handling"
-    status: pending
+    status: completed
   - id: grid
     content: "MatrixGrid, MatrixCell, row and column header links with distinct-document totals, corner all-documents link"
-    status: pending
+    status: completed
   - id: route
     content: "Lazy route /matrix and nav link"
-    status: pending
+    status: completed
   - id: mobile
     content: "Narrow-viewport layout: situation list with domain counts, no horizontal scroll trap"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 8 — Matrix page
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/matrix-page` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/matrix-page` · **Status:** done
 
 **Depends on:** [5](05-matrix-endpoint.md), [6](06-web-taxonomy-client.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

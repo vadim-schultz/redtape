@@ -22,3 +22,10 @@ export type MatrixResponse = {
   situations: AxisTotal[];
   domains: AxisTotal[];
 };
+
+/** One matrix row or column: taxonomy label plus the API's distinct-document total. */
+export type MatrixAxisItem = {
+  code: string;
+  name: string;
+  total: number;
+};
