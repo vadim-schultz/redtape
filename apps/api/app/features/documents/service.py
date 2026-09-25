@@ -60,6 +60,13 @@ class DocumentService:
         items = [self._to_summary(row, locale=locale, enabled_locales=enabled_locales) for row in rows]
         return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
 
+    def document_ids_in_scope(self, filters: DocumentFilters) -> list[UUID]:
+        """Ids of documents inside the jurisdiction scope; an unresolvable municipality has none."""
+        jurisdiction_id = self._effective_jurisdiction_id(filters)
+        if filters.municipality_code is not None and jurisdiction_id is None:
+            return []
+        return self._repo.ids_in_scope(jurisdiction_id=jurisdiction_id)
+
     def _effective_jurisdiction_id(self, filters: DocumentFilters) -> UUID | None:
         if filters.municipality_code is None:
             return filters.jurisdiction_id

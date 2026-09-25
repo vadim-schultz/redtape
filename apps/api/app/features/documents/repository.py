@@ -49,6 +49,12 @@ class DocumentRepository:
         filtered = self._base_select(jurisdiction_id, domain_ids, situation_ids).order_by(None).subquery()
         return int(self._session.scalar(select(func.count()).select_from(filtered)) or 0)
 
+    def ids_in_scope(self, *, jurisdiction_id: UUID | None) -> list[UUID]:
+        stmt = select(Document.id)
+        if jurisdiction_id is not None:
+            stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
+        return list(self._session.scalars(stmt).all())
+
     def list_page(
         self,
         *,
