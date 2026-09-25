@@ -9,10 +9,9 @@ services:
     buildCommand: cd apps/api && pip install -e .
 
     # Render provides $PORT at runtime for the service listener.
-    startCommand: cd apps/api && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-
-    # Ensure schema is up-to-date before the API starts.
-    preDeployCommand: cd apps/api && alembic upgrade head
+    # Migrates and seeds on every start (see apps/api/scripts/start.sh): Render's free
+    # plan ignores `preDeployCommand` and offers no shell, so this is the only hook.
+    startCommand: cd apps/api && sh scripts/start.sh
 
     # Health endpoint used by Render + GitHub keep-alive.
     healthCheckPath: /health
