@@ -94,12 +94,12 @@ Typical negative paths:
 
 | Slice | Negative assertion |
 | --- | --- |
-| Schema | Duplicate slug rejected; deleting a document cascades its tags |
+| Schema | Duplicate code rejected; deleting a document cascades its tags |
 | Seed | Re-running the seed creates no duplicates; every row has `de` and `en` |
 | Taxonomy API | Locale without a translation falls back per existing resolution |
-| Filter | Unknown slug → 422; no filter → identical response to today |
-| Matrix | Untagged document contributes to no cell; zero-count cells omitted |
-| Web | Failed query → `QueryError`, no chips; empty matrix → empty state |
+| Filter | Unknown code → 422; no filter → identical response to today |
+| Matrix | Untagged document contributes to no cell; zero-count cells omitted; axis totals count distinct documents |
+| Web | Failed query → `QueryError`, no chips; empty matrix → empty state; row/column header links carry one param, cell links two |
 
 Backend layering: routers → controllers → services → repos; the documents feature calls taxonomy only
 through the taxonomy service. Frontend: one component per file, directory mirrors composition.
@@ -108,7 +108,7 @@ through the taxonomy service. Frontend: one component per file, directory mirror
 
 ## Git workflow (implementation)
 
-Each chapter: `git checkout main && git pull`, then `git checkout -b feat/matrix-<slug>` (slug in the
+Each chapter: `git checkout main && git pull`, then `git checkout -b feat/matrix-<name>` (name in the
 chapter's Git workflow section). Conventional commits, one PR per chapter, never commit to `main`.
 
 This documentation pass uses branch `docs/document-matrix-plans` and touches only `.plans/` plus

@@ -15,7 +15,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/web`, optionally `apps/api`) · **Branch:** `feat/matrix-document-tags` · **Status:** planned
 
-**Depends on:** [4](04-documents-filter.md), [6](06-web-taxonomy-client.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [4](04-documents-filter.md), [6](06-web-taxonomy-client.md) (uses `buildDocumentsHref`) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 ---
 
@@ -59,7 +59,7 @@ if the measurement passes: `DocumentCard.tsx`, `apps/api/app/schema/document/rea
 | Test | Asserts |
 | --- | --- |
 | `DocumentTags · renders a badge per domain and situation` | Count and text |
-| `DocumentTags · each badge links to the filtered list` | `href` with slug |
+| `DocumentTags · each badge links to the filtered list` | `href` with code (`/documents?domain=D` / `?situation=S`) |
 | `DocumentTags · renders nothing when both arrays are empty` | Negative, no wrapper node |
 | `DocumentHeader · shows tags when the detail has them` | Integration |
 | `DocumentHeader · unchanged when the API omits the fields` | Backward-compat negative |

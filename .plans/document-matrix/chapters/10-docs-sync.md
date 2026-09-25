@@ -41,7 +41,7 @@ in, as in [web-frontend chapter 2](../../web-frontend/chapters/02-theme-system.m
 | `docs/planning/STATUS.md` | Dated entry: matrix shipped, endpoints, seeded counts |
 | `docs/planning/directions/data-model-migrations/02-documents-and-requirements.md` | Metadata bullet points to the taxonomy tables, not jsonb tags |
 | `docs/planning/directions/web-frontend/README.md` | Matrix page and filters listed under IA |
-| `docs/planning/directions/mobile-flutter/README.md` | Vault organizes by the same `domain` / `life_situation` slugs from `GET /domains`, `/life-situations`; sync is a later chapter |
+| `docs/planning/directions/mobile-flutter/README.md` | Vault organizes by the same `domain` / `life_situation` codes (language-neutral, D8) from `GET /domains`, `/life-situations`; sync is a later chapter |
 | `docs/planning/directions/backend-api/README.md` | New endpoints |
 | `.plans/README.md`, `.plans/document-matrix/01-rollout.md`, `00-architecture.md` | Status lines, chapter table |
 

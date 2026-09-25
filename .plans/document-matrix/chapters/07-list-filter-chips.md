@@ -3,7 +3,7 @@ name: "Chapter 7 — List filter chips"
 overview: "Domain and life-situation filter chips on the documents list, state held in URL search params and passed to the documents API."
 todos:
   - id: api
-    content: "fetchDocuments accepts domain and situation slug lists"
+    content: "fetchDocuments accepts domain and situation code lists"
     status: pending
   - id: state
     content: "useDocumentFilters hook reads and writes search params"
@@ -43,6 +43,10 @@ so chip toggles do not flash a skeleton.
 `components/documents-list/document-filters/{DocumentFilters, FilterGroup, FilterChip}.tsx`.
 `DocumentsListPage` composes them above the list; the existing location bar stays untouched.
 
+**Arrival from the matrix.** A row header links to `?situation=S`, a column header to `?domain=D`, a cell
+to both; the list page needs no special case, the corresponding chip(s) simply render as pressed. Tested
+end to end with a memory router starting at each URL shape.
+
 **Chips use Chakra namespace APIs** and theme tokens (selected = `primary`, unselected = subtle
 surface); each chip is a real toggle button with `aria-pressed`. A group heading uses the existing
 section text style.
@@ -74,12 +78,15 @@ the list.
 | Test | Asserts |
 | --- | --- |
 | `useDocumentFilters · reads domains and situations from the URL` | Parsed arrays |
-| `useDocumentFilters · toggle adds then removes a slug` | URL round trip |
+| `useDocumentFilters · toggle adds then removes a code` | URL round trip |
 | `useDocumentFilters · ignores empty and duplicate values` | Negative |
 | `documentsApi · sends repeated domain params` | `domain=a&domain=b` |
 | `documentsApi · sends no filter params when none selected` | Regression guard |
 | `FilterChip · reports pressed state via aria-pressed` | Accessibility |
 | `DocumentFilters · clear removes all filters` | URL empty |
+| `DocumentsListPage · /documents?situation=X shows only the situation chip pressed` | Row selection arrival |
+| `DocumentsListPage · /documents?domain=D shows only the domain chip pressed` | Column selection arrival |
+| `DocumentFilters · unknown code in the URL is ignored with no crash` | Negative; API 422 surfaces via `QueryError` |
 | `DocumentFilters · taxonomy error shows compact error and keeps list usable` | Negative |
 | `DocumentsListPage · empty filtered result renders the empty state` | Not an error |
 

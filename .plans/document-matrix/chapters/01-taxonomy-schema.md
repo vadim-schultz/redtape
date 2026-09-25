@@ -6,10 +6,10 @@ todos:
     content: "Domain and LifeSituation models; association tables; exported from app.models"
     status: pending
   - id: migration
-    content: "Alembic revision creating four tables, unique slugs, composite PKs, cascading FKs"
+    content: "Alembic revision creating four tables, unique codes, composite PKs, cascading FKs"
     status: pending
   - id: tests
-    content: "Model tests: slug uniqueness, cascade on document delete, association uniqueness"
+    content: "Model tests: code uniqueness, cascade on document delete, association uniqueness"
     status: pending
 isProject: false
 ---
@@ -29,9 +29,13 @@ reads or seeds them yet. `alembic upgrade head` and `downgrade -1` both work.
 
 ## Design decisions
 
+**`code`, not `slug`.** The column is a language-neutral identifier (English-derived, never translated,
+never renamed), see [../gaps-and-decisions.md](../gaps-and-decisions.md) D8. A `CHECK` constraint enforces
+lowercase ASCII kebab-case (`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`) so a translated or accented code cannot enter.
+
 **Two entity models, two association tables.** `Domain` and `LifeSituation` are structurally
 identical; keep them as two classes (different tables, different future behavior) sharing a small
-mixin for `slug`, `name_i18n`, `description_i18n`, `icon`, `sort_order`. Alternative: one `taxonomy_term`
+mixin for `code`, `name_i18n`, `description_i18n`, `icon`, `sort_order`. Alternative: one `taxonomy_term`
 table with a `kind` column — rejected, it blurs the two axes the product names separately.
 
 **Association tables as plain `Table` objects**, not mapped classes: they carry no attributes.
@@ -66,8 +70,9 @@ Relationships `Document.domains` and `Document.life_situations` are added with `
 | Test | Asserts |
 | --- | --- |
 | `domain · persists with de and en names` | Round-trip JSONB name |
-| `domain · duplicate slug is rejected` | `IntegrityError` on second insert |
-| `life_situation · duplicate slug is rejected` | Same for the other axis |
+| `domain · duplicate code is rejected` | `IntegrityError` on second insert |
+| `domain · non-kebab or accented code is rejected` | `IntegrityError` for `Umzüge`, `moving house`, empty string |
+| `life_situation · duplicate code is rejected` | Same for the other axis |
 | `document · tagging with a domain and a situation links both` | `document.domains` / `.life_situations` contain the rows |
 | `document · tagging the same domain twice is rejected` | Composite PK violation |
 | `document · deleting a document removes its links but keeps the domain` | Cascade on association rows only |
@@ -77,7 +82,7 @@ Tests use the session fixture from [conftest.py](../../../apps/api/tests/conftes
 
 ## Green
 
-1. Write the mixin and two models; run the slug tests.
+1. Write the mixin and two models; run the code tests.
 2. Add association tables and relationships; run the tagging and cascade tests.
 3. Autogenerate the migration, then hand-edit to match constraint names; verify upgrade/downgrade.
 
@@ -102,7 +107,7 @@ cd ../.. && ./ci.sh
 
 ## Out of scope
 
-Seed data (chapter 2), any endpoint (chapters 3–5), indexes beyond PKs and unique slugs unless a test
+Seed data (chapter 2), any endpoint (chapters 3–5), indexes beyond PKs and unique codes unless a test
 demands one.
 
 ## Git workflow

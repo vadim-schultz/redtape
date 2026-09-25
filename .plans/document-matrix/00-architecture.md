@@ -37,7 +37,7 @@ This suite adds the two axes as first-class, browsable taxonomies. The dependenc
 | **Matrix** | — | The grid of all cells with document counts | rows = situations, columns = domains |
 
 Code names: table/entity `domain`, `life_situation`; API paths `domains`, `life-situations`, `matrix`;
-query params `domain`, `situation` (slugs). Do not introduce "category", "topic" or "tag" as synonyms.
+query params `domain`, `situation` (their **codes**, §3). Do not introduce "category", "topic" or "tag" as synonyms.
 
 ---
 
@@ -53,7 +53,7 @@ erDiagram
 
 | Table | Columns | Constraints |
 | --- | --- | --- |
-| `domain` | `id` UUID, `slug`, `name_i18n` JSONB, `description_i18n` JSONB, `icon`, `sort_order` | `slug` unique; `de` + `en` keys on every seeded row |
+| `domain` | `id` UUID, `code`, `name_i18n` JSONB, `description_i18n` JSONB, `icon`, `sort_order` | `code` unique; `de` + `en` keys on every seeded row, further locales (`fr`, `it`, …) simply add keys |
 | `life_situation` | same shape | same |
 | `document_domain` | `document_id`, `domain_id` | composite PK; FKs `ON DELETE CASCADE` |
 | `document_life_situation` | `document_id`, `life_situation_id` | composite PK; FKs `ON DELETE CASCADE` |
@@ -68,8 +68,14 @@ Rules:
 - **No change to `document` or `document_requirement`.** Existing columns and endpoints keep their meaning.
 - **i18n** follows the existing pattern: JSONB with `de` and `en`, resolved server-side through
   [locale_resolution.py](../../apps/api/app/locale_resolution.py); clients never receive raw JSONB.
-- **Slugs** are stable ASCII kebab-case (`umzug`, `geburt-kind`, `fahrzeuge-mobilitaet`) and are the
-  public identifiers in URLs and query params.
+- **Codes, not slugs.** Each term has a `code`: a language-neutral, English-derived, ASCII kebab-case
+  identifier (`moving-house`, `birth-of-child`, `vehicles-mobility`) that is **never translated and never
+  renamed**. It is the public identifier in query params and API payloads, exactly like translation keys
+  in `ui_translation` and `Jurisdiction.code`. All user-facing text comes from `name_i18n`, so adding
+  France or Italy means adding `fr` / `it` names, not new URLs. Codes are deliberately not derived from
+  German words: a French user following `?situation=umzug` would see a foreign word in their address bar
+  and shared links would look like one country's vocabulary. Localized URL paths are an explicit
+  non-goal ([gaps-and-decisions.md](gaps-and-decisions.md) D8).
 - **Stay on Postgres.** Intersection counts are plain joins; see
   [gaps-and-decisions.md](gaps-and-decisions.md) D5.
 
@@ -77,51 +83,54 @@ Rules:
 
 ## 4. Germany seed taxonomy
 
-Finalized in chapter 2. Flat lists, sorted by `sort_order`.
+Finalized in chapter 2. Flat lists, sorted by `sort_order`. The **code** column is the language-neutral
+identifier; `de`/`en` are display names. Another country reuses the codes and adds its own locale names
+(`fr`, `it`), plus new rows only for concepts that do not exist in Germany (for example a French `pacs`
+situation).
 
 ### Domains (Lebensbereiche)
 
-| Slug | de | en |
+| Code | de | en |
 | --- | --- | --- |
-| `identitaet-personenstand` | Identität & Personenstand | Identity & civil status |
-| `wohnen` | Wohnen | Housing |
-| `fahrzeuge-mobilitaet` | Fahrzeuge & Mobilität | Vehicles & mobility (car, motorbike, boat, licences) |
-| `arbeit-beruf` | Arbeit & Beruf | Work & employment |
-| `familie-kinder` | Familie & Kinder | Family & children |
-| `bildung` | Bildung | Education |
-| `gesundheit-versicherung` | Gesundheit & Versicherung | Health & insurance |
-| `steuern-finanzen` | Steuern & Finanzen | Taxes & finance |
-| `aufenthalt-migration` | Aufenthalt & Migration | Residence & migration |
-| `rente-alter` | Rente & Alter | Retirement & old age |
-| `selbststaendigkeit-gewerbe` | Selbstständigkeit & Gewerbe | Self-employment & business |
-| `soziales-leistungen` | Soziales & Leistungen | Social benefits |
-| `recht-justiz` | Recht & Justiz | Law & justice |
+| `identity-civil-status` | Identität & Personenstand | Identity & civil status |
+| `housing` | Wohnen | Housing |
+| `vehicles-mobility` | Fahrzeuge & Mobilität | Vehicles & mobility (car, motorbike, boat, licences) |
+| `work-employment` | Arbeit & Beruf | Work & employment |
+| `family-children` | Familie & Kinder | Family & children |
+| `education` | Bildung | Education |
+| `health-insurance` | Gesundheit & Versicherung | Health & insurance |
+| `taxes-finance` | Steuern & Finanzen | Taxes & finance |
+| `residence-migration` | Aufenthalt & Migration | Residence & migration |
+| `retirement-old-age` | Rente & Alter | Retirement & old age |
+| `self-employment-business` | Selbstständigkeit & Gewerbe | Self-employment & business |
+| `social-benefits` | Soziales & Leistungen | Social benefits |
+| `law-justice` | Recht & Justiz | Law & justice |
 
 Vehicle kinds (car, motorbike, boat) are **not** separate domains: they are distinct documents inside
-`fahrzeuge-mobilitaet` (Kfz-Zulassung, Motorradführerschein, Sportbootführerschein). See D4.
+`vehicles-mobility` (Kfz-Zulassung, Motorradführerschein, Sportbootführerschein). See D4.
 
 ### Life situations (Lebenslagen)
 
-| Slug | de | en |
+| Code | de | en |
 | --- | --- | --- |
-| `umzug` | Umzug | Moving house |
-| `geburt-kind` | Geburt eines Kindes | Birth of a child |
-| `heirat` | Heirat / Lebenspartnerschaft | Marriage / civil partnership |
-| `trennung-scheidung` | Trennung & Scheidung | Separation & divorce |
-| `todesfall` | Todesfall | Death of a relative |
-| `jobverlust` | Jobverlust | Losing a job |
-| `berufseinstieg-jobwechsel` | Berufseinstieg / Jobwechsel | Starting or changing jobs |
-| `selbststaendig-machen` | Selbstständig machen | Going self-employed |
-| `studium` | Studium | Studying |
-| `einschulung` | Einschulung | Starting school |
-| `wohnung-mieten` | Wohnung mieten | Renting a home |
-| `immobilie-kaufen` | Immobilie kaufen / bauen | Buying or building property |
-| `fahrzeug-kaufen` | Fahrzeug kaufen / zulassen | Buying and registering a vehicle |
-| `fuehrerschein-erwerben` | Führerschein / Bootsschein erwerben | Getting a driving or boating licence |
-| `zuzug-deutschland` | Zuzug nach Deutschland | Moving to Germany |
-| `einbuergerung` | Einbürgerung | Naturalisation |
-| `krankheit-pflege` | Krankheit / Pflegebedürftigkeit | Illness / care needs |
-| `renteneintritt` | Renteneintritt | Retirement |
+| `moving-house` | Umzug | Moving house |
+| `birth-of-child` | Geburt eines Kindes | Birth of a child |
+| `marriage` | Heirat / Lebenspartnerschaft | Marriage / civil partnership |
+| `separation-divorce` | Trennung & Scheidung | Separation & divorce |
+| `death-of-relative` | Todesfall | Death of a relative |
+| `job-loss` | Jobverlust | Losing a job |
+| `new-job` | Berufseinstieg / Jobwechsel | Starting or changing jobs |
+| `going-self-employed` | Selbstständig machen | Going self-employed |
+| `studying` | Studium | Studying |
+| `starting-school` | Einschulung | Starting school |
+| `renting-home` | Wohnung mieten | Renting a home |
+| `buying-property` | Immobilie kaufen / bauen | Buying or building property |
+| `buying-vehicle` | Fahrzeug kaufen / zulassen | Buying and registering a vehicle |
+| `getting-licence` | Führerschein / Bootsschein erwerben | Getting a driving or boating licence |
+| `immigration` | Zuzug nach Deutschland | Moving to Germany |
+| `naturalisation` | Einbürgerung | Naturalisation |
+| `illness-care` | Krankheit / Pflegebedürftigkeit | Illness / care needs |
+| `retirement` | Renteneintritt | Retirement |
 
 ---
 
@@ -133,17 +142,45 @@ Litestar (see [documents/controller.py](../../apps/api/app/features/documents/co
 
 | Method + path | Returns | Notes |
 | --- | --- | --- |
-| `GET /api/v1/domains` | `[{slug, name, description, icon}]` | Locale-resolved, ordered by `sort_order` |
+| `GET /api/v1/domains` | `[{code, name, description, icon}]` | Locale-resolved, ordered by `sort_order` |
 | `GET /api/v1/life-situations` | same shape | same |
-| `GET /api/v1/documents?domain=&situation=` | existing `DocumentListResponse` | Both optional, combinable, repeatable per axis; unknown slug → 422 |
+| `GET /api/v1/documents?domain=&situation=` | existing `DocumentListResponse` | Both optional, combinable, repeatable per axis; unknown code → 422 |
 | `GET /api/v1/documents/{id}` | existing detail + `domains[]`, `life_situations[]` | Additive fields |
-| `GET /api/v1/matrix?jurisdiction_id=` | `{cells: [{domain, situation, count}]}` | Only non-empty cells; counts respect the jurisdiction filter |
+| `GET /api/v1/matrix?jurisdiction_id=` | `{total, cells, situations, domains}` (§5.1) | Non-empty cells and axis totals; all counts respect the jurisdiction filter |
 
 A new feature package `features/taxonomy/` owns domains, situations and the matrix. The documents
-feature never queries taxonomy tables directly: it calls the taxonomy **service** to resolve slugs to
+feature never queries taxonomy tables directly: it calls the taxonomy **service** to resolve codes to
 ids (strict layering; a feature's service never reaches into another feature's repo).
 
 ---
+
+### 5.1 Matrix response and axis selection
+
+The matrix answers three questions, so its payload carries three lists:
+
+```json
+{
+  "total":     31,
+  "cells":      [{"domain": "housing", "situation": "moving-house", "count": 3}],
+  "situations": [{"code": "moving-house", "count": 7}],
+  "domains":    [{"code": "housing", "count": 12}]
+}
+```
+
+- **Cell** — documents tagged with that domain **and** that situation. Selecting it opens
+  `/documents?domain=D&situation=S`.
+- **Row total (situation)** — *all* documents tagged with that situation, in any domain. Selecting the
+  row opens `/documents?situation=S`.
+- **Column total (domain)** — *all* documents tagged with that domain, in any situation. Selecting the
+  column opens `/documents?domain=D`.
+- **Grand total (`total`)** — all documents in scope, tagged or not. Selecting it opens `/documents`.
+
+Axis totals are **distinct documents**, not the sum of cells: a document tagged with two domains
+appears in two cells of one row but counts once in that row's total. The UI must never compute totals
+by summing cells. `situations` and `domains` list only terms with at least one document in the current
+scope, so the grid shows only rows and columns that apply to the selected jurisdiction (a
+Germany-only term does not appear for a French municipality). The documents endpoint already accepts a
+single axis, so row and column selection need no extra API.
 
 ## 6. Frontend
 
@@ -153,8 +190,8 @@ Code lives under `apps/web/src/features/`, one component per file, directory mir
 | Surface | Where | Job |
 | --- | --- | --- |
 | Taxonomy client + hooks | `features/taxonomy/{services,hooks,types}` | Typed fetch + TanStack Query, locale-aware keys |
-| Matrix overview | `features/taxonomy/containers/MatrixPage`, route `/matrix` | Situations × domains grid; each cell links to `/documents?domain=…&situation=…` |
-| List filters | `features/documents/components/documents-list/` | Domain and situation chips, state in URL search params |
+| Matrix overview | `features/taxonomy/containers/MatrixPage`, route `/matrix` | Situations × domains grid. Cell → both filters; row header → situation only; column header → domain only; corner → everything. Headers show distinct-document totals |
+| List filters | `features/documents/components/documents-list/` | Domain and situation chips, state in URL search params; a row or column selection arrives as one active chip |
 | Tags | `DocumentCard`, `DocumentHeader` | Domain/situation badges, absent when empty |
 
 Rules carried over from [web-frontend/00-architecture.md](../web-frontend/00-architecture.md): Chakra v3
@@ -166,6 +203,9 @@ theme tokens only, no hardcoded strings — new keys go into
 ---
 
 ## 7. Out of scope
+
+Localized URL paths or per-locale slugs (`/dokumente`, `/documents`, `/documenti`); route paths stay
+English constants like `/documents` today, and only *content* is translated.
 
 Dependency-closure endpoints and tree UI (graph-resolution strand), situation checklists,
 curation/admin UI and community tagging proposals (social-moderation strand), mobile vault taxonomy
