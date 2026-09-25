@@ -13,6 +13,7 @@ export interface DocumentsListViewProps {
   isLoading: boolean;
   isError: boolean;
   error: unknown;
+  onRetry: () => void;
   onMunicipalityChange: (municipalityCode: string | null) => void;
 }
 
@@ -23,6 +24,7 @@ export default function DocumentsListView({
   isLoading,
   isError,
   error,
+  onRetry,
   onMunicipalityChange,
 }: DocumentsListViewProps) {
   return (
@@ -39,6 +41,7 @@ export default function DocumentsListView({
             isLoading={isLoading}
             isError={isError}
             error={error}
+            onRetry={onRetry}
             listTitleLabel={listTitleLabel}
             documents={documents}
           />

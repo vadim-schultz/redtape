@@ -7,7 +7,8 @@
     "search": "Suchen",
     "loading": "Lädt...",
     "error": "Fehler",
-    "success": "Erfolgreich"
+    "success": "Erfolgreich",
+    "retry": "Erneut versuchen"
   },
   "nav": {
     "home": "Startseite",
@@ -25,7 +26,9 @@
     "detail_title": "Dokumentdetails",
     "requirements": "Erforderliche Dokumente",
     "no_requirements": "Keine Voraussetzungen",
-    "official_source": "Offizielle Quelle"
+    "official_source": "Offizielle Quelle",
+    "empty_title": "Keine Dokumente gefunden",
+    "empty_description": "Wähle einen anderen Ort aus."
   },
   "location": {
     "label": "Ort",

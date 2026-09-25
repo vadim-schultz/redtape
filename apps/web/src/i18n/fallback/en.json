@@ -7,7 +7,8 @@
     "search": "Search",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "retry": "Try again"
   },
   "nav": {
     "home": "Home",
@@ -25,7 +26,9 @@
     "detail_title": "Document Details",
     "requirements": "Required Documents",
     "no_requirements": "No requirements",
-    "official_source": "Official Source"
+    "official_source": "Official Source",
+    "empty_title": "No documents found",
+    "empty_description": "Try selecting a different location."
   },
   "location": {
     "label": "Location",

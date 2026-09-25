@@ -18,6 +18,7 @@ export default function DocumentsListPage() {
       isLoading={docsQuery.isLoading}
       isError={docsQuery.isError}
       error={docsQuery.error}
+      onRetry={() => void docsQuery.refetch()}
       onMunicipalityChange={setMunicipalityCode}
     />
   );
