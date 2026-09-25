@@ -58,5 +58,22 @@
     "server_error": "Server error. Please try again later.",
     "page_not_found_title": "Page not found",
     "page_not_found_body": "This address is not part of Redtape."
+  },
+  "matrix": {
+    "page_title": "Document matrix",
+    "situations_axis": "Life situation",
+    "domains_axis": "Domain",
+    "all_documents": "All documents",
+    "all_for_situation": "All documents for this situation",
+    "all_in_domain": "All documents in this domain",
+    "empty_cell": "No documents in this cell",
+    "cell_aria": "{situation} × {domain}: {count} documents"
+  },
+  "filters": {
+    "domain": "Domain",
+    "situation": "Life situation",
+    "clear": "Clear filters",
+    "remove_domain": "Remove domain filter: {name}",
+    "remove_situation": "Remove situation filter: {name}"
   }
 }

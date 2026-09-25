@@ -4,22 +4,22 @@ overview: "Typed API client, TanStack Query hooks and translation keys for domai
 todos:
   - id: types
     content: "Term, MatrixCell, AxisTotal, MatrixResponse types (codes, totals)"
-    status: pending
+    status: completed
   - id: client
     content: "taxonomyApi fetchers using apiRequest with locale"
-    status: pending
+    status: completed
   - id: hooks
     content: "useDomainsQuery, useLifeSituationsQuery, useMatrixQuery with locale in keys"
-    status: pending
+    status: completed
   - id: i18n
     content: "de/en keys for matrix and filter UI in API seeds and web fallback bundles"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 6 — Web taxonomy client
 
-**Repo:** `redtape` (`apps/web`, plus translation seeds in `apps/api`) · **Branch:** `feat/matrix-web-client` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, plus translation seeds in `apps/api`) · **Branch:** `feat/matrix-web-client` · **Status:** done
 
 **Depends on:** [3](03-taxonomy-api.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

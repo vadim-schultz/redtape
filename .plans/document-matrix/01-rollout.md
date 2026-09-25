@@ -56,7 +56,7 @@ order is the default sequence.
 | 3 | Taxonomy API | backend | pytest + `./ci.sh` | [03-taxonomy-api.md](chapters/03-taxonomy-api.md) | done |
 | 4 | Documents filter and tags | backend | pytest + `./ci.sh` | [04-documents-filter.md](chapters/04-documents-filter.md) | done |
 | 5 | Matrix endpoint | backend | pytest + `./ci.sh` | [05-matrix-endpoint.md](chapters/05-matrix-endpoint.md) | done |
-| 6 | Web taxonomy client | frontend | vitest + `./ci.sh` | [06-web-taxonomy-client.md](chapters/06-web-taxonomy-client.md) | planned |
+| 6 | Web taxonomy client | frontend | vitest + `./ci.sh` | [06-web-taxonomy-client.md](chapters/06-web-taxonomy-client.md) | done |
 | 7 | List filter chips | frontend | vitest + `./ci.sh` | [07-list-filter-chips.md](chapters/07-list-filter-chips.md) | planned |
 | 8 | Matrix page | frontend | vitest + `./ci.sh` + manual | [08-matrix-page.md](chapters/08-matrix-page.md) | planned |
 | 9 | Tags on card and detail | frontend | vitest + `./ci.sh` | [09-tags-on-card-and-detail.md](chapters/09-tags-on-card-and-detail.md) | planned |

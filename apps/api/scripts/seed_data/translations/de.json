@@ -58,5 +58,22 @@
     "server_error": "Serverfehler. Bitte versuchen Sie es später erneut.",
     "page_not_found_title": "Seite nicht gefunden",
     "page_not_found_body": "Diese Adresse gehört nicht zu Redtape."
+  },
+  "matrix": {
+    "page_title": "Dokumentenmatrix",
+    "situations_axis": "Lebenslage",
+    "domains_axis": "Lebensbereich",
+    "all_documents": "Alle Dokumente",
+    "all_for_situation": "Alle Dokumente für diese Lebenslage",
+    "all_in_domain": "Alle Dokumente in diesem Lebensbereich",
+    "empty_cell": "Keine Dokumente in dieser Zelle",
+    "cell_aria": "{situation} × {domain}: {count} Dokumente"
+  },
+  "filters": {
+    "domain": "Lebensbereich",
+    "situation": "Lebenslage",
+    "clear": "Filter zurücksetzen",
+    "remove_domain": "Lebensbereich-Filter entfernen: {name}",
+    "remove_situation": "Lebenslagen-Filter entfernen: {name}"
   }
 }
