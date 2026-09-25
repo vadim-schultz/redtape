@@ -8,7 +8,8 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "retry": "Try again"
+    "retry": "Try again",
+    "back": "Back"
   },
   "nav": {
     "home": "Home",
@@ -28,7 +29,8 @@
     "no_requirements": "No requirements",
     "official_source": "Official Source",
     "empty_title": "No documents found",
-    "empty_description": "Try selecting a different location."
+    "empty_description": "Try selecting a different location.",
+    "not_found": "Document not found"
   },
   "location": {
     "label": "Location",
@@ -46,6 +48,8 @@
     "validation_error": "Input validation error",
     "document_not_found": "Document not found: {id}",
     "unauthorized": "Unauthorized",
-    "server_error": "Server error. Please try again later."
+    "server_error": "Server error. Please try again later.",
+    "page_not_found_title": "Page not found",
+    "page_not_found_body": "This address is not part of Redtape."
   }
 }

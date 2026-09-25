@@ -1,5 +1,10 @@
-import { Alert, Box, Heading, Skeleton, Text } from "@chakra-ui/react";
+import { Box, Heading, Skeleton, Text } from "@chakra-ui/react";
+import { LuFileX } from "react-icons/lu";
 
+import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
+import QueryError from "../../../../components/feedback/QueryError";
+import { useLocale } from "../../../../contexts/LocaleContext";
+import { ApiRequestError } from "../../../../services/api";
 import type { DocumentDetail } from "../../types";
 
 import DocumentHeader from "./DocumentHeader";
@@ -11,6 +16,7 @@ export interface DocumentDetailQueryStatusProps {
   isLoading: boolean;
   isError: boolean;
   error: unknown;
+  onRetry: () => void;
   document: DocumentDetail | undefined;
   requirementsTitle: string;
   noRequirementsLabel: string;
@@ -26,13 +32,14 @@ function LoadingSkeleton() {
   );
 }
 
-function ErrorAlert() {
-  return (
-    <Alert.Root status="error">
-      <Alert.Indicator />
-      <Alert.Title>Server error</Alert.Title>
-    </Alert.Root>
-  );
+function DocumentNotFound() {
+  const { t } = useLocale();
+
+  return <EmptyStateCard icon={LuFileX} title={t("documents.not_found")} />;
+}
+
+function isNotFound(error: unknown) {
+  return error instanceof ApiRequestError && error.status === 404;
 }
 
 function RequirementsSection({
@@ -106,6 +113,8 @@ function renderQueryStatus(props: DocumentDetailQueryStatusProps) {
   const {
     isLoading,
     isError,
+    error,
+    onRetry,
     document,
     requirementsTitle,
     noRequirementsLabel,
@@ -113,8 +122,8 @@ function renderQueryStatus(props: DocumentDetailQueryStatusProps) {
   } = props;
 
   if (isLoading) return <LoadingSkeleton />;
-  if (isError) return <ErrorAlert />;
-  if (!document) return null;
+  if (isError && !isNotFound(error)) return <QueryError onRetry={onRetry} />;
+  if (!document) return <DocumentNotFound />;
 
   return (
     <DocumentDetailContent

@@ -8,7 +8,8 @@
     "loading": "Lädt...",
     "error": "Fehler",
     "success": "Erfolgreich",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "back": "Zurück"
   },
   "nav": {
     "home": "Startseite",
@@ -28,7 +29,8 @@
     "no_requirements": "Keine Voraussetzungen",
     "official_source": "Offizielle Quelle",
     "empty_title": "Keine Dokumente gefunden",
-    "empty_description": "Wähle einen anderen Ort aus."
+    "empty_description": "Wähle einen anderen Ort aus.",
+    "not_found": "Dokument nicht gefunden"
   },
   "location": {
     "label": "Ort",
@@ -46,6 +48,8 @@
     "validation_error": "Validierungsfehler bei der Eingabe",
     "document_not_found": "Dokument nicht gefunden: {id}",
     "unauthorized": "Nicht autorisiert",
-    "server_error": "Serverfehler. Bitte versuchen Sie es später erneut."
+    "server_error": "Serverfehler. Bitte versuchen Sie es später erneut.",
+    "page_not_found_title": "Seite nicht gefunden",
+    "page_not_found_body": "Diese Adresse gehört nicht zu Redtape."
   }
 }

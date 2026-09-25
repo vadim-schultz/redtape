@@ -17,6 +17,7 @@ export default function DocumentDetailPage() {
       isLoading={docQuery.isLoading}
       isError={docQuery.isError}
       error={docQuery.error}
+      onRetry={() => void docQuery.refetch()}
       onBack={() => navigate("/documents")}
       requirementsTitle={t("documents.requirements")}
       noRequirementsLabel={t("documents.no_requirements")}

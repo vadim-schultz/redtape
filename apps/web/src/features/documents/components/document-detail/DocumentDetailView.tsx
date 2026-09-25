@@ -10,6 +10,7 @@ export interface DocumentDetailViewProps {
   isLoading: boolean;
   isError: boolean;
   error: unknown;
+  onRetry: () => void;
   onBack: () => void;
   requirementsTitle: string;
   noRequirementsLabel: string;
@@ -20,6 +21,8 @@ export default function DocumentDetailView({
   document,
   isLoading,
   isError,
+  error,
+  onRetry,
   onBack,
   requirementsTitle,
   noRequirementsLabel,
@@ -35,7 +38,8 @@ export default function DocumentDetailView({
             <DocumentDetailQueryStatus
               isLoading={isLoading}
               isError={isError}
-              error={null}
+              error={error}
+              onRetry={onRetry}
               document={document}
               requirementsTitle={requirementsTitle}
               noRequirementsLabel={noRequirementsLabel}
