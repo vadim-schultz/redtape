@@ -1,4 +1,4 @@
-import { Box, Card, VStack } from "@chakra-ui/react";
+import { Box, VStack } from "@chakra-ui/react";
 
 import type { DocumentDetail } from "../../types";
 
@@ -18,35 +18,14 @@ export interface DocumentDetailViewProps {
 }
 
 export default function DocumentDetailView({
-  document,
-  isLoading,
-  isError,
-  error,
-  onRetry,
   onBack,
-  requirementsTitle,
-  noRequirementsLabel,
-  officialSourceTitle,
+  ...status
 }: DocumentDetailViewProps) {
   return (
     <Box>
       <VStack align="stretch" gap={4}>
         <DocumentBackButton onBack={onBack} />
-
-        <Card.Root bg="surface.base" borderColor="border">
-          <Card.Body>
-            <DocumentDetailQueryStatus
-              isLoading={isLoading}
-              isError={isError}
-              error={error}
-              onRetry={onRetry}
-              document={document}
-              requirementsTitle={requirementsTitle}
-              noRequirementsLabel={noRequirementsLabel}
-              officialSourceTitle={officialSourceTitle}
-            />
-          </Card.Body>
-        </Card.Root>
+        <DocumentDetailQueryStatus {...status} />
       </VStack>
     </Box>
   );

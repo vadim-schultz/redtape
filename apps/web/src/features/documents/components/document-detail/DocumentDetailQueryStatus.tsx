@@ -1,17 +1,14 @@
-import { Box, Heading, Text } from "@chakra-ui/react";
 import { LuFileX } from "react-icons/lu";
 
+import AppCard from "../../../../components/data-display/AppCard";
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
 import QueryError from "../../../../components/feedback/QueryError";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import { ApiRequestError } from "../../../../services/api";
 import type { DocumentDetail } from "../../types";
 
+import DocumentDetailContent from "./DocumentDetailContent";
 import DocumentDetailSkeleton from "./DocumentDetailSkeleton";
-import DocumentHeader from "./DocumentHeader";
-import DocumentBreadcrumb from "./DocumentBreadcrumb";
-import RequirementsList from "./requirements/RequirementsList";
-import RequirementsEmpty from "./requirements/RequirementsEmpty";
 
 export interface DocumentDetailQueryStatusProps {
   isLoading: boolean;
@@ -27,104 +24,31 @@ export interface DocumentDetailQueryStatusProps {
 function DocumentNotFound() {
   const { t } = useLocale();
 
-  return <EmptyStateCard icon={LuFileX} title={t("documents.not_found")} />;
+  return (
+    <AppCard>
+      <EmptyStateCard icon={LuFileX} title={t("documents.not_found")} />
+    </AppCard>
+  );
 }
 
 function isNotFound(error: unknown) {
   return error instanceof ApiRequestError && error.status === 404;
 }
 
-function RequirementsSection({
-  document,
-  requirementsTitle,
-  noRequirementsLabel,
-}: {
-  document: DocumentDetail;
-  requirementsTitle: string;
-  noRequirementsLabel: string;
-}) {
-  return (
-    <Box mt={4}>
-      <Heading textStyle="sectionHeader">{requirementsTitle}</Heading>
-      {document.requirements?.length ? (
-        <RequirementsList requirements={document.requirements} />
-      ) : (
-        <RequirementsEmpty label={noRequirementsLabel} />
-      )}
-    </Box>
-  );
-}
-
-function OfficialSourceSection({ url, title }: { url: string; title: string }) {
-  return (
-    <Box mt={4}>
-      <Heading textStyle="sectionHeader">{title}</Heading>
-      <Text mt={1}>
-        <a href={url} target="_blank" rel="noreferrer">
-          {url}
-        </a>
-      </Text>
-    </Box>
-  );
-}
-
-function DocumentDetailContent({
-  document,
-  requirementsTitle,
-  noRequirementsLabel,
-  officialSourceTitle,
-}: {
-  document: DocumentDetail;
-  requirementsTitle: string;
-  noRequirementsLabel: string;
-  officialSourceTitle: string;
-}) {
-  return (
-    <>
-      <DocumentHeader
-        title={document.title}
-        description={document.description}
-      />
-      <DocumentBreadcrumb nodes={document.jurisdiction_path ?? []} />
-      <RequirementsSection
-        document={document}
-        requirementsTitle={requirementsTitle}
-        noRequirementsLabel={noRequirementsLabel}
-      />
-      {document.official_url ? (
-        <OfficialSourceSection
-          url={document.official_url}
-          title={officialSourceTitle}
-        />
-      ) : null}
-    </>
-  );
-}
-
 function renderQueryStatus(props: DocumentDetailQueryStatusProps) {
-  const {
-    isLoading,
-    isError,
-    error,
-    onRetry,
-    document,
-    requirementsTitle,
-    noRequirementsLabel,
-    officialSourceTitle,
-  } = props;
+  const { isLoading, isError, error, onRetry, document, ...titles } = props;
 
   if (isLoading) return <DocumentDetailSkeleton />;
-  if (isError && !isNotFound(error)) return <QueryError onRetry={onRetry} />;
+  if (isError && !isNotFound(error)) {
+    return (
+      <AppCard>
+        <QueryError onRetry={onRetry} />
+      </AppCard>
+    );
+  }
   if (!document) return <DocumentNotFound />;
 
-  return (
-    <DocumentDetailContent
-      document={document}
-      requirementsTitle={requirementsTitle}
-      noRequirementsLabel={noRequirementsLabel}
-      officialSourceTitle={officialSourceTitle}
-    />
-  );
+  return <DocumentDetailContent document={document} {...titles} />;
 }
 
 export default function DocumentDetailQueryStatus(

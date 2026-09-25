@@ -95,3 +95,16 @@ it("LocaleSwitcher · choosing a language switches the locale", async () => {
 
   await waitFor(() => expect(window.localStorage.getItem("locale")).toBe("de"));
 });
+
+it("LocaleSwitcher · centres the flag inside a square button", async () => {
+  window.localStorage.setItem("locale", "en");
+  stubLocalesFetch();
+  renderWithProviders(<LocaleSwitcher />);
+
+  const style = getComputedStyle(
+    await screen.findByRole("combobox", { name: "Language" }),
+  );
+
+  expect(style.justifyContent).toBe("center");
+  expect(style.paddingInline).toBe("0px");
+});

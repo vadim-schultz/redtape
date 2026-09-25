@@ -1,4 +1,4 @@
-import { Heading, Text } from "@chakra-ui/react";
+import { Heading, Text, VStack } from "@chakra-ui/react";
 
 export interface DocumentHeaderProps {
   title: string;
@@ -10,13 +10,9 @@ export default function DocumentHeader({
   description,
 }: DocumentHeaderProps) {
   return (
-    <>
+    <VStack align="stretch" gap={1}>
       <Heading textStyle="pageTitle">{title}</Heading>
-      {description && (
-        <Text color="text.secondary" mt={-2}>
-          {description}
-        </Text>
-      )}
-    </>
+      {description && <Text color="text.secondary">{description}</Text>}
+    </VStack>
   );
 }
