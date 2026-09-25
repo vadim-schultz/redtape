@@ -49,6 +49,10 @@ it("theme · pageTitle text style is bold", () => {
   expect(pageTitle?.fontWeight).toBe("bold");
 });
 
+it("theme · focus.ring semantic is defined", () => {
+  expect(system.token("colors.focus.ring")).toBeTruthy();
+});
+
 it("theme · rejects unregistered semantic token lookup", () => {
   expect(system.tokens.getByName(UNREGISTERED_SEMANTIC_TOKEN)).toBeUndefined();
   expect(system.token(UNREGISTERED_SEMANTIC_TOKEN)).toBeUndefined();

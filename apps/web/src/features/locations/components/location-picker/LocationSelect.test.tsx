@@ -52,3 +52,22 @@ it("LocationSelect · city disabled without district", async () => {
 
   expect(await screen.findByRole("combobox")).toBeDisabled();
 });
+
+it("LocationSelect · disabled select does not enable hover lift", async () => {
+  renderWithProviders(
+    <LocationSelect
+      label="City"
+      value=""
+      disabled
+      options={undefined}
+      placeholder="Select"
+      onChange={vi.fn()}
+      isLoading={false}
+    />,
+  );
+
+  const trigger = await screen.findByRole("combobox");
+
+  expect(trigger).toBeDisabled();
+  expect(getComputedStyle(trigger).transform).not.toContain("translateY");
+});

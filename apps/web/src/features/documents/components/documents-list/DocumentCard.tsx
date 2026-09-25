@@ -1,6 +1,7 @@
 import { Card } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 
+import { hoverMotion } from "../../../../theme/transitions";
 import type { DocumentSummary } from "../../types";
 
 export interface DocumentCardProps {
@@ -14,7 +15,8 @@ export default function DocumentCard({ document }: DocumentCardProps) {
       bg="surface.base"
       shadow="card"
       textDecoration="none"
-      transition="box-shadow 0.15s ease, transform 0.15s ease"
+      transitionProperty="box-shadow, transform"
+      {...hoverMotion}
       _hover={{ shadow: "elevated", transform: "translateY(-2px)" }}
     >
       <RouterLink to={`/documents/${document.id}`}>
