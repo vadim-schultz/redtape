@@ -4,19 +4,19 @@ overview: "Domain and life-situation filter chips on the documents list, state h
 todos:
   - id: api
     content: "fetchDocuments accepts domain and situation code lists"
-    status: pending
+    status: completed
   - id: state
     content: "useDocumentFilters hook reads and writes search params"
-    status: pending
+    status: completed
   - id: ui
     content: "DocumentFilters component with chip groups and clear action"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 7 — List filter chips
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/matrix-list-filters` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/matrix-list-filters` · **Status:** done
 
 **Depends on:** [4](04-documents-filter.md), [6](06-web-taxonomy-client.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
