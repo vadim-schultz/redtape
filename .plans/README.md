@@ -22,6 +22,21 @@ not add dependency-tree, social, or auth UI — those remain in
 Status: chapters 1–3 are done (test harness, not-found, red Iceberg/Inter theme, color mode). Next:
 [chapters/04-app-shell.md](web-frontend/chapters/04-app-shell.md).
 
+### [document-matrix/](document-matrix/) — Domain × life-situation organization
+
+Two independent taxonomies (domain: car, housing, work…; life situation: moving, birth of a child, job
+loss…) as many-to-many tags on documents, Germany seed, filter and matrix APIs, and a web matrix page
+with list filters. Postgres only. Ten chapters across data model, backend and frontend.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](document-matrix/00-architecture.md) | Vocabulary, model, seed taxonomy, API and UI contract |
+| [01-rollout.md](document-matrix/01-rollout.md) | Ten chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](document-matrix/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](document-matrix/chapters/) | One executable plan per chapter |
+
+Status: planned. Start at [chapters/01-taxonomy-schema.md](document-matrix/chapters/01-taxonomy-schema.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.

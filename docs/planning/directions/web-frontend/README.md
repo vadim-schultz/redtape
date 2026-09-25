@@ -28,6 +28,10 @@
 
 Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../.plans/web-frontend/). Chapters 1–3 are done (test harness, theme, color mode). Continue at [chapters/04-app-shell.md](../../../.plans/web-frontend/chapters/04-app-shell.md).
 
+## Document matrix
+
+Browse by domain × life situation (matrix page, list filters, tags): [`.plans/document-matrix/`](../../../../.plans/document-matrix/00-architecture.md). Planned.
+
 ## Links
 
 - Master: [../../00-master-summary.md](../../00-master-summary.md)
