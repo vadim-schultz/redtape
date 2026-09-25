@@ -20,10 +20,10 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-function domainCalls(): number {
-  return fetchMock.mock.calls.filter(([url]) =>
-    String(url).includes("/api/v1/domains"),
-  ).length;
+function domainLocales(): string[] {
+  return fetchMock.mock.calls
+    .filter(([url]) => String(url).includes("/api/v1/domains"))
+    .map(([, init]) => init.headers["Accept-Language"]);
 }
 
 beforeEach(() => {
@@ -41,15 +41,11 @@ it("useDomainsQuery · refetches when locale changes", async () => {
     { wrapper },
   );
   await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-  const before = domainCalls();
+  const next = result.current.locale.locale === "de" ? "en" : "de";
 
-  act(() =>
-    result.current.locale.setLocale(
-      result.current.locale.locale === "de" ? "en" : "de",
-    ),
-  );
+  act(() => result.current.locale.setLocale(next));
 
-  await waitFor(() => expect(domainCalls()).toBe(before + 1));
+  await waitFor(() => expect(domainLocales()).toContain(next));
 });
 
 it("useMatrixQuery · surfaces an API error as query error", async () => {
