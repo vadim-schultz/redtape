@@ -17,6 +17,6 @@ body {
 }
 
 ::focus-visible {
-  outline: 2px solid var(--chakra-colors-color-palette-500, #3182ce);
+  outline: 2px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
