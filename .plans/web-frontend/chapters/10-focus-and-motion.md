@@ -4,22 +4,22 @@ overview: "Theme-aligned focus rings and shared hover transition props on cards 
 todos:
   - id: focus-css
     content: "Update style.css focus-visible to focus.ring semantic"
-    status: pending
+    status: done
   - id: hover
     content: "DocumentCard and header link _hover use duration tokens"
-    status: pending
+    status: done
   - id: disabled
     content: "Ensure disabled selects/buttons skip hover lift"
-    status: pending
+    status: done
   - id: tests
     content: "DocumentCard hover/disabled tests"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 10 — Focus and motion
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-focus-motion` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-visual-focus-motion` · **Status:** done
 
 **Depends on:** [6](06-document-card.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -42,6 +42,13 @@ motion tokens explicitly and adds tests.
 
 **Do not add pointless one-line wrappers** around Chakra props unless the same `_hover` block repeats
 three times (rule of three).
+
+**Implementation note:** `theme/transitions.ts` exports `hoverMotion` (duration `normal`, easing
+`easeOut` tokens), used by both `DocumentCard` and the `AppLayout` wordmark (two uses, so it stays
+shared); each site sets its own `transitionProperty`. The header wordmark lives in `AppLayout.tsx`
+(no `AppHeader.tsx` exists). `LocationSelect.tsx` needed no change: Chakra's select trigger has no hover
+lift, and the disabled test pins that. The `focus.ring` semantic already existed; the theme test
+pins it. Reduced-motion media query was skipped (out of scope) and remains an optional follow-up.
 
 ## Files
 
