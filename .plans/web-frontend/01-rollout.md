@@ -55,6 +55,7 @@ Chapters 5 and 6 both depend on 2 only; 7 depends on 5 and 6; 9 depends on 5 and
 | 8 | Location picker | vitest + `./ci.sh` | [08-location-picker.md](chapters/08-location-picker.md) | planned |
 | 9 | Detail chrome | vitest + `./ci.sh` | [09-detail-chrome.md](chapters/09-detail-chrome.md) | planned |
 | 10 | Focus and motion | vitest + `./ci.sh` | [10-focus-and-motion.md](chapters/10-focus-and-motion.md) | planned |
+| 11 | Location bar | vitest + `./ci.sh` | [11-location-bar.md](chapters/11-location-bar.md) | done |
 
 ---
 

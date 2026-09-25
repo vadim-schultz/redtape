@@ -27,6 +27,13 @@
     "no_requirements": "No requirements",
     "official_source": "Official Source"
   },
+  "location": {
+    "label": "Location",
+    "state": "State",
+    "district": "District",
+    "city": "City",
+    "reset": "Clear location"
+  },
   "errors": {
     "validation_error": "Input validation error",
     "document_not_found": "Document not found: {id}",

@@ -27,6 +27,13 @@
     "no_requirements": "Keine Voraussetzungen",
     "official_source": "Offizielle Quelle"
   },
+  "location": {
+    "label": "Ort",
+    "state": "Bundesland",
+    "district": "Landkreis",
+    "city": "Stadt",
+    "reset": "Ort zurücksetzen"
+  },
   "errors": {
     "validation_error": "Validierungsfehler bei der Eingabe",
     "document_not_found": "Dokument nicht gefunden: {id}",
