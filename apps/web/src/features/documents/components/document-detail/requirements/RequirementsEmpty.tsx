@@ -1,15 +1,11 @@
-import { EmptyState } from "@chakra-ui/react";
+import { LuListChecks } from "react-icons/lu";
+
+import EmptyStateCard from "../../../../../components/feedback/EmptyStateCard";
 
 export interface RequirementsEmptyProps {
   label: string;
 }
 
 export default function RequirementsEmpty({ label }: RequirementsEmptyProps) {
-  return (
-    <EmptyState.Root size="sm">
-      <EmptyState.Content>
-        <EmptyState.Title>{label}</EmptyState.Title>
-      </EmptyState.Content>
-    </EmptyState.Root>
-  );
+  return <EmptyStateCard size="sm" icon={LuListChecks} title={label} />;
 }

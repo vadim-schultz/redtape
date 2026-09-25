@@ -23,7 +23,10 @@ function wrap(ui: ReactNode) {
 }
 
 function stubTranslations(response: Promise<unknown>) {
-  vi.stubGlobal("fetch", vi.fn(() => response));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => response),
+  );
 }
 
 afterEach(() => window.localStorage.clear());

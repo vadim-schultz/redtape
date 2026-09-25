@@ -11,5 +11,7 @@ it("DocumentsListSkeleton · announces loading and mimics a list of cards", () =
   const region = screen.getByRole("status", { name: "Loading..." });
   expect(region).toHaveAttribute("aria-busy", "true");
   expect(container.querySelectorAll(".chakra-card__root")).toHaveLength(4);
-  expect(container.querySelectorAll(".chakra-skeleton").length).toBeGreaterThan(4);
+  expect(container.querySelectorAll(".chakra-skeleton").length).toBeGreaterThan(
+    4,
+  );
 });

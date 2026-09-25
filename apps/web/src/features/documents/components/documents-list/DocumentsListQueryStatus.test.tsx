@@ -18,7 +18,6 @@ it("DocumentsListQueryStatus · loading renders skeleton not cards", async () =>
       error={undefined}
       onRetry={vi.fn()}
       isRefreshing={false}
-      listTitleLabel="documents"
       documents={documents}
     />,
   );
@@ -36,7 +35,6 @@ it("DocumentsListQueryStatus · error explains the failure, offers retry and sho
       error={new Error("boom")}
       onRetry={onRetry}
       isRefreshing={false}
-      listTitleLabel="documents"
       documents={undefined}
     />,
   );
@@ -57,7 +55,6 @@ it("DocumentsListQueryStatus · empty list renders an empty state with guidance"
       error={undefined}
       onRetry={vi.fn()}
       isRefreshing={false}
-      listTitleLabel="documents"
       documents={[]}
     />,
   );
@@ -77,7 +74,6 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
       error={undefined}
       onRetry={vi.fn()}
       isRefreshing={false}
-      listTitleLabel="documents"
       documents={documents}
     />,
   );
@@ -94,7 +90,6 @@ it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks 
       isError={false}
       error={undefined}
       onRetry={vi.fn()}
-      listTitleLabel="documents"
       documents={documents}
     />,
   );
@@ -103,4 +98,20 @@ it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks 
   expect(screen.getAllByRole("link")).toHaveLength(2);
   expect(list).toHaveAttribute("aria-busy", "true");
   expect(getComputedStyle(list as Element).opacity).toBe("0.6");
+});
+
+it("DocumentsListQueryStatus · singular count reads naturally", async () => {
+  window.localStorage.setItem("locale", "de");
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isRefreshing={false}
+      isError={false}
+      error={undefined}
+      onRetry={vi.fn()}
+      documents={[documents[0]]}
+    />,
+  );
+
+  expect(await screen.findByText("1 Dokument")).toBeInTheDocument();
 });

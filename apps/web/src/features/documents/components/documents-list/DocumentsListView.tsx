@@ -8,7 +8,6 @@ import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 export interface DocumentsListViewProps {
   title: string;
-  listTitleLabel: string;
   documents: DocumentSummary[] | undefined;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -20,7 +19,6 @@ export interface DocumentsListViewProps {
 
 export default function DocumentsListView({
   title,
-  listTitleLabel,
   documents,
   isLoading,
   isRefreshing,
@@ -45,7 +43,6 @@ export default function DocumentsListView({
             isError={isError}
             error={error}
             onRetry={onRetry}
-            listTitleLabel={listTitleLabel}
             documents={documents}
           />
         </VStack>

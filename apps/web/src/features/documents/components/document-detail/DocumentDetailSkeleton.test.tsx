@@ -10,5 +10,7 @@ it("DocumentDetailSkeleton · announces loading and outlines title, description 
 
   const region = screen.getByRole("status", { name: "Loading..." });
   expect(region).toHaveAttribute("aria-busy", "true");
-  expect(container.querySelectorAll(".chakra-skeleton").length).toBeGreaterThanOrEqual(8);
+  expect(
+    container.querySelectorAll(".chakra-skeleton").length,
+  ).toBeGreaterThanOrEqual(8);
 });

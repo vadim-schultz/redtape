@@ -13,4 +13,5 @@ it("RequirementsEmpty · renders the label inside an EmptyState", async () => {
     container.querySelector(".chakra-empty-state__root"),
   ).toBeInTheDocument();
   expect(await screen.findByText("No requirements")).toBeInTheDocument();
+  expect(container.querySelector("svg")).toBeInTheDocument();
 });

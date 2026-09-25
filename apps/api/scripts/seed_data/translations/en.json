@@ -11,7 +11,8 @@
     "retry": "Try again",
     "back": "Back",
     "slow_server_title": "Waking up the server",
-    "slow_server_body": "This can take up to a minute after a period of inactivity."
+    "slow_server_body": "This can take up to a minute after a period of inactivity.",
+    "toggle_color_mode": "Toggle color mode"
   },
   "nav": {
     "home": "Home",
@@ -32,7 +33,9 @@
     "official_source": "Official Source",
     "empty_title": "No documents found",
     "empty_description": "Try selecting a different location.",
-    "not_found": "Document not found"
+    "not_found": "Document not found",
+    "count_one": "{count} document",
+    "count_other": "{count} documents"
   },
   "location": {
     "label": "Location",

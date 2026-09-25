@@ -15,7 +15,6 @@ export interface DocumentsListQueryStatusProps {
   isError: boolean;
   error: unknown;
   onRetry: () => void;
-  listTitleLabel: string;
   documents: DocumentSummary[] | undefined;
 }
 
@@ -33,17 +32,18 @@ function EmptyDocumentsState() {
 
 function PopulatedDocumentsList({
   documents,
-  listTitleLabel,
   isRefreshing,
 }: {
   documents: DocumentSummary[];
-  listTitleLabel: string;
   isRefreshing: boolean;
 }) {
+  const { t } = useLocale();
+  const countKey = documents.length === 1 ? "count_one" : "count_other";
+
   return (
     <>
       <Text mb={2} color="muted" fontSize="sm">
-        {documents.length} {listTitleLabel}
+        {t(`documents.${countKey}`, { count: documents.length })}
       </Text>
       <Box
         display="flex"
@@ -66,7 +66,6 @@ function renderListContent({
   isRefreshing,
   isError,
   onRetry,
-  listTitleLabel,
   documents,
 }: DocumentsListQueryStatusProps) {
   if (isLoading) return <DocumentsListSkeleton />;
@@ -76,7 +75,6 @@ function renderListContent({
   return (
     <PopulatedDocumentsList
       documents={documents ?? []}
-      listTitleLabel={listTitleLabel}
       isRefreshing={isRefreshing}
     />
   );

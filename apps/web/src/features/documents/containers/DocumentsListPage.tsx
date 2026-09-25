@@ -13,7 +13,6 @@ export default function DocumentsListPage() {
   return (
     <DocumentsListView
       title={t("documents.list_title")}
-      listTitleLabel={t("documents.list_title")}
       documents={docsQuery.data?.items}
       isLoading={docsQuery.isLoading}
       isRefreshing={docsQuery.isFetching && !docsQuery.isLoading}

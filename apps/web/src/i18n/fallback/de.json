@@ -11,7 +11,8 @@
     "retry": "Erneut versuchen",
     "back": "Zurück",
     "slow_server_title": "Server wird gestartet",
-    "slow_server_body": "Nach längerer Inaktivität kann das bis zu eine Minute dauern."
+    "slow_server_body": "Nach längerer Inaktivität kann das bis zu eine Minute dauern.",
+    "toggle_color_mode": "Farbmodus wechseln"
   },
   "nav": {
     "home": "Startseite",
@@ -32,7 +33,9 @@
     "official_source": "Offizielle Quelle",
     "empty_title": "Keine Dokumente gefunden",
     "empty_description": "Wähle einen anderen Ort aus.",
-    "not_found": "Dokument nicht gefunden"
+    "not_found": "Dokument nicht gefunden",
+    "count_one": "{count} Dokument",
+    "count_other": "{count} Dokumente"
   },
   "location": {
     "label": "Ort",

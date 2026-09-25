@@ -56,3 +56,12 @@ it("AppLayout · includes color mode toggle control", async () => {
     await screen.findByRole("button", { name: "Toggle color mode" }),
   ).toBeInTheDocument();
 });
+
+it("AppLayout · color mode toggle is labelled in the active locale", async () => {
+  window.localStorage.setItem("locale", "de");
+  renderWithProviders(<AppLayout>content</AppLayout>);
+
+  expect(
+    await screen.findByRole("button", { name: "Farbmodus wechseln" }),
+  ).toBeInTheDocument();
+});
