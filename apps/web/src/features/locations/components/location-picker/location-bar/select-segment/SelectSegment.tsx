@@ -48,7 +48,7 @@ export default function SelectSegment({
         bg="transparent"
         borderRadius="full"
         px={4}
-        _hover={{ bg: "surface.hover", _disabled: { bg: "transparent" } }}
+        _hover={{ bg: "surface.pressed", _disabled: { bg: "transparent" } }}
         {...hoverMotion}
       >
         <Select.ValueText placeholder={label} truncate />

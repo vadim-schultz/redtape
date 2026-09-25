@@ -48,6 +48,14 @@ it("LocationBar · is a rounded pill, not a card", () => {
   expect(container.querySelector(".chakra-card__root")).not.toBeInTheDocument();
 });
 
+it("LocationBar · fills the pill with the elevated surface to contrast with the page", () => {
+  renderBar();
+
+  expect(getComputedStyle(screen.getByRole("group")).background).toBe(
+    "var(--chakra-colors-surface-elevated)",
+  );
+});
+
 it("LocationBar · only the state select is active initially", () => {
   renderBar();
 

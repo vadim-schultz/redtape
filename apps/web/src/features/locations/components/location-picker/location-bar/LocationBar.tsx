@@ -64,6 +64,7 @@ export default function LocationBar({
       borderWidth="1px"
       borderColor="input.border"
       borderRadius="full"
+      bg="surface.elevated"
       _focusWithin={{ borderColor: "focus.DEFAULT" }}
     >
       <CountrySegment code={countryCode} />
