@@ -39,9 +39,17 @@ it("RequirementItem · renders notes when present", async () => {
   expect(await screen.findByText("Bring a photo")).toBeInTheDocument();
 });
 
-it("RequirementItem · styles the link with the link token", async () => {
+it("RequirementItem · title is a near-black sub-header, not link-red", async () => {
   renderWithProviders(<RequirementItem requirement={requirement} />);
 
-  const link = await screen.findByRole("link", { name: "Passport Renewal" });
-  expect(getComputedStyle(link).color).toBe("var(--chakra-colors-text-link)");
+  const title = await screen.findByText("Passport Renewal");
+  expect(getComputedStyle(title).color).toBe("var(--chakra-colors-text-primary)");
+});
+
+it("RequirementItem · is a card like the ones on the front page", async () => {
+  renderWithProviders(<RequirementItem requirement={requirement} />);
+
+  const link = await screen.findByRole("link", { name: /Passport Renewal/ });
+  expect(link.className).toContain("chakra-card__root");
+  expect(getComputedStyle(link).boxShadow).toBe("var(--chakra-shadows-card)");
 });

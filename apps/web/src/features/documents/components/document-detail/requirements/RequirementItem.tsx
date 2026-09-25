@@ -1,6 +1,6 @@
-import { Box, Link } from "@chakra-ui/react";
-import { Link as RouterLink } from "react-router-dom";
+import { Card } from "@chakra-ui/react";
 
+import AppCard from "../../../../../components/data-display/AppCard";
 import type { RequirementRead } from "../../../types";
 
 export interface RequirementItemProps {
@@ -8,24 +8,12 @@ export interface RequirementItemProps {
 }
 
 export default function RequirementItem({ requirement }: RequirementItemProps) {
-  return (
-    <Box>
-      <Link
-        asChild
-        color="text.link"
-        fontWeight="semibold"
-        _hover={{ textDecoration: "underline" }}
-      >
-        <RouterLink to={`/documents/${requirement.required_document.id}`}>
-          {requirement.required_document.title}
-        </RouterLink>
-      </Link>
+  const { required_document: doc, notes } = requirement;
 
-      {requirement.notes ? (
-        <Box as="p" mt={1} color="text.secondary">
-          {requirement.notes}
-        </Box>
-      ) : null}
-    </Box>
+  return (
+    <AppCard to={`/documents/${doc.id}`}>
+      <Card.Title textStyle="subsectionHeader">{doc.title}</Card.Title>
+      {notes ? <Card.Description mt={1}>{notes}</Card.Description> : null}
+    </AppCard>
   );
 }
