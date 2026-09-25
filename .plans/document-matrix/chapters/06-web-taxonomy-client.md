@@ -3,7 +3,7 @@ name: "Chapter 6 — Web taxonomy client"
 overview: "Typed API client, TanStack Query hooks and translation keys for domains, life situations and the matrix in apps/web; no visible UI yet."
 todos:
   - id: types
-    content: "Term, MatrixCell, MatrixResponse types"
+    content: "Term, MatrixCell, AxisTotal, MatrixResponse types (codes, totals)"
     status: pending
   - id: client
     content: "taxonomyApi fetchers using apiRequest with locale"
@@ -42,11 +42,15 @@ and [useDocumentsListQuery.ts](../../../apps/web/src/features/documents/hooks/us
 **Taxonomy is long-lived data:** `staleTime` of several minutes; the lists change only on reseed.
 Matrix query key includes the municipality scope.
 
-**Translation keys** added under `matrix.*` and `filters.*` (page title, axis labels, "all domains",
+**Translation keys** added under `matrix.*` and `filters.*` (page title, axis labels, "all documents", "all documents for this situation", "all documents in this domain",
 "no documents in this cell", "clear filters", chip aria labels) to
 [de.json/en.json seeds](../../../apps/api/scripts/seed_data/translations/) and the web
 [fallback bundles](../../../apps/web/src/i18n/fallback/); the existing
 [fallback.test.ts](../../../apps/web/src/i18n/fallback/fallback.test.ts) guards key parity.
+
+**Codes everywhere.** Types, query params and hook arguments use `code` (never `slug`) per
+[gaps-and-decisions D8](../gaps-and-decisions.md). Display strings come from the API's resolved `name`;
+the web app never maps a code to a label itself, so a `fr`/`it` locale needs no client change.
 
 ## Files
 
@@ -54,7 +58,8 @@ Matrix query key includes the municipality scope.
 
 | Path | Contents |
 | --- | --- |
-| `apps/web/src/features/taxonomy/types/index.ts` | `Term`, `MatrixCell`, `MatrixResponse` |
+| `apps/web/src/features/taxonomy/types/index.ts` | `Term {code,…}`, `MatrixCell`, `AxisTotal {code,count}`, `MatrixResponse {total,cells,situations,domains}` |
+| `apps/web/src/features/documents/utils/buildDocumentsHref.ts` (+ test) | Pure `buildDocumentsHref({domain?, situation?})` → `/documents?…`; the single place that encodes codes into list URLs |
 | `apps/web/src/features/taxonomy/services/taxonomyApi.ts` | `fetchDomains`, `fetchLifeSituations`, `fetchMatrix` |
 | `apps/web/src/features/taxonomy/hooks/use{Domains,LifeSituations,Matrix}Query.ts` | Query hooks |
 | `apps/web/src/features/taxonomy/**/*.test.ts(x)` | Tests below |
@@ -73,7 +78,10 @@ Matrix query key includes the municipality scope.
 | `taxonomyApi · fetchDomains calls /api/v1/domains with locale` | URL and header |
 | `taxonomyApi · fetchMatrix sends municipality_code when scoped` | Query string |
 | `taxonomyApi · fetchMatrix omits the param when unscoped` | Negative |
+| `taxonomyApi · fetchMatrix returns totals unchanged` | `total`, `situations[].count`, `domains[].count` passed through, not recomputed |
 | `useDomainsQuery · refetches when locale changes` | Key includes locale |
+| `buildDocumentsHref · builds cell, row, column and empty hrefs` | Both, one, or no param |
+| `buildDocumentsHref · omits absent axes and encodes reserved characters` | Negative: no `undefined` or empty param in the query |
 | `useMatrixQuery · surfaces an API error as query error` | No swallowed failure |
 | `fallback bundles · de and en have identical key sets` | Existing parity test covers new keys |
 

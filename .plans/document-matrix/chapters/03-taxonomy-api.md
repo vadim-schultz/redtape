@@ -3,10 +3,10 @@ name: "Chapter 3 — Taxonomy API"
 overview: "New features/taxonomy package with repository, service, controller and router exposing locale-resolved GET /api/v1/domains and /api/v1/life-situations."
 todos:
   - id: repo
-    content: "TaxonomyRepository: ordered list of domains and situations; lookup ids by slug"
+    content: "TaxonomyRepository: ordered list of domains and situations; lookup ids by code"
     status: pending
   - id: service
-    content: "TaxonomyService: resolves i18n, exposes slug->id resolution for other features"
+    content: "TaxonomyService: resolves i18n, exposes code->id resolution for other features"
     status: pending
   - id: http
     content: "Controller, router, dependencies; router registered in main.py"
@@ -28,8 +28,8 @@ isProject: false
 ## Goal
 
 `GET /api/v1/domains` and `GET /api/v1/life-situations` return ordered, locale-resolved lists. The
-taxonomy service also offers `resolve_domain_ids(slugs)` / `resolve_situation_ids(slugs)` for the
-documents feature (chapter 4), raising a domain error for unknown slugs.
+taxonomy service also offers `resolve_domain_ids(codes)` / `resolve_situation_ids(codes)` for the
+documents feature (chapter 4), raising a domain error for unknown codes.
 
 ## Design decisions
 
@@ -39,7 +39,7 @@ documents feature (chapter 4), raising a domain error for unknown slugs.
 `documents_router` in [main.py](../../../apps/api/app/main.py).
 
 **One generic path for both axes.** Both endpoints differ only in model; the repository exposes
-`list_terms(model)` and `ids_for_slugs(model, slugs)`; the service has `list_domains()` /
+`list_terms(model)` and `ids_for_codes(model, codes)`; the service has `list_domains()` /
 `list_situations()` as thin wrappers. Avoids two parallel copies (rule of three would fire at a third
 axis).
 
@@ -49,7 +49,7 @@ module (`app/i18n_resolution.py` next to [locale_resolution.py](../../../apps/ap
 in a preparatory refactor commit, with the existing document tests as the safety net, then use it from
 both features.
 
-**Unknown slugs are a service-level error**, translated to HTTP 422 by the controller, so the
+**Unknown codes are a service-level error**, translated to HTTP 422 by the controller, so the
 documents feature never sees repositories.
 
 ## Files
@@ -59,7 +59,7 @@ documents feature never sees repositories.
 | Path | Contents |
 | --- | --- |
 | `apps/api/app/features/taxonomy/{repository,service,controller,dependencies,router}.py` | Feature stack |
-| `apps/api/app/schema/taxonomy/read.py` | `TermRead {slug, name, description, icon}` |
+| `apps/api/app/schema/taxonomy/read.py` | `TermRead {code, name, description, icon}` |
 | `apps/api/app/i18n_resolution.py` | Extracted `pick_i18n` |
 | `apps/api/tests/test_taxonomy_api.py`, `test_taxonomy_service.py` | Tests below |
 
@@ -77,16 +77,16 @@ documents feature never sees repositories.
 | `domains · returns all domains in sort order` | Order and count |
 | `domains · resolves names to the request locale` | `Accept-Language: en` → English names |
 | `domains · falls back to de when the locale has no name` | Existing fallback chain |
-| `life-situations · returns 18 situations with icon and slug` | Shape |
-| `service · resolves known slugs to ids` | Returned ids match |
-| `service · unknown slug raises TaxonomySlugError` | Negative path |
+| `life-situations · returns 18 situations with icon and code` | Shape |
+| `service · resolves known codes to ids` | Returned ids match |
+| `service · unknown code raises TaxonomyCodeError` | Negative path |
 | `documents · pick_i18n unchanged after extraction` | Existing document tests still green |
 
 ## Green
 
 1. Preparatory refactor: extract `pick_i18n`, keep all existing tests green, commit.
 2. Repository + service for domains; controller/router; test list endpoint.
-3. Generalize to situations; add slug resolution.
+3. Generalize to situations; add code resolution.
 
 ## Refactor gate
 

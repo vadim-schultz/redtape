@@ -43,9 +43,44 @@ documents exist and how they are tagged. Other countries reuse the same taxonomy
 New query params and response fields are optional/additive. No existing client breaks; the documents
 list without filters returns exactly what it returns today.
 
-### D8 — Slugs are the public identifiers
+### D8 — Language-neutral codes are the public identifiers (revises the original D8)
 
-URLs and query params use ASCII slugs, never UUIDs, so links are readable and survive reseeding.
+The first version of this suite used German-derived slugs (`umzug`, `geburt-kind`). That ties one
+country's vocabulary into URLs and breaks the moment the product serves France or Italy. Replaced by
+`code`: English-derived, ASCII kebab-case, stable forever, never translated — the same role as
+`ui_translation` keys and `Jurisdiction.code`. Query params and API payloads carry codes; displayed
+names come only from `name_i18n` in the request locale. Not UUIDs: codes keep links readable and
+survive reseeding.
+
+Rejected alternatives:
+
+| Option | Why not |
+| --- | --- |
+| Localized slugs per locale (`umzug` / `demenagement`) | Shared links change with the reader's language, per-locale uniqueness and redirects, translators own URLs |
+| German codes as canonical | Country vocabulary baked into identifiers |
+| UUIDs in URLs | Unreadable, differ between environments |
+
+Route paths (`/documents`, `/matrix`) stay English constants; localized path segments are a non-goal
+until there is an SEO reason (see seams).
+
+### D9 — Rows and columns are selectable, not just cells
+
+The matrix supports three selections: a cell (domain and situation), a whole situation row (all
+documents for that life situation), and a whole domain column (all documents for that domain), plus the
+grand total. They map onto the existing documents filter with one or both params, so no extra
+endpoint is needed.
+
+### D10 — Axis totals are distinct-document counts
+
+The matrix API returns `situations[].count` and `domains[].count` computed as `COUNT(DISTINCT document)`
+per term. Summing cells would double-count documents that sit in several columns. Clients display the
+totals and never derive them.
+
+### D11 — The grid shows only terms that apply in scope
+
+Rows and columns come from the matrix response, not from the full taxonomy lists. Terms with no
+documents in the selected jurisdiction are hidden, which keeps the grid honest for other countries
+without per-country configuration.
 
 ---
 
@@ -58,4 +93,6 @@ URLs and query params use ASCII slugs, never UUIDs, so links are readable and su
 | Curation and community tagging | Tags are seeded by script only | Social-moderation proposals cover metadata edits |
 | Situation hierarchy | Flat list | UI grid becomes unreadable at ~25 situations |
 | Matrix at scale | One aggregate query per request | Cell query exceeds budget on real data; then add a materialized view |
-| Taxonomy outside Germany | Same tables, German seed only | Second country onboarded |
+| Taxonomy outside Germany | Same tables and codes, German seed only; `fr`/`it` names and country-only terms added on onboarding | Second country onboarded |
+| Localized URL paths | Not planned; codes and route paths are English | An SEO requirement for a market; then add `slug_i18n` with a redirect to the canonical code |
+| Highlighting the selection in the list | The active chip shows the selection | Users lose track of which matrix row they came from |

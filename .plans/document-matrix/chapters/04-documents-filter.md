@@ -6,7 +6,7 @@ todos:
     content: "Repository filters by domain/situation ids (AND across axes, OR within an axis)"
     status: pending
   - id: params
-    content: "Controller params domain and situation; unknown slug -> 422"
+    content: "Controller params domain and situation; unknown code -> 422"
     status: pending
   - id: tags
     content: "Detail response includes resolved domains and life_situations"
@@ -24,7 +24,7 @@ isProject: false
 
 ## Goal
 
-`GET /api/v1/documents?domain=wohnen&situation=umzug` returns only documents tagged in both. Detail
+`GET /api/v1/documents?domain=housing&situation=moving-house` returns only documents tagged in both. Detail
 responses list each document's domains and situations. Without the params, output is byte-for-byte what
 it is today.
 
@@ -33,7 +33,7 @@ it is today.
 **Semantics.** Across axes: AND. Within an axis (repeatable param, `?domain=a&domain=b`): OR. This
 makes the matrix cell link and multi-chip filtering the same call.
 
-**Layering.** Controller passes slug lists to `DocumentService`. The service asks
+**Layering.** Controller passes code lists to `DocumentService`. The service asks
 `TaxonomyService.resolve_*_ids` (chapter 3) and hands ids to `DocumentRepository`. The documents
 feature does not import taxonomy models or repository. `DocumentService` gains `TaxonomyService` as a
 constructor dependency wired in [dependencies.py](../../../apps/api/app/features/documents/dependencies.py).
@@ -54,7 +54,7 @@ as a seam, not built now.
 | Path | Change |
 | --- | --- |
 | `apps/api/app/features/documents/repository.py` | Filter fragments shared by `count` and `list_page`; eager tags on detail |
-| `apps/api/app/features/documents/service.py` | Resolve slugs via taxonomy service; map tags to read models |
+| `apps/api/app/features/documents/service.py` | Resolve codes via taxonomy service; map tags to read models |
 | `apps/api/app/features/documents/controller.py` | `domain`, `situation` list query params |
 | `apps/api/app/features/documents/dependencies.py` | Inject `TaxonomyService` |
 | `apps/api/app/schema/document/read.py` | `TermRead` fields `domains`, `life_situations` on `DocumentDetail` (default empty) |
@@ -69,7 +69,9 @@ as a seam, not built now.
 | `filter · domain and situation are ANDed` | Intersection only |
 | `filter · two domains are ORed` | Union within axis |
 | `filter · total reflects the filter, not the catalog` | `total` equals filtered count |
-| `filter · unknown domain slug returns 422` | Negative path |
+| `filter · unknown domain code returns 422` | Negative path |
+| `filter · situation alone returns every document with it, across domains` | Row selection (matrix row header) |
+| `filter · domain alone returns every document with it, across situations` | Column selection (matrix column header) |
 | `filter · no params returns the unfiltered list` | Regression guard |
 | `filter · untagged document never appears when a filter is set` | Negative |
 | `detail · includes resolved domains and life_situations` | Locale-resolved names |
@@ -86,9 +88,9 @@ as a seam, not built now.
 - `_base_select` must not exceed ~5 LOC of its own: extract `_filter_by_terms(stmt, association, ids)`
   and call it twice.
 - `DocumentService.list_documents` already has many parameters; introduce a `DocumentFilters`
-  dataclass (`jurisdiction_id`, `municipality_code`, `domain_slugs`, `situation_slugs`) instead of
+  dataclass (`jurisdiction_id`, `municipality_code`, `domain_codes`, `situation_codes`) instead of
   adding two more arguments.
-- No nesting beyond one level in slug-resolution branches.
+- No nesting beyond one level in code-resolution branches.
 
 ## Verification
 
@@ -96,7 +98,7 @@ as a seam, not built now.
 cd apps/api
 python -m pytest tests/test_documents_filter.py tests/test_document_jurisdiction_path.py
 cd ../.. && ./ci.sh
-curl -s 'localhost:8000/api/v1/documents?domain=wohnen&situation=umzug'
+curl -s 'localhost:8000/api/v1/documents?domain=housing&situation=moving-house'
 ```
 
 ## Out of scope

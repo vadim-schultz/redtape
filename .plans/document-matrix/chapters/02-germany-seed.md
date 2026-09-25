@@ -3,10 +3,10 @@ name: "Chapter 2 — Germany seed"
 overview: "Idempotent seed of the 13 domains and 18 life situations for Germany with de/en names, and tagging of the existing seeded documents; wired into the local seed workflow."
 todos:
   - id: data
-    content: "Taxonomy seed data module with slugs, de/en names, icons, sort order"
+    content: "Taxonomy seed data module with codes, de/en names, icons, sort order"
     status: pending
   - id: seed
-    content: "seed_taxonomy script, idempotent upsert by slug; tags existing documents"
+    content: "seed_taxonomy script, idempotent upsert by code; tags existing documents"
     status: pending
   - id: tests
     content: "Seed tests: completeness of de/en, idempotency, tag assignments"
@@ -33,17 +33,21 @@ Wohnungsgeberbestätigung) tagged into sensible cells. Re-running changes nothin
 **Data in a module, logic in a script.** Lists live in `scripts/seed_data/taxonomy.py` as plain
 dataclass/tuple constants; `scripts/seed_taxonomy.py` only upserts. Mirrors
 [seed_documents.py](../../../apps/api/scripts/seed_documents.py) (stable UUIDs, merge by primary key).
-Alternative: JSON files like `seed_data/translations/` — rejected for now; the lists need slugs used as
+Alternative: JSON files like `seed_data/translations/` — rejected for now; the lists need codes used as
 Python constants in the tagging map.
 
-**Stable UUIDs derived from slug** (`uuid5` under a fixed namespace), so re-runs and other
-environments agree and the tagging map can reference slugs, not literals.
+**Stable UUIDs derived from code** (`uuid5` under a fixed namespace), so re-runs and other
+environments agree and the tagging map can reference codes, not literals.
 
-**Tagging map by document slug.** Seeded documents are tagged by referring to their stable IDs already
+**Codes are the English-derived, language-neutral ones from architecture §4** (`moving-house`,
+`vehicles-mobility`, …), never German transliterations. `de` and `en` are display names only; the data
+module is structured so a later `fr`/`it` name is one more key per row.
+
+**Tagging map by document.** Seeded documents are tagged by referring to their stable IDs already
 defined in `seed_documents.py` (import the constants, do not duplicate them). Example targets:
-Geburtsurkunde → `identitaet-personenstand`, `familie-kinder` × `geburt-kind`, `heirat`,
-`zuzug-deutschland`; Meldebescheinigung → `wohnen`, `identitaet-personenstand` × `umzug`,
-`zuzug-deutschland`.
+Geburtsurkunde → `identity-civil-status`, `family-children` × `birth-of-child`, `marriage`,
+`immigration`; Meldebescheinigung → `housing`, `identity-civil-status` × `moving-house`,
+`immigration`.
 
 **Every row carries `de` and `en`.** The seed asserts it before writing.
 
@@ -71,13 +75,13 @@ Geburtsurkunde → `identitaet-personenstand`, `familie-kinder` × `geburt-kind`
 | `seed · creates 13 domains and 18 situations` | Row counts after one run |
 | `seed · every term has non-empty de and en` | Iterates both name and description maps |
 | `seed · second run creates no duplicates` | Counts unchanged, no `IntegrityError` |
-| `seed · tags Geburtsurkunde with geburt-kind` | Association present |
-| `seed · never tags a document with an unknown slug` | Map referencing a missing slug raises before writing |
-| `seed · slugs are ASCII kebab-case` | Regex over all slugs |
+| `seed · tags Geburtsurkunde with birth-of-child` | Association present |
+| `seed · never tags a document with an unknown code` | Map referencing a missing code raises before writing |
+| `seed · codes are ASCII kebab-case English` | Regex over all codes, and none appears in a denylist of the old German slugs (`umzug`, `wohnen`, …) |
 
 ## Green
 
-1. Encode the lists and completeness/slug tests against the data module alone (no DB).
+1. Encode the lists and completeness/code tests against the data module alone (no DB).
 2. Implement upsert; run idempotency test against the session fixture.
 3. Add tagging map and association upsert.
 
