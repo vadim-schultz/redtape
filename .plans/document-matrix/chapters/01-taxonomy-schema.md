@@ -4,19 +4,19 @@ overview: "Add domain, life_situation, document_domain and document_life_situati
 todos:
   - id: models
     content: "Domain and LifeSituation models; association tables; exported from app.models"
-    status: pending
+    status: completed
   - id: migration
     content: "Alembic revision creating four tables, unique codes, composite PKs, cascading FKs"
-    status: pending
+    status: completed
   - id: tests
     content: "Model tests: code uniqueness, cascade on document delete, association uniqueness"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 1 — Taxonomy schema
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-taxonomy-schema` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-taxonomy-schema` · **Status:** done
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -53,7 +53,7 @@ Relationships `Document.domains` and `Document.life_situations` are added with `
 | Path | Contents |
 | --- | --- |
 | `apps/api/app/models/taxonomy.py` | `TaxonomyTermMixin`, `Domain`, `LifeSituation`, `document_domain`, `document_life_situation` |
-| `apps/api/alembic/versions/2026xxxx_taxonomy.py` | Revision after `20260610_fix_dup_juris`; create/drop four tables |
+| `apps/api/alembic/versions/20260625_taxonomy.py` | Revision after `20260610_fix_dup_juris`; create/drop four tables |
 | `apps/api/tests/test_taxonomy_models.py` | Behavior tests below |
 
 **Edit**
@@ -122,3 +122,11 @@ test(api): describe taxonomy tables and tagging behavior
 
 feat(api): add domain and life situation taxonomy tables
 ```
+
+## Outcome
+
+- `taxonomy.py` is 55 LOC. The mixin shares all its columns between both models, so it removes duplication.
+  The association tables come from one `_link_table` helper in the same file.
+- `document.py` gained two relationship lines and one import; no logic.
+- Migration `20260625_taxonomy` upgrades, downgrades and re-upgrades cleanly on Postgres; `alembic check` reports no drift on the new tables.
+- The CHECK constraint uses Postgres `~`. DB-backed tests skip under the SQLite `ci.sh` run, like the existing DB tests, so they were verified against a local Postgres.
