@@ -2,6 +2,7 @@ import { Box, Container, HStack, Heading, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
+import { hoverMotion } from "../../theme/transitions";
 import ColorModeToggle from "./ColorModeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 
@@ -26,6 +27,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <Heading
               asChild
               textStyle="appTitle"
+              transitionProperty="color"
+              {...hoverMotion}
               _hover={{ color: "interactive.hover" }}
             >
               <RouterLink to="/">Redtape</RouterLink>

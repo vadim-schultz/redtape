@@ -55,3 +55,12 @@ it("DocumentCard · renders as a Card compound with elevation", async () => {
   expect(link.className).toContain("chakra-card__root");
   expect(getComputedStyle(link).boxShadow).toBe("var(--chakra-shadows-card)");
 });
+
+it("DocumentCard · hover motion uses theme duration and easing tokens", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  const style = getComputedStyle(await screen.findByRole("link"));
+
+  expect(style.transitionDuration).toBe("var(--chakra-durations-normal)");
+  expect(style.transitionTimingFunction).toBe("var(--chakra-easings-ease-out)");
+});
