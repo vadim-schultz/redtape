@@ -12,6 +12,7 @@ Litestar backend for RedTape. **Wave 1** adds the read-only documents graph (jur
 
 - Alembic: `jurisdiction`, `document`, `document_requirement`
 - Seed: `python -m scripts.seed_documents` (idempotent; stable UUIDs)
+- Seed: `python -m scripts.seed_taxonomy` (idempotent; Germany domains, life situations, document tags)
 - API: `GET /api/v1/documents`, `GET /api/v1/documents/{id}` (localized `title` / `description` / `notes`)
 - CORS: `CORS_ALLOWED_ORIGINS` (comma-separated); OpenAPI: `/schema` (Litestar default)
 
@@ -46,6 +47,7 @@ pip install -e ".[dev]"
 alembic upgrade head
 python -m scripts.seed_i18n
 python -m scripts.seed_documents
+python -m scripts.seed_taxonomy
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -67,6 +69,7 @@ cp .env.example .env   # Windows: copy .env.example .env
 alembic upgrade head
 python -m scripts.seed_i18n
 python -m scripts.seed_documents
+python -m scripts.seed_taxonomy
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 

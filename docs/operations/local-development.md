@@ -27,6 +27,7 @@ pip install -e ".[dev]"
 alembic upgrade head
 python -m scripts.seed_i18n
 python -m scripts.seed_documents
+python -m scripts.seed_taxonomy
 cd ../..
 
 # Web, from the repo root. Copy .env.example to .env and set NPM_REGISTRY
@@ -72,12 +73,13 @@ own terminal tab/pane:
 ## Resetting / reseeding the local database
 
 - **Reseed only** (fast, keeps schema/data structure): re-run the seed
-  scripts — both are idempotent (`seed_i18n.py` upserts, `seed_documents.py`
-  uses `session.merge()` with stable UUIDs), safe to run repeatedly:
+  scripts — all are idempotent (`seed_i18n.py` upserts, `seed_documents.py`
+  uses `session.merge()` with stable UUIDs, `seed_taxonomy.py` upserts by code), safe to run repeatedly:
   ```bash
   cd apps/api
   python -m scripts.seed_i18n
   python -m scripts.seed_documents
+  python -m scripts.seed_taxonomy
   ```
 - **Full reset** (wipes all local data, including the volume):
   ```bash
@@ -86,6 +88,7 @@ own terminal tab/pane:
   cd apps/api && alembic upgrade head
   python -m scripts.seed_i18n
   python -m scripts.seed_documents
+  python -m scripts.seed_taxonomy
   ```
   If the API is already running, restart it after a full reset — its
   connection pool holds handles to the old (now-deleted) database and will
