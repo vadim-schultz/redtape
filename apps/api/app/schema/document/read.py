@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schema.taxonomy.read import TermRead
+
 
 class DocumentListQuery(BaseModel):
     """Query parameters for listing documents."""
@@ -49,6 +51,8 @@ class DocumentDetail(BaseModel):
     jurisdiction_id: UUID
     requirements: list[RequirementRead] = Field(default_factory=list)
     jurisdiction_path: list[JurisdictionPathNode] = Field(default_factory=list)
+    domains: list[TermRead] = Field(default_factory=list)
+    life_situations: list[TermRead] = Field(default_factory=list)
 
 
 class JurisdictionPathNode(BaseModel):

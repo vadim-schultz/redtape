@@ -4,19 +4,19 @@ overview: "Optional domain and situation query params on GET /api/v1/documents, 
 todos:
   - id: filter
     content: "Repository filters by domain/situation ids (AND across axes, OR within an axis)"
-    status: pending
+    status: completed
   - id: params
     content: "Controller params domain and situation; unknown code -> 422"
-    status: pending
+    status: completed
   - id: tags
     content: "Detail response includes resolved domains and life_situations"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 4 — Documents filter and tags
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-documents-filter` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-documents-filter` · **Status:** done
 
 **Depends on:** [2](02-germany-seed.md), [3](03-taxonomy-api.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -117,3 +117,11 @@ test(api): describe document filtering by domain and situation
 
 feat(api): filter documents by domain and life situation and expose tags on detail
 ```
+
+## Outcome
+
+- Filtering is one `_filter_by_terms` helper called per axis (an `EXISTS` on the link table); `count` wraps the same `_base_select` in a subquery so `total` matches the page.
+- `DocumentFilters` dataclass replaces the jurisdiction/municipality arguments; `DocumentService` now takes `TaxonomyService`, and `TaxonomyService.to_term_read` was made public so tag mapping is not duplicated.
+- `TaxonomyCodeError` maps to HTTP 422 in the controller (chapter 3 deferred this).
+- Detail eager-loads `domains` / `life_situations` (selectinload).
+- Tests use the dev Postgres and scope every request by a throwaway jurisdiction so seeded rows do not leak in. They skip under the SQLite `ci.sh` run like other DB tests. Nine older seed/model/location tests fail on the populated dev DB identically on `main` (dev DB drift), unrelated to this change.

@@ -3,10 +3,11 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, Request, get
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import HTTPException, NotFoundException
 from litestar.params import Parameter
 
-from app.features.documents.service import DocumentService
+from app.features.documents.service import DocumentFilters, DocumentService
+from app.features.taxonomy.service import TaxonomyCodeError
 from app.schema.document.read import DocumentDetail, DocumentListResponse
 
 
@@ -27,19 +28,25 @@ class DocumentsController(Controller):
         document_service: DocumentService,
         jurisdiction_id: UUID | None = Parameter(query="jurisdiction_id", default=None),
         municipality_code: str | None = Parameter(query="municipality_code", default=None),
+        domain: list[str] | None = Parameter(query="domain", default=None),
+        situation: list[str] | None = Parameter(query="situation", default=None),
         offset: int = Parameter(query="offset", default=0, ge=0),
         limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> DocumentListResponse:
         locale = _request_locale(request)
         enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return document_service.list_documents(
-            locale=locale,
-            enabled_locales=enabled,
+        filters = DocumentFilters(
             jurisdiction_id=jurisdiction_id,
             municipality_code=municipality_code,
-            offset=offset,
-            limit=limit,
+            domain_codes=domain or (),
+            situation_codes=situation or (),
         )
+        try:
+            return document_service.list_documents(
+                locale=locale, enabled_locales=enabled, filters=filters, offset=offset, limit=limit
+            )
+        except TaxonomyCodeError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     @get("/{document_id:uuid}", sync_to_thread=True)
     def get_document(
