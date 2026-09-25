@@ -9,9 +9,9 @@ import {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { initialLocale } from "../i18n/initialLocale";
+import { fallbackBundle, type TranslationBundle } from "../i18n/fallback";
 import { buildApiUrl } from "../services/apiOrigin";
-
-type TranslationBundle = Record<string, string>;
 
 export type LocaleContextValue = {
   locale: string;
@@ -22,21 +22,32 @@ export type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 
-function initialLocale() {
-  return (
-    window.localStorage.getItem("locale") ??
-    navigator.language.slice(0, 2) ??
-    "de"
-  );
+async function fetchTranslations(
+  locale: string,
+  signal: AbortSignal,
+): Promise<TranslationBundle> {
+  const url = buildApiUrl("/api/v1/translations");
+  url.searchParams.set("locale", locale);
+  const res = await fetch(url.toString(), {
+    headers: { "Accept-Language": locale },
+    signal,
+  });
+  if (!res.ok) throw new Error(`Translations request failed: ${res.status}`);
+  const data = (await res.json()) as { translations?: TranslationBundle };
+  return data.translations ?? {};
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [locale, setLocaleState] = useState(() => initialLocale());
-  const [translations, setTranslations] = useState<TranslationBundle>({});
+  const [remote, setRemote] = useState<TranslationBundle>({});
   const [isLoading, setIsLoading] = useState(true);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -44,38 +55,26 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     abortRef.current = abort;
 
     setIsLoading(true);
-    const translationsUrl = buildApiUrl("/api/v1/translations");
-    translationsUrl.searchParams.set("locale", locale);
-    fetch(translationsUrl.toString(), {
-      headers: { "Accept-Language": locale },
-      signal: abort.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok)
-          throw new Error(`Translations request failed: ${res.status}`);
-        const data = (await res.json()) as {
-          locale: string;
-          translations: TranslationBundle;
-        };
-        setTranslations(data.translations ?? {});
-      })
-      .catch(() => {
-        // Keep UI usable even if API is down during dev.
-        setTranslations({});
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    fetchTranslations(locale, abort.signal)
+      .then(setRemote)
+      // Bundled strings keep the UI usable while the API is down or waking up.
+      .catch(() => setRemote({}))
+      .finally(() => setIsLoading(false));
 
     return () => abort.abort();
   }, [locale]);
+
+  const translations = useMemo(
+    () => ({ ...fallbackBundle(locale), ...remote }),
+    [locale, remote],
+  );
 
   const setLocale = useCallback(
     (next: string) => {
       window.localStorage.setItem("locale", next);
       setLocaleState(next);
       // Ensure domain reads re-fetch when locale changes.
-      queryClient.invalidateQueries({ queryKey: ["*"] });
+      queryClient.invalidateQueries();
     },
     [queryClient],
   );

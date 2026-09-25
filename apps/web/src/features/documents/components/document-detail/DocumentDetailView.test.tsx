@@ -22,6 +22,7 @@ it("DocumentDetailView · encloses document details in a card", async () => {
       isLoading={false}
       isError={false}
       error={undefined}
+      onRetry={() => {}}
       onBack={() => {}}
       requirementsTitle="Requirements"
       noRequirementsLabel="No requirements"
@@ -43,6 +44,7 @@ it("DocumentDetailView · keeps the back button outside the card", async () => {
       isLoading={false}
       isError={false}
       error={undefined}
+      onRetry={() => {}}
       onBack={() => {}}
       requirementsTitle="Requirements"
       noRequirementsLabel="No requirements"

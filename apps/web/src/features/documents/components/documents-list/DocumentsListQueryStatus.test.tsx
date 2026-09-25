@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DocumentSummary } from "../../types";
@@ -16,7 +16,8 @@ it("DocumentsListQueryStatus · loading renders skeleton not cards", async () =>
       isLoading
       isError={false}
       error={undefined}
-      listTitleLabel="documents"
+      onRetry={vi.fn()}
+      isRefreshing={false}
       documents={documents}
     />,
   );
@@ -25,35 +26,42 @@ it("DocumentsListQueryStatus · loading renders skeleton not cards", async () =>
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });
 
-it("DocumentsListQueryStatus · error renders alert and zero cards", async () => {
-  const { container } = renderWithProviders(
+it("DocumentsListQueryStatus · error explains the failure, offers retry and shows zero cards", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderWithProviders(
     <DocumentsListQueryStatus
       isLoading={false}
       isError
       error={new Error("boom")}
-      listTitleLabel="documents"
+      onRetry={onRetry}
+      isRefreshing={false}
       documents={undefined}
     />,
   );
 
-  expect(container.querySelector(".chakra-alert__root")).toBeInTheDocument();
-  expect(await screen.findByText("Server error")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Server error. Please try again later."),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });
 
-it("DocumentsListQueryStatus · empty list renders empty state", async () => {
-  const { container } = renderWithProviders(
+it("DocumentsListQueryStatus · empty list renders an empty state with guidance", async () => {
+  renderWithProviders(
     <DocumentsListQueryStatus
       isLoading={false}
       isError={false}
       error={undefined}
-      listTitleLabel="documents"
+      onRetry={vi.fn()}
+      isRefreshing={false}
       documents={[]}
     />,
   );
 
+  expect(screen.getByRole("status")).toHaveTextContent("No documents found");
   expect(
-    container.querySelector(".chakra-empty-state__root"),
+    screen.getByText("Try selecting a different location."),
   ).toBeInTheDocument();
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });
@@ -64,11 +72,46 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
       isLoading={false}
       isError={false}
       error={undefined}
-      listTitleLabel="documents"
+      onRetry={vi.fn()}
+      isRefreshing={false}
       documents={documents}
     />,
   );
 
   expect(await screen.findByText("2 documents")).toBeInTheDocument();
   expect(screen.getAllByRole("link")).toHaveLength(2);
+});
+
+it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks the list busy", async () => {
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isRefreshing
+      isError={false}
+      error={undefined}
+      onRetry={vi.fn()}
+      documents={documents}
+    />,
+  );
+
+  const list = (await screen.findAllByRole("link"))[0].parentElement;
+  expect(screen.getAllByRole("link")).toHaveLength(2);
+  expect(list).toHaveAttribute("aria-busy", "true");
+  expect(getComputedStyle(list as Element).opacity).toBe("0.6");
+});
+
+it("DocumentsListQueryStatus · singular count reads naturally", async () => {
+  window.localStorage.setItem("locale", "de");
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isRefreshing={false}
+      isError={false}
+      error={undefined}
+      onRetry={vi.fn()}
+      documents={[documents[0]]}
+    />,
+  );
+
+  expect(await screen.findByText("1 Dokument")).toBeInTheDocument();
 });

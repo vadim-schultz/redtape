@@ -8,21 +8,23 @@ import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 export interface DocumentsListViewProps {
   title: string;
-  listTitleLabel: string;
   documents: DocumentSummary[] | undefined;
   isLoading: boolean;
+  isRefreshing: boolean;
   isError: boolean;
   error: unknown;
+  onRetry: () => void;
   onMunicipalityChange: (municipalityCode: string | null) => void;
 }
 
 export default function DocumentsListView({
   title,
-  listTitleLabel,
   documents,
   isLoading,
+  isRefreshing,
   isError,
   error,
+  onRetry,
   onMunicipalityChange,
 }: DocumentsListViewProps) {
   return (
@@ -37,9 +39,10 @@ export default function DocumentsListView({
         <VStack align="stretch" gap={3}>
           <DocumentsListQueryStatus
             isLoading={isLoading}
+            isRefreshing={isRefreshing}
             isError={isError}
             error={error}
-            listTitleLabel={listTitleLabel}
+            onRetry={onRetry}
             documents={documents}
           />
         </VStack>

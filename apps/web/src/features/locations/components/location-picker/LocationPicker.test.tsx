@@ -32,7 +32,7 @@ it("LocationPicker · reset clears selection when canReset", async () => {
   await user.click(stateTrigger);
   await user.click(await screen.findByRole("option", { name: "Berlin" }));
 
-  const resetButton = screen.getByRole("button", { name: "location.reset" });
+  const resetButton = screen.getByRole("button", { name: "Clear location" });
   expect(resetButton).toBeEnabled();
 
   onMunicipalityChange.mockClear();

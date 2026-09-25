@@ -1,5 +1,7 @@
 import { Button } from "@chakra-ui/react";
 
+import { useLocale } from "../../../../contexts/LocaleContext";
+
 export interface DocumentBackButtonProps {
   onBack: () => void;
 }
@@ -7,9 +9,11 @@ export interface DocumentBackButtonProps {
 export default function DocumentBackButton({
   onBack,
 }: DocumentBackButtonProps) {
+  const { t } = useLocale();
+
   return (
     <Button variant="ghost" size="sm" color="text.link" onClick={onBack}>
-      ← Back
+      ← {t("common.back")}
     </Button>
   );
 }

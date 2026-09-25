@@ -1,0 +1,61 @@
+{
+  "common": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Try again",
+    "back": "Back",
+    "slow_server_title": "Waking up the server",
+    "slow_server_body": "This can take up to a minute after a period of inactivity.",
+    "toggle_color_mode": "Toggle color mode"
+  },
+  "nav": {
+    "home": "Home",
+    "browse_documents": "Browse Documents",
+    "about": "About"
+  },
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password"
+  },
+  "documents": {
+    "list_title": "Documents",
+    "detail_title": "Document Details",
+    "requirements": "Required Documents",
+    "no_requirements": "No requirements",
+    "official_source": "Official Source",
+    "empty_title": "No documents found",
+    "empty_description": "Try selecting a different location.",
+    "not_found": "Document not found",
+    "count_one": "{count} document",
+    "count_other": "{count} documents"
+  },
+  "location": {
+    "label": "Location",
+    "state": "State",
+    "district": "District",
+    "city": "City",
+    "reset": "Clear location",
+    "select_state": "Select state",
+    "select_district": "Select district",
+    "select_city": "Select city",
+    "select_state_first": "Select a state first",
+    "select_district_first": "Select a district first",
+    "no_options": "No options available"
+  },
+  "errors": {
+    "validation_error": "Input validation error",
+    "document_not_found": "Document not found: {id}",
+    "unauthorized": "Unauthorized",
+    "server_error": "Server error. Please try again later.",
+    "page_not_found_title": "Page not found",
+    "page_not_found_body": "This address is not part of Redtape."
+  }
+}

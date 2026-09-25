@@ -35,6 +35,7 @@ export default function LocationBar({
   const segments = [
     {
       key: "state",
+      lockedHint: null,
       level: states,
       value: cascade.stateCode,
       disabled: false,
@@ -42,6 +43,7 @@ export default function LocationBar({
     },
     {
       key: "district",
+      lockedHint: "location.select_state_first",
       level: districts,
       value: cascade.districtCode,
       disabled: !cascade.stateCode,
@@ -49,6 +51,7 @@ export default function LocationBar({
     },
     {
       key: "city",
+      lockedHint: "location.select_district_first",
       level: municipalities,
       value: cascade.municipalityCode,
       disabled: !cascade.districtCode,
@@ -68,11 +71,17 @@ export default function LocationBar({
       _focusWithin={{ borderColor: "focus.DEFAULT" }}
     >
       <CountrySegment code={countryCode} />
-      {segments.map(({ key, level, ...segment }) => (
+      {segments.map(({ key, level, lockedHint, ...segment }) => (
         <Fragment key={key}>
           <SegmentDivider />
           <SelectSegment
             label={t(`location.${key}`)}
+            emptyLabel={t("location.no_options")}
+            placeholder={t(
+              segment.disabled && lockedHint
+                ? lockedHint
+                : `location.select_${key}`,
+            )}
             options={level.options}
             isLoading={level.isLoading}
             {...segment}

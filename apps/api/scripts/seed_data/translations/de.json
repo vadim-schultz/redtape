@@ -7,7 +7,12 @@
     "search": "Suchen",
     "loading": "Lädt...",
     "error": "Fehler",
-    "success": "Erfolgreich"
+    "success": "Erfolgreich",
+    "retry": "Erneut versuchen",
+    "back": "Zurück",
+    "slow_server_title": "Server wird gestartet",
+    "slow_server_body": "Nach längerer Inaktivität kann das bis zu eine Minute dauern.",
+    "toggle_color_mode": "Farbmodus wechseln"
   },
   "nav": {
     "home": "Startseite",
@@ -25,19 +30,32 @@
     "detail_title": "Dokumentdetails",
     "requirements": "Erforderliche Dokumente",
     "no_requirements": "Keine Voraussetzungen",
-    "official_source": "Offizielle Quelle"
+    "official_source": "Offizielle Quelle",
+    "empty_title": "Keine Dokumente gefunden",
+    "empty_description": "Wähle einen anderen Ort aus.",
+    "not_found": "Dokument nicht gefunden",
+    "count_one": "{count} Dokument",
+    "count_other": "{count} Dokumente"
   },
   "location": {
     "label": "Ort",
     "state": "Bundesland",
     "district": "Landkreis",
     "city": "Stadt",
-    "reset": "Ort zurücksetzen"
+    "reset": "Ort zurücksetzen",
+    "select_state": "Bundesland wählen",
+    "select_district": "Landkreis wählen",
+    "select_city": "Stadt wählen",
+    "select_state_first": "Zuerst Bundesland wählen",
+    "select_district_first": "Zuerst Landkreis wählen",
+    "no_options": "Keine Optionen verfügbar"
   },
   "errors": {
     "validation_error": "Validierungsfehler bei der Eingabe",
     "document_not_found": "Dokument nicht gefunden: {id}",
     "unauthorized": "Nicht autorisiert",
-    "server_error": "Serverfehler. Bitte versuchen Sie es später erneut."
+    "server_error": "Serverfehler. Bitte versuchen Sie es später erneut.",
+    "page_not_found_title": "Seite nicht gefunden",
+    "page_not_found_body": "Diese Adresse gehört nicht zu Redtape."
   }
 }

@@ -25,3 +25,10 @@ it("CountrySegment · flag is decorative and the segment is not a select", () =>
   expect(screen.getByText("🇩🇪")).toHaveAttribute("aria-hidden", "true");
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });
+
+it("CountrySegment · falls back to the country code for an invalid locale", () => {
+  window.localStorage.setItem("locale", "i-");
+  renderWithProviders(<CountrySegment code="DE" />);
+
+  expect(screen.getByText("DE")).toBeInTheDocument();
+});

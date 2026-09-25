@@ -2,6 +2,7 @@ import { Button } from "@chakra-ui/react";
 import type { IconType } from "react-icons";
 import { FaMoon, FaSun } from "react-icons/fa";
 
+import { useLocale } from "../../contexts/LocaleContext";
 import { useColorMode, type ColorMode } from "../ui/color-mode";
 
 interface ModeIcon {
@@ -18,12 +19,13 @@ function iconFor(colorMode: ColorMode): ModeIcon {
 
 /** Ghost button that switches light and dark. The icon matches the current mode. */
 const ColorModeToggle = () => {
+  const { t } = useLocale();
   const { colorMode, toggleColorMode } = useColorMode();
   const { Icon, label } = iconFor(colorMode);
 
   return (
     <Button
-      aria-label="Toggle color mode"
+      aria-label={t("common.toggle_color_mode")}
       onClick={toggleColorMode}
       variant="ghost"
       size="sm"

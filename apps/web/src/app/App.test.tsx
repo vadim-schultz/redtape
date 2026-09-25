@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { it, expect } from "vitest";
 
 import AppLayout from "../components/layout/AppLayout";
@@ -13,6 +13,20 @@ function renderAppAt(path: string) {
     { initialEntries: [path] },
   );
 }
+
+it("app · shows a list skeleton while the documents page code loads", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/documents");
+
+  const main = within(screen.getByRole("main"));
+  expect(main.getByRole("status", { name: "Loading..." })).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  expect(
+    await screen.findByRole("heading", { name: "Documents" }),
+  ).toBeInTheDocument();
+});
 
 it("app · renders Redtape in the layout header", async () => {
   renderAppAt("/documents");

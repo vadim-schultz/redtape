@@ -1,11 +1,13 @@
 import { screen } from "@testing-library/react";
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
+import { ApiRequestError } from "../../../../services/api";
 import type { DocumentDetail } from "../../types";
 import DocumentDetailQueryStatus from "./DocumentDetailQueryStatus";
 
 const baseProps = {
+  onRetry: vi.fn(),
   requirementsTitle: "Requirements",
   noRequirementsLabel: "No requirements",
   officialSourceTitle: "Official source",
@@ -36,10 +38,12 @@ it("DocumentDetailQueryStatus · loading shows skeleton not breadcrumb content",
   expect(screen.queryByText("Germany")).not.toBeInTheDocument();
 });
 
-it("DocumentDetailQueryStatus · error renders alert", async () => {
-  const { container } = renderWithProviders(
+it("DocumentDetailQueryStatus · failure explains the problem and offers retry", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderWithProviders(
     <DocumentDetailQueryStatus
       {...baseProps}
+      onRetry={onRetry}
       isLoading={false}
       isError
       error={new Error("boom")}
@@ -47,8 +51,41 @@ it("DocumentDetailQueryStatus · error renders alert", async () => {
     />,
   );
 
-  expect(container.querySelector(".chakra-alert__root")).toBeInTheDocument();
-  expect(await screen.findByText("Server error")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Server error. Please try again later."),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it("DocumentDetailQueryStatus · a 404 shows a not-found state instead of an error", async () => {
+  const error = new ApiRequestError({ status: 404, url: "/x", bodyText: "" });
+  renderWithProviders(
+    <DocumentDetailQueryStatus
+      {...baseProps}
+      isLoading={false}
+      isError
+      error={error}
+      document={undefined}
+    />,
+  );
+
+  expect(await screen.findByText("Document not found")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+});
+
+it("DocumentDetailQueryStatus · no document without an error shows not found", async () => {
+  renderWithProviders(
+    <DocumentDetailQueryStatus
+      {...baseProps}
+      isLoading={false}
+      isError={false}
+      error={undefined}
+      document={undefined}
+    />,
+  );
+
+  expect(await screen.findByText("Document not found")).toBeInTheDocument();
 });
 
 it("DocumentDetailQueryStatus · empty requirements shows empty state", async () => {

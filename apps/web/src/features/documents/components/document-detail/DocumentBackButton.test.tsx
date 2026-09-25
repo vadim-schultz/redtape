@@ -20,3 +20,12 @@ it("DocumentBackButton · calls onBack when clicked", async () => {
 
   expect(onBack).toHaveBeenCalledOnce();
 });
+
+it("DocumentBackButton · label follows the locale", async () => {
+  window.localStorage.setItem("locale", "de");
+  renderWithProviders(<DocumentBackButton onBack={vi.fn()} />);
+
+  expect(
+    await screen.findByRole("button", { name: /Zurück/ }),
+  ).toBeInTheDocument();
+});

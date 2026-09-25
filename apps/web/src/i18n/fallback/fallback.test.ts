@@ -1,0 +1,37 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { fallbackBundle } from "./index";
+
+type Nested = { [key: string]: string | Nested };
+
+function flatten(tree: Nested, prefix = ""): Record<string, string> {
+  return Object.entries(tree).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      return typeof value === "string"
+        ? { ...acc, [path]: value }
+        : { ...acc, ...flatten(value, path) };
+    },
+    {},
+  );
+}
+
+function readSeed(locale: string): Record<string, string> {
+  const file = resolve(
+    __dirname,
+    `../../../../api/scripts/seed_data/translations/${locale}.json`,
+  );
+  return flatten(JSON.parse(readFileSync(file, "utf8")) as Nested);
+}
+
+describe("fallback translation bundles", () => {
+  it.each(["en", "de"])("matches the API seed for %s", (locale) => {
+    expect(fallbackBundle(locale)).toEqual(readSeed(locale));
+  });
+
+  it("falls back to English for unknown locales", () => {
+    expect(fallbackBundle("fr")).toEqual(fallbackBundle("en"));
+  });
+});

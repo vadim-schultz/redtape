@@ -32,11 +32,7 @@ it("LocationBar · lists state, district and city selects in order", () => {
 
   const names = screen.getAllByRole("combobox").map((el) => el.ariaLabel);
 
-  expect(names).toEqual([
-    "location.state",
-    "location.district",
-    "location.city",
-  ]);
+  expect(names).toEqual(["State", "District", "City"]);
 });
 
 it("LocationBar · is a rounded pill, not a card", () => {
@@ -85,7 +81,7 @@ it("LocationBar · hides reset when nothing is selected", () => {
   renderBar();
 
   expect(
-    screen.queryByRole("button", { name: "location.reset" }),
+    screen.queryByRole("button", { name: "Clear location" }),
   ).not.toBeInTheDocument();
 });
 
@@ -93,7 +89,24 @@ it("LocationBar · reset button clears the selection", async () => {
   const reset = vi.fn();
   const { user } = renderBar({ canReset: true, reset });
 
-  await user.click(screen.getByRole("button", { name: "location.reset" }));
+  await user.click(screen.getByRole("button", { name: "Clear location" }));
 
   expect(reset).toHaveBeenCalledOnce();
+});
+
+it("LocationBar · prompts for the state and hints at the order for locked selects", () => {
+  window.localStorage.setItem("locale", "en");
+  renderBar();
+
+  expect(screen.getByText("Select state")).toBeInTheDocument();
+  expect(screen.getByText("Select a state first")).toBeInTheDocument();
+  expect(screen.getByText("Select a district first")).toBeInTheDocument();
+});
+
+it("LocationBar · prompts for district and city once their parent is chosen", () => {
+  window.localStorage.setItem("locale", "en");
+  renderBar({ stateCode: "BE", districtCode: "BE-1" });
+
+  expect(screen.getByText("Select district")).toBeInTheDocument();
+  expect(screen.getByText("Select city")).toBeInTheDocument();
 });
