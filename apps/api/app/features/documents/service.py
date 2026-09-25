@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.features.documents.repository import DocumentRepository
+from app.features.taxonomy.service import TaxonomyService
 from app.i18n_resolution import pick_i18n
 from app.models.document import Document
 from app.models.jurisdiction import JurisdictionKind
+from app.models.taxonomy import Domain, LifeSituation
 from app.schema.document.read import (
     DocumentDetail,
     DocumentListResponse,
@@ -13,39 +17,53 @@ from app.schema.document.read import (
     JurisdictionPathNode,
     RequirementRead,
 )
+from app.schema.taxonomy.read import TermRead
+
+
+@dataclass(frozen=True)
+class DocumentFilters:
+    """Optional narrowing of the document list; empty code lists mean no filter on that axis."""
+
+    jurisdiction_id: UUID | None = None
+    municipality_code: str | None = None
+    domain_codes: Sequence[str] = ()
+    situation_codes: Sequence[str] = ()
 
 
 class DocumentService:
     """Domain logic for localized document reads."""
 
-    def __init__(self, repository: DocumentRepository) -> None:
+    def __init__(self, repository: DocumentRepository, taxonomy: TaxonomyService) -> None:
         self._repo = repository
+        self._taxonomy = taxonomy
 
     def list_documents(
         self,
         *,
         locale: str,
         enabled_locales: set[str],
-        jurisdiction_id: UUID | None,
-        municipality_code: str | None = None,
+        filters: DocumentFilters,
         offset: int,
         limit: int,
     ) -> DocumentListResponse:
-        effective_jurisdiction_id = jurisdiction_id
-        if municipality_code is not None:
-            effective_jurisdiction_id = self._repo.get_municipality_jurisdiction_id(municipality_code=municipality_code)
-            if effective_jurisdiction_id is None:
-                return DocumentListResponse(
-                    items=[],
-                    total=0,
-                    offset=offset,
-                    limit=limit,
-                )
+        jurisdiction_id = self._effective_jurisdiction_id(filters)
+        if filters.municipality_code is not None and jurisdiction_id is None:
+            return DocumentListResponse(items=[], total=0, offset=offset, limit=limit)
 
-        total = self._repo.count(jurisdiction_id=effective_jurisdiction_id)
-        rows = self._repo.list_page(jurisdiction_id=effective_jurisdiction_id, offset=offset, limit=limit)
+        scope = {
+            "jurisdiction_id": jurisdiction_id,
+            "domain_ids": self._taxonomy.resolve_domain_ids(filters.domain_codes),
+            "situation_ids": self._taxonomy.resolve_situation_ids(filters.situation_codes),
+        }
+        total = self._repo.count(**scope)
+        rows = self._repo.list_page(offset=offset, limit=limit, **scope)
         items = [self._to_summary(row, locale=locale, enabled_locales=enabled_locales) for row in rows]
         return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+
+    def _effective_jurisdiction_id(self, filters: DocumentFilters) -> UUID | None:
+        if filters.municipality_code is None:
+            return filters.jurisdiction_id
+        return self._repo.get_municipality_jurisdiction_id(municipality_code=filters.municipality_code)
 
     def get_document_detail(
         self,
@@ -82,7 +100,12 @@ class DocumentService:
             jurisdiction_id=doc.jurisdiction_id,
             jurisdiction_path=jurisdiction_path,
             requirements=reqs,
+            domains=self._term_reads(doc.domains, locale, enabled_locales),
+            life_situations=self._term_reads(doc.life_situations, locale, enabled_locales),
         )
+
+    def _term_reads(self, terms: Sequence[Domain | LifeSituation], locale: str, enabled: set[str]) -> list[TermRead]:
+        return [self._taxonomy.to_term_read(term, locale=locale, enabled_locales=enabled) for term in terms]
 
     def _jurisdiction_to_path_node(
         self,

@@ -31,17 +31,18 @@ class TaxonomyService:
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
         return self._resolve(LifeSituation, codes)
 
-    def _list(self, model: TermModel, locale: str, enabled_locales: Iterable[str]) -> list[TermRead]:
+    def to_term_read(self, term: Domain | LifeSituation, *, locale: str, enabled_locales: Iterable[str]) -> TermRead:
         enabled = set(enabled_locales)
-        return [
-            TermRead(
-                code=term.code,
-                name=pick_i18n(term.name_i18n, locale=locale, enabled=enabled),
-                description=pick_i18n(term.description_i18n, locale=locale, enabled=enabled),
-                icon=term.icon,
-            )
-            for term in self._repo.list_terms(model)
-        ]
+        return TermRead(
+            code=term.code,
+            name=pick_i18n(term.name_i18n, locale=locale, enabled=enabled),
+            description=pick_i18n(term.description_i18n, locale=locale, enabled=enabled),
+            icon=term.icon,
+        )
+
+    def _list(self, model: TermModel, locale: str, enabled_locales: Iterable[str]) -> list[TermRead]:
+        terms = self._repo.list_terms(model)
+        return [self.to_term_read(term, locale=locale, enabled_locales=enabled_locales) for term in terms]
 
     def _resolve(self, model: TermModel, codes: Sequence[str]) -> list[UUID]:
         ids = self._repo.ids_for_codes(model, codes)

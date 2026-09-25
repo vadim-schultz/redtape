@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 import sqlalchemy as sa
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.taxonomy.repository import TaxonomyRepository
+from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 
@@ -135,7 +137,7 @@ def test_jurisdiction_path_is_root_to_leaf(db_session) -> None:
     session.add_all(edges)
     session.commit()
 
-    service = DocumentService(DocumentRepository(session))
+    service = DocumentService(DocumentRepository(session), TaxonomyService(TaxonomyRepository(session)))
     detail = service.get_document_detail(document_id=target_doc_id, locale="de", enabled_locales={"de", "en"})
     assert detail is not None
 

@@ -7,17 +7,23 @@ from sqlalchemy.orm import Session
 
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.taxonomy.dependencies import router_dependencies as taxonomy_dependencies
+from app.features.taxonomy.service import TaxonomyService
 
 
 def provide_document_repository(session: Session) -> DocumentRepository:
     return DocumentRepository(session)
 
 
-def provide_document_service(document_repository: DocumentRepository) -> DocumentService:
-    return DocumentService(document_repository)
+def provide_document_service(
+    document_repository: DocumentRepository,
+    taxonomy_service: TaxonomyService,
+) -> DocumentService:
+    return DocumentService(document_repository, taxonomy_service)
 
 
 router_dependencies = {
+    **taxonomy_dependencies,
     "document_repository": Provide(provide_document_repository, sync_to_thread=False),
     "document_service": Provide(provide_document_service, sync_to_thread=False),
 }
