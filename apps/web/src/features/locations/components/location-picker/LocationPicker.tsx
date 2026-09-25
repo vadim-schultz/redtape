@@ -1,8 +1,8 @@
 import { Card, VStack } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 import { useDistrictsQuery } from "../../hooks/useDistrictsQuery";
+import { useLocationCascade } from "../../hooks/useLocationCascade";
 import { useMunicipalitiesQuery } from "../../hooks/useMunicipalitiesQuery";
 import { useStatesQuery } from "../../hooks/useStatesQuery";
 
@@ -18,9 +18,16 @@ export default function LocationPicker({
 }: LocationPickerProps) {
   const { locale, t } = useLocale();
 
-  const [stateCode, setStateCode] = useState<string>("");
-  const [districtCode, setDistrictCode] = useState<string>("");
-  const [municipalityCode, setMunicipalityCode] = useState<string>("");
+  const {
+    stateCode,
+    districtCode,
+    municipalityCode,
+    canReset,
+    selectState,
+    selectDistrict,
+    selectMunicipality,
+    reset,
+  } = useLocationCascade({ onMunicipalityChange });
 
   const statesQuery = useStatesQuery(locale);
   const districtsQuery = useDistrictsQuery({ locale, stateCode });
@@ -28,17 +35,6 @@ export default function LocationPicker({
     locale,
     districtCode,
   });
-
-  const canReset = useMemo(() => {
-    return stateCode !== "" || districtCode !== "" || municipalityCode !== "";
-  }, [stateCode, districtCode, municipalityCode]);
-
-  const handleReset = () => {
-    setStateCode("");
-    setDistrictCode("");
-    setMunicipalityCode("");
-    onMunicipalityChange(null);
-  };
 
   return (
     <Card.Root bg="surface.base" borderColor="border">
@@ -48,7 +44,7 @@ export default function LocationPicker({
             cancelLabel={t("common.cancel")}
             localeLabel={locale.toUpperCase()}
             canReset={canReset}
-            onReset={handleReset}
+            onReset={reset}
           />
 
           <VStack gap={2} align="stretch">
@@ -58,12 +54,7 @@ export default function LocationPicker({
               disabled={false}
               options={statesQuery.data?.items}
               placeholder={t("documents.list_title")}
-              onChange={(next) => {
-                setStateCode(next);
-                setDistrictCode("");
-                setMunicipalityCode("");
-                onMunicipalityChange(null);
-              }}
+              onChange={selectState}
               isLoading={statesQuery.isLoading}
             />
           </VStack>
@@ -75,11 +66,7 @@ export default function LocationPicker({
               disabled={!stateCode}
               options={districtsQuery.data?.items}
               placeholder={t("documents.list_title")}
-              onChange={(next) => {
-                setDistrictCode(next);
-                setMunicipalityCode("");
-                onMunicipalityChange(null);
-              }}
+              onChange={selectDistrict}
               isLoading={districtsQuery.isLoading}
             />
           </VStack>
@@ -91,10 +78,7 @@ export default function LocationPicker({
               disabled={!districtCode}
               options={municipalitiesQuery.data?.items}
               placeholder={t("documents.list_title")}
-              onChange={(next) => {
-                setMunicipalityCode(next);
-                onMunicipalityChange(next || null);
-              }}
+              onChange={selectMunicipality}
               isLoading={municipalitiesQuery.isLoading}
             />
           </VStack>
