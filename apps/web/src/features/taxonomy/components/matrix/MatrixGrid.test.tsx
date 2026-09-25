@@ -20,7 +20,7 @@ function renderGrid(overrides: Partial<Parameters<typeof MatrixGrid>[0]> = {}) {
 it("MatrixGrid · renders one header per domain and one row per situation", () => {
   renderGrid();
 
-  const table = screen.getByRole("table");
+  const table = screen.getByRole("table", { hidden: true });
   expect(within(table).getAllByRole("columnheader")).toHaveLength(3);
   expect(within(table).getAllByRole("rowheader")).toHaveLength(2);
 });

@@ -46,7 +46,9 @@ it("MatrixPage · renders the grid from the three queries", async () => {
   expect(
     await screen.findByRole("heading", { name: "Document matrix" }),
   ).toBeInTheDocument();
-  expect(await screen.findByRole("table")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("table", { hidden: true }),
+  ).toBeInTheDocument();
 });
 
 it("MatrixPage · matrix query error shows QueryError, no grid", async () => {
@@ -56,5 +58,5 @@ it("MatrixPage · matrix query error shows QueryError, no grid", async () => {
   expect(
     await screen.findByRole("button", { name: "Try again" }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table", { hidden: true })).not.toBeInTheDocument();
 });

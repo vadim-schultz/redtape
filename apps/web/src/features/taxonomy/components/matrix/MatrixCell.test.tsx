@@ -23,8 +23,12 @@ it("MatrixCell · non-empty cell links to the filtered list", () => {
 });
 
 it("MatrixCell · empty cell renders no link and no count", () => {
-  const { container } = renderWithProviders(<MatrixCell {...props} />);
+  renderWithProviders(
+    <div data-testid="slot">
+      <MatrixCell {...props} />
+    </div>,
+  );
 
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
-  expect(container).toHaveTextContent("");
+  expect(screen.getByTestId("slot")).toBeEmptyDOMElement();
 });

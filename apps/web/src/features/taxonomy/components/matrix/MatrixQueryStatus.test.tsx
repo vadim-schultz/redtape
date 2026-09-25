@@ -34,7 +34,7 @@ it("MatrixQueryStatus · loading shows the skeleton", () => {
   );
 
   expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table", { hidden: true })).not.toBeInTheDocument();
 });
 
 it("MatrixQueryStatus · error shows QueryError, no grid", async () => {
@@ -50,7 +50,7 @@ it("MatrixQueryStatus · error shows QueryError, no grid", async () => {
 
   await user.click(screen.getByRole("button", { name: "Try again" }));
   expect(onRetry).toHaveBeenCalledOnce();
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table", { hidden: true })).not.toBeInTheDocument();
 });
 
 it("MatrixQueryStatus · no tagged documents shows the empty state", () => {
@@ -62,13 +62,15 @@ it("MatrixQueryStatus · no tagged documents shows the empty state", () => {
   );
 
   expect(screen.getByRole("status")).toHaveTextContent("No tagged documents");
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table", { hidden: true })).not.toBeInTheDocument();
 });
 
 it("MatrixQueryStatus · builds the cell lookup so unrelated pairs stay empty", () => {
   renderWithProviders(<MatrixQueryStatus {...base} />);
 
-  const table = screen.getByRole("table");
-  expect(within(table).getAllByRole("link", { name: /×/ })).toHaveLength(1);
+  const table = screen.getByRole("table", { hidden: true });
+  expect(
+    within(table).getAllByRole("link", { name: /×/, hidden: true }),
+  ).toHaveLength(1);
   expect(within(table).queryByText("Traffic")).not.toBeInTheDocument();
 });

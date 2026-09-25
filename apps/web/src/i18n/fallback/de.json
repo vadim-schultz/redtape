@@ -18,6 +18,7 @@
   "nav": {
     "home": "Startseite",
     "browse_documents": "Dokumente durchsuchen",
+    "matrix": "Matrix",
     "about": "Über uns"
   },
   "auth": {
@@ -67,6 +68,8 @@
     "all_for_situation": "Alle Dokumente für diese Lebenslage",
     "all_in_domain": "Alle Dokumente in diesem Lebensbereich",
     "empty_cell": "Keine Dokumente in dieser Zelle",
+    "empty_title": "Keine verschlagworteten Dokumente",
+    "empty_description": "Dokumente erscheinen hier, sobald sie einem Bereich und einer Lebenslage zugeordnet sind.",
     "cell_aria": "{situation} × {domain}: {count} Dokumente"
   },
   "filters": {
