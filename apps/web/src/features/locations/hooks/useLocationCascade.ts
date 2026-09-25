@@ -43,3 +43,5 @@ export function useLocationCascade({
     reset,
   };
 }
+
+export type LocationCascade = ReturnType<typeof useLocationCascade>;

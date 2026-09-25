@@ -2,6 +2,7 @@ import { Select, Spinner } from "@chakra-ui/react";
 import { createListCollection } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
+import { hoverMotion } from "../../../../../../theme/transitions";
 import type { LocationNode } from "../../../../types";
 
 export interface SelectSegmentProps {
@@ -45,7 +46,10 @@ export default function SelectSegment({
         aria-busy={isLoading}
         border="none"
         bg="transparent"
+        borderRadius="full"
         px={4}
+        _hover={{ bg: "surface.hover", _disabled: { bg: "transparent" } }}
+        {...hoverMotion}
       >
         <Select.ValueText placeholder={label} truncate />
         <Select.IndicatorGroup>
