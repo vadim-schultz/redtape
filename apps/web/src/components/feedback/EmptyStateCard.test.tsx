@@ -15,7 +15,9 @@ it("EmptyStateCard · renders title, description and action", () => {
     />,
   );
 
-  expect(screen.getByRole("status")).toHaveTextContent("Nothing here");
+  expect(
+    screen.getByRole("heading", { name: "Nothing here" }),
+  ).toBeInTheDocument();
   expect(screen.getByText("Try another place")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
 });
@@ -25,10 +27,9 @@ it("EmptyStateCard · icon is decorative", () => {
     <EmptyStateCard icon={LuFileSearch} title="Nothing here" />,
   );
 
-  expect(container.querySelector("svg")?.closest("[aria-hidden]")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
+  expect(
+    container.querySelector("svg")?.closest("[aria-hidden]"),
+  ).toHaveAttribute("aria-hidden", "true");
 });
 
 it("EmptyStateCard · omits description and action when not given", () => {

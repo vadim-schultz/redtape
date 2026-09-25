@@ -1,4 +1,4 @@
-import { EmptyState } from "@chakra-ui/react";
+import { EmptyState, Heading } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
 
@@ -31,7 +31,11 @@ export default function EmptyStateCard({
         <EmptyState.Indicator aria-hidden="true" color={iconColor[variant]}>
           <Icon />
         </EmptyState.Indicator>
-        <EmptyState.Title>{title}</EmptyState.Title>
+        <EmptyState.Title asChild>
+          <Heading as="h2" textStyle="sectionHeader">
+            {title}
+          </Heading>
+        </EmptyState.Title>
         {description ? (
           <EmptyState.Description>{description}</EmptyState.Description>
         ) : null}
