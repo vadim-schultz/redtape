@@ -1,9 +1,15 @@
-import { Text } from "@chakra-ui/react";
+import { EmptyState } from "@chakra-ui/react";
 
 export interface RequirementsEmptyProps {
   label: string;
 }
 
 export default function RequirementsEmpty({ label }: RequirementsEmptyProps) {
-  return <Text mt={2}>{label}</Text>;
+  return (
+    <EmptyState.Root size="sm">
+      <EmptyState.Content>
+        <EmptyState.Title>{label}</EmptyState.Title>
+      </EmptyState.Content>
+    </EmptyState.Root>
+  );
 }
