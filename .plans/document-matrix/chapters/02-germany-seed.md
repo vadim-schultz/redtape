@@ -4,19 +4,19 @@ overview: "Idempotent seed of the 13 domains and 18 life situations for Germany 
 todos:
   - id: data
     content: "Taxonomy seed data module with codes, de/en names, icons, sort order"
-    status: pending
+    status: done
   - id: seed
     content: "seed_taxonomy script, idempotent upsert by code; tags existing documents"
-    status: pending
+    status: done
   - id: tests
     content: "Seed tests: completeness of de/en, idempotency, tag assignments"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 2 — Germany seed
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-germany-seed` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-germany-seed` · **Status:** done
 
 **Depends on:** [1](01-taxonomy-schema.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
