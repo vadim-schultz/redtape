@@ -1,4 +1,4 @@
-import { Select, Spinner } from "@chakra-ui/react";
+import { Select, Spinner, Text } from "@chakra-ui/react";
 import { createListCollection } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
@@ -8,6 +8,7 @@ import type { LocationNode } from "../../../../types";
 export interface SelectSegmentProps {
   label: string;
   placeholder: string;
+  emptyLabel: string;
   value: string;
   disabled: boolean;
   options: LocationNode[] | undefined;
@@ -18,6 +19,7 @@ export interface SelectSegmentProps {
 export default function SelectSegment({
   label,
   placeholder,
+  emptyLabel,
   value,
   disabled,
   options,
@@ -61,6 +63,11 @@ export default function SelectSegment({
 
       <Select.Positioner>
         <Select.Content>
+          {!isLoading && collection.items.length === 0 ? (
+            <Text px={3} py={2} color="muted" fontSize="sm">
+              {emptyLabel}
+            </Text>
+          ) : null}
           <Select.List>
             {collection.items.map((item) => (
               <Select.Item key={item.code} item={item}>

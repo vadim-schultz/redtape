@@ -32,11 +32,7 @@ it("LocationBar · lists state, district and city selects in order", () => {
 
   const names = screen.getAllByRole("combobox").map((el) => el.ariaLabel);
 
-  expect(names).toEqual([
-    "State",
-    "District",
-    "City",
-  ]);
+  expect(names).toEqual(["State", "District", "City"]);
 });
 
 it("LocationBar · is a rounded pill, not a card", () => {

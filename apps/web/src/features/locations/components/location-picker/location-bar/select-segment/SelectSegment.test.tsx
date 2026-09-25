@@ -9,6 +9,7 @@ function renderSegment(props: Partial<SelectSegmentProps> = {}) {
     <SelectSegment
       label="State"
       placeholder="Select state"
+      emptyLabel="No options available"
       value=""
       disabled={false}
       options={[{ code: "BE", name: "Berlin", kind: "REGION" }]}
@@ -61,4 +62,20 @@ it("SelectSegment · is not busy when loaded", () => {
   renderSegment();
 
   expect(screen.getByRole("combobox")).not.toHaveAttribute("aria-busy", "true");
+});
+
+it("SelectSegment · says so when there is nothing to choose from", async () => {
+  const { user } = renderSegment({ options: [] });
+
+  await user.click(screen.getByRole("combobox"));
+
+  expect(await screen.findByText("No options available")).toBeInTheDocument();
+});
+
+it("SelectSegment · does not claim emptiness while options are loading", async () => {
+  const { user } = renderSegment({ options: undefined, isLoading: true });
+
+  await user.click(screen.getByRole("combobox"));
+
+  expect(screen.queryByText("No options available")).not.toBeInTheDocument();
 });

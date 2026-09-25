@@ -76,6 +76,7 @@ export default function LocationBar({
           <SegmentDivider />
           <SelectSegment
             label={t(`location.${key}`)}
+            emptyLabel={t("location.no_options")}
             placeholder={t(
               segment.disabled && lockedHint
                 ? lockedHint

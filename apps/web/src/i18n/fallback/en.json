@@ -42,7 +42,8 @@
     "select_district": "Select district",
     "select_city": "Select city",
     "select_state_first": "Select a state first",
-    "select_district_first": "Select a district first"
+    "select_district_first": "Select a district first",
+    "no_options": "No options available"
   },
   "errors": {
     "validation_error": "Input validation error",

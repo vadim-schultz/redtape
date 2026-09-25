@@ -42,7 +42,8 @@
     "select_district": "Landkreis wählen",
     "select_city": "Stadt wählen",
     "select_state_first": "Zuerst Bundesland wählen",
-    "select_district_first": "Zuerst Landkreis wählen"
+    "select_district_first": "Zuerst Landkreis wählen",
+    "no_options": "Keine Optionen verfügbar"
   },
   "errors": {
     "validation_error": "Validierungsfehler bei der Eingabe",
