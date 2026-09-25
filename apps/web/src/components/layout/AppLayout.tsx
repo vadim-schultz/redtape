@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 import { hoverMotion } from "../../theme/transitions";
+import ColdStartNotice from "../feedback/ColdStartNotice";
 import ColorModeToggle from "./ColorModeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 
@@ -43,6 +44,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
       <Box as="main" flex="1" bg="bg.canvas">
         <Container maxW="container.xl" py={8}>
+          <ColdStartNotice />
           {children}
         </Container>
       </Box>

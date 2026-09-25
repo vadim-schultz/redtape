@@ -16,7 +16,9 @@ it("LocaleSwitcher · shows a placeholder, not text, while locales load", () => 
   const { container } = renderWithProviders(<LocaleSwitcher />);
 
   expect(container.querySelector(".chakra-skeleton")).toBeInTheDocument();
-  expect(screen.getByRole("status", { name: "Loading..." })).toBeInTheDocument();
+  expect(
+    screen.getByRole("status", { name: "Loading..." }),
+  ).toBeInTheDocument();
   expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
 });
 

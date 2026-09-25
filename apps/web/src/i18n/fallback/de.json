@@ -9,7 +9,9 @@
     "error": "Fehler",
     "success": "Erfolgreich",
     "retry": "Erneut versuchen",
-    "back": "Zurück"
+    "back": "Zurück",
+    "slow_server_title": "Server wird gestartet",
+    "slow_server_body": "Nach längerer Inaktivität kann das bis zu eine Minute dauern."
   },
   "nav": {
     "home": "Startseite",
