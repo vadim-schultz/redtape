@@ -16,6 +16,7 @@ export default function DocumentsListPage() {
       listTitleLabel={t("documents.list_title")}
       documents={docsQuery.data?.items}
       isLoading={docsQuery.isLoading}
+      isRefreshing={docsQuery.isFetching && !docsQuery.isLoading}
       isError={docsQuery.isError}
       error={docsQuery.error}
       onRetry={() => void docsQuery.refetch()}

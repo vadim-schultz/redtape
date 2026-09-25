@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import { fetchDocuments } from "../services/documentsApi";
@@ -10,5 +10,6 @@ export function useDocumentsListQuery(municipalityCode: string | null) {
   return useQuery<DocumentListResponse>({
     queryKey: ["documents", municipalityCode, locale],
     queryFn: () => fetchDocuments({ locale, municipalityCode }),
+    placeholderData: keepPreviousData,
   });
 }

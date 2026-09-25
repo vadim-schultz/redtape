@@ -11,6 +11,7 @@ export interface DocumentsListViewProps {
   listTitleLabel: string;
   documents: DocumentSummary[] | undefined;
   isLoading: boolean;
+  isRefreshing: boolean;
   isError: boolean;
   error: unknown;
   onRetry: () => void;
@@ -22,6 +23,7 @@ export default function DocumentsListView({
   listTitleLabel,
   documents,
   isLoading,
+  isRefreshing,
   isError,
   error,
   onRetry,
@@ -39,6 +41,7 @@ export default function DocumentsListView({
         <VStack align="stretch" gap={3}>
           <DocumentsListQueryStatus
             isLoading={isLoading}
+            isRefreshing={isRefreshing}
             isError={isError}
             error={error}
             onRetry={onRetry}

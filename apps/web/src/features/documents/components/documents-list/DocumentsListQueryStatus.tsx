@@ -11,6 +11,7 @@ import DocumentsListSkeleton from "./DocumentsListSkeleton";
 
 export interface DocumentsListQueryStatusProps {
   isLoading: boolean;
+  isRefreshing: boolean;
   isError: boolean;
   error: unknown;
   onRetry: () => void;
@@ -33,16 +34,25 @@ function EmptyDocumentsState() {
 function PopulatedDocumentsList({
   documents,
   listTitleLabel,
+  isRefreshing,
 }: {
   documents: DocumentSummary[];
   listTitleLabel: string;
+  isRefreshing: boolean;
 }) {
   return (
     <>
       <Text mb={2} color="muted" fontSize="sm">
         {documents.length} {listTitleLabel}
       </Text>
-      <Box display="flex" flexDirection="column" gap={3}>
+      <Box
+        display="flex"
+        flexDirection="column"
+        gap={3}
+        aria-busy={isRefreshing}
+        opacity={isRefreshing ? 0.6 : 1}
+        transition="opacity 0.2s"
+      >
         {documents.map((d) => (
           <DocumentCard key={d.id} document={d} />
         ))}
@@ -53,6 +63,7 @@ function PopulatedDocumentsList({
 
 function renderListContent({
   isLoading,
+  isRefreshing,
   isError,
   onRetry,
   listTitleLabel,
@@ -66,6 +77,7 @@ function renderListContent({
     <PopulatedDocumentsList
       documents={documents ?? []}
       listTitleLabel={listTitleLabel}
+      isRefreshing={isRefreshing}
     />
   );
 }

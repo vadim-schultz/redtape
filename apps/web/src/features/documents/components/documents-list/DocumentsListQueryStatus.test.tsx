@@ -17,6 +17,7 @@ it("DocumentsListQueryStatus · loading renders skeleton not cards", async () =>
       isError={false}
       error={undefined}
       onRetry={vi.fn()}
+      isRefreshing={false}
       listTitleLabel="documents"
       documents={documents}
     />,
@@ -34,6 +35,7 @@ it("DocumentsListQueryStatus · error explains the failure, offers retry and sho
       isError
       error={new Error("boom")}
       onRetry={onRetry}
+      isRefreshing={false}
       listTitleLabel="documents"
       documents={undefined}
     />,
@@ -54,6 +56,7 @@ it("DocumentsListQueryStatus · empty list renders an empty state with guidance"
       isError={false}
       error={undefined}
       onRetry={vi.fn()}
+      isRefreshing={false}
       listTitleLabel="documents"
       documents={[]}
     />,
@@ -73,6 +76,7 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
       isError={false}
       error={undefined}
       onRetry={vi.fn()}
+      isRefreshing={false}
       listTitleLabel="documents"
       documents={documents}
     />,
@@ -80,4 +84,23 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
 
   expect(await screen.findByText("2 documents")).toBeInTheDocument();
   expect(screen.getAllByRole("link")).toHaveLength(2);
+});
+
+it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks the list busy", async () => {
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      isLoading={false}
+      isRefreshing
+      isError={false}
+      error={undefined}
+      onRetry={vi.fn()}
+      listTitleLabel="documents"
+      documents={documents}
+    />,
+  );
+
+  const list = (await screen.findAllByRole("link"))[0].parentElement;
+  expect(screen.getAllByRole("link")).toHaveLength(2);
+  expect(list).toHaveAttribute("aria-busy", "true");
+  expect(getComputedStyle(list as Element).opacity).toBe("0.6");
 });
