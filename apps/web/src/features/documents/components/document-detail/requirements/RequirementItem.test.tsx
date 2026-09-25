@@ -43,7 +43,9 @@ it("RequirementItem · title is a near-black sub-header, not link-red", async ()
   renderWithProviders(<RequirementItem requirement={requirement} />);
 
   const title = await screen.findByText("Passport Renewal");
-  expect(getComputedStyle(title).color).toBe("var(--chakra-colors-text-primary)");
+  expect(getComputedStyle(title).color).toBe(
+    "var(--chakra-colors-text-primary)",
+  );
 });
 
 it("RequirementItem · is a card like the ones on the front page", async () => {
