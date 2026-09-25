@@ -6,7 +6,7 @@ from uuid import UUID
 from app.features.taxonomy.repository import TaxonomyRepository, TermModel
 from app.i18n_resolution import pick_i18n
 from app.models.taxonomy import Domain, LifeSituation
-from app.schema.taxonomy.read import TermRead
+from app.schema.taxonomy.read import AxisCount, MatrixCell, MatrixResponse, TermRead
 
 
 class TaxonomyCodeError(ValueError):
@@ -30,6 +30,15 @@ class TaxonomyService:
 
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
         return self._resolve(LifeSituation, codes)
+
+    def get_matrix(self, document_ids: Sequence[UUID]) -> MatrixResponse:
+        """Matrix over the given in-scope documents; `total` is their number, tagged or not."""
+        return MatrixResponse(
+            total=len(document_ids),
+            cells=[MatrixCell(domain=d, situation=s, count=n) for d, s, n in self._repo.matrix_counts(document_ids)],
+            situations=[AxisCount(code=c, count=n) for c, n in self._repo.situation_counts(document_ids)],
+            domains=[AxisCount(code=c, count=n) for c, n in self._repo.domain_counts(document_ids)],
+        )
 
     def to_term_read(self, term: Domain | LifeSituation, *, locale: str, enabled_locales: Iterable[str]) -> TermRead:
         enabled = set(enabled_locales)
