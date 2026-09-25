@@ -1,4 +1,4 @@
-import { Box, Heading, Skeleton, Text } from "@chakra-ui/react";
+import { Box, Heading, Text } from "@chakra-ui/react";
 import { LuFileX } from "react-icons/lu";
 
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
@@ -7,6 +7,7 @@ import { useLocale } from "../../../../contexts/LocaleContext";
 import { ApiRequestError } from "../../../../services/api";
 import type { DocumentDetail } from "../../types";
 
+import DocumentDetailSkeleton from "./DocumentDetailSkeleton";
 import DocumentHeader from "./DocumentHeader";
 import DocumentBreadcrumb from "./DocumentBreadcrumb";
 import RequirementsList from "./requirements/RequirementsList";
@@ -21,15 +22,6 @@ export interface DocumentDetailQueryStatusProps {
   requirementsTitle: string;
   noRequirementsLabel: string;
   officialSourceTitle: string;
-}
-
-function LoadingSkeleton() {
-  return (
-    <>
-      <Skeleton height="28px" />
-      <Skeleton mt={2} height="18px" />
-    </>
-  );
 }
 
 function DocumentNotFound() {
@@ -121,7 +113,7 @@ function renderQueryStatus(props: DocumentDetailQueryStatusProps) {
     officialSourceTitle,
   } = props;
 
-  if (isLoading) return <LoadingSkeleton />;
+  if (isLoading) return <DocumentDetailSkeleton />;
   if (isError && !isNotFound(error)) return <QueryError onRetry={onRetry} />;
   if (!document) return <DocumentNotFound />;
 

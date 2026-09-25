@@ -1,4 +1,4 @@
-import { Box, Skeleton, Text } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 import { LuFileSearch } from "react-icons/lu";
 
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
@@ -7,6 +7,7 @@ import { useLocale } from "../../../../contexts/LocaleContext";
 
 import type { DocumentSummary } from "../../types";
 import DocumentCard from "./DocumentCard";
+import DocumentsListSkeleton from "./DocumentsListSkeleton";
 
 export interface DocumentsListQueryStatusProps {
   isLoading: boolean;
@@ -15,10 +16,6 @@ export interface DocumentsListQueryStatusProps {
   onRetry: () => void;
   listTitleLabel: string;
   documents: DocumentSummary[] | undefined;
-}
-
-function LoadingSkeleton() {
-  return <Skeleton height="24px" />;
 }
 
 function EmptyDocumentsState() {
@@ -61,7 +58,7 @@ function renderListContent({
   listTitleLabel,
   documents,
 }: DocumentsListQueryStatusProps) {
-  if (isLoading) return <LoadingSkeleton />;
+  if (isLoading) return <DocumentsListSkeleton />;
   if (isError) return <QueryError onRetry={onRetry} />;
   if ((documents?.length ?? 0) === 0) return <EmptyDocumentsState />;
 

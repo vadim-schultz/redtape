@@ -14,6 +14,19 @@ function renderAppAt(path: string) {
   );
 }
 
+it("app · shows a list skeleton while the documents page code loads", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/documents");
+
+  expect(screen.getByRole("status", { name: "Loading..." })).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  expect(
+    await screen.findByRole("heading", { name: "Documents" }),
+  ).toBeInTheDocument();
+});
+
 it("app · renders Redtape in the layout header", async () => {
   renderAppAt("/documents");
 
