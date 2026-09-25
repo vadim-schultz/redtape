@@ -5,15 +5,19 @@ import type { DocumentDetail, DocumentListResponse } from "../types";
 export async function fetchDocuments(params: {
   locale: string;
   municipalityCode: string | null;
+  domains: string[];
+  situations: string[];
 }): Promise<DocumentListResponse> {
-  const { locale, municipalityCode } = params;
+  const { locale, municipalityCode, domains, situations } = params;
 
   return apiRequest<DocumentListResponse>("/api/v1/documents", {
     method: "GET",
     locale,
-    query: municipalityCode
-      ? { municipality_code: municipalityCode }
-      : undefined,
+    query: {
+      municipality_code: municipalityCode ?? undefined,
+      domain: domains,
+      situation: situations,
+    },
   });
 }
 

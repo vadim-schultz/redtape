@@ -26,7 +26,7 @@ export async function apiRequest<T>(
   opts: {
     locale: string;
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-    query?: Record<string, string | number | boolean | undefined>;
+    query?: Record<string, string | number | boolean | string[] | undefined>;
     body?: unknown;
     headers?: HeadersInit;
     signal?: AbortSignal;
@@ -38,7 +38,9 @@ export async function apiRequest<T>(
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined) continue;
-      url.searchParams.set(k, String(v));
+      if (Array.isArray(v))
+        v.forEach((item) => url.searchParams.append(k, item));
+      else url.searchParams.set(k, String(v));
     }
   }
 
