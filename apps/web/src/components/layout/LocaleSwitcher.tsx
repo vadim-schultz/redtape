@@ -1,4 +1,4 @@
-import { Box, Select, Skeleton, Text } from "@chakra-ui/react";
+import { IconButton, Select, Skeleton } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createListCollection } from "@ark-ui/react/select";
@@ -35,18 +35,15 @@ export default function LocaleSwitcher() {
     [locales],
   );
   const current = locales?.find((l) => l.code === locale);
-  const collection = useMemo(() => {
-    const items = enabledLocales.map((l) => ({
-      code: l.code,
-      label: `${l.flag_emoji} ${l.name_native} (${l.code})`,
-    }));
-
-    return createListCollection({
-      items,
-      itemToValue: (item) => item.code,
-      itemToString: (item) => item.label,
-    });
-  }, [enabledLocales]);
+  const collection = useMemo(
+    () =>
+      createListCollection({
+        items: enabledLocales,
+        itemToValue: (item) => item.code,
+        itemToString: (item) => item.name_native,
+      }),
+    [enabledLocales],
+  );
 
   if (isLoading) {
     return (
@@ -54,7 +51,7 @@ export default function LocaleSwitcher() {
         role="status"
         aria-label={t("common.loading")}
         height="8"
-        width="32"
+        width="8"
         borderRadius="md"
       />
     );
@@ -63,48 +60,39 @@ export default function LocaleSwitcher() {
   if (error) return null;
 
   return (
-    <Box>
-      <Box as="label" display="flex" alignItems="center" gap={2} fontSize="sm">
-        <Text>{current?.flag_emoji ?? (locale === "de" ? "🇩🇪" : "🌐")}</Text>
-        <Select.Root
-          size="sm"
-          value={[locale]}
-          collection={collection}
-          onValueChange={(details) => {
-            const value = (details as unknown as { value?: unknown }).value;
-            const next = Array.isArray(value) ? value[0] : value;
-            if (typeof next === "string") {
-              setLocale(next);
-            }
-          }}
-        >
-          <Select.Trigger>
-            <Select.ValueText />
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Trigger>
-          <Select.Positioner>
-            <Select.Content>
-              <Select.List>
-                {enabledLocales.map((l) => (
-                  <Select.Item
-                    key={l.code}
-                    item={{
-                      code: l.code,
-                      label: `${l.flag_emoji} ${l.name_native} (${l.code})`,
-                    }}
-                  >
-                    <Select.ItemText>
-                      {l.flag_emoji} {l.name_native} ({l.code})
-                    </Select.ItemText>
-                  </Select.Item>
-                ))}
-              </Select.List>
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Box>
-    </Box>
+    <Select.Root
+      size="sm"
+      positioning={{ sameWidth: false }}
+      value={[locale]}
+      collection={collection}
+      onValueChange={({ value }) => {
+        if (value[0]) setLocale(value[0]);
+      }}
+    >
+      <Select.HiddenSelect />
+      <Select.Control>
+        <Select.Trigger asChild>
+          <IconButton
+            aria-label={t("common.language")}
+            variant="ghost"
+            size="sm"
+          >
+            {current?.flag_emoji ?? "🌐"}
+          </IconButton>
+        </Select.Trigger>
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {collection.items.map((l) => (
+            <Select.Item key={l.code} item={l}>
+              <Select.ItemText>
+                {l.flag_emoji} {l.name_native}
+              </Select.ItemText>
+              <Select.ItemIndicator />
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+    </Select.Root>
   );
 }

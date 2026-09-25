@@ -12,7 +12,8 @@
     "back": "Back",
     "slow_server_title": "Waking up the server",
     "slow_server_body": "This can take up to a minute after a period of inactivity.",
-    "toggle_color_mode": "Toggle color mode"
+    "toggle_color_mode": "Toggle color mode",
+    "language": "Language"
   },
   "nav": {
     "home": "Home",

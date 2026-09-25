@@ -12,7 +12,8 @@
     "back": "Zurück",
     "slow_server_title": "Server wird gestartet",
     "slow_server_body": "Nach längerer Inaktivität kann das bis zu eine Minute dauern.",
-    "toggle_color_mode": "Farbmodus wechseln"
+    "toggle_color_mode": "Farbmodus wechseln",
+    "language": "Sprache"
   },
   "nav": {
     "home": "Startseite",
