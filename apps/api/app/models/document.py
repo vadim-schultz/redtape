@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.jurisdiction import Jurisdiction
+from app.models.taxonomy import Domain, LifeSituation
 
 
 class Document(Base):
@@ -36,6 +37,8 @@ class Document(Base):
         foreign_keys="DocumentRequirement.parent_document_id",
         back_populates="parent_document",
     )
+    domains: Mapped[list[Domain]] = relationship("Domain", secondary="document_domain")
+    life_situations: Mapped[list[LifeSituation]] = relationship("LifeSituation", secondary="document_life_situation")
 
 
 class DocumentRequirement(Base):
