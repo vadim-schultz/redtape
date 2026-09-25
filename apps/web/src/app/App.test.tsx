@@ -50,3 +50,11 @@ it("app · not-found exposes a landmark main region", async () => {
 
   expect(await screen.findByRole("main")).toHaveTextContent("Page not found");
 });
+
+it("app · /matrix resolves to the matrix page", async () => {
+  renderAppAt("/matrix");
+
+  expect(
+    await screen.findByRole("heading", { name: "Document matrix" }),
+  ).toBeInTheDocument();
+});
