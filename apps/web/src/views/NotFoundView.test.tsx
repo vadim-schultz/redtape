@@ -4,7 +4,7 @@ import { it, expect } from "vitest";
 import { renderWithProviders } from "../test/renderWithProviders";
 import NotFoundView from "./NotFoundView";
 
-it("NotFoundView · heading uses the bold pageTitle style", async () => {
+it("NotFoundView · heading uses the sectionHeader style", async () => {
   renderWithProviders(<NotFoundView />);
 
   const heading = await screen.findByRole("heading", {
@@ -12,10 +12,10 @@ it("NotFoundView · heading uses the bold pageTitle style", async () => {
   });
 
   expect(getComputedStyle(heading).fontWeight).toBe(
-    "var(--chakra-font-weights-bold)",
+    "var(--chakra-font-weights-semibold)",
   );
   expect(getComputedStyle(heading).color).toBe(
-    "var(--chakra-colors-text-heading)",
+    "var(--chakra-colors-text-primary)",
   );
 });
 

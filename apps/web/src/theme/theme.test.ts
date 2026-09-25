@@ -34,8 +34,12 @@ it("theme · light bg.canvas is #E3E2DF", () => {
   expect(semanticBase("colors.bg.canvas")).toBe("#E3E2DF");
 });
 
-it("theme · heading font token names Iceberg", () => {
-  expect(system.token("fonts.heading")).toContain("Iceberg");
+it("theme · heading font token names Space Grotesk", () => {
+  expect(system.token("fonts.heading")).toContain("Space Grotesk");
+});
+
+it("theme · brand font token names Iceberg", () => {
+  expect(system.token("fonts.brand")).toContain("Iceberg");
 });
 
 it("theme · body font token names Inter", () => {
