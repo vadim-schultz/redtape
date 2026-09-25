@@ -33,9 +33,9 @@ it("LocationBar · lists state, district and city selects in order", () => {
   const names = screen.getAllByRole("combobox").map((el) => el.ariaLabel);
 
   expect(names).toEqual([
-    "location.state",
-    "location.district",
-    "location.city",
+    "State",
+    "District",
+    "City",
   ]);
 });
 
@@ -85,7 +85,7 @@ it("LocationBar · hides reset when nothing is selected", () => {
   renderBar();
 
   expect(
-    screen.queryByRole("button", { name: "location.reset" }),
+    screen.queryByRole("button", { name: "Clear location" }),
   ).not.toBeInTheDocument();
 });
 
@@ -93,7 +93,7 @@ it("LocationBar · reset button clears the selection", async () => {
   const reset = vi.fn();
   const { user } = renderBar({ canReset: true, reset });
 
-  await user.click(screen.getByRole("button", { name: "location.reset" }));
+  await user.click(screen.getByRole("button", { name: "Clear location" }));
 
   expect(reset).toHaveBeenCalledOnce();
 });
