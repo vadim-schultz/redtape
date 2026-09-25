@@ -55,7 +55,7 @@ order is the default sequence.
 | 2 | Germany seed | DB seed | pytest + `./ci.sh` | [02-germany-seed.md](chapters/02-germany-seed.md) | planned |
 | 3 | Taxonomy API | backend | pytest + `./ci.sh` | [03-taxonomy-api.md](chapters/03-taxonomy-api.md) | done |
 | 4 | Documents filter and tags | backend | pytest + `./ci.sh` | [04-documents-filter.md](chapters/04-documents-filter.md) | done |
-| 5 | Matrix endpoint | backend | pytest + `./ci.sh` | [05-matrix-endpoint.md](chapters/05-matrix-endpoint.md) | planned |
+| 5 | Matrix endpoint | backend | pytest + `./ci.sh` | [05-matrix-endpoint.md](chapters/05-matrix-endpoint.md) | done |
 | 6 | Web taxonomy client | frontend | vitest + `./ci.sh` | [06-web-taxonomy-client.md](chapters/06-web-taxonomy-client.md) | planned |
 | 7 | List filter chips | frontend | vitest + `./ci.sh` | [07-list-filter-chips.md](chapters/07-list-filter-chips.md) | planned |
 | 8 | Matrix page | frontend | vitest + `./ci.sh` + manual | [08-matrix-page.md](chapters/08-matrix-page.md) | planned |

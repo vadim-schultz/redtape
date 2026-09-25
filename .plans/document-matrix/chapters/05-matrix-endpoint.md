@@ -4,19 +4,19 @@ overview: "GET /api/v1/matrix returns non-empty (domain, situation, count) cells
 todos:
   - id: query
     content: "Repository aggregates: cell counts by pair, distinct-document totals per axis term"
-    status: pending
+    status: done
   - id: service
     content: "Service maps ids to codes; assembles cells, axis totals and grand total; optional jurisdiction scoping"
-    status: pending
+    status: done
   - id: http
     content: "Controller and route on the taxonomy router"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 5 — Matrix endpoint
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-endpoint` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/matrix-endpoint` · **Status:** done
 
 **Depends on:** [3](03-taxonomy-api.md), [4](04-documents-filter.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3, §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
