@@ -11,16 +11,15 @@ vi.mock("../../hooks/useStatesQuery", () => ({
   }),
 }));
 
-it("LocationPicker · renders three labeled selects on a card surface", async () => {
+it("LocationPicker · renders a country segment and three selects without a card", async () => {
+  window.localStorage.setItem("locale", "en");
   const { container } = renderWithProviders(
     <LocationPicker onMunicipalityChange={vi.fn()} />,
   );
 
-  expect(container.querySelector(".chakra-card__root")).toBeInTheDocument();
+  expect(container.querySelector(".chakra-card__root")).not.toBeInTheDocument();
+  expect(screen.getByText("Germany")).toBeInTheDocument();
   expect(await screen.findAllByRole("combobox")).toHaveLength(3);
-  expect(screen.getByText("State")).toBeInTheDocument();
-  expect(screen.getByText("District")).toBeInTheDocument();
-  expect(screen.getByText("City")).toBeInTheDocument();
 });
 
 it("LocationPicker · reset clears selection when canReset", async () => {
@@ -33,7 +32,7 @@ it("LocationPicker · reset clears selection when canReset", async () => {
   await user.click(stateTrigger);
   await user.click(await screen.findByRole("option", { name: "Berlin" }));
 
-  const resetButton = screen.getByRole("button", { name: "common.cancel" });
+  const resetButton = screen.getByRole("button", { name: "location.reset" });
   expect(resetButton).toBeEnabled();
 
   onMunicipalityChange.mockClear();
