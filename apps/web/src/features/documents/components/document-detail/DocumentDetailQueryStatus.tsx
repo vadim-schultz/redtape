@@ -82,7 +82,10 @@ function DocumentDetailContent({
 }) {
   return (
     <>
-      <DocumentHeader title={document.title} description={document.description} />
+      <DocumentHeader
+        title={document.title}
+        description={document.description}
+      />
       <DocumentBreadcrumb nodes={document.jurisdiction_path ?? []} />
       <RequirementsSection
         document={document}

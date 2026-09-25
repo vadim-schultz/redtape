@@ -14,9 +14,7 @@ it("DocumentBackButton · renders as a Chakra ghost button", async () => {
 
 it("DocumentBackButton · calls onBack when clicked", async () => {
   const onBack = vi.fn();
-  const { user } = renderWithProviders(
-    <DocumentBackButton onBack={onBack} />,
-  );
+  const { user } = renderWithProviders(<DocumentBackButton onBack={onBack} />);
 
   await user.click(await screen.findByRole("button"));
 
