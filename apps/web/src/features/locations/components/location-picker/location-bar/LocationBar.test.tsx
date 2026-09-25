@@ -97,3 +97,20 @@ it("LocationBar · reset button clears the selection", async () => {
 
   expect(reset).toHaveBeenCalledOnce();
 });
+
+it("LocationBar · prompts for the state and hints at the order for locked selects", () => {
+  window.localStorage.setItem("locale", "en");
+  renderBar();
+
+  expect(screen.getByText("Select state")).toBeInTheDocument();
+  expect(screen.getByText("Select a state first")).toBeInTheDocument();
+  expect(screen.getByText("Select a district first")).toBeInTheDocument();
+});
+
+it("LocationBar · prompts for district and city once their parent is chosen", () => {
+  window.localStorage.setItem("locale", "en");
+  renderBar({ stateCode: "BE", districtCode: "BE-1" });
+
+  expect(screen.getByText("Select district")).toBeInTheDocument();
+  expect(screen.getByText("Select city")).toBeInTheDocument();
+});

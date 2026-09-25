@@ -8,6 +8,7 @@ function renderSegment(props: Partial<SelectSegmentProps> = {}) {
   return renderWithProviders(
     <SelectSegment
       label="State"
+      placeholder="Select state"
       value=""
       disabled={false}
       options={[{ code: "BE", name: "Berlin", kind: "REGION" }]}
@@ -18,11 +19,11 @@ function renderSegment(props: Partial<SelectSegmentProps> = {}) {
   );
 }
 
-it("SelectSegment · shows its label as the placeholder and accessible name", () => {
+it("SelectSegment · shows a call to action while keeping the label as accessible name", () => {
   renderSegment();
 
   expect(screen.getByRole("combobox", { name: "State" })).toBeInTheDocument();
-  expect(screen.getByText("State")).toBeInTheDocument();
+  expect(screen.getByText("Select state")).toBeInTheDocument();
 });
 
 it("SelectSegment · reports the chosen code", async () => {

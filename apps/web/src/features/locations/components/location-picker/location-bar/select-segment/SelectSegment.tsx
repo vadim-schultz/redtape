@@ -7,6 +7,7 @@ import type { LocationNode } from "../../../../types";
 
 export interface SelectSegmentProps {
   label: string;
+  placeholder: string;
   value: string;
   disabled: boolean;
   options: LocationNode[] | undefined;
@@ -16,6 +17,7 @@ export interface SelectSegmentProps {
 
 export default function SelectSegment({
   label,
+  placeholder,
   value,
   disabled,
   options,
@@ -51,7 +53,7 @@ export default function SelectSegment({
         _hover={{ bg: "surface.pressed", _disabled: { bg: "transparent" } }}
         {...hoverMotion}
       >
-        <Select.ValueText placeholder={label} truncate />
+        <Select.ValueText placeholder={placeholder} truncate />
         <Select.IndicatorGroup>
           {isLoading ? <Spinner size="xs" /> : <Select.Indicator />}
         </Select.IndicatorGroup>

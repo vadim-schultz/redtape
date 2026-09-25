@@ -32,7 +32,12 @@
     "state": "State",
     "district": "District",
     "city": "City",
-    "reset": "Clear location"
+    "reset": "Clear location",
+    "select_state": "Select state",
+    "select_district": "Select district",
+    "select_city": "Select city",
+    "select_state_first": "Select a state first",
+    "select_district_first": "Select a district first"
   },
   "errors": {
     "validation_error": "Input validation error",
