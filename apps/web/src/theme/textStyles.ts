@@ -1,42 +1,49 @@
 /**
- * appTitle keeps Iceberg's only weight, sized up for emphasis. pageTitle and
- * sectionHeader use Inter bold instead — Iceberg is too decorative at
- * smaller sizes.
+ * Type hierarchy: appTitle is the Iceberg wordmark (Iceberg's only weight,
+ * red). pageTitle (H1) is red Space Grotesk; smaller headers are near-black
+ * Space Grotesk with weight easing down each level. Red is reserved for large
+ * text — it doesn't reach AA contrast at small sizes.
  */
 
-const headingBase = {
+const headerBase = {
   fontFamily: "heading",
-  fontWeight: "normal",
   lineHeight: "tight",
-  color: "text.heading",
-} as const;
-
-const subheading = {
-  fontFamily: "body",
-  fontWeight: "bold",
-  lineHeight: "tight",
-  color: "text.heading",
 } as const;
 
 export const textStyles = {
   appTitle: {
     value: {
-      ...headingBase,
+      fontFamily: "brand",
+      fontWeight: "normal",
+      lineHeight: "tight",
+      color: "text.heading",
       fontSize: "4xl",
       letterSpacing: "tight",
     },
   },
   pageTitle: {
     value: {
-      ...subheading,
+      ...headerBase,
+      fontWeight: "bold",
+      color: "text.heading",
       fontSize: "3xl",
       letterSpacing: "tight",
     },
   },
   sectionHeader: {
     value: {
-      ...subheading,
+      ...headerBase,
+      fontWeight: "semibold",
+      color: "text.primary",
       fontSize: "xl",
+    },
+  },
+  subsectionHeader: {
+    value: {
+      ...headerBase,
+      fontWeight: "medium",
+      color: "text.primary",
+      fontSize: "lg",
     },
   },
   body: {

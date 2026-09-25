@@ -9,11 +9,13 @@ it("DocumentsListHeader · renders title with pageTitle style", async () => {
 
   const heading = await screen.findByRole("heading", { name: "Documents" });
 
-  expect(getComputedStyle(heading).fontFamily).toBe("var(--chakra-fonts-body)");
+  expect(getComputedStyle(heading).fontFamily).toBe(
+    "var(--chakra-fonts-heading)",
+  );
   expect(getComputedStyle(heading).fontWeight).toBe(
     "var(--chakra-font-weights-bold)",
   );
   expect(getComputedStyle(heading).color).toBe(
-    "var(--chakra-colors-text-primary)",
+    "var(--chakra-colors-text-heading)",
   );
 });

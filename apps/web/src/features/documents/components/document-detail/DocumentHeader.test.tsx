@@ -12,12 +12,14 @@ it("DocumentHeader · renders title and description", async () => {
   const heading = await screen.findByRole("heading", { name: "Passport" });
   const description = screen.getByText("Government issued ID");
 
-  expect(getComputedStyle(heading).fontFamily).toBe("var(--chakra-fonts-body)");
+  expect(getComputedStyle(heading).fontFamily).toBe(
+    "var(--chakra-fonts-heading)",
+  );
   expect(getComputedStyle(heading).fontWeight).toBe(
     "var(--chakra-font-weights-bold)",
   );
   expect(getComputedStyle(heading).color).toBe(
-    "var(--chakra-colors-text-primary)",
+    "var(--chakra-colors-text-heading)",
   );
   expect(getComputedStyle(description).color).toBe(
     "var(--chakra-colors-text-secondary)",

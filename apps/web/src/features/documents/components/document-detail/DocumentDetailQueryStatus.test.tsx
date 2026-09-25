@@ -107,7 +107,7 @@ it("DocumentDetailQueryStatus · empty requirements shows empty state", async ()
     name: "Requirements",
   });
   expect(getComputedStyle(requirementsHeading).fontFamily).toBe(
-    "var(--chakra-fonts-body)",
+    "var(--chakra-fonts-heading)",
   );
 });
 

@@ -21,9 +21,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
     >
       <RouterLink to={`/documents/${document.id}`}>
         <Card.Body>
-          <Card.Title textStyle="sectionHeader" fontWeight="normal">
-            {document.title}
-          </Card.Title>
+          <Card.Title textStyle="subsectionHeader">{document.title}</Card.Title>
           {document.description ? (
             <Card.Description mt={1}>{document.description}</Card.Description>
           ) : null}

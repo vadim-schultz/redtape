@@ -11,9 +11,7 @@ export default function DocumentHeader({
 }: DocumentHeaderProps) {
   return (
     <>
-      <Heading textStyle="pageTitle" color="text.primary">
-        {title}
-      </Heading>
+      <Heading textStyle="pageTitle">{title}</Heading>
       {description && (
         <Text color="text.secondary" mt={-2}>
           {description}
