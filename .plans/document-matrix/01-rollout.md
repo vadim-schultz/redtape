@@ -51,7 +51,7 @@ order is the default sequence.
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Taxonomy schema | model + migration | pytest + `./ci.sh` | [01-taxonomy-schema.md](chapters/01-taxonomy-schema.md) | planned |
+| 1 | Taxonomy schema | model + migration | pytest + `./ci.sh` | [01-taxonomy-schema.md](chapters/01-taxonomy-schema.md) | done |
 | 2 | Germany seed | DB seed | pytest + `./ci.sh` | [02-germany-seed.md](chapters/02-germany-seed.md) | planned |
 | 3 | Taxonomy API | backend | pytest + `./ci.sh` | [03-taxonomy-api.md](chapters/03-taxonomy-api.md) | planned |
 | 4 | Documents filter and tags | backend | pytest + `./ci.sh` | [04-documents-filter.md](chapters/04-documents-filter.md) | planned |
