@@ -7,7 +7,7 @@
 - **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; domain text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Social flows:** proposal form (URL, file upload, preview), proposal list/detail, voting UI.
 - **Moderation (later):** audit log views for privileged roles.
-- Accessibility and Chakra theming aligned with product branding — executable visual chapters in [`.plans/web-frontend/`](../../../.plans/web-frontend/) (red palette, Iceberg headings, Wave 2 screen polish).
+- Accessibility and Chakra theming aligned with product branding — executable visual chapters in [`.plans/web-frontend/`](../../../../.plans/web-frontend/) (red palette, Iceberg headings, Wave 2 screen polish).
 
 ## Dependencies on other strands
 
@@ -26,7 +26,11 @@
 
 ## Visual alignment (Wave 2 polish)
 
-Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../.plans/web-frontend/). Chapters 1–3 are done (test harness, theme, color mode). Continue at [chapters/04-app-shell.md](../../../.plans/web-frontend/chapters/04-app-shell.md).
+Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.plans/web-frontend/`](../../../../.plans/web-frontend/). Chapters 1–4 are done (test harness, theme, color mode, app shell); remaining chapters are in the [rollout](../../../../.plans/web-frontend/01-rollout.md).
+
+## Floating navigation
+
+Toolbar replaced by two floating buttons (brand R, burger menu with colour switch and language submenu); matrix view removed. Planned: [`.plans/floating-nav/`](../../../../.plans/floating-nav/00-architecture.md).
 
 ## Document matrix
 

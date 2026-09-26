@@ -19,8 +19,8 @@ not add dependency-tree, social, or auth UI — those remain in
 | [gaps-and-decisions.md](web-frontend/gaps-and-decisions.md) | Settled brand and scope boundaries |
 | [chapters/](web-frontend/chapters/) | One executable plan per chapter |
 
-Status: chapters 1–3 are done (test harness, not-found, red Iceberg/Inter theme, color mode). Next:
-[chapters/04-app-shell.md](web-frontend/chapters/04-app-shell.md).
+Status: chapters 1–4 are done (test harness, not-found, red theme, color mode, app shell); see the
+[rollout](web-frontend/01-rollout.md) for the rest.
 
 ### [document-matrix/](document-matrix/) — Domain × life-situation organization
 
@@ -36,6 +36,21 @@ with list filters. Postgres only. Ten chapters across data model, backend and fr
 | [chapters/](document-matrix/chapters/) | One executable plan per chapter |
 
 Status: shipped — all ten chapters done. Open seams and deferred work (list-card tags, curation): [gaps-and-decisions.md](document-matrix/gaps-and-decisions.md).
+
+### [floating-nav/](floating-nav/) — Floating navigation
+
+Replace the top toolbar with two circular floating buttons (gothic R brand button, burger menu), move
+colour mode (sun/moon switch) and language (submenu) into the menu, drop the Iceberg wordmark, and remove
+the matrix view. Frontend only, six chapters.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](floating-nav/00-architecture.md) | Target UI, component tree, visual and accessibility contract |
+| [01-rollout.md](floating-nav/01-rollout.md) | Six chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](floating-nav/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](floating-nav/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-remove-matrix.md](floating-nav/chapters/01-remove-matrix.md).
 
 ## Conventions
 
