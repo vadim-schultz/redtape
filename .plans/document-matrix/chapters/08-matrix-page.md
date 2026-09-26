@@ -142,6 +142,11 @@ chapter 7).
 Graph/tree display per situation, jurisdiction switching UI beyond the existing location bar, counts
 animation.
 
+## Outcome
+
+- `/matrix` route with grid, row/column headers and cells linking to filtered lists (`a1b6101`, `9a9f854`).
+- Refactor-gate numbers were not recorded at merge.
+
 ## Git workflow
 
 ```bash

@@ -4,19 +4,19 @@ overview: "Update STATUS, strand READMEs and the data-model chapter to reflect t
 todos:
   - id: status
     content: "STATUS.md entry"
-    status: pending
+    status: completed
   - id: strands
     content: "Web, data-model, mobile READMEs point to the matrix suite"
-    status: pending
+    status: completed
   - id: suite
     content: "Mark chapters done in rollout and architecture; update .plans/README"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 10 — Docs sync
 
-**Repo:** `redtape` (docs only) · **Branch:** `docs/matrix-sync` · **Status:** planned
+**Repo:** `redtape` (docs only) · **Branch:** `docs/matrix-sync` · **Status:** done
 
 **Depends on:** [7](07-list-filter-chips.md), [8](08-matrix-page.md), [9](09-tags-on-card-and-detail.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -75,6 +75,13 @@ grep -rn "category tags" docs .plans
 ## Out of scope
 
 New product decisions, any code.
+
+## Outcome
+
+- Strand READMEs (web, backend, mobile) and the data-model chapter carry one-line pointers to
+  [00-architecture.md](../00-architecture.md); none restates the model, endpoints' semantics or seed.
+- Chapters 5–9 gained an Outcome section; chapters 2 and 10 flipped to `done` in the rollout table.
+- No `category tags` reference remained in `docs/` or `.plans/` apart from this chapter's own check.
 
 ## Git workflow
 
