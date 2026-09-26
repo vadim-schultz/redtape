@@ -1,6 +1,7 @@
 import { accent, primary } from "./palettes";
 import { badge } from "./badge";
 import { bg, surface } from "./surfaces";
+import { brand } from "./brand";
 import { border } from "./borders";
 import { focus } from "./focus";
 import { input } from "./fields";
@@ -24,5 +25,6 @@ export const semanticColors = {
   table,
   badge,
   nav,
+  brand,
   input,
 };

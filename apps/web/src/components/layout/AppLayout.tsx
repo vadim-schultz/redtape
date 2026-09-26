@@ -27,7 +27,11 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           <HStack justify="space-between">
             <Heading
               asChild
-              textStyle="appTitle"
+              fontFamily="heading"
+              fontWeight="bold"
+              fontSize="4xl"
+              letterSpacing="tight"
+              color="text.heading"
               transitionProperty="color"
               {...hoverMotion}
               _hover={{ color: "interactive.hover" }}

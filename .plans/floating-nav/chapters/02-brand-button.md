@@ -4,22 +4,22 @@ overview: "A circular button containing the gothic R SVG in Swiss red that links
 todos:
   - id: mark
     content: "BrandMark svg component (currentColor, no background rect)"
-    status: pending
+    status: completed
   - id: button
     content: "BrandButton: circular link to / with accessible name"
-    status: pending
+    status: completed
   - id: token
     content: "Semantic token for the mark colour (primary.500, dark contrast checked)"
-    status: pending
+    status: completed
   - id: cleanup
     content: "Remove appTitle text style, brand font token and @fontsource/iceberg"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 2 — Brand button
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-brand-button` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-brand-button` · **Status:** shipped
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §2, §4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -91,3 +91,12 @@ Placement and stacking (chapter 5); a favicon update from the same SVG (noted as
 
 Branch `feat/floating-nav-brand-button`; `test(web): describe brand button`, then
 `feat(web): add brand R button and drop Iceberg`; one PR.
+
+## Progress notes
+
+- Dark mode keeps `primary.500`: the contrast test (>=3:1 on `gray.900`) passes, so no `primary.400` step (D2).
+- Iceberg grep re-verified: the wordmark was the only use. The header link keeps plain heading styling
+  (Space Grotesk bold, `text.heading`) until chapter 5 replaces it.
+- `BrandButton` label uses the existing `nav.home` key (en/de already present); not mounted until chapter 5.
+- Refactor gate: `BrandMark` and `BrandButton` are one component per file, each well under 100 LOC;
+  `npm ls @fontsource/iceberg` is empty; `./ci.sh` green.

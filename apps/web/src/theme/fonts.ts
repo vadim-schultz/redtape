@@ -1,5 +1,4 @@
-/** Self-hosted faces. Iceberg is weight 400 only. */
-import "@fontsource/iceberg/400.css";
+/** Self-hosted faces. */
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
