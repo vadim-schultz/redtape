@@ -4,16 +4,16 @@ overview: "Show a document's domains and life situations as badges on the detail
 todos:
   - id: detail
     content: "DocumentTags component in DocumentHeader from detail domains/life_situations"
-    status: pending
+    status: completed
   - id: list
     content: "Decide and, if needed, add tags to DocumentSummary; badges on DocumentCard"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 9 — Tags on card and detail
 
-**Repo:** `redtape` (`apps/web`, optionally `apps/api`) · **Branch:** `feat/matrix-document-tags` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, optionally `apps/api`) · **Branch:** `feat/matrix-document-tags` · **Status:** done
 
 **Depends on:** [4](04-documents-filter.md), [6](06-web-taxonomy-client.md) (uses `buildDocumentsHref`) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
