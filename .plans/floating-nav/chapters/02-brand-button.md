@@ -100,3 +100,6 @@ Branch `feat/floating-nav-brand-button`; `test(web): describe brand button`, the
 - `BrandButton` label uses the existing `nav.home` key (en/de already present); not mounted until chapter 5.
 - Refactor gate: `BrandMark` and `BrandButton` are one component per file, each well under 100 LOC;
   `npm ls @fontsource/iceberg` is empty; `./ci.sh` green.
+- Follow-up: the R was ~30% of the circle because the source viewBox (`0 0 65 77`) carried ~46% empty margin.
+  `BrandMark` now uses a viewBox cropped to the glyph bounds (`12.5 10.8 38.25 43.3`) and `BrandButton`
+  sizes it at `height="74%"` (glyph ≈ 69% of the diameter, ≈ 3px clear of the border by control-point check).

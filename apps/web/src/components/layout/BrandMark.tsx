@@ -5,7 +5,7 @@ const GLYPH =
 
 /** Gothic R (1456 Gutenberg Bold). Takes its colour from the parent via currentColor. */
 const BrandMark = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 65 77" aria-hidden="true" {...props}>
+  <svg viewBox="12.5 10.8 38.25 43.3" aria-hidden="true" {...props}>
     <path d={GLYPH} fill="currentColor" />
   </svg>
 );
