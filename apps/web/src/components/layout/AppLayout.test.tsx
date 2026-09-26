@@ -1,32 +1,17 @@
-import { screen, within } from "@testing-library/react";
-import { it, expect } from "vitest";
+import { screen } from "@testing-library/react";
+import { expect, it } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
 import AppLayout from "./AppLayout";
 
-it("AppLayout · renders the Redtape link in the header", async () => {
+it("AppLayout · renders no banner landmark", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  const header = await screen.findByRole("banner");
-  const wordmark = within(header).getByRole("link", { name: "Redtape" });
-
-  expect(getComputedStyle(wordmark).fontSize).toBe(
-    "var(--chakra-font-sizes-4xl)",
-  );
-  expect(getComputedStyle(wordmark).color).toBe(
-    "var(--chakra-colors-text-heading)",
-  );
+  await screen.findByRole("main");
+  expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 });
 
-it("AppLayout · wordmark links to home", async () => {
-  renderWithProviders(<AppLayout>content</AppLayout>);
-
-  const wordmark = await screen.findByRole("link", { name: "Redtape" });
-
-  expect(wordmark).toHaveAttribute("href", "/");
-});
-
-it("AppLayout · renders main landmark with children", async () => {
+it("AppLayout · renders children inside main", async () => {
   renderWithProviders(
     <AppLayout>
       <p>Hello from a page</p>
@@ -38,39 +23,27 @@ it("AppLayout · renders main landmark with children", async () => {
   );
 });
 
-it("AppLayout · renders header when children empty", async () => {
-  renderWithProviders(
-    <AppLayout>
-      <></>
-    </AppLayout>,
+it("AppLayout · mounts the floating brand link and menu button", async () => {
+  renderWithProviders(<AppLayout>content</AppLayout>);
+
+  expect(await screen.findByRole("link", { name: "Home" })).toHaveAttribute(
+    "href",
+    "/",
   );
-
-  expect(await screen.findByRole("banner")).toBeInTheDocument();
-  expect(screen.getByRole("main")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
 });
 
-it("AppLayout · includes color mode toggle control", async () => {
+it("AppLayout · has no toolbar links (matrix, browse) left", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  expect(
-    await screen.findByRole("button", { name: "Toggle color mode" }),
-  ).toBeInTheDocument();
-});
-
-it("AppLayout · color mode toggle is labelled in the active locale", async () => {
-  window.localStorage.setItem("locale", "de");
-  renderWithProviders(<AppLayout>content</AppLayout>);
-
-  expect(
-    await screen.findByRole("button", { name: "Farbmodus wechseln" }),
-  ).toBeInTheDocument();
-});
-
-it("AppLayout · has no matrix link", async () => {
-  renderWithProviders(<AppLayout>content</AppLayout>);
-
-  await screen.findByRole("banner");
+  await screen.findByRole("main");
   expect(
     screen.queryByRole("link", { name: "Matrix" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: /browse/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Redtape" }),
   ).not.toBeInTheDocument();
 });

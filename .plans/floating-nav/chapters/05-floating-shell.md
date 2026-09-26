@@ -4,25 +4,25 @@ overview: "Remove the sticky header; mount the brand button top-left and a burge
 todos:
   - id: menu
     content: "AppMenu: burger trigger, Menu.Root, colour switch, separator, language submenu"
-    status: pending
+    status: completed
   - id: floating
     content: "FloatingControls: fixed placement with safe-area offsets"
-    status: pending
+    status: completed
   - id: layout
     content: "AppLayout without header; main top padding"
-    status: pending
+    status: completed
   - id: i18n
     content: "common.menu key in four bundles"
-    status: pending
+    status: completed
   - id: cleanup
     content: "Delete ColorModeToggle and LocaleSwitcher"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 5 — Floating shell
 
-**Repo:** `redtape` (`apps/web`, `apps/api` seed data) · **Branch:** `feat/floating-nav-shell` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, `apps/api` seed data) · **Branch:** `feat/floating-nav-shell` · **Status:** shipped
 
 **Depends on:** [1](01-remove-matrix.md), [2](02-brand-button.md), [3](03-color-mode-switch.md), [4](04-language-submenu.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -100,3 +100,13 @@ New menu items; hide-on-scroll behaviour.
 
 Branch `feat/floating-nav-shell`; `test(web): describe floating shell`, then
 `feat(web): replace toolbar with floating brand and menu buttons`; one PR.
+
+## Progress notes
+
+- Shipped as planned. Shared circle styling lives in `floatingSurface.ts` (used by `BrandButton` and `AppMenu`).
+- `common.menu` added to the four bundles (web fallback + API seed, en/de); parity test extended.
+- `ColorModeToggle`, `LocaleSwitcher` and their tests deleted; the toggle test in `color-mode.test.tsx` removed.
+- `LoadingShell` draws no header, so it is unchanged.
+- `App.test` header assertion replaced with floating brand link + menu button.
+- Refactor gate: every component ≤ ~30 LOC, no nesting beyond one level, no unused exports.
+- Gate: `npm run test`, lint, format, typecheck, build and `./ci.sh` all green. Manual 360px/desktop check is left to the reviewer.
