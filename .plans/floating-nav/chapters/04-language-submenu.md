@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: cleanup
     content: "Remove the ark Select usage"
-    status: pending
+    status: completed
 isProject: false
 ---
 

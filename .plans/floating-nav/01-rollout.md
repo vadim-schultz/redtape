@@ -43,7 +43,7 @@ Chapters 2, 3 and 4 have no dependency on each other and can proceed in parallel
 | 2 | Brand button | frontend | vitest + `./ci.sh` | [02-brand-button.md](chapters/02-brand-button.md) | shipped |
 | 3 | Colour-mode switch | frontend | vitest + `./ci.sh` | [03-color-mode-switch.md](chapters/03-color-mode-switch.md) | shipped |
 | 4 | Language submenu | frontend | vitest + `./ci.sh` | [04-language-submenu.md](chapters/04-language-submenu.md) | shipped |
-| 5 | Floating shell | frontend | vitest + `./ci.sh` | [05-floating-shell.md](chapters/05-floating-shell.md) | planned |
+| 5 | Floating shell | frontend | vitest + `./ci.sh` | [05-floating-shell.md](chapters/05-floating-shell.md) | shipped |
 | 6 | Docs sync | docs | link check | [06-docs-sync.md](chapters/06-docs-sync.md) | planned |
 
 ## Per-chapter gate

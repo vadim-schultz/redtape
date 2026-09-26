@@ -18,13 +18,18 @@ it("AppLayout · renders children inside main", async () => {
     </AppLayout>,
   );
 
-  expect(await screen.findByRole("main")).toHaveTextContent("Hello from a page");
+  expect(await screen.findByRole("main")).toHaveTextContent(
+    "Hello from a page",
+  );
 });
 
 it("AppLayout · mounts the floating brand link and menu button", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  expect(await screen.findByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+  expect(await screen.findByRole("link", { name: "Home" })).toHaveAttribute(
+    "href",
+    "/",
+  );
   expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
 });
 
@@ -32,7 +37,13 @@ it("AppLayout · has no toolbar links (matrix, browse) left", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
   await screen.findByRole("main");
-  expect(screen.queryByRole("link", { name: "Matrix" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: /browse/i })).not.toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "Redtape" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Matrix" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: /browse/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Redtape" }),
+  ).not.toBeInTheDocument();
 });
