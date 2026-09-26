@@ -37,11 +37,12 @@ it("BrandButton · mark colour is the brand.mark token", async () => {
   expect(getComputedStyle(link).color).toBe("var(--chakra-colors-brand-mark)");
 });
 
-it("BrandButton · mark fills most of the circle", async () => {
+it("BrandButton · mark is sized inline to fill most of the 44px circle", async () => {
   const { container } = renderWithProviders(<BrandButton />);
 
   await screen.findByRole("link", { name: "Home" });
-  const height = container.querySelector("svg")!.getAttribute("height")!;
+  const { style } = container.querySelector("svg")!;
 
-  expect(parseInt(height)).toBeGreaterThanOrEqual(62);
+  expect(parseInt(style.height)).toBeGreaterThanOrEqual(30);
+  expect(parseInt(style.width)).toBeGreaterThanOrEqual(30);
 });

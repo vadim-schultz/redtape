@@ -18,7 +18,7 @@ const BrandButton = () => {
       {...hoverMotion}
     >
       <RouterLink to="/">
-        <BrandMark height="74%" />
+        <BrandMark style={{ width: "32px", height: "32px" }} />
       </RouterLink>
     </IconButton>
   );
