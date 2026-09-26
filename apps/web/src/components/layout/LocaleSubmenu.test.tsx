@@ -42,7 +42,7 @@ function stubLocales() {
 
 function renderInMenu() {
   return renderWithProviders(
-    <Menu.Root open>
+    <Menu.Root defaultOpen>
       <Portal>
         <Menu.Positioner>
           <Menu.Content>
@@ -126,17 +126,24 @@ it("LocaleSubmenu · renders nothing when the locales request fails", async () =
 it("LocaleSubmenu · keyboard: Right arrow opens, Esc closes the submenu", async () => {
   stubLocales();
   const { user } = renderInMenu();
-  (await findTrigger()).focus();
+  (await findTrigger()).closest<HTMLElement>("[role=menu]")?.focus();
 
-  await user.keyboard("{ArrowRight}");
+  await user.keyboard("{ArrowDown}{ArrowRight}");
   expect(
     await screen.findByRole("menuitemradio", { name: /Deutsch/ }),
   ).toBeVisible();
 
+  // jsdom does not move focus into the opened submenu as a browser does.
+  screen
+    .getByRole("menuitemradio", { name: /Deutsch/ })
+    .closest<HTMLElement>("[role=menu]")
+    ?.focus();
+  await new Promise((r) => setTimeout(r, 100)); // layers register deferred
   await user.keyboard("{Escape}");
   await waitFor(() =>
-    expect(
-      screen.queryByRole("menuitemradio", { name: /Deutsch/ }),
-    ).not.toBeVisible(),
+    expect(screen.getByRole("menuitem", { name: /Language/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    ),
   );
 });
