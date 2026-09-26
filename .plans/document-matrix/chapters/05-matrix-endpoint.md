@@ -121,6 +121,11 @@ curl -s 'localhost:8000/api/v1/matrix'
 
 Web rendering (chapter 8), caching and materialized views.
 
+## Outcome
+
+- `GET /api/v1/matrix` shipped with per-cell distinct-document counts; untagged documents contribute to no cell and zero-count cells are omitted (paired tests in `da15f67`).
+- Refactor-gate numbers were not recorded at merge; nothing further was extracted afterwards.
+
 ## Git workflow
 
 ```bash

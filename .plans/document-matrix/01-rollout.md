@@ -52,7 +52,7 @@ order is the default sequence.
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Taxonomy schema | model + migration | pytest + `./ci.sh` | [01-taxonomy-schema.md](chapters/01-taxonomy-schema.md) | done |
-| 2 | Germany seed | DB seed | pytest + `./ci.sh` | [02-germany-seed.md](chapters/02-germany-seed.md) | planned |
+| 2 | Germany seed | DB seed | pytest + `./ci.sh` | [02-germany-seed.md](chapters/02-germany-seed.md) | done |
 | 3 | Taxonomy API | backend | pytest + `./ci.sh` | [03-taxonomy-api.md](chapters/03-taxonomy-api.md) | done |
 | 4 | Documents filter and tags | backend | pytest + `./ci.sh` | [04-documents-filter.md](chapters/04-documents-filter.md) | done |
 | 5 | Matrix endpoint | backend | pytest + `./ci.sh` | [05-matrix-endpoint.md](chapters/05-matrix-endpoint.md) | done |
@@ -60,7 +60,7 @@ order is the default sequence.
 | 7 | List filter chips | frontend | vitest + `./ci.sh` | [07-list-filter-chips.md](chapters/07-list-filter-chips.md) | done |
 | 8 | Matrix page | frontend | vitest + `./ci.sh` + manual | [08-matrix-page.md](chapters/08-matrix-page.md) | done |
 | 9 | Tags on card and detail | frontend | vitest + `./ci.sh` | [09-tags-on-card-and-detail.md](chapters/09-tags-on-card-and-detail.md) | done |
-| 10 | Docs sync | docs | link check | [10-docs-sync.md](chapters/10-docs-sync.md) | planned |
+| 10 | Docs sync | docs | link check | [10-docs-sync.md](chapters/10-docs-sync.md) | done |
 
 ---
 

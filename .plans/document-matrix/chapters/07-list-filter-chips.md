@@ -118,6 +118,11 @@ Manual: open `/documents?situation=umzug`, toggle a domain chip, use back/forwar
 
 Matrix page (chapter 8), tag badges (chapter 9), pagination changes, saving filters per user.
 
+## Outcome
+
+- Filters are URL-backed and sent to the documents API; chips render on the list page (`84daf76`–`3702fe3`).
+- Refactor-gate numbers were not recorded at merge.
+
 ## Git workflow
 
 ```bash

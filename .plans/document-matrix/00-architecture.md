@@ -10,7 +10,7 @@ isProject: true
 
 **Sibling docs:** [01-rollout.md](01-rollout.md) — chapter sequence · [gaps-and-decisions.md](gaps-and-decisions.md) — settled decisions and open seams · [chapters/](chapters/) — executable plans · Related: [data-model chapter](../../docs/planning/directions/data-model-migrations/02-documents-and-requirements.md), [graph resolution](../../docs/planning/directions/data-model-migrations/03-graph-resolution-and-views.md).
 
-**Status:** planned.
+**Status:** shipped (chapters 1–10). Open seams: [gaps-and-decisions.md](gaps-and-decisions.md).
 
 ---
 

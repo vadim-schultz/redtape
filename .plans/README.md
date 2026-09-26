@@ -35,7 +35,7 @@ with list filters. Postgres only. Ten chapters across data model, backend and fr
 | [gaps-and-decisions.md](document-matrix/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](document-matrix/chapters/) | One executable plan per chapter |
 
-Status: planned. Start at [chapters/01-taxonomy-schema.md](document-matrix/chapters/01-taxonomy-schema.md).
+Status: shipped — all ten chapters done. Open seams and deferred work (list-card tags, curation): [gaps-and-decisions.md](document-matrix/gaps-and-decisions.md).
 
 ## Conventions
 

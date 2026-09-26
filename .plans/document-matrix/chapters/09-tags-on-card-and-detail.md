@@ -92,6 +92,11 @@ Manual: open a seeded document detail; click a badge; confirm the filtered list.
 
 Editing tags, tag counts, hover previews.
 
+## Outcome
+
+- Tags shipped on the document detail header only. List-card badges are deferred (see [gaps-and-decisions.md](../gaps-and-decisions.md), "Tags on list cards").
+- Refactor-gate numbers were not recorded at merge.
+
 ## Git workflow
 
 ```bash

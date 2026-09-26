@@ -111,6 +111,11 @@ cd ../.. && ./ci.sh
 
 Any component (chapters 7–9), backend changes.
 
+## Outcome
+
+- Taxonomy API client, hooks, and href builder shipped with matrix and filter translation seeds (`c30120e`, `f25994a`).
+- Refactor-gate numbers were not recorded at merge.
+
 ## Git workflow
 
 ```bash

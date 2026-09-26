@@ -3,7 +3,7 @@
 ## Scope
 
 - SPA bootstrapping, routing, API client (typed from OpenAPI or hand-written contracts), error and loading states.
-- **Information architecture:** jurisdiction picker, document search/list, document detail, dependency list, full **tree** visualization (library choice: React Flow vs lightweight tree — decide in a child plan).
+- **Information architecture:** jurisdiction picker, domain × life-situation matrix page and list filters ([document matrix](#document-matrix)), document search/list, document detail, dependency list, full **tree** visualization (library choice: React Flow vs lightweight tree — decide in a child plan).
 - **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; domain text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Social flows:** proposal form (URL, file upload, preview), proposal list/detail, voting UI.
 - **Moderation (later):** audit log views for privileged roles.
@@ -30,7 +30,7 @@ Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.pl
 
 ## Document matrix
 
-Browse by domain × life situation (matrix page, list filters, tags): [`.plans/document-matrix/`](../../../../.plans/document-matrix/00-architecture.md). Planned.
+Browse by domain × life situation (matrix page at `/matrix`, URL-backed list filters, tags on document detail): [`.plans/document-matrix/`](../../../../.plans/document-matrix/00-architecture.md). Shipped.
 
 ## Links
 
