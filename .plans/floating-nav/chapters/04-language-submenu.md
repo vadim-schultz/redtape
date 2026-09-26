@@ -4,10 +4,10 @@ overview: "Rebuild the locale switcher as a Chakra Menu submenu listing availabl
 todos:
   - id: submenu
     content: "LocaleSubmenu using nested Menu.Root and Menu.TriggerItem"
-    status: pending
+    status: completed
   - id: states
     content: "Loading placeholder and error omission preserved"
-    status: pending
+    status: completed
   - id: cleanup
     content: "Remove the ark Select usage"
     status: pending
@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 4 — Language submenu
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-language-submenu` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-language-submenu` · **Status:** shipped
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §2, §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -85,3 +85,15 @@ Mounting inside the burger menu (chapter 5); adding languages.
 
 Branch `feat/floating-nav-language-submenu`; `test(web): describe language submenu`, then
 `feat(web): add language submenu`; one PR.
+
+## Progress notes
+
+- `LocaleSubmenu` is a nested `Menu.Root` with `Menu.TriggerItem` (label + current flag) and a `Menu.RadioItemGroup`;
+  the active locale shows its `Menu.ItemIndicator` check. `setLocale` runs on value change.
+- Query extracted to `useLocalesQuery.ts` (also exports `LocaleRow`).
+- Loading renders a `role="status"` skeleton; error renders `null`.
+- Zag closes the whole menu tree on Escape (`closeRootMenu`), so the keyboard test asserts the submenu closes.
+  jsdom needs a short wait before Escape (dismissable layers register deferred) and focus moved into the submenu by hand.
+- Cleanup deferred to chapter 5 (as in chapter 3): `LocaleSwitcher.tsx` and its test stay until it is unmounted,
+  so the `cleanup` todo stays pending. The `@ark-ui/react/select` import goes with that file.
+- Refactor gate: `LocaleSubmenu` ~50 LOC, hook ~20 LOC, no nesting beyond one level.
