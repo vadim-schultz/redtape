@@ -35,3 +35,26 @@ it("DocumentHeader · omits description node when absent", async () => {
 
   expect(container.querySelector("p")).not.toBeInTheDocument();
 });
+
+it("DocumentHeader · shows tags when the detail has them", async () => {
+  renderWithProviders(
+    <DocumentHeader
+      title="Passport"
+      domains={[{ code: "D1", name: "Identity", description: "", icon: null }]}
+      lifeSituations={[
+        { code: "S1", name: "Moving", description: "", icon: null },
+      ]}
+    />,
+  );
+
+  expect(await screen.findByRole("link", { name: "Identity" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Moving" })).toBeVisible();
+});
+
+it("DocumentHeader · unchanged when the API omits the fields", async () => {
+  renderWithProviders(<DocumentHeader title="Passport" />);
+
+  await screen.findByRole("heading", { name: "Passport" });
+
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});

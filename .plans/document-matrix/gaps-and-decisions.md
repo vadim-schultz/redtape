@@ -95,4 +95,5 @@ without per-country configuration.
 | Matrix at scale | One aggregate query per request | Cell query exceeds budget on real data; then add a materialized view |
 | Taxonomy outside Germany | Same tables and codes, German seed only; `fr`/`it` names and country-only terms added on onboarding | Second country onboarded |
 | Localized URL paths | Not planned; codes and route paths are English | An SEO requirement for a market; then add `slug_i18n` with a redirect to the canonical code |
+| Tags on list cards | Detail header only; `DocumentCard` shows no badges | Users need tags while browsing; needs additive `domains`/`life_situations` on `DocumentSummary` (eager-load per page) and a card layout without nested anchors, since the whole card is already a link to detail |
 | Highlighting the selection in the list | The active chip shows the selection | Users lose track of which matrix row they came from |
