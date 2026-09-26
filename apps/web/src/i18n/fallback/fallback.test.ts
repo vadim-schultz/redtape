@@ -31,6 +31,12 @@ describe("fallback translation bundles", () => {
     expect(fallbackBundle(locale)).toEqual(readSeed(locale));
   });
 
+  it.each(["en", "de"])("has no matrix keys for %s", (locale) => {
+    const keys = Object.keys(fallbackBundle(locale));
+
+    expect(keys.filter((key) => /matrix/i.test(key))).toEqual([]);
+  });
+
   it("falls back to English for unknown locales", () => {
     expect(fallbackBundle("fr")).toEqual(fallbackBundle("en"));
   });

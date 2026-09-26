@@ -66,11 +66,11 @@ it("AppLayout · color mode toggle is labelled in the active locale", async () =
   ).toBeInTheDocument();
 });
 
-it("AppLayout · nav includes a matrix link", async () => {
+it("AppLayout · has no matrix link", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  expect(await screen.findByRole("link", { name: "Matrix" })).toHaveAttribute(
-    "href",
-    "/matrix",
-  );
+  await screen.findByRole("banner");
+  expect(
+    screen.queryByRole("link", { name: "Matrix" }),
+  ).not.toBeInTheDocument();
 });
