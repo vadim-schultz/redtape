@@ -52,6 +52,21 @@ the matrix view. Frontend only, six chapters.
 
 Status: planned — no chapter started. First: [chapters/01-remove-matrix.md](floating-nav/chapters/01-remove-matrix.md).
 
+### [ci-foundation/](ci-foundation/) — Postgres-backed API CI
+
+Run API tests against Postgres in GitHub Actions and local `./ci.sh` (today every DB test is skipped on
+SQLite), fail loudly when the database is missing, and verify migrations round-trip with a single head.
+Prerequisite for the document-collection suites. Backend and CI only, three chapters.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](ci-foundation/00-architecture.md) | Problem, target state, design |
+| [01-rollout.md](ci-foundation/01-rollout.md) | Three chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](ci-foundation/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](ci-foundation/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-postgres-in-ci.md](ci-foundation/chapters/01-postgres-in-ci.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
