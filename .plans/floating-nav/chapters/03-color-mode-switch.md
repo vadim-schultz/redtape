@@ -4,10 +4,10 @@ overview: "Replace the colour-mode toggle button with a Chakra Switch flanked by
 todos:
   - id: switch
     content: "ColorModeSwitch with sun/moon icons, checked = dark"
-    status: pending
+    status: completed
   - id: menu-row
     content: "Menu-embeddable row that does not close the menu on toggle"
-    status: pending
+    status: completed
   - id: remove-old
     content: "Delete ColorModeToggle"
     status: pending
@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 3 — Colour-mode switch
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-color-switch` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/floating-nav-color-switch` · **Status:** shipped
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §2, §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -81,3 +81,12 @@ A "system" third option; mounting in the menu (chapter 5).
 
 Branch `feat/floating-nav-color-switch`; `test(web): describe colour-mode switch`, then
 `feat(web): add colour-mode switch`; one PR.
+
+## Progress notes
+
+- `ColorModeSwitch` is Sun, `Switch`, Moon with `checked = dark`; icons are `aria-hidden` and dimmed when inactive.
+- `useColorMode` gained `isForced` so the switch can disable itself under `forcedTheme` (additive, existing tests untouched).
+- The menu-row wrapper is deferred to chapter 5: `Menu.Item` needs a `Menu.Root`, which does not exist until the shell is
+  built, so `closeOnSelect={false}` cannot be tested here. `ColorModeToggle` deletion stays in chapter 5 as planned.
+- Refactor gate: component is ~30 LOC, no nesting beyond one level.
+- Tests must run via `npm test` (sets `--no-experimental-webstorage`; plain `npx vitest` fails on Node 26).
