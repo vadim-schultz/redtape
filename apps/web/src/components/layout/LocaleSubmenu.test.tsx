@@ -141,9 +141,8 @@ it("LocaleSubmenu · keyboard: Right arrow opens, Esc closes the submenu", async
   await new Promise((r) => setTimeout(r, 100)); // layers register deferred
   await user.keyboard("{Escape}");
   await waitFor(() =>
-    expect(screen.getByRole("menuitem", { name: /Language/ })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    ),
+    expect(
+      screen.queryByRole("menuitemradio", { name: /Deutsch/ }),
+    ).not.toBeInTheDocument(),
   );
 });
