@@ -15,6 +15,7 @@ export type ColorMode = "light" | "dark";
 
 export interface UseColorModeReturn {
   colorMode: ColorMode;
+  isForced: boolean;
   setColorMode: (colorMode: ColorMode) => void;
   toggleColorMode: () => void;
 }
@@ -25,6 +26,7 @@ export function useColorMode(): UseColorModeReturn {
 
   return {
     colorMode: (forcedTheme || resolvedTheme) as ColorMode,
+    isForced: Boolean(forcedTheme),
     setColorMode: (colorMode) => setTheme(colorMode),
     toggleColorMode: () => toggleTheme(forcedTheme, resolvedTheme, setTheme),
   };
