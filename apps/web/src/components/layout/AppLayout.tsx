@@ -1,15 +1,7 @@
-import {
-  Box,
-  Container,
-  HStack,
-  Heading,
-  Link,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Container, HStack, Heading, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
-import { useLocale } from "../../contexts/LocaleContext";
 import { hoverMotion } from "../../theme/transitions";
 import ColdStartNotice from "../feedback/ColdStartNotice";
 import ColorModeToggle from "./ColorModeToggle";
@@ -20,8 +12,6 @@ interface AppLayoutProps {
 }
 
 const AppLayout = ({ children }: AppLayoutProps) => {
-  const { t } = useLocale();
-
   return (
     <VStack align="stretch" minH="100vh" gap={0} bg="bg.canvas">
       <Box
@@ -45,9 +35,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               <RouterLink to="/">Redtape</RouterLink>
             </Heading>
             <HStack gap={4}>
-              <Link asChild color="text.link" fontWeight="semibold">
-                <RouterLink to="/matrix">{t("nav.matrix")}</RouterLink>
-              </Link>
               <LocaleSwitcher />
               <ColorModeToggle />
             </HStack>

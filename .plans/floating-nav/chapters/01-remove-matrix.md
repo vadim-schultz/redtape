@@ -4,22 +4,22 @@ overview: "Remove the /matrix route, nav link, matrix components, matrix query h
 todos:
   - id: route
     content: "Drop /matrix route; unknown path shows NotFoundView"
-    status: pending
+    status: completed
   - id: nav
     content: "Remove the matrix link from AppLayout (and its test)"
-    status: pending
+    status: completed
   - id: code
     content: "Delete MatrixPage, components/matrix/*, useMatrixQuery, buildAxis, buildCellIndex, matrix client fn and their tests"
-    status: pending
+    status: completed
   - id: i18n
     content: "Remove nav.matrix and matrix.* from all four bundles"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 1 — Remove matrix
 
-**Repo:** `redtape` (`apps/web`, `apps/api` seed data) · **Branch:** `feat/floating-nav-remove-matrix` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, `apps/api` seed data) · **Branch:** `feat/floating-nav-remove-matrix` · **Status:** shipped
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
