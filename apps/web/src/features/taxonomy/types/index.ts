@@ -4,28 +4,3 @@ export type Term = {
   description: string;
   icon: string | null;
 };
-
-export type MatrixCell = {
-  domain: string;
-  situation: string;
-  count: number;
-};
-
-export type AxisTotal = {
-  code: string;
-  count: number;
-};
-
-export type MatrixResponse = {
-  total: number;
-  cells: MatrixCell[];
-  situations: AxisTotal[];
-  domains: AxisTotal[];
-};
-
-/** One matrix row or column: taxonomy label plus the API's distinct-document total. */
-export type MatrixAxisItem = {
-  code: string;
-  name: string;
-  total: number;
-};

@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { LocaleProvider, useLocale } from "../../../contexts/LocaleContext";
 import { useDomainsQuery } from "./useDomainsQuery";
-import { useMatrixQuery } from "./useMatrixQuery";
 
 const fetchMock = vi.fn();
 
@@ -46,14 +45,4 @@ it("useDomainsQuery · refetches when locale changes", async () => {
   act(() => result.current.locale.setLocale(next));
 
   await waitFor(() => expect(domainLocales()).toContain(next));
-});
-
-it("useMatrixQuery · surfaces an API error as query error", async () => {
-  fetchMock.mockImplementation(
-    async () => new Response("boom", { status: 500 }),
-  );
-
-  const { result } = renderHook(() => useMatrixQuery(null), { wrapper });
-
-  await waitFor(() => expect(result.current.isError).toBe(true));
 });

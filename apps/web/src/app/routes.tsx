@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
 import DocumentDetailSkeleton from "../features/documents/components/document-detail/DocumentDetailSkeleton";
-import MatrixSkeleton from "../features/taxonomy/components/matrix/MatrixSkeleton";
 import DocumentsListSkeleton from "../features/documents/components/documents-list/DocumentsListSkeleton";
 
 const DocumentsListPage = lazy(
@@ -10,9 +9,6 @@ const DocumentsListPage = lazy(
 );
 const DocumentDetailPage = lazy(
   () => import("../features/documents/containers/DocumentDetailPage"),
-);
-const MatrixPage = lazy(
-  () => import("../features/taxonomy/containers/MatrixPage"),
 );
 
 export const routes = [
@@ -30,14 +26,6 @@ export const routes = [
     element: (
       <Suspense fallback={<DocumentDetailSkeleton />}>
         <DocumentDetailPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: "/matrix",
-    element: (
-      <Suspense fallback={<MatrixSkeleton />}>
-        <MatrixPage />
       </Suspense>
     ),
   },

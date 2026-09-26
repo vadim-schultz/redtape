@@ -18,7 +18,6 @@
   "nav": {
     "home": "Home",
     "browse_documents": "Browse Documents",
-    "matrix": "Matrix",
     "about": "About"
   },
   "auth": {
@@ -59,18 +58,6 @@
     "server_error": "Server error. Please try again later.",
     "page_not_found_title": "Page not found",
     "page_not_found_body": "This address is not part of Redtape."
-  },
-  "matrix": {
-    "page_title": "Document matrix",
-    "situations_axis": "Life situation",
-    "domains_axis": "Domain",
-    "all_documents": "All documents",
-    "all_for_situation": "All documents for this situation",
-    "all_in_domain": "All documents in this domain",
-    "empty_cell": "No documents in this cell",
-    "empty_title": "No tagged documents",
-    "empty_description": "Documents appear here once they are tagged with a domain and life situation.",
-    "cell_aria": "{situation} × {domain}: {count} documents"
   },
   "filters": {
     "domain": "Domain",

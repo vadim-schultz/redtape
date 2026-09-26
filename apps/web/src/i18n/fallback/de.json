@@ -18,7 +18,6 @@
   "nav": {
     "home": "Startseite",
     "browse_documents": "Dokumente durchsuchen",
-    "matrix": "Matrix",
     "about": "Über uns"
   },
   "auth": {
@@ -59,18 +58,6 @@
     "server_error": "Serverfehler. Bitte versuchen Sie es später erneut.",
     "page_not_found_title": "Seite nicht gefunden",
     "page_not_found_body": "Diese Adresse gehört nicht zu Redtape."
-  },
-  "matrix": {
-    "page_title": "Dokumentenmatrix",
-    "situations_axis": "Lebenslage",
-    "domains_axis": "Lebensbereich",
-    "all_documents": "Alle Dokumente",
-    "all_for_situation": "Alle Dokumente für diese Lebenslage",
-    "all_in_domain": "Alle Dokumente in diesem Lebensbereich",
-    "empty_cell": "Keine Dokumente in dieser Zelle",
-    "empty_title": "Keine verschlagworteten Dokumente",
-    "empty_description": "Dokumente erscheinen hier, sobald sie einem Bereich und einer Lebenslage zugeordnet sind.",
-    "cell_aria": "{situation} × {domain}: {count} Dokumente"
   },
   "filters": {
     "domain": "Lebensbereich",
