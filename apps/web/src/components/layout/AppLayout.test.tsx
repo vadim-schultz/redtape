@@ -4,7 +4,7 @@ import { it, expect } from "vitest";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import AppLayout from "./AppLayout";
 
-it("AppLayout · renders Redtape with appTitle in the header", async () => {
+it("AppLayout · renders the Redtape link in the header", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
   const header = await screen.findByRole("banner");

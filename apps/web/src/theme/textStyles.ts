@@ -1,6 +1,5 @@
 /**
- * Type hierarchy: appTitle is the Iceberg wordmark (Iceberg's only weight,
- * red). pageTitle (H1) is red Space Grotesk; smaller headers are near-black
+ * Type hierarchy: pageTitle (H1) is red Space Grotesk; smaller headers are near-black
  * Space Grotesk with weight easing down each level. Red is reserved for large
  * text — it doesn't reach AA contrast at small sizes.
  */
@@ -11,16 +10,6 @@ const headerBase = {
 } as const;
 
 export const textStyles = {
-  appTitle: {
-    value: {
-      fontFamily: "brand",
-      fontWeight: "normal",
-      lineHeight: "tight",
-      color: "text.heading",
-      fontSize: "4xl",
-      letterSpacing: "tight",
-    },
-  },
   pageTitle: {
     value: {
       ...headerBase,

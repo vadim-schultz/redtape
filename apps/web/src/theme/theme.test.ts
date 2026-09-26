@@ -14,15 +14,17 @@ function semanticBase(path: string): unknown {
 }
 
 function modeValue(path: string, key: "base" | "_dark"): string {
-  const conditions = system.tokens.getByName(path)?.extensions
-    .conditions as Record<string, string> | undefined;
+  const conditions = system.tokens.getByName(path)?.extensions.conditions as
+    Record<string, string> | undefined;
   const ref = conditions?.[key] ?? "";
   const match = /^\{(.+)\}$/.exec(ref);
   return match ? (system.token(match[1]) as string) : ref;
 }
 
 function luminance(hex: string): number {
-  const channels = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const channels = [1, 3, 5].map(
+    (i) => parseInt(hex.slice(i, i + 2), 16) / 255,
+  );
   const [r, g, b] = channels.map((c) =>
     c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
   );

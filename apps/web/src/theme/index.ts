@@ -15,7 +15,6 @@ const config = defineConfig({
       fonts: {
         body: { value: "'Inter', system-ui, -apple-system, sans-serif" },
         heading: { value: "'Space Grotesk', system-ui, sans-serif" },
-        brand: { value: "'Iceberg', system-ui, sans-serif" },
         mono: {
           value:
             "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
@@ -53,6 +52,5 @@ const config = defineConfig({
   },
 });
 
-/** Redtape Chakra system: Swiss red primary, accent ring, Iceberg wordmark,
- * Space Grotesk headings. */
+/** Redtape Chakra system: Swiss red primary, accent ring, Space Grotesk headings. */
 export const system = createSystem(defaultConfig, config);
