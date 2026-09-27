@@ -65,7 +65,9 @@
     "unauthorized": "Nicht autorisiert",
     "server_error": "Serverfehler. Bitte versuchen Sie es später erneut.",
     "page_not_found_title": "Seite nicht gefunden",
-    "page_not_found_body": "Diese Adresse gehört nicht zu Redtape."
+    "page_not_found_body": "Diese Adresse gehört nicht zu Redtape.",
+    "forbidden_title": "Zugriff verweigert",
+    "forbidden_body": "Du hast keine Berechtigung, diese Seite anzusehen."
   },
   "filters": {
     "domain": "Lebensbereich",

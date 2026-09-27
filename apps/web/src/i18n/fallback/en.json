@@ -65,7 +65,9 @@
     "unauthorized": "Unauthorized",
     "server_error": "Server error. Please try again later.",
     "page_not_found_title": "Page not found",
-    "page_not_found_body": "This address is not part of Redtape."
+    "page_not_found_body": "This address is not part of Redtape.",
+    "forbidden_title": "Access denied",
+    "forbidden_body": "You don't have permission to view this page."
   },
   "filters": {
     "domain": "Domain",
