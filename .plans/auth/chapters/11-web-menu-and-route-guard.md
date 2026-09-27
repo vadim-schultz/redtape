@@ -4,16 +4,16 @@ overview: "The floating menu shows Sign in or the user's email with Sign out, an
 todos:
   - id: menu
     content: "AccountMenuItem in AppMenu"
-    status: pending
+    status: completed
   - id: guard
     content: "RequireAuth route wrapper"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 11 — Web menu and route guard
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/auth-web-guard` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/auth-web-guard` · **Status:** done
 
 **Depends on:** [10](10-web-login-ui.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -84,6 +84,16 @@ state as `loading`.
   `"wait" | "login" | "allow" | "forbidden" | "hidden"`, so the component is a switch over a tested value
   (five outcomes: dispatch, not an if-chain).
 - Report the outcome.
+
+✅ The decision landed as `guardOutcome(status, role, minRole)` in `RequireAuth.tsx`: five early returns yielding
+`"wait" | "login" | "allow" | "forbidden" | "hidden"`, with `RequireAuth` itself a five-case `switch` over that
+value (49 lines total). "Authenticated but `/me` hasn't resolved a role yet" falls out of the same function for
+free — an authenticated status with no matching role rank returns `"wait"` — so the component never has to compute
+an "effective status" itself. `AccountMenuItem.tsx` stayed a two-branch early-return component (26 lines); the
+design's "navigate to /documents if the current route is protected" nuance on sign-out was left out, since no
+protected route exists yet at this chapter (chapter 11 is explicitly scoped to `RequireAuth` existing, not to any
+page using it) and there was no registry of "protected" paths to test against — it will fall out naturally once a
+later chapter wraps a real route in `RequireAuth`.
 
 ## Verification
 
