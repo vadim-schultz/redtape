@@ -4,16 +4,16 @@ overview: "Settings gains the JWKS URL, issuer and audience, an auth_enabled pro
 todos:
   - id: settings
     content: "Settings fields and auth_enabled"
-    status: pending
+    status: completed
   - id: env
     content: ".env.example replaces the unused Supabase placeholders"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 1 — Settings and Supabase config
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-settings` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-settings` · **Status:** done
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -64,6 +64,8 @@ Supabase access under D1, and leaving the line invites pasting a secret that giv
 ## Refactor gate
 
 `Settings` stays a flat field list; the property is one expression. Report the outcome.
+
+✅ No refactor needed — three new fields plus a one-expression property; `Settings` stays a flat field list.
 
 ## Verification
 
