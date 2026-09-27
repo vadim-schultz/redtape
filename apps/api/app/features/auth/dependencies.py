@@ -5,12 +5,12 @@ import logging
 from litestar import Request
 from litestar.connection import ASGIConnection
 from litestar.di import Provide
-from litestar.exceptions import NotAuthorizedException
+from litestar.exceptions import ClientException, NotAuthorizedException
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.features.auth.jwt import AuthError, JwtVerifier, jwks_key_resolver
-from app.features.auth.principal import MachinePrincipal
+from app.features.auth.principal import MachinePrincipal, Principal, UserPrincipal
 from app.features.auth.repository import ApiKeyRepository, UserRepository
 from app.features.auth.service import ApiKeyError, ApiKeyService, UserService
 from app.models import AppUser
@@ -102,6 +102,20 @@ def provide_optional_user(request: Request, jwt_verifier: JwtVerifier, user_serv
     return user_from_connection(request, jwt_verifier, user_service)
 
 
+def provide_principal(
+    request: Request, jwt_verifier: JwtVerifier, user_service: UserService, api_key_service: ApiKeyService
+) -> Principal:
+    """Accept either a bearer user or an API key; refuse to guess when both are present (D8)."""
+
+    has_bearer = request.headers.get("Authorization") is not None
+    has_api_key = request.headers.get("X-API-Key") is not None
+    if has_bearer and has_api_key:
+        raise ClientException("Ambiguous credentials")
+    if has_bearer:
+        return UserPrincipal(user=user_from_connection(request, jwt_verifier, user_service))
+    return machine_principal_from_connection(request, api_key_service)
+
+
 router_dependencies = {
     "user_repository": Provide(provide_user_repository, sync_to_thread=False),
     "user_service": Provide(provide_user_service, sync_to_thread=False),
@@ -110,5 +124,5 @@ router_dependencies = {
     "jwt_verifier": Provide(provide_jwt_verifier, sync_to_thread=False),
     "current_user": Provide(provide_current_user, sync_to_thread=False),
     "optional_user": Provide(provide_optional_user, sync_to_thread=False),
-    "principal": Provide(provide_machine_principal, sync_to_thread=False),
+    "principal": Provide(provide_principal, sync_to_thread=False),
 }
