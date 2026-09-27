@@ -47,4 +47,19 @@ describe("fallback translation bundles", () => {
   it("falls back to English for unknown locales", () => {
     expect(fallbackBundle("fr")).toEqual(fallbackBundle("en"));
   });
+
+  it("has every auth.* key in both fallback bundles", () => {
+    const authKeys = (locale: string) =>
+      Object.keys(fallbackBundle(locale))
+        .filter((key) => key.startsWith("auth."))
+        .sort();
+
+    const enKeys = authKeys("en");
+    expect(enKeys.length).toBeGreaterThan(0);
+    expect(authKeys("de")).toEqual(enKeys);
+  });
+
+  it.each(["en", "de"])("auth.password no longer exists for %s", (locale) => {
+    expect(fallbackBundle(locale)).not.toHaveProperty("auth.password");
+  });
 });

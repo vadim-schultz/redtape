@@ -9,9 +9,11 @@ export type FakeAuthGateway = AuthGateway & {
 export function createFakeAuthGateway(initial?: {
   configured?: boolean;
   session?: AuthSession | null;
+  signInWithEmail?: (email: string) => Promise<void>;
 }): FakeAuthGateway {
   const configured = initial?.configured ?? true;
   let session = initial?.session ?? null;
+  const signInWithEmail = initial?.signInWithEmail ?? (async () => {});
   const listeners = new Set<(session: AuthSession | null) => void>();
 
   function emit(next: AuthSession | null) {
@@ -26,7 +28,7 @@ export function createFakeAuthGateway(initial?: {
       listeners.add(callback);
       return () => listeners.delete(callback);
     },
-    async signInWithEmail() {},
+    signInWithEmail,
     async signOut() {
       emit(null);
     },

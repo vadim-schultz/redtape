@@ -25,7 +25,12 @@
     "login": "Log In",
     "logout": "Log Out",
     "email": "Email",
-    "password": "Password"
+    "email_placeholder": "you@example.com",
+    "send_link": "Send magic link",
+    "link_sent_title": "Check your inbox",
+    "link_sent_body": "We sent a sign-in link to your email address.",
+    "error_generic": "Something went wrong. Please try again.",
+    "unavailable": "Sign-in is not available right now."
   },
   "documents": {
     "list_title": "Documents",

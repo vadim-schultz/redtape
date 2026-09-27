@@ -4,19 +4,19 @@ overview: "A /login page with an email magic-link form, sent-state and error han
 todos:
   - id: page
     content: "LoginPage container and LoginForm component"
-    status: pending
+    status: completed
   - id: i18n
     content: "auth.* keys in seeds and fallback bundles"
-    status: pending
+    status: completed
   - id: route
     content: "/login route, redirect when already signed in"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 10 — Web login UI
 
-**Repo:** `redtape` (`apps/web`, i18n seeds in `apps/api/scripts/seed_data/translations`) · **Branch:** `feat/auth-web-login` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, i18n seeds in `apps/api/scripts/seed_data/translations`) · **Branch:** `feat/auth-web-login` · **Status:** done
 
 **Depends on:** [9](09-web-supabase-session.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -90,6 +90,14 @@ tests beside them.
 
 - Page holds state only; markup lives in the three notices/form components (each ≤ ~60 LOC).
 - Report the outcome.
+
+✅ `LoginForm.tsx`, `LoginSentNotice.tsx` and `LoginErrorNotice.tsx` came in at 48, 16 and 16 lines. `LoginPage.tsx`
+(71 lines) holds the `formState` state and the redirect effect; its status/formState dispatch was pulled into a
+module-level `renderLoginContent` function — mirroring the existing `renderListContent` pattern in
+`DocumentsListQueryStatus` — instead of adding a fourth `if` branch inline. `signInWithEmail` in
+`supabaseAuthGateway.ts` also gained `emailRedirectTo` (`${origin}/login`) so a followed magic link lands the
+session where `LoginPage`'s redirect effect expects it; this wasn't in the chapter's file list but was needed
+for the "Redirect target" design decision to actually work.
 
 ## Verification
 

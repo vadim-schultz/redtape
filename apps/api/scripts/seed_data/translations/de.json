@@ -25,7 +25,12 @@
     "login": "Anmelden",
     "logout": "Abmelden",
     "email": "E-Mail",
-    "password": "Passwort"
+    "email_placeholder": "du@beispiel.de",
+    "send_link": "Anmeldelink senden",
+    "link_sent_title": "Prüfe dein Postfach",
+    "link_sent_body": "Wir haben dir einen Anmeldelink an deine E-Mail-Adresse gesendet.",
+    "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "unavailable": "Die Anmeldung ist momentan nicht verfügbar."
   },
   "documents": {
     "list_title": "Dokumente",
