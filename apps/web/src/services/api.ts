@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useAuth } from "../features/auth/contexts/AuthContext";
 import { useLocale } from "../contexts/LocaleContext";
 import { buildApiUrl } from "./apiOrigin";
 
@@ -30,9 +31,18 @@ export async function apiRequest<T>(
     body?: unknown;
     headers?: HeadersInit;
     signal?: AbortSignal;
+    accessToken?: string;
   },
 ): Promise<T> {
-  const { locale, method = "GET", query, body, headers, signal } = opts;
+  const {
+    locale,
+    method = "GET",
+    query,
+    body,
+    headers,
+    signal,
+    accessToken,
+  } = opts;
 
   const url = buildApiUrl(endpoint);
   if (query) {
@@ -49,6 +59,7 @@ export async function apiRequest<T>(
     headers: {
       Accept: "application/json",
       "Accept-Language": locale,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(headers ?? {}),
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
@@ -73,8 +84,12 @@ export async function apiRequest<T>(
  */
 export function useApi() {
   const { locale } = useLocale();
+  const { session } = useAuth();
 
-  type ApiRequestInit = Omit<Parameters<typeof apiRequest>[1], "locale">;
+  type ApiRequestInit = Omit<
+    Parameters<typeof apiRequest>[1],
+    "locale" | "accessToken"
+  >;
 
   return useMemo(() => {
     return {
@@ -84,9 +99,10 @@ export function useApi() {
       ): Promise<T> => {
         return apiRequest<T>(endpoint, {
           locale,
+          accessToken: session?.accessToken,
           ...(init ?? {}),
         });
       },
     };
-  }, [locale]);
+  }, [locale, session?.accessToken]);
 }

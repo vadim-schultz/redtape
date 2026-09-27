@@ -9,7 +9,9 @@ import { useMe } from "./useMe";
 const fetchMock = vi.fn();
 
 function wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return (
     <QueryClientProvider client={client}>
       <LocaleProvider>{children}</LocaleProvider>
@@ -18,20 +20,23 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function meCalls(): unknown[] {
-  return fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/v1/me"));
+  return fetchMock.mock.calls.filter(([url]) =>
+    String(url).includes("/api/v1/me"),
+  );
 }
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
-  fetchMock.mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        id: "user-1",
-        email: "ada@example.com",
-        display_name: "Ada",
-        role: "user",
-      }),
-    ),
+  fetchMock.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          id: "user-1",
+          email: "ada@example.com",
+          display_name: "Ada",
+          role: "user",
+        }),
+      ),
   );
 });
 afterEach(() => {

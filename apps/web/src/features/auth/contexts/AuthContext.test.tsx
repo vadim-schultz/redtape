@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "../../../contexts/LocaleContext";
@@ -27,7 +26,9 @@ function Probe() {
 
 function renderProbe(
   gateway: ReturnType<typeof createFakeAuthGateway>,
-  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  }),
 ) {
   return {
     user: userEvent.setup(),
@@ -60,7 +61,9 @@ it("AuthProvider · status is unconfigured when the gateway is not configured", 
 
   renderProbe(gateway);
 
-  await waitFor(() => expect(screen.getByText("unconfigured")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("unconfigured")).toBeInTheDocument(),
+  );
 });
 
 it("AuthProvider · status becomes authenticated when the gateway has a session", async () => {
@@ -68,27 +71,39 @@ it("AuthProvider · status becomes authenticated when the gateway has a session"
 
   renderProbe(gateway);
 
-  await waitFor(() => expect(screen.getByText("authenticated")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("authenticated")).toBeInTheDocument(),
+  );
 });
 
 it("AuthProvider · status becomes anonymous after sign-out", async () => {
   const gateway = createFakeAuthGateway({ session });
   renderProbe(gateway);
-  await waitFor(() => expect(screen.getByText("authenticated")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("authenticated")).toBeInTheDocument(),
+  );
 
   gateway.emit(null);
 
-  await waitFor(() => expect(screen.getByText("anonymous")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("anonymous")).toBeInTheDocument(),
+  );
 });
 
 it("AuthProvider · sign-out clears cached queries", async () => {
   const gateway = createFakeAuthGateway({ session });
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   queryClient.setQueryData(["unrelated"], "value");
   const { user } = renderProbe(gateway, queryClient);
-  await waitFor(() => expect(screen.getByText("authenticated")).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText("authenticated")).toBeInTheDocument(),
+  );
 
   await user.click(screen.getByRole("button", { name: "sign out" }));
 
-  await waitFor(() => expect(queryClient.getQueryCache().getAll()).toHaveLength(0));
+  await waitFor(() =>
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0),
+  );
 });

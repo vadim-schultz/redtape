@@ -6,11 +6,14 @@ import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 import { ColorModeProvider } from "../components/ui/color-mode";
+import { AuthProvider } from "../features/auth/contexts/AuthContext";
+import type { AuthGateway } from "../features/auth/services/authGateway";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
 export interface RenderWithProvidersOptions {
   initialEntries?: string[];
+  authGateway?: AuthGateway;
 }
 
 interface RenderWithProvidersResult extends ReturnType<typeof render> {
@@ -26,7 +29,7 @@ function createTestQueryClient(): QueryClient {
   });
 }
 
-function createWrapper(initialEntries: string[]) {
+function createWrapper(initialEntries: string[], authGateway?: AuthGateway) {
   const queryClient = createTestQueryClient();
 
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -35,9 +38,11 @@ function createWrapper(initialEntries: string[]) {
         <ChakraProvider value={system}>
           <ColorModeProvider defaultTheme="light" enableSystem={false}>
             <LocaleProvider>
-              <MemoryRouter initialEntries={initialEntries}>
-                {children}
-              </MemoryRouter>
+              <AuthProvider gateway={authGateway}>
+                <MemoryRouter initialEntries={initialEntries}>
+                  {children}
+                </MemoryRouter>
+              </AuthProvider>
             </LocaleProvider>
           </ColorModeProvider>
         </ChakraProvider>
@@ -51,12 +56,16 @@ export function renderWithProviders(
   ui: ReactElement,
   options?: RenderWithProvidersOptions & Omit<RenderOptions, "wrapper">,
 ): RenderWithProvidersResult {
-  const { initialEntries = ["/"], ...renderOptions } = options ?? {};
+  const {
+    initialEntries = ["/"],
+    authGateway,
+    ...renderOptions
+  } = options ?? {};
 
   return {
     user: userEvent.setup(),
     ...render(ui, {
-      wrapper: createWrapper(initialEntries),
+      wrapper: createWrapper(initialEntries, authGateway),
       ...renderOptions,
     }),
   };
