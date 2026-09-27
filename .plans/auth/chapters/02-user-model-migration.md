@@ -4,16 +4,16 @@ overview: "app_user table with the Supabase subject as primary key, unique email
 todos:
   - id: model
     content: "AppUser model and UserRole enum, exported from app.models"
-    status: pending
+    status: completed
   - id: migration
     content: "Alembic revision chained off 20260625_taxonomy"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 2 — User model and migration
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-user-model` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-user-model` · **Status:** done
 
 **Depends on:** [ci-foundation 1–2](../../ci-foundation/01-rollout.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -72,6 +72,11 @@ on `lower(email)` (`uq_app_user_email_lower`) so a differently-cased duplicate c
 ## Refactor gate
 
 One model per file (`user.py`), well under 100 LOC. Report the outcome.
+
+✅ No refactor needed — `user.py` is 42 LOC: one enum and one model, no branching. `UserRole` uses standard
+uppercase Python member names (`USER`, `MODERATOR`, `ADMIN`) with `values_callable` mapping them to the
+lowercase DB labels the chapter specifies, matching `JurisdictionKind`'s enum convention elsewhere in the
+codebase.
 
 ## Verification
 
