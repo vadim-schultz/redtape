@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Uuid, func, text
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, Uuid, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,7 +15,14 @@ class Locality(Base):
 
     __tablename__ = "locality"
 
-    __table_args__ = ()
+    __table_args__ = (
+        UniqueConstraint(
+            "municipality_id",
+            "postal_code",
+            "name",
+            name="uq_locality_municipality_postal_name",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
 

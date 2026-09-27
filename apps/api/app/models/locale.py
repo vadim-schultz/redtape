@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Float, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -19,17 +19,20 @@ class SupportedLocale(Base):
     flag_emoji: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     completeness_pct: Mapped[float] = mapped_column(Float, nullable=False, server_default="0.0")
-    created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 class UITranslation(Base):
     """UI strings keyed by dot-notation; DB is the runtime source of truth."""
 
     __tablename__ = "ui_translation"
+    __table_args__ = (Index("idx_ui_translation_locale", "locale"),)
 
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     locale: Mapped[str] = mapped_column(String(16), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     context: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )

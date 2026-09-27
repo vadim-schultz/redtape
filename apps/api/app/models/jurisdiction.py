@@ -46,14 +46,14 @@ class Jurisdiction(Base):
         ForeignKey("jurisdiction.id", ondelete="RESTRICT"),
         nullable=True,
     )
-    code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    code: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
 
     # OpenPLZ "type" (e.g. "Landkreis", "Kreisfreie Stadt", "Stadt", ...).
     # Keep it nullable so older rows from Wave 1 still work.
     openplz_type: Mapped[str | None] = mapped_column("type", String(128), nullable=True)
 
     # OpenPLZ municipality postalCode (primarily used for municipalities in Germany).
-    postal_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    postal_code: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     multiple_postal_codes: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
