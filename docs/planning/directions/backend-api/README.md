@@ -36,7 +36,7 @@ Document-specific resolution (JSONB `*_i18n`) arrives in Wave 1; this wave cover
 |------|--------|
 | `01-app-structure-and-dependencies.md` | (TBD) Project layout, DI, DB session, settings. |
 | `02-rest-resource-map.md` | (TBD) Resource map and OpenAPI strategy; include **`GET /api/v1/translations`**, **`GET /api/v1/locales`**, and **locale negotiation** on all user-facing reads. |
-| `03-auth-and-roles.md` | (TBD) Anonymous vs user vs moderator; JWT or session. |
+| `03-auth-and-roles.md` | Shipped — anonymous vs user vs moderator vs admin; Supabase JWT + hashed API keys. |
 | `04-graph-and-jurisdiction-endpoints.md` | (TBD) List/get document, edges, tree, scope resolution; **localized fields** in responses. |
 | `05-social-endpoints.md` | (TBD) Proposals, votes, evidence upload URLs. |
 

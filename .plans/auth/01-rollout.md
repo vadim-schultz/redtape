@@ -57,15 +57,15 @@ in parallel with 6–8.
 | 1 | Settings and Supabase config | backend | pytest + `./ci.sh` | [01-settings-and-supabase-config.md](chapters/01-settings-and-supabase-config.md) | done |
 | 2 | User model and migration | model + migration | pytest + round-trip + `./ci.sh` | [02-user-model-migration.md](chapters/02-user-model-migration.md) | done |
 | 3 | JWT verifier | backend | pytest + `./ci.sh` | [03-jwt-verifier.md](chapters/03-jwt-verifier.md) | done |
-| 4 | Current-user dependency | backend | pytest + `./ci.sh` | [04-current-user-dependency.md](chapters/04-current-user-dependency.md) | planned |
-| 5 | `/me` endpoint | backend | pytest + `./ci.sh` | [05-me-endpoint.md](chapters/05-me-endpoint.md) | planned |
-| 6 | Role guards | backend | pytest + `./ci.sh` | [06-role-guards.md](chapters/06-role-guards.md) | planned |
-| 7 | API key model and hashing | model + migration | pytest + round-trip + `./ci.sh` | [07-api-key-model-and-hashing.md](chapters/07-api-key-model-and-hashing.md) | planned |
-| 8 | Machine principal guard | backend | pytest + `./ci.sh` | [08-machine-principal-guard.md](chapters/08-machine-principal-guard.md) | planned |
+| 4 | Current-user dependency | backend | pytest + `./ci.sh` | [04-current-user-dependency.md](chapters/04-current-user-dependency.md) | done |
+| 5 | `/me` endpoint | backend | pytest + `./ci.sh` | [05-me-endpoint.md](chapters/05-me-endpoint.md) | done |
+| 6 | Role guards | backend | pytest + `./ci.sh` | [06-role-guards.md](chapters/06-role-guards.md) | done |
+| 7 | API key model and hashing | model + migration | pytest + round-trip + `./ci.sh` | [07-api-key-model-and-hashing.md](chapters/07-api-key-model-and-hashing.md) | done |
+| 8 | Machine principal guard | backend | pytest + `./ci.sh` | [08-machine-principal-guard.md](chapters/08-machine-principal-guard.md) | done |
 | 9 | Web Supabase session | frontend | vitest + `./ci.sh` | [09-web-supabase-session.md](chapters/09-web-supabase-session.md) | done |
 | 10 | Web login UI | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-login-ui.md](chapters/10-web-login-ui.md) | done |
 | 11 | Web menu and route guard | frontend + i18n | vitest + `./ci.sh` + manual | [11-web-menu-and-route-guard.md](chapters/11-web-menu-and-route-guard.md) | done |
-| 12 | Docs sync | docs | link check | [12-docs-sync.md](chapters/12-docs-sync.md) | planned |
+| 12 | Docs sync | docs | link check | [12-docs-sync.md](chapters/12-docs-sync.md) | done |
 
 Typical negative assertions per slice: expired token, wrong audience, wrong issuer, bad signature, `alg`
 none, unknown `kid`, missing header, malformed header, revoked key, unknown key, insufficient role, machine

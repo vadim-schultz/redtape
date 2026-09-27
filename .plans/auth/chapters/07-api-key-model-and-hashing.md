@@ -4,19 +4,19 @@ overview: "api_key table storing only SHA-256 hashes, an ApiKeyService that issu
 todos:
   - id: model
     content: "ApiKey model and migration"
-    status: pending
+    status: completed
   - id: service
     content: "ApiKeyService issue, verify, revoke"
-    status: pending
+    status: completed
   - id: script
     content: "scripts/issue_api_key.py"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 7 — API key model and hashing
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-api-keys` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-api-keys` · **Status:** done
 
 **Depends on:** [2](02-user-model-migration.md) (migration chain) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -85,6 +85,10 @@ script is a thin CLI, seed-script style, printing the plaintext once and never l
 - `_hash(key)`, `_generate()` are separate one-liners; `verify` ≈ 5 LOC.
 - The `last_used_at` throttle is its own method, not inline branching.
 - Report the outcome.
+
+✅ `ApiKeyService` landed exactly to plan: `_hash` and `_generate` are one-line `@staticmethod`s, `verify` is
+five lines (hash, look up, reject unknown/mismatched/revoked in one condition, touch, return), and the
+`last_used_at` throttle lives in its own `_touch_last_used` rather than inline in `verify`.
 
 ## Verification
 

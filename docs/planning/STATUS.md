@@ -15,7 +15,7 @@ Last updated: **2026-09-27**.
 | Wave 3 — deployment | Deploy MVP on Render + Cloudflare Pages, keep-alive cron | **Both hosts are live; CORS was broken between them and is being fixed, not yet reconfirmed end-to-end.** Frontend is deployed, but under a `workers.dev` domain (`https://redtape-web.vadim-schultz.workers.dev`), not the `pages.dev` domain assumed everywhere in config/docs — that mismatch caused the API to reject every frontend request (`400 Disallowed CORS Origin`). `CORS_ALLOWED_ORIGINS` in `render.yaml` has been corrected and pushed; a full click-through of the live frontend against the live API has not yet been confirmed. See "Verified deployment status" below. | [`render.yaml`](../../render.yaml), [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml), [deployment-checklist.md](../operations/deployment-checklist.md) |
 | Wave 4 — mobile (Flutter) | Read-only Flutter client | **Not started.** `apps/mobile` has only a README and one `.draft` provider file — no `pubspec.yaml`, no real Dart source. | [`apps/mobile/`](../../apps/mobile/) |
 | Wave 5 — jurisdiction fallback resolution | Deferred by design (seed MVP edges to one municipality) | **Unverified.** A full jurisdiction hierarchy and document→jurisdiction breadcrumb already exist and are tested, but it hasn't been directly confirmed whether real municipality→region→country precedence resolution (per [directions/data-model-migrations/03-graph-resolution-and-views.md](directions/data-model-migrations/03-graph-resolution-and-views.md)) is implemented, or whether the deferred-MVP shortcut is still all there is. | [`apps/api/tests/test_document_jurisdiction_path.py`](../../apps/api/tests/test_document_jurisdiction_path.py) |
-| Wave 6 — Supabase Auth | Auth after MVP, prep for social layer | **Not started.** No auth/session/JWT code anywhere in `apps/api`. | — |
+| Wave 6 — Supabase Auth | Auth after MVP, prep for social layer | **Done.** Supabase JWT verification, `app_user` roles (`user`/`moderator`/`admin`), hashed machine API keys, and the web login UI, account menu and route guard are all shipped across twelve chapters. | [`apps/api/app/features/auth/`](../../apps/api/app/features/auth/), [`apps/web/src/features/auth/`](../../apps/web/src/features/auth/), [`.plans/auth/`](../../.plans/auth/00-architecture.md) |
 | Wave 7+ — social/moderation/crawlers/GDPR | Later waves | **Not started.** No proposal/vote/audit tables, no discovery/freshness crawler, no consent/privacy code. | — |
 
 ## Verified deployment status
@@ -65,6 +65,13 @@ run [`apps/api/scripts/check_migrations.sh`](../../apps/api/scripts/check_migrat
 database on every PR: single Alembic head, `upgrade head`, downgrade/upgrade round trip of the newest
 revision, and `alembic check` for model/migration drift. Details: [`.plans/ci-foundation/`](../../.plans/ci-foundation/00-architecture.md).
 
+**Update, 2026-09-27 — auth shipped.** Supabase Auth (email magic link) is verified by the API via JWT/JWKS;
+`app_user` carries a `user`/`moderator`/`admin` role, never read from the token; hashed API keys
+(`rt_…`, SHA-256 only) authenticate machine clients such as crawlers. Web gained a Supabase session, a login
+page, an account menu item and a `RequireAuth` route guard. All twelve chapters done; nothing changes for an
+environment with no Supabase project configured. Details: [`.plans/auth/`](../../.plans/auth/00-architecture.md),
+runbook: [`docs/operations/auth-setup.md`](../operations/auth-setup.md).
+
 ## Next step
 
 **Confirm the live frontend can actually talk to the live API (Wave 3, D9 smoke tests):** deploy the Worker + SPA (same-origin `/api` proxy), then click through `https://redtape-web.vadim-schultz.workers.dev` and confirm DevTools → Network shows same-origin `…/api/v1/…` requests succeeding. Re-run [deployment-checklist.md](../operations/deployment-checklist.md) against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
@@ -72,4 +79,3 @@ revision, and `alembic check` for model/migration drift. Details: [`.plans/ci-fo
 Known follow-ups, not yet scheduled:
 - Confirm whether Render auto-deploys on `render.yaml` env var changes for this service, or whether a manual Blueprint sync is required — unclear from this session.
 - Verify Wave 5 fallback-resolution behavior by reading the documents service directly.
-- Before starting Wave 6 (Supabase Auth): write `directions/backend-api/03-auth-and-roles.md`, still marked TBD.

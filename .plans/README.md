@@ -103,7 +103,7 @@ with roles; hashed API keys for machine clients such as crawlers. Twelve chapter
 | [gaps-and-decisions.md](auth/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](auth/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-settings-and-supabase-config.md](auth/chapters/01-settings-and-supabase-config.md).
+Status: shipped — all twelve chapters done. Open seams: [gaps-and-decisions.md](auth/gaps-and-decisions.md).
 
 ### [suggestion-interface/](suggestion-interface/) — One submission API for people and crawlers
 
