@@ -67,6 +67,103 @@ Prerequisite for the document-collection suites. Backend and CI only, three chap
 
 Status: planned — no chapter started. First: [chapters/01-postgres-in-ci.md](ci-foundation/chapters/01-postgres-in-ci.md).
 
+### The document-collection pipeline
+
+Five suites, in dependency order, take the catalogue from hand-seeded to crawler- and community-grown:
+people and crawlers submit through one interface, evidence backs every claim, votes and moderators decide,
+and a scheduled crawler produces the first real traffic through all of it.
+
+```mermaid
+flowchart LR
+  CI[ci-foundation] --> AU[auth]
+  AU --> SI[suggestion-interface]
+  SI --> VM[voting-moderation]
+  CI --> ES[evidence-storage]
+  AU --> ES
+  SI --> ES
+  ES --> CR[crawlers]
+  SI --> CR
+  AU --> CR
+  VM -.optional order.-> CR
+```
+
+`evidence-storage` chapters 1–2 (the object-store port and the S3/MinIO adapter) have no suggestion
+dependency and can start immediately, in parallel with `ci-foundation` and `auth`. `voting-moderation` and
+`crawlers` do not depend on each other and can proceed in parallel once their own prerequisites ship.
+
+### [auth/](auth/) — Login, roles and machine API keys
+
+Supabase Auth (email magic link) for humans, verified by the API via JWT/JWKS; a local `app_user` table
+with roles; hashed API keys for machine clients such as crawlers. Twelve chapters across backend and web.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](auth/00-architecture.md) | Vocabulary, request flow, data model, API contract |
+| [01-rollout.md](auth/01-rollout.md) | Twelve chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](auth/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](auth/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-settings-and-supabase-config.md](auth/chapters/01-settings-and-supabase-config.md).
+
+### [suggestion-interface/](suggestion-interface/) — One submission API for people and crawlers
+
+A `suggestion` model and API for proposing new documents and new dependency edges; validated, deduplicated,
+pending until voted on. Eleven chapters across backend and web.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](suggestion-interface/00-architecture.md) | Vocabulary, data model, payloads, API contract |
+| [01-rollout.md](suggestion-interface/01-rollout.md) | Eleven chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](suggestion-interface/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](suggestion-interface/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-suggestion-model-migration.md](suggestion-interface/chapters/01-suggestion-model-migration.md).
+
+### [evidence-storage/](evidence-storage/) — Screenshots and fetch evidence in Cloudflare R2
+
+An `ObjectStore` port with an S3-compatible adapter (R2 in production, MinIO locally), an `evidence` table
+recording what was fetched and when, and upload/read endpoints. Nine chapters.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](evidence-storage/00-architecture.md) | Vocabulary, design, data model, API contract |
+| [01-rollout.md](evidence-storage/01-rollout.md) | Nine chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](evidence-storage/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](evidence-storage/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-object-store-port-and-settings.md](evidence-storage/chapters/01-object-store-port-and-settings.md).
+
+### [voting-moderation/](voting-moderation/) — Votes, thresholds and promotion
+
+Signed-in users vote pending suggestions to approval or rejection; approval promotes a suggestion into the
+real catalogue; every vote, transition and moderator override is recorded in an append-only event log.
+Twelve chapters.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](voting-moderation/00-architecture.md) | Vocabulary, data model, thresholds, promotion |
+| [01-rollout.md](voting-moderation/01-rollout.md) | Twelve chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](voting-moderation/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](voting-moderation/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-vote-model-migration.md](voting-moderation/chapters/01-vote-model-migration.md).
+
+### [crawlers/](crawlers/) — Discovery crawler
+
+A separate `apps/crawler` package: fetches configured sources politely, extracts document candidates,
+captures a screenshot as evidence, and submits both through the suggestion API — as scheduled GitHub
+Actions jobs, with no direct database access. Discovery mode only (see the strand's freshness mode).
+Eleven chapters.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](crawlers/00-architecture.md) | Vocabulary, package layout, fetching, extraction, scheduling |
+| [01-rollout.md](crawlers/01-rollout.md) | Eleven chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](crawlers/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](crawlers/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First: [chapters/01-crawler-package-skeleton.md](crawlers/chapters/01-crawler-package-skeleton.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
