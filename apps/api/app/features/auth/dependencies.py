@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from litestar import Request
+from litestar.connection import ASGIConnection
 from litestar.di import Provide
 from litestar.exceptions import NotAuthorizedException
 from sqlalchemy.orm import Session
@@ -37,8 +38,8 @@ def provide_jwt_verifier() -> JwtVerifier:
     return _jwt_verifier
 
 
-def _bearer_token(request: Request) -> str:
-    header = request.headers.get("Authorization")
+def _bearer_token(connection: ASGIConnection) -> str:
+    header = connection.headers.get("Authorization")
     if header is None:
         raise AuthError("missing")
     scheme, _, token = header.partition(" ")
@@ -47,11 +48,13 @@ def _bearer_token(request: Request) -> str:
     return token
 
 
-def _authenticate(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser:
+def user_from_connection(connection: ASGIConnection, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser:
+    """Resolve the database-backed user for a connection; shared by the dependency and by guards."""
+
     try:
         if not settings.auth_enabled:
             raise AuthError("auth_disabled")
-        claims = jwt_verifier.verify(_bearer_token(request))
+        claims = jwt_verifier.verify(_bearer_token(connection))
     except AuthError as exc:
         logger.info("current_user rejected: %s", exc.reason)
         raise NotAuthorizedException("Not authenticated") from exc
@@ -59,13 +62,13 @@ def _authenticate(request: Request, jwt_verifier: JwtVerifier, user_service: Use
 
 
 def provide_current_user(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser:
-    return _authenticate(request, jwt_verifier, user_service)
+    return user_from_connection(request, jwt_verifier, user_service)
 
 
 def provide_optional_user(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser | None:
     if not settings.auth_enabled or request.headers.get("Authorization") is None:
         return None
-    return _authenticate(request, jwt_verifier, user_service)
+    return user_from_connection(request, jwt_verifier, user_service)
 
 
 router_dependencies = {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,9 @@ class UserRepository:
 
     def get(self, id: uuid.UUID) -> AppUser | None:
         return self._session.get(AppUser, id)
+
+    def get_by_email(self, email: str) -> AppUser | None:
+        return self._session.scalar(select(AppUser).where(func.lower(AppUser.email) == email.lower()))
 
     def upsert(self, *, id: uuid.UUID, email: str, display_name: str | None) -> AppUser:
         stmt = (
