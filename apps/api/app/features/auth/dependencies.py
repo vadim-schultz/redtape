@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.features.auth.jwt import AuthError, JwtVerifier, jwks_key_resolver
-from app.features.auth.repository import UserRepository
-from app.features.auth.service import UserService
+from app.features.auth.principal import MachinePrincipal
+from app.features.auth.repository import ApiKeyRepository, UserRepository
+from app.features.auth.service import ApiKeyError, ApiKeyService, UserService
 from app.models import AppUser
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,14 @@ def provide_user_repository(session: Session) -> UserRepository:
 
 def provide_user_service(user_repository: UserRepository) -> UserService:
     return UserService(user_repository)
+
+
+def provide_api_key_repository(session: Session) -> ApiKeyRepository:
+    return ApiKeyRepository(session)
+
+
+def provide_api_key_service(api_key_repository: ApiKeyRepository) -> ApiKeyService:
+    return ApiKeyService(api_key_repository)
 
 
 def provide_jwt_verifier() -> JwtVerifier:
@@ -65,6 +74,28 @@ def provide_current_user(request: Request, jwt_verifier: JwtVerifier, user_servi
     return user_from_connection(request, jwt_verifier, user_service)
 
 
+def _api_key_value(connection: ASGIConnection) -> str:
+    header = connection.headers.get("X-API-Key")
+    if header is None:
+        raise AuthError("missing")
+    return header
+
+
+def machine_principal_from_connection(connection: ASGIConnection, api_key_service: ApiKeyService) -> MachinePrincipal:
+    """Resolve the machine principal for a connection; shared by the dependency and by guards."""
+
+    try:
+        record = api_key_service.verify(_api_key_value(connection))
+    except (AuthError, ApiKeyError) as exc:
+        logger.info("machine principal rejected: %s", exc)
+        raise NotAuthorizedException("Not authenticated") from exc
+    return MachinePrincipal(api_key=record)
+
+
+def provide_machine_principal(request: Request, api_key_service: ApiKeyService) -> MachinePrincipal:
+    return machine_principal_from_connection(request, api_key_service)
+
+
 def provide_optional_user(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser | None:
     if not settings.auth_enabled or request.headers.get("Authorization") is None:
         return None
@@ -74,7 +105,10 @@ def provide_optional_user(request: Request, jwt_verifier: JwtVerifier, user_serv
 router_dependencies = {
     "user_repository": Provide(provide_user_repository, sync_to_thread=False),
     "user_service": Provide(provide_user_service, sync_to_thread=False),
+    "api_key_repository": Provide(provide_api_key_repository, sync_to_thread=False),
+    "api_key_service": Provide(provide_api_key_service, sync_to_thread=False),
     "jwt_verifier": Provide(provide_jwt_verifier, sync_to_thread=False),
     "current_user": Provide(provide_current_user, sync_to_thread=False),
     "optional_user": Provide(provide_optional_user, sync_to_thread=False),
+    "principal": Provide(provide_machine_principal, sync_to_thread=False),
 }
