@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 
 @pytest.fixture
 def service(db_session: Session) -> TaxonomyService:
-    seed_taxonomy(db_session)
+    # tags={}: this suite only resolves domain/situation codes, not documents;
+    # the default tag map references a document graph this fixture never seeds.
+    seed_taxonomy(db_session, tags={})
     db_session.flush()
     return TaxonomyService(TaxonomyRepository(db_session))
 
