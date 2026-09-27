@@ -30,7 +30,9 @@
     "link_sent_title": "Check your inbox",
     "link_sent_body": "We sent a sign-in link to your email address.",
     "error_generic": "Something went wrong. Please try again.",
-    "unavailable": "Sign-in is not available right now."
+    "unavailable": "Sign-in is not available right now.",
+    "sign_in": "Sign in",
+    "sign_out": "Sign out"
   },
   "documents": {
     "list_title": "Documents",

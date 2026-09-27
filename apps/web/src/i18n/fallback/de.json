@@ -30,7 +30,9 @@
     "link_sent_title": "Prüfe dein Postfach",
     "link_sent_body": "Wir haben dir einen Anmeldelink an deine E-Mail-Adresse gesendet.",
     "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
-    "unavailable": "Die Anmeldung ist momentan nicht verfügbar."
+    "unavailable": "Die Anmeldung ist momentan nicht verfügbar.",
+    "sign_in": "Anmelden",
+    "sign_out": "Abmelden"
   },
   "documents": {
     "list_title": "Dokumente",
