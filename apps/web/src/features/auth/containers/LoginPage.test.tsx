@@ -57,9 +57,7 @@ it("LoginPage · shows the error notice when the gateway fails", async () => {
 
   await submitEmail(user);
 
-  expect(
-    await screen.findByText(/something went wrong/i),
-  ).toBeInTheDocument();
+  expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
   expect(screen.getByRole("textbox")).toBeEnabled();
   expect(screen.getByRole("button")).toBeEnabled();
 });
@@ -80,9 +78,7 @@ it("LoginPage · redirects to the originating page once authenticated", async ()
     { pathname: "/login", state: { from: { pathname: "/documents/42" } } },
   ]);
 
-  await waitFor(() =>
-    expect(screen.getByText("doc-42")).toBeInTheDocument(),
-  );
+  await waitFor(() => expect(screen.getByText("doc-42")).toBeInTheDocument());
 });
 
 it("LoginPage · redirects to /documents when there is no origin", async () => {

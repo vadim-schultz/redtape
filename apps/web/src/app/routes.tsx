@@ -10,9 +10,18 @@ const DocumentsListPage = lazy(
 const DocumentDetailPage = lazy(
   () => import("../features/documents/containers/DocumentDetailPage"),
 );
+const LoginPage = lazy(() => import("../features/auth/containers/LoginPage"));
 
 export const routes = [
   { path: "/", element: <Navigate to="/documents" replace /> },
+  {
+    path: "/login",
+    element: (
+      <Suspense fallback={null}>
+        <LoginPage />
+      </Suspense>
+    ),
+  },
   {
     path: "/documents",
     element: (

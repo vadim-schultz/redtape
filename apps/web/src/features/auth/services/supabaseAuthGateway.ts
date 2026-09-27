@@ -45,7 +45,10 @@ function createGateway(client: SupabaseClient | undefined): AuthGateway {
 
     async signInWithEmail(email) {
       if (!client) return;
-      await client.auth.signInWithOtp({ email });
+      await client.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/login` },
+      });
     },
 
     async signOut() {

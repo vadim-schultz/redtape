@@ -4,7 +4,10 @@ import { expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import LoginForm from "./LoginForm";
 
-function typeEmail(user: ReturnType<typeof renderWithProviders>["user"], value: string) {
+function typeEmail(
+  user: ReturnType<typeof renderWithProviders>["user"],
+  value: string,
+) {
   return user.type(screen.getByRole("textbox"), value);
 }
 
