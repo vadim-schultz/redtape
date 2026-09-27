@@ -4,19 +4,19 @@ overview: "Record auth as shipped, write the missing backend-api auth-and-roles 
 todos:
   - id: direction
     content: "docs/planning/directions/backend-api/03-auth-and-roles.md"
-    status: pending
+    status: completed
   - id: ops
     content: "docs/operations/auth-setup.md (Supabase project, env vars, promoting moderators, issuing keys)"
-    status: pending
+    status: completed
   - id: status
     content: "STATUS.md, roadmap Wave 6, plan statuses"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 12 — Docs sync
 
-**Repo:** `redtape` (docs only) · **Branch:** `docs/auth-sync` · **Status:** planned
+**Repo:** `redtape` (docs only) · **Branch:** `docs/auth-sync` · **Status:** done
 
 **Depends on:** [6](06-role-guards.md), [8](08-machine-principal-guard.md), [11](11-web-menu-and-route-guard.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -61,6 +61,11 @@ Write the two documents; edit the rest; run the link check over `.plans/` and `d
 ## Refactor gate
 
 Docs only; nothing to gate beyond the checks.
+
+✅ Also found and fixed drift beyond this chapter's own file list while writing the status grep: chapter 7
+(API key model and hashing) was fully implemented and tested but its frontmatter/status still read
+"planned" — corrected to "done" with its refactor-gate outcome filled in, since leaving it would have
+defeated the point of this chapter.
 
 ## Verification
 

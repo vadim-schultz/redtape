@@ -145,11 +145,18 @@ This wave deploys the already-built MVP slice on free-tier–friendly services.
 
 ## Wave 6 — Supabase Auth + protected writes (prep for social)
 
-| Step | Outcome | Notes |
-|------|---------|--------|
-| A1 | Enable email provider in Supabase; document **JWT** validation steps for Litestar | Use JWKS URL from Supabase. |
-| A2 | Middleware/guard: optional auth; `GET` stays public | Matches public knowledge + future accounts. |
-| A3 | Web: Supabase JS client; login form; store session; attach `Authorization` on mutating routes (later) | Hour may be tight—split A3a login UI / A3b session storage. |
+**Status: Done.** Shipped as twelve chapters, well beyond this wave's original three-step sketch — roles
+(`user`/`moderator`/`admin`), hashed machine API keys, and a web login/account UI were not part of A1–A3 but
+were needed for the suggestion/voting/crawler suites that depend on auth. See
+[`.plans/auth/`](../../.plans/auth/00-architecture.md) and
+[directions/backend-api/03-auth-and-roles.md](directions/backend-api/03-auth-and-roles.md) for the shipped
+design, and [docs/operations/auth-setup.md](../operations/auth-setup.md) for the setup runbook.
+
+| Step | Outcome | Notes | Status |
+|------|---------|--------|--------|
+| A1 | Enable email provider in Supabase; document **JWT** validation steps for Litestar | Use JWKS URL from Supabase. | Done — [chapters 1–3](../../.plans/auth/chapters/) |
+| A2 | Middleware/guard: optional auth; `GET` stays public | Matches public knowledge + future accounts. | Done — [chapters 4–6, 8](../../.plans/auth/chapters/), expressed as dependencies/guards rather than middleware (D5) |
+| A3 | Web: Supabase JS client; login form; store session; attach `Authorization` on mutating routes (later) | Hour may be tight—split A3a login UI / A3b session storage. | Done — [chapters 9–11](../../.plans/auth/chapters/) |
 
 ---
 
