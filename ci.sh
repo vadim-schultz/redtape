@@ -27,8 +27,20 @@ PYTHONPATH=. \
   DATABASE_URL="sqlite:///test.db" \
   uv run mypy app scripts
 
+# DB-backed tests need Postgres (app/config.py defaults DATABASE_URL to the
+# compose db); start it if nothing is listening on 5432 yet. Without Docker,
+# tests fall back to skipping — export REQUIRE_DB=0 to silence the reason.
+if ! (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    echo "Postgres not reachable on 5432; starting 'docker compose up -d --wait db'..."
+    (cd "$ROOT" && docker compose up -d --wait db)
+  else
+    echo "Docker not found; DB-backed tests will fail (set REQUIRE_DB=0 to skip them instead)." >&2
+  fi
+fi
+
 PYTHONPATH=. \
-  DATABASE_URL="sqlite:///test.db" \
+  REQUIRE_DB="${REQUIRE_DB:-1}" \
   uv run pytest
 
 echo "=== Web Checks ==="
