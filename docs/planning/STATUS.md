@@ -2,7 +2,7 @@
 
 **This file is the source of truth for "what's done" and "what's next."** When a wave or milestone changes state, update this file rather than editing status markers scattered across [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) or the `directions/` docs (those keep their per-step detail; this page tracks the current, top-level picture).
 
-Last updated: **2026-09-26**.
+Last updated: **2026-09-27**.
 
 ## Wave-by-wave state
 
@@ -58,6 +58,13 @@ Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committ
 - `apps/mobile/README.md` said "Wave 3" for the Flutter client; the roadmap calls it Wave 4 — mobile doc corrected to match.
 - Stale/dead files not yet cleaned up (left alone for now — hygiene, not documentation): `apps/web/src/contexts/LocaleContext.tsx.draft`, `apps/mobile/lib/providers/locale_provider.dart.draft`, unused `apps/web/src/features/locations/components/LocationPicker.tsx`.
 
+**Update, 2026-09-27 — CI foundation shipped.** `apps/api` tests now run against a real Postgres service in
+both GitHub Actions and local `./ci.sh` (no more silent SQLite skip); a missing database fails the run when
+`REQUIRE_DB=1` (always set in CI) instead of skipping quietly. A second workflow job, and `./ci.sh` locally,
+run [`apps/api/scripts/check_migrations.sh`](../../apps/api/scripts/check_migrations.sh) against a fresh
+database on every PR: single Alembic head, `upgrade head`, downgrade/upgrade round trip of the newest
+revision, and `alembic check` for model/migration drift. Details: [`.plans/ci-foundation/`](../../.plans/ci-foundation/00-architecture.md).
+
 ## Next step
 
 **Confirm the live frontend can actually talk to the live API (Wave 3, D9 smoke tests):** deploy the Worker + SPA (same-origin `/api` proxy), then click through `https://redtape-web.vadim-schultz.workers.dev` and confirm DevTools → Network shows same-origin `…/api/v1/…` requests succeeding. Re-run [deployment-checklist.md](../operations/deployment-checklist.md) against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
@@ -66,4 +73,3 @@ Known follow-ups, not yet scheduled:
 - Confirm whether Render auto-deploys on `render.yaml` env var changes for this service, or whether a manual Blueprint sync is required — unclear from this session.
 - Verify Wave 5 fallback-resolution behavior by reading the documents service directly.
 - Before starting Wave 6 (Supabase Auth): write `directions/backend-api/03-auth-and-roles.md`, still marked TBD.
-- The `apps/api` CI (`api-lint-test.yml`) runs against SQLite while the schema needs Postgres (JSONB, native enums) — the two DB-backed test files likely skip silently in CI. Not fixed in this pass (out of scope — documentation only); flagged here for a future session.
