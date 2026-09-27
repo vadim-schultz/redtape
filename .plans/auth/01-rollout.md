@@ -62,7 +62,7 @@ in parallel with 6–8.
 | 6 | Role guards | backend | pytest + `./ci.sh` | [06-role-guards.md](chapters/06-role-guards.md) | planned |
 | 7 | API key model and hashing | model + migration | pytest + round-trip + `./ci.sh` | [07-api-key-model-and-hashing.md](chapters/07-api-key-model-and-hashing.md) | planned |
 | 8 | Machine principal guard | backend | pytest + `./ci.sh` | [08-machine-principal-guard.md](chapters/08-machine-principal-guard.md) | planned |
-| 9 | Web Supabase session | frontend | vitest + `./ci.sh` | [09-web-supabase-session.md](chapters/09-web-supabase-session.md) | planned |
+| 9 | Web Supabase session | frontend | vitest + `./ci.sh` | [09-web-supabase-session.md](chapters/09-web-supabase-session.md) | done |
 | 10 | Web login UI | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-login-ui.md](chapters/10-web-login-ui.md) | planned |
 | 11 | Web menu and route guard | frontend + i18n | vitest + `./ci.sh` + manual | [11-web-menu-and-route-guard.md](chapters/11-web-menu-and-route-guard.md) | planned |
 | 12 | Docs sync | docs | link check | [12-docs-sync.md](chapters/12-docs-sync.md) | planned |
