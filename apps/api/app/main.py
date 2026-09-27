@@ -7,6 +7,7 @@ from litestar.openapi.config import OpenAPIConfig
 from litestar.plugins.pydantic import PydanticPlugin
 
 from app.db import provide_session
+from app.features.auth.router import auth_router
 from app.features.documents.router import documents_router
 from app.features.locations.router import locations_router
 from app.features.taxonomy.router import taxonomy_router
@@ -22,6 +23,7 @@ def create_app() -> Litestar:
             health,
             list_locales,
             translations_bundle,
+            auth_router,
             documents_router,
             locations_router,
             taxonomy_router,
