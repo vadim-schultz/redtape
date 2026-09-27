@@ -11,6 +11,7 @@ import uuid
 from app.db import SessionLocal
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 # Stable UUIDs (re-runs merge by primary key)
@@ -28,49 +29,72 @@ ID_REQ_2 = uuid.UUID("33333333-3333-3333-3333-333333333302")
 ID_REQ_3 = uuid.UUID("33333333-3333-3333-3333-333333333303")
 
 
-def _upsert_jurisdictions(session: Session) -> None:
-    de = Jurisdiction(
-        id=ID_DE,
-        kind=JurisdictionKind.COUNTRY,
-        geographic_parent_id=None,
-        code="DE",
-        administrative_roles=["COUNTRY"],
-        name_i18n={
-            "de": "Deutschland",
-            "en": "Germany",
-        },
-    )
-    sn = Jurisdiction(
-        id=ID_SN,
-        kind=JurisdictionKind.REGION,
-        geographic_parent_id=ID_DE,
-        code="14",
-        administrative_roles=["REGION"],
-        name_i18n={
-            "de": "Sachsen",
-            "en": "Saxony",
-        },
-    )
-    dd = Jurisdiction(
-        id=ID_DD,
-        kind=JurisdictionKind.MUNICIPALITY,
-        geographic_parent_id=ID_SN,
-        code="14612000",
-        administrative_roles=["DISTRICT", "MUNICIPALITY"],
-        name_i18n={
-            "de": "Dresden",
-            "en": "Dresden",
-        },
-    )
-    session.merge(de)
-    session.merge(sn)
-    session.merge(dd)
+def _find_or_create_jurisdiction(session: Session, placeholder: Jurisdiction) -> uuid.UUID:
+    """Reuse a jurisdiction already at this (parent, code) instead of merging our own.
+
+    A real location import (see import_openplz_locations.py) may already own this
+    (parent, code) under a different id — Postgres's composite unique constraint
+    can't catch that collision itself since `geographic_parent_id` is nullable for
+    the country row, so we look it up ourselves rather than merge() by primary key
+    and create a duplicate.
+    """
+    existing_id = session.execute(
+        select(Jurisdiction.id).where(
+            Jurisdiction.geographic_parent_id == placeholder.geographic_parent_id,
+            Jurisdiction.code == placeholder.code,
+        )
+    ).scalar_one_or_none()
+    if existing_id is not None:
+        return existing_id
+
+    session.merge(placeholder)
+    return placeholder.id
 
 
-def _upsert_documents(session: Session) -> None:
+def _upsert_jurisdictions(session: Session) -> uuid.UUID:
+    de_id = _find_or_create_jurisdiction(
+        session,
+        Jurisdiction(
+            id=ID_DE,
+            kind=JurisdictionKind.COUNTRY,
+            geographic_parent_id=None,
+            code="DE",
+            administrative_roles=["COUNTRY"],
+            name_i18n={"de": "Deutschland", "en": "Germany"},
+        ),
+    )
+    session.flush()
+    sn_id = _find_or_create_jurisdiction(
+        session,
+        Jurisdiction(
+            id=ID_SN,
+            kind=JurisdictionKind.REGION,
+            geographic_parent_id=de_id,
+            code="14",
+            administrative_roles=["REGION"],
+            name_i18n={"de": "Sachsen", "en": "Saxony"},
+        ),
+    )
+    session.flush()
+    dd_id = _find_or_create_jurisdiction(
+        session,
+        Jurisdiction(
+            id=ID_DD,
+            kind=JurisdictionKind.MUNICIPALITY,
+            geographic_parent_id=sn_id,
+            code="14612000",
+            administrative_roles=["DISTRICT", "MUNICIPALITY"],
+            name_i18n={"de": "Dresden", "en": "Dresden"},
+        ),
+    )
+    session.flush()
+    return dd_id
+
+
+def _upsert_documents(session: Session, jurisdiction_id: uuid.UUID) -> None:
     melde = Document(
         id=ID_DOC_MELDE,
-        jurisdiction_id=ID_DD,
+        jurisdiction_id=jurisdiction_id,
         slug="meldebescheinigung",
         title_i18n={
             "de": "Meldebescheinigung",
@@ -84,7 +108,7 @@ def _upsert_documents(session: Session) -> None:
     )
     ausweis = Document(
         id=ID_DOC_AUSWEIS,
-        jurisdiction_id=ID_DD,
+        jurisdiction_id=jurisdiction_id,
         slug="personalausweis",
         title_i18n={
             "de": "Personalausweis",
@@ -98,7 +122,7 @@ def _upsert_documents(session: Session) -> None:
     )
     geburt = Document(
         id=ID_DOC_GEBURT,
-        jurisdiction_id=ID_DD,
+        jurisdiction_id=jurisdiction_id,
         slug="geburtsurkunde",
         title_i18n={
             "de": "Geburtsurkunde",
@@ -112,7 +136,7 @@ def _upsert_documents(session: Session) -> None:
     )
     wohn = Document(
         id=ID_DOC_WOHN,
-        jurisdiction_id=ID_DD,
+        jurisdiction_id=jurisdiction_id,
         slug="wohnungsgeberbescheinigung",
         title_i18n={
             "de": "Wohnungsgeberbescheinigung",
@@ -128,13 +152,13 @@ def _upsert_documents(session: Session) -> None:
         session.merge(row)
 
 
-def _upsert_requirements(session: Session) -> None:
+def _upsert_requirements(session: Session, jurisdiction_id: uuid.UUID) -> None:
     reqs = [
         DocumentRequirement(
             id=ID_REQ_1,
             parent_document_id=ID_DOC_MELDE,
             required_document_id=ID_DOC_AUSWEIS,
-            jurisdiction_id=ID_DD,
+            jurisdiction_id=jurisdiction_id,
             source="canonical",
             notes_i18n={
                 "de": "Identitätsnachweis für die Meldung.",
@@ -147,7 +171,7 @@ def _upsert_requirements(session: Session) -> None:
             id=ID_REQ_2,
             parent_document_id=ID_DOC_MELDE,
             required_document_id=ID_DOC_GEBURT,
-            jurisdiction_id=ID_DD,
+            jurisdiction_id=jurisdiction_id,
             source="canonical",
             notes_i18n={
                 "de": "Nachweis der Personenstandsangaben (Beispiel).",
@@ -160,7 +184,7 @@ def _upsert_requirements(session: Session) -> None:
             id=ID_REQ_3,
             parent_document_id=ID_DOC_MELDE,
             required_document_id=ID_DOC_WOHN,
-            jurisdiction_id=ID_DD,
+            jurisdiction_id=jurisdiction_id,
             source="canonical",
             notes_i18n={
                 "de": "Nachweis über die Wohnung (Beispiel).",
@@ -175,9 +199,9 @@ def _upsert_requirements(session: Session) -> None:
 
 
 def seed_mvp_graph(session: Session) -> None:
-    _upsert_jurisdictions(session)
-    _upsert_documents(session)
-    _upsert_requirements(session)
+    dresden_id = _upsert_jurisdictions(session)
+    _upsert_documents(session, dresden_id)
+    _upsert_requirements(session, dresden_id)
 
 
 def main() -> None:
