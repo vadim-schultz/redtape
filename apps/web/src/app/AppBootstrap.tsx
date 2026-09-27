@@ -8,11 +8,12 @@ import App from "./App";
 import AppLayout from "../components/layout/AppLayout";
 
 import { ColorModeProvider } from "../components/ui/color-mode";
+import { AuthProvider } from "../features/auth/contexts/AuthContext";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
 /**
- * Provider stack: Query + Chakra theme + color mode + locale + router.
+ * Provider stack: Query + Chakra theme + color mode + locale + auth + router.
  */
 const AppBootstrap = () => (
   <StrictMode>
@@ -20,11 +21,13 @@ const AppBootstrap = () => (
       <ChakraProvider value={system}>
         <ColorModeProvider>
           <LocaleProvider>
-            <BrowserRouter>
-              <AppLayout>
-                <App />
-              </AppLayout>
-            </BrowserRouter>
+            <AuthProvider>
+              <BrowserRouter>
+                <AppLayout>
+                  <App />
+                </AppLayout>
+              </BrowserRouter>
+            </AuthProvider>
           </LocaleProvider>
         </ColorModeProvider>
       </ChakraProvider>

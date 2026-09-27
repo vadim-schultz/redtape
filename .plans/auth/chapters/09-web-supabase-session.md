@@ -4,19 +4,19 @@ overview: "An authGateway wrapping supabase-js behind our own interface, an Auth
 todos:
   - id: gateway
     content: "authGateway interface, supabase implementation, in-memory fake"
-    status: pending
+    status: completed
   - id: context
     content: "AuthContext and AuthProvider mounted in AppBootstrap"
-    status: pending
+    status: completed
   - id: api
     content: "apiRequest accessToken option; useApi supplies it"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 9 — Web Supabase session
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/auth-web-session` · **Status:** planned
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/auth-web-session` · **Status:** done
 
 **Depends on:** [4](04-current-user-dependency.md), [5](05-me-endpoint.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §7–8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -91,6 +91,15 @@ URLs) must pass.
 - One component/hook per file; `AuthContext` ≤ ~100 LOC (state reducer extracted if it grows).
 - `supabaseAuthGateway.ts` maps library shapes to `AuthSession` in one function.
 - Report the outcome.
+
+✅ `AuthContext.tsx` came in at 95 lines: one `useEffect` subscribing to `getSession()` + `onChange`, one
+`useMe` call, two `useCallback`-wrapped actions, one `useMemo`d value — no branch count or nesting depth
+crossed the rule-of-three trigger, so no reducer extraction. `supabaseAuthGateway.ts` maps the Supabase
+`Session` to `AuthSession` in the single `toAuthSession` function as planned, and stayed the only file
+importing `@supabase/supabase-js`. One deviation from the sketch: `useMe` keys off `userId` (matching the
+"query keys include the user id" decision) rather than `accessToken`, so it takes `(accessToken, userId)`
+instead of the session object — kept the two params instead of threading the whole `AuthSession` through to
+avoid an unused-field coupling.
 
 ## Verification
 
