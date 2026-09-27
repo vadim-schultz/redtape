@@ -4,19 +4,19 @@ overview: "A current_user dependency that turns the Authorization bearer header 
 todos:
   - id: repo
     content: "UserRepository get and upsert"
-    status: pending
+    status: completed
   - id: service
     content: "UserService.resolve(claims)"
-    status: pending
+    status: completed
   - id: dep
     content: "provide_current_user and provide_optional_user"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 4 — Current-user dependency
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-current-user` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-current-user` · **Status:** done
 
 **Depends on:** [2](02-user-model-migration.md), [3](03-jwt-verifier.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3–4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -53,10 +53,18 @@ No network in tests.
 (same convention as documents/taxonomy). Feature routers that need them merge that dict; nothing is added
 to the global app.
 
+**Schema gap found in chapter 2.** The architecture doc (§5) and this chapter's own upsert design both
+call for `app_user.last_seen_at`, but chapter 2's migration never added the column — a drift between the
+plan and what shipped. Fixed here as a small additive migration (`20260927b_app_user_last_seen_at.py`,
+chained off `20260927_app_user`) plus the matching `Mapped[datetime]` field, rather than deferring it or
+dropping `last_seen_at` from the upsert.
+
 ## Files
 
 | Path | Change |
 | --- | --- |
+| `apps/api/app/models/user.py` | Add `last_seen_at` (gap fix, see above) |
+| `apps/api/alembic/versions/20260927b_app_user_last_seen_at.py` | Add `app_user.last_seen_at` column |
 | `apps/api/app/features/auth/repository.py` | `UserRepository.upsert(claims)`, `get(id)` |
 | `apps/api/app/features/auth/service.py` | `UserService.resolve(claims) -> AppUser` |
 | `apps/api/app/features/auth/dependencies.py` | Providers and `router_dependencies` |
@@ -90,6 +98,13 @@ to the global app.
 - Header parsing is a named function (`_bearer_token(request)`); providers ≤ ~5 LOC.
 - Upsert is one repository method; the service does not build SQL.
 - Report the outcome.
+
+✅ No further refactor needed. `dependencies.py` is 77 LOC: `provide_current_user`/`provide_optional_user`
+are each ≤ 3 LOC and only call the shared `_authenticate` helper (try/except mapping `AuthError` →
+`NotAuthorizedException`, one level of nesting); `_bearer_token` is a single guard clause. `repository.py`
+is one `upsert` method (a single `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`) plus `get`; `service.py`
+is a single `resolve` method with no SQL. No AI/typesafe-ai use here — token verification and user upsert
+are deterministic security paths, not judgment calls.
 
 ## Verification
 
