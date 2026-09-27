@@ -65,7 +65,7 @@ Prerequisite for the document-collection suites. Backend and CI only, three chap
 | [gaps-and-decisions.md](ci-foundation/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](ci-foundation/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-postgres-in-ci.md](ci-foundation/chapters/01-postgres-in-ci.md).
+Status: chapter 1 done (Postgres in CI). Next: [chapters/02-migration-roundtrip-job.md](ci-foundation/chapters/02-migration-roundtrip-job.md).
 
 ### The document-collection pipeline
 
