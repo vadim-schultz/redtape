@@ -39,7 +39,9 @@ function stubLocales(ok = true) {
   );
 }
 
-async function openMenu(authGateway?: ReturnType<typeof createFakeAuthGateway>) {
+async function openMenu(
+  authGateway?: ReturnType<typeof createFakeAuthGateway>,
+) {
   const view = renderWithProviders(<AppMenu />, { authGateway });
   await view.user.click(await screen.findByRole("button", { name: "Menu" }));
   return view;
