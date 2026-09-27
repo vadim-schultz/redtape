@@ -4,16 +4,16 @@ overview: "An X-API-Key dependency and require_machine guard producing a Machine
 todos:
   - id: machine
     content: "provide_machine_principal from X-API-Key"
-    status: pending
+    status: completed
   - id: either
     content: "provide_principal: user or machine"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 8 — Machine principal guard
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-machine-guard` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-machine-guard` · **Status:** done
 
 **Depends on:** [4](04-current-user-dependency.md), [7](07-api-key-model-and-hashing.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §2–4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -79,6 +79,19 @@ and malformed headers; the reason goes to the log.
 - `provide_principal` is a two-branch dispatch of ≈5 LOC calling the two named providers; a third
   credential type would trigger extracting a registry (rule of three).
 - Report the outcome.
+
+✅ `provide_principal` came out exactly as sketched: two header checks, an ambiguity guard, then two
+branches each delegating to a named resolver (`user_from_connection`, `machine_principal_from_connection`).
+No third branch, so no registry extraction. `UserPrincipal`/`MachinePrincipal` stayed frozen dataclasses
+with a `kind`/`id` property pair each; `principal.py` is 30 lines.
+
+One addition beyond the "Files" table: `require_machine` needed to tell "no credentials" (401) apart from
+"human credentials, wrong kind" (403), which `machine_principal_from_connection` alone can't do — it only
+sees the API-key header. The guard checks for a present `Authorization` header with no `X-API-Key` first
+(403), then falls through to the same `SessionLocal()` + `machine_principal_from_connection` pattern
+`require_role` already uses, so an actually-missing credential still surfaces as 401 from that shared
+resolver. `dependencies.py` and `guards.py` both grew but stayed under the class-size guideline; no
+extraction triggered.
 
 ## Verification
 
