@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, type RenderOptions } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, type InitialEntry } from "react-router-dom";
 
 import { ColorModeProvider } from "../components/ui/color-mode";
 import { AuthProvider } from "../features/auth/contexts/AuthContext";
@@ -12,7 +12,7 @@ import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
 export interface RenderWithProvidersOptions {
-  initialEntries?: string[];
+  initialEntries?: InitialEntry[];
   authGateway?: AuthGateway;
 }
 
@@ -29,7 +29,10 @@ function createTestQueryClient(): QueryClient {
   });
 }
 
-function createWrapper(initialEntries: string[], authGateway?: AuthGateway) {
+function createWrapper(
+  initialEntries: InitialEntry[],
+  authGateway?: AuthGateway,
+) {
   const queryClient = createTestQueryClient();
 
   return function Wrapper({ children }: { children: ReactNode }) {
