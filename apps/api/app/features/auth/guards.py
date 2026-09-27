@@ -6,9 +6,13 @@ from litestar.handlers.base import BaseRouteHandler
 from litestar.types import Guard
 
 from app.db import SessionLocal
-from app.features.auth.dependencies import provide_jwt_verifier, user_from_connection
-from app.features.auth.repository import UserRepository
-from app.features.auth.service import UserService
+from app.features.auth.dependencies import (
+    machine_principal_from_connection,
+    provide_jwt_verifier,
+    user_from_connection,
+)
+from app.features.auth.repository import ApiKeyRepository, UserRepository
+from app.features.auth.service import ApiKeyService, UserService
 from app.models.user import ROLE_RANK, UserRole
 
 
@@ -28,3 +32,13 @@ def require_role(min_role: UserRole) -> Guard:
             raise PermissionDeniedException("Insufficient role")
 
     return guard
+
+
+def require_machine(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+    """Guard: only lets machine (X-API-Key) callers through; a logged-in human has the wrong kind of credential."""
+
+    if connection.headers.get("X-API-Key") is None and connection.headers.get("Authorization") is not None:
+        raise PermissionDeniedException("Machine credentials required")
+    with SessionLocal() as session:
+        machine_principal_from_connection(connection, ApiKeyService(ApiKeyRepository(session)))
+        session.commit()
