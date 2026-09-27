@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
+import { createFakeAuthGateway } from "../../features/auth/services/fakeAuthGateway";
 import AppMenu from "./AppMenu";
 
 const LOCALES = [
@@ -38,8 +39,10 @@ function stubLocales(ok = true) {
   );
 }
 
-async function openMenu() {
-  const view = renderWithProviders(<AppMenu />);
+async function openMenu(
+  authGateway?: ReturnType<typeof createFakeAuthGateway>,
+) {
+  const view = renderWithProviders(<AppMenu />, { authGateway });
   await view.user.click(await screen.findByRole("button", { name: "Menu" }));
   return view;
 }
@@ -95,6 +98,22 @@ it("AppMenu · Escape closes and returns focus to the burger", async () => {
 
   const burger = screen.getByRole("button", { name: "Menu" });
   await waitFor(() => expect(burger).toHaveFocus());
+});
+
+it("AppMenu · account item precedes the colour switch", async () => {
+  stubLocales();
+  const gateway = createFakeAuthGateway({ session: null });
+  await openMenu(gateway);
+
+  const signIn = await screen.findByRole("menuitem", { name: "Sign in" });
+  const colorSwitch = screen.getByRole("checkbox", {
+    name: "Toggle color mode",
+  });
+
+  expect(
+    signIn.compareDocumentPosition(colorSwitch) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 });
 
 it("AppMenu · language item is absent when the locales request fails", async () => {

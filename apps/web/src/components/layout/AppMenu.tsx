@@ -3,11 +3,12 @@ import { FaBars } from "react-icons/fa";
 
 import { useLocale } from "../../contexts/LocaleContext";
 import { hoverMotion } from "../../theme/transitions";
+import AccountMenuItem from "./AccountMenuItem";
 import ColorModeSwitch from "./ColorModeSwitch";
 import { floatingSurface } from "./floatingSurface";
 import LocaleSubmenu from "./LocaleSubmenu";
 
-/** Burger button opening the app menu: colour switch and language submenu. */
+/** Burger button opening the app menu: account, colour switch and language submenu. */
 const AppMenu = () => {
   const { t } = useLocale();
 
@@ -25,6 +26,8 @@ const AppMenu = () => {
       <Portal>
         <Menu.Positioner>
           <Menu.Content>
+            <AccountMenuItem />
+            <Menu.Separator />
             <ColorModeSwitch />
             <Menu.Separator />
             <LocaleSubmenu />

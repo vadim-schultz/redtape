@@ -30,7 +30,9 @@
     "link_sent_title": "Check your inbox",
     "link_sent_body": "We sent a sign-in link to your email address.",
     "error_generic": "Something went wrong. Please try again.",
-    "unavailable": "Sign-in is not available right now."
+    "unavailable": "Sign-in is not available right now.",
+    "sign_in": "Sign in",
+    "sign_out": "Sign out"
   },
   "documents": {
     "list_title": "Documents",
@@ -63,7 +65,9 @@
     "unauthorized": "Unauthorized",
     "server_error": "Server error. Please try again later.",
     "page_not_found_title": "Page not found",
-    "page_not_found_body": "This address is not part of Redtape."
+    "page_not_found_body": "This address is not part of Redtape.",
+    "forbidden_title": "Access denied",
+    "forbidden_body": "You don't have permission to view this page."
   },
   "filters": {
     "domain": "Domain",
