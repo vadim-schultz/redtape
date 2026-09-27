@@ -4,19 +4,19 @@ overview: "A database-free JwtVerifier that validates a Supabase access token ag
 todos:
   - id: claims
     content: "TokenClaims and AuthError"
-    status: pending
+    status: completed
   - id: verifier
     content: "JwtVerifier with PyJWKClient"
-    status: pending
+    status: completed
   - id: dep
     content: "PyJWT[crypto] dependency"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 3 — JWT verifier
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-jwt-verifier` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-jwt-verifier` · **Status:** done
 
 **Depends on:** [1](01-settings-and-supabase-config.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3–4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
