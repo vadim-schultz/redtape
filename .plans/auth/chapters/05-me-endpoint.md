@@ -4,16 +4,16 @@ overview: "GET /api/v1/me returns the authenticated user's id, email, display na
 todos:
   - id: schema
     content: "UserRead schema"
-    status: pending
+    status: completed
   - id: route
     content: "Auth controller and router registered in the app"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 5 — /me endpoint
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-me` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/auth-me` · **Status:** done
 
 **Depends on:** [4](04-current-user-dependency.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -67,6 +67,12 @@ columns never leak by accident. No `created_at`, no internal flags.
 
 Handler is `return UserRead.model_validate(current_user)` plus the header decorator argument; nothing to
 extract. Report the outcome.
+
+✅ No refactor needed, as predicted. `controller.py` is 16 LOC total: one `Controller` with one `get`
+handler whose body is the single `model_validate` line; the `Cache-Control: no-store` requirement is
+declared via the handler's `cache_control` argument rather than written into the body, so there was never
+a second branch to dispatch on. No AI/typesafe-ai use here either — the endpoint returns exactly what's in
+`app_user`, a deterministic projection, not a judgment call.
 
 ## Verification
 
