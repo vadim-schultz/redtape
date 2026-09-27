@@ -5,19 +5,19 @@ from collections.abc import Iterator
 import pytest
 from app.main import create_app
 from litestar import Litestar
-from litestar.di import Provide
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy.orm import Session
 
 
 @pytest.fixture
-def client(db_session: Session) -> Iterator[TestClient[Litestar]]:
-    seed_taxonomy(db_session)
+def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    # tags={}: this suite only needs the domain/life-situation vocabulary, not
+    # the document tags, which reference a document graph this fixture never seeds.
+    seed_taxonomy(db_session, tags={})
     db_session.flush()
-    app = create_app()
-    app.dependencies["session"] = Provide(lambda: db_session, use_cache=False, sync_to_thread=False)
-    with TestClient(app) as test_client:
+    monkeypatch.setattr("app.main.provide_session", lambda: db_session)
+    with TestClient(create_app()) as test_client:
         yield test_client
 
 

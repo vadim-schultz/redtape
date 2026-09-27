@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from collections.abc import Generator
 
@@ -35,8 +36,13 @@ def deterministic_uuid_namespace() -> uuid.UUID:
     return uuid.uuid5(uuid.NAMESPACE_URL, "redtape.test.unit")
 
 
+def _require_db() -> bool:
+    return os.environ.get("REQUIRE_DB") == "1"
+
+
 def _try_create_schema() -> None:
-    # If the DB is unavailable (common in CI/dev), we skip integration tests.
+    # If the DB is unavailable, REQUIRE_DB=1 (always set in CI) fails loud;
+    # otherwise we skip integration tests (common for a contributor without Docker).
     Base.metadata.create_all(db_engine)
 
 
@@ -55,7 +61,9 @@ def db_session() -> Generator[Session, None, None]:
 
     try:
         _try_create_schema()
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
+        if _require_db():
+            raise
         pytest.skip(f"Database unavailable for tests: {e}")
 
     connection = db_engine.connect()

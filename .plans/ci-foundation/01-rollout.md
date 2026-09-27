@@ -39,7 +39,7 @@ Chapter 2 needs the Postgres service from chapter 1. Nothing here can run in par
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Postgres in CI | CI + test harness | pytest (DB tests executed) + `./ci.sh` | [01-postgres-in-ci.md](chapters/01-postgres-in-ci.md) | planned |
+| 1 | Postgres in CI | CI + test harness | pytest (DB tests executed) + `./ci.sh` | [01-postgres-in-ci.md](chapters/01-postgres-in-ci.md) | done |
 | 2 | Migration round-trip job | CI | workflow run + `./ci.sh` | [02-migration-roundtrip-job.md](chapters/02-migration-roundtrip-job.md) | planned |
 | 3 | Docs sync | docs | link check | [03-docs-sync.md](chapters/03-docs-sync.md) | planned |
 

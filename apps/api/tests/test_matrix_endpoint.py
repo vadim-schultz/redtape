@@ -56,7 +56,9 @@ def _document(session: Session, jurisdiction_id: uuid.UUID, slug: str, domains=(
 
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
-    seed_taxonomy(db_session)
+    # tags={}: this suite tags its own documents directly (see `_document` above); the
+    # default tag map references a document graph this fixture never seeds.
+    seed_taxonomy(db_session, tags={})
     home, abroad = _country(db_session, "XX"), _country(db_session, "YY")
     other_d = _other_code(db_session, Domain, HOUSING)
     other_s = _other_code(db_session, LifeSituation, MOVING)

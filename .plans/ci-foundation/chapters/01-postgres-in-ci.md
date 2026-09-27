@@ -4,22 +4,22 @@ overview: "API tests run against a Postgres service in GitHub Actions and in loc
 todos:
   - id: require-db
     content: "conftest: REQUIRE_DB turns the skip into a failure"
-    status: pending
+    status: completed
   - id: workflow
     content: "api-lint-test.yml: postgres service, DATABASE_URL, REQUIRE_DB"
-    status: pending
+    status: completed
   - id: ci-sh
     content: "ci.sh: stop forcing SQLite for pytest; start compose db when needed"
-    status: pending
+    status: completed
   - id: fallout
     content: "Fix any test that was silently skipped and now fails"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 1 — Postgres in CI
 
-**Repo:** `redtape` (`apps/api` tests, `.github/workflows`, `ci.sh`) · **Branch:** `feat/ci-foundation-postgres` · **Status:** planned
+**Repo:** `redtape` (`apps/api` tests, `.github/workflows`, `ci.sh`) · **Branch:** `feat/ci-foundation-postgres` · **Status:** done
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §1–3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -125,3 +125,24 @@ feat(api): fail instead of skipping DB tests when REQUIRE_DB is set
 
 ci: run API tests against a Postgres service and start compose db in ci.sh
 ```
+
+## Outcome
+
+- ✅ no refactor needed — `_require_db()` is one named helper, `db_session` keeps its one `except` branch
+  (~14 lines including its docstring), no new nesting.
+- SQLite pysqlite event hooks in `conftest.py` are kept as designed (dead under this workflow now, not
+  removed here).
+- Fallout, once run against a clean Postgres instead of the polluted local dev volume: four fixtures
+  (`test_taxonomy_service.py`, `test_documents_filter.py`, `test_matrix_endpoint.py`, `test_taxonomy_api.py`)
+  called `seed_taxonomy(db_session)` with its default document-tag map, which references
+  `scripts/seed_documents.py`'s fixed document ids — a foreign key violation none of these fixtures ever
+  seed. Always broken; always skipped before. Fixed with `tags={}` (one line, one commit each).
+- A second, unrelated fallout: `test_taxonomy_api.py`'s HTTP fixture overrode the session dependency via
+  `app.dependencies["session"] = Provide(...)` **after** calling `create_app()`. Litestar resolves and
+  caches each route handler's dependency providers once, during `Litestar()` construction itself — a
+  post-construction mutation of `app.dependencies` has no effect on handlers already built, so every
+  request silently used a fresh, disconnected session that saw none of the test's (uncommitted) data.
+  `test_documents_filter.py` and `test_matrix_endpoint.py` already used the pattern that actually works —
+  `monkeypatch.setattr("app.main.provide_session", lambda: db_session)` **before** `create_app()` — so
+  `test_taxonomy_api.py` was brought in line with them instead of inventing a third mechanism.
+- Full suite: 100 passed, zero DB skips, both via `apps/api` `pytest -rs` and `./ci.sh`.
