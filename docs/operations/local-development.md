@@ -86,6 +86,21 @@ failing; set `REQUIRE_DB=1` to fail instead (CI and `./ci.sh` always set it).
 `./ci.sh` runs this same suite alongside lint/typecheck/build, starting the
 compose `db` service itself if nothing is listening on 5432 yet.
 
+## Checking migrations
+
+```bash
+docker compose up -d --wait db
+cd apps/api
+DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape_migrations bash scripts/check_migrations.sh
+```
+
+[`scripts/check_migrations.sh`](../../apps/api/scripts/check_migrations.sh) asserts, against an empty
+database: exactly one Alembic head, `alembic upgrade head` succeeds, the newest revision's
+`downgrade`/`upgrade` round-trips cleanly, and `alembic check` reports no drift between the models and the
+migration chain. Point `DATABASE_URL` at a database separate from the one pytest uses — the script drops
+nothing itself, but running it against your dev database leaves it mid-round-trip. `./ci.sh` runs this same
+script against its own throwaway `redtape_migrations` database, and CI runs it as a separate workflow job.
+
 ## Resetting / reseeding the local database
 
 - **Reseed only** (fast, keeps schema/data structure): re-run the seed
