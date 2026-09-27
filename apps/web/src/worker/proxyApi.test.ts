@@ -36,6 +36,48 @@ describe("buildUpstreamRequest", () => {
   });
 });
 
+describe("buildUpstreamRequest · authorization", () => {
+  it("forwards the Authorization header upstream", () => {
+    const request = new Request(
+      "https://redtape-web.example.test/api/v1/me",
+      {
+        method: "GET",
+        headers: { Authorization: "Bearer token-1" },
+      },
+    );
+
+    const upstream = buildUpstreamRequest(
+      request,
+      "https://redtape-api.onrender.com",
+    );
+
+    expect(upstream.headers.get("Authorization")).toBe("Bearer token-1");
+  });
+
+  it("still strips host and origin", () => {
+    const request = new Request(
+      "https://redtape-web.example.test/api/v1/me",
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer token-1",
+          Origin: "https://redtape-web.example.test",
+          Host: "redtape-web.example.test",
+        },
+      },
+    );
+
+    const upstream = buildUpstreamRequest(
+      request,
+      "https://redtape-api.onrender.com",
+    );
+
+    expect(upstream.headers.get("Origin")).toBeNull();
+    expect(upstream.headers.get("Host")).toBeNull();
+    expect(upstream.headers.get("Authorization")).toBe("Bearer token-1");
+  });
+});
+
 describe("proxyApiRequest", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
