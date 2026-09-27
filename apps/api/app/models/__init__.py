@@ -6,8 +6,10 @@ from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locale import SupportedLocale, UITranslation
 from app.models.locality import Locality
 from app.models.taxonomy import Domain, LifeSituation
+from app.models.user import AppUser, UserRole
 
 __all__ = [
+    "AppUser",
     "Base",
     "Document",
     "DocumentRequirement",
@@ -18,4 +20,5 @@ __all__ = [
     "Locality",
     "SupportedLocale",
     "UITranslation",
+    "UserRole",
 ]
