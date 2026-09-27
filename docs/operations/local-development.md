@@ -70,6 +70,22 @@ own terminal tab/pane:
 | API | `cd apps/api && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000` | Auto-reloads on file changes |
 | Web | `cd apps/web && npm run dev` | Vite dev server, default `http://localhost:5173` |
 
+## Running the API test suite
+
+```bash
+docker compose up -d --wait db
+cd apps/api
+python -m pytest
+```
+
+DB-backed tests need Postgres (JSONB/ARRAY/native enum aren't available on
+SQLite); the `db_session` fixture creates its own schema via
+`Base.metadata.create_all`, so no migration or seed step is required first.
+If Postgres isn't reachable, those tests skip with a reason instead of
+failing; set `REQUIRE_DB=1` to fail instead (CI and `./ci.sh` always set it).
+`./ci.sh` runs this same suite alongside lint/typecheck/build, starting the
+compose `db` service itself if nothing is listening on 5432 yet.
+
 ## Resetting / reseeding the local database
 
 - **Reseed only** (fast, keeps schema/data structure): re-run the seed
@@ -117,11 +133,6 @@ own terminal tab/pane:
 
 ## Known gaps (not addressed by this setup)
 
-- CI (`.github/workflows/api-lint-test.yml`) still runs tests against
-  `sqlite:///test.db`; DB-backed tests silently skip there (see
-  `apps/api/tests/conftest.py` and `docs/planning/STATUS.md`). Wiring CI to a
-  real Postgres service container is a reasonable follow-up but is out of
-  scope here.
 - `apps/web/vite.config.ts`'s `/api` dev proxy (`VITE_DEV_API_PROXY`) is
   effectively unused — `apiRequest` always builds a fully-qualified URL from
   `VITE_API_URL` and never routes through it. Harmless; not touched here.
