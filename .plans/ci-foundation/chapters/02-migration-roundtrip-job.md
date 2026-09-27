@@ -4,19 +4,19 @@ overview: "Every PR applies Alembic migrations to an empty Postgres, downgrades 
 todos:
   - id: script
     content: "scripts/check_migrations.sh with the four checks"
-    status: pending
+    status: completed
   - id: job
     content: "Workflow job calling it against a fresh Postgres service"
-    status: pending
+    status: completed
   - id: ci-sh
     content: "ci.sh runs the same script"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 2 — Migration round-trip job
 
-**Repo:** `redtape` (`apps/api`, `.github/workflows`, `ci.sh`) · **Branch:** `feat/ci-foundation-migrations` · **Status:** planned
+**Repo:** `redtape` (`apps/api`, `.github/workflows`, `ci.sh`) · **Branch:** `feat/ci-foundation-migrations` · **Status:** done
 
 **Depends on:** [1](01-postgres-in-ci.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -49,6 +49,17 @@ well in logs. New revisions chain off `20260625_taxonomy` until later suites add
 ordering). If so, the drift is fixed in this chapter by an additive migration, or the specific comparison
 is narrowed with a documented `include_object` filter in `alembic/env.py`. Record which in the PR; do not
 disable the check.
+
+**What actually happened:** neither. A fresh chain reported four discrepancies (`ix_jurisdiction_code`,
+`ix_jurisdiction_postal_code`, `idx_ui_translation_locale`, `uq_locality_municipality_postal_name`, and
+timezone-naive `DateTime` on `supported_locale`/`ui_translation` timestamps vs. the migrated
+`TIMESTAMP WITH TIME ZONE`) — all pre-existing objects that migrations had created directly but the ORM
+models never declared. The database already matched the intended schema, so there was nothing to add via
+migration and nothing safe to narrow away with `include_object` (that would have permanently hidden real
+future drift on those same tables). The fix was to update `app/models/jurisdiction.py`, `locale.py` and
+`locality.py` to declare what the migrations had already built. This is a product-code change, which is
+narrower than but still in tension with the rollout's invariant 1 ("no model ... is added" — none was
+added, three were corrected); flagged here per "record which in the PR."
 
 ## Files
 

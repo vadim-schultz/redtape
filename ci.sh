@@ -39,6 +39,23 @@ if ! (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
   fi
 fi
 
+# Migration round trip: single head, upgrade, downgrade+upgrade, drift check.
+# Own database, dropped and recreated so it starts truly empty — separate
+# from the pytest database above, so a stray `create_all` can't hide a
+# missing migration.
+MIGRATIONS_DB="redtape_migrations"
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  (cd "$ROOT" && docker compose exec -T db psql -U postgres \
+    -c "DROP DATABASE IF EXISTS ${MIGRATIONS_DB};" \
+    -c "CREATE DATABASE ${MIGRATIONS_DB};")
+else
+  echo "Docker not found; skipping migration database (re)creation, check_migrations.sh may fail." >&2
+fi
+
+PYTHONPATH=. \
+  DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/${MIGRATIONS_DB}" \
+  uv run bash scripts/check_migrations.sh
+
 PYTHONPATH=. \
   REQUIRE_DB="${REQUIRE_DB:-1}" \
   uv run pytest

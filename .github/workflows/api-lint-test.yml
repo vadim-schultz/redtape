@@ -66,3 +66,42 @@ jobs:
       - name: Pytest
         run: pytest
 
+  migrations:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: .
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape_migrations
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: redtape_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d redtape_migrations"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install API + dev dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Migration round trip
+        run: bash scripts/check_migrations.sh
