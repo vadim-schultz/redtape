@@ -54,7 +54,7 @@ in parallel with 6–8.
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Settings and Supabase config | backend | pytest + `./ci.sh` | [01-settings-and-supabase-config.md](chapters/01-settings-and-supabase-config.md) | planned |
+| 1 | Settings and Supabase config | backend | pytest + `./ci.sh` | [01-settings-and-supabase-config.md](chapters/01-settings-and-supabase-config.md) | done |
 | 2 | User model and migration | model + migration | pytest + round-trip + `./ci.sh` | [02-user-model-migration.md](chapters/02-user-model-migration.md) | planned |
 | 3 | JWT verifier | backend | pytest + `./ci.sh` | [03-jwt-verifier.md](chapters/03-jwt-verifier.md) | planned |
 | 4 | Current-user dependency | backend | pytest + `./ci.sh` | [04-current-user-dependency.md](chapters/04-current-user-dependency.md) | planned |

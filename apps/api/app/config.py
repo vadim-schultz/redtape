@@ -20,5 +20,19 @@ class Settings(BaseSettings):
 
     cors_allowed_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    supabase_jwks_url: str | None = Field(
+        default=None,
+        description="Supabase project JWKS URL, e.g. https://<project_ref>.supabase.co/auth/v1/.well-known/jwks.json",
+    )
+    supabase_jwt_issuer: str | None = Field(
+        default=None,
+        description="Supabase project JWT issuer, e.g. https://<project_ref>.supabase.co/auth/v1",
+    )
+    supabase_jwt_audience: str = "authenticated"
+
+    @property
+    def auth_enabled(self) -> bool:
+        return self.supabase_jwks_url is not None and self.supabase_jwt_issuer is not None
+
 
 settings = Settings()
