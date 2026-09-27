@@ -19,6 +19,9 @@ class UserRole(enum.StrEnum):
     ADMIN = "admin"
 
 
+ROLE_RANK: dict[UserRole, int] = {UserRole.USER: 0, UserRole.MODERATOR: 1, UserRole.ADMIN: 2}
+
+
 class AppUser(Base):
     """A Supabase-authenticated identity, keyed by its Supabase `sub`."""
 
