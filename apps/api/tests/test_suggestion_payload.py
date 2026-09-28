@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
+from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
 from pydantic import ValidationError
 
@@ -77,3 +80,23 @@ def test_rejects_oversized_code_lists() -> None:
     codes = [f"code{i}" for i in range(21)]
     with pytest.raises(ValidationError):
         NewDocumentPayload.model_validate(_payload(domain_codes=codes))
+
+
+def _create_request(**overrides: object) -> dict[str, object]:
+    base: dict[str, object] = {
+        "kind": "new_document",
+        "jurisdiction_id": str(uuid4()),
+        "payload": _payload(),
+    }
+    base.update(overrides)
+    return base
+
+
+def test_suggestion_create_rejects_both_jurisdiction_id_and_municipality_code() -> None:
+    with pytest.raises(ValidationError):
+        SuggestionCreate.model_validate(_create_request(municipality_code="DE-BE"))
+
+
+def test_suggestion_create_rejects_neither_jurisdiction_id_nor_municipality_code() -> None:
+    with pytest.raises(ValidationError):
+        SuggestionCreate.model_validate(_create_request(jurisdiction_id=None))
