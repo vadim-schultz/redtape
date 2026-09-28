@@ -113,3 +113,24 @@ class DocumentRepository:
         )
         row = self._session.scalar(stmt)
         return row.id if row is not None else None
+
+    def get_jurisdiction_for_document(self, document_id: UUID) -> UUID | None:
+        return self._session.scalar(select(Document.jurisdiction_id).where(Document.id == document_id))
+
+    def find_requirement(
+        self, *, jurisdiction_id: UUID, parent_document_id: UUID, required_document_id: UUID
+    ) -> UUID | None:
+        stmt = select(DocumentRequirement.id).where(
+            DocumentRequirement.jurisdiction_id == jurisdiction_id,
+            DocumentRequirement.parent_document_id == parent_document_id,
+            DocumentRequirement.required_document_id == required_document_id,
+        )
+        return self._session.scalar(stmt)
+
+    def requirement_edge_exists(self, *, parent_document_id: UUID, required_document_id: UUID) -> bool:
+        """Whether `parent_document_id` already directly requires `required_document_id`, in any jurisdiction."""
+        stmt = select(DocumentRequirement.id).where(
+            DocumentRequirement.parent_document_id == parent_document_id,
+            DocumentRequirement.required_document_id == required_document_id,
+        )
+        return self._session.scalar(stmt) is not None

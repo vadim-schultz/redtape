@@ -103,6 +103,19 @@ class SuggestionRepository:
         )
         return list(self._session.scalars(stmt).all())
 
+    def find_pending_edge(
+        self, *, jurisdiction_id: UUID, parent_document_id: UUID, required_document_id: UUID
+    ) -> list[UUID]:
+        """Ids of pending `new_requirement` suggestions in `jurisdiction_id` proposing this exact edge."""
+        stmt = select(Suggestion.id).where(
+            Suggestion.jurisdiction_id == jurisdiction_id,
+            Suggestion.status == SuggestionStatus.PENDING,
+            Suggestion.kind == SuggestionKind.NEW_REQUIREMENT,
+            Suggestion.payload["parent_document_id"].astext == str(parent_document_id),
+            Suggestion.payload["required_document_id"].astext == str(required_document_id),
+        )
+        return list(self._session.scalars(stmt).all())
+
     def get_by_idempotency_key(self, *, api_key_id: UUID, idempotency_key: str) -> Suggestion | None:
         stmt = select(Suggestion).where(
             Suggestion.submitted_by_api_key_id == api_key_id,

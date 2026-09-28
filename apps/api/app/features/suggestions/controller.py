@@ -11,10 +11,12 @@ from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLI
 
 from app.features.auth.principal import Principal
 from app.features.suggestions.service import (
+    CycleError,
     DuplicateSuggestionError,
     MissingSourceUrlError,
     SuggestionFilters,
     SuggestionService,
+    UnknownDocumentError,
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
 )
@@ -32,6 +34,8 @@ _STATUS_BY_ERROR: dict[type[Exception], int] = {
     UnknownJurisdictionError: HTTP_422_UNPROCESSABLE_ENTITY,
     UnknownTaxonomyCodeError: HTTP_422_UNPROCESSABLE_ENTITY,
     MissingSourceUrlError: HTTP_422_UNPROCESSABLE_ENTITY,
+    UnknownDocumentError: HTTP_422_UNPROCESSABLE_ENTITY,
+    CycleError: HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 
@@ -73,6 +77,8 @@ class SuggestionsController(Controller):
             UnknownJurisdictionError,
             UnknownTaxonomyCodeError,
             MissingSourceUrlError,
+            UnknownDocumentError,
+            CycleError,
         ) as exc:
             raise _to_http(exc) from exc
         read = SuggestionRead.from_row(result.suggestion, submitter_display_name=submitter_display_name(who))

@@ -77,6 +77,25 @@ class DocumentService:
         rows = self._repo.list_slugs_and_urls(jurisdiction_id)
         return _conflicting_document_ids(rows, slug=slug, normalized_url=normalized_url)
 
+    def get_document_jurisdiction(self, document_id: UUID) -> UUID | None:
+        return self._repo.get_jurisdiction_for_document(document_id)
+
+    def requirement_exists(
+        self, *, jurisdiction_id: UUID, parent_document_id: UUID, required_document_id: UUID
+    ) -> UUID | None:
+        """Id of the existing `document_requirement` for this exact triple, if any."""
+        return self._repo.find_requirement(
+            jurisdiction_id=jurisdiction_id,
+            parent_document_id=parent_document_id,
+            required_document_id=required_document_id,
+        )
+
+    def requires_directly(self, parent_document_id: UUID, required_document_id: UUID) -> bool:
+        """Whether `parent_document_id` already directly requires `required_document_id`, in any jurisdiction."""
+        return self._repo.requirement_edge_exists(
+            parent_document_id=parent_document_id, required_document_id=required_document_id
+        )
+
     def document_ids_in_scope(self, filters: DocumentFilters) -> list[UUID]:
         """Ids of documents inside the jurisdiction scope; an unresolvable municipality has none."""
         jurisdiction_id = self._effective_jurisdiction_id(filters)

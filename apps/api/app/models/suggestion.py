@@ -14,7 +14,9 @@ from app.models.base import Base
 CK_SUBMITTER_MATCHES_SOURCE = "ck_suggestion_submitter_matches_source"
 UQ_KEY_IDEMPOTENCY = "uq_suggestion_key_idempotency"
 UQ_PENDING_URL = "uq_suggestion_pending_url"
+UQ_PENDING_EDGE = "uq_suggestion_pending_edge"
 _PENDING_NEW_DOCUMENT_WHERE = "status = 'pending' AND kind = 'new_document'"
+_PENDING_NEW_REQUIREMENT_WHERE = "status = 'pending' AND kind = 'new_requirement'"
 
 
 def _enum_values(enum_cls: type[enum.StrEnum]) -> list[str]:
@@ -61,6 +63,14 @@ class Suggestion(Base):
             "normalized_url",
             unique=True,
             postgresql_where=text(_PENDING_NEW_DOCUMENT_WHERE),
+        ),
+        Index(
+            UQ_PENDING_EDGE,
+            "jurisdiction_id",
+            text("(payload->>'parent_document_id')"),
+            text("(payload->>'required_document_id')"),
+            unique=True,
+            postgresql_where=text(_PENDING_NEW_REQUIREMENT_WHERE),
         ),
     )
 

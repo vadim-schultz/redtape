@@ -30,7 +30,7 @@ class ConflictRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=False)
 
-    type: Literal["document", "suggestion"]
+    type: Literal["document", "suggestion", "document_requirement"]
     id: UUID
 
 
