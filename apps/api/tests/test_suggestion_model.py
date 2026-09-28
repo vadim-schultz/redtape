@@ -4,13 +4,24 @@ import uuid
 
 import pytest
 import sqlalchemy as sa
-from app.models import ApiKey, AppUser, Jurisdiction, JurisdictionKind, Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models import (
+    ApiKey,
+    AppUser,
+    Jurisdiction,
+    JurisdictionKind,
+    Suggestion,
+    SuggestionKind,
+    SuggestionSource,
+    SuggestionStatus,
+)
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 
 def _jurisdiction(session: Session) -> Jurisdiction:
-    jurisdiction = Jurisdiction(kind=JurisdictionKind.COUNTRY, name_i18n={"en": "Testland"}, code=f"T{uuid.uuid4().hex[:8]}")
+    jurisdiction = Jurisdiction(
+        kind=JurisdictionKind.COUNTRY, name_i18n={"en": "Testland"}, code=f"T{uuid.uuid4().hex[:8]}"
+    )
     session.add(jurisdiction)
     session.flush()
     return jurisdiction
@@ -75,9 +86,7 @@ def test_human_suggestion_with_an_api_key_is_rejected(db_session: Session) -> No
 def test_crawler_suggestion_with_a_user_id_is_rejected(db_session: Session) -> None:
     jurisdiction = _jurisdiction(db_session)
     user = _user(db_session)
-    suggestion = _suggestion(
-        jurisdiction, source_type=SuggestionSource.CRAWLER, submitted_by_user_id=user.id
-    )
+    suggestion = _suggestion(jurisdiction, source_type=SuggestionSource.CRAWLER, submitted_by_user_id=user.id)
     db_session.add(suggestion)
 
     with pytest.raises(IntegrityError):
