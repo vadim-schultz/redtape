@@ -48,14 +48,16 @@ them:
 
 ## 5. Set the web variables
 
-`apps/web/.env.example` documents these; set the real values as Cloudflare Workers Build variables (see
-[deployment-checklist.md](deployment-checklist.md) for why dashboard-only variables don't survive a
-git-triggered build):
+`apps/web/.env.example` documents these for local dev. For the deployed site, commit them to
+[`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc) `vars` (and `previews.vars`, required alongside
+any production var), the same pattern `API_ORIGIN` already uses — Cloudflare Workers Build re-syncs config
+from this file on every git-triggered build, so a dashboard-only variable gets silently wiped on the next
+push (see [deployment-checklist.md](deployment-checklist.md)):
 
 | Variable | Value |
 | --- | --- |
 | `VITE_SUPABASE_URL` | `https://<project_ref>.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | The project's anon key — this key is designed to be public |
+| `VITE_SUPABASE_ANON_KEY` | The project's **publishable** key (`sb_publishable_…`; Supabase's current name for the anon key) — designed to be public, safe to commit. Never the **secret** key (`sb_secret_…`, replaces `service_role`). |
 
 With both unset, the auth gateway reports `unconfigured` and the app behaves exactly as it did before
 chapter 9: no account menu item, no protected routes.

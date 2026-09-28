@@ -9,12 +9,16 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "API_ORIGIN": "https://redtape-api.onrender.com"
+    "API_ORIGIN": "https://redtape-api.onrender.com",
+    "VITE_SUPABASE_URL": "https://agpwiarztdmqhphxkjug.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "sb_publishable_idAzyQ5_uE557a9__k_Dtw_QZavYpCw"
   },
   // `wrangler preview` requires a preview value for every production var.
   "previews": {
     "vars": {
-      "API_ORIGIN": "https://redtape-api.onrender.com"
+      "API_ORIGIN": "https://redtape-api.onrender.com",
+      "VITE_SUPABASE_URL": "https://agpwiarztdmqhphxkjug.supabase.co",
+      "VITE_SUPABASE_ANON_KEY": "sb_publishable_idAzyQ5_uE557a9__k_Dtw_QZavYpCw"
     }
   }
 }
