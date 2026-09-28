@@ -56,9 +56,13 @@ def upsert_jurisdiction(
     multiple_postal_codes: bool = False,
     touched_at: datetime,
 ) -> Jurisdiction:
+    # `(kind, code)` is the DB's actual uniqueness guarantee (uq_jurisdiction_kind_code),
+    # not `(geographic_parent_id, code)` -- a row can legitimately need to move to a
+    # new parent (a re-imported district, a corrected hierarchy) while keeping its code.
+    # Looking up by the old parent would miss such a row and attempt a duplicate INSERT.
     existing = session.execute(
         select(Jurisdiction).where(
-            Jurisdiction.geographic_parent_id == geographic_parent_id,
+            Jurisdiction.kind == kind,
             Jurisdiction.code == code,
         )
     ).scalar_one_or_none()
@@ -81,6 +85,7 @@ def upsert_jurisdiction(
     return _update_jurisdiction(
         existing,
         kind=kind,
+        geographic_parent_id=geographic_parent_id,
         openplz_type=openplz_type,
         postal_code=postal_code,
         multiple_postal_codes=multiple_postal_codes,
@@ -124,6 +129,7 @@ def _update_jurisdiction(
     existing: Jurisdiction,
     *,
     kind: JurisdictionKind,
+    geographic_parent_id: uuid.UUID | None,
     openplz_type: str | None,
     postal_code: str | None,
     multiple_postal_codes: bool,
@@ -131,8 +137,11 @@ def _update_jurisdiction(
     name_de: str,
     touched_at: datetime,
 ) -> Jurisdiction:
-    # Update fields (idempotent re-import).
+    # Update fields (idempotent re-import). Reassigning geographic_parent_id
+    # lets a stale/misparented row self-heal onto the authoritative parent
+    # instead of the import raising on the next INSERT attempt.
     existing.kind = kind
+    existing.geographic_parent_id = geographic_parent_id
     existing.openplz_type = openplz_type
     existing.postal_code = postal_code
     existing.multiple_postal_codes = multiple_postal_codes
