@@ -9,7 +9,9 @@ export interface SubmittedNoticeProps {
   suggestionId: string;
 }
 
-export default function SubmittedNotice({ suggestionId }: SubmittedNoticeProps) {
+export default function SubmittedNotice({
+  suggestionId,
+}: SubmittedNoticeProps) {
   const { t } = useLocale();
 
   return (

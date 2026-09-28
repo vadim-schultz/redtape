@@ -99,7 +99,9 @@ function renderPage() {
 
 it("SuggestPage · shows the success notice with a link to the new suggestion", async () => {
   respond(() =>
-    Promise.resolve(new Response(JSON.stringify({ id: "s1" }), { status: 201 })),
+    Promise.resolve(
+      new Response(JSON.stringify({ id: "s1" }), { status: 201 }),
+    ),
   );
   const { user } = renderPage();
 

@@ -7,6 +7,7 @@ import AccountMenuItem from "./AccountMenuItem";
 import ColorModeSwitch from "./ColorModeSwitch";
 import { floatingSurface } from "./floatingSurface";
 import LocaleSubmenu from "./LocaleSubmenu";
+import SuggestMenuItem from "./SuggestMenuItem";
 
 /** Burger button opening the app menu: account, colour switch and language submenu. */
 const AppMenu = () => {
@@ -26,6 +27,8 @@ const AppMenu = () => {
       <Portal>
         <Menu.Positioner>
           <Menu.Content>
+            <SuggestMenuItem />
+            <Menu.Separator />
             <AccountMenuItem />
             <Menu.Separator />
             <ColorModeSwitch />

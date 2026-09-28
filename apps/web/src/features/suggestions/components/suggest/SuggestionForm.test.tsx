@@ -74,7 +74,10 @@ function renderForm(isSending = false) {
   return { onSubmit, ...view };
 }
 
-async function fillTitleAndUrl(user: User, url = "https://example.gov/residency") {
+async function fillTitleAndUrl(
+  user: User,
+  url = "https://example.gov/residency",
+) {
   await user.type(screen.getByLabelText("Document title"), "Residency permit");
   await user.type(screen.getByLabelText("Official URL"), url);
 }

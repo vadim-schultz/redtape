@@ -43,9 +43,7 @@ export default function TaxonomyChips({
           heading={t("filters.situation")}
           terms={situations.data ?? []}
           selected={situationCodes}
-          onToggle={(code) =>
-            onSituationsChange(toggled(situationCodes, code))
-          }
+          onToggle={(code) => onSituationsChange(toggled(situationCodes, code))}
         />
       </Stack>
     </Stack>

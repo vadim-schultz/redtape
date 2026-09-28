@@ -1,5 +1,9 @@
 import { apiRequest, ApiRequestError } from "../../../services/api";
-import type { Conflict, CreateSuggestionRequest, SuggestionRead } from "../types";
+import type {
+  Conflict,
+  CreateSuggestionRequest,
+  SuggestionRead,
+} from "../types";
 
 export class SuggestionConflictError extends Error {
   conflicts: Conflict[];

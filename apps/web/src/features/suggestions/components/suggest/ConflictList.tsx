@@ -28,7 +28,10 @@ export default function ConflictList({ conflicts }: ConflictListProps) {
             : t("suggest.conflict_suggestion");
 
         return (
-          <AppCard key={`${conflict.type}-${conflict.id}`} to={`${base}/${conflict.id}`}>
+          <AppCard
+            key={`${conflict.type}-${conflict.id}`}
+            to={`${base}/${conflict.id}`}
+          >
             <Card.Title textStyle="subsectionHeader">{label}</Card.Title>
           </AppCard>
         );
