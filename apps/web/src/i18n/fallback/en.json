@@ -19,7 +19,8 @@
   "nav": {
     "home": "Home",
     "browse_documents": "Browse Documents",
-    "about": "About"
+    "about": "About",
+    "suggest": "Suggest"
   },
   "auth": {
     "login": "Log In",
@@ -75,5 +76,22 @@
     "clear": "Clear filters",
     "remove_domain": "Remove domain filter: {name}",
     "remove_situation": "Remove situation filter: {name}"
+  },
+  "suggest": {
+    "title": "Suggest a document",
+    "municipality": "Municipality",
+    "document_title": "Document title",
+    "document_title_other": "Title (other language)",
+    "official_url": "Official URL",
+    "description": "Description",
+    "tags": "Tags",
+    "submit": "Submit",
+    "success_title": "Suggestion submitted",
+    "success_body": "Thanks! We'll review your suggestion.",
+    "view_suggestion": "View suggestion",
+    "conflict_title": "This document may already exist",
+    "conflict_document": "View existing document",
+    "conflict_suggestion": "View existing suggestion",
+    "error_generic": "Something went wrong. Please try again."
   }
 }
