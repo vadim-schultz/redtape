@@ -51,11 +51,22 @@ alembic upgrade head
 
 ## Idempotency & cache refresh
 
-The importer uses deterministic UUIDs so re-running does not create duplicates.
+The importer uses deterministic UUIDs so re-running does not create duplicates. Rows are looked up and reconciled by `(kind, code)` — the DB's real uniqueness guarantee (`uq_jurisdiction_kind_code`) — so a row that needs to move to a different parent (e.g. a corrected hierarchy or a stale/misparented row) is repointed in place instead of causing a duplicate-key failure.
 
 It also updates `last_updated` for rows it touches, so Supabase connection/security policies and any cache-busting logic based on timestamps can keep working.
 
-## Scheduled nightly updates
+## Resetting/wiping location data
+
+`apps/api/scripts/cleanup_openplz_data.py --wipe-all` deletes every row from `document_requirement`, `document`, `locality` and `jurisdiction` (in FK-safe order), so the next import + seed starts from a clean slate. It aborts if `suggestion` has any rows, since that table isn't OpenPLZ-derived and may hold real user-submitted content — pass `--include-suggestions` to delete those too once you've confirmed that's safe. Use `--dry-run` first to see row counts without deleting anything.
+
+```bash
+python -m scripts.cleanup_openplz_data --wipe-all --dry-run
+python -m scripts.cleanup_openplz_data --wipe-all
+python -m scripts.import_openplz_locations --language de
+python -m scripts.seed_documents
+```
+
+## Scheduled updates
 
 Runs on GitHub Actions, not GitLab. See: [`docs/operations/scheduled-jobs.md`](scheduled-jobs.md).
 

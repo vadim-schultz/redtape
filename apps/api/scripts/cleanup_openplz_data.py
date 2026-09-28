@@ -5,11 +5,18 @@ import uuid
 from datetime import UTC, datetime
 
 from app.db import SessionLocal
+from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
-from sqlalchemy import select
+from app.models.suggestion import Suggestion
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
+
+
+class SuggestionsPresentError(RuntimeError):
+    """Raised by wipe_all() when suggestion rows exist and --include-suggestions wasn't passed."""
 
 
 def _stable_uuid(key: str) -> uuid.UUID:
@@ -151,15 +158,94 @@ def cleanup_openplz_data(*, dry_run: bool) -> None:
         session.close()
 
 
+def _count(session: Session, model) -> int:
+    return session.execute(select(func.count()).select_from(model)).scalar_one()
+
+
+def _delete_all(session: Session, model) -> None:
+    session.execute(model.__table__.delete())
+
+
+def _delete_jurisdictions_leaf_first(session: Session) -> None:
+    # geographic_parent_id is a non-deferrable RESTRICT self-FK, so children
+    # must go before parents -- a single bulk DELETE can't guarantee that.
+    for kind in (JurisdictionKind.MUNICIPALITY, JurisdictionKind.REGION, JurisdictionKind.COUNTRY):
+        session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.kind == kind))
+
+
+def _guard_suggestions_present(suggestion_count: int, include_suggestions: bool) -> None:
+    if suggestion_count and not include_suggestions:
+        raise SuggestionsPresentError(
+            f"{suggestion_count} suggestion row(s) exist; pass --include-suggestions to delete "
+            "them, or inspect/migrate them first."
+        )
+
+
+def _wipe_all_counts(session: Session, *, suggestion_count: int, include_suggestions: bool) -> dict[str, int]:
+    return {
+        "document_requirement": _count(session, DocumentRequirement),
+        "document": _count(session, Document),
+        "suggestion": suggestion_count if include_suggestions else 0,
+        "locality": _count(session, Locality),
+        "jurisdiction": _count(session, Jurisdiction),
+    }
+
+
+def _delete_all_wipe_all_rows(session: Session, *, include_suggestions: bool) -> None:
+    _delete_all(session, DocumentRequirement)
+    _delete_all(session, Document)
+    if include_suggestions:
+        _delete_all(session, Suggestion)
+    _delete_all(session, Locality)
+    _delete_jurisdictions_leaf_first(session)
+
+
+def wipe_all(session: Session, *, dry_run: bool, include_suggestions: bool) -> dict[str, int]:
+    """
+    Delete every row from the OpenPLZ location tables and their dependents.
+
+    Aborts before deleting anything if `suggestion` has rows and
+    `include_suggestions` wasn't passed -- that table's real-world contents
+    (possible user-submitted data) aren't OpenPLZ-derived, so it's treated
+    conservatively by default rather than assumed disposable.
+    """
+
+    suggestion_count = _count(session, Suggestion)
+    _guard_suggestions_present(suggestion_count, include_suggestions)
+    counts = _wipe_all_counts(session, suggestion_count=suggestion_count, include_suggestions=include_suggestions)
+
+    if not dry_run:
+        _delete_all_wipe_all_rows(session, include_suggestions=include_suggestions)
+        session.commit()
+
+    return counts
+
+
+def _run_wipe_all(*, dry_run: bool, include_suggestions: bool) -> None:
+    session = SessionLocal()
+    try:
+        counts = wipe_all(session, dry_run=dry_run, include_suggestions=include_suggestions)
+        prefix = "[cleanup_openplz_data] DRY RUN (wipe-all)" if dry_run else "[cleanup_openplz_data] wipe-all"
+        print(f"{prefix}: {counts}")
+    finally:
+        session.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cleanup OpenPLZ-derived jurisdiction + locality data.")
     parser.add_argument(
         "--wipe-all",
         action="store_true",
         help=(
-            "Delete all rows from locality + jurisdiction (start from scratch for the OpenPLZ hierarchy). "
-            "Use only if these tables contain exclusively OpenPLZ-derived data."
+            "Delete all rows from document_requirement, document, locality and jurisdiction "
+            "(start from scratch for the OpenPLZ hierarchy + MVP seed content). Aborts if "
+            "suggestion has rows, unless --include-suggestions is also passed."
         ),
+    )
+    parser.add_argument(
+        "--include-suggestions",
+        action="store_true",
+        help="With --wipe-all, also delete suggestion rows instead of aborting if any exist.",
     )
     parser.add_argument(
         "--dry-run",
@@ -169,20 +255,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.wipe_all:
-        # Wipe mode: remove the entire OpenPLZ hierarchy tables regardless of id matching.
-        # FK safety: delete localities first, then jurisdictions.
-        session = SessionLocal()
-        try:
-            if args.dry_run:
-                print("[cleanup_openplz_data] DRY RUN (wipe-all): would delete all rows in locality + jurisdiction")
-                session.rollback()
-            else:
-                session.execute(Locality.__table__.delete())
-                session.execute(Jurisdiction.__table__.delete())
-                session.commit()
-                print("[cleanup_openplz_data] wipe-all complete (locality + jurisdiction).")
-        finally:
-            session.close()
+        _run_wipe_all(dry_run=args.dry_run, include_suggestions=args.include_suggestions)
     else:
         cleanup_openplz_data(dry_run=args.dry_run)
 
