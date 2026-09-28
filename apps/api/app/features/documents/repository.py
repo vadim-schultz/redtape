@@ -95,6 +95,13 @@ class DocumentRepository:
         path.reverse()
         return path
 
+    def list_slugs_and_urls(self, jurisdiction_id: UUID) -> list[tuple[UUID, str, str | None]]:
+        """`(id, slug, official_url)` for every document in a jurisdiction; input to duplicate matching."""
+        stmt = select(Document.id, Document.slug, Document.official_url).where(
+            Document.jurisdiction_id == jurisdiction_id
+        )
+        return list(self._session.execute(stmt).tuples().all())
+
     def jurisdiction_exists(self, jurisdiction_id: UUID) -> bool:
         return self._session.scalar(select(Jurisdiction.id).where(Jurisdiction.id == jurisdiction_id)) is not None
 

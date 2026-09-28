@@ -13,6 +13,8 @@ from app.models.base import Base
 
 CK_SUBMITTER_MATCHES_SOURCE = "ck_suggestion_submitter_matches_source"
 UQ_KEY_IDEMPOTENCY = "uq_suggestion_key_idempotency"
+UQ_PENDING_URL = "uq_suggestion_pending_url"
+_PENDING_NEW_DOCUMENT_WHERE = "status = 'pending' AND kind = 'new_document'"
 
 
 def _enum_values(enum_cls: type[enum.StrEnum]) -> list[str]:
@@ -53,6 +55,13 @@ class Suggestion(Base):
         ),
         UniqueConstraint("submitted_by_api_key_id", "idempotency_key", name=UQ_KEY_IDEMPOTENCY),
         Index("ix_suggestion_status_created_at", "status", "created_at"),
+        Index(
+            UQ_PENDING_URL,
+            "jurisdiction_id",
+            "normalized_url",
+            unique=True,
+            postgresql_where=text(_PENDING_NEW_DOCUMENT_WHERE),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
