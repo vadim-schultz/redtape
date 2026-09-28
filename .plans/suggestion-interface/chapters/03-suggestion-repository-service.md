@@ -4,22 +4,22 @@ overview: "SuggestionRepository and SuggestionService that create a pending new_
 todos:
   - id: repo
     content: "SuggestionRepository add and get"
-    status: pending
+    status: done
   - id: docs-service
     content: "DocumentService.resolve_jurisdiction_id (read-only, additive)"
-    status: pending
+    status: done
   - id: service
     content: "SuggestionService.create for new_document"
-    status: pending
+    status: done
   - id: deps
     content: "features/suggestions/dependencies.py"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 3 — Repository and service
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-service` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-service` · **Status:** implemented, PR open
 
 **Depends on:** [1](01-suggestion-model-migration.md), [2](02-new-document-payload-schema.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §4, §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -95,6 +95,27 @@ if-chain.
 - Class stays ≤ ~100 LOC; list/filter methods arrive in chapter 7 and, if the class grows, move to a
   `SuggestionQuery` object.
 - Report the outcome.
+
+## Progress
+
+All 11 tests in `test_suggestion_service.py` pass, plus `test_documents_filter.py` (existing
+`DocumentService`/`list_documents` behaviour unchanged by the additive `resolve_jurisdiction_id`).
+The test for "ignores client-supplied status and source_type" asserts the boundary one level up:
+`SuggestionCreate.model_validate` rejects a payload carrying `status`/`source_type` keys (the
+schema's `extra="forbid"`), since the service's `create(submitter, request)` signature never takes
+those fields from the client to begin with — `status` and `source_type` come only from
+`SuggestionStatus.PENDING` and the `SubmitterRef.kind → SuggestionSource` map in `_build_row`.
+
+`create` orchestrates three ≈5-8 LOC steps (`_resolve_jurisdiction`, `_validate_codes`,
+`_build_row`); the class is 78 lines total, well under the ~100 LOC soft cap, so no refactor was
+needed beyond that split. `./ci.sh` (lint, format, mypy, migrations, pytest — 225 passed, web — 233
+passed) is green.
+
+Commits on `feat/suggestions-service`:
+1. `test(api): describe creating pending suggestions with derived fields`
+2. `feat(api): add suggestion repository and service`
+
+PR opened against `main`.
 
 ## Verification
 
