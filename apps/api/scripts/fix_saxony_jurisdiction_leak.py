@@ -48,13 +48,22 @@ def _default_reimport() -> None:
 
 def _needs_repair(session: Session) -> bool:
     fake_dresden = session.get(Jurisdiction, FAKE_DRESDEN_ID)
-    return fake_dresden is not None and fake_dresden.code == DRESDEN_MUNICIPALITY_CODE
+    found_code = fake_dresden.code if fake_dresden else None
+    print(f"fix_saxony_jurisdiction_leak: fake Dresden lookup -> found={fake_dresden is not None} code={found_code!r}")
+    return fake_dresden is not None and found_code == DRESDEN_MUNICIPALITY_CODE
 
 
 def _exempt_fake_dresden_from_unique_index(session: Session) -> None:
     # uq_jurisdiction_kind_code only applies WHERE code IS NOT NULL, so this lets
     # the reimport recreate the real (kind, code) row without colliding.
     session.execute(Jurisdiction.__table__.update().where(Jurisdiction.id == FAKE_DRESDEN_ID).values(code=None))
+    session.commit()
+
+
+def _restore_fake_dresden_code(session: Session) -> None:
+    session.execute(
+        Jurisdiction.__table__.update().where(Jurisdiction.id == FAKE_DRESDEN_ID).values(code=DRESDEN_MUNICIPALITY_CODE)
+    )
     session.commit()
 
 
@@ -78,23 +87,30 @@ def _delete_leaked_jurisdictions(session: Session) -> None:
     session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == LEAKED_DISTRICT_ID))
 
 
-def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None] = _default_reimport) -> None:
+def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None] = _default_reimport) -> bool:
     if not _needs_repair(session):
-        return
+        return False
 
     _exempt_fake_dresden_from_unique_index(session)
-    reimport()
+    try:
+        reimport()
+    except Exception as exc:
+        _restore_fake_dresden_code(session)
+        print(f"fix_saxony_jurisdiction_leak: reimport failed ({exc!r}); reverted, will retry next boot")
+        raise
 
     real_dresden_id = _real_dresden_id(session)
     _repoint_fake_dresden_references(session, real_dresden_id)
     _delete_leaked_jurisdictions(session)
     session.commit()
+    print(f"fix_saxony_jurisdiction_leak: repaired, real Dresden id={real_dresden_id}")
+    return True
 
 
 def main() -> None:
     with SessionLocal() as session:
-        repair_saxony_jurisdictions(session)
-    print("fix_saxony_jurisdiction_leak: done (or already fixed).")
+        repaired = repair_saxony_jurisdictions(session)
+    print(f"fix_saxony_jurisdiction_leak: {'repaired' if repaired else 'no-op, nothing to repair'}")
 
 
 if __name__ == "__main__":

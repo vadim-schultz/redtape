@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource
 from scripts.fix_saxony_jurisdiction_leak import (
+    DRESDEN_MUNICIPALITY_CODE,
     FAKE_DRESDEN_ID,
     LEAKED_DISTRICT_ID,
     LEAKED_MUNICIPALITY_ID,
@@ -63,9 +65,26 @@ def _document_referencing_fake_dresden(session: Session, slug: str) -> Document:
 def test_noop_when_fake_dresden_is_already_gone(db_session: Session) -> None:
     calls: list[None] = []
 
-    repair_saxony_jurisdictions(db_session, reimport=lambda: calls.append(None))
+    repaired = repair_saxony_jurisdictions(db_session, reimport=lambda: calls.append(None))
 
     assert calls == []
+    assert repaired is False
+
+
+def test_reverts_code_and_reraises_when_reimport_fails(db_session: Session) -> None:
+    _leaked_saxony_tree(db_session)
+
+    def _failing_reimport() -> None:
+        raise RuntimeError("openplz unreachable")
+
+    with pytest.raises(RuntimeError, match="openplz unreachable"):
+        repair_saxony_jurisdictions(db_session, reimport=_failing_reimport)
+
+    # code must not be left null -- otherwise the next boot's lookup by
+    # (kind, code) can't find this row either, and a later seed_documents run
+    # would silently paper over the failure by restoring it via merge.
+    fake_dresden = db_session.get(Jurisdiction, FAKE_DRESDEN_ID)
+    assert fake_dresden.code == DRESDEN_MUNICIPALITY_CODE
 
 
 def test_reimports_and_repoints_references_off_the_fake_dresden_row(db_session: Session) -> None:
@@ -113,8 +132,9 @@ def test_reimports_and_repoints_references_off_the_fake_dresden_row(db_session: 
         db_session.add(real_dresden)
         db_session.commit()
 
-    repair_saxony_jurisdictions(db_session, reimport=_fake_reimport)
+    repaired = repair_saxony_jurisdictions(db_session, reimport=_fake_reimport)
 
+    assert repaired is True
     assert db_session.get(Jurisdiction, FAKE_DRESDEN_ID) is None
     assert db_session.get(Jurisdiction, LEAKED_MUNICIPALITY_ID) is None
     assert db_session.get(Jurisdiction, LEAKED_DISTRICT_ID) is None
