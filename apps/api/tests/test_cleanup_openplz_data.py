@@ -19,9 +19,7 @@ def _seed_tree(session: Session) -> uuid.UUID:
     region = Jurisdiction(kind=JurisdictionKind.REGION, geographic_parent_id=country.id, code="14")
     session.add(region)
     session.flush()
-    municipality = Jurisdiction(
-        kind=JurisdictionKind.MUNICIPALITY, geographic_parent_id=region.id, code="14612000"
-    )
+    municipality = Jurisdiction(kind=JurisdictionKind.MUNICIPALITY, geographic_parent_id=region.id, code="14612000")
     session.add(municipality)
     session.flush()
     return municipality.id

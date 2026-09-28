@@ -161,9 +161,7 @@ def test_upsert_locality_reparents_existing_row_when_municipality_id_changed(db_
     old_municipality_id = _seed_municipality(db_session, code="14511000", region_code="14")
     new_municipality_id = _seed_municipality(db_session, code="14511999", region_code="146")
     locality_id = uuid.uuid4()
-    existing = Locality(
-        id=locality_id, municipality_id=old_municipality_id, postal_code="09111", name="Chemnitz"
-    )
+    existing = Locality(id=locality_id, municipality_id=old_municipality_id, postal_code="09111", name="Chemnitz")
     db_session.add(existing)
     db_session.flush()
 
