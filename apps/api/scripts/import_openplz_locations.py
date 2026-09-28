@@ -160,13 +160,12 @@ def upsert_locality(
     name: str,
     touched_at: datetime,
 ) -> Locality:
-    existing = session.execute(
-        select(Locality).where(
-            Locality.municipality_id == municipality_id,
-            Locality.postal_code == postal_code,
-            Locality.name == name,
-        )
-    ).scalar_one_or_none()
+    # locality_id is the deterministic identity (derived from municipality code,
+    # postal_code, name -- see _stable_uuid callers), independent of
+    # municipality_id. Looking up by (municipality_id, postal_code, name)
+    # instead misses a row whose municipality was reparented/self-healed since
+    # (see upsert_jurisdiction) and attempts a duplicate-primary-key INSERT.
+    existing = session.get(Locality, locality_id)
 
     if existing is None:
         return _insert_locality(
@@ -180,6 +179,7 @@ def upsert_locality(
 
     return _update_locality(
         existing,
+        municipality_id=municipality_id,
         name=name,
         touched_at=touched_at,
     )
@@ -209,9 +209,11 @@ def _insert_locality(
 def _update_locality(
     existing: Locality,
     *,
+    municipality_id: uuid.UUID,
     name: str,
     touched_at: datetime,
 ) -> Locality:
+    existing.municipality_id = municipality_id
     existing.name_i18n = {"de": name, "en": name}
     existing.last_updated = touched_at.replace(tzinfo=None)
     return existing
