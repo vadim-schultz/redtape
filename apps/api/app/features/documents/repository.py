@@ -95,6 +95,9 @@ class DocumentRepository:
         path.reverse()
         return path
 
+    def jurisdiction_exists(self, jurisdiction_id: UUID) -> bool:
+        return self._session.scalar(select(Jurisdiction.id).where(Jurisdiction.id == jurisdiction_id)) is not None
+
     def get_municipality_jurisdiction_id(self, *, municipality_code: str) -> UUID | None:
         """Resolve OpenPLZ municipality code → our jurisdiction UUID."""
         stmt = select(Jurisdiction).where(
