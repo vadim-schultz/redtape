@@ -3,8 +3,9 @@ name: OpenPLZ Import
 on:
   workflow_dispatch:
   schedule:
-    # Daily at 2 AM UTC (keeps Supabase free tier alive)
-    - cron: "0 2 * * *"
+    # Monday + Thursday at 2 AM UTC (keeps Supabase free tier alive, well
+    # under its ~7-day auto-pause threshold even if a single run fails)
+    - cron: "0 2 * * 1,4"
 
 jobs:
   import:
