@@ -18,6 +18,18 @@ from app.schema.document.read import (
     RequirementRead,
 )
 from app.schema.taxonomy.read import TermRead
+from app.url_normalization import normalize_url
+
+
+def _conflicting_document_ids(
+    rows: Sequence[tuple[UUID, str, str | None]], *, slug: str, normalized_url: str
+) -> list[UUID]:
+    """Ids of rows whose slug or normalized `official_url` matches; pure, no session needed."""
+    return [
+        doc_id
+        for doc_id, doc_slug, official_url in rows
+        if doc_slug == slug or (official_url is not None and normalize_url(official_url) == normalized_url)
+    ]
 
 
 @dataclass(frozen=True)
@@ -59,6 +71,11 @@ class DocumentService:
         rows = self._repo.list_page(offset=offset, limit=limit, **scope)
         items = [self._to_summary(row, locale=locale, enabled_locales=enabled_locales) for row in rows]
         return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+
+    def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str) -> list[UUID]:
+        """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches."""
+        rows = self._repo.list_slugs_and_urls(jurisdiction_id)
+        return _conflicting_document_ids(rows, slug=slug, normalized_url=normalized_url)
 
     def document_ids_in_scope(self, filters: DocumentFilters) -> list[UUID]:
         """Ids of documents inside the jurisdiction scope; an unresolvable municipality has none."""

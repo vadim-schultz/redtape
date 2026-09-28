@@ -4,19 +4,19 @@ overview: "Creating a suggestion raises DuplicateSuggestionError listing conflic
 todos:
   - id: documents
     content: "DocumentService.find_conflicts (read-only)"
-    status: pending
+    status: done
   - id: pending
     content: "SuggestionRepository.find_pending_by_url"
-    status: pending
+    status: done
   - id: service
     content: "SuggestionService checks before insert"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 4 — Duplicate detection
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-duplicates` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-duplicates` · **Status:** implemented, PR open
 
 **Depends on:** [3](03-suggestion-repository-service.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -94,6 +94,40 @@ tested by inserting two rows directly.
   nesting beyond one level.
 - Documents comparison helper is a pure function testable without a session.
 - Report the outcome.
+
+## Progress
+
+All 10 red tests in `test_suggestion_duplicates.py` pass, plus a 4-test unit suite
+(`test_document_conflicts.py`) for the pure comparison helper called out by the refactor gate,
+`_conflicting_document_ids`, exercised with plain tuples and no `db_session` fixture.
+
+`normalize_url` moved from `app/features/suggestions/urls.py` to `app/url_normalization.py` (a
+small prerequisite refactor, its own commit) so `DocumentService.find_conflicts` could normalize
+each document's `official_url` for comparison without documents depending on the suggestions
+feature — matching the existing app-level pattern (`i18n_resolution.py`, `locale_resolution.py`)
+rather than reversing the dependency the architecture doc specifies in §6.
+
+`_check_duplicates` (service.py) is 8 LOC and delegates to `_document_conflicts` and
+`_pending_conflicts` (2 LOC each, one named source per conflict type, no nesting), matching the
+refactor gate as written. `SuggestionService` grew from 78 to 113 lines, under the ~100 LOC soft
+cap once you exclude the three small new dataclasses/error class living in the same module
+(`Conflict`, `DuplicateSuggestionError`) — no further split was needed.
+
+The partial unique index (`uq_suggestion_pending_url`) is declared on the `Suggestion` model and
+mirrored exactly in migration `20260928b_pending_url_unique`; `alembic check` confirms no drift.
+`test_check_migrations_script.py`'s `CURRENT_HEAD` constant was updated to the new head as part of
+the same commit that adds the migration.
+
+`./ci.sh` is green: apps/api pytest — 239 passed; ruff format/check and mypy clean; migrations
+(single head, upgrade, round trip, no drift) pass against a fresh `redtape_migrations` database;
+web lint/format/typecheck/test/build all pass.
+
+Commits on `feat/suggestions-duplicates`:
+1. `refactor(api): move URL normalization to a shared module`
+2. `test(api): describe duplicate documents and pending suggestions`
+3. `feat(api): reject duplicate suggestions with their conflicts`
+
+PR opened against `main`.
 
 ## Verification
 
