@@ -33,3 +33,14 @@ class SuggestionRepository:
             Suggestion.kind == SuggestionKind.NEW_DOCUMENT,
         )
         return list(self._session.scalars(stmt).all())
+
+    def get_by_idempotency_key(self, *, api_key_id: UUID, idempotency_key: str) -> Suggestion | None:
+        stmt = select(Suggestion).where(
+            Suggestion.submitted_by_api_key_id == api_key_id,
+            Suggestion.idempotency_key == idempotency_key,
+        )
+        return self._session.scalar(stmt)
+
+    def rollback(self) -> None:
+        """Discard a failed insert so the session is usable again (D8 race path)."""
+        self._session.rollback()

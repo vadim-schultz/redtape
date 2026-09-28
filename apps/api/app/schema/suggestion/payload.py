@@ -35,14 +35,14 @@ def _validate_i18n_map(value: dict[str, str], *, max_len: int) -> dict[str, str]
     return {_validate_locale_key(key): _validate_i18n_value(val, max_len=max_len) for key, val in value.items()}
 
 
-def _validate_url(value: str) -> str:
+def validate_url(value: str, *, field: str = "official_url") -> str:
     if len(value) > MAX_URL_LENGTH:
-        raise ValueError(f"official_url exceeds {MAX_URL_LENGTH} characters")
+        raise ValueError(f"{field} exceeds {MAX_URL_LENGTH} characters")
     parsed = urlsplit(value)
     if parsed.scheme not in ("http", "https"):
-        raise ValueError("official_url must use http or https")
+        raise ValueError(f"{field} must use http or https")
     if not parsed.netloc:
-        raise ValueError("official_url must include a host")
+        raise ValueError(f"{field} must include a host")
     return value
 
 
@@ -81,7 +81,7 @@ class NewDocumentPayload(BaseModel):
     @field_validator("official_url")
     @classmethod
     def _check_official_url(cls, value: str) -> str:
-        return _validate_url(value)
+        return validate_url(value)
 
     @field_validator("domain_codes", "situation_codes")
     @classmethod

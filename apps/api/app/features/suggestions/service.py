@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.features.documents.service import DocumentService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.slugs import pick_title, slugify
@@ -25,6 +27,10 @@ class UnknownJurisdictionError(ValueError):
 
 class UnknownTaxonomyCodeError(ValueError):
     """Raised when a domain or situation code does not exist."""
+
+
+class MissingSourceUrlError(ValueError):
+    """Raised when a crawler-submitted suggestion has no source_url (D9)."""
 
 
 @dataclass(frozen=True)
@@ -51,6 +57,14 @@ class DuplicateSuggestionError(ValueError):
         self.conflicts = conflicts
 
 
+@dataclass(frozen=True)
+class SubmissionResult:
+    """Outcome of `SuggestionService.create`: the row, and whether it's an idempotent replay (D8)."""
+
+    suggestion: Suggestion
+    replayed: bool
+
+
 class SuggestionService:
     """Domain logic for creating a suggestion; talks to its repository and the owning feature services."""
 
@@ -59,14 +73,44 @@ class SuggestionService:
         self._documents = documents
         self._taxonomy = taxonomy
 
-    def create(self, *, submitter: SubmitterRef, request: SuggestionCreate) -> Suggestion:
-        jurisdiction_id = self._resolve_jurisdiction(request)
-        self._validate_codes(request.payload)
+    def create(
+        self, *, submitter: SubmitterRef, request: SuggestionCreate, idempotency_key: str | None = None
+    ) -> SubmissionResult:
+        if (existing := self._replay(submitter, idempotency_key)) is not None:
+            return SubmissionResult(existing, replayed=True)
+        jurisdiction_id = self._validate(submitter, request)
         self._check_duplicates(jurisdiction_id=jurisdiction_id, payload=request.payload)
-        return self._repo.add(self._build_row(submitter, request, jurisdiction_id))
+        row = self._build_row(submitter, request, jurisdiction_id, idempotency_key)
+        return self._insert(row, submitter, idempotency_key)
 
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._repo.get(suggestion_id)
+
+    def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
+        """Keys are only honoured for API keys (D8); a human's header is ignored."""
+        if submitter.kind != "crawler" or idempotency_key is None:
+            return None
+        return self._repo.get_by_idempotency_key(api_key_id=submitter.id, idempotency_key=idempotency_key)
+
+    def _validate(self, submitter: SubmitterRef, request: SuggestionCreate) -> UUID:
+        jurisdiction_id = self._resolve_jurisdiction(request)
+        self._validate_codes(request.payload)
+        self._validate_source_url(submitter, request)
+        return jurisdiction_id
+
+    def _validate_source_url(self, submitter: SubmitterRef, request: SuggestionCreate) -> None:
+        if submitter.kind == "crawler" and request.source_url is None:
+            raise MissingSourceUrlError("source_url is required for crawler submissions")
+
+    def _insert(self, row: Suggestion, submitter: SubmitterRef, idempotency_key: str | None) -> SubmissionResult:
+        try:
+            return SubmissionResult(self._repo.add(row), replayed=False)
+        except IntegrityError:
+            self._repo.rollback()
+            existing = self._replay(submitter, idempotency_key)
+            if existing is None:
+                raise
+            return SubmissionResult(existing, replayed=True)
 
     def _resolve_jurisdiction(self, request: SuggestionCreate) -> UUID:
         jurisdiction_id = self._documents.resolve_jurisdiction_id(
@@ -100,7 +144,9 @@ class SuggestionService:
         ids = self._repo.find_pending_by_url(jurisdiction_id=jurisdiction_id, normalized_url=normalized_url)
         return [Conflict("suggestion", sug_id) for sug_id in ids]
 
-    def _build_row(self, submitter: SubmitterRef, request: SuggestionCreate, jurisdiction_id: UUID) -> Suggestion:
+    def _build_row(
+        self, submitter: SubmitterRef, request: SuggestionCreate, jurisdiction_id: UUID, idempotency_key: str | None
+    ) -> Suggestion:
         return Suggestion(
             kind=SuggestionKind.NEW_DOCUMENT,
             status=SuggestionStatus.PENDING,
@@ -109,5 +155,6 @@ class SuggestionService:
             payload=request.payload.model_dump(mode="json"),
             source_url=request.source_url,
             normalized_url=normalize_url(request.payload.official_url),
+            idempotency_key=idempotency_key if submitter.kind == "crawler" else None,
             **{_SUBMITTER_COLUMN[submitter.kind]: submitter.id},
         )

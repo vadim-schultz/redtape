@@ -4,19 +4,19 @@ overview: "POST /api/v1/suggestions also accepts an API key; crawler suggestions
 todos:
   - id: principal
     content: "Controller takes principal instead of current_user"
-    status: pending
+    status: completed
   - id: idempotency
     content: "Idempotency-Key handling in service and controller"
-    status: pending
+    status: completed
   - id: source-url
     content: "source_url required for crawlers"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 6 — Machine submit endpoint
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-machine-submit` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-machine-submit` · **Status:** implemented, PR open
 
 **Depends on:** [5](05-human-submit-endpoint.md), auth [8](../../auth/chapters/08-machine-principal-guard.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3, §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -96,6 +96,60 @@ constraint does not exist, D8); ignoring, not rejecting, keeps clients simple.
 - The controller does not know about keys beyond passing the header value through.
 - If the service grows past ~100 LOC, extract `SuggestionSubmission` (a handler object holding the
   replay/duplicate/insert steps). Report the outcome.
+
+## Progress
+
+All 14 red tests in `test_suggestions_machine_submit.py` pass, alongside the unmodified chapter 5 suite
+(minus one obsoleted test, see deviations). `SuggestionsController.create` takes `principal` and an
+`Idempotency-Key` header parameter; `submitter_ref`/`submitter_display_name` in the new `submitter.py` hold
+the only `isinstance` branching on `Principal` in the suite, matching auth chapter 8's "one dispatch table"
+guidance.
+
+`SuggestionService.create` grew to: replay-check (early return), `_validate` (jurisdiction + codes +
+source_url, bundled to keep `create` itself at five named steps), `_check_duplicates`, then `_build_row` +
+`_insert`. `_replay(submitter, idempotency_key)` came out exactly as sketched — one method, reused both for
+the initial lookup and, after a caught `IntegrityError`, for the race-recovery re-read. The service stayed
+at 93 LOC, under the ~100 LOC refactor-gate threshold, so `SuggestionSubmission` was not extracted.
+
+Three deviations from the chapter as planned:
+
+1. **`create` returns `SubmissionResult(suggestion, replayed)` instead of a bare `Suggestion`.** The
+   controller needs to know replay-vs-fresh-insert to answer 200 vs. 201, and the chapter's own idempotency
+   design (replay wins over duplicate detection) makes that outcome a first-class thing the service decides,
+   not something inferable from the row alone. The alternative — inferring "was this a replay" from
+   `created_at` timestamps or a mutable side-channel — was worse than a small typed return value. This
+   touched existing white-box tests in `test_suggestion_service.py` and `test_suggestion_duplicates.py`,
+   which now read `.suggestion` off the result; their assertions are otherwise unchanged.
+2. **`principal` is typed `object` on the controller handler, cast to `Principal` immediately inside.**
+   Litestar's msgspec-based signature model cannot validate a handler parameter whose type is a union of two
+   dataclasses (`UserPrincipal | MachinePrincipal`) — it raises `TypeError: Type unions may not contain more
+   than one dataclass or attrs type` at request time. Auth chapter 8's own test suite already worked around
+   this by typing its probe route's parameter as `principal: object`; this chapter follows the same
+   precedent rather than inventing a second workaround.
+3. **`test_returns_401_for_an_api_key` (chapter 5) is removed.** It asserted that any API key gets 401 on
+   this route — true only because chapter 5 required `current_user`. Chapter 6 intentionally makes API keys
+   a valid submitter (D1), so the assertion is now false; it's superseded by this chapter's own
+   `test_an_api_key_creates_a_crawler_suggestion` (a valid key succeeds) and `test_a_revoked_key_gets_401`
+   (only a revoked/unknown key still 401s).
+
+`_validate_url` in `schema/suggestion/payload.py` was renamed to the public `validate_url(value, *,
+field=...)` so `source_url` (in `schema/suggestion/create.py`) could reuse the same http/https/length rule
+as `official_url`, per the design decision that source_url is "validated like official_url."
+
+The race-recovery path (`_insert`'s `except IntegrityError`) is covered by
+`test_a_concurrent_retry_resolves_to_the_original`, which blinds the service's first `_replay` call via
+monkeypatch (simulating "not yet visible") while leaving the real `uq_suggestion_key_idempotency` constraint
+and the second, real `_replay` call to do the actual race recovery — a real DB constraint violation and real
+recovery query, with only the initial miss simulated.
+
+`./ci.sh` is green: apps/api pytest — 264 passed; ruff format/check and mypy clean; migrations round trip
+clean; web lint/format/typecheck/test/build all pass.
+
+Commits on `feat/suggestions-machine-submit`:
+1. `test(api): describe crawler submission and idempotent retries`
+2. `feat(api): accept API keys and Idempotency-Key on suggestion submit`
+
+PR opened against `main`.
 
 ## Verification
 
