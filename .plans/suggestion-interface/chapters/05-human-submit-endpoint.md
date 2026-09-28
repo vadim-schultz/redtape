@@ -4,19 +4,19 @@ overview: "POST /api/v1/suggestions for logged-in users: 201 with the pending su
 todos:
   - id: schema
     content: "SuggestionRead and SubmitterRead schemas"
-    status: pending
+    status: done
   - id: controller
     content: "SuggestionsController.create with error mapping"
-    status: pending
+    status: done
   - id: router
     content: "suggestions_router registered in main.py"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 5 — Human submit endpoint
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-submit` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-submit` · **Status:** implemented, PR open
 
 **Depends on:** [4](04-duplicate-detection.md), auth [4](../../auth/chapters/04-current-user-dependency.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -88,6 +88,37 @@ be exposed publicly before a limit exists; until then it ships behind auth only,
   function, not per-handler try/except.
 - `SuggestionRead.from_row` conversion is a single named function reused by chapters 6–7.
 - Report the outcome.
+
+## Progress
+
+All 12 red tests in `test_suggestions_submit.py` pass. `SuggestionsController.create` is 5 statements
+(call the service, catch the three domain errors, build `SuggestionRead`, return with `Location`); error
+mapping lives in one function, `_to_http`, keyed by a `dict[type[Exception], int]` — no per-handler
+try/except, matching the refactor gate as written.
+
+One deviation from the chapter as planned: Litestar's `ValidationException` (raised for a malformed
+`SuggestionCreate` body) defaults to **400**, not 422, contradicting the architecture doc's "Pydantic
+validation errors are already 422" assumption. `suggestions_router` registers an `exception_handlers`
+entry that re-renders the same Litestar validation body at 422 instead — scoped to this router rather
+than app-wide, since only the suggestions contract promises 422 for invalid payloads.
+
+The 409 conflict body uses Litestar's standard `extra` field for structured exception data
+(`{"status_code": 409, "detail": "Duplicate suggestion", "extra": {"conflicts": [...]}}`) rather than the
+flat `{"detail": ..., "conflicts": [...]}` shorthand in the chapter's prose — the flat shape isn't
+producible through Litestar's built-in exception rendering without a bespoke response type, and `extra`
+is the idiomatic place for it.
+
+`current_user`'s `display_name` is normalized to `null` when empty (falsy) before building
+`SubmitterRead`, per D7 — the email is never read by the response path at all.
+
+`./ci.sh` is green: apps/api pytest — 251 passed; ruff format/check and mypy clean; migrations round trip
+clean; web lint/format/typecheck/test/build all pass.
+
+Commits on `feat/suggestions-submit`:
+1. `test(api): describe submitting a suggestion, its 401, 409 and 422`
+2. `feat(api): add POST /api/v1/suggestions for logged-in users`
+
+PR opened against `main`.
 
 ## Verification
 
