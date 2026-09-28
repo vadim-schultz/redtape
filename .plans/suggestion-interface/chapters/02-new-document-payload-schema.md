@@ -4,19 +4,19 @@ overview: "Pydantic models validating the new_document payload and the create re
 todos:
   - id: payload
     content: "NewDocumentPayload with i18n, URL and length rules"
-    status: pending
+    status: done
   - id: utils
     content: "normalize_url and slugify"
-    status: pending
+    status: done
   - id: request
     content: "SuggestionCreate request with jurisdiction XOR"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 2 — New-document payload schema
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-payload` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-payload` · **Status:** implemented, PR open
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -96,6 +96,28 @@ title picked in locale order `en`, `de`, then the first non-blank. An empty resu
   `_sort_query`, `_trim_path`), not one long function.
 - Tables in tests use `pytest.mark.parametrize`.
 - Report the outcome.
+
+**Outcome:** `payload.py` is 89 LOC (one class, five module-level helpers each ≤ ~5 LOC: `_validate_locale_key`,
+`_validate_i18n_value`, `_validate_i18n_map`, `_validate_url`, `_validate_codes`); `create.py` is 29 LOC (one
+class, one `model_validator`); `urls.py` is 29 LOC and composes `_strip_tracking`, `_sort_query`, `_trim_path`
+exactly as specified; `slugs.py` is 31 LOC (`pick_title`, `slugify`). No nesting beyond a single nested class
+body anywhere; no further extraction needed.
+
+## Progress
+
+All 23 tests pass (14 in `test_suggestion_payload.py` covering both `NewDocumentPayload` and
+`SuggestionCreate`, 6 in `test_suggestion_urls.py`, 3 in `test_suggestion_slugs.py`), plus a few
+beyond the red-test table for rules the design decisions call out but the table doesn't enumerate
+(invalid locale codes, control characters, whitespace trimming). `./ci.sh` (lint, format, mypy,
+migrations, pytest, web) is green.
+
+Commits on `feat/suggestions-payload`:
+1. `feat(api): add NewDocumentPayload suggestion schema`
+2. `feat(api): add SuggestionCreate request schema with jurisdiction XOR`
+3. `feat(api): add normalize_url for suggestion duplicate detection`
+4. `feat(api): add slugify and pick_title for suggestion slug derivation`
+
+PR opened against `main`.
 
 ## Verification
 
