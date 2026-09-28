@@ -38,6 +38,10 @@ def _municipality_roles(type_str: str | None) -> list[str]:
     return roles
 
 
+def _should_import_state(state_code: str, allowed_state_codes: set[str] | None) -> bool:
+    return allowed_state_codes is None or state_code in allowed_state_codes
+
+
 def upsert_jurisdiction(
     session,
     *,
@@ -267,6 +271,7 @@ class OpenPLZLocationsImporter:
         dry_run: bool,
         commit_every: int,
         rate_limit_rps: float = 10.0,
+        state_codes: set[str] | None = None,
     ) -> None:
         self._client = OpenPLZClient(language=language, rate_limit_rps=rate_limit_rps)
         self._touched_at = _utc_now()
@@ -278,6 +283,7 @@ class OpenPLZLocationsImporter:
             commit_every=commit_every,
         )
         self._dry_run = dry_run
+        self._state_codes = state_codes
         self._stats = _ImportStats()
         self._country_id: uuid.UUID | None = None
         # Maps OpenPLZ municipality key -> DB id.
@@ -327,7 +333,8 @@ class OpenPLZLocationsImporter:
     def _import_states(self) -> None:
         states_payload = self._client.get_json("FederalStates") or []
         for state in [OpenPLZFederalState.model_validate(item) for item in states_payload]:
-            self._import_state(state)
+            if _should_import_state(state.key, self._state_codes):
+                self._import_state(state)
 
     def _import_state(self, state: OpenPLZFederalState) -> None:
         state_code = state.key
@@ -446,12 +453,19 @@ class OpenPLZLocationsImporter:
             self._bump_and_maybe_commit()
 
 
-def import_locations(language: str, *, dry_run: bool = False, commit_every: int = 1000) -> None:
+def import_locations(
+    language: str,
+    *,
+    dry_run: bool = False,
+    commit_every: int = 1000,
+    state_codes: set[str] | None = None,
+) -> None:
     OpenPLZLocationsImporter(
         language=language,
         dry_run=dry_run,
         commit_every=commit_every,
         rate_limit_rps=10.0,
+        state_codes=state_codes,
     ).import_all()
 
 
@@ -460,9 +474,15 @@ def main() -> None:
     parser.add_argument("--language", default="de", help="OpenPLZ language (default: de)")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, no DB commit")
     parser.add_argument("--commit-every", type=int, default=1000, help="Commit batch size")
+    parser.add_argument(
+        "--states",
+        default=None,
+        help="Comma-separated federal state codes to import, e.g. '14' for Saxony (default: all states)",
+    )
     args = parser.parse_args()
 
-    import_locations(args.language, dry_run=args.dry_run, commit_every=args.commit_every)
+    state_codes = set(args.states.split(",")) if args.states else None
+    import_locations(args.language, dry_run=args.dry_run, commit_every=args.commit_every, state_codes=state_codes)
 
 
 if __name__ == "__main__":
