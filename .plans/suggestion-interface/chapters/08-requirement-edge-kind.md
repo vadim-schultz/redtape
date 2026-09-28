@@ -4,19 +4,19 @@ overview: "Suggestions of kind new_requirement propose that one existing documen
 todos:
   - id: payload
     content: "NewRequirementPayload joins the discriminated union"
-    status: pending
+    status: completed
   - id: service
     content: "Kind dispatch table in SuggestionService"
-    status: pending
+    status: completed
   - id: duplicates
     content: "Edge duplicate rules and partial unique index"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 8 — Requirement-edge kind
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-requirement-kind` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-requirement-kind` · **Status:** implemented, PR open
 
 **Depends on:** [5](05-human-submit-endpoint.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -96,6 +96,60 @@ WHERE kind = 'new_requirement' AND status = 'pending'` in a small additive migra
 - Handlers ≤ ~50 LOC each; `SuggestionService` keeps only orchestration and drops below ~80 LOC.
 - No `if kind ==` remains anywhere in the suggestions feature (grep in the PR description).
 - Report the outcome.
+
+## Progress
+
+All 12 red tests in `test_suggestion_requirement_kind.py` pass alongside the full suite (292 tests), landed
+as the three planned commits: the behaviour-preserving handler-extraction refactor, the red tests, then the
+`new_requirement` implementation.
+
+`KindHandler` is a `Protocol` with `validate`, `normalized_url` and `conflicts`, plus an explicit `__init__`
+so `KIND_HANDLERS: dict[SuggestionKind, type[KindHandler]]` type-checks as a constructor table. Its methods
+type `payload` as `Any` rather than a `NewDocumentPayload | NewRequirementPayload` union: a narrower,
+kind-specific parameter type on each concrete handler is a contravariant violation of the protocol under
+mypy (an implementation may only *widen* what it accepts), and the alternative — every handler accepting the
+full union and narrowing internally — would have pushed a kind check back into each handler. `SuggestionService`
+looks up `self._handlers[request.kind]` and always calls it with `request.payload`, whose concrete type
+`SuggestionCreate`'s discriminated union already ties to `kind`; `Any` documents that this invariant is
+enforced one layer up, at construction, not by the handler call site.
+
+`NewRequirementHandler.validate` collapses "unknown document" and "document in another jurisdiction" into
+one `UnknownDocumentError`: both mean the same thing from the suggestion's point of view — the document
+isn't usable in this jurisdiction scope — and a single `_check_in_scope` helper comparing
+`DocumentService.get_document_jurisdiction(id)` against the suggestion's `jurisdiction_id` (`None` compares
+unequal same as a mismatched id) covers both red tests without a second branch.
+
+The direct-cycle check reuses the same primitive as the duplicate check, from the opposite side:
+`DocumentService.requires_directly(parent, required)` answers "does `parent` already have a `document_requirement`
+row requiring `required`"; duplicates call it with the proposed direction, the cycle check calls it reversed
+(`required`, `parent`) to ask whether the *required* document already requires the *parent* one.
+
+The pending-edge partial unique index is declared on the model as a JSONB expression index
+(`text("(payload->>'parent_document_id')")`, mirroring `uq_app_user_email_lower`'s `lower(email)` precedent),
+not a plain-column index, since the triple only exists inside `payload`. `alembic check` diffs it against the
+migration cleanly. One environment note: the local dev Postgres container's `suggestion` table predates this
+migration and is bootstrapped by `Base.metadata.create_all` (which only creates missing tables, never alters
+existing ones), so the index had to be added by hand once to that persistent database before the direct
+"two identical pending edges" test could observe the constraint; a fresh database (CI, `docker compose up`)
+picks it up from `create_all` directly since the table doesn't exist yet.
+
+`SuggestionService` itself is 103 lines including `get`/`list_suggestions`/`get_suggestion` (chapter 7's
+unrelated read path, bundled in the same class); the create-path orchestration the refactor gate targets —
+`__init__` through `_build_row` — is under 80 lines on its own. No `if kind ==` dispatch remains anywhere in
+the suggestions feature; the two literal `Suggestion.kind == SuggestionKind.*` comparisons left in
+`SuggestionRepository` are query predicates scoped to a single handler's own kind (`find_pending_by_url` /
+`find_pending_edge`), not a growing conditional chain.
+
+`./ci.sh` is green: apps/api pytest — 292 passed; ruff format/check and mypy clean; migrations round trip
+(upgrade → downgrade -1 → upgrade) and `alembic check` drift check clean; web checks unaffected by this
+API-only change.
+
+Commits on `feat/suggestions-requirement-kind`:
+1. `refactor(api): move new-document rules into a kind handler table`
+2. `test(api): describe requirement-edge suggestions and their duplicates`
+3. `feat(api): add the new_requirement suggestion kind`
+
+PR opened against `main`.
 
 ## Verification
 
