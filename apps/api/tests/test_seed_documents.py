@@ -42,19 +42,43 @@ def test_reuses_an_existing_region_row_instead_of_duplicating_it(db_session: Ses
     assert [r.id for r in rows] == [real_region.id]
 
 
-def test_documents_are_scoped_under_the_real_hierarchy_when_it_already_exists(db_session: Session) -> None:
+def test_documents_are_scoped_under_a_real_municipality_found_by_kind_and_code(db_session: Session) -> None:
+    # Shaped like the real OpenPLZ import: Dresden (a kreisfreie Stadt) is its own
+    # district, and the municipality row sits under that district, not directly
+    # under the region. `seed_mvp_graph` must find it by (kind, code) rather than
+    # assuming a flat region -> municipality parent chain.
     real_country = _real_country(db_session)
     real_region = Jurisdiction(kind=JurisdictionKind.REGION, geographic_parent_id=real_country.id, code="14")
     db_session.add(real_region)
+    db_session.flush()
+    real_district = Jurisdiction(
+        kind=JurisdictionKind.REGION,
+        geographic_parent_id=real_region.id,
+        code="14612",
+        administrative_roles=["DISTRICT"],
+    )
+    db_session.add(real_district)
+    db_session.flush()
+    real_dresden = Jurisdiction(
+        kind=JurisdictionKind.MUNICIPALITY,
+        geographic_parent_id=real_district.id,
+        code="14612000",
+    )
+    db_session.add(real_dresden)
     db_session.flush()
 
     seed_mvp_graph(db_session)
     db_session.flush()
 
-    dresden = db_session.scalars(
-        select(Jurisdiction).where(Jurisdiction.geographic_parent_id == real_region.id, Jurisdiction.code == "14612000")
-    ).one()
-    documents = db_session.scalars(select(Document).where(Document.jurisdiction_id == dresden.id)).all()
+    municipality_rows = db_session.scalars(
+        select(Jurisdiction).where(
+            Jurisdiction.kind == JurisdictionKind.MUNICIPALITY,
+            Jurisdiction.code == "14612000",
+        )
+    ).all()
+    assert [r.id for r in municipality_rows] == [real_dresden.id]
+
+    documents = db_session.scalars(select(Document).where(Document.jurisdiction_id == real_dresden.id)).all()
     assert len(documents) == 4
 
 

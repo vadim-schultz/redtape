@@ -30,17 +30,18 @@ ID_REQ_3 = uuid.UUID("33333333-3333-3333-3333-333333333303")
 
 
 def _find_or_create_jurisdiction(session: Session, placeholder: Jurisdiction) -> uuid.UUID:
-    """Reuse a jurisdiction already at this (parent, code) instead of merging our own.
+    """Reuse a jurisdiction already at this (kind, code) instead of merging our own.
 
     A real location import (see import_openplz_locations.py) may already own this
-    (parent, code) under a different id — Postgres's composite unique constraint
-    can't catch that collision itself since `geographic_parent_id` is nullable for
-    the country row, so we look it up ourselves rather than merge() by primary key
-    and create a duplicate.
+    (kind, code) under a different id and parent -- e.g. a municipality is always
+    parented under its district there, never flattened directly under its region
+    the way this seed's own placeholder chain is. `uq_jurisdiction_kind_code` is
+    the DB's own source of truth for uniqueness, so look up by the same pair
+    rather than merge() by primary key and create a duplicate.
     """
     existing_id = session.execute(
         select(Jurisdiction.id).where(
-            Jurisdiction.geographic_parent_id == placeholder.geographic_parent_id,
+            Jurisdiction.kind == placeholder.kind,
             Jurisdiction.code == placeholder.code,
         )
     ).scalar_one_or_none()
