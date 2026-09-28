@@ -33,8 +33,8 @@ LEAKED_MUNICIPALITY_ID = uuid.UUID("732ab821-227b-5e04-a94e-329b1849a9a9")
 SAXONY_STATE_CODE = "14"
 DRESDEN_MUNICIPALITY_CODE = "14612000"
 
-# Every table with a FK that could point at the fake Dresden row.
-_FAKE_DRESDEN_REFERENCES = (
+# Every table with a FK that could point at a leaked jurisdiction row.
+_JURISDICTION_REFERENCES = (
     (Document, Document.jurisdiction_id),
     (DocumentRequirement, DocumentRequirement.jurisdiction_id),
     (Suggestion, Suggestion.jurisdiction_id),
@@ -77,14 +77,23 @@ def _real_dresden_id(session: Session) -> uuid.UUID:
 
 
 def _repoint_fake_dresden_references(session: Session, real_dresden_id: uuid.UUID) -> None:
-    for model, column in _FAKE_DRESDEN_REFERENCES:
+    for model, column in _JURISDICTION_REFERENCES:
         session.execute(model.__table__.update().where(column == FAKE_DRESDEN_ID).values({column.key: real_dresden_id}))
+
+
+def _delete_rows_referencing(session: Session, jurisdiction_id: uuid.UUID) -> None:
+    # LEAKED_DISTRICT_ID/LEAKED_MUNICIPALITY_ID are wholly fake rows (unlike
+    # FAKE_DRESDEN_ID, which stands in for a real place), so anything
+    # referencing them is leaked garbage too -- delete it, don't repoint it.
+    for model, column in _JURISDICTION_REFERENCES:
+        session.execute(model.__table__.delete().where(column == jurisdiction_id))
 
 
 def _delete_leaked_jurisdictions(session: Session) -> None:
     session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == FAKE_DRESDEN_ID))
-    session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == LEAKED_MUNICIPALITY_ID))
-    session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == LEAKED_DISTRICT_ID))
+    for leaked_id in (LEAKED_MUNICIPALITY_ID, LEAKED_DISTRICT_ID):
+        _delete_rows_referencing(session, leaked_id)
+        session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == leaked_id))
 
 
 def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None] = _default_reimport) -> bool:
