@@ -6,6 +6,12 @@ export type SuggestionPayload = {
   situation_codes: string[];
 };
 
+export type NewRequirementSuggestionPayload = {
+  parent_document_id: string;
+  required_document_id: string;
+  notes_i18n?: Record<string, string> | null;
+};
+
 export type CreateSuggestionRequest = {
   municipality_code: string;
   payload: SuggestionPayload;
@@ -21,14 +27,25 @@ export type SubmitterRead = {
   display_name: string | null;
 };
 
+export type SuggestionKind = "new_document" | "new_requirement";
+export type SuggestionStatus = "pending" | "approved" | "rejected";
+export type SuggestionSourceType = "human" | "crawler";
+
 export type SuggestionRead = {
   id: string;
-  kind: string;
-  status: string;
-  source_type: string;
+  kind: SuggestionKind;
+  status: SuggestionStatus;
+  source_type: SuggestionSourceType;
   jurisdiction_id: string;
-  payload: SuggestionPayload;
+  payload: SuggestionPayload | NewRequirementSuggestionPayload;
   source_url: string | null;
   submitted_by: SubmitterRead;
   created_at: string;
+};
+
+export type SuggestionListResponse = {
+  items: SuggestionRead[];
+  total: number;
+  offset: number;
+  limit: number;
 };

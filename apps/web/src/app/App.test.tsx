@@ -80,3 +80,15 @@ it("app · /suggest redirects an anonymous visitor to /login", async () => {
     await screen.findByRole("button", { name: "Send magic link" }),
   ).toBeInTheDocument();
 });
+
+it("app · /suggestions/:id needs no authentication", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/suggestions/s1", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("button", { name: /back/i }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
+});
