@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.suggestion import SuggestionKind
-from app.schema.suggestion.payload import NewDocumentPayload
+from app.schema.suggestion.payload import NewDocumentPayload, validate_url
 
 
 class SuggestionCreate(BaseModel):
@@ -21,6 +21,11 @@ class SuggestionCreate(BaseModel):
     jurisdiction_id: UUID | None = None
     municipality_code: str | None = None
     source_url: str | None = None
+
+    @field_validator("source_url")
+    @classmethod
+    def _check_source_url(cls, value: str | None) -> str | None:
+        return None if value is None else validate_url(value, field="source_url")
 
     @model_validator(mode="after")
     def _check_jurisdiction_xor(self) -> SuggestionCreate:

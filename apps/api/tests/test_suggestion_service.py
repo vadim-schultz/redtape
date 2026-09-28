@@ -109,7 +109,9 @@ def _request(
 def test_stores_a_pending_human_suggestion_for_a_user(
     service: SuggestionService, country: Jurisdiction, user: AppUser
 ) -> None:
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=_request(jurisdiction=country))
+    suggestion = service.create(
+        submitter=SubmitterRef("user", user.id), request=_request(jurisdiction=country)
+    ).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
     assert suggestion.source_type == SuggestionSource.HUMAN
@@ -120,7 +122,9 @@ def test_stores_a_pending_human_suggestion_for_a_user(
 def test_stores_a_pending_crawler_suggestion_for_an_api_key(
     service: SuggestionService, country: Jurisdiction, api_key: ApiKey
 ) -> None:
-    suggestion = service.create(submitter=SubmitterRef("crawler", api_key.id), request=_request(jurisdiction=country))
+    request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
+
+    suggestion = service.create(submitter=SubmitterRef("crawler", api_key.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
     assert suggestion.source_type == SuggestionSource.CRAWLER
@@ -134,7 +138,7 @@ def test_derives_normalized_url_from_official_url(
     official_url = "https://Example.gov/residency/?utm_source=x&b=2&a=1"
     request = _request(jurisdiction=country, payload=_payload(official_url=official_url))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.normalized_url == normalize_url(official_url)
 
@@ -144,7 +148,7 @@ def test_resolves_municipality_code_to_the_jurisdiction_id(
 ) -> None:
     request = _request(municipality_code=municipality.code)
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.jurisdiction_id == municipality.id
 
@@ -189,7 +193,7 @@ def test_accepts_known_domain_and_situation_codes(
         payload=_payload(domain_codes=[domain_code], situation_codes=[situation_code]),
     )
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 

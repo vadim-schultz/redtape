@@ -150,7 +150,7 @@ def test_same_slug_in_another_jurisdiction_is_allowed(
         payload=_payload(title_i18n={"en": "Residency Permit"}, official_url="https://example.gov/unique-page"),
     )
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -178,7 +178,7 @@ def test_same_url_as_an_approved_suggestion_is_allowed(
     )
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -194,7 +194,7 @@ def test_same_url_as_a_rejected_suggestion_is_allowed(
     )
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -205,7 +205,7 @@ def test_same_title_but_different_url_as_a_pending_suggestion_is_allowed(
     _pending_suggestion(db_session, country, normalized_url=normalize_url("https://example.gov/other-page"))
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -247,6 +247,6 @@ def test_a_non_duplicate_creates_the_suggestion_as_before(
 ) -> None:
     request = _request(country, payload=_payload(official_url="https://example.gov/brand-new-page"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request)
+    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING

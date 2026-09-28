@@ -11,8 +11,6 @@ import jwt
 import pytest
 from app.config import settings
 from app.features.auth.jwt import JwtVerifier
-from app.features.auth.repository import ApiKeyRepository
-from app.features.auth.service import ApiKeyService
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -90,14 +88,6 @@ def _token_for(sub: uuid.UUID | None = None, **claim_overrides: object) -> str:
     return _token(_claims(sub=str(sub or uuid.uuid4()), **claim_overrides))
 
 
-def _issued_api_key(db_session: Session) -> str:
-    service = ApiKeyService(ApiKeyRepository(db_session))
-    key = service.issue("crawler-prod")
-    service.verify(key)
-    db_session.flush()
-    return key
-
-
 def _payload(jurisdiction: Jurisdiction, **overrides: object) -> dict[str, object]:
     body: dict[str, object] = {
         "kind": "new_document",
@@ -156,14 +146,6 @@ def test_response_never_contains_the_submitters_email(client: TestClient[Litesta
 
 def test_returns_401_without_a_token(client: TestClient[Litestar], country: Jurisdiction) -> None:
     response = client.post(URL, json=_payload(country))
-
-    assert response.status_code == 401
-
-
-def test_returns_401_for_an_api_key(client: TestClient[Litestar], db_session: Session, country: Jurisdiction) -> None:
-    key = _issued_api_key(db_session)
-
-    response = client.post(URL, json=_payload(country), headers={"X-API-Key": key})
 
     assert response.status_code == 401
 
