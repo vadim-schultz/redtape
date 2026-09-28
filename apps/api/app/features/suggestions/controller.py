@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from litestar import Controller, Response, post
+from litestar import Controller, Request, Response, post
 from litestar.exceptions import HTTPException
+from litestar.status_codes import HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.features.suggestions.service import (
     DuplicateSuggestionError,
@@ -15,16 +16,18 @@ from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.read import ConflictRead, SuggestionRead
 
 _STATUS_BY_ERROR: dict[type[Exception], int] = {
-    DuplicateSuggestionError: 409,
-    UnknownJurisdictionError: 422,
-    UnknownTaxonomyCodeError: 422,
+    DuplicateSuggestionError: HTTP_409_CONFLICT,
+    UnknownJurisdictionError: HTTP_422_UNPROCESSABLE_ENTITY,
+    UnknownTaxonomyCodeError: HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 
 def _to_http(exc: Exception) -> HTTPException:
     if isinstance(exc, DuplicateSuggestionError):
         conflicts = [ConflictRead(type=c.type, id=c.id).model_dump(mode="json") for c in exc.conflicts]
-        return HTTPException(status_code=409, detail="Duplicate suggestion", extra={"conflicts": conflicts})
+        return HTTPException(
+            status_code=HTTP_409_CONFLICT, detail="Duplicate suggestion", extra={"conflicts": conflicts}
+        )
     return HTTPException(status_code=_STATUS_BY_ERROR[type(exc)], detail=str(exc))
 
 
@@ -33,9 +36,10 @@ class SuggestionsController(Controller):
 
     path = "/"
 
-    @post("/", sync_to_thread=True, status_code=201)
+    @post("/", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def create(
         self,
+        request: Request,
         suggestion_service: SuggestionService,
         current_user: AppUser,
         data: SuggestionCreate,
@@ -45,4 +49,5 @@ class SuggestionsController(Controller):
         except (DuplicateSuggestionError, UnknownJurisdictionError, UnknownTaxonomyCodeError) as exc:
             raise _to_http(exc) from exc
         read = SuggestionRead.from_row(suggestion, submitter_display_name=current_user.display_name)
-        return Response(read, status_code=201, headers={"Location": f"/api/v1/suggestions/{suggestion.id}"})
+        location = f"{request.url.path.rstrip('/')}/{suggestion.id}"
+        return Response(read, status_code=HTTP_201_CREATED, headers={"Location": location})
