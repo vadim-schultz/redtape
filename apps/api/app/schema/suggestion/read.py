@@ -65,3 +65,12 @@ class SuggestionRead(BaseModel):
             submitted_by=submitted_by,
             created_at=suggestion.created_at,
         )
+
+
+class SuggestionListResponse(BaseModel):
+    """`GET /api/v1/suggestions` response body (chapter 7)."""
+
+    items: list[SuggestionRead]
+    total: int
+    offset: int
+    limit: int
