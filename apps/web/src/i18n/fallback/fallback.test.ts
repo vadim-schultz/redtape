@@ -73,4 +73,15 @@ describe("fallback translation bundles", () => {
     expect(enKeys.length).toBeGreaterThan(0);
     expect(suggestKeys("de")).toEqual(enKeys);
   });
+
+  it("has every suggestions.* key in both fallback bundles", () => {
+    const suggestionsKeys = (locale: string) =>
+      Object.keys(fallbackBundle(locale))
+        .filter((key) => key.startsWith("suggestions."))
+        .sort();
+
+    const enKeys = suggestionsKeys("en");
+    expect(enKeys.length).toBeGreaterThan(0);
+    expect(suggestionsKeys("de")).toEqual(enKeys);
+  });
 });
