@@ -6,11 +6,31 @@ import {
 
 import type { AuthGateway, AuthSession } from "./authGateway";
 
-function configuredEnv(): { url: string; anonKey: string } | undefined {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+/**
+ * Prefer the Worker's runtime-injected values (`window.__RUNTIME_ENV__`, set by
+ * `worker/runtimeEnv.ts`) over Vite's build-time `import.meta.env`. Cloudflare Workers Build
+ * exposes `wrangler.jsonc` `vars` to the Worker at deploy time, not to the earlier `vite build`
+ * step, so `import.meta.env.VITE_SUPABASE_*` is never populated in a deployed build; it still
+ * works for local dev, where there is no runtime injection and `.env` is all there is.
+ */
+export function resolveSupabaseEnv(
+  runtime:
+    { VITE_SUPABASE_URL?: string; VITE_SUPABASE_ANON_KEY?: string } | undefined,
+  buildTimeUrl: string | undefined,
+  buildTimeAnonKey: string | undefined,
+): { url: string; anonKey: string } | undefined {
+  const url = runtime?.VITE_SUPABASE_URL || buildTimeUrl;
+  const anonKey = runtime?.VITE_SUPABASE_ANON_KEY || buildTimeAnonKey;
   if (!url || !anonKey) return undefined;
   return { url, anonKey };
+}
+
+function configuredEnv(): { url: string; anonKey: string } | undefined {
+  return resolveSupabaseEnv(
+    typeof window !== "undefined" ? window.__RUNTIME_ENV__ : undefined,
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
 }
 
 /** Map a Supabase session onto our own `AuthSession` shape. */
