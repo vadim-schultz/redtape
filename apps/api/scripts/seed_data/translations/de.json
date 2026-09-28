@@ -93,5 +93,24 @@
     "conflict_document": "Bestehendes Dokument ansehen",
     "conflict_suggestion": "Bestehenden Vorschlag ansehen",
     "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  },
+  "suggestions": {
+    "list_title": "Vorschläge",
+    "detail_title": "Vorschlagsdetails",
+    "empty_title": "Keine Vorschläge gefunden",
+    "empty_description": "Versuche einen anderen Filter.",
+    "not_found": "Vorschlag nicht gefunden",
+    "count_one": "{count} Vorschlag",
+    "count_other": "{count} Vorschläge",
+    "status_pending": "Ausstehend",
+    "status_approved": "Angenommen",
+    "status_rejected": "Abgelehnt",
+    "filter_all": "Alle",
+    "source_human": "Person",
+    "source_crawler": "Crawler",
+    "official_source": "Offizielle Quelle",
+    "parent_document": "Übergeordnetes Dokument",
+    "required_document": "Erforderliches Dokument",
+    "submitted_by": "Eingereicht von"
   }
 }

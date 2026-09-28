@@ -93,5 +93,24 @@
     "conflict_document": "View existing document",
     "conflict_suggestion": "View existing suggestion",
     "error_generic": "Something went wrong. Please try again."
+  },
+  "suggestions": {
+    "list_title": "Suggestions",
+    "detail_title": "Suggestion Details",
+    "empty_title": "No suggestions found",
+    "empty_description": "Try a different filter.",
+    "not_found": "Suggestion not found",
+    "count_one": "{count} suggestion",
+    "count_other": "{count} suggestions",
+    "status_pending": "Pending",
+    "status_approved": "Approved",
+    "status_rejected": "Rejected",
+    "filter_all": "All",
+    "source_human": "Person",
+    "source_crawler": "Crawler",
+    "official_source": "Official Source",
+    "parent_document": "Parent document",
+    "required_document": "Required document",
+    "submitted_by": "Submitted by"
   }
 }

@@ -1,8 +1,7 @@
-import { Box, Text } from "@chakra-ui/react";
 import { LuFileSearch } from "react-icons/lu";
 
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
-import QueryError from "../../../../components/feedback/QueryError";
+import QueryStatusView from "../../../../components/feedback/QueryStatusView";
 import { useLocale } from "../../../../contexts/LocaleContext";
 
 import type { DocumentSummary } from "../../types";
@@ -30,58 +29,23 @@ function EmptyDocumentsState() {
   );
 }
 
-function PopulatedDocumentsList({
+export default function DocumentsListQueryStatus({
   documents,
-  isRefreshing,
-}: {
-  documents: DocumentSummary[];
-  isRefreshing: boolean;
-}) {
-  const { t } = useLocale();
-  const countKey = documents.length === 1 ? "count_one" : "count_other";
-
-  return (
-    <>
-      <Text mb={2} color="muted" fontSize="sm">
-        {t(`documents.${countKey}`, { count: documents.length })}
-      </Text>
-      <Box
-        display="flex"
-        flexDirection="column"
-        gap={3}
-        aria-busy={isRefreshing}
-        opacity={isRefreshing ? 0.6 : 1}
-        transition="opacity 0.2s"
-      >
-        {documents.map((d) => (
-          <DocumentCard key={d.id} document={d} />
-        ))}
-      </Box>
-    </>
-  );
-}
-
-function renderListContent({
-  isLoading,
-  isRefreshing,
-  isError,
-  onRetry,
-  documents,
+  ...status
 }: DocumentsListQueryStatusProps) {
-  if (isLoading) return <DocumentsListSkeleton />;
-  if (isError) return <QueryError onRetry={onRetry} />;
-  if ((documents?.length ?? 0) === 0) return <EmptyDocumentsState />;
+  const { t } = useLocale();
+  const countKey = (count: number) =>
+    count === 1 ? "count_one" : "count_other";
 
   return (
-    <PopulatedDocumentsList
-      documents={documents ?? []}
-      isRefreshing={isRefreshing}
+    <QueryStatusView
+      {...status}
+      items={documents}
+      getKey={(d) => d.id}
+      renderItem={(d) => <DocumentCard document={d} />}
+      renderSkeleton={() => <DocumentsListSkeleton />}
+      renderEmpty={() => <EmptyDocumentsState />}
+      countLabel={(count) => t(`documents.${countKey(count)}`, { count })}
     />
   );
-}
-
-export default function DocumentsListQueryStatus(
-  props: DocumentsListQueryStatusProps,
-) {
-  return renderListContent(props);
 }
