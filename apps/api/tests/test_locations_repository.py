@@ -3,11 +3,13 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+import pytest
 import sqlalchemy as sa
 from app.features.locations.repository import LocationsRepository
 from app.features.locations.service import LocationsService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
+from sqlalchemy.exc import IntegrityError
 
 
 def test_hierarchy_lists(db_session) -> None:
@@ -106,3 +108,68 @@ def test_hierarchy_lists(db_session) -> None:
     localities = service.list_localities(municipality_code="14612", locale="de", enabled_locales=enabled).items
     assert len(localities) == 1
     assert localities[0].code == "01001"
+
+
+def test_kind_and_code_must_be_unique_across_different_parents(db_session) -> None:
+    """A duplicate (kind, code) under a different parent must be rejected outright.
+
+    A prior bug let two REGION rows both coded "14" (real Saxony plus a leaked test
+    fixture under an unrelated parent) coexist, since the DB only constrained
+    (parent_id, code). The lookup by (kind, code) alone then picked one nondeterministically.
+    """
+    session = db_session
+    now = datetime.now(UTC)
+
+    ns = uuid.uuid5(uuid.NAMESPACE_URL, "redtape.test.unit.locations_dup")
+    parent_a_id = uuid.uuid5(ns, "country:a")
+    parent_b_id = uuid.uuid5(ns, "country:b")
+    region_a_id = uuid.uuid5(ns, "region:a")
+    region_b_id = uuid.uuid5(ns, "region:b")
+
+    for jid in [region_a_id, region_b_id, parent_a_id, parent_b_id]:
+        session.execute(sa.delete(Jurisdiction).where(Jurisdiction.id == jid))
+    session.flush()
+
+    def country(jid: uuid.UUID, code: str) -> Jurisdiction:
+        return Jurisdiction(
+            id=jid,
+            kind=JurisdictionKind.COUNTRY,
+            geographic_parent_id=None,
+            code=code,
+            administrative_roles=["COUNTRY"],
+            name_i18n={"de": code, "en": code},
+            openplz_type="Country",
+            last_updated=now,
+        )
+
+    session.add_all([country(parent_a_id, "DA"), country(parent_b_id, "DB")])
+    session.flush()
+
+    session.add(
+        Jurisdiction(
+            id=region_a_id,
+            kind=JurisdictionKind.REGION,
+            geographic_parent_id=parent_a_id,
+            code="99",
+            administrative_roles=["REGION"],
+            name_i18n={"de": "Real", "en": "Real"},
+            openplz_type="Land",
+            last_updated=now,
+        )
+    )
+    session.flush()
+
+    session.add(
+        Jurisdiction(
+            id=region_b_id,
+            kind=JurisdictionKind.REGION,
+            geographic_parent_id=parent_b_id,
+            code="99",
+            administrative_roles=["REGION"],
+            name_i18n={"de": "Leaked", "en": "Leaked"},
+            openplz_type="Land",
+            last_updated=now,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        session.flush()

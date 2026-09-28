@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, Uuid, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid, func, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,6 +33,18 @@ class Jurisdiction(Base):
             "geographic_parent_id",
             "code",
             name="uq_jurisdiction_parent_code",
+        ),
+        # A real (kind, code) pair is globally unique for a jurisdiction (country code,
+        # 2-digit Land code, 5-digit Kreisschluessel, 8-digit AGS are all distinct across
+        # Germany), regardless of parent -- guards against duplicates that a
+        # (geographic_parent_id, code) constraint alone can't catch (see
+        # 20260928d_fix_juris_kind_code).
+        Index(
+            "uq_jurisdiction_kind_code",
+            "kind",
+            "code",
+            unique=True,
+            postgresql_where=text("code IS NOT NULL"),
         ),
     )
 
