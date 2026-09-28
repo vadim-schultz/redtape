@@ -10,6 +10,7 @@ from app.db import provide_session
 from app.features.auth.router import auth_router
 from app.features.documents.router import documents_router
 from app.features.locations.router import locations_router
+from app.features.suggestions.router import suggestions_router
 from app.features.taxonomy.router import taxonomy_router
 from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
@@ -26,6 +27,7 @@ def create_app() -> Litestar:
             auth_router,
             documents_router,
             locations_router,
+            suggestions_router,
             taxonomy_router,
         ],
         dependencies={"session": Provide(provide_session)},
