@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -50,13 +50,20 @@ afterEach(() => {
 
 type User = ReturnType<typeof renderWithProviders>["user"];
 
+async function selectOnceEnabled(user: User, name: string, option: string) {
+  const trigger = screen.getByRole("combobox", { name });
+  await waitFor(() => expect(trigger).toBeEnabled());
+  await user.click(trigger);
+  await user.click(await screen.findByRole("option", { name: option }));
+  // Ark UI's Select asynchronously restores focus to its trigger on close;
+  // wait for that to settle so it can't steal focus back mid-typing later.
+  await waitFor(() => expect(trigger).toHaveFocus());
+}
+
 async function selectMunicipality(user: User) {
-  await user.click(await screen.findByRole("combobox", { name: "State" }));
-  await user.click(await screen.findByRole("option", { name: "Berlin" }));
-  await user.click(screen.getByRole("combobox", { name: "District" }));
-  await user.click(await screen.findByRole("option", { name: "Mitte" }));
-  await user.click(screen.getByRole("combobox", { name: "City" }));
-  await user.click(await screen.findByRole("option", { name: "Berlin City" }));
+  await selectOnceEnabled(user, "State", "Berlin");
+  await selectOnceEnabled(user, "District", "Mitte");
+  await selectOnceEnabled(user, "City", "Berlin City");
 }
 
 function renderForm(isSending = false) {
