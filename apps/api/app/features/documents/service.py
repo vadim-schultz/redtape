@@ -72,6 +72,16 @@ class DocumentService:
             return filters.jurisdiction_id
         return self._repo.get_municipality_jurisdiction_id(municipality_code=filters.municipality_code)
 
+    def resolve_jurisdiction_id(self, *, jurisdiction_id: UUID | None, municipality_code: str | None) -> UUID | None:
+        """Resolve a raw id or municipality code; a raw id is also checked for existence."""
+        filters = DocumentFilters(jurisdiction_id=jurisdiction_id, municipality_code=municipality_code)
+        resolved = self._effective_jurisdiction_id(filters)
+        if resolved is None:
+            return None
+        if municipality_code is None and not self._repo.jurisdiction_exists(resolved):
+            return None
+        return resolved
+
     def get_document_detail(
         self,
         *,
