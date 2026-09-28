@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 from urllib.parse import urlsplit
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _LOCALE_CODE_RE = re.compile(r"^[a-zA-Z]{2,5}$")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -13,6 +14,7 @@ _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 MAX_TITLE_LENGTH = 300
 MAX_DESCRIPTION_LENGTH = 4000
 MAX_URL_LENGTH = 500
+MAX_NOTES_LENGTH = 1000
 MAX_CODES = 20
 
 
@@ -87,3 +89,24 @@ class NewDocumentPayload(BaseModel):
     @classmethod
     def _check_codes(cls, value: list[str]) -> list[str]:
         return _validate_codes(value)
+
+
+class NewRequirementPayload(BaseModel):
+    """Payload for a `new_requirement` suggestion; pure validation, no database lookups."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parent_document_id: UUID
+    required_document_id: UUID
+    notes_i18n: dict[str, str] | None = None
+
+    @field_validator("notes_i18n")
+    @classmethod
+    def _check_notes_i18n(cls, value: dict[str, str] | None) -> dict[str, str] | None:
+        return None if value is None else _validate_i18n_map(value, max_len=MAX_NOTES_LENGTH)
+
+    @model_validator(mode="after")
+    def _check_ids_differ(self) -> NewRequirementPayload:
+        if self.parent_document_id == self.required_document_id:
+            raise ValueError("parent_document_id and required_document_id must differ")
+        return self

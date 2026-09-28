@@ -11,7 +11,7 @@ from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.slugs import pick_title, slugify
 from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
 from app.models.suggestion import SuggestionKind
-from app.schema.suggestion.payload import NewDocumentPayload
+from app.schema.suggestion.payload import NewDocumentPayload, NewRequirementPayload
 from app.url_normalization import normalize_url
 
 
@@ -19,11 +19,19 @@ class UnknownTaxonomyCodeError(ValueError):
     """Raised when a domain or situation code does not exist."""
 
 
+class UnknownDocumentError(ValueError):
+    """Raised when a requirement edge names a document outside the suggestion's jurisdiction."""
+
+
+class CycleError(ValueError):
+    """Raised when a requirement edge would create a direct dependency cycle."""
+
+
 @dataclass(frozen=True)
 class Conflict:
     """A catalogue entity that already matches an incoming suggestion (D4)."""
 
-    type: Literal["document", "suggestion"]
+    type: Literal["document", "suggestion", "document_requirement"]
     id: UUID
 
 
@@ -71,6 +79,46 @@ class NewDocumentHandler:
         return [Conflict("document", i) for i in document_ids] + [Conflict("suggestion", i) for i in pending_ids]
 
 
+class NewRequirementHandler:
+    """Behaviour for `new_requirement` suggestions (chapter 8)."""
+
+    def __init__(
+        self, documents: DocumentService, taxonomy: TaxonomyService, suggestions: SuggestionRepository
+    ) -> None:
+        self._documents = documents
+        self._suggestions = suggestions
+
+    def validate(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
+        self._check_in_scope(payload.parent_document_id, jurisdiction_id)
+        self._check_in_scope(payload.required_document_id, jurisdiction_id)
+        if self._documents.requires_directly(payload.required_document_id, payload.parent_document_id):
+            raise CycleError("the required document already requires the parent document")
+
+    def _check_in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> None:
+        if self._documents.get_document_jurisdiction(document_id) != jurisdiction_id:
+            raise UnknownDocumentError(f"document {document_id} is not in this jurisdiction")
+
+    def normalized_url(self, payload: NewRequirementPayload) -> str | None:
+        return None
+
+    def conflicts(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
+        conflicts: list[Conflict] = []
+        existing = self._documents.requirement_exists(
+            jurisdiction_id=jurisdiction_id,
+            parent_document_id=payload.parent_document_id,
+            required_document_id=payload.required_document_id,
+        )
+        if existing is not None:
+            conflicts.append(Conflict("document_requirement", existing))
+        pending_ids = self._suggestions.find_pending_edge(
+            jurisdiction_id=jurisdiction_id,
+            parent_document_id=payload.parent_document_id,
+            required_document_id=payload.required_document_id,
+        )
+        return conflicts + [Conflict("suggestion", i) for i in pending_ids]
+
+
 KIND_HANDLERS: dict[SuggestionKind, type[KindHandler]] = {
     SuggestionKind.NEW_DOCUMENT: NewDocumentHandler,
+    SuggestionKind.NEW_REQUIREMENT: NewRequirementHandler,
 }

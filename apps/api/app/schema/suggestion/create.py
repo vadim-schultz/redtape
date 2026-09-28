@@ -2,25 +2,37 @@
 
 from __future__ import annotations
 
-from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.suggestion import SuggestionKind
-from app.schema.suggestion.payload import NewDocumentPayload, validate_url
+from app.schema.suggestion.payload import NewDocumentPayload, NewRequirementPayload, validate_url
+
+_PAYLOAD_TYPES: dict[SuggestionKind, type[BaseModel]] = {
+    SuggestionKind.NEW_DOCUMENT: NewDocumentPayload,
+    SuggestionKind.NEW_REQUIREMENT: NewRequirementPayload,
+}
 
 
 class SuggestionCreate(BaseModel):
-    """`POST /api/v1/suggestions` body. `payload` gains more kinds as they ship."""
+    """`POST /api/v1/suggestions` body; `payload`'s shape is discriminated on `kind`."""
 
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal[SuggestionKind.NEW_DOCUMENT] = SuggestionKind.NEW_DOCUMENT
-    payload: NewDocumentPayload
+    kind: SuggestionKind = SuggestionKind.NEW_DOCUMENT
+    payload: NewDocumentPayload | NewRequirementPayload
     jurisdiction_id: UUID | None = None
     municipality_code: str | None = None
     source_url: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_payload_for_kind(cls, data: object) -> object:
+        if not isinstance(data, dict) or not isinstance(data.get("payload"), dict):
+            return data
+        payload_type = _PAYLOAD_TYPES[SuggestionKind(data.get("kind", SuggestionKind.NEW_DOCUMENT))]
+        return {**data, "payload": payload_type.model_validate(data["payload"])}
 
     @field_validator("source_url")
     @classmethod

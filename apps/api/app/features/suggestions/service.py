@@ -10,7 +10,14 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.features.documents.service import DocumentService
-from app.features.suggestions.handlers import KIND_HANDLERS, Conflict, KindHandler, UnknownTaxonomyCodeError
+from app.features.suggestions.handlers import (
+    KIND_HANDLERS,
+    Conflict,
+    CycleError,
+    KindHandler,
+    UnknownDocumentError,
+    UnknownTaxonomyCodeError,
+)
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
@@ -19,12 +26,14 @@ from app.schema.suggestion.read import SuggestionListResponse, SuggestionRead
 
 __all__ = [
     "Conflict",
+    "CycleError",
     "DuplicateSuggestionError",
     "MissingSourceUrlError",
     "SubmissionResult",
     "SubmitterRef",
     "SuggestionFilters",
     "SuggestionService",
+    "UnknownDocumentError",
     "UnknownJurisdictionError",
     "UnknownTaxonomyCodeError",
 ]
