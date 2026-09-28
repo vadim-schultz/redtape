@@ -4,16 +4,16 @@ overview: "suggestion table with kind, status and source enums, submitter foreig
 todos:
   - id: model
     content: "Suggestion model and three enums, exported from app.models"
-    status: pending
+    status: done
   - id: migration
     content: "Alembic revision with enums, table, constraints, indexes"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 1 — Suggestion model and migration
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-model` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/suggestions-model` · **Status:** implemented, PR open
 
 **Depends on:** auth [2](../../auth/chapters/02-user-model-migration.md) and [7](../../auth/chapters/07-api-key-model-and-hashing.md) (foreign keys) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -78,6 +78,27 @@ dropped explicitly in the migration. Revision `<yyyymmdd>_suggestion`, chained o
 ## Refactor gate
 
 Model file ≤ ~100 LOC; enums in the same file; constraint names as module constants. Report the outcome.
+
+**Outcome:** `app/models/suggestion.py` is 87 LOC — one class, three enums, two module-level constraint-name
+constants (`CK_SUBMITTER_MATCHES_SOURCE`, `UQ_KEY_IDEMPOTENCY`), no nesting beyond the single class body. No
+further extraction needed.
+
+## Progress
+
+All 10 red tests pass against Postgres (`tests/test_suggestion_model.py`); `alembic upgrade head` →
+`downgrade -1` → `upgrade head` round-trips cleanly and `alembic check` reports no drift against the model.
+`./ci.sh` (lint, format, mypy, migrations, pytest, web) is green.
+
+One incidental fix: `tests/test_check_migrations_script.py` hardcodes the current chain head
+(`CURRENT_HEAD`) to fork a synthetic two-heads case; bumped it from `20260927c_api_key` to
+`20260928_suggestion` so that fixture tracks the new head.
+
+Commits on `feat/suggestions-model`:
+1. `test(api): describe suggestion constraints, defaults and idempotency` — red.
+2. `feat(api): add suggestion model and migration` — green.
+3. `test(api): point the two-heads fixture at the new migration chain head` — CI fixture upkeep.
+
+PR opened against `main`.
 
 ## Verification
 
