@@ -2,15 +2,19 @@ import { screen, within } from "@testing-library/react";
 import { it, expect } from "vitest";
 
 import AppLayout from "../components/layout/AppLayout";
+import { createFakeAuthGateway } from "../features/auth/services/fakeAuthGateway";
 import { renderWithProviders } from "../test/renderWithProviders";
 import App from "./App";
 
-function renderAppAt(path: string) {
+function renderAppAt(
+  path: string,
+  authGateway?: ReturnType<typeof createFakeAuthGateway>,
+) {
   return renderWithProviders(
     <AppLayout>
       <App />
     </AppLayout>,
-    { initialEntries: [path] },
+    { initialEntries: [path], authGateway },
   );
 }
 
@@ -65,5 +69,14 @@ it("app · /documents still resolves", async () => {
 
   expect(
     await screen.findByRole("heading", { name: "Documents" }),
+  ).toBeInTheDocument();
+});
+
+it("app · /suggest redirects an anonymous visitor to /login", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/suggest", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("button", { name: "Send magic link" }),
   ).toBeInTheDocument();
 });

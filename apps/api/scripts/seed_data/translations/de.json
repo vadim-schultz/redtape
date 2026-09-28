@@ -19,7 +19,8 @@
   "nav": {
     "home": "Startseite",
     "browse_documents": "Dokumente durchsuchen",
-    "about": "Über uns"
+    "about": "Über uns",
+    "suggest": "Vorschlagen"
   },
   "auth": {
     "login": "Anmelden",
@@ -75,5 +76,22 @@
     "clear": "Filter zurücksetzen",
     "remove_domain": "Lebensbereich-Filter entfernen: {name}",
     "remove_situation": "Lebenslagen-Filter entfernen: {name}"
+  },
+  "suggest": {
+    "title": "Dokument vorschlagen",
+    "municipality": "Gemeinde",
+    "document_title": "Dokumenttitel",
+    "document_title_other": "Titel (andere Sprache)",
+    "official_url": "Offizielle URL",
+    "description": "Beschreibung",
+    "tags": "Themen",
+    "submit": "Absenden",
+    "success_title": "Vorschlag gesendet",
+    "success_body": "Danke! Wir prüfen deinen Vorschlag.",
+    "view_suggestion": "Vorschlag ansehen",
+    "conflict_title": "Dieses Dokument existiert möglicherweise bereits",
+    "conflict_document": "Bestehendes Dokument ansehen",
+    "conflict_suggestion": "Bestehenden Vorschlag ansehen",
+    "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
   }
 }

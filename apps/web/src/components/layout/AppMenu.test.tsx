@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../features/auth/services/fakeAuthGateway";
+import type { AuthSession } from "../../features/auth/services/authGateway";
 import AppMenu from "./AppMenu";
 
 const LOCALES = [
@@ -114,6 +115,24 @@ it("AppMenu · account item precedes the colour switch", async () => {
     signIn.compareDocumentPosition(colorSwitch) &
       Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
+});
+
+const suggestSession: AuthSession = {
+  accessToken: "token-1",
+  userId: "user-1",
+  email: "ada@example.com",
+};
+
+it.each([
+  ["anonymous", null],
+  ["signed in", suggestSession],
+])("AppMenu · shows Suggest for everyone (%s)", async (_label, session) => {
+  stubLocales();
+  await openMenu(createFakeAuthGateway({ session }));
+
+  expect(
+    await screen.findByRole("menuitem", { name: "Suggest" }),
+  ).toHaveAttribute("href", "/suggest");
 });
 
 it("AppMenu · language item is absent when the locales request fails", async () => {

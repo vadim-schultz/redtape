@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 
 import DocumentDetailSkeleton from "../features/documents/components/document-detail/DocumentDetailSkeleton";
 import DocumentsListSkeleton from "../features/documents/components/documents-list/DocumentsListSkeleton";
+import RequireAuth from "../features/auth/components/RequireAuth";
 
 const DocumentsListPage = lazy(
   () => import("../features/documents/containers/DocumentsListPage"),
@@ -11,6 +12,9 @@ const DocumentDetailPage = lazy(
   () => import("../features/documents/containers/DocumentDetailPage"),
 );
 const LoginPage = lazy(() => import("../features/auth/containers/LoginPage"));
+const SuggestPage = lazy(
+  () => import("../features/suggestions/containers/SuggestPage"),
+);
 
 export const routes = [
   { path: "/", element: <Navigate to="/documents" replace /> },
@@ -35,6 +39,16 @@ export const routes = [
     element: (
       <Suspense fallback={<DocumentDetailSkeleton />}>
         <DocumentDetailPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/suggest",
+    element: (
+      <Suspense fallback={null}>
+        <RequireAuth>
+          <SuggestPage />
+        </RequireAuth>
       </Suspense>
     ),
   },

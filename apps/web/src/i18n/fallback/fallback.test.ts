@@ -62,4 +62,15 @@ describe("fallback translation bundles", () => {
   it.each(["en", "de"])("auth.password no longer exists for %s", (locale) => {
     expect(fallbackBundle(locale)).not.toHaveProperty("auth.password");
   });
+
+  it("has every suggest.* key in both fallback bundles", () => {
+    const suggestKeys = (locale: string) =>
+      Object.keys(fallbackBundle(locale))
+        .filter((key) => key.startsWith("suggest."))
+        .sort();
+
+    const enKeys = suggestKeys("en");
+    expect(enKeys.length).toBeGreaterThan(0);
+    expect(suggestKeys("de")).toEqual(enKeys);
+  });
 });

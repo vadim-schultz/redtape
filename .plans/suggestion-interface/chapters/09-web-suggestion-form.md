@@ -4,19 +4,19 @@ overview: "A protected /suggest page where a signed-in person proposes a new doc
 todos:
   - id: api
     content: "suggestionsApi.createSuggestion and useCreateSuggestion"
-    status: pending
+    status: completed
   - id: form
     content: "SuggestionForm and its field components"
-    status: pending
+    status: completed
   - id: page
     content: "SuggestPage, protected route, menu entry, i18n"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 9 — Web suggestion form
 
-**Repo:** `redtape` (`apps/web`, i18n seeds in `apps/api/scripts/seed_data/translations`) · **Branch:** `feat/suggestions-web-form` · **Status:** planned
+**Repo:** `redtape` (`apps/web`, i18n seeds in `apps/api/scripts/seed_data/translations`) · **Branch:** `feat/suggestions-web-form` · **Status:** implemented, PR open
 
 **Depends on:** [5](05-human-submit-endpoint.md), auth [11](../../auth/chapters/11-web-menu-and-route-guard.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -105,6 +105,61 @@ tests beside each.
   than one concern.
 - `parseFieldErrors` is pure and separate from React.
 - Report the outcome.
+
+## Progress
+
+All 16 red tests pass. Implementation landed in four green cycles matching the plan: (1)
+`suggestionsApi`/`useCreateSuggestion`, (2) `SuggestionForm` and its field components, (3) `SuggestPage`
+and its result components, (4) the route guard, menu entry and i18n keys.
+
+Two deviations from the component tree as planned, both to keep `SuggestionForm` near the ~100 LOC gate:
+the URL field and the municipality header+`LocationPicker` wrapper were each split into their own
+components (`UrlField.tsx`, `MunicipalityField.tsx`), and `TaxonomyChips` grew its own `TaxonomyChipGroup`/
+`TaxonomyChip` sub-components (mirroring `documents/.../document-filters/FilterGroup`+`FilterChip`, kept
+local to this feature slice rather than importing across features). With those extractions,
+`SuggestionForm` itself is ~100 LOC of state wiring and two pure helpers (`isValidUrl`, `buildTitleI18n`);
+every field-specific concern lives in its own file. One extra i18n key beyond the plan's list,
+`suggest.view_suggestion`, was needed for `SubmittedNotice`'s link text.
+
+`parseFieldErrors` maps a Litestar `ValidationException` body's `extra: [{key, message, source}]` entries
+(confirmed against `apps/api/app/_signature/model.py`'s `ErrorMessage` shape) to `{field: message}` by
+taking the last `.`-segment of `key` (e.g. `payload.official_url` → `official_url`); it stays a pure
+function over `ApiRequestError`, no React involved.
+
+`createSuggestion` catches a 409 `ApiRequestError` and re-throws a typed `SuggestionConflictError` carrying
+the parsed `conflicts` array (`extra.conflicts`, per the chapter 5 controller's `_to_http`); `SuggestPage`
+branches on `mutation.error instanceof SuggestionConflictError` for the duplicate view and on
+`ApiRequestError` + `status === 422` for field errors, falling back to a generic error notice — mirroring
+`useMutation`'s built-in reset-on-retry so a corrected resubmit clears the previous error without extra
+state.
+
+**Found and fixed, out of `SuggestionForm`/`SuggestPage`'s own scope:** integration tests that walk
+`LocationPicker`'s three cascading selects and then type into a later field were flaky — Ark UI's `Select`
+restores focus to its trigger asynchronously on close, which could steal focus back mid-typing. Both test
+files now wait for the trigger to regain focus after each selection before moving on; stable across
+repeated runs.
+
+**Found, not fixed (pre-existing, unrelated):** `AppMenu.test.tsx`'s `Escape closes and returns focus to
+the burger` test is flaky when run scoped to a small file set (reliably reproduces on unmodified `main`
+too, given the same "choosing a language…" test immediately before it) — some async focus-restore from
+Chakra's nested `Menu` leaks past that test's `cleanup()`. It rarely surfaces in the full `npm test` run
+(8/9 clean runs observed) and `./ci.sh` passed end to end, so it wasn't chased further here; worth a
+dedicated look separately.
+
+`./ci.sh` is green: apps/api pytest, ruff, mypy, migrations; apps/web lint, format:check, typecheck, test
+(252 passed), build. `apps/api/scripts/seed_i18n.py` re-run cleanly. Manual browser verification (submit,
+duplicate conflict, signed-out redirect, locale switch) was not performed in this session — no interactive
+browser was available — and should be done before or shortly after merge.
+
+Commits on `feat/suggestions-web-form`:
+1. `test(web): describe posting a suggestion and its 409 conflict shape` /
+   `feat(web): add createSuggestion and useCreateSuggestion for the suggestions API`
+2. `test(web): describe the suggestion form's fields, validation and codes` /
+   `feat(web): add SuggestionForm and its field components, and suggest.* i18n keys`
+3. `test(web): describe the suggestion page's success, conflict and error states` /
+   `feat(web): add SuggestPage with conflict, success and field-error handling`
+4. `test(web): describe the /suggest route guard and menu entry` /
+   `feat(web): wire /suggest behind RequireAuth and add the Suggest menu item`
 
 ## Verification
 
