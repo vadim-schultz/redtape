@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from app.features.suggestions.urls import normalize_url
+from app.url_normalization import normalize_url
 
 
 @pytest.mark.parametrize(

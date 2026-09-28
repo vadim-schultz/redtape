@@ -1,4 +1,4 @@
-"""URL normalization for suggestion duplicate detection (D4)."""
+"""Shared URL normalization, used by documents and suggestions for duplicate detection (D4)."""
 
 from __future__ import annotations
 

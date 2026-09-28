@@ -8,7 +8,7 @@ from uuid import UUID
 
 from app.features.documents.service import DocumentService
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.urls import normalize_url
+from app.url_normalization import normalize_url
 from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.schema.suggestion.create import SuggestionCreate

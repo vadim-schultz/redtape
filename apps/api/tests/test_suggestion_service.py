@@ -12,7 +12,7 @@ from app.features.suggestions.service import (
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
 )
-from app.features.suggestions.urls import normalize_url
+from app.url_normalization import normalize_url
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
