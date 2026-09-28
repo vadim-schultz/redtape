@@ -2,12 +2,35 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
-from app.models.suggestion import Suggestion, SuggestionKind, SuggestionStatus
+from app.models.api_key import ApiKey
+from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.user import AppUser
+
+
+def _apply(
+    stmt: Select,
+    *,
+    status: Sequence[SuggestionStatus],
+    kind: SuggestionKind | None,
+    source_type: SuggestionSource | None,
+    jurisdiction_id: UUID | None,
+) -> Select:
+    """Narrow `stmt` by each non-empty filter; a list of `(values, column)` pairs, not an if-chain."""
+    for values, column in (
+        (status, Suggestion.status),
+        ((kind,) if kind else (), Suggestion.kind),
+        ((source_type,) if source_type else (), Suggestion.source_type),
+        ((jurisdiction_id,) if jurisdiction_id else (), Suggestion.jurisdiction_id),
+    ):
+        if values:
+            stmt = stmt.where(column.in_(values))
+    return stmt
 
 
 class SuggestionRepository:
@@ -23,6 +46,52 @@ class SuggestionRepository:
 
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._session.get(Suggestion, suggestion_id)
+
+    def count(
+        self,
+        *,
+        status: Sequence[SuggestionStatus] = (),
+        kind: SuggestionKind | None = None,
+        source_type: SuggestionSource | None = None,
+        jurisdiction_id: UUID | None = None,
+    ) -> int:
+        stmt = _apply(
+            select(func.count()).select_from(Suggestion),
+            status=status,
+            kind=kind,
+            source_type=source_type,
+            jurisdiction_id=jurisdiction_id,
+        )
+        return int(self._session.scalar(stmt) or 0)
+
+    def list_page(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        status: Sequence[SuggestionStatus] = (),
+        kind: SuggestionKind | None = None,
+        source_type: SuggestionSource | None = None,
+        jurisdiction_id: UUID | None = None,
+    ) -> list[tuple[Suggestion, str | None]]:
+        stmt = _apply(
+            self._with_submitter(), status=status, kind=kind, source_type=source_type, jurisdiction_id=jurisdiction_id
+        )
+        stmt = stmt.order_by(Suggestion.created_at.desc(), Suggestion.id.desc()).offset(offset).limit(limit)
+        return list(self._session.execute(stmt).tuples().all())
+
+    def get_with_submitter(self, suggestion_id: UUID) -> tuple[Suggestion, str | None] | None:
+        stmt = self._with_submitter().where(Suggestion.id == suggestion_id)
+        row = self._session.execute(stmt).tuples().first()
+        return row if row is None else (row[0], row[1])
+
+    def _with_submitter(self) -> Select:
+        """`Suggestion` joined to its submitter's display name; one query, never the email or key hash (D7)."""
+        return (
+            select(Suggestion, func.coalesce(AppUser.display_name, ApiKey.name))
+            .outerjoin(AppUser, Suggestion.submitted_by_user_id == AppUser.id)
+            .outerjoin(ApiKey, Suggestion.submitted_by_api_key_id == ApiKey.id)
+        )
 
     def find_pending_by_url(self, *, jurisdiction_id: UUID, normalized_url: str) -> list[UUID]:
         """Ids of pending `new_document` suggestions in `jurisdiction_id` with this normalized URL."""

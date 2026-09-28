@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
@@ -15,6 +16,7 @@ from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
+from app.schema.suggestion.read import SuggestionListResponse, SuggestionRead
 from app.url_normalization import normalize_url
 
 _SUBMITTER_COLUMN = {"user": "submitted_by_user_id", "crawler": "submitted_by_api_key_id"}
@@ -65,6 +67,16 @@ class SubmissionResult:
     replayed: bool
 
 
+@dataclass(frozen=True)
+class SuggestionFilters:
+    """Optional narrowing of the suggestion list; an empty `status` means no filter on that axis."""
+
+    status: Sequence[SuggestionStatus] = ()
+    kind: SuggestionKind | None = None
+    source_type: SuggestionSource | None = None
+    jurisdiction_id: UUID | None = None
+
+
 class SuggestionService:
     """Domain logic for creating a suggestion; talks to its repository and the owning feature services."""
 
@@ -85,6 +97,31 @@ class SuggestionService:
 
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._repo.get(suggestion_id)
+
+    def list_suggestions(self, *, filters: SuggestionFilters, offset: int, limit: int) -> SuggestionListResponse:
+        total = self._repo.count(
+            status=filters.status,
+            kind=filters.kind,
+            source_type=filters.source_type,
+            jurisdiction_id=filters.jurisdiction_id,
+        )
+        rows = self._repo.list_page(
+            offset=offset,
+            limit=limit,
+            status=filters.status,
+            kind=filters.kind,
+            source_type=filters.source_type,
+            jurisdiction_id=filters.jurisdiction_id,
+        )
+        items = [SuggestionRead.from_row(row, submitter_display_name=name) for row, name in rows]
+        return SuggestionListResponse(items=items, total=total, offset=offset, limit=limit)
+
+    def get_suggestion(self, suggestion_id: UUID) -> SuggestionRead | None:
+        found = self._repo.get_with_submitter(suggestion_id)
+        if found is None:
+            return None
+        suggestion, name = found
+        return SuggestionRead.from_row(suggestion, submitter_display_name=name)
 
     def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
         """Keys are only honoured for API keys (D8); a human's header is ignored."""
