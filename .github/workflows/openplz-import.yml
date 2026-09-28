@@ -37,7 +37,7 @@ jobs:
       - name: Verify OpenPLZ migration constraint exists
         run: |
           cd apps/api
-          python -c "from sqlalchemy import inspect; from app.db import engine; insp = inspect(engine); constraints = [c for c in insp.get_unique_constraints('jurisdiction')]; assert any(c.get('name') == 'uq_jurisdiction_parent_code' for c in constraints), 'Missing unique constraint uq_jurisdiction_parent_code'"
+          python -c "from sqlalchemy import inspect; from app.db import engine; insp = inspect(engine); indexes = insp.get_indexes('jurisdiction'); assert any(i.get('name') == 'uq_jurisdiction_kind_code' for i in indexes), 'Missing unique index uq_jurisdiction_kind_code'"
 
       - name: Import OpenPLZ locations (de)
         run: |
