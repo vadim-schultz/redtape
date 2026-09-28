@@ -12,7 +12,6 @@ from app.features.suggestions.service import (
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
 )
-from app.url_normalization import normalize_url
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
@@ -22,6 +21,7 @@ from app.models.taxonomy import Domain, LifeSituation
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
+from app.url_normalization import normalize_url
 from pydantic import ValidationError
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import select
