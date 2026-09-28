@@ -111,6 +111,6 @@
     "official_source": "Official Source",
     "parent_document": "Parent document",
     "required_document": "Required document",
-    "submitted_by": "Submitted by"
+    "submitted_by": "Submitted by {name}"
   }
 }
