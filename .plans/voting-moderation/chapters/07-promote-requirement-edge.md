@@ -4,16 +4,16 @@ overview: "transition_to approved for a new_requirement suggestion creates a rea
 todos:
   - id: create
     content: "DocumentService.create_requirement_from_suggestion"
-    status: pending
+    status: done
   - id: handler
     content: "NewRequirementHandler.promote"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 7 — Promote requirement edge
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-promote-requirement` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-promote-requirement` · **Status:** implemented, PR open
 
 **Depends on:** [5](05-status-transitions.md), suggestion-interface [8](../../suggestion-interface/chapters/08-requirement-edge-kind.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -72,6 +72,26 @@ before insert, same reasoning as chapter 6's slug race.
 `create_requirement_from_suggestion` mirrors `create_from_suggestion`'s shape; if the duplication between
 the two exceeds the rule of three (a third promotable kind would make it obvious), extract a shared
 `_promote_common` step — not yet, with only two. Report the outcome.
+
+**Outcome:** `create_requirement_from_suggestion` is a single 8-line build-and-persist method (construct
+`DocumentRequirement` with `source="community"`, call `repo.add_requirement`), the same shape as
+`create_from_suggestion`'s build-and-persist pair. The duplication between the two service methods is one
+line each (`self._repo.add*(...)`) — well under the rule-of-three trigger, so no shared `_promote_common`
+was extracted.
+
+`NewRequirementHandler.promote` re-validation came out as four small guard methods
+(`_check_still_in_scope` ×2, `_check_no_new_cycle`, `_check_no_duplicate_edge`) called in sequence from
+`_check_still_valid`, rather than one method with three inline `if`s — this keeps each guard and its
+`PromotionConflictError` message single-purpose and mirrors `validate`'s existing guard-method style in the
+same class, rather than introducing a second style. `_check_in_scope` (submission-time, raises
+`UnknownDocumentError`) and the new `_check_still_in_scope` (promotion-time, raises
+`PromotionConflictError`) now share one `_in_scope` boolean helper so the jurisdiction-membership check
+itself isn't duplicated, only the exception each raises differs.
+
+The `KIND_HANDLERS` table-completeness test (`test_kind_handlers_has_an_entry_for_every_suggestion_kind`)
+needed no changes, same as chapter 6 found — it only asserts kind coverage. The chapter's own new
+parametrized test (`test_kind_handlers_both_promote_without_not_implemented_error`) is the one that
+actually exercises both handlers' `promote` end to end.
 
 ## Verification
 
