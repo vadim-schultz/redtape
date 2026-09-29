@@ -4,16 +4,16 @@ overview: "suggestion_event table recording every vote, transition and promotion
 todos:
   - id: model
     content: "SuggestionEvent model, EventType enum, migration"
-    status: pending
+    status: completed
   - id: logging
     content: "EventLogService.record, called from voting and transition_to"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 8 — Suggestion event log
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-event-log` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-event-log` · **Status:** implemented, PR open
 
 **Depends on:** [6](06-promote-new-document.md), [7](07-promote-requirement-edge.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3, §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -87,6 +87,14 @@ and suggestions as a service (never the other way around — it has no opinion a
 
 `EventLogService.record` stays a single insert; each call site adds one line, not a wrapper class per
 caller. Report the outcome.
+
+**Outcome:** held. `EventLogService.record` is unchanged since the skeleton commit — one insert, no
+per-caller wrapper. Each call site is a single `self._events.record(...)` line: `VoteService.cast`,
+`SuggestionService._log_submitted`, `_promote_and_log`, `_log_status_change`. The latter three are one-line
+private helpers extracted out of `transition_to`/`_insert` to keep those methods within the Sandi Metz size
+target rather than growing an already-large `SuggestionService` further; `_promote_and_log` and
+`_log_status_change` were both added in the same edit to `transition_to` (chapters 6-7's promoted-event
+tests were written after the fact to lock in behavior that already existed, rather than driving new code).
 
 ## Verification
 
