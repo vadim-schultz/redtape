@@ -8,6 +8,8 @@ from collections.abc import Iterator
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.handlers import PromotionConflictError
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import SuggestionService
@@ -50,10 +52,18 @@ def document_service(db_session: Session, taxonomy_service: TaxonomyService) -> 
 
 
 @pytest.fixture
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
+
+
+@pytest.fixture
 def service(
-    db_session: Session, document_service: DocumentService, taxonomy_service: TaxonomyService
+    db_session: Session,
+    document_service: DocumentService,
+    taxonomy_service: TaxonomyService,
+    event_log_service: EventLogService,
 ) -> SuggestionService:
-    return SuggestionService(SuggestionRepository(db_session), document_service, taxonomy_service)
+    return SuggestionService(SuggestionRepository(db_session), document_service, taxonomy_service, event_log_service)
 
 
 def _document(db_session: Session, jurisdiction: Jurisdiction, *, slug: str) -> Document:

@@ -71,15 +71,15 @@ def pending_suggestion(db_session: Session, jurisdiction: Jurisdiction, submitte
 
 
 @pytest.fixture
-def suggestion_service(db_session: Session) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
-    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy)
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
 
 
 @pytest.fixture
-def event_log_service(db_session: Session) -> EventLogService:
-    return EventLogService(EventLogRepository(db_session))
+def suggestion_service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
+    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
+    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 @pytest.fixture

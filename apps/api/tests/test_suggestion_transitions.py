@@ -5,12 +5,15 @@ import uuid
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import AlreadyDecidedError, SuggestionService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.models.user import AppUser
 from sqlalchemy.orm import Session
 
@@ -32,10 +35,15 @@ def submitter(db_session: Session) -> AppUser:
 
 
 @pytest.fixture
-def service(db_session: Session) -> SuggestionService:
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
+
+
+@pytest.fixture
+def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
     documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy)
+    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 def _suggestion(
@@ -92,3 +100,25 @@ def test_transition_to_rejected_to_anything_raises_already_decided(
 
     with pytest.raises(AlreadyDecidedError):
         service.transition_to(suggestion.id, SuggestionStatus.APPROVED, actor=None)
+
+
+def test_transition_to_logs_a_status_changed_event_with_from_and_to(
+    service: SuggestionService, event_log_service: EventLogService, pending_suggestion: Suggestion
+) -> None:
+    service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=None)
+
+    changed = [e for e in event_log_service.list_for(pending_suggestion.id) if e.event_type == EventType.STATUS_CHANGED]
+    assert len(changed) == 1
+    assert changed[0].data == {"from": "pending", "to": "rejected"}
+
+
+def test_transition_to_an_automatic_transition_logs_no_actor(
+    service: SuggestionService, event_log_service: EventLogService, pending_suggestion: Suggestion
+) -> None:
+    service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=None)
+
+    changed = next(
+        e for e in event_log_service.list_for(pending_suggestion.id) if e.event_type == EventType.STATUS_CHANGED
+    )
+    assert changed.actor_user_id is None
+    assert changed.actor_api_key_id is None

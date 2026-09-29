@@ -5,6 +5,8 @@ import uuid
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import (
     SubmitterRef,
@@ -81,7 +83,8 @@ def situation_code(db_session: Session, domain_code: str) -> str:
 def service(db_session: Session) -> SuggestionService:
     documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy)
+    events = EventLogService(EventLogRepository(db_session))
+    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:
