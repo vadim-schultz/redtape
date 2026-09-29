@@ -9,6 +9,12 @@ Two crawler **modes** (may share libraries, different configs and entrypoints):
 
 Cross-cutting: **robots.txt** and rate limits, user-agent policy, fetch logging, deduplication, idempotent writes, object storage uploads for captures.
 
+Discovery output is submitted through the shared suggestion API, not a bespoke ingestion path — see
+[`.plans/suggestion-interface/`](../../../../.plans/suggestion-interface/00-architecture.md) for the shipped
+data model and [`docs/operations/suggestion-api.md`](../../../operations/suggestion-api.md) for the request/response
+contract, error codes and `Idempotency-Key` handling that [`crawlers` chapter
+2](../../../../.plans/crawlers/chapters/02-suggestion-api-client.md) builds its API client against.
+
 ## Dependencies on other strands
 
 - **data-model-migrations:** tables for targets, jobs, fetch logs, blob keys.
