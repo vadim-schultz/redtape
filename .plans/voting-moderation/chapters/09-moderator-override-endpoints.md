@@ -4,16 +4,16 @@ overview: "POST .../approve and .../reject let a moderator decide a suggestion d
 todos:
   - id: controller
     content: "Override handlers guarded by require_role(moderator)"
-    status: pending
+    status: completed
   - id: reason
     content: "Optional reason on rejection, recorded as a moderator_override event"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 9 — Moderator override endpoints
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-moderator-override` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-moderator-override` · **Status:** implemented, PR open
 
 **Depends on:** [8](08-suggestion-event-log.md), auth [6](../../auth/chapters/06-role-guards.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5, §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -78,6 +78,14 @@ new suggestion).
 
 Both override handlers share one ≈5 LOC body parameterized by target status (a small
 `_override(id, status, actor, reason)` helper), not duplicated logic. Report the outcome.
+
+**Outcome:** held. `approve` and `reject` are each 2-3 lines that build their status/reason and delegate to
+`VotingController._override`, which does the `transition_to` call, `AlreadyDecidedError` → 409 mapping, and
+response shaping in one place. `moderator_override`'s enum value required a new Postgres migration
+(`ALTER TYPE ... ADD VALUE`, since native enums can't gain a value from `create_all` alone); its downgrade
+recreates the type without the value, as Postgres has no `DROP VALUE`. `require_role` opens its own DB
+session independently of the request's, which deadlocks in tests against the fixture's open transaction
+unless the test patches `guards_module.SessionLocal` to reuse it (same fix as `test_role_guards.py`).
 
 ## Verification
 

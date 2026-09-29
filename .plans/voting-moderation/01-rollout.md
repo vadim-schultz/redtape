@@ -59,7 +59,7 @@ start once chapter 4 ships, in parallel with 5–9.
 | 6 | Promote new_document | backend | pytest + `./ci.sh` | [06-promote-new-document.md](chapters/06-promote-new-document.md) | planned |
 | 7 | Promote requirement edge | backend | pytest + `./ci.sh` | [07-promote-requirement-edge.md](chapters/07-promote-requirement-edge.md) | planned |
 | 8 | Suggestion event log | model + migration + backend | pytest + round-trip + `./ci.sh` | [08-suggestion-event-log.md](chapters/08-suggestion-event-log.md) | PR open |
-| 9 | Moderator override endpoints | backend | pytest + `./ci.sh` | [09-moderator-override-endpoints.md](chapters/09-moderator-override-endpoints.md) | planned |
+| 9 | Moderator override endpoints | backend | pytest + `./ci.sh` | [09-moderator-override-endpoints.md](chapters/09-moderator-override-endpoints.md) | PR open |
 | 10 | Web vote controls | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-vote-controls.md](chapters/10-web-vote-controls.md) | planned |
 | 11 | Web moderation queue | frontend + i18n | vitest + `./ci.sh` + manual | [11-web-moderation-queue.md](chapters/11-web-moderation-queue.md) | planned |
 | 12 | Docs sync | docs | link check | [12-docs-sync.md](chapters/12-docs-sync.md) | planned |
