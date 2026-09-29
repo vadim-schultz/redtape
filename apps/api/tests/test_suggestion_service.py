@@ -5,6 +5,8 @@ import uuid
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import (
     SubmitterRef,
@@ -17,6 +19,7 @@ from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.models.taxonomy import Domain, LifeSituation
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
@@ -78,10 +81,15 @@ def situation_code(db_session: Session, domain_code: str) -> str:
 
 
 @pytest.fixture
-def service(db_session: Session) -> SuggestionService:
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
+
+
+@pytest.fixture
+def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
     documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy)
+    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:
@@ -129,6 +137,33 @@ def test_stores_a_pending_crawler_suggestion_for_an_api_key(
     assert suggestion.status == SuggestionStatus.PENDING
     assert suggestion.source_type == SuggestionSource.CRAWLER
     assert suggestion.submitted_by_api_key_id == api_key.id
+
+
+def test_create_logs_a_submitted_event_for_a_human_submitter(
+    service: SuggestionService, event_log_service: EventLogService, country: Jurisdiction, user: AppUser
+) -> None:
+    suggestion = service.create(
+        submitter=SubmitterRef("user", user.id), request=_request(jurisdiction=country)
+    ).suggestion
+
+    events = event_log_service.list_for(suggestion.id)
+    submitted = [e for e in events if e.event_type == EventType.SUBMITTED]
+    assert len(submitted) == 1
+    assert submitted[0].actor_user_id == user.id
+    assert submitted[0].actor_api_key_id is None
+
+
+def test_create_logs_a_submitted_event_for_a_crawler_submitter(
+    service: SuggestionService, event_log_service: EventLogService, country: Jurisdiction, api_key: ApiKey
+) -> None:
+    request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
+
+    suggestion = service.create(submitter=SubmitterRef("crawler", api_key.id), request=request).suggestion
+
+    submitted = [e for e in event_log_service.list_for(suggestion.id) if e.event_type == EventType.SUBMITTED]
+    assert len(submitted) == 1
+    assert submitted[0].actor_api_key_id == api_key.id
+    assert submitted[0].actor_user_id is None
     assert suggestion.submitted_by_user_id is None
 
 

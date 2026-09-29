@@ -7,6 +7,7 @@ from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locale import SupportedLocale, UITranslation
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType, SuggestionEvent
 from app.models.suggestion_vote import SuggestionVote
 from app.models.taxonomy import Domain, LifeSituation
 from app.models.user import AppUser, UserRole
@@ -18,11 +19,13 @@ __all__ = [
     "Document",
     "DocumentRequirement",
     "Domain",
+    "EventType",
     "Jurisdiction",
     "JurisdictionKind",
     "LifeSituation",
     "Locality",
     "Suggestion",
+    "SuggestionEvent",
     "SuggestionKind",
     "SuggestionSource",
     "SuggestionStatus",

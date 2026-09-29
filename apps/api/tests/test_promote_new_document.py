@@ -8,6 +8,8 @@ from collections.abc import Iterator
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.handlers import PromotionConflictError
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import AlreadyDecidedError, SuggestionService
@@ -17,6 +19,7 @@ from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.schema.suggestion.payload import NewDocumentPayload
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -45,10 +48,18 @@ def document_service(db_session: Session, taxonomy_service: TaxonomyService) -> 
 
 
 @pytest.fixture
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
+
+
+@pytest.fixture
 def service(
-    db_session: Session, document_service: DocumentService, taxonomy_service: TaxonomyService
+    db_session: Session,
+    document_service: DocumentService,
+    taxonomy_service: TaxonomyService,
+    event_log_service: EventLogService,
 ) -> SuggestionService:
-    return SuggestionService(SuggestionRepository(db_session), document_service, taxonomy_service)
+    return SuggestionService(SuggestionRepository(db_session), document_service, taxonomy_service, event_log_service)
 
 
 def _suggestion(
@@ -98,6 +109,20 @@ def test_approving_a_new_document_suggestion_creates_a_document_with_its_fields(
     assert document.title_i18n == {"en": "Residency permit"}
     assert document.description_i18n == {"en": "How to register."}
     assert document.official_url == "https://example.gov/residency"
+
+
+def test_promoting_a_new_document_suggestion_logs_a_promoted_event_with_the_created_document_id(
+    service: SuggestionService, db_session: Session, jurisdiction: Jurisdiction, event_log_service: EventLogService
+) -> None:
+    suggestion = _suggestion(db_session, jurisdiction, title="Residency permit")
+
+    service.transition_to(suggestion.id, SuggestionStatus.APPROVED, actor=None)
+
+    document = _document_by_slug(db_session, jurisdiction, "residency-permit")
+    assert document is not None
+    promoted = [e for e in event_log_service.list_for(suggestion.id) if e.event_type == EventType.PROMOTED]
+    assert len(promoted) == 1
+    assert promoted[0].data == {"created_id": str(document.id), "table": "document"}
 
 
 def test_promote_resolves_domain_and_situation_codes_onto_the_created_document(

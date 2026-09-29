@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.features.documents.service import DocumentService
+from app.features.events.service import EventLogService
 from app.features.suggestions.handlers import (
     KIND_HANDLERS,
     Conflict,
@@ -22,6 +23,7 @@ from app.features.suggestions.handlers import (
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.read import SuggestionListResponse, SuggestionRead
@@ -44,6 +46,7 @@ __all__ = [
 
 _SUBMITTER_COLUMN = {"user": "submitted_by_user_id", "crawler": "submitted_by_api_key_id"}
 _SUBMITTER_SOURCE = {"user": SuggestionSource.HUMAN, "crawler": SuggestionSource.CRAWLER}
+_PROMOTED_TABLE = {SuggestionKind.NEW_DOCUMENT: "document", SuggestionKind.NEW_REQUIREMENT: "document_requirement"}
 
 
 class UnknownJurisdictionError(ValueError):
@@ -95,9 +98,16 @@ class SuggestionFilters:
 class SuggestionService:
     """Domain logic for creating a suggestion; dispatches per-kind rules to `KIND_HANDLERS`."""
 
-    def __init__(self, repository: SuggestionRepository, documents: DocumentService, taxonomy: TaxonomyService) -> None:
+    def __init__(
+        self,
+        repository: SuggestionRepository,
+        documents: DocumentService,
+        taxonomy: TaxonomyService,
+        events: EventLogService,
+    ) -> None:
         self._repo = repository
         self._documents = documents
+        self._events = events
         self._handlers: dict[SuggestionKind, KindHandler] = {
             kind: cls(documents, taxonomy, repository) for kind, cls in KIND_HANDLERS.items()
         }
@@ -147,17 +157,36 @@ class SuggestionService:
         self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None
     ) -> Suggestion:
         """The one place `status` changes (D5); pending is idempotent, approved/rejected are terminal (D6)."""
+        suggestion = self._get_pending(suggestion_id)
+        if new_status == SuggestionStatus.PENDING:
+            return suggestion
+        old_status = suggestion.status
+        if new_status == SuggestionStatus.APPROVED:
+            self._promote_and_log(suggestion, actor)
+        suggestion.status = new_status
+        self._log_status_change(suggestion_id, old_status, new_status, actor)
+        return self._repo.save(suggestion)
+
+    def _get_pending(self, suggestion_id: UUID) -> Suggestion:
         suggestion = self._repo.get(suggestion_id)
         if suggestion is None:
             raise ValueError(f"suggestion {suggestion_id} not found")
         if suggestion.status != SuggestionStatus.PENDING:
             raise AlreadyDecidedError(f"suggestion {suggestion_id} is already {suggestion.status}")
-        if new_status == SuggestionStatus.PENDING:
-            return suggestion
-        if new_status == SuggestionStatus.APPROVED:
-            self._handlers[suggestion.kind].promote(suggestion)
-        suggestion.status = new_status
-        return self._repo.save(suggestion)
+        return suggestion
+
+    def _promote_and_log(self, suggestion: Suggestion, actor: AppUser | None) -> None:
+        created_id = self._handlers[suggestion.kind].promote(suggestion)
+        data = {"created_id": str(created_id), "table": _PROMOTED_TABLE[suggestion.kind]}
+        self._events.record(suggestion.id, EventType.PROMOTED, data=data, actor_user_id=actor.id if actor else None)
+
+    def _log_status_change(
+        self, suggestion_id: UUID, old_status: SuggestionStatus, new_status: SuggestionStatus, actor: AppUser | None
+    ) -> None:
+        data = {"from": old_status.value, "to": new_status.value}
+        self._events.record(
+            suggestion_id, EventType.STATUS_CHANGED, data=data, actor_user_id=actor.id if actor else None
+        )
 
     def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
         """Keys are only honoured for API keys (D8); a human's header is ignored."""
@@ -171,13 +200,22 @@ class SuggestionService:
 
     def _insert(self, row: Suggestion, submitter: SubmitterRef, idempotency_key: str | None) -> SubmissionResult:
         try:
-            return SubmissionResult(self._repo.add(row), replayed=False)
+            suggestion = self._repo.add(row)
+            self._log_submitted(suggestion, submitter)
+            return SubmissionResult(suggestion, replayed=False)
         except IntegrityError:
             self._repo.rollback()
             existing = self._replay(submitter, idempotency_key)
             if existing is None:
                 raise
             return SubmissionResult(existing, replayed=True)
+
+    def _log_submitted(self, suggestion: Suggestion, submitter: SubmitterRef) -> None:
+        actor_user_id = submitter.id if submitter.kind == "user" else None
+        actor_api_key_id = submitter.id if submitter.kind == "crawler" else None
+        self._events.record(
+            suggestion.id, EventType.SUBMITTED, actor_user_id=actor_user_id, actor_api_key_id=actor_api_key_id
+        )
 
     def _resolve_jurisdiction(self, request: SuggestionCreate) -> UUID:
         jurisdiction_id = self._documents.resolve_jurisdiction_id(

@@ -6,10 +6,12 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from app.config import settings
+from app.features.events.service import EventLogService
 from app.features.suggestions.service import SuggestionService
 from app.features.voting.repository import VoteRepository
 from app.features.voting.thresholds import decide_status
 from app.models.suggestion import Suggestion, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.models.suggestion_vote import SuggestionVote
 from app.schema.suggestion.read import Tally
 
@@ -31,15 +33,17 @@ class SelfVoteError(ValueError):
 class VoteService:
     """Domain logic for casting and removing a vote; the pending-only and no-self-vote rules live here."""
 
-    def __init__(self, repository: VoteRepository, suggestions: SuggestionService) -> None:
+    def __init__(self, repository: VoteRepository, suggestions: SuggestionService, events: EventLogService) -> None:
         self._repo = repository
         self._suggestions = suggestions
+        self._events = events
 
     def cast(self, *, suggestion_id: UUID, user_id: UUID, value: int) -> SuggestionVote:
         suggestion = self._get_suggestion(suggestion_id)
         self._check_pending(suggestion)
         self._check_not_self(suggestion, user_id)
         vote = self._repo.upsert(suggestion_id=suggestion_id, user_id=user_id, value=value)
+        self._events.record(suggestion_id, EventType.VOTED, data={"value": value}, actor_user_id=user_id)
         self._maybe_transition(suggestion_id)
         return vote
 
