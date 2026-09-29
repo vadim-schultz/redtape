@@ -4,19 +4,19 @@ overview: "SuggestionRead gains tally {up, down, score} and, when authenticated,
 todos:
   - id: settings
     content: "vote_approve_threshold, vote_reject_threshold"
-    status: pending
+    status: done
   - id: tally
     content: "VoteRepository.tally_for, service composition into SuggestionRead"
-    status: pending
+    status: done
   - id: decide
     content: "decide_status(score, thresholds) pure function"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 4 — Tally and thresholds
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-tally` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-tally` · **Status:** implemented, PR open
 
 **Depends on:** [3](03-vote-endpoints.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3–4 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -87,6 +87,16 @@ present.
 
 `decide_status` is a two-branch function, no nesting. Composition helper stays ≤ ~10 LOC. Report the
 outcome.
+
+**Outcome:** `decide_status` is two `if`s and a fallthrough return, no nesting, exactly as scoped.
+`with_tally` (in `suggestions/controller.py`) is a 2-line body doing one `model_copy(update=...)`, well
+under the ≤10 LOC budget; both `get_suggestion` and `list_suggestions` call it, `list_suggestions` first
+batching through `tally_for_many` so the composition itself stays free of query concerns. `tally_for`/
+`tally_for_many` share a `_tally(up, down) -> Tally` helper rather than duplicating the score computation.
+No new cross-service dependency was added to `SuggestionService` — `suggestions_router` now takes its
+dependency dict from `voting.dependencies` (which already merges the suggestion deps and adds
+`vote_service`) the same way `taxonomy_router` takes its dict from `documents.dependencies`, avoiding a
+circular import between the two features' dependency modules.
 
 ## Verification
 
