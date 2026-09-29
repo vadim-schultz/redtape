@@ -10,7 +10,7 @@ from app.features.documents.service import DocumentService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.slugs import pick_title, slugify
 from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
-from app.models.suggestion import SuggestionKind
+from app.models.suggestion import Suggestion, SuggestionKind
 from app.schema.suggestion.payload import NewDocumentPayload, NewRequirementPayload
 from app.url_normalization import normalize_url
 
@@ -25,6 +25,10 @@ class UnknownDocumentError(ValueError):
 
 class CycleError(ValueError):
     """Raised when a requirement edge would create a direct dependency cycle."""
+
+
+class PromotionConflictError(ValueError):
+    """Raised when a competing suggestion won the race to promote onto the same slug or URL."""
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,8 @@ class KindHandler(Protocol):
     def normalized_url(self, payload: Any) -> str | None: ...
 
     def conflicts(self, payload: Any, *, jurisdiction_id: UUID) -> list[Conflict]: ...
+
+    def promote(self, suggestion: Suggestion) -> UUID: ...
 
 
 class NewDocumentHandler:
@@ -77,6 +83,18 @@ class NewDocumentHandler:
         )
         pending_ids = self._suggestions.find_pending_by_url(jurisdiction_id=jurisdiction_id, normalized_url=normalized)
         return [Conflict("document", i) for i in document_ids] + [Conflict("suggestion", i) for i in pending_ids]
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        payload = NewDocumentPayload.model_validate(suggestion.payload)
+        slug = slugify(pick_title(payload.title_i18n))
+        self._check_still_free(payload, jurisdiction_id=suggestion.jurisdiction_id, slug=slug)
+        document = self._documents.create_from_suggestion(payload, suggestion.jurisdiction_id, slug)
+        return document.id
+
+    def _check_still_free(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID, slug: str) -> None:
+        normalized = normalize_url(payload.official_url)
+        if self._documents.find_conflicts(jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized):
+            raise PromotionConflictError(f"slug {slug!r} was already taken in jurisdiction {jurisdiction_id}")
 
 
 class NewRequirementHandler:
@@ -116,6 +134,9 @@ class NewRequirementHandler:
             required_document_id=payload.required_document_id,
         )
         return conflicts + [Conflict("suggestion", i) for i in pending_ids]
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        raise NotImplementedError("promoting new_requirement suggestions is chapter 7")
 
 
 KIND_HANDLERS: dict[SuggestionKind, type[KindHandler]] = {

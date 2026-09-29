@@ -4,16 +4,16 @@ overview: "transition_to approved for a new_document suggestion creates a real D
 todos:
   - id: create
     content: "DocumentService.create_from_suggestion (first write method on a read-only service)"
-    status: pending
+    status: done
   - id: promoter
     content: "Kind-dispatched promotion inside transition_to"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 6 — Promote new_document
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-promote-document` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-promote-document` · **Status:** implemented, PR open
 
 **Depends on:** [5](05-status-transitions.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §6 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -83,6 +83,24 @@ transaction management is added, just care that nothing commits early).
 `create_from_suggestion` composes named steps (`_resolve_tags`, `_build_document`) each ≈5 LOC; if
 `transition_to` exceeds ~15 LOC with promotion added, extract a `SuggestionTransition` handler object now
 (the size trigger flagged in chapter 5). Report the outcome.
+
+**Outcome:** `create_from_suggestion` is 4 lines (`_resolve_tags`, `_build_document`, `_repo.add`), each
+named step ≈3–5 LOC as scoped. `transition_to` gained one line (`self._handlers[suggestion.kind].promote(suggestion)`,
+called on `approved` *before* the status write, not after) and is 8 LOC total — well under the 15 LOC
+trigger, so no `SuggestionTransition` extraction was needed. Promoting before the status assignment also
+means the race guard needs no rollback reasoning: on `PromotionConflictError` the suggestion's in-memory
+`status` was never touched, so "no partial state" is structural, not just transactional.
+
+One deviation from the design note: `KindHandler.promote` takes only `suggestion`, not `(suggestion,
+session)` — the handler already holds `documents`/`taxonomy`/`suggestions` collaborators from its
+constructor (the same pattern `validate`/`conflicts` already use), so a session parameter would have been
+unused. The suggestion-interface chapter 8 table-completeness test (`assert set(KIND_HANDLERS) ==
+set(SuggestionKind)`) needed no changes — it asserts kind coverage, not per-handler method surface, and
+`KindHandler` is a structural `Protocol` so adding `promote` to it isn't enforced at runtime.
+
+Two pre-existing fixtures (`test_suggestion_transitions.py`, `test_vote_service.py`) built a `NEW_DOCUMENT`
+suggestion with an empty payload; now that `approved` actually promotes, they needed a minimal valid
+payload to keep testing status-transition mechanics instead of failing on `NewDocumentPayload` validation.
 
 ## Verification
 
