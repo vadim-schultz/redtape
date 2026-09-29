@@ -19,6 +19,7 @@ from app.main import create_app
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy import select
@@ -120,6 +121,22 @@ def test_approving_a_new_requirement_suggestion_creates_a_document_requirement(
     edge = _edge(db_session, jurisdiction, parent, required)
     assert edge is not None
     assert edge.source == "community"
+
+
+def test_promoting_a_new_requirement_suggestion_logs_a_promoted_event_with_the_created_requirement_id(
+    service: SuggestionService, db_session: Session, jurisdiction: Jurisdiction, event_log_service: EventLogService
+) -> None:
+    parent = _document(db_session, jurisdiction, slug="passport-application")
+    required = _document(db_session, jurisdiction, slug="birth-certificate")
+    suggestion = _requirement_suggestion(db_session, jurisdiction, parent=parent, required=required)
+
+    service.transition_to(suggestion.id, SuggestionStatus.APPROVED, actor=None)
+
+    edge = _edge(db_session, jurisdiction, parent, required)
+    assert edge is not None
+    promoted = [e for e in event_log_service.list_for(suggestion.id) if e.event_type == EventType.PROMOTED]
+    assert len(promoted) == 1
+    assert promoted[0].data == {"created_id": str(edge.id), "table": "document_requirement"}
 
 
 @pytest.fixture
