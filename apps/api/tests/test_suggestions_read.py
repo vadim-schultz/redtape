@@ -2,28 +2,73 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
+import app.features.auth.dependencies as auth_dependencies
+import jwt
 import pytest
+from app.config import settings
+from app.features.auth.jwt import JwtVerifier
 from app.main import create_app
 from app.models.api_key import ApiKey
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_vote import SuggestionVote
 from app.models.user import AppUser
 from app.url_normalization import normalize_url
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 URL = "/api/v1/suggestions"
+ISSUER = "https://example.supabase.co/auth/v1"
+AUDIENCE = "authenticated"
+
+
+def _rsa_keypair() -> tuple[str, str]:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        .decode()
+    )
+    return private_pem, public_pem
+
+
+PRIVATE_KEY, PUBLIC_KEY = _rsa_keypair()
+
+
+def _token_for(user_id: uuid.UUID) -> str:
+    now = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "email": "ada@example.com",
+        "iss": ISSUER,
+        "aud": AUDIENCE,
+        "iat": now,
+        "exp": now + 3600,
+    }
+    return jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
 
 
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
+    verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
+    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:
@@ -262,3 +307,57 @@ def test_malformed_id_returns_404(client: TestClient[Litestar]) -> None:
     response = client.get(f"{URL}/not-a-uuid")
 
     assert response.status_code == 404
+
+
+def test_includes_the_tally(client: TestClient[Litestar], db_session: Session, country: Jurisdiction) -> None:
+    suggestion = _make_suggestion(db_session, country)
+    voter = _make_user(db_session)
+    db_session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=voter.id, value=1))
+    db_session.flush()
+
+    response = client.get(f"{URL}/{suggestion.id}")
+
+    assert response.json()["tally"] == {"up": 1, "down": 0, "score": 1}
+
+
+def test_includes_my_vote_when_authenticated(
+    client: TestClient[Litestar], db_session: Session, country: Jurisdiction
+) -> None:
+    suggestion = _make_suggestion(db_session, country)
+    voter = _make_user(db_session)
+    db_session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=voter.id, value=1))
+    db_session.flush()
+    token = _token_for(voter.id)
+
+    response = client.get(f"{URL}/{suggestion.id}", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.json()["my_vote"] == 1
+
+
+def test_omits_my_vote_when_anonymous(client: TestClient[Litestar], db_session: Session, country: Jurisdiction) -> None:
+    suggestion = _make_suggestion(db_session, country)
+
+    response = client.get(f"{URL}/{suggestion.id}")
+
+    assert response.json()["my_vote"] is None
+
+
+def test_lists_include_a_tally_per_item_without_n_plus_1(
+    client: TestClient[Litestar], db_session: Session, country: Jurisdiction
+) -> None:
+    for _ in range(3):
+        suggestion = _make_suggestion(db_session, country)
+        db_session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=_make_user(db_session).id, value=1))
+    db_session.flush()
+    with _count_queries(db_session) as small:
+        response = client.get(URL)
+
+    for _ in range(10):
+        suggestion = _make_suggestion(db_session, country)
+        db_session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=_make_user(db_session).id, value=1))
+    db_session.flush()
+    with _count_queries(db_session) as large:
+        client.get(URL)
+
+    assert all("tally" in item for item in response.json()["items"])
+    assert small["n"] == large["n"]

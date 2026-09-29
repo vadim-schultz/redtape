@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from uuid import UUID
 
 from app.features.suggestions.service import SuggestionService
 from app.features.voting.repository import VoteRepository
 from app.models.suggestion import Suggestion, SuggestionStatus
 from app.models.suggestion_vote import SuggestionVote
+from app.schema.suggestion.read import Tally
 
 __all__ = ["NotFoundError", "SelfVoteError", "SuggestionNotVotableError", "VoteService"]
 
@@ -39,6 +41,16 @@ class VoteService:
 
     def remove(self, *, suggestion_id: UUID, user_id: UUID) -> None:
         self._repo.delete(suggestion_id=suggestion_id, user_id=user_id)
+
+    def tally_for(self, suggestion_id: UUID) -> Tally:
+        return self._repo.tally_for(suggestion_id)
+
+    def tally_for_many(self, suggestion_ids: Sequence[UUID]) -> dict[UUID, Tally]:
+        return self._repo.tally_for_many(suggestion_ids)
+
+    def my_vote(self, *, suggestion_id: UUID, user_id: UUID) -> int | None:
+        vote = self._repo.get(suggestion_id=suggestion_id, user_id=user_id)
+        return vote.value if vote else None
 
     def _get_suggestion(self, suggestion_id: UUID) -> Suggestion:
         suggestion = self._suggestions.get(suggestion_id)

@@ -8,7 +8,7 @@ from litestar.exceptions.responses import create_exception_response
 from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.features.suggestions.controller import SuggestionsController
-from app.features.suggestions.dependencies import router_dependencies
+from app.features.voting.dependencies import router_dependencies
 
 
 def _invalid_payload_is_422(request: Request, exc: ValidationException) -> Response:

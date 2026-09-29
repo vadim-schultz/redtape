@@ -21,9 +21,11 @@ from app.features.suggestions.service import (
     UnknownTaxonomyCodeError,
 )
 from app.features.suggestions.submitter import submitter_display_name, submitter_ref
+from app.features.voting.service import VoteService
+from app.models import AppUser
 from app.models.suggestion import SuggestionKind, SuggestionSource, SuggestionStatus
 from app.schema.suggestion.create import SuggestionCreate
-from app.schema.suggestion.read import ConflictRead, SuggestionListResponse, SuggestionRead
+from app.schema.suggestion.read import ConflictRead, SuggestionListResponse, SuggestionRead, Tally
 
 IDEMPOTENCY_KEY_MAX_LENGTH = 128
 IDEMPOTENCY_KEY_PATTERN = r"^[\x20-\x7e]+$"
@@ -37,6 +39,11 @@ _STATUS_BY_ERROR: dict[type[Exception], int] = {
     UnknownDocumentError: HTTP_422_UNPROCESSABLE_ENTITY,
     CycleError: HTTP_422_UNPROCESSABLE_ENTITY,
 }
+
+
+def with_tally(read: SuggestionRead, *, tally: Tally, my_vote: int | None = None) -> SuggestionRead:
+    """Compose voting data into a suggestion response (controller-level composition, like the matrix endpoint)."""
+    return read.model_copy(update={"tally": tally, "my_vote": my_vote})
 
 
 def _to_http(exc: Exception) -> HTTPException:
@@ -90,6 +97,7 @@ class SuggestionsController(Controller):
     def list_suggestions(
         self,
         suggestion_service: SuggestionService,
+        vote_service: VoteService,
         status: list[SuggestionStatus] | None = Parameter(query="status", default=None),
         kind: SuggestionKind | None = Parameter(query="kind", default=None),
         source_type: SuggestionSource | None = Parameter(query="source_type", default=None),
@@ -100,11 +108,22 @@ class SuggestionsController(Controller):
         filters = SuggestionFilters(
             status=tuple(status or ()), kind=kind, source_type=source_type, jurisdiction_id=jurisdiction_id
         )
-        return suggestion_service.list_suggestions(filters=filters, offset=offset, limit=limit)
+        result = suggestion_service.list_suggestions(filters=filters, offset=offset, limit=limit)
+        tallies = vote_service.tally_for_many([item.id for item in result.items])
+        items = [with_tally(item, tally=tallies[item.id]) for item in result.items]
+        return SuggestionListResponse(items=items, total=result.total, offset=result.offset, limit=result.limit)
 
     @get("/{suggestion_id:uuid}", sync_to_thread=True, cache_control=_NO_CACHE)
-    def get_suggestion(self, suggestion_service: SuggestionService, suggestion_id: UUID) -> SuggestionRead:
+    def get_suggestion(
+        self,
+        suggestion_service: SuggestionService,
+        vote_service: VoteService,
+        suggestion_id: UUID,
+        optional_user: AppUser | None,
+    ) -> SuggestionRead:
         read = suggestion_service.get_suggestion(suggestion_id)
         if read is None:
             raise NotFoundException("Suggestion not found")
-        return read
+        tally = vote_service.tally_for(suggestion_id)
+        my_vote = vote_service.my_vote(suggestion_id=suggestion_id, user_id=optional_user.id) if optional_user else None
+        return with_tally(read, tally=tally, my_vote=my_vote)
