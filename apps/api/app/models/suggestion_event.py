@@ -25,6 +25,7 @@ class EventType(enum.StrEnum):
     VOTED = "voted"
     STATUS_CHANGED = "status_changed"
     PROMOTED = "promoted"
+    MODERATOR_OVERRIDE = "moderator_override"
 
 
 class SuggestionEvent(Base):

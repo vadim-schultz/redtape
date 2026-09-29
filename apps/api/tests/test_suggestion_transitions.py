@@ -70,6 +70,14 @@ def pending_suggestion(db_session: Session, jurisdiction: Jurisdiction, submitte
     return _suggestion(db_session, jurisdiction, submitter)
 
 
+@pytest.fixture
+def moderator(db_session: Session) -> AppUser:
+    row = AppUser(id=uuid.uuid4(), email=f"{uuid.uuid4().hex}@example.com")
+    db_session.add(row)
+    db_session.flush()
+    return row
+
+
 def test_transition_to_pending_to_approved_changes_the_status_column(
     service: SuggestionService, pending_suggestion: Suggestion
 ) -> None:
@@ -122,3 +130,22 @@ def test_transition_to_an_automatic_transition_logs_no_actor(
     )
     assert changed.actor_user_id is None
     assert changed.actor_api_key_id is None
+
+
+def test_transition_to_with_an_actor_logs_moderator_override_not_status_changed(
+    service: SuggestionService, event_log_service: EventLogService, pending_suggestion: Suggestion, moderator: AppUser
+) -> None:
+    service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=moderator)
+
+    events = event_log_service.list_for(pending_suggestion.id)
+    assert [e.event_type for e in events] == [EventType.MODERATOR_OVERRIDE]
+    assert events[0].actor_user_id == moderator.id
+
+
+def test_transition_to_with_an_actor_and_reason_records_the_reason(
+    service: SuggestionService, event_log_service: EventLogService, pending_suggestion: Suggestion, moderator: AppUser
+) -> None:
+    service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=moderator, reason="Duplicate")
+
+    event = event_log_service.list_for(pending_suggestion.id)[0]
+    assert event.data == {"from": "pending", "to": "rejected", "reason": "Duplicate"}

@@ -154,7 +154,11 @@ class SuggestionService:
         return SuggestionRead.from_row(suggestion, submitter_display_name=name)
 
     def transition_to(
-        self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None
+        self,
+        suggestion_id: UUID,
+        new_status: SuggestionStatus,
+        actor: AppUser | None,
+        reason: str | None = None,
     ) -> Suggestion:
         """The one place `status` changes (D5); pending is idempotent, approved/rejected are terminal (D6)."""
         suggestion = self._get_pending(suggestion_id)
@@ -164,7 +168,7 @@ class SuggestionService:
         if new_status == SuggestionStatus.APPROVED:
             self._promote_and_log(suggestion, actor)
         suggestion.status = new_status
-        self._log_status_change(suggestion_id, old_status, new_status, actor)
+        self._log_status_change(suggestion_id, old_status, new_status, actor, reason)
         return self._repo.save(suggestion)
 
     def _get_pending(self, suggestion_id: UUID) -> Suggestion:
@@ -181,12 +185,18 @@ class SuggestionService:
         self._events.record(suggestion.id, EventType.PROMOTED, data=data, actor_user_id=actor.id if actor else None)
 
     def _log_status_change(
-        self, suggestion_id: UUID, old_status: SuggestionStatus, new_status: SuggestionStatus, actor: AppUser | None
+        self,
+        suggestion_id: UUID,
+        old_status: SuggestionStatus,
+        new_status: SuggestionStatus,
+        actor: AppUser | None,
+        reason: str | None = None,
     ) -> None:
+        event_type = EventType.MODERATOR_OVERRIDE if actor else EventType.STATUS_CHANGED
         data = {"from": old_status.value, "to": new_status.value}
-        self._events.record(
-            suggestion_id, EventType.STATUS_CHANGED, data=data, actor_user_id=actor.id if actor else None
-        )
+        if reason:
+            data["reason"] = reason
+        self._events.record(suggestion_id, event_type, data=data, actor_user_id=actor.id if actor else None)
 
     def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
         """Keys are only honoured for API keys (D8); a human's header is ignored."""
