@@ -4,16 +4,16 @@ overview: "VoteService.cast upserts a user's vote on a pending suggestion, refus
 todos:
   - id: repo
     content: "VoteRepository upsert, delete, get"
-    status: pending
+    status: done
   - id: service
     content: "VoteService.cast and remove with the guard rules"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 2 — Cast-vote service
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-cast-service` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-cast-service` · **Status:** implemented, PR open
 
 **Depends on:** [1](01-vote-model-migration.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -76,6 +76,16 @@ testable in isolation.
 ## Refactor gate
 
 `cast` is three named guard calls plus the upsert, ≈5 LOC total. Report the outcome.
+
+**Outcome:** `cast` is `_get_suggestion` (raises `NotFoundError`), `_check_pending` (raises
+`SuggestionNotVotableError`), `_check_not_self` (raises `SelfVoteError`), then the upsert — 4 lines in the
+method body, one guard per named helper, no nesting. `service.py` is 55 LOC total. No further extraction
+needed.
+
+## Progress
+
+All 9 red tests pass against Postgres (`tests/test_vote_service.py`); `ruff format`, `ruff check`, and
+`mypy` are clean. `./ci.sh` is green (see Verification).
 
 ## Verification
 
