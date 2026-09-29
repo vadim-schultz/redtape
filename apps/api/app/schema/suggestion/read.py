@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 
@@ -34,6 +34,16 @@ class ConflictRead(BaseModel):
     id: UUID
 
 
+class Tally(BaseModel):
+    """Vote counts for a suggestion; always computed, never cached (D3)."""
+
+    model_config = ConfigDict(from_attributes=False)
+
+    up: int
+    down: int
+    score: int
+
+
 class SuggestionRead(BaseModel):
     """`POST /api/v1/suggestions` response body (architecture §5)."""
 
@@ -48,6 +58,8 @@ class SuggestionRead(BaseModel):
     source_url: str | None
     submitted_by: SubmitterRead
     created_at: datetime
+    tally: Tally = Field(default_factory=lambda: Tally(up=0, down=0, score=0))
+    my_vote: int | None = None
 
     @classmethod
     def from_row(cls, suggestion: Suggestion, *, submitter_display_name: str | None) -> SuggestionRead:

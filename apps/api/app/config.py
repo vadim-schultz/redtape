@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,9 +30,18 @@ class Settings(BaseSettings):
     )
     supabase_jwt_audience: str = "authenticated"
 
+    vote_approve_threshold: int = 3
+    vote_reject_threshold: int = -3
+
     @property
     def auth_enabled(self) -> bool:
         return self.supabase_jwks_url is not None and self.supabase_jwt_issuer is not None
+
+    @model_validator(mode="after")
+    def _check_vote_thresholds(self) -> Settings:
+        if self.vote_reject_threshold >= self.vote_approve_threshold:
+            raise ValueError("vote_reject_threshold must be less than vote_approve_threshold")
+        return self
 
 
 settings = Settings()
