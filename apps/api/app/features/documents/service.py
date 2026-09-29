@@ -17,6 +17,7 @@ from app.schema.document.read import (
     JurisdictionPathNode,
     RequirementRead,
 )
+from app.schema.suggestion.payload import NewDocumentPayload
 from app.schema.taxonomy.read import TermRead
 from app.url_normalization import normalize_url
 
@@ -71,6 +72,26 @@ class DocumentService:
         rows = self._repo.list_page(offset=offset, limit=limit, **scope)
         items = [self._to_summary(row, locale=locale, enabled_locales=enabled_locales) for row in rows]
         return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+
+    def create_from_suggestion(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
+        """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
+        domain_ids, situation_ids = self._resolve_tags(payload)
+        document = self._build_document(payload, jurisdiction_id, slug)
+        return self._repo.add(document, domain_ids=domain_ids, situation_ids=situation_ids)
+
+    def _resolve_tags(self, payload: NewDocumentPayload) -> tuple[list[UUID], list[UUID]]:
+        return self._taxonomy.resolve_domain_ids(payload.domain_codes), self._taxonomy.resolve_situation_ids(
+            payload.situation_codes
+        )
+
+    def _build_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
+        return Document(
+            jurisdiction_id=jurisdiction_id,
+            slug=slug,
+            title_i18n=payload.title_i18n,
+            description_i18n=payload.description_i18n or {},
+            official_url=payload.official_url,
+        )
 
     def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str) -> list[UUID]:
         """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches."""

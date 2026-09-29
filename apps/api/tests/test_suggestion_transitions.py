@@ -50,6 +50,7 @@ def _suggestion(
         source_type=SuggestionSource.HUMAN,
         jurisdiction_id=jurisdiction.id,
         submitted_by_user_id=submitter.id,
+        payload={"title_i18n": {"en": "Residency permit"}, "official_url": "https://example.gov/residency"},
     )
     session.add(row)
     session.flush()

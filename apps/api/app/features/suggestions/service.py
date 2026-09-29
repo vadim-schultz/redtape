@@ -15,6 +15,7 @@ from app.features.suggestions.handlers import (
     Conflict,
     CycleError,
     KindHandler,
+    PromotionConflictError,
     UnknownDocumentError,
     UnknownTaxonomyCodeError,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "CycleError",
     "DuplicateSuggestionError",
     "MissingSourceUrlError",
+    "PromotionConflictError",
     "SubmissionResult",
     "SubmitterRef",
     "SuggestionFilters",
@@ -152,6 +154,8 @@ class SuggestionService:
             raise AlreadyDecidedError(f"suggestion {suggestion_id} is already {suggestion.status}")
         if new_status == SuggestionStatus.PENDING:
             return suggestion
+        if new_status == SuggestionStatus.APPROVED:
+            self._handlers[suggestion.kind].promote(suggestion)
         suggestion.status = new_status
         return self._repo.save(suggestion)
 

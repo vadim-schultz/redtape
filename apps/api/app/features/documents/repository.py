@@ -67,6 +67,21 @@ class DocumentRepository:
         stmt = self._base_select(jurisdiction_id, domain_ids, situation_ids).offset(offset).limit(limit)
         return list(self._session.scalars(stmt).all())
 
+    def add(
+        self, document: Document, *, domain_ids: Sequence[UUID] = (), situation_ids: Sequence[UUID] = ()
+    ) -> Document:
+        self._session.add(document)
+        self._session.flush()
+        self._link_terms(document_domain.c.domain_id, document.id, domain_ids)
+        self._link_terms(document_life_situation.c.life_situation_id, document.id, situation_ids)
+        return document
+
+    def _link_terms(self, term_column: Column, document_id: UUID, ids: Sequence[UUID]) -> None:
+        if not ids:
+            return
+        rows = [{"document_id": document_id, term_column.name: term_id} for term_id in ids]
+        self._session.execute(term_column.table.insert(), rows)
+
     def get_by_id(self, document_id: UUID) -> Document | None:
         stmt = (
             select(Document)
