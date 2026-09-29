@@ -44,7 +44,10 @@ def voter(db_session: Session) -> AppUser:
 
 
 def _suggestion(
-    session: Session, jurisdiction: Jurisdiction, submitter: AppUser, status: SuggestionStatus = SuggestionStatus.PENDING
+    session: Session,
+    jurisdiction: Jurisdiction,
+    submitter: AppUser,
+    status: SuggestionStatus = SuggestionStatus.PENDING,
 ) -> Suggestion:
     row = Suggestion(
         kind=SuggestionKind.NEW_DOCUMENT,
