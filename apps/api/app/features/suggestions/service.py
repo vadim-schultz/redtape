@@ -21,10 +21,12 @@ from app.features.suggestions.handlers import (
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.read import SuggestionListResponse, SuggestionRead
 
 __all__ = [
+    "AlreadyDecidedError",
     "Conflict",
     "CycleError",
     "DuplicateSuggestionError",
@@ -48,6 +50,10 @@ class UnknownJurisdictionError(ValueError):
 
 class MissingSourceUrlError(ValueError):
     """Raised when a crawler-submitted suggestion has no source_url (D9)."""
+
+
+class AlreadyDecidedError(ValueError):
+    """Raised when transitioning a suggestion that is already approved or rejected (D6)."""
 
 
 @dataclass(frozen=True)
@@ -134,6 +140,20 @@ class SuggestionService:
             return None
         suggestion, name = found
         return SuggestionRead.from_row(suggestion, submitter_display_name=name)
+
+    def transition_to(
+        self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None
+    ) -> Suggestion:
+        """The one place `status` changes (D5); pending is idempotent, approved/rejected are terminal (D6)."""
+        suggestion = self._repo.get(suggestion_id)
+        if suggestion is None:
+            raise ValueError(f"suggestion {suggestion_id} not found")
+        if suggestion.status != SuggestionStatus.PENDING:
+            raise AlreadyDecidedError(f"suggestion {suggestion_id} is already {suggestion.status}")
+        if new_status == SuggestionStatus.PENDING:
+            return suggestion
+        suggestion.status = new_status
+        return self._repo.save(suggestion)
 
     def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
         """Keys are only honoured for API keys (D8); a human's header is ignored."""
