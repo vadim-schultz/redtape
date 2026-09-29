@@ -5,6 +5,8 @@ import uuid
 import pytest
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.events.repository import EventLogRepository
+from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import SuggestionService
 from app.features.taxonomy.repository import TaxonomyRepository
@@ -13,6 +15,7 @@ from app.features.voting.repository import VoteRepository
 from app.features.voting.service import NotFoundError, SelfVoteError, SuggestionNotVotableError, VoteService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion_event import EventType
 from app.models.suggestion_vote import SuggestionVote
 from app.models.user import AppUser
 from sqlalchemy import select
@@ -75,8 +78,15 @@ def suggestion_service(db_session: Session) -> SuggestionService:
 
 
 @pytest.fixture
-def service(db_session: Session, suggestion_service: SuggestionService) -> VoteService:
-    return VoteService(VoteRepository(db_session), suggestion_service)
+def event_log_service(db_session: Session) -> EventLogService:
+    return EventLogService(EventLogRepository(db_session))
+
+
+@pytest.fixture
+def service(
+    db_session: Session, suggestion_service: SuggestionService, event_log_service: EventLogService
+) -> VoteService:
+    return VoteService(VoteRepository(db_session), suggestion_service, event_log_service)
 
 
 def _vote(session: Session, suggestion_id: uuid.UUID, user_id: uuid.UUID) -> SuggestionVote | None:
@@ -217,6 +227,18 @@ def test_cast_once_approved_a_later_vote_from_a_different_user_is_rejected_as_no
 
     with pytest.raises(SuggestionNotVotableError):
         service.cast(suggestion_id=pending_suggestion.id, user_id=voters[3].id, value=1)
+
+
+def test_cast_logs_a_voted_event_with_the_value_and_the_voter(
+    service: VoteService, event_log_service: EventLogService, pending_suggestion: Suggestion, voter: AppUser
+) -> None:
+    service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+
+    events = event_log_service.list_for(pending_suggestion.id)
+    voted = [e for e in events if e.event_type == EventType.VOTED]
+    assert len(voted) == 1
+    assert voted[0].data == {"value": 1}
+    assert voted[0].actor_user_id == voter.id
 
 
 def test_remove_never_triggers_a_transition(
