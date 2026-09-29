@@ -4,16 +4,16 @@ overview: "suggestion_vote table: one row per (suggestion, user), value constrai
 todos:
   - id: model
     content: "SuggestionVote model"
-    status: pending
+    status: done
   - id: migration
     content: "Alembic revision with unique and check constraints"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 1 — Vote model and migration
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-model` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-model` · **Status:** implemented, PR open
 
 **Depends on:** [suggestion-interface 1](../../suggestion-interface/chapters/01-suggestion-model-migration.md), auth [2](../../auth/chapters/02-user-model-migration.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -69,6 +69,15 @@ voter, so cascade (not `SET NULL`) is correct here specifically.
 ## Refactor gate
 
 Model file ≤ ~60 LOC. Report the outcome.
+
+**Outcome:** `app/models/suggestion_vote.py` is 32 LOC — one class, two module-level constraint-name
+constants (`CK_VALUE`, `UQ_USER`), no nesting beyond the single class body. No further extraction needed.
+
+## Progress
+
+All 6 red tests pass against Postgres (`tests/test_suggestion_vote_model.py`); `alembic upgrade head` →
+`downgrade -1` → `upgrade head` round-trips cleanly and `alembic check` reports no drift against the model.
+`./ci.sh` (lint, format, mypy, migrations, pytest, web) is green.
 
 ## Verification
 
