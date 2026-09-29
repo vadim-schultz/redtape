@@ -51,9 +51,9 @@ start once chapter 4 ships, in parallel with 5–9.
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Vote model and migration | model + migration | pytest + round-trip + `./ci.sh` | [01-vote-model-migration.md](chapters/01-vote-model-migration.md) | planned |
-| 2 | Cast-vote service | backend | pytest + `./ci.sh` | [02-cast-vote-service.md](chapters/02-cast-vote-service.md) | planned |
-| 3 | Vote endpoints | backend | pytest + `./ci.sh` | [03-vote-endpoints.md](chapters/03-vote-endpoints.md) | planned |
+| 1 | Vote model and migration | model + migration | pytest + round-trip + `./ci.sh` | [01-vote-model-migration.md](chapters/01-vote-model-migration.md) | shipped |
+| 2 | Cast-vote service | backend | pytest + `./ci.sh` | [02-cast-vote-service.md](chapters/02-cast-vote-service.md) | shipped |
+| 3 | Vote endpoints | backend | pytest + `./ci.sh` | [03-vote-endpoints.md](chapters/03-vote-endpoints.md) | PR open |
 | 4 | Tally and thresholds | backend | pytest + `./ci.sh` | [04-tally-and-thresholds.md](chapters/04-tally-and-thresholds.md) | planned |
 | 5 | Status transitions | backend | pytest + `./ci.sh` | [05-status-transitions.md](chapters/05-status-transitions.md) | planned |
 | 6 | Promote new_document | backend | pytest + `./ci.sh` | [06-promote-new-document.md](chapters/06-promote-new-document.md) | planned |

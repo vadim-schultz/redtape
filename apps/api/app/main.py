@@ -12,6 +12,7 @@ from app.features.documents.router import documents_router
 from app.features.locations.router import locations_router
 from app.features.suggestions.router import suggestions_router
 from app.features.taxonomy.router import taxonomy_router
+from app.features.voting.router import voting_router
 from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
 from app.middleware.locale import LocaleResolverMiddleware
@@ -29,6 +30,7 @@ def create_app() -> Litestar:
             locations_router,
             suggestions_router,
             taxonomy_router,
+            voting_router,
         ],
         dependencies={"session": Provide(provide_session)},
         middleware=[DefineMiddleware(LocaleResolverMiddleware)],
