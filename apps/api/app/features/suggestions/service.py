@@ -200,13 +200,22 @@ class SuggestionService:
 
     def _insert(self, row: Suggestion, submitter: SubmitterRef, idempotency_key: str | None) -> SubmissionResult:
         try:
-            return SubmissionResult(self._repo.add(row), replayed=False)
+            suggestion = self._repo.add(row)
+            self._log_submitted(suggestion, submitter)
+            return SubmissionResult(suggestion, replayed=False)
         except IntegrityError:
             self._repo.rollback()
             existing = self._replay(submitter, idempotency_key)
             if existing is None:
                 raise
             return SubmissionResult(existing, replayed=True)
+
+    def _log_submitted(self, suggestion: Suggestion, submitter: SubmitterRef) -> None:
+        actor_user_id = submitter.id if submitter.kind == "user" else None
+        actor_api_key_id = submitter.id if submitter.kind == "crawler" else None
+        self._events.record(
+            suggestion.id, EventType.SUBMITTED, actor_user_id=actor_user_id, actor_api_key_id=actor_api_key_id
+        )
 
     def _resolve_jurisdiction(self, request: SuggestionCreate) -> UUID:
         jurisdiction_id = self._documents.resolve_jurisdiction_id(
