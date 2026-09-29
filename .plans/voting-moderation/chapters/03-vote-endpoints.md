@@ -4,13 +4,13 @@ overview: "PUT and DELETE /api/v1/suggestions/{id}/vote for signed-in users, map
 todos:
   - id: controller
     content: "VotingController with put and delete handlers"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 3 — Vote endpoints
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-endpoints` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-endpoints` · **Status:** implemented, PR open
 
 **Depends on:** [2](02-cast-vote-service.md), auth [4](../../auth/chapters/04-current-user-dependency.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §5 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -69,6 +69,12 @@ vote, this is not even a `principal` route).
 
 Handlers ≈5 LOC each; shared error-mapping dict with chapters 5/6's controllers where the error types
 overlap. Report the outcome.
+
+**Outcome:** `cast` is 4 LOC of body (try/except/return), `remove` is 1 LOC; both within budget, no nesting
+past one level. Error mapping follows the suggestions controller's existing `_STATUS_BY_ERROR`-dict pattern
+(here `VOTE_ERROR_STATUS`) rather than a chain of `isinstance` checks, so it is a plain, importable dict —
+chapters 5/6 don't exist yet (not yet on this branch), so there's nothing to share with today; when their
+controllers land, merging into one dict is a small edit, not a redesign.
 
 ## Verification
 
