@@ -113,8 +113,11 @@ class NewRequirementHandler:
             raise CycleError("the required document already requires the parent document")
 
     def _check_in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> None:
-        if self._documents.get_document_jurisdiction(document_id) != jurisdiction_id:
+        if not self._in_scope(document_id, jurisdiction_id):
             raise UnknownDocumentError(f"document {document_id} is not in this jurisdiction")
+
+    def _in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> bool:
+        return self._documents.get_document_jurisdiction(document_id) == jurisdiction_id
 
     def normalized_url(self, payload: NewRequirementPayload) -> str | None:
         return None
@@ -136,7 +139,35 @@ class NewRequirementHandler:
         return conflicts + [Conflict("suggestion", i) for i in pending_ids]
 
     def promote(self, suggestion: Suggestion) -> UUID:
-        raise NotImplementedError("promoting new_requirement suggestions is chapter 7")
+        payload = NewRequirementPayload.model_validate(suggestion.payload)
+        self._check_still_valid(payload, jurisdiction_id=suggestion.jurisdiction_id)
+        requirement = self._documents.create_requirement_from_suggestion(
+            payload.parent_document_id, payload.required_document_id, suggestion.jurisdiction_id, payload.notes_i18n
+        )
+        return requirement.id
+
+    def _check_still_valid(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
+        self._check_still_in_scope(payload.parent_document_id, jurisdiction_id)
+        self._check_still_in_scope(payload.required_document_id, jurisdiction_id)
+        self._check_no_new_cycle(payload)
+        self._check_no_duplicate_edge(payload, jurisdiction_id=jurisdiction_id)
+
+    def _check_still_in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> None:
+        if not self._in_scope(document_id, jurisdiction_id):
+            raise PromotionConflictError(f"document {document_id} is no longer in jurisdiction {jurisdiction_id}")
+
+    def _check_no_new_cycle(self, payload: NewRequirementPayload) -> None:
+        if self._documents.requires_directly(payload.required_document_id, payload.parent_document_id):
+            raise PromotionConflictError("promoting this edge would create a direct cycle")
+
+    def _check_no_duplicate_edge(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
+        existing = self._documents.requirement_exists(
+            jurisdiction_id=jurisdiction_id,
+            parent_document_id=payload.parent_document_id,
+            required_document_id=payload.required_document_id,
+        )
+        if existing is not None:
+            raise PromotionConflictError(f"requirement edge {existing} already exists")
 
 
 KIND_HANDLERS: dict[SuggestionKind, type[KindHandler]] = {

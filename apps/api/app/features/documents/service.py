@@ -7,7 +7,7 @@ from uuid import UUID
 from app.features.documents.repository import DocumentRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.i18n_resolution import pick_i18n
-from app.models.document import Document
+from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import JurisdictionKind
 from app.models.taxonomy import Domain, LifeSituation
 from app.schema.document.read import (
@@ -92,6 +92,23 @@ class DocumentService:
             description_i18n=payload.description_i18n or {},
             official_url=payload.official_url,
         )
+
+    def create_requirement_from_suggestion(
+        self,
+        parent_id: UUID,
+        required_id: UUID,
+        jurisdiction_id: UUID,
+        notes_i18n: dict[str, str] | None,
+    ) -> DocumentRequirement:
+        """Build and persist a `DocumentRequirement` from an approved suggestion's payload."""
+        requirement = DocumentRequirement(
+            parent_document_id=parent_id,
+            required_document_id=required_id,
+            jurisdiction_id=jurisdiction_id,
+            source="community",
+            notes_i18n=notes_i18n,
+        )
+        return self._repo.add_requirement(requirement)
 
     def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str) -> list[UUID]:
         """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches."""

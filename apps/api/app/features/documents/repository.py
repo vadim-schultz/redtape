@@ -142,6 +142,11 @@ class DocumentRepository:
         )
         return self._session.scalar(stmt)
 
+    def add_requirement(self, requirement: DocumentRequirement) -> DocumentRequirement:
+        self._session.add(requirement)
+        self._session.flush()
+        return requirement
+
     def requirement_edge_exists(self, *, parent_document_id: UUID, required_document_id: UUID) -> bool:
         """Whether `parent_document_id` already directly requires `required_document_id`, in any jurisdiction."""
         stmt = select(DocumentRequirement.id).where(
