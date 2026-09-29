@@ -117,7 +117,7 @@ pending until voted on. Eleven chapters across backend and web.
 | [gaps-and-decisions.md](suggestion-interface/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](suggestion-interface/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-suggestion-model-migration.md](suggestion-interface/chapters/01-suggestion-model-migration.md).
+Status: shipped — all eleven chapters done. Open seams: [gaps-and-decisions.md](suggestion-interface/gaps-and-decisions.md).
 
 ### [evidence-storage/](evidence-storage/) — Screenshots and fetch evidence in Cloudflare R2
 

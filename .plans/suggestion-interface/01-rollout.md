@@ -50,17 +50,17 @@ independent of each other once their backend chapters have shipped.
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Suggestion model and migration | model + migration | pytest + round-trip + `./ci.sh` | [01-suggestion-model-migration.md](chapters/01-suggestion-model-migration.md) | planned |
-| 2 | New-document payload schema | backend | pytest + `./ci.sh` | [02-new-document-payload-schema.md](chapters/02-new-document-payload-schema.md) | planned |
-| 3 | Repository and service | backend | pytest + `./ci.sh` | [03-suggestion-repository-service.md](chapters/03-suggestion-repository-service.md) | planned |
-| 4 | Duplicate detection | backend | pytest + `./ci.sh` | [04-duplicate-detection.md](chapters/04-duplicate-detection.md) | planned |
-| 5 | Human submit endpoint | backend | pytest + `./ci.sh` | [05-human-submit-endpoint.md](chapters/05-human-submit-endpoint.md) | planned |
-| 6 | Machine submit endpoint | backend | pytest + `./ci.sh` | [06-machine-submit-endpoint.md](chapters/06-machine-submit-endpoint.md) | planned |
-| 7 | List and detail endpoints | backend | pytest + `./ci.sh` | [07-list-and-detail-endpoints.md](chapters/07-list-and-detail-endpoints.md) | planned |
-| 8 | Requirement-edge kind | backend | pytest + `./ci.sh` | [08-requirement-edge-kind.md](chapters/08-requirement-edge-kind.md) | planned |
-| 9 | Web suggestion form | frontend + i18n | vitest + `./ci.sh` + manual | [09-web-suggestion-form.md](chapters/09-web-suggestion-form.md) | planned |
-| 10 | Web list and detail | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-suggestion-list-and-detail.md](chapters/10-web-suggestion-list-and-detail.md) | planned |
-| 11 | Docs sync | docs | link check | [11-docs-sync.md](chapters/11-docs-sync.md) | planned |
+| 1 | Suggestion model and migration | model + migration | pytest + round-trip + `./ci.sh` | [01-suggestion-model-migration.md](chapters/01-suggestion-model-migration.md) | shipped |
+| 2 | New-document payload schema | backend | pytest + `./ci.sh` | [02-new-document-payload-schema.md](chapters/02-new-document-payload-schema.md) | shipped |
+| 3 | Repository and service | backend | pytest + `./ci.sh` | [03-suggestion-repository-service.md](chapters/03-suggestion-repository-service.md) | shipped |
+| 4 | Duplicate detection | backend | pytest + `./ci.sh` | [04-duplicate-detection.md](chapters/04-duplicate-detection.md) | shipped |
+| 5 | Human submit endpoint | backend | pytest + `./ci.sh` | [05-human-submit-endpoint.md](chapters/05-human-submit-endpoint.md) | shipped |
+| 6 | Machine submit endpoint | backend | pytest + `./ci.sh` | [06-machine-submit-endpoint.md](chapters/06-machine-submit-endpoint.md) | shipped |
+| 7 | List and detail endpoints | backend | pytest + `./ci.sh` | [07-list-and-detail-endpoints.md](chapters/07-list-and-detail-endpoints.md) | shipped |
+| 8 | Requirement-edge kind | backend | pytest + `./ci.sh` | [08-requirement-edge-kind.md](chapters/08-requirement-edge-kind.md) | shipped |
+| 9 | Web suggestion form | frontend + i18n | vitest + `./ci.sh` + manual | [09-web-suggestion-form.md](chapters/09-web-suggestion-form.md) | shipped |
+| 10 | Web list and detail | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-suggestion-list-and-detail.md](chapters/10-web-suggestion-list-and-detail.md) | shipped |
+| 11 | Docs sync | docs | link check | [11-docs-sync.md](chapters/11-docs-sync.md) | shipped |
 
 Typical negative assertions per slice: unauthenticated, wrong principal kind, invalid payload, unknown
 jurisdiction, unknown taxonomy code, non-http URL, duplicate document, duplicate pending suggestion,

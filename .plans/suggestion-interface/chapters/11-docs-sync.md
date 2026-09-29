@@ -4,19 +4,19 @@ overview: "Record the suggestion interface as shipped, fill the crawlers-jobs an
 todos:
   - id: strands
     content: "Point crawlers-jobs/ and social-moderation/ READMEs at this suite"
-    status: pending
+    status: completed
   - id: ops
     content: "docs/operations/suggestion-api.md: payload shapes, error codes, idempotency"
-    status: pending
+    status: completed
   - id: status
     content: "STATUS.md and plan statuses"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 11 — Docs sync
 
-**Repo:** `redtape` (docs only) · **Branch:** `docs/suggestions-sync` · **Status:** planned
+**Repo:** `redtape` (docs only) · **Branch:** `docs/suggestions-sync` · **Status:** implemented, PR open
 
 **Depends on:** [6](06-machine-submit-endpoint.md), [8](08-requirement-edge-kind.md), [9](09-web-suggestion-form.md), [10](10-web-suggestion-list-and-detail.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
