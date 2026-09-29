@@ -84,6 +84,13 @@ def _vote(session: Session, suggestion_id: uuid.UUID, user_id: uuid.UUID) -> Sug
     )
 
 
+def _voters(db_session: Session, n: int) -> list[AppUser]:
+    users = [AppUser(id=uuid.uuid4(), email=f"{uuid.uuid4().hex}@example.com") for _ in range(n)]
+    db_session.add_all(users)
+    db_session.flush()
+    return users
+
+
 def test_cast_records_an_up_vote_for_a_pending_suggestion(
     db_session: Session, service: VoteService, pending_suggestion: Suggestion, voter: AppUser
 ) -> None:
@@ -170,3 +177,55 @@ def test_remove_is_a_no_op_when_there_is_no_vote(
     service: VoteService, pending_suggestion: Suggestion, voter: AppUser
 ) -> None:
     service.remove(suggestion_id=pending_suggestion.id, user_id=voter.id)
+
+
+def test_cast_a_vote_that_reaches_the_approve_threshold_moves_the_suggestion_to_approved(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    for voter in _voters(db_session, 3):
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+
+    assert pending_suggestion.status == SuggestionStatus.APPROVED
+
+
+def test_cast_a_vote_that_reaches_the_reject_threshold_moves_the_suggestion_to_rejected(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    for voter in _voters(db_session, 3):
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=-1)
+
+    assert pending_suggestion.status == SuggestionStatus.REJECTED
+
+
+def test_cast_a_vote_that_does_not_cross_a_threshold_leaves_the_suggestion_pending(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    for voter in _voters(db_session, 2):
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+
+    assert pending_suggestion.status == SuggestionStatus.PENDING
+
+
+def test_cast_once_approved_a_later_vote_from_a_different_user_is_rejected_as_not_votable(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    voters = _voters(db_session, 4)
+    for voter in voters[:3]:
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+    assert pending_suggestion.status == SuggestionStatus.APPROVED
+
+    with pytest.raises(SuggestionNotVotableError):
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voters[3].id, value=1)
+
+
+def test_remove_never_triggers_a_transition(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    voters = _voters(db_session, 3)
+    for voter in voters:
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+    assert pending_suggestion.status == SuggestionStatus.APPROVED
+
+    service.remove(suggestion_id=pending_suggestion.id, user_id=voters[0].id)
+
+    assert pending_suggestion.status == SuggestionStatus.APPROVED

@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+from app.config import settings
 from app.features.suggestions.service import SuggestionService
 from app.features.voting.repository import VoteRepository
+from app.features.voting.thresholds import decide_status
 from app.models.suggestion import Suggestion, SuggestionStatus
 from app.models.suggestion_vote import SuggestionVote
 from app.schema.suggestion.read import Tally
@@ -37,7 +39,9 @@ class VoteService:
         suggestion = self._get_suggestion(suggestion_id)
         self._check_pending(suggestion)
         self._check_not_self(suggestion, user_id)
-        return self._repo.upsert(suggestion_id=suggestion_id, user_id=user_id, value=value)
+        vote = self._repo.upsert(suggestion_id=suggestion_id, user_id=user_id, value=value)
+        self._maybe_transition(suggestion_id)
+        return vote
 
     def remove(self, *, suggestion_id: UUID, user_id: UUID) -> None:
         self._repo.delete(suggestion_id=suggestion_id, user_id=user_id)
@@ -65,3 +69,10 @@ class VoteService:
     def _check_not_self(self, suggestion: Suggestion, user_id: UUID) -> None:
         if suggestion.submitted_by_user_id == user_id:
             raise SelfVoteError("cannot vote on your own suggestion")
+
+    def _maybe_transition(self, suggestion_id: UUID) -> None:
+        """Only casting can cross a threshold (D-open-seam); `remove` never calls this."""
+        score = self._repo.tally_for(suggestion_id).score
+        new_status = decide_status(score, settings.vote_approve_threshold, settings.vote_reject_threshold)
+        if new_status != SuggestionStatus.PENDING:
+            self._suggestions.transition_to(suggestion_id, new_status, actor=None)

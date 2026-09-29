@@ -4,16 +4,16 @@ overview: "Casting a vote that crosses a threshold moves the suggestion to appro
 todos:
   - id: transition
     content: "SuggestionService.transition_to(id, new_status, actor, reason=None)"
-    status: pending
+    status: done
   - id: wire
     content: "VoteService calls transition_to after a successful cast"
-    status: pending
+    status: done
 isProject: false
 ---
 
 # Chapter 5 — Status transitions
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-transitions` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/voting-transitions` · **Status:** implemented, PR open
 
 **Depends on:** [4](04-tally-and-thresholds.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §4, §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -80,6 +80,15 @@ removing a vote pulls the score back but a suggestion that is already `approved`
 `transition_to` stays ≈5 LOC at this chapter (status write plus the no-op/guard checks); chapters 6–8 extend
 it and must re-justify its size against the ~5 LOC target or extract a `SuggestionTransition` handler
 object. Report the outcome.
+
+**Outcome:** `transition_to` is a not-found guard, the terminal-state guard (`AlreadyDecidedError`), the
+pending-to-pending no-op, then the write — 4 straight-line checks, no nesting, close to the ≈5 LOC target
+(the not-found guard was needed to satisfy mypy on `repository.get`'s `Suggestion | None` return and wasn't
+separately scoped, but it's a single `if`, not a growth driver). `VoteService.cast` gained one line
+(`self._maybe_transition(suggestion_id)`) and stays at 5 LOC; the new `_maybe_transition` helper (tally,
+`decide_status`, conditional `transition_to` call) is 4 LOC. No extraction to a `SuggestionTransition`
+handler was needed yet — `SuggestionService` is still comfortably under the class-size threshold for one
+small method, and the re-justification is deferred to chapters 6–8 as scoped.
 
 ## Verification
 

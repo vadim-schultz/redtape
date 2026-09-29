@@ -47,6 +47,10 @@ class SuggestionRepository:
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._session.get(Suggestion, suggestion_id)
 
+    def save(self, suggestion: Suggestion) -> Suggestion:
+        self._session.flush()
+        return suggestion
+
     def count(
         self,
         *,
