@@ -29,9 +29,11 @@ function PopulatedList<T>({
 > & { items: T[] }) {
   return (
     <>
-      <Text mb={2} color="muted" fontSize="sm">
-        {countLabel(items.length)}
-      </Text>
+      <Box data-testid="query-status-count-row" mb={2}>
+        <Text data-testid="query-status-count" color="muted" fontSize="sm">
+          {countLabel(items.length)}
+        </Text>
+      </Box>
       <Box
         display="flex"
         flexDirection="column"
