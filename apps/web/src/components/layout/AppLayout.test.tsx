@@ -23,13 +23,11 @@ it("AppLayout · renders children inside main", async () => {
   );
 });
 
-it("AppLayout · mounts the floating brand link and menu button", async () => {
+it("AppLayout · mounts only the floating menu trigger", async () => {
   renderWithProviders(<AppLayout>content</AppLayout>);
 
-  expect(await screen.findByRole("link", { name: "Home" })).toHaveAttribute(
-    "href",
-    "/",
-  );
+  await screen.findByRole("main");
+  expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
 });
 

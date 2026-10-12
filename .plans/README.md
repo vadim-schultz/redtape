@@ -180,6 +180,19 @@ Eleven chapters.
 
 Status: planned — no chapter started. First: [chapters/01-crawler-package-skeleton.md](crawlers/chapters/01-crawler-package-skeleton.md).
 
+### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
+
+Staging ingest (GovData/PVOG/FIM/LeiKa), auto-enqueued crawler tasks, read-only admin pipeline at `/admin/discovery/*`, emit to [suggestion-interface](suggestion-interface/00-architecture.md). Coordinates with [crawlers/](crawlers/00-architecture.md).
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-layer/00-architecture.md) | Staging graph, pipeline stages, admin review |
+| [01-rollout.md](discovery-layer/01-rollout.md) | 23 chapters, chief-of-staff execution order |
+| [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Auto-enqueue, observe-only admin |
+| [chapters/](discovery-layer/chapters/) | Executable chapter plans |
+
+Status: planned — merge suite to `main`, then loop `feat/plans-discovery-layer`. First: [01-staging-migration-lineage.md](discovery-layer/chapters/01-staging-migration-lineage.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
