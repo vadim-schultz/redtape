@@ -21,6 +21,9 @@ isProject: false
 | D7 | **Leistung → staging `catalogue_service`**; public graph uses **documents**. |
 | D8 | **`new_requirement` needs UUIDs** — stub claims until entities resolve. |
 | D9 | **COS skills** in `.cursor/skills/redtape-*` (chapters 08–11). |
+| D10 | **Loop-complete boundary.** CoS ships staging, machine + admin APIs, `/admin/discovery/*`, four gov skills, `apps/discovery-ingest` CLIs, fan-out/dedup/coverage, machine emit to suggestions (pending only), runbook + docs. No crawler package, no voting, no evidence attachments in-loop. |
+| D11 | **Deferred chapters.** 16 (claim evidence) → after evidence-storage; 20 (crawler frontier) → crawlers suite; 21 (LLM extract) → open seam. Not in [01-rollout.md](01-rollout.md) execution order. |
+| D12 | **`apps/discovery-ingest/`** is a separate package (like `apps/crawler/`): httpx clients, fixtures, thin CLIs; **no** `DATABASE_URL` or `app.db` imports; all writes via discovery machine API + API key. |
 
 ## Open seams
 
