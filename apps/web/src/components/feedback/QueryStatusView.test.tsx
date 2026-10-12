@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { it, expect, vi } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
+import { expandControlsBesideCount } from "../../test/queryStatusCountRow";
 import QueryStatusView from "./QueryStatusView";
 
 type Item = { id: string; label: string };
@@ -71,6 +72,24 @@ it("QueryStatusView · empty renders the caller's empty state", () => {
   );
 
   expect(screen.getByText("Nothing here")).toBeInTheDocument();
+});
+
+it("QueryStatusView · populated count row has no expand control", async () => {
+  renderWithProviders(
+    <QueryStatusView
+      {...baseProps}
+      isLoading={false}
+      isRefreshing={false}
+      isError={false}
+      error={undefined}
+      onRetry={vi.fn()}
+      items={items}
+    />,
+  );
+
+  const countLabel = await screen.findByText("2 items");
+  expect(expandControlsBesideCount(countLabel)).toHaveLength(0);
+  expect(screen.getAllByRole("link")).toHaveLength(2);
 });
 
 it("QueryStatusView · populated renders the count label and each item", async () => {
