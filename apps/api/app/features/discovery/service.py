@@ -7,11 +7,20 @@ from uuid import UUID
 
 from litestar.exceptions import NotFoundException
 
+from app.features.discovery.pipeline import (
+    PipelineStageInput,
+    all_emit_claims_resolvable,
+    derive_pipeline_stage,
+)
 from app.features.discovery.repository import DiscoveryRepository
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryClaim,
+    DiscoveryEntity,
+    DiscoveryEvent,
     DiscoveryEventType,
+    DiscoveryFetchLog,
     DiscoverySource,
     DiscoveryTask,
     DiscoveryTaskKind,
@@ -40,6 +49,50 @@ from app.schema.discovery.read import (
 )
 
 TASK_LEASE_MINUTES = 15
+
+
+def _fetch_log_dict(row: DiscoveryFetchLog) -> dict[str, object]:
+    return {
+        "id": str(row.id),
+        "discovery_task_id": str(row.discovery_task_id),
+        "http_status": row.http_status,
+        "fetched_at": row.fetched_at.isoformat(),
+        "content_type": row.content_type,
+        "byte_length": row.byte_length,
+        "error_message": row.error_message,
+    }
+
+
+def _entity_dict(row: DiscoveryEntity) -> dict[str, object]:
+    return {
+        "id": str(row.id),
+        "catalogue_service_id": str(row.catalogue_service_id),
+        "canonical_url": row.canonical_url,
+        "label": row.label,
+        "created_at": row.created_at.isoformat(),
+    }
+
+
+def _claim_dict(row: DiscoveryClaim) -> dict[str, object]:
+    return {
+        "id": str(row.id),
+        "discovery_entity_id": str(row.discovery_entity_id),
+        "kind": row.kind.value,
+        "payload": row.payload,
+        "confidence": float(row.confidence) if row.confidence is not None else None,
+        "created_at": row.created_at.isoformat(),
+    }
+
+
+def _event_dict(row: DiscoveryEvent) -> dict[str, object]:
+    return {
+        "id": str(row.id),
+        "event_type": row.event_type.value,
+        "catalogue_service_id": str(row.catalogue_service_id) if row.catalogue_service_id else None,
+        "discovery_task_id": str(row.discovery_task_id) if row.discovery_task_id else None,
+        "payload": row.payload,
+        "created_at": row.created_at.isoformat(),
+    }
 
 
 class DiscoveryAdminService:
@@ -75,11 +128,35 @@ class DiscoveryAdminService:
         summary = CatalogueSummaryChips(total=chip_total, by_source=by_source, by_pipeline_stage=by_stage)
         return CatalogueListResponse(items=items, summary=summary, total=total, offset=offset, limit=limit)
 
-    def pipeline_stub(self, catalogue_id: UUID) -> CataloguePipelineResponse | None:
+    def catalogue_pipeline(self, catalogue_id: UUID) -> CataloguePipelineResponse | None:
         row = self._repo.get_catalogue(catalogue_id)
         if row is None:
             return None
-        return CataloguePipelineResponse(service=CatalogueServiceRead.from_row(row))
+        task_rows = self._repo.list_catalogue_tasks(catalogue_id)
+        tasks = [DiscoveryTaskRead.from_row(task, source=source) for task, source in task_rows]
+        fetch_logs = self._repo.list_catalogue_fetch_logs(catalogue_id)
+        entities = self._repo.list_catalogue_entities(catalogue_id)
+        claims = self._repo.list_catalogue_claims(catalogue_id)
+        events = self._repo.list_catalogue_events(catalogue_id)
+        claim_pairs = [(claim.kind, claim.payload) for claim in claims]
+        derived_stage = derive_pipeline_stage(
+            PipelineStageInput(
+                task_count=len(tasks),
+                has_fetch_log=len(fetch_logs) > 0,
+                claim_count=len(claims),
+                all_emit_claims_resolvable=all_emit_claims_resolvable(claim_pairs),
+            )
+        )
+        row.pipeline_stage = derived_stage
+        return CataloguePipelineResponse(
+            service=CatalogueServiceRead.from_row(row),
+            derived_stage=derived_stage,
+            tasks=tasks,
+            fetch_logs=[_fetch_log_dict(log) for log in fetch_logs],
+            entities=[_entity_dict(entity) for entity in entities],
+            claims=[_claim_dict(claim) for claim in claims],
+            events=[_event_dict(event) for event in events],
+        )
 
 
 def _enqueue_tasks_for_service(
