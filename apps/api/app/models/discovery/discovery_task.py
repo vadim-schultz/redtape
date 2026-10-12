@@ -48,7 +48,9 @@ class DiscoveryTask(TimestampMixin, Base):
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    catalogue_service: Mapped[CatalogueService] = relationship("CatalogueService", back_populates="tasks")
+    catalogue_service: Mapped[CatalogueService] = relationship(
+        "CatalogueService", back_populates="tasks", single_parent=True
+    )
     fetch_logs: Mapped[list[DiscoveryFetchLog]] = relationship(
         "DiscoveryFetchLog", back_populates="discovery_task", cascade="all, delete-orphan"
     )

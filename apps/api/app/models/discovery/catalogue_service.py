@@ -50,8 +50,12 @@ class CatalogueService(TimestampMixin, Base):
     pipeline_stage: Mapped[str] = mapped_column(String(2), nullable=False)
 
     entities: Mapped[list[DiscoveryEntity]] = relationship(
-        "DiscoveryEntity", back_populates="catalogue_service", cascade="all, delete-orphan"
+        "DiscoveryEntity",
+        back_populates="catalogue_service",
+        cascade="all, delete-orphan",
     )
     tasks: Mapped[list[DiscoveryTask]] = relationship(
-        "DiscoveryTask", back_populates="catalogue_service", cascade="all, delete-orphan"
+        "DiscoveryTask",
+        back_populates="catalogue_service",
+        cascade="all, delete-orphan",
     )

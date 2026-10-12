@@ -29,7 +29,9 @@ class DiscoveryEntity(CreatedAtMixin, Base):
     canonical_url: Mapped[str] = mapped_column(String(500), nullable=False)
     label: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    catalogue_service: Mapped[CatalogueService] = relationship("CatalogueService", back_populates="entities")
+    catalogue_service: Mapped[CatalogueService] = relationship(
+        "CatalogueService", back_populates="entities", single_parent=True
+    )
     claims: Mapped[list[DiscoveryClaim]] = relationship(
         "DiscoveryClaim", back_populates="discovery_entity", cascade="all, delete-orphan"
     )

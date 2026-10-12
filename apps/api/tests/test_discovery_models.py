@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 
 import pytest
-import sqlalchemy as sa
 from app.models.discovery import (
     CatalogueService,
     DiscoveryEntity,
@@ -88,7 +87,7 @@ def test_discovery_entity_cascade_delete_when_catalogue_service_removed(db_sessi
     db_session.flush()
     entity_id = entity.id
 
-    db_session.execute(sa.delete(CatalogueService).where(CatalogueService.id == catalogue.id))
+    db_session.delete(catalogue)
     db_session.flush()
 
     assert db_session.get(DiscoveryEntity, entity_id) is None
