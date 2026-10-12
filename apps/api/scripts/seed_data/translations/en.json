@@ -22,6 +22,11 @@
     "about": "About",
     "suggest": "Suggest"
   },
+  "menu": {
+    "profile": "Profile",
+    "documents": "Documents",
+    "colour_mode": "Colour mode"
+  },
   "auth": {
     "login": "Log In",
     "logout": "Log Out",
@@ -33,6 +38,8 @@
     "error_generic": "Something went wrong. Please try again.",
     "unavailable": "Sign-in is not available right now.",
     "sign_in": "Sign in",
+    "sign_in_with_email": "Sign in with email",
+    "sign_in_with_google": "Sign in with Google",
     "sign_out": "Sign out"
   },
   "documents": {
