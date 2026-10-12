@@ -48,6 +48,14 @@ async function openMenu(
   return view;
 }
 
+it("AppMenu · trigger shows brand mark not bars", () => {
+  const { container } = renderWithProviders(<AppMenu />);
+  const trigger = screen.getByRole("button", { name: "Menu" });
+
+  expect(trigger.querySelector("svg[aria-hidden='true'] path")).toBeTruthy();
+  expect(container.querySelector("svg[data-icon='bars']")).toBeNull();
+});
+
 it("AppMenu · burger opens a menu with the colour switch and the language item", async () => {
   stubLocales();
   await openMenu();

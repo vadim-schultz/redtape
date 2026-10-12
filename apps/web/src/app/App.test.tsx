@@ -32,11 +32,13 @@ it("app · shows a list skeleton while the documents page code loads", async () 
   ).toBeInTheDocument();
 });
 
-it("app · renders the floating brand link and menu in the layout", async () => {
+it("app · renders the floating menu trigger in the layout", async () => {
   renderAppAt("/documents");
 
-  expect(await screen.findByRole("link", { name: "Home" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Menu" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Menu" }),
+  ).toBeInTheDocument();
 });
 
 it("app · renders not-found for an unregistered path", async () => {
