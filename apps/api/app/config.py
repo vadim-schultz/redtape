@@ -33,9 +33,27 @@ class Settings(BaseSettings):
     vote_approve_threshold: int = 3
     vote_reject_threshold: int = -3
 
+    discovery_admin_emails: str = Field(
+        default="",
+        description="Comma-separated emails allowed to call discovery admin routes (lowercase match).",
+    )
+    discovery_machine_opt_in: bool = Field(
+        default=False,
+        description="Enable discovery machine routes in dev when the admin allowlist is empty.",
+    )
+
     @property
     def auth_enabled(self) -> bool:
         return self.supabase_jwks_url is not None and self.supabase_jwt_issuer is not None
+
+    @property
+    def discovery_admin_email_set(self) -> frozenset[str]:
+        parts = [segment.strip().lower() for segment in self.discovery_admin_emails.split(",")]
+        return frozenset(email for email in parts if email)
+
+    @property
+    def discovery_enabled(self) -> bool:
+        return bool(self.discovery_admin_email_set) or self.discovery_machine_opt_in
 
     @model_validator(mode="after")
     def _check_vote_thresholds(self) -> Settings:
