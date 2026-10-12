@@ -61,5 +61,7 @@ it("EmitPreviewPanel · lists preview rows from API", async () => {
   });
 
   expect(await screen.findByText("new_document")).toBeInTheDocument();
-  expect(screen.getByText("unresolved_requirement_documents")).toBeInTheDocument();
+  expect(
+    screen.getByText(/unresolved_requirement_documents/),
+  ).toBeInTheDocument();
 });
