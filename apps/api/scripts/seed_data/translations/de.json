@@ -22,6 +22,11 @@
     "about": "Über uns",
     "suggest": "Vorschlagen"
   },
+  "menu": {
+    "profile": "Profil",
+    "documents": "Dokumente",
+    "colour_mode": "Farbmodus"
+  },
   "auth": {
     "login": "Anmelden",
     "logout": "Abmelden",
@@ -33,6 +38,8 @@
     "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "unavailable": "Die Anmeldung ist momentan nicht verfügbar.",
     "sign_in": "Anmelden",
+    "sign_in_with_email": "Mit E-Mail anmelden",
+    "sign_in_with_google": "Mit Google anmelden",
     "sign_out": "Abmelden"
   },
   "documents": {
