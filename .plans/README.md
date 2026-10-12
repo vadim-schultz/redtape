@@ -52,6 +52,22 @@ the matrix view. Frontend only, six chapters.
 
 Status: planned — no chapter started. First: [chapters/01-remove-matrix.md](floating-nav/chapters/01-remove-matrix.md).
 
+### [frontend-ui-menu/](frontend-ui-menu/) — Menu panel and floating chrome
+
+Remove the stray document-list chevron, consolidate floating controls into a single R menu trigger, port
+eggs-style `KeyValueRow`, and rebuild the app menu as four key–value rows (profile, documents, colour,
+language). Frontend only, four chapters. Orchestrate with **chief of staff**; loop branch
+`feat/plans-frontend-ui-menu`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](frontend-ui-menu/00-architecture.md) | Target menu and chrome |
+| [01-rollout.md](frontend-ui-menu/01-rollout.md) | Four chapters, execution order, loop branch |
+| [gaps-and-decisions.md](frontend-ui-menu/gaps-and-decisions.md) | Settled decisions (UI-only Google, etc.) |
+| [chapters/](frontend-ui-menu/chapters/) | One executable plan per chapter |
+
+Status: planned — first: [chapters/01-remove-list-chevron.md](frontend-ui-menu/chapters/01-remove-list-chevron.md).
+
 ### [ci-foundation/](ci-foundation/) — Postgres-backed API CI
 
 Run API tests against Postgres in GitHub Actions and local `./ci.sh` (today every DB test is skipped on
