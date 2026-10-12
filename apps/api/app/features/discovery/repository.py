@@ -1,13 +1,24 @@
-"""Persistence for discovery admin reads."""
+"""Persistence for discovery admin reads and machine writes."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
-from app.models.discovery import CatalogueService, DiscoverySource, DiscoveryTask, DiscoveryTaskStatus
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryEvent,
+    DiscoveryEventType,
+    DiscoveryFetchLog,
+    DiscoverySource,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+    DiscoveryTaskStatus,
+)
+from app.schema.discovery.machine import CatalogueBatchItem
 
 
 def _task_list_stmt(
@@ -33,10 +44,114 @@ def _catalogue_list_stmt(*, source: DiscoverySource | None) -> Select:
 
 
 class DiscoveryRepository:
-    """Read-only queries for discovery admin screens."""
+    """Discovery staging queries and machine-route persistence."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def get_catalogue_by_source_external_id(
+        self, *, source: DiscoverySource, external_id: str
+    ) -> CatalogueService | None:
+        stmt = select(CatalogueService).where(
+            CatalogueService.source == source,
+            CatalogueService.external_id == external_id,
+        )
+        return self._session.scalar(stmt)
+
+    def upsert_catalogue_item(self, item: CatalogueBatchItem) -> tuple[CatalogueService, bool]:
+        """Insert or update a catalogue row; return the row and whether it was created."""
+
+        existing = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
+        if existing is None:
+            row = CatalogueService(
+                source=item.source,
+                external_id=item.external_id,
+                jurisdiction_id=item.jurisdiction_id,
+                title_i18n=item.title_i18n,
+                description_i18n=item.description_i18n,
+                portal_url=item.portal_url,
+                raw_payload=item.raw_payload,
+                pipeline_stage="T0",
+            )
+            self._session.add(row)
+            self._session.flush()
+            return row, True
+        existing.jurisdiction_id = item.jurisdiction_id
+        existing.title_i18n = item.title_i18n
+        existing.description_i18n = item.description_i18n
+        existing.portal_url = item.portal_url
+        existing.raw_payload = item.raw_payload
+        self._session.flush()
+        return existing, False
+
+    def record_event(
+        self,
+        *,
+        event_type: DiscoveryEventType,
+        catalogue_service_id: UUID | None = None,
+        discovery_task_id: UUID | None = None,
+        payload: dict[str, object] | None = None,
+    ) -> DiscoveryEvent:
+        event = DiscoveryEvent(
+            event_type=event_type,
+            catalogue_service_id=catalogue_service_id,
+            discovery_task_id=discovery_task_id,
+            payload=payload or {},
+        )
+        self._session.add(event)
+        self._session.flush()
+        return event
+
+    def insert_task(
+        self,
+        *,
+        catalogue_service_id: UUID,
+        kind: DiscoveryTaskKind,
+        target_url: str,
+    ) -> DiscoveryTask:
+        task = DiscoveryTask(
+            catalogue_service_id=catalogue_service_id,
+            kind=kind,
+            target_url=target_url,
+            status=DiscoveryTaskStatus.PENDING,
+        )
+        self._session.add(task)
+        self._session.flush()
+        return task
+
+    def list_pending_tasks_for_claim(self, *, limit: int) -> list[DiscoveryTask]:
+        stmt = (
+            select(DiscoveryTask)
+            .where(DiscoveryTask.status == DiscoveryTaskStatus.PENDING)
+            .order_by(DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), DiscoveryTask.id.asc())
+            .limit(limit)
+        )
+        return list(self._session.scalars(stmt).all())
+
+    def get_task(self, task_id: UUID) -> DiscoveryTask | None:
+        return self._session.get(DiscoveryTask, task_id)
+
+    def append_fetch_log(
+        self,
+        *,
+        task: DiscoveryTask,
+        http_status: int | None,
+        content_type: str | None,
+        byte_length: int | None,
+        error_message: str | None,
+        fetched_at: datetime,
+    ) -> DiscoveryFetchLog:
+        row = DiscoveryFetchLog(
+            discovery_task_id=task.id,
+            http_status=http_status,
+            content_type=content_type,
+            byte_length=byte_length,
+            error_message=error_message,
+            fetched_at=fetched_at,
+        )
+        self._session.add(row)
+        self._session.flush()
+        return row
 
     def count_tasks(
         self,
