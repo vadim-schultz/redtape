@@ -1,26 +1,35 @@
 ---
 name: "Chapter 21 — LLM extract flag"
-overview: "optional LLM"
+overview: "Deferred: optional LLM-assisted claim extraction behind a feature flag."
 todos: []
 isProject: false
 ---
 
 # Chapter 21 — LLM extract flag
 
-**Branch:** `feat/discovery-layer-llm-extract` · **Status:** planned
+**Branch:** `feat/discovery-layer-llm-extract` · **Status:** deferred
 
-**Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md) (not in CoS execution order)
+
+---
 
 ## Goal
 
-optional LLM
+When enabled, run structured extraction on fetch log content to populate `discovery_claim` rows (T4 search
+seam in [gaps-and-decisions.md](../gaps-and-decisions.md)).
 
-## Red tests
+## Why deferred
 
-Happy path + negative path (auth/validation). See [../00-architecture.md](../00-architecture.md).
+Optional product enhancement; not required for loop-complete ingest, admin targets, or emit (D10). No
+blocking dependency for CoS.
 
-## Verification
+## When to implement
 
-`./ci.sh` after narrow tests.
+Reopen as a full chapter plan when T4 search forcing condition is met: settings flag, provider adapter,
+cost guards, paired tests for on/off paths.
 
-Open PR into `feat/plans-discovery-layer`.
+## Owner
+
+discovery-layer follow-on or open seam — see gaps-and-decisions **T4 search**.
+
+Do not schedule in chief-of-staff discovery loop.

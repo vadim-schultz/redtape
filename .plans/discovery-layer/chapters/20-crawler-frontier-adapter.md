@@ -1,26 +1,41 @@
 ---
 name: "Chapter 20 — Crawler frontier adapter"
-overview: "claim task → fetch → claims"
+overview: "Deferred: apps/crawler claims discovery tasks and posts fetches/claims via machine API."
 todos: []
 isProject: false
 ---
 
 # Chapter 20 — Crawler frontier adapter
 
-**Branch:** `feat/discovery-layer-crawler-adapter` · **Status:** planned
+**Branch:** `feat/discovery-layer-crawler-adapter` · **Status:** deferred
 
-**Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md) (not in CoS execution order)
+
+---
 
 ## Goal
 
-claim task → fetch → claims
+The [crawlers](../../crawlers/00-architecture.md) package claims `discovery_task` rows via
+`POST /api/v1/discovery/machine/tasks/claim`, fetches URLs, and appends fetch logs and claims — replacing
+manual-only task completion in tests.
 
-## Red tests
+## Why deferred
 
-Happy path + negative path (auth/validation). See [../00-architecture.md](../00-architecture.md).
+Discovery loop proves the machine queue API (chapter 3) without shipping `apps/crawler`. Crawler suite owns
+the producer implementation (D11).
 
-## Verification
+## Prerequisite
 
-`./ci.sh` after narrow tests.
+[crawlers 01-rollout](../../crawlers/01-rollout.md) chapters 1–5 (fetcher, extractor interface) and discovery
+chapters 1–3 shipped on `main`.
 
-Open PR into `feat/plans-discovery-layer`.
+## When to implement
+
+Add as a crawlers suite chapter or cross-suite plan: `DiscoveryFrontierClient` in `apps/crawler`, wired from
+orchestrator chapter 9.
+
+## Owner
+
+[crawlers](../../crawlers/00-architecture.md) suite.
+
+Do not schedule in chief-of-staff discovery loop.

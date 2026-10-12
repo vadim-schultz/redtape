@@ -6,7 +6,7 @@ isProject: false
 
 # Discovery layer — Architecture
 
-**Rollout:** [01-rollout.md](01-rollout.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/)
+**Rollout:** [01-rollout.md](01-rollout.md) · **Contract:** [02-staging-model-and-api.md](02-staging-model-and-api.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/)
 
 ---
 
@@ -27,14 +27,18 @@ The public product is **documents** and **dependencies** ([00-master-summary.md]
 
 ```mermaid
 flowchart TB
-  ingest[GovData_PVOG_FIM] --> CLI[ingest_CLI]
-  CLI --> DiscAPI[discovery_API]
+  ingest[GovData_PVOG_FIM_LeiKa] --> CLI[discovery_ingest_CLI]
+  CLI --> DiscAPI[discovery_machine_API]
   DiscAPI --> staging[(Postgres_staging)]
-  DT[discovery_task] --> Crawler[crawler_CLI]
-  Crawler --> DiscAPI
-  DiscAPI --> Sug[suggestion_API]
-  Sug --> Cat[document_graph]
+  AdminUI[admin_web] --> DiscAPIAdmin[discovery_admin_API]
+  DiscAPIAdmin --> staging
+  DT[discovery_task] -.-> Crawler[crawler_CLI_future]
+  Crawler -.-> DiscAPI
+  DiscAPI --> Emit[emit_service]
+  Emit --> Sug[suggestion_API_pending]
 ```
+
+Solid lines are in the CoS loop; the crawler path is deferred to the [crawlers](../crawlers/00-architecture.md) suite (chapter 20 pointer).
 
 ## 4. Admin UI
 
@@ -63,4 +67,12 @@ Admin API paths: [01-rollout.md](01-rollout.md). Public app remains documents-on
 
 ## 7. Prerequisites
 
-[voting-moderation](../voting-moderation/01-rollout.md), [evidence-storage](../evidence-storage/01-rollout.md) (screenshots), [crawlers](../crawlers/01-rollout.md) ch.1–5 (adapter).
+| Suite | Why |
+| --- | --- |
+| [ci-foundation](../ci-foundation/01-rollout.md) 1–2 | Postgres-backed API tests and migration round-trip |
+| [auth](../auth/01-rollout.md) through machine guard | JWT for admin UI; `X-API-Key` for ingest and emit |
+| [suggestion-interface](../suggestion-interface/01-rollout.md) | Chapter 18 POST emit only (`pending` suggestions) |
+
+**Not blocking this loop:** [voting-moderation](../voting-moderation/01-rollout.md), [evidence-storage](../evidence-storage/01-rollout.md), [crawlers](../crawlers/01-rollout.md). See [gaps-and-decisions.md](gaps-and-decisions.md) D10–D11.
+
+Implementable detail: [02-staging-model-and-api.md](02-staging-model-and-api.md).

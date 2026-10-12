@@ -182,13 +182,14 @@ Status: planned — no chapter started. First: [chapters/01-crawler-package-skel
 
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 
-Staging ingest (GovData/PVOG/FIM/LeiKa), auto-enqueued crawler tasks, read-only admin pipeline at `/admin/discovery/*`, emit to [suggestion-interface](suggestion-interface/00-architecture.md). Coordinates with [crawlers/](crawlers/00-architecture.md).
+Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine discovery API, read-only admin at `/admin/discovery/*`, machine emit to [suggestion-interface](suggestion-interface/00-architecture.md) (`pending` only). **Loop-complete without** voting-moderation, evidence-storage, or crawlers — those suites consume or extend staging later.
 
 | Doc | What it is |
 | --- | --- |
 | [00-architecture.md](discovery-layer/00-architecture.md) | Staging graph, pipeline stages, admin review |
-| [01-rollout.md](discovery-layer/01-rollout.md) | 23 chapters, chief-of-staff execution order |
-| [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Auto-enqueue, observe-only admin |
+| [02-staging-model-and-api.md](discovery-layer/02-staging-model-and-api.md) | Tables, routes, ingest package layout |
+| [01-rollout.md](discovery-layer/01-rollout.md) | 19 in-loop chapters + 3 deferred, CoS execution order, TDD gate |
+| [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Loop boundary, auto-enqueue, deferred chapters |
 | [chapters/](discovery-layer/chapters/) | Executable chapter plans |
 
 Status: planned — merge suite to `main`, then loop `feat/plans-discovery-layer`. First: [01-staging-migration-lineage.md](discovery-layer/chapters/01-staging-migration-lineage.md).
