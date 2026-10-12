@@ -41,6 +41,17 @@ export type CatalogueServiceSummary = {
   updated_at: string;
 };
 
+export type EmitPreviewItem = {
+  claim_id: string;
+  kind: string;
+  payload: Record<string, unknown> | null;
+  skip_reason: string | null;
+};
+
+export type EmitPreviewResponse = {
+  items: EmitPreviewItem[];
+};
+
 export type CataloguePipelineResponse = {
   service: CatalogueServiceSummary;
   derived_stage: string;

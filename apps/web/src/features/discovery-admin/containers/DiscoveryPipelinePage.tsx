@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
+import EmitPreviewPanel from "../components/EmitPreviewPanel";
 import PipelineTimeline from "../components/PipelineTimeline";
 import { useDiscoveryPipelineQuery } from "../hooks/useDiscoveryPipelineQuery";
 
@@ -47,6 +48,7 @@ export default function DiscoveryPipelinePage() {
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.events_count", { count: events.length })}
       </Text>
+      {id ? <EmitPreviewPanel catalogueId={id} /> : null}
     </Stack>
   );
 }
