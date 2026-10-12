@@ -61,6 +61,10 @@ independent of each other once their backend chapters have shipped.
 | 9 | Web suggestion form | frontend + i18n | vitest + `./ci.sh` + manual | [09-web-suggestion-form.md](chapters/09-web-suggestion-form.md) | shipped |
 | 10 | Web list and detail | frontend + i18n | vitest + `./ci.sh` + manual | [10-web-suggestion-list-and-detail.md](chapters/10-web-suggestion-list-and-detail.md) | shipped |
 | 11 | Docs sync | docs | link check | [11-docs-sync.md](chapters/11-docs-sync.md) | shipped |
+| 12 | Jurisdiction applicability (web) | frontend + API | vitest + pytest + `./ci.sh` | [12-jurisdiction-applicability-web.md](chapters/12-jurisdiction-applicability-web.md) | shipped |
+| 13 | Catalogue detail and evidence | frontend + i18n | vitest + `./ci.sh` | [13-catalogue-detail-and-evidence.md](chapters/13-catalogue-detail-and-evidence.md) | shipped |
+| 14 | Discovery emit contract tests | backend | pytest + `./ci.sh` | [14-discovery-emit-contract-tests.md](chapters/14-discovery-emit-contract-tests.md) | shipped |
+| 15 | Discovery bridge docs | docs | link check | [15-discovery-bridge-docs.md](chapters/15-discovery-bridge-docs.md) | shipped |
 
 Typical negative assertions per slice: unauthenticated, wrong principal kind, invalid payload, unknown
 jurisdiction, unknown taxonomy code, non-http URL, duplicate document, duplicate pending suggestion,

@@ -188,18 +188,40 @@ Implement in `pipeline.py` as pure functions over aggregates; unit-test stage tr
 
 ## 6. Emit mapping (chapter 18)
 
-`DiscoveryEmitService` builds suggestion create bodies:
+`DiscoveryEmitService` and admin emit-preview share `claim_to_create_body()` in
+`apps/api/app/features/discovery/emit_mapper.py` (validated by
+`tests/test_discovery_suggestion_contract.py`).
+
+### 6.1 `discovery_claim.payload` shapes (validated on `POST /claims`, chapter 17)
+
+| `discovery_claim_kind` | Pydantic model | Fields |
+| --- | --- | --- |
+| `new_document` | `NewDocumentClaimPayload` | Same keys as [`NewDocumentPayload`](../../apps/api/app/schema/suggestion/payload.py): `title_i18n`, `description_i18n?`, `official_url`, `domain_codes`, `situation_codes` |
+| `new_requirement` | `NewRequirementClaimPayload` | `parent_document_id`, `required_document_id` (UUIDs in **canonical** `document` table), optional `notes_i18n`. Stubs without both UUIDs are stored for admin preview but **skipped** at emit (D8). |
+| `metadata` | `MetadataClaimPayload` | `notes_i18n?` only — enrich/FIM/LeiKa text; **not emitted** in v1 |
+
+`confidence` stays on the `discovery_claim` row only; it is never copied to the suggestion API.
+
+### 6.2 Emit mapping table
 
 | `discovery_claim_kind` | Suggestion `kind` | Notes |
 | --- | --- | --- |
-| `new_document` | `new_document` | Map `payload` → `title_i18n`, `official_url`, optional taxonomy codes |
-| `new_requirement` | `new_requirement` | Requires resolved `parent_document_id` / `required_document_id` UUIDs in canonical DB or stub skip (D8) |
-| `metadata` | — | Not emitted in v1; admin preview only |
+| `new_document` | `new_document` | `payload` validates as `NewDocumentClaimPayload`, then maps 1:1 to `NewDocumentPayload` |
+| `new_requirement` | `new_requirement` | `payload` validates as `NewRequirementClaimPayload`; emit only when both document UUIDs set and exist in jurisdiction |
+| `metadata` | — | Preview row with `skip_reason: "metadata_not_emitted"` |
 
-- `source_type`: always `crawler` for machine emit.
-- `source_url`: entity `canonical_url`.
-- `idempotency_key`: `discovery-emit:{claim_id}` per API key.
-- Calls existing `SuggestionService` / HTTP internal — no direct `document` table writes.
+### 6.3 `SuggestionCreate` envelope (machine emit)
+
+| Field | Source |
+| --- | --- |
+| `kind` | From claim kind (when emit-ready) |
+| `jurisdiction_id` | `catalogue_service.jurisdiction_id` |
+| `payload` | Mapped claim payload (§6.2) |
+| `source_url` | Parent `discovery_entity.canonical_url` (crawler D9) |
+| `idempotency_key` | `discovery-emit:{claim_id}` per API key |
+
+- `source_type`: always `crawler` for machine emit (derived from API key principal).
+- Calls existing `SuggestionService.create` — no direct `document` table writes from discovery.
 
 ---
 

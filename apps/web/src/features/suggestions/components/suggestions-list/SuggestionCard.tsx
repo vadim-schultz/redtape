@@ -6,6 +6,8 @@ import type { SuggestionRead } from "../../types";
 import { formatRelativeTime } from "../../utils/formatRelativeTime";
 import { suggestionTitle } from "../../utils/suggestionTitle";
 
+import DocumentBreadcrumb from "../../../documents/components/document-detail/DocumentBreadcrumb";
+
 import SourceBadge from "./SourceBadge";
 import StatusBadge from "./StatusBadge";
 
@@ -26,6 +28,9 @@ export default function SuggestionCard({
       <Card.Title textStyle="subsectionHeader">
         {suggestionTitle(suggestion, locale)}
       </Card.Title>
+      {suggestion.jurisdiction_path?.length ? (
+        <DocumentBreadcrumb nodes={suggestion.jurisdiction_path} />
+      ) : null}
       <HStack mt={2} gap={2}>
         <StatusBadge status={suggestion.status} />
         <SourceBadge kind={suggestion.submitted_by.kind} />

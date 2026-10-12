@@ -1,4 +1,4 @@
-import { Card, HStack, Text } from "@chakra-ui/react";
+import { Card, HStack, Text, VStack } from "@chakra-ui/react";
 
 import AppCard from "../../../../components/data-display/AppCard";
 import { useLocale } from "../../../../contexts/LocaleContext";
@@ -11,9 +11,12 @@ export interface NewRequirementPayloadViewProps {
 export default function NewRequirementPayloadView({
   payload,
 }: NewRequirementPayloadViewProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const notes = payload.notes_i18n?.[locale];
 
   return (
+    <VStack align="stretch" gap={3}>
+      {notes ? <Text>{notes}</Text> : null}
     <HStack align="stretch" gap={3}>
       <AppCard to={`/documents/${payload.parent_document_id}`}>
         <Card.Title textStyle="subsectionHeader">
@@ -27,5 +30,6 @@ export default function NewRequirementPayloadView({
         </Card.Title>
       </AppCard>
     </HStack>
+    </VStack>
   );
 }

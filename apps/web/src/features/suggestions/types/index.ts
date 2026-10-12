@@ -1,3 +1,7 @@
+import type { JurisdictionPathNode } from "../../documents/types";
+
+export type { JurisdictionPathNode };
+
 export type SuggestionPayload = {
   title_i18n: Record<string, string>;
   description_i18n?: Record<string, string>;
@@ -37,6 +41,7 @@ export type SuggestionRead = {
   status: SuggestionStatus;
   source_type: SuggestionSourceType;
   jurisdiction_id: string;
+  jurisdiction_path?: JurisdictionPathNode[];
   payload: SuggestionPayload | NewRequirementSuggestionPayload;
   source_url: string | null;
   submitted_by: SubmitterRead;

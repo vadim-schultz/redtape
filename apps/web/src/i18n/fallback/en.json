@@ -118,6 +118,13 @@
     "official_source": "Official Source",
     "parent_document": "Parent document",
     "required_document": "Required document",
-    "submitted_by": "Submitted by {name}"
+    "submitted_by": "Submitted by {name}",
+    "applicability": "Applies in"
+  },
+  "evidence": {
+    "section_title": "Evidence",
+    "fetched_on": "Captured on {date}",
+    "view_captured_page": "View captured page",
+    "screenshot_alt": "Screenshot of the captured page"
   }
 }

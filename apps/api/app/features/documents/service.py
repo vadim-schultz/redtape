@@ -50,6 +50,19 @@ class DocumentService:
         self._repo = repository
         self._taxonomy = taxonomy
 
+    def jurisdiction_path_for(
+        self,
+        *,
+        jurisdiction_id: UUID,
+        locale: str,
+        enabled_locales: set[str],
+    ) -> list[JurisdictionPathNode]:
+        """Return root-to-leaf breadcrumb nodes for a jurisdiction id."""
+        return [
+            self._jurisdiction_to_path_node(j, locale=locale, enabled=enabled_locales)
+            for j in self._repo.get_jurisdiction_path(jurisdiction_id=jurisdiction_id)
+        ]
+
     def list_documents(
         self,
         *,

@@ -296,6 +296,20 @@ def test_returns_the_suggestion(client: TestClient[Litestar], db_session: Sessio
     assert body["submitted_by"] == {"kind": "user", "display_name": "Ada Lovelace"}
 
 
+def test_detail_includes_jurisdiction_path(
+    client: TestClient[Litestar], db_session: Session, country: Jurisdiction
+) -> None:
+    suggestion = _make_suggestion(db_session, country)
+
+    response = client.get(f"{URL}/{suggestion.id}", headers={"Accept-Language": "en"})
+
+    path = response.json()["jurisdiction_path"]
+    assert len(path) == 1
+    assert path[0]["code"] == country.code
+    assert path[0]["name"] == "Testland"
+    assert path[0]["kind"] == "COUNTRY"
+
+
 def test_unknown_id_returns_404(client: TestClient[Litestar]) -> None:
     response = client.get(f"{URL}/{uuid.uuid4()}")
 

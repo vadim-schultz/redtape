@@ -10,6 +10,7 @@ from litestar.params import Parameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.features.auth.principal import Principal
+from app.features.documents.service import DocumentService
 from app.features.suggestions.service import (
     CycleError,
     DuplicateSuggestionError,
@@ -30,6 +31,16 @@ from app.schema.suggestion.read import ConflictRead, SuggestionListResponse, Sug
 IDEMPOTENCY_KEY_MAX_LENGTH = 128
 IDEMPOTENCY_KEY_PATTERN = r"^[\x20-\x7e]+$"
 _NO_CACHE = CacheControlHeader(no_cache=True)
+
+
+def _request_locale(request: Request) -> str:
+    state = request.scope.get("state") or {}
+    return str(state.get("locale", "de"))
+
+
+def _enabled_locales(request: Request) -> set[str]:
+    return getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
+
 
 _STATUS_BY_ERROR: dict[type[Exception], int] = {
     DuplicateSuggestionError: HTTP_409_CONFLICT,
@@ -65,6 +76,7 @@ class SuggestionsController(Controller):
         self,
         request: Request,
         suggestion_service: SuggestionService,
+        document_service: DocumentService,
         principal: object,  # Principal; msgspec can't validate a union of two dataclasses (auth chapter 8)
         data: SuggestionCreate,
         idempotency_key: str | None = Parameter(
@@ -88,7 +100,18 @@ class SuggestionsController(Controller):
             CycleError,
         ) as exc:
             raise _to_http(exc) from exc
-        read = SuggestionRead.from_row(result.suggestion, submitter_display_name=submitter_display_name(who))
+        locale = _request_locale(request)
+        enabled = _enabled_locales(request)
+        path = document_service.jurisdiction_path_for(
+            jurisdiction_id=result.suggestion.jurisdiction_id,
+            locale=locale,
+            enabled_locales=enabled,
+        )
+        read = SuggestionRead.from_row(
+            result.suggestion,
+            submitter_display_name=submitter_display_name(who),
+            jurisdiction_path=path,
+        )
         location = f"{request.url.path.rstrip('/')}/{result.suggestion.id}"
         status_code = HTTP_200_OK if result.replayed else HTTP_201_CREATED
         return Response(read, status_code=status_code, headers={"Location": location})
@@ -96,6 +119,7 @@ class SuggestionsController(Controller):
     @get("/", sync_to_thread=True, cache_control=_NO_CACHE)
     def list_suggestions(
         self,
+        request: Request,
         suggestion_service: SuggestionService,
         vote_service: VoteService,
         status: list[SuggestionStatus] | None = Parameter(query="status", default=None),
@@ -108,7 +132,13 @@ class SuggestionsController(Controller):
         filters = SuggestionFilters(
             status=tuple(status or ()), kind=kind, source_type=source_type, jurisdiction_id=jurisdiction_id
         )
-        result = suggestion_service.list_suggestions(filters=filters, offset=offset, limit=limit)
+        result = suggestion_service.list_suggestions(
+            filters=filters,
+            offset=offset,
+            limit=limit,
+            locale=_request_locale(request),
+            enabled_locales=_enabled_locales(request),
+        )
         tallies = vote_service.tally_for_many([item.id for item in result.items])
         items = [with_tally(item, tally=tallies[item.id]) for item in result.items]
         return SuggestionListResponse(items=items, total=result.total, offset=result.offset, limit=result.limit)
@@ -116,12 +146,17 @@ class SuggestionsController(Controller):
     @get("/{suggestion_id:uuid}", sync_to_thread=True, cache_control=_NO_CACHE)
     def get_suggestion(
         self,
+        request: Request,
         suggestion_service: SuggestionService,
         vote_service: VoteService,
         suggestion_id: UUID,
         optional_user: AppUser | None,
     ) -> SuggestionRead:
-        read = suggestion_service.get_suggestion(suggestion_id)
+        read = suggestion_service.get_suggestion(
+            suggestion_id,
+            locale=_request_locale(request),
+            enabled_locales=_enabled_locales(request),
+        )
         if read is None:
             raise NotFoundException("Suggestion not found")
         tally = vote_service.tally_for(suggestion_id)

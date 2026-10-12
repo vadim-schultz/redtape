@@ -118,6 +118,13 @@
     "official_source": "Offizielle Quelle",
     "parent_document": "Übergeordnetes Dokument",
     "required_document": "Erforderliches Dokument",
-    "submitted_by": "Eingereicht von {name}"
+    "submitted_by": "Eingereicht von {name}",
+    "applicability": "Gilt in"
+  },
+  "evidence": {
+    "section_title": "Nachweise",
+    "fetched_on": "Erfasst am {date}",
+    "view_captured_page": "Erfasste Seite ansehen",
+    "screenshot_alt": "Screenshot der erfassten Seite"
   }
 }

@@ -21,6 +21,10 @@ isProject: false
 | D7 | **Reads are public.** Pending suggestions are the voting agenda and transparency helps review. Submitter identity is shown as display name only, never email. |
 | D8 | **Machine retries are idempotent** through `Idempotency-Key`, scoped to the API key. Replay returns the original with 200. |
 | D9 | **Crawler suggestions require `source_url`.** Human suggestions may omit it; the payload's `official_url` is still required for `new_document`. |
+| D10 | **Discovery lineage is admin-only** (`/admin/discovery/*`, discovery admin API). Public suggestion and document UIs show catalogue fields and jurisdiction applicability only. |
+| D11 | **No provenance block** on public `POST /suggestions` payload; staging `source`, `external_id`, and `raw_payload` never appear on public reads. |
+| D12 | **Public web** does not show suggestion envelope **`source_url`** as a duplicate line; **`official_url`** in the payload remains the catalogue link. |
+| D13 | **Evidence is public on suggestion detail** ([evidence-storage](../evidence-storage/00-architecture.md)): each item shows capture **`source_url`**, **`fetched_at`**, and screenshot/HTML — moderation proof, not discovery ingest lineage. |
 
 ## Open seams
 

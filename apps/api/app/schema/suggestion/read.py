@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.schema.document.read import JurisdictionPathNode
 
 _SUBMITTER_KIND: dict[SuggestionSource, Literal["user", "crawler"]] = {
     SuggestionSource.HUMAN: "user",
@@ -54,6 +55,7 @@ class SuggestionRead(BaseModel):
     status: SuggestionStatus
     source_type: SuggestionSource
     jurisdiction_id: UUID
+    jurisdiction_path: list[JurisdictionPathNode] = Field(default_factory=list)
     payload: dict
     source_url: str | None
     submitted_by: SubmitterRead
@@ -62,7 +64,13 @@ class SuggestionRead(BaseModel):
     my_vote: int | None = None
 
     @classmethod
-    def from_row(cls, suggestion: Suggestion, *, submitter_display_name: str | None) -> SuggestionRead:
+    def from_row(
+        cls,
+        suggestion: Suggestion,
+        *,
+        submitter_display_name: str | None,
+        jurisdiction_path: list[JurisdictionPathNode] | None = None,
+    ) -> SuggestionRead:
         submitted_by = SubmitterRead(
             kind=_SUBMITTER_KIND[suggestion.source_type], display_name=submitter_display_name or None
         )
@@ -72,6 +80,7 @@ class SuggestionRead(BaseModel):
             status=suggestion.status,
             source_type=suggestion.source_type,
             jurisdiction_id=suggestion.jurisdiction_id,
+            jurisdiction_path=jurisdiction_path or [],
             payload=suggestion.payload,
             source_url=suggestion.source_url,
             submitted_by=submitted_by,

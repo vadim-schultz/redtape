@@ -128,7 +128,15 @@ class SuggestionService:
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._repo.get(suggestion_id)
 
-    def list_suggestions(self, *, filters: SuggestionFilters, offset: int, limit: int) -> SuggestionListResponse:
+    def list_suggestions(
+        self,
+        *,
+        filters: SuggestionFilters,
+        offset: int,
+        limit: int,
+        locale: str,
+        enabled_locales: set[str],
+    ) -> SuggestionListResponse:
         total = self._repo.count(
             status=filters.status,
             kind=filters.kind,
@@ -143,15 +151,40 @@ class SuggestionService:
             source_type=filters.source_type,
             jurisdiction_id=filters.jurisdiction_id,
         )
-        items = [SuggestionRead.from_row(row, submitter_display_name=name) for row, name in rows]
+        jurisdiction_ids = {row.jurisdiction_id for row, _ in rows}
+        paths = {
+            jid: self._documents.jurisdiction_path_for(
+                jurisdiction_id=jid, locale=locale, enabled_locales=enabled_locales
+            )
+            for jid in jurisdiction_ids
+        }
+        items = [
+            SuggestionRead.from_row(
+                row,
+                submitter_display_name=name,
+                jurisdiction_path=paths[row.jurisdiction_id],
+            )
+            for row, name in rows
+        ]
         return SuggestionListResponse(items=items, total=total, offset=offset, limit=limit)
 
-    def get_suggestion(self, suggestion_id: UUID) -> SuggestionRead | None:
+    def get_suggestion(
+        self,
+        suggestion_id: UUID,
+        *,
+        locale: str,
+        enabled_locales: set[str],
+    ) -> SuggestionRead | None:
         found = self._repo.get_with_submitter(suggestion_id)
         if found is None:
             return None
         suggestion, name = found
-        return SuggestionRead.from_row(suggestion, submitter_display_name=name)
+        path = self._documents.jurisdiction_path_for(
+            jurisdiction_id=suggestion.jurisdiction_id,
+            locale=locale,
+            enabled_locales=enabled_locales,
+        )
+        return SuggestionRead.from_row(suggestion, submitter_display_name=name, jurisdiction_path=path)
 
     def transition_to(
         self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None

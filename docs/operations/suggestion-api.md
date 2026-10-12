@@ -89,6 +89,9 @@ header and body:
   "status": "pending",
   "source_type": "human",
   "jurisdiction_id": "…",
+  "jurisdiction_path": [
+    { "code": "de", "name": "Germany", "kind": "COUNTRY", "openplz_type": null }
+  ],
   "payload": { "...": "..." },
   "source_url": null,
   "submitted_by": { "kind": "user", "display_name": "Jordan" },
@@ -184,3 +187,20 @@ curl -s -X POST http://localhost:8000/api/v1/suggestions \
 
 Running the same command again with the same `Idempotency-Key` returns the original suggestion (`id`
 unchanged) with `200` instead of `201`.
+
+## User-visible fields vs discovery staging
+
+Public clients (web, mobile) should show **catalogue-shaped** suggestion data only:
+
+- Document title, description, `official_url`, taxonomy codes, requirement edges, and **`jurisdiction_path`**
+  (root-to-leaf applicability breadcrumb, same shape as document detail).
+- **Evidence** for a suggestion (`GET /api/v1/suggestions/{id}/evidence`) — capture URL, `fetched_at`, and
+  screenshot/HTML — see [evidence-storage plan](../../.plans/evidence-storage/00-architecture.md).
+
+Do **not** expose discovery staging (`catalogue_service`, GovData/PVOG/FIM/LeiKa ids, pipeline tiers) on
+this API. Machine discovery emit maps staging claims into the shapes above; see
+[discovery-layer §6](../../.plans/discovery-layer/02-staging-model-and-api.md).
+
+The suggestion envelope may include `source_url` for crawler submissions (D9). The public web omits a
+duplicate `source_url` row when `official_url` and evidence already cover the link (D12–D13 in
+[suggestion-interface gaps](../../.plans/suggestion-interface/gaps-and-decisions.md)).
