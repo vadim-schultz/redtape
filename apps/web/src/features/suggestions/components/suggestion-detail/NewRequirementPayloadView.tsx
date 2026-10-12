@@ -17,19 +17,19 @@ export default function NewRequirementPayloadView({
   return (
     <VStack align="stretch" gap={3}>
       {notes ? <Text>{notes}</Text> : null}
-    <HStack align="stretch" gap={3}>
-      <AppCard to={`/documents/${payload.parent_document_id}`}>
-        <Card.Title textStyle="subsectionHeader">
-          {t("suggestions.parent_document")}
-        </Card.Title>
-      </AppCard>
-      <Text aria-hidden>→</Text>
-      <AppCard to={`/documents/${payload.required_document_id}`}>
-        <Card.Title textStyle="subsectionHeader">
-          {t("suggestions.required_document")}
-        </Card.Title>
-      </AppCard>
-    </HStack>
+      <HStack align="stretch" gap={3}>
+        <AppCard to={`/documents/${payload.parent_document_id}`}>
+          <Card.Title textStyle="subsectionHeader">
+            {t("suggestions.parent_document")}
+          </Card.Title>
+        </AppCard>
+        <Text aria-hidden>→</Text>
+        <AppCard to={`/documents/${payload.required_document_id}`}>
+          <Card.Title textStyle="subsectionHeader">
+            {t("suggestions.required_document")}
+          </Card.Title>
+        </AppCard>
+      </HStack>
     </VStack>
   );
 }

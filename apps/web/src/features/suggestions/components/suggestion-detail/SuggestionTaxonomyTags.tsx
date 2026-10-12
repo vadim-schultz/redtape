@@ -41,7 +41,9 @@ export default function SuggestionTaxonomyTags({
           <Text textStyle="subsectionHeader">{t("filters.domain")}</Text>
           <HStack gap={2} flexWrap="wrap">
             {domainLabels.map((label) => (
-              <Text key={label} fontSize="sm">{label}</Text>
+              <Text key={label} fontSize="sm">
+                {label}
+              </Text>
             ))}
           </HStack>
         </VStack>
@@ -51,7 +53,9 @@ export default function SuggestionTaxonomyTags({
           <Text textStyle="subsectionHeader">{t("filters.situation")}</Text>
           <HStack gap={2} flexWrap="wrap">
             {situationLabels.map((label) => (
-              <Text key={label} fontSize="sm">{label}</Text>
+              <Text key={label} fontSize="sm">
+                {label}
+              </Text>
             ))}
           </HStack>
         </VStack>

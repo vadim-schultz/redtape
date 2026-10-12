@@ -15,7 +15,9 @@ function formatFetchedAt(iso: string, locale: string): string {
   }).format(new Date(iso));
 }
 
-export default function EvidenceSection({ suggestionId }: EvidenceSectionProps) {
+export default function EvidenceSection({
+  suggestionId,
+}: EvidenceSectionProps) {
   const { t, locale } = useLocale();
   const query = useEvidenceQuery(suggestionId);
 
