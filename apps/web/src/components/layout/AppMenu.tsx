@@ -1,15 +1,15 @@
 import { IconButton, Menu, Portal } from "@chakra-ui/react";
-import { FaBars } from "react-icons/fa";
 
 import { useLocale } from "../../contexts/LocaleContext";
 import { hoverMotion } from "../../theme/transitions";
 import AccountMenuItem from "./AccountMenuItem";
+import BrandMark from "./BrandMark";
 import ColorModeSwitch from "./ColorModeSwitch";
 import { floatingSurface } from "./floatingSurface";
 import LocaleSubmenu from "./LocaleSubmenu";
 import SuggestMenuItem from "./SuggestMenuItem";
 
-/** Burger button opening the app menu: account, colour switch and language submenu. */
+/** Gothic R trigger opening the app menu: account, colour switch and language submenu. */
 const AppMenu = () => {
   const { t } = useLocale();
 
@@ -21,7 +21,7 @@ const AppMenu = () => {
           {...floatingSurface}
           {...hoverMotion}
         >
-          <FaBars />
+          <BrandMark style={{ width: "32px", height: "32px" }} />
         </IconButton>
       </Menu.Trigger>
       <Portal>
