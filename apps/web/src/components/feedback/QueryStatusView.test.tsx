@@ -75,7 +75,7 @@ it("QueryStatusView · empty renders the caller's empty state", () => {
 });
 
 it("QueryStatusView · populated count row has no expand control", async () => {
-  renderWithProviders(
+  const { container } = renderWithProviders(
     <QueryStatusView
       {...baseProps}
       isLoading={false}
@@ -87,9 +87,13 @@ it("QueryStatusView · populated count row has no expand control", async () => {
     />,
   );
 
-  const countLabel = await screen.findByText("2 items");
+  const countLabel = await screen.findByTestId("query-status-count");
+  expect(countLabel).toHaveTextContent("2 items");
   expect(expandControlsBesideCount(countLabel)).toHaveLength(0);
   expect(screen.getAllByRole("link")).toHaveLength(2);
+  expect(
+    container.querySelector('[data-testid="query-status-count-row"] svg'),
+  ).toBeNull();
 });
 
 it("QueryStatusView · populated renders the count label and each item", async () => {

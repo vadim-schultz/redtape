@@ -79,7 +79,8 @@ it("DocumentsListQueryStatus · populated count row has no expand control", asyn
     />,
   );
 
-  const countLabel = await screen.findByText("2 documents");
+  const countLabel = await screen.findByTestId("query-status-count");
+  expect(countLabel).toHaveTextContent("2 documents");
   expect(expandControlsBesideCount(countLabel)).toHaveLength(0);
   expect(screen.getAllByRole("link")).toHaveLength(2);
 });
