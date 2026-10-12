@@ -7,6 +7,7 @@ from uuid import UUID
 
 from litestar.exceptions import NotFoundException
 
+from app.features.discovery.emit_preview import build_emit_preview_items
 from app.features.discovery.pipeline import (
     PipelineStageInput,
     all_emit_claims_resolvable,
@@ -46,6 +47,8 @@ from app.schema.discovery.read import (
     CatalogueSummaryChips,
     DiscoveryTaskListResponse,
     DiscoveryTaskRead,
+    EmitPreviewItemRead,
+    EmitPreviewResponse,
 )
 
 TASK_LEASE_MINUTES = 15
@@ -127,6 +130,21 @@ class DiscoveryAdminService:
         chip_total, by_source, by_stage = self._repo.catalogue_summary(source=source)
         summary = CatalogueSummaryChips(total=chip_total, by_source=by_source, by_pipeline_stage=by_stage)
         return CatalogueListResponse(items=items, summary=summary, total=total, offset=offset, limit=limit)
+
+    def emit_preview(self, catalogue_id: UUID) -> EmitPreviewResponse | None:
+        row = self._repo.get_catalogue(catalogue_id)
+        if row is None:
+            return None
+        entities = self._repo.list_catalogue_entities(catalogue_id)
+        claims = self._repo.list_catalogue_claims(catalogue_id)
+        entities_by_id = {entity.id: entity for entity in entities}
+        preview_rows = build_emit_preview_items(
+            claims=claims,
+            entities_by_id=entities_by_id,
+            jurisdiction_id=row.jurisdiction_id,
+        )
+        items = [EmitPreviewItemRead.model_validate(item) for item in preview_rows]
+        return EmitPreviewResponse(items=items)
 
     def catalogue_pipeline(self, catalogue_id: UUID) -> CataloguePipelineResponse | None:
         row = self._repo.get_catalogue(catalogue_id)
