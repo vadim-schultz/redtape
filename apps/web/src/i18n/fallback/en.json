@@ -78,7 +78,22 @@
     "remove_situation": "Remove situation filter: {name}"
   },
   "discovery_admin": {
-    "title": "Discovery admin"
+    "title": "Discovery admin",
+    "tasks": {
+      "filter_status": "Task status",
+      "filter_source": "Source",
+      "filter_source_all": "All sources",
+      "col_target": "Target URL",
+      "col_status": "Status",
+      "col_source": "Source",
+      "col_priority": "Priority",
+      "col_lease": "Lease expires",
+      "lease_none": "—",
+      "empty_title": "No tasks in queue",
+      "empty_description": "Try another status or source filter.",
+      "count_one": "{count} task",
+      "count_other": "{count} tasks"
+    }
   },
   "suggest": {
     "title": "Suggest a document",
