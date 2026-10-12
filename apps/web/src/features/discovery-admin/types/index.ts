@@ -28,3 +28,25 @@ export type DiscoveryTaskListResponse = {
   offset: number;
   limit: number;
 };
+
+export type CatalogueServiceSummary = {
+  id: string;
+  source: DiscoverySource;
+  external_id: string;
+  jurisdiction_id: string;
+  title_i18n: Record<string, string>;
+  pipeline_stage: string;
+  portal_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CataloguePipelineResponse = {
+  service: CatalogueServiceSummary;
+  derived_stage: string;
+  tasks: DiscoveryTask[];
+  entities: Record<string, unknown>[];
+  fetch_logs: Record<string, unknown>[];
+  claims: Record<string, unknown>[];
+  events: Record<string, unknown>[];
+};

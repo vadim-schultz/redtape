@@ -1,5 +1,6 @@
 import { apiRequest } from "../../../services/api";
 import type {
+  CataloguePipelineResponse,
   DiscoverySource,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
@@ -42,4 +43,17 @@ export async function listDiscoveryTasks(params: {
     accessToken,
     query: { status, source, offset, limit },
   });
+}
+
+/** Full staging slice for one catalogue service. */
+export async function fetchCataloguePipeline(params: {
+  locale: string;
+  accessToken: string;
+  catalogueId: string;
+}): Promise<CataloguePipelineResponse> {
+  const { locale, accessToken, catalogueId } = params;
+  return apiRequest<CataloguePipelineResponse>(
+    `/api/v1/discovery/admin/catalogue/${catalogueId}/pipeline`,
+    { locale, accessToken },
+  );
 }
