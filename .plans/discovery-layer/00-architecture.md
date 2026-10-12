@@ -38,7 +38,7 @@ flowchart TB
   Emit --> Sug[suggestion_API_pending]
 ```
 
-Solid lines are in the CoS loop; the crawler path is deferred to the [crawlers](../crawlers/00-architecture.md) suite (chapter 20 pointer).
+Solid lines are in the CoS loop; the crawler path is deferred to the [crawlers](../crawlers/00-architecture.md) suite (chapter 20 pointer). External API URLs and ingest vs enrich roles: [docs/discovery/government-data-sources.md](../../docs/discovery/government-data-sources.md) (chapter 7a).
 
 ## 4. Admin UI
 

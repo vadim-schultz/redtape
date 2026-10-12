@@ -33,6 +33,12 @@ Document: `DISCOVERY_ADMIN_EMAILS`, `DISCOVERY_API_KEY`, `DISCOVERY_API_URL`, is
 
 Link to [loops/discovery-layer.md](../../../docs/operations/loops/discovery-layer.md) for CoS, not this runbook.
 
+Link to [government-data-sources.md](../../../docs/discovery/government-data-sources.md) for external portals
+(GovData, PVOG, FIM) used during manual ingest verification.
+
+Document corporate `HTTP_PROXY` / `HTTPS_PROXY` for laptop ingest (see canon § Corporate network and
+[corporate-build-env.md](../../../.cursor/skills/chief-of-staff/corporate-build-env.md)); local Redtape API stays on `NO_PROXY`.
+
 ## Files
 
 | Path | Change |

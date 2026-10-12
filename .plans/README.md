@@ -188,7 +188,7 @@ Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine dis
 | --- | --- |
 | [00-architecture.md](discovery-layer/00-architecture.md) | Staging graph, pipeline stages, admin review |
 | [02-staging-model-and-api.md](discovery-layer/02-staging-model-and-api.md) | Tables, routes, ingest package layout |
-| [01-rollout.md](discovery-layer/01-rollout.md) | 19 in-loop chapters + 3 deferred, CoS execution order, TDD gate |
+| [01-rollout.md](discovery-layer/01-rollout.md) | 20 in-loop chapters + 3 deferred, CoS execution order, TDD gate |
 | [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Loop boundary, auto-enqueue, deferred chapters |
 | [chapters/](discovery-layer/chapters/) | Executable chapter plans |
 

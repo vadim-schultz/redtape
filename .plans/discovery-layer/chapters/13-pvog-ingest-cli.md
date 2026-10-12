@@ -15,7 +15,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/discovery-layer-pvog-ingest` · **Status:** planned
 
-**Depends on:** [12](12-govdata-ozg-ingest.md), [9](09-cos-pvog-skill.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [12](12-govdata-ozg-ingest.md), [7a](07a-government-data-sources-canon.md), [9](09-cos-pvog-skill.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-discovery-layer`
 
@@ -29,9 +29,13 @@ Second ingest source: PVOG portals produce catalogue rows and enqueue fetch task
 
 Reuse `DiscoveryMachineClient` from chapter 12.
 
-**Fixtures:** `tests/fixtures/pvog/page1.json` simulates paginated API.
+**Fixtures:** `tests/fixtures/pvog/page1.json` simulates paginated Suchdienst responses (see canon § PVOG).
 
 **CLI:** `python -m discovery_ingest pvog run --jurisdiction-id <uuid>`.
+
+**Env:** `PVOG_API_BASE_URL` default `https://pvog.fitko.net/suchdienst/api` (D13). Canon:
+[docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md). Manual runs:
+corporate proxy env (D15); httpx `trust_env=True`.
 
 ## Files
 

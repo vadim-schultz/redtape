@@ -47,6 +47,7 @@ Update [STATUS.md](../../../docs/planning/STATUS.md) discovery row to **shipped*
 | --- | --- |
 | STATUS mentions discovery-layer runbook | Link present |
 | All relative links in edited files resolve | Link check |
+| `docs/discovery/government-data-sources.md` links resolve | Canon included in link check |
 
 ## Green
 

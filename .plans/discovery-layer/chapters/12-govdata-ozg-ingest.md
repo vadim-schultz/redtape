@@ -18,7 +18,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`, `apps/api` tests) · **Branch:** `feat/discovery-layer-govdata-ingest` · **Status:** planned
 
-**Depends on:** [3](03-task-auto-enqueue-claim.md), [8](08-cos-govdata-skill.md) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [3](03-task-auto-enqueue-claim.md), [7a](07a-government-data-sources-canon.md), [8](08-cos-govdata-skill.md) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §7 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-discovery-layer`
 
@@ -33,11 +33,13 @@ the machine API, producing visible tasks in admin.
 
 **New package** `apps/discovery-ingest/` (D12); add to root `ci.sh` if not already.
 
-**GovData client** loads JSON from `tests/fixtures/govdata/` in tests; live URL only in manual runs.
+**GovData client** loads JSON from `tests/fixtures/govdata/` in tests; live URL only in manual runs. Fixture
+shape must mirror OZG **Leistungen** JSON from
+[docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md) § GovData.
 
 **Batch size** 50; uses `POST /catalogue/batch`.
 
-**Env:** `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`.
+**Env:** `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`; optional `GOVDATA_CKAN_BASE_URL`, `GOVDATA_PACKAGE_ID` (canon). Manual live CKAN: set corporate `HTTP_PROXY` / `HTTPS_PROXY` per [corporate-build-env.md](../../../.cursor/skills/chief-of-staff/corporate-build-env.md).
 
 ## Files
 
