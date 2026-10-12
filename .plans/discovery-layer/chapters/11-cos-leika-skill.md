@@ -12,7 +12,7 @@ isProject: false
 
 **Repo:** `redtape` (docs) · **Branch:** `docs/discovery-layer-cos-leika` · **Status:** planned
 
-**Depends on:** none · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [7a](07a-government-data-sources-canon.md), [10](10-cos-fim-skill.md) (shared FIM host) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-discovery-layer`
 
@@ -22,11 +22,27 @@ isProject: false
 
 Document LeiKa (Leistungskatalog) API access for agents implementing chapter 17.
 
+## Inputs
+
+**Canon:** [docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md) § LeiKa.
+
 ## Design decisions
 
 **Path:** `.cursor/skills/redtape-leika/SKILL.md`.
 
+**Boundary with chapter 10:** LeiKa skill covers **identifiers and `source=leika` mapping**; FIM skill covers shared REST surface. No separate LeiKa base URL (D14).
+
+**Authoritative documentation** (must appear in SKILL.md or link to canon):
+
+| Resource | URL |
+| --- | --- |
+| Kataloge (LeiKa-plus, CSV/XZuFi) | https://fimportal.de/kataloge |
+| FIM Swagger (stammtext with `source=leika`) | https://fimportal.de/docs |
+| FIM data sources matrix | https://docs.fitko.de/fim/docs/quer/fimportal/fim_portal_sources/ |
+
 **`source` enum value:** `leika`.
+
+**external_id convention:** document phrase `external_id convention` with form `leika:{redaktionId}:{leistungId}` (or project-stable variant from canon).
 
 ## Files
 

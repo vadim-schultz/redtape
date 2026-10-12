@@ -18,7 +18,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`, `apps/api`) · **Branch:** `feat/discovery-layer-fim-enrich` · **Status:** planned
 
-**Depends on:** [12](12-govdata-ozg-ingest.md), [10](10-cos-fim-skill.md), [11](11-cos-leika-skill.md) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §4 machine entities/claims · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [12](12-govdata-ozg-ingest.md), [7a](07a-government-data-sources-canon.md), [10](10-cos-fim-skill.md), [11](11-cos-leika-skill.md) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §4 machine entities/claims · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-discovery-layer`
 
@@ -35,6 +35,10 @@ After catalogue ingest, enrich CLIs fetch FIM/LeiKa metadata for existing `catal
 
 **Enrich flow:** CLI accepts `catalogue_service_id` or batches by `source=govdata` filter via admin export
 fixture in tests.
+
+**Env:** `FIM_PORTAL_BASE_URL` default `https://fimportal.de`. Map subcommands to endpoints in
+[docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md) § FIM / LeiKa.
+Manual FIM calls: corporate proxy per [corporate-build-env.md](../../../.cursor/skills/chief-of-staff/corporate-build-env.md) (D15).
 
 **Task kind:** `enrich_metadata` tasks may be enqueued by fanout (chapter 14) — CLI completes them via
 machine API.

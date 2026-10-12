@@ -11,6 +11,7 @@ One executable plan per chapter. Order, dependencies and gates: [../01-rollout.m
 | 5 | [05-crawler-targets-table.md](05-crawler-targets-table.md) | web |
 | 6 | [06-pipeline-drilldown.md](06-pipeline-drilldown.md) | web |
 | 7 | [07-emit-preview-panel.md](07-emit-preview-panel.md) | web + API |
+| 7a | [07a-government-data-sources-canon.md](07a-government-data-sources-canon.md) | docs |
 | 8 | [08-cos-govdata-skill.md](08-cos-govdata-skill.md) | docs |
 | 9 | [09-cos-pvog-skill.md](09-cos-pvog-skill.md) | docs |
 | 10 | [10-cos-fim-skill.md](10-cos-fim-skill.md) | docs |

@@ -35,6 +35,11 @@ After catalogue ingest, additional `discovery_task` rows are created by policy (
 
 **Priority:** enrich tasks lower priority (higher number) than fetch.
 
+**`raw_payload` keys:** use field names documented in
+[docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md) § Cross-source
+identifiers (`fim_id`, `redaktion_id`, `leistung_id`, PVOG service ids). Tests should use the same keys as
+GovData/PVOG fixtures from chapters 12–13.
+
 ## Files
 
 | Path | Change |

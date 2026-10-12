@@ -12,7 +12,7 @@ isProject: false
 
 **Repo:** `redtape` (docs) · **Branch:** `docs/discovery-layer-cos-fim` · **Status:** planned
 
-**Depends on:** none · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [7a](07a-government-data-sources-canon.md) · **Contract:** [../02-staging-model-and-api.md](../02-staging-model-and-api.md) §8 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-discovery-layer`
 
@@ -22,13 +22,28 @@ isProject: false
 
 Document FIM endpoints used to enrich or ingest federal service metadata into staging.
 
+## Inputs
+
+**Canon:** [docs/discovery/government-data-sources.md](../../../docs/discovery/government-data-sources.md) § FIM Portal.
+
 ## Design decisions
 
 **Path:** `.cursor/skills/redtape-fim/SKILL.md`.
 
-**`source` enum value:** `fim`.
+**Authoritative documentation** (must appear in SKILL.md or link to canon):
 
-Link forward to chapter 17 enrich CLI.
+| Resource | URL |
+| --- | --- |
+| FIM portal data sources | https://docs.fitko.de/fim/docs/quer/fimportal/fim_portal_sources/ |
+| Swagger | https://fimportal.de/docs |
+| Kataloge | https://fimportal.de/kataloge |
+| Steckbrief/stammtext migration | https://fimportal.de/news/692ea5550be8335ab000a400 |
+
+**`source` enum value:** `fim`. **Enrich only** (chapter 17) — prefer `/leistung-steckbrief` and `/leistung-stammtext`; do not document new use of deprecated `/services` routes.
+
+**Rate limits:** public GET; retry on 429/503.
+
+Link forward to chapter 17 enrich CLI and `FIM_PORTAL_BASE_URL`.
 
 ## Files
 

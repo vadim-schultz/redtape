@@ -221,7 +221,7 @@ apps/discovery-ingest/
     fixtures/pvog/*.json
 ```
 
-- **httpx** for gov APIs and redtape discovery API.
+- **httpx** for gov APIs and redtape discovery API (`trust_env=True` so `HTTP_PROXY` / `HTTPS_PROXY` apply on developer machines; see [government-data-sources.md](../../docs/discovery/government-data-sources.md) § Corporate network).
 - CI uses **fixtures only** — no live government network.
 - CLIs exit non-zero on API 4xx/5xx.
 
@@ -229,14 +229,16 @@ apps/discovery-ingest/
 
 ## 8. CoS skill paths (chapters 8–11)
 
-| Skill directory | Source |
-| --- | --- |
-| `.cursor/skills/redtape-govdata/` | GovData CKAN / OZG dataset fields → batch upsert DTO |
-| `.cursor/skills/redtape-pvog/` | PVOG API auth, pagination, field mapping |
-| `.cursor/skills/redtape-fim/` | FIM catalogue endpoints |
-| `.cursor/skills/redtape-leika/` | LeiKa API |
+**Canon (chapter 7a):** [docs/discovery/government-data-sources.md](../../docs/discovery/government-data-sources.md) — authoritative URLs, env vars, ingest vs enrich, `raw_payload` keys.
 
-Each `SKILL.md`: endpoints, auth, rate limits, example request/response, mapping table to `catalogue_service` + `external_id` convention.
+| `discovery_source` | Ingest vs enrich | Skill directory |
+| --- | --- | --- |
+| `govdata` | Ingest (ch12) | `.cursor/skills/redtape-govdata/` |
+| `pvog` | Ingest (ch13) | `.cursor/skills/redtape-pvog/` |
+| `fim` | Enrich (ch17) | `.cursor/skills/redtape-fim/` |
+| `leika` | Enrich (ch17); FIM host | `.cursor/skills/redtape-leika/` |
+
+Each `SKILL.md`: link to the canon doc (or `## Authoritative documentation` with the same URLs), endpoints, auth, rate limits, example request/response, mapping table to `catalogue_service` + `external_id` convention.
 
 ---
 

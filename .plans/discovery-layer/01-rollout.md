@@ -1,6 +1,6 @@
 ---
 name: Discovery layer — Rollout
-overview: "Nineteen in-loop chapters: staging, machine and admin APIs, admin UI, CoS skills, ingest CLIs, emit to suggestions, ops docs. Three deferred chapters. Loop branch feat/plans-discovery-layer."
+overview: "Twenty in-loop chapters: staging, machine and admin APIs, admin UI, data-sources canon, CoS skills, ingest CLIs, emit to suggestions, ops docs. Three deferred chapters. Loop branch feat/plans-discovery-layer."
 isProject: false
 ---
 
@@ -33,7 +33,9 @@ flowchart TD
   C4 --> C5[5 tasks table]
   C5 --> C6[6 pipeline drilldown]
   C6 --> C7[7 emit preview panel]
-  C8[8-11 CoS skills] --> C12[12 GovData ingest]
+  C7 --> C7a[7a data sources canon]
+  C7a --> C8[8-11 CoS skills]
+  C8 --> C12[12 GovData ingest]
   C3 --> C12
   C8 --> C13[13 PVOG ingest]
   C3 --> C13
@@ -50,11 +52,11 @@ flowchart TD
   C22 --> C23[23 docs sync]
 ```
 
-Chapters 8–11 are documentation-only and can run in parallel with 1–7 once the contract in [02-staging-model-and-api.md](02-staging-model-and-api.md) is stable.
+Chapter 7a can run in parallel with 1–7 once the contract in [02-staging-model-and-api.md](02-staging-model-and-api.md) is stable. Chapters 8–11 are documentation-only but **must not merge** until 7a is on the loop branch.
 
 ---
 
-## Execution order — CoS loop (19 chapters)
+## Execution order — CoS loop (20 chapters)
 
 1. [chapters/01-staging-migration-lineage.md](chapters/01-staging-migration-lineage.md)
 2. [chapters/02-admin-discovery-api.md](chapters/02-admin-discovery-api.md)
@@ -63,6 +65,7 @@ Chapters 8–11 are documentation-only and can run in parallel with 1–7 once t
 5. [chapters/05-crawler-targets-table.md](chapters/05-crawler-targets-table.md)
 6. [chapters/06-pipeline-drilldown.md](chapters/06-pipeline-drilldown.md)
 7. [chapters/07-emit-preview-panel.md](chapters/07-emit-preview-panel.md)
+7a. [chapters/07a-government-data-sources-canon.md](chapters/07a-government-data-sources-canon.md)
 8. [chapters/08-cos-govdata-skill.md](chapters/08-cos-govdata-skill.md)
 9. [chapters/09-cos-pvog-skill.md](chapters/09-cos-pvog-skill.md)
 10. [chapters/10-cos-fim-skill.md](chapters/10-cos-fim-skill.md)
@@ -98,6 +101,7 @@ Chapters 8–11 are documentation-only and can run in parallel with 1–7 once t
 | 5 | Crawler targets table | web | vitest + `./ci.sh` | yes | [05](chapters/05-crawler-targets-table.md) | planned |
 | 6 | Pipeline drill-down | web | vitest + `./ci.sh` | yes | [06](chapters/06-pipeline-drilldown.md) | planned |
 | 7 | Emit preview panel | web + API | vitest + pytest + `./ci.sh` | yes | [07](chapters/07-emit-preview-panel.md) | planned |
+| 7a | Government data sources canon | docs | link check + `./ci.sh` | yes | [07a](chapters/07a-government-data-sources-canon.md) | planned |
 | 8 | CoS GovData skill | docs | skill structure check | yes | [08](chapters/08-cos-govdata-skill.md) | planned |
 | 9 | CoS PVOG skill | docs | skill structure check | yes | [09](chapters/09-cos-pvog-skill.md) | planned |
 | 10 | CoS FIM skill | docs | skill structure check | yes | [10](chapters/10-cos-fim-skill.md) | planned |
