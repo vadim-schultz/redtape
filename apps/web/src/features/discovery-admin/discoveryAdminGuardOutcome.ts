@@ -5,11 +5,7 @@ import {
 } from "./discoveryAdminProbeErrors";
 
 export type DiscoveryAdminGuardOutcome =
-  | "wait"
-  | "login"
-  | "forbidden"
-  | "allow"
-  | "error";
+  "wait" | "login" | "forbidden" | "allow" | "error";
 
 type ProbeState = {
   isPending: boolean;
