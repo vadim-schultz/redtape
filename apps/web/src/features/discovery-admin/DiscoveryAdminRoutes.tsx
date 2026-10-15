@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import DiscoveryAdminLayout from "./DiscoveryAdminLayout";
-import DiscoveryAdminTasksPlaceholder from "./DiscoveryAdminTasksPlaceholder";
+import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
 import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
 
 /** Nested routes under ``/admin/discovery``. */
@@ -17,7 +17,7 @@ export default function DiscoveryAdminRoutes() {
         }
       >
         <Route index element={<Navigate to="tasks" replace />} />
-        <Route path="tasks" element={<DiscoveryAdminTasksPlaceholder />} />
+        <Route path="tasks" element={<DiscoveryTasksPage />} />
       </Route>
     </Routes>
   );

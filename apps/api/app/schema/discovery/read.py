@@ -28,6 +28,7 @@ class DiscoveryTaskRead(BaseModel):
     target_url: str
     status: DiscoveryTaskStatus
     priority: int
+    lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -41,6 +42,7 @@ class DiscoveryTaskRead(BaseModel):
             target_url=task.target_url,
             status=task.status,
             priority=task.priority,
+            lease_expires_at=task.lease_expires_at,
             created_at=task.created_at,
             updated_at=task.updated_at,
         )
