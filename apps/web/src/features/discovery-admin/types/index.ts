@@ -61,3 +61,24 @@ export type CataloguePipelineResponse = {
   claims: Record<string, unknown>[];
   events: Record<string, unknown>[];
 };
+
+export type CatalogueSummaryChips = {
+  total: number;
+  by_source: Partial<Record<DiscoverySource, number>>;
+  by_pipeline_stage: Record<string, number>;
+};
+
+export type CatalogueListResponse = {
+  items: CatalogueServiceSummary[];
+  summary: CatalogueSummaryChips;
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+export type DiscoveryCoverageResponse = {
+  by_source: Partial<Record<DiscoverySource, number>>;
+  tasks_pending: number;
+  tasks_failed: number;
+  emit_ready_count: number;
+};

@@ -54,6 +54,7 @@ from app.schema.discovery.read import (
     CataloguePipelineResponse,
     CatalogueServiceRead,
     CatalogueSummaryChips,
+    DiscoveryCoverageResponse,
     DiscoveryTaskListResponse,
     DiscoveryTaskRead,
     EmitPreviewItemRead,
@@ -139,6 +140,15 @@ class DiscoveryAdminService:
         chip_total, by_source, by_stage = self._repo.catalogue_summary(source=source)
         summary = CatalogueSummaryChips(total=chip_total, by_source=by_source, by_pipeline_stage=by_stage)
         return CatalogueListResponse(items=items, summary=summary, total=total, offset=offset, limit=limit)
+
+    def coverage(self) -> DiscoveryCoverageResponse:
+        counts = self._repo.fetch_coverage_metrics()
+        return DiscoveryCoverageResponse(
+            by_source=counts.by_source,
+            tasks_pending=counts.tasks_pending,
+            tasks_failed=counts.tasks_failed,
+            emit_ready_count=counts.emit_ready_count,
+        )
 
     def emit_preview(self, catalogue_id: UUID) -> EmitPreviewResponse | None:
         row = self._repo.get_catalogue(catalogue_id)

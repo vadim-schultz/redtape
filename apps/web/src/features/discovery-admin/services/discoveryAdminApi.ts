@@ -1,6 +1,8 @@
 import { apiRequest } from "../../../services/api";
 import type {
+  CatalogueListResponse,
   CataloguePipelineResponse,
+  DiscoveryCoverageResponse,
   DiscoverySource,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
@@ -8,6 +10,8 @@ import type {
 } from "../types";
 
 const TASKS_PATH = "/api/v1/discovery/admin/tasks";
+const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
+const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 
 /** Probe allowlist by listing tasks (server enforces admin emails). */
 export async function probeDiscoveryAdminAccess(params: {
@@ -43,6 +47,34 @@ export async function listDiscoveryTasks(params: {
     locale,
     accessToken,
     query: { status, source, offset, limit },
+  });
+}
+
+/** Paginated imported catalogue rows for the admin index. */
+export async function listDiscoveryCatalogue(params: {
+  locale: string;
+  accessToken: string;
+  source?: DiscoverySource;
+  offset?: number;
+  limit?: number;
+}): Promise<CatalogueListResponse> {
+  const { locale, accessToken, source, offset = 0, limit = 20 } = params;
+  return apiRequest<CatalogueListResponse>(CATALOGUE_PATH, {
+    locale,
+    accessToken,
+    query: { source, offset, limit },
+  });
+}
+
+/** Coverage metrics for catalogue index chips. */
+export async function fetchDiscoveryCoverage(params: {
+  locale: string;
+  accessToken: string;
+}): Promise<DiscoveryCoverageResponse> {
+  const { locale, accessToken } = params;
+  return apiRequest<DiscoveryCoverageResponse>(COVERAGE_PATH, {
+    locale,
+    accessToken,
   });
 }
 

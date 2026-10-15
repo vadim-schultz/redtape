@@ -103,6 +103,20 @@
     "emit_preview": {
       "title": "Emit-Vorschau",
       "empty": "Noch keine Claims zur Vorschau."
+    },
+    "coverage": {
+      "source_chip": "{source}: {count}",
+      "tasks_pending": "Ausstehende Aufgaben: {count}",
+      "tasks_failed": "Fehlgeschlagene Aufgaben: {count}",
+      "emit_ready": "Emit-bereit: {count}",
+      "no_sources": "Noch keine Katalogzeilen."
+    },
+    "catalogue": {
+      "empty": "Noch keine Katalogdienste.",
+      "load_error": "Katalogdaten konnten nicht geladen werden.",
+      "col_external_id": "Externe ID",
+      "col_source": "Quelle",
+      "col_stage": "Stufe"
     }
   },
   "suggest": {

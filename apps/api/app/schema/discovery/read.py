@@ -105,6 +105,15 @@ class CatalogueListResponse(BaseModel):
     limit: int
 
 
+class DiscoveryCoverageResponse(BaseModel):
+    """Ingest completeness metrics for the admin catalogue index."""
+
+    by_source: dict[str, int] = Field(default_factory=dict)
+    tasks_pending: int
+    tasks_failed: int
+    emit_ready_count: int
+
+
 class EmitPreviewItemRead(BaseModel):
     """One would-be suggestion emit row for admin review."""
 
