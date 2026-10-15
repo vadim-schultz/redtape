@@ -2,10 +2,7 @@ name: OpenPLZ Import
 
 on:
   workflow_dispatch:
-  schedule:
-    # Monday + Thursday at 2 AM UTC (keeps Supabase free tier alive, well
-    # under its ~7-day auto-pause threshold even if a single run fails)
-    - cron: "0 2 * * 1,4"
+    # Scheduled OpenPLZ runs moved to platform-maintenance.yml (6-day cycle).
 
 jobs:
   import:
