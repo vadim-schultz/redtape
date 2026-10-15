@@ -100,7 +100,7 @@ fi
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy discovery_ingest
-uv run pytest tests/test_govdata_client.py tests/test_govdata_cli.py
+uv run pytest tests/test_govdata_client.py tests/test_govdata_cli.py tests/test_pvog_client.py tests/test_pvog_cli.py
 
 echo "✅ All CI checks passed!"
 
