@@ -11,7 +11,6 @@ from pathlib import Path
 
 import psycopg
 import pytest
-from sqlalchemy import text
 from sqlalchemy.engine import make_url
 
 API_ROOT = Path(__file__).resolve().parent.parent
@@ -97,11 +96,10 @@ def test_discovery_staging_upgrade_from_clean_database() -> None:
     """Fresh database reaches head with all discovery staging tables."""
     with _fresh_database() as database_url:
         result = _run_alembic(database_url, "upgrade", "head")
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert _alembic_version(database_url) == HEAD_REVISION
-    assert _table_exists(database_url, "catalogue_service")
-    assert _table_exists(database_url, "discovery_event")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _table_exists(database_url, "catalogue_service")
+        assert _table_exists(database_url, "discovery_event")
 
 
 def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() -> None:
@@ -114,10 +112,9 @@ def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() 
             conn.execute(DISCOVERY_SOURCE_ENUM_SQL)
 
         head = _run_alembic(database_url, "upgrade", "head")
-
-    assert head.returncode == 0, head.stdout + head.stderr
-    assert _alembic_version(database_url) == HEAD_REVISION
-    assert _table_exists(database_url, "catalogue_service")
+        assert head.returncode == 0, head.stdout + head.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _table_exists(database_url, "catalogue_service")
 
 
 def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_parent() -> None:
@@ -128,8 +125,8 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
 
         with psycopg.connect(_psycopg_dsn(database_url)) as conn:
             conn.execute(
-                text("UPDATE alembic_version SET version_num = :rev"),
-                {"rev": PARENT_REVISION},
+                "UPDATE alembic_version SET version_num = %s",
+                (PARENT_REVISION,),
             )
             conn.commit()
 
@@ -137,6 +134,5 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
         assert _table_exists(database_url, "catalogue_service")
 
         retry = _run_alembic(database_url, "upgrade", "head")
-
-    assert retry.returncode == 0, retry.stdout + retry.stderr
-    assert _alembic_version(database_url) == HEAD_REVISION
+        assert retry.returncode == 0, retry.stdout + retry.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION
