@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Numeric, Uuid, text
+from sqlalchemy import ForeignKey, Numeric, String, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,6 +33,7 @@ class DiscoveryClaim(CreatedAtMixin, Base):
         nullable=False,
     )
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    payload_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
 
     discovery_entity: Mapped[DiscoveryEntity] = relationship("DiscoveryEntity", back_populates="claims")

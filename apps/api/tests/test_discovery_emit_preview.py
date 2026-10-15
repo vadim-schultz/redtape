@@ -38,6 +38,7 @@ def test_emit_preview_maps_new_document_claim_to_suggestion_shaped_payload(
             "title_i18n": {"de": "Ausweis"},
             "official_url": "https://example.gov/doc",
         },
+        payload_fingerprint="preview-doc-fp",
     )
     db_session.add(claim)
     db_session.flush()
@@ -69,6 +70,7 @@ def test_emit_preview_marks_unresolved_requirement_claim_with_skip_reason(
         discovery_entity_id=entity.id,
         kind=DiscoveryClaimKind.NEW_REQUIREMENT,
         payload={"notes_i18n": {"de": "Braucht Pass"}},
+        payload_fingerprint="preview-req-fp",
     )
     db_session.add(claim)
     db_session.flush()

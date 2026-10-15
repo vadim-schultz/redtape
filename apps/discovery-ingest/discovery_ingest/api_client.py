@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 import httpx
 
+from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
     CatalogueBatchRequest,
@@ -36,8 +37,9 @@ class DiscoveryMachineClient:
         """Upsert items in chunks of at most ``batch_size``."""
         if batch_size < 1 or batch_size > 50:
             raise ValueError("batch_size must be between 1 and 50")
+        deduped = dedupe_batch_items(items)
         chunk: list[CatalogueBatchItem] = []
-        for item in items:
+        for item in deduped:
             chunk.append(item)
             if len(chunk) >= batch_size:
                 self._post_batch(chunk)
