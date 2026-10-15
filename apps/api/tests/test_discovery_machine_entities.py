@@ -147,9 +147,7 @@ def test_post_claims_records_new_document_claim_payload(
     assert claim.payload["official_url"] == "https://example.gov/doc"
 
     recorded = list(
-        db_session.scalars(
-            select(DiscoveryEvent).where(DiscoveryEvent.event_type == DiscoveryEventType.CLAIM_RECORDED)
-        )
+        db_session.scalars(select(DiscoveryEvent).where(DiscoveryEvent.event_type == DiscoveryEventType.CLAIM_RECORDED))
     )
     assert len(recorded) == 1
 
