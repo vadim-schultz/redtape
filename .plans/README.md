@@ -197,6 +197,20 @@ Deferred: chapters 16 (claim evidence), 20 (crawler frontier adapter), 21 (LLM e
 [`docs/operations/discovery-layer.md`](../docs/operations/discovery-layer.md). CoS orchestration:
 [`docs/operations/loops/discovery-layer.md`](../docs/operations/loops/discovery-layer.md).
 
+### [discovery-online/](discovery-online/) — Scheduled discovery and Supabase keep-alive
+
+Move catalogue refetch and task drain off laptops onto **GitHub Actions** against production Render (machine API) and Supabase (OpenPLZ path only). Unified **6-day maintenance cycle**: OpenPLZ every 3 days, discovery on alternate days. **Staging-only** scheduled runs (no auto-emit). **Idempotent refetch** (OpenPLZ parity) in chapter 5.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-online/00-architecture.md) | GHA scheduler, Render/Supabase topology, secrets |
+| [01-rollout.md](discovery-online/01-rollout.md) | Ten chapters, dependency graph, invariants |
+| [gaps-and-decisions.md](discovery-online/gaps-and-decisions.md) | Supersedes discovery-layer D4; idempotency policy |
+| [chapters/](discovery-online/chapters/) | Executable chapter plans |
+
+Status: planned — no chapter started. First: [chapters/01-maintenance-workflow-router.md](discovery-online/chapters/01-maintenance-workflow-router.md).
+CoS orchestration: [`docs/operations/loops/discovery-online.md`](../docs/operations/loops/discovery-online.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
