@@ -26,3 +26,40 @@ class CatalogueBatchRequest(BaseModel):
     """Batch upsert body."""
 
     items: list[CatalogueBatchItem] = Field(min_length=1, max_length=50)
+
+
+DiscoveryClaimKind = Literal["new_document", "new_requirement", "metadata"]
+
+
+class EntityUpsertRequest(BaseModel):
+    """Body for ``POST /entities``."""
+
+    catalogue_service_id: UUID
+    canonical_url: str = Field(min_length=1, max_length=500)
+    label: str | None = Field(default=None, max_length=500)
+
+
+class EntityUpsertResponse(BaseModel):
+    """Upsert outcome for one entity."""
+
+    id: UUID
+    catalogue_service_id: UUID
+    canonical_url: str
+    created: bool
+
+
+class ClaimAppendRequest(BaseModel):
+    """Body for ``POST /claims``."""
+
+    discovery_entity_id: UUID
+    kind: DiscoveryClaimKind
+    payload: dict[str, object] = Field(default_factory=dict)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class ClaimAppendResponse(BaseModel):
+    """Created discovery claim row."""
+
+    id: UUID
+    discovery_entity_id: UUID
+    kind: DiscoveryClaimKind
