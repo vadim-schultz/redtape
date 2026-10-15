@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import uuid
 
-from litestar.testing import TestClient
-
 from app.features.discovery.emit_preview import build_emit_preview_items
 from app.main import Litestar
 from app.models.discovery import (
@@ -14,9 +12,10 @@ from app.models.discovery import (
     DiscoveryEntity,
     DiscoverySource,
 )
+from litestar.testing import TestClient
 from sqlalchemy.orm import Session
 
-from test_discovery_admin_api import ADMIN_EMAIL, _catalogue, _token, client
+from test_discovery_admin_api import _catalogue, _token
 
 EMIT_PREVIEW_URL = "/api/v1/discovery/admin/catalogue/{catalogue_id}/emit-preview"
 
@@ -84,16 +83,12 @@ def test_emit_preview_marks_unresolved_requirement_claim_with_skip_reason(
     assert items[0]["skip_reason"] == "unresolved_requirement_documents"
 
 
-def test_get_emit_preview_returns_403_for_non_admin(
-    client: TestClient[Litestar], db_session: Session
-) -> None:
+def test_get_emit_preview_returns_403_for_non_admin(client: TestClient[Litestar], db_session: Session) -> None:
     catalogue = _catalogue(db_session, source=DiscoverySource.GOVDATA)
 
     response = client.get(
         EMIT_PREVIEW_URL.format(catalogue_id=catalogue.id),
-        headers={
-            "Authorization": f"Bearer {_token(sub=uuid.uuid4(), email='stranger@example.com')}"
-        },
+        headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email='stranger@example.com')}"},
     )
 
     assert response.status_code == 403

@@ -26,33 +26,33 @@ def _claim_to_suggestion_payload(
 ) -> tuple[dict[str, object] | None, str | None]:
     """Return suggestion-shaped payload or a skip reason."""
 
-    if claim.kind == DiscoveryClaimKind.METADATA:
-        return None, "metadata_not_emitted"
-    if claim.kind == DiscoveryClaimKind.NEW_DOCUMENT:
-        title_i18n = claim.payload.get("title_i18n")
-        official_url = claim.payload.get("official_url")
-        if not title_i18n or not official_url:
-            return None, "invalid_new_document_payload"
-        body: dict[str, object] = {
-            "kind": SuggestionKind.NEW_DOCUMENT.value,
-            "jurisdiction_id": str(jurisdiction_id),
-            "source_url": entity.canonical_url,
-            "payload": claim.payload,
-        }
-        return body, None
-    if claim.kind == DiscoveryClaimKind.NEW_REQUIREMENT:
-        parent = claim.payload.get("parent_document_id")
-        required = claim.payload.get("required_document_id")
-        if parent is None or required is None:
-            return None, "unresolved_requirement_documents"
-        body = {
-            "kind": SuggestionKind.NEW_REQUIREMENT.value,
-            "jurisdiction_id": str(jurisdiction_id),
-            "source_url": entity.canonical_url,
-            "payload": claim.payload,
-        }
-        return body, None
-    return None, "unsupported_claim_kind"
+    match claim.kind:
+        case DiscoveryClaimKind.METADATA:
+            return None, "metadata_not_emitted"
+        case DiscoveryClaimKind.NEW_DOCUMENT:
+            title_i18n = claim.payload.get("title_i18n")
+            official_url = claim.payload.get("official_url")
+            if not title_i18n or not official_url:
+                return None, "invalid_new_document_payload"
+            body: dict[str, object] = {
+                "kind": SuggestionKind.NEW_DOCUMENT.value,
+                "jurisdiction_id": str(jurisdiction_id),
+                "source_url": entity.canonical_url,
+                "payload": claim.payload,
+            }
+            return body, None
+        case DiscoveryClaimKind.NEW_REQUIREMENT:
+            parent = claim.payload.get("parent_document_id")
+            required = claim.payload.get("required_document_id")
+            if parent is None or required is None:
+                return None, "unresolved_requirement_documents"
+            body = {
+                "kind": SuggestionKind.NEW_REQUIREMENT.value,
+                "jurisdiction_id": str(jurisdiction_id),
+                "source_url": entity.canonical_url,
+                "payload": claim.payload,
+            }
+            return body, None
 
 
 def build_emit_preview_items(

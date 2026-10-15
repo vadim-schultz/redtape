@@ -99,6 +99,10 @@
       "not_found": "Katalogeintrag nicht gefunden",
       "tasks_count": "{count} Aufgaben",
       "events_count": "{count} Ereignisse"
+    },
+    "emit_preview": {
+      "title": "Emit-Vorschau",
+      "empty": "Noch keine Claims zur Vorschau."
     }
   },
   "suggest": {
