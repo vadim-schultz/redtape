@@ -7,7 +7,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.discovery import DiscoverySource, DiscoveryTaskKind, DiscoveryTaskStatus
+from app.models.discovery import (
+    DiscoveryClaimKind,
+    DiscoverySource,
+    DiscoveryTaskKind,
+    DiscoveryTaskStatus,
+)
 
 
 class CatalogueBatchItem(BaseModel):
@@ -105,3 +110,37 @@ class FetchLogAppendResponse(BaseModel):
     id: UUID
     discovery_task_id: UUID
     task_status: DiscoveryTaskStatus
+
+
+class EntityUpsertRequest(BaseModel):
+    """Upsert a discovery entity under an existing catalogue row."""
+
+    catalogue_service_id: UUID
+    canonical_url: str = Field(min_length=1, max_length=500)
+    label: str | None = Field(default=None, max_length=500)
+
+
+class EntityUpsertResponse(BaseModel):
+    """Upsert outcome for one entity."""
+
+    id: UUID
+    catalogue_service_id: UUID
+    canonical_url: str
+    created: bool
+
+
+class ClaimAppendRequest(BaseModel):
+    """Append a validated claim on a discovery entity."""
+
+    discovery_entity_id: UUID
+    kind: DiscoveryClaimKind
+    payload: dict[str, object] = Field(default_factory=dict)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class ClaimAppendResponse(BaseModel):
+    """Created discovery claim row."""
+
+    id: UUID
+    discovery_entity_id: UUID
+    kind: DiscoveryClaimKind

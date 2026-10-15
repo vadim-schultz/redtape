@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.discovery import (
     CatalogueService,
     DiscoveryClaim,
+    DiscoveryClaimKind,
     DiscoveryEntity,
     DiscoveryEvent,
     DiscoveryEventType,
@@ -227,6 +229,55 @@ class DiscoveryRepository:
 
     def get_catalogue(self, catalogue_id: UUID) -> CatalogueService | None:
         return self._session.get(CatalogueService, catalogue_id)
+
+    def get_entity(self, entity_id: UUID) -> DiscoveryEntity | None:
+        return self._session.get(DiscoveryEntity, entity_id)
+
+    def upsert_entity(
+        self,
+        *,
+        catalogue_service_id: UUID,
+        canonical_url: str,
+        label: str | None,
+    ) -> tuple[DiscoveryEntity, bool]:
+        """Insert or update an entity keyed by catalogue row and canonical URL."""
+
+        stmt = select(DiscoveryEntity).where(
+            DiscoveryEntity.catalogue_service_id == catalogue_service_id,
+            DiscoveryEntity.canonical_url == canonical_url,
+        )
+        existing = self._session.scalar(stmt)
+        if existing is not None:
+            if label is not None:
+                existing.label = label
+                self._session.flush()
+            return existing, False
+        row = DiscoveryEntity(
+            catalogue_service_id=catalogue_service_id,
+            canonical_url=canonical_url,
+            label=label,
+        )
+        self._session.add(row)
+        self._session.flush()
+        return row, True
+
+    def append_claim(
+        self,
+        *,
+        discovery_entity_id: UUID,
+        kind: DiscoveryClaimKind,
+        payload: dict[str, object],
+        confidence: Decimal | None,
+    ) -> DiscoveryClaim:
+        row = DiscoveryClaim(
+            discovery_entity_id=discovery_entity_id,
+            kind=kind,
+            payload=payload,
+            confidence=confidence,
+        )
+        self._session.add(row)
+        self._session.flush()
+        return row
 
     def list_catalogue_tasks(self, catalogue_id: UUID) -> list[tuple[DiscoveryTask, DiscoverySource]]:
         stmt = (
