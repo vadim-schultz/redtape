@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "portalId": "PORTAL-BUND-01",
+      "id": "OD-EXAMPLE-002",
+      "lbId": "LB-002",
+      "ars": "000000000000",
+      "title": "Zweiter Onlinedienst",
+      "url": "https://example.bund.de/zweiter"
+    }
+  ],
+  "next": "https://pvog.fitko.net/suchdienst/api/v7/servicedescriptions/000000000000?page=3"
+}
