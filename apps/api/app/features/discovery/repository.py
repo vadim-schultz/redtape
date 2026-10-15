@@ -104,18 +104,39 @@ class DiscoveryRepository:
         self._session.flush()
         return event
 
+    def find_pending_task(
+        self,
+        *,
+        catalogue_service_id: UUID,
+        kind: DiscoveryTaskKind,
+        target_url: str,
+    ) -> DiscoveryTask | None:
+        stmt = (
+            select(DiscoveryTask)
+            .where(
+                DiscoveryTask.catalogue_service_id == catalogue_service_id,
+                DiscoveryTask.kind == kind,
+                DiscoveryTask.target_url == target_url,
+                DiscoveryTask.status == DiscoveryTaskStatus.PENDING,
+            )
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def insert_task(
         self,
         *,
         catalogue_service_id: UUID,
         kind: DiscoveryTaskKind,
         target_url: str,
+        priority: int = 100,
     ) -> DiscoveryTask:
         task = DiscoveryTask(
             catalogue_service_id=catalogue_service_id,
             kind=kind,
             target_url=target_url,
             status=DiscoveryTaskStatus.PENDING,
+            priority=priority,
         )
         self._session.add(task)
         self._session.flush()
