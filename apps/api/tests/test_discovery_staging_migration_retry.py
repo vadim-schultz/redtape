@@ -1,0 +1,138 @@
+"""Regression tests for idempotent discovery staging migration (Render retry scenario)."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+
+import psycopg
+import pytest
+from sqlalchemy.engine import make_url
+
+API_ROOT = Path(__file__).resolve().parent.parent
+PARENT_REVISION = "20260929b_suggestion_event"
+HEAD_REVISION = "20261012_discovery_staging"
+
+DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
+
+
+def _psycopg_dsn(database_url: str) -> str:
+    """Return a libpq DSN psycopg accepts (not ``postgresql+psycopg``)."""
+    return make_url(database_url).set(drivername="postgresql").render_as_string(hide_password=False)
+
+
+def _postgres_unavailable(exc: psycopg.OperationalError) -> None:
+    """Skip or fail when the migration server is unreachable."""
+    if os.environ.get("REQUIRE_DB") == "1":
+        raise exc
+    pytest.skip(f"Postgres unavailable for migration retry tests: {exc}")
+
+
+@contextmanager
+def _fresh_database() -> Iterator[str]:
+    """Create a throwaway database on the same server as pytest's Postgres."""
+    from app.config import settings
+
+    base = make_url(os.environ.get("DATABASE_URL", settings.database_url))
+    name = f"redtape_discovery_mig_{uuid.uuid4().hex[:8]}"
+    admin_dsn = _psycopg_dsn(base.set(database="postgres").render_as_string(hide_password=False))
+    try:
+        admin = psycopg.connect(admin_dsn, autocommit=True)
+    except psycopg.OperationalError as exc:
+        _postgres_unavailable(exc)
+        raise
+    with admin:
+        admin.execute(f'CREATE DATABASE "{name}"')
+    database_url = base.set(database=name).render_as_string(hide_password=False)
+    try:
+        yield database_url
+    finally:
+        try:
+            with psycopg.connect(admin_dsn, autocommit=True) as cleanup:
+                cleanup.execute(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s",
+                    (name,),
+                )
+                cleanup.execute(f'DROP DATABASE IF EXISTS "{name}"')
+        except psycopg.OperationalError:
+            pass
+
+
+def _run_alembic(database_url: str, *args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["DATABASE_URL"] = database_url
+    env["PYTHONPATH"] = str(API_ROOT) + (os.pathsep + env["PYTHONPATH"] if "PYTHONPATH" in env else "")
+    return subprocess.run(
+        ["alembic", *args],
+        cwd=API_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _alembic_version(database_url: str) -> str:
+    with psycopg.connect(_psycopg_dsn(database_url)) as conn:
+        row = conn.execute("SELECT version_num FROM alembic_version").fetchone()
+    assert row is not None
+    return row[0]
+
+
+def _table_exists(database_url: str, table_name: str) -> bool:
+    with psycopg.connect(_psycopg_dsn(database_url)) as conn:
+        row = conn.execute(
+            "SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = %s",
+            (table_name,),
+        ).fetchone()
+    return row is not None
+
+
+def test_discovery_staging_upgrade_from_clean_database() -> None:
+    """Fresh database reaches head with all discovery staging tables."""
+    with _fresh_database() as database_url:
+        result = _run_alembic(database_url, "upgrade", "head")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _table_exists(database_url, "catalogue_service")
+        assert _table_exists(database_url, "discovery_event")
+
+
+def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() -> None:
+    """Orphan enum from a failed deploy must not block upgrade."""
+    with _fresh_database() as database_url:
+        parent = _run_alembic(database_url, "upgrade", PARENT_REVISION)
+        assert parent.returncode == 0, parent.stdout + parent.stderr
+
+        with psycopg.connect(_psycopg_dsn(database_url), autocommit=True) as conn:
+            conn.execute(DISCOVERY_SOURCE_ENUM_SQL)
+
+        head = _run_alembic(database_url, "upgrade", "head")
+        assert head.returncode == 0, head.stdout + head.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _table_exists(database_url, "catalogue_service")
+
+
+def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_parent() -> None:
+    """Full schema with stale alembic_version (production stuck state) bumps revision."""
+    with _fresh_database() as database_url:
+        first = _run_alembic(database_url, "upgrade", "head")
+        assert first.returncode == 0, first.stdout + first.stderr
+
+        with psycopg.connect(_psycopg_dsn(database_url)) as conn:
+            conn.execute(
+                "UPDATE alembic_version SET version_num = %s",
+                (PARENT_REVISION,),
+            )
+            conn.commit()
+
+        assert _alembic_version(database_url) == PARENT_REVISION
+        assert _table_exists(database_url, "catalogue_service")
+
+        retry = _run_alembic(database_url, "upgrade", "head")
+        assert retry.returncode == 0, retry.stdout + retry.stderr
+        assert _alembic_version(database_url) == HEAD_REVISION

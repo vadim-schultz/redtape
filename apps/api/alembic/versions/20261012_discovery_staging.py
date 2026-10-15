@@ -17,15 +17,26 @@ down_revision: str | None = "20260929b_suggestion_event"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+_DISCOVERY_STAGING_TABLES = (
+    "catalogue_service",
+    "discovery_entity",
+    "discovery_task",
+    "discovery_fetch_log",
+    "discovery_claim",
+    "discovery_event",
+)
+
 discovery_source = postgresql.ENUM(
-    "govdata", "pvog", "fim", "leika", "manual", name="discovery_source", create_type=True
+    "govdata", "pvog", "fim", "leika", "manual", name="discovery_source", create_type=False
 )
 discovery_task_status = postgresql.ENUM(
-    "pending", "claimed", "completed", "failed", name="discovery_task_status", create_type=True
+    "pending", "claimed", "completed", "failed", name="discovery_task_status", create_type=False
 )
-discovery_task_kind = postgresql.ENUM("fetch_url", "enrich_metadata", name="discovery_task_kind", create_type=True)
+discovery_task_kind = postgresql.ENUM(
+    "fetch_url", "enrich_metadata", name="discovery_task_kind", create_type=False
+)
 discovery_claim_kind = postgresql.ENUM(
-    "new_document", "new_requirement", "metadata", name="discovery_claim_kind", create_type=True
+    "new_document", "new_requirement", "metadata", name="discovery_claim_kind", create_type=False
 )
 discovery_event_type = postgresql.ENUM(
     "catalogue_upserted",
@@ -35,11 +46,32 @@ discovery_event_type = postgresql.ENUM(
     "claim_recorded",
     "emit_attempted",
     name="discovery_event_type",
-    create_type=True,
+    create_type=False,
 )
 
 
+def _discovery_staging_already_applied(inspector: sa.Inspector) -> bool:
+    """Return whether all discovery staging tables are already present."""
+    return all(inspector.has_table(name) for name in _DISCOVERY_STAGING_TABLES)
+
+
+def _create_discovery_enums(bind: sa.engine.Connection) -> None:
+    """Create Postgres enum types when missing (idempotent)."""
+    discovery_source.create(bind, checkfirst=True)
+    discovery_task_status.create(bind, checkfirst=True)
+    discovery_task_kind.create(bind, checkfirst=True)
+    discovery_claim_kind.create(bind, checkfirst=True)
+    discovery_event_type.create(bind, checkfirst=True)
+
+
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if _discovery_staging_already_applied(inspector):
+        return
+
+    _create_discovery_enums(bind)
+
     op.create_table(
         "catalogue_service",
         sa.Column("id", sa.Uuid(), nullable=False),
