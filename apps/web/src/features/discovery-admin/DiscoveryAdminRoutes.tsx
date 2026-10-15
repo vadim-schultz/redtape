@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import DiscoveryAdminLayout from "./DiscoveryAdminLayout";
+import DiscoveryCataloguePage from "./containers/DiscoveryCataloguePage";
 import DiscoveryPipelinePage from "./containers/DiscoveryPipelinePage";
 import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
 import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
@@ -17,7 +18,8 @@ export default function DiscoveryAdminRoutes() {
           </RequireDiscoveryAdmin>
         }
       >
-        <Route index element={<Navigate to="tasks" replace />} />
+        <Route index element={<Navigate to="catalogue" replace />} />
+        <Route path="catalogue" element={<DiscoveryCataloguePage />} />
         <Route path="tasks" element={<DiscoveryTasksPage />} />
         <Route path="pipeline/:id" element={<DiscoveryPipelinePage />} />
       </Route>
