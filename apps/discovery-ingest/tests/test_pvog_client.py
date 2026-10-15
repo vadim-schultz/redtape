@@ -41,6 +41,21 @@ def test_pvog_client_follows_next_link_in_fixture_pagination() -> None:
     assert records[1]["id"] == "OD-EXAMPLE-002"
 
 
+def test_pvog_client_respects_max_pages_cap() -> None:
+    """PvogClient · respects max_pages cap."""
+    pages = {
+        f"{BASE}/v7/servicedescriptions/{FEDERAL_ARS}": FIXTURE_DIR / "page1.json",
+        f"{BASE}/v7/servicedescriptions/{FEDERAL_ARS}?page=2": FIXTURE_DIR / "page2.json",
+        f"{BASE}/v7/servicedescriptions/{FEDERAL_ARS}?page=3": FIXTURE_DIR / "page3_empty.json",
+    }
+    client = PvogClient(BASE, http_client=httpx.Client(transport=_fixture_transport(pages)))
+
+    records = list(client.iter_records(ars=FEDERAL_ARS, max_pages=1))
+
+    assert len(records) == 1
+    assert records[0]["id"] == "OD-EXAMPLE-001"
+
+
 def test_pvog_client_stops_on_empty_page() -> None:
     """PvogClient · stops on empty page."""
     pages = {
