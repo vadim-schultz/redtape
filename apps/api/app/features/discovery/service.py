@@ -17,6 +17,7 @@ from app.features.discovery.pipeline import (
     derive_pipeline_stage,
 )
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     CatalogueService,
@@ -293,9 +294,13 @@ class DiscoveryMachineService:
         catalogue = self._repo.get_catalogue(body.catalogue_service_id)
         if catalogue is None:
             raise NotFoundException("Catalogue service not found")
+        try:
+            canonical_url = normalize_canonical_url(body.canonical_url)
+        except ValueError as err:
+            raise ValidationException(detail=str(err)) from err
         row, created = self._repo.upsert_entity(
             catalogue_service_id=body.catalogue_service_id,
-            canonical_url=body.canonical_url,
+            canonical_url=canonical_url,
             label=body.label,
         )
         return EntityUpsertResponse(
