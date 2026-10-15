@@ -29,11 +29,20 @@ class PvogClient:
         self._base_url = base_url.rstrip("/")
         self._http_client = http_client
 
-    def iter_records(self, *, ars: str = FEDERAL_ARS) -> Iterator[dict[str, Any]]:
+    def iter_records(
+        self,
+        *,
+        ars: str = FEDERAL_ARS,
+        max_pages: int | None = None,
+    ) -> Iterator[dict[str, Any]]:
         """Yield each row from paginated ``/v7/servicedescriptions/{ars}`` responses."""
         url: str | None = f"{self._base_url}/v7/servicedescriptions/{ars}"
+        pages_fetched = 0
         while url is not None:
+            if max_pages is not None and pages_fetched >= max_pages:
+                break
             page = self._fetch_page(url)
+            pages_fetched += 1
             records = _content_records(page)
             if not records:
                 break

@@ -11,7 +11,7 @@ This project has no GitLab CI — all scheduling runs on **GitHub Actions**. Ope
   | `days % 6` | Job |
   | --- | --- |
   | `0` | OpenPLZ import |
-  | `3` | Discovery online (placeholder until later chapters) |
+  | `3` | Discovery online (GovData fetch + PVOG run; worker drain in later chapters) |
   | `1`, `2`, `4`, `5` | No-op (`skip`, success) |
 - **OpenPLZ job steps:** checkout → Python 3.12 → `pip install -e .` in `apps/api` → `alembic upgrade head` → verify `uq_jurisdiction_kind_code` on `jurisdiction` → `python scripts/import_openplz_locations.py --language de`.
 Manual override ignores the calendar when `job` is set on `workflow_dispatch`.

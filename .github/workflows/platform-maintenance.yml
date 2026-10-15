@@ -86,18 +86,48 @@ jobs:
           python scripts/import_openplz_locations.py --language de
 
   discovery:
-    name: Discovery online (placeholder)
+    name: Discovery online (catalogue ingest)
     needs: route
     if: needs.route.outputs.job == 'discovery'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      FEDERAL_JURISDICTION_ID: ${{ secrets.FEDERAL_JURISDICTION_ID }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Discovery job placeholder
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install discovery ingest
         run: |
-          echo "Discovery online steps land in later chapters; router selected discovery."
+          cd apps/discovery-ingest
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Wait for Render API health
+        run: |
+          python -c "from discovery_ingest.health import wait_for_api; wait_for_api('${DISCOVERY_API_URL}')"
+
+      - name: GovData OZG catalogue fetch
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest govdata fetch \
+            --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
+            --max-pages 150 \
+            --page-size 100
+
+      - name: PVOG Suchdienst catalogue run
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest pvog run \
+            --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
+            --max-pages 50
 
   skip:
     name: No maintenance job today

@@ -123,7 +123,10 @@ def _govdata_fetch_pages(
 def _pvog_run(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     pvog = PvogClient(settings.pvog_api_base_url)
-    items = _map_pvog_records(pvog.iter_records(ars=FEDERAL_ARS), jurisdiction_id=args.jurisdiction_id)
+    items = _map_pvog_records(
+        pvog.iter_records(ars=FEDERAL_ARS, max_pages=args.max_pages),
+        jurisdiction_id=args.jurisdiction_id,
+    )
     if not items:
         print("no mappable PVOG rows", file=sys.stderr)
         return 1
@@ -281,6 +284,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=UUID,
         required=True,
         help="Jurisdiction UUID for federal scope (ars 000000000000)",
+    )
+    pvog_run.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Optional cap on PVOG pagination pages per run",
     )
 
     fim = sub.add_parser("fim", help="FIM Portal enrich")
