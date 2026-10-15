@@ -31,6 +31,28 @@ def test_runbook_documents_discovery_admin_emails() -> None:
     assert "DISCOVERY_ADMIN_EMAILS" in text
 
 
+def test_runbook_discovery_api_url_documents_host_root() -> None:
+    """DISCOVERY_API_URL documents host root."""
+    text = RUNBOOK.read_text(encoding="utf-8")
+    assert "host root" in text
+    assert "DISCOVERY_API_URL=http://localhost:8000" in text
+    assert "/api/v1/discovery/machine" in text
+    assert "DISCOVERY_API_URL=http://localhost:8000/api/v1/discovery/machine" not in text
+
+
+def test_runbook_discovery_api_url_examples_avoid_path_doubling() -> None:
+    """DISCOVERY_API_URL examples must not include the machine API path suffix."""
+    text = RUNBOOK.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        if "DISCOVERY_API_URL=" not in line:
+            continue
+        _, _, value = line.partition("DISCOVERY_API_URL=")
+        value = value.strip().strip("`")
+        if not value or value.startswith("#"):
+            continue
+        assert "/api/v1/discovery/machine" not in value
+
+
 def test_runbook_documents_admin_tasks_route() -> None:
     """Runbook links to /admin/discovery/tasks."""
     text = RUNBOOK.read_text(encoding="utf-8")

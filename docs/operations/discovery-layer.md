@@ -25,8 +25,9 @@ Set these in `apps/api/.env` (API + admin) and export the same `DISCOVERY_API_*`
 | Variable | Where | Purpose |
 | --- | --- | --- |
 | `DISCOVERY_ADMIN_EMAILS` | API | Comma-separated emails allowed to call `/api/v1/discovery/admin/*` and open `/admin/discovery/*` in the web app |
-| `DISCOVERY_API_URL` | Ingest CLIs | Machine API base, e.g. `http://localhost:8000/api/v1/discovery/machine` |
+| `DISCOVERY_API_URL` | Ingest CLIs | API **host root** (no `/api/...` suffix). Local: `http://localhost:8000`. Production: `https://redtape-api.onrender.com`. `discovery-ingest` appends `/api/v1/discovery/machine/...`. |
 | `DISCOVERY_API_KEY` | Ingest CLIs | Plaintext crawler key (`X-API-Key`) with access to discovery machine routes |
+| `FEDERAL_JURISDICTION_ID` | Ingest CLIs (optional) | Germany country UUID for federal rows; default seed `11111111-1111-1111-1111-111111111101` |
 | `DISCOVERY_MACHINE_OPT_IN` | API (optional) | When `1`, enables machine routes even if `DISCOVERY_ADMIN_EMAILS` is empty (dev only) |
 
 ### Issue a discovery machine API key
@@ -37,7 +38,14 @@ There is no HTTP endpoint for key issuance. From `apps/api`:
 python -m scripts.issue_api_key --name discovery-ingest-local
 ```
 
-Copy the printed `rt_…` value into `DISCOVERY_API_KEY`. Revocation and rotation follow
+For scheduled GitHub Actions discovery runs, issue a separate key:
+
+```bash
+python -m scripts.issue_api_key --name discovery-scheduled-gha
+```
+
+Store the printed `rt_…` in `DISCOVERY_API_KEY` (local shell or GitHub repository secret — see
+[`scheduled-jobs.md`](scheduled-jobs.md)). Revocation and rotation follow
 [`auth-setup.md` §7](auth-setup.md#7-issue-and-revoke-crawler-keys).
 
 ### Admin allowlist
@@ -81,7 +89,7 @@ python -m scripts.seed_documents   # if jurisdictions are not already present
 From `apps/discovery-ingest` with venv and deps installed (`uv pip install -e ".[dev]"`):
 
 ```bash
-export DISCOVERY_API_URL=http://localhost:8000/api/v1/discovery/machine
+export DISCOVERY_API_URL=http://localhost:8000
 export DISCOVERY_API_KEY=rt_<your-key>
 
 python -m discovery_ingest govdata run \
@@ -161,4 +169,5 @@ Verify in admin emit preview or `GET /api/v1/suggestions` (public list).
 | Ingest TLS timeout / reset | Corporate `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` includes `localhost` |
 | GovData/PVOG CLI exits 1 | API logs; machine batch errors; jurisdiction UUID exists |
 
-Scheduled GitHub Actions ingest is out of scope for this runbook (deferred).
+Scheduled GitHub Actions ingest uses the same host-root `DISCOVERY_API_URL` and repository secrets
+documented in [`scheduled-jobs.md`](scheduled-jobs.md).

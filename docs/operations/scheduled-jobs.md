@@ -14,9 +14,29 @@ This project has no GitLab CI — all scheduling runs on **GitHub Actions**. Ope
   | `3` | Discovery online (placeholder until later chapters) |
   | `1`, `2`, `4`, `5` | No-op (`skip`, success) |
 - **OpenPLZ job steps:** checkout → Python 3.12 → `pip install -e .` in `apps/api` → `alembic upgrade head` → verify `uq_jurisdiction_kind_code` on `jurisdiction` → `python scripts/import_openplz_locations.py --language de`.
-- **Secrets (OpenPLZ job):** `DATABASE_URL` only. Discovery job secrets are added in later chapters.
-
 Manual override ignores the calendar when `job` is set on `workflow_dispatch`.
+
+## Repository secrets (GitHub Actions)
+
+Configure these under **Settings → Secrets and variables → Actions** for the repo.
+
+| Secret | OpenPLZ job (`days % 6 == 0`) | Discovery job (`days % 6 == 3`) | Notes |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | yes | **no** | Supabase pooler URL; migrations + OpenPLZ import only |
+| `DISCOVERY_API_URL` | no | yes | Render **host root**, e.g. `https://redtape-api.onrender.com` — ingest client adds `/api/v1/discovery/machine/...` |
+| `DISCOVERY_API_KEY` | no | yes | `rt_…` from `python -m scripts.issue_api_key --name discovery-scheduled-gha` (`apps/api`) |
+| `FEDERAL_JURISDICTION_ID` | no | yes | Germany seed UUID `11111111-1111-1111-1111-111111111101` |
+
+Optional workflow environment variables (defaults in [`discovery_ingest/config.py`](../../apps/discovery-ingest/discovery_ingest/config.py)):
+
+| Variable | Purpose |
+| --- | --- |
+| `GOVDATA_CKAN_BASE_URL` | GovData CKAN API base |
+| `PVOG_API_BASE_URL` | PVOG Suchdienst API base |
+| `FIM_PORTAL_BASE_URL` | FIM portal base for enrich |
+
+Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Laptop runbook:
+[`discovery-layer.md`](discovery-layer.md).
 
 ## Manually triggering a run
 

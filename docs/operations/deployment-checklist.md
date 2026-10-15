@@ -57,6 +57,17 @@ Checks:
 
 ---
 
+## GitHub Actions — platform maintenance
+
+Prereqs:
+- Unified workflow [`.github/workflows/platform-maintenance.yml`](../../.github/workflows/platform-maintenance.yml) is enabled.
+
+Checks:
+- [ ] Repository secrets for OpenPLZ and discovery jobs match [`scheduled-jobs.md`](scheduled-jobs.md) (`DATABASE_URL`, `DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID`).
+- [ ] `DISCOVERY_API_KEY` was issued with `python -m scripts.issue_api_key --name discovery-scheduled-gha` and stored only in GitHub Secrets (not in git).
+
+---
+
 ## Keep-Alive Automation (Render Free Tier)
 
 Prereqs:
