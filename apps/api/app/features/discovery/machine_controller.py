@@ -8,11 +8,13 @@ from litestar import Controller, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
+from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.service import DiscoveryMachineService
 from app.schema.discovery.machine import (
     CatalogueBatchRequest,
     CatalogueBatchResponse,
+    CatalogueEmitResponse,
     ClaimAppendRequest,
     ClaimAppendResponse,
     EntityUpsertRequest,
@@ -91,3 +93,12 @@ class DiscoveryMachineController(Controller):
         data: ClaimAppendRequest,
     ) -> ClaimAppendResponse:
         return discovery_machine_service.append_claim(data)
+
+    @post("/catalogue/{catalogue_id:uuid}/emit", sync_to_thread=True, status_code=HTTP_200_OK)
+    def emit_catalogue(
+        self,
+        discovery_emit_service: DiscoveryEmitService,
+        machine_principal: MachinePrincipal,
+        catalogue_id: UUID,
+    ) -> CatalogueEmitResponse:
+        return discovery_emit_service.emit_catalogue(catalogue_id, api_key=machine_principal.api_key)

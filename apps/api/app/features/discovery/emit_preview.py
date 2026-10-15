@@ -19,7 +19,7 @@ class EmitPreviewItem(TypedDict):
     skip_reason: str | None
 
 
-def _claim_to_suggestion_payload(
+def claim_to_suggestion_payload(
     *,
     claim: DiscoveryClaim,
     entity: DiscoveryEntity,
@@ -77,7 +77,7 @@ def build_emit_preview_items(
                 }
             )
             continue
-        payload, skip_reason = _claim_to_suggestion_payload(
+        payload, skip_reason = claim_to_suggestion_payload(
             claim=claim,
             entity=entity,
             jurisdiction_id=jurisdiction_id,

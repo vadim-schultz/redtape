@@ -144,3 +144,21 @@ class ClaimAppendResponse(BaseModel):
     id: UUID
     discovery_entity_id: UUID
     kind: DiscoveryClaimKind
+
+
+class CatalogueEmitItemResult(BaseModel):
+    """Outcome of emitting one staging claim."""
+
+    claim_id: UUID
+    suggestion_id: UUID | None = None
+    skip_reason: str | None = None
+    replayed: bool = False
+
+
+class CatalogueEmitResponse(BaseModel):
+    """Summary of a catalogue emit run."""
+
+    items: list[CatalogueEmitItemResult]
+    created_count: int
+    skipped_count: int
+    replayed_count: int
