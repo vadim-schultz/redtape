@@ -21,6 +21,10 @@ class IngestSettings(BaseSettings):
         default="ozg-leistungen-und-zugehorige-onlinedienste",
         validation_alias="GOVDATA_PACKAGE_ID",
     )
+    pvog_api_base_url: str = Field(
+        default="https://pvog.fitko.net/suchdienst/api",
+        validation_alias="PVOG_API_BASE_URL",
+    )
 
 
 def load_ingest_settings() -> IngestSettings:

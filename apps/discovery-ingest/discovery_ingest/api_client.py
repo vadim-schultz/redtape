@@ -50,3 +50,15 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             detail = response.text
             raise DiscoveryMachineApiError(response.status_code, detail)
+
+
+def _post_catalogue_batches(
+    base_url: str,
+    api_key: str,
+    items: Sequence[CatalogueBatchItem],
+    *,
+    batch_size: int = 50,
+) -> None:
+    """Upsert catalogue items via the discovery machine API."""
+    client = DiscoveryMachineClient(base_url, api_key)
+    client.post_catalogue_batches(items, batch_size=batch_size)

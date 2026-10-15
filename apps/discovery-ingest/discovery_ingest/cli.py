@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.api_client import DiscoveryMachineApiError, _post_catalogue_batches
 from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
+from discovery_ingest.pvog.client import FEDERAL_ARS, PvogClient, PvogMappingError, map_pvog_record
 from discovery_ingest.schemas import CatalogueBatchItem
 
 
@@ -23,20 +25,43 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.command == "govdata" and args.govdata_command == "run":
         return _govdata_run(args)
+    if args.command == "pvog" and args.pvog_command == "run":
+        return _pvog_run(args)
     parser.print_help()
     return 2
 
 
 def _govdata_run(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
-    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     ozg = GovDataOzgClient.from_json_file(Path(args.input))
     items = _map_govdata_records(ozg.records, federal_jurisdiction_id=args.jurisdiction_id)
     if not items:
         print("no mappable GovData rows", file=sys.stderr)
         return 1
     try:
-        client.post_catalogue_batches(items)
+        _post_catalogue_batches(
+            settings.discovery_api_url,
+            settings.discovery_api_key,
+            items,
+        )
+    except DiscoveryMachineApiError:
+        return 1
+    return 0
+
+
+def _pvog_run(args: argparse.Namespace) -> int:
+    settings = load_ingest_settings()
+    pvog = PvogClient(settings.pvog_api_base_url)
+    items = _map_pvog_records(pvog.iter_records(ars=FEDERAL_ARS), jurisdiction_id=args.jurisdiction_id)
+    if not items:
+        print("no mappable PVOG rows", file=sys.stderr)
+        return 1
+    try:
+        _post_catalogue_batches(
+            settings.discovery_api_url,
+            settings.discovery_api_key,
+            items,
+        )
     except DiscoveryMachineApiError:
         return 1
     return 0
@@ -58,6 +83,20 @@ def _map_govdata_records(
     return items
 
 
+def _map_pvog_records(
+    records: Iterator[dict[str, Any]],
+    *,
+    jurisdiction_id: UUID,
+) -> list[CatalogueBatchItem]:
+    items: list[CatalogueBatchItem] = []
+    for row in records:
+        try:
+            items.append(map_pvog_record(row, jurisdiction_id=jurisdiction_id))
+        except PvogMappingError as err:
+            print(f"skip row: {err}", file=sys.stderr)
+    return items
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="discovery_ingest")
     sub = parser.add_subparsers(dest="command")
@@ -71,5 +110,15 @@ def _build_parser() -> argparse.ArgumentParser:
         type=UUID,
         required=True,
         help="Jurisdiction UUID for federal rows (ars 000000000000)",
+    )
+
+    pvog = sub.add_parser("pvog", help="PVOG Suchdienst catalogue ingest")
+    pvog_sub = pvog.add_subparsers(dest="pvog_command")
+    pvog_run = pvog_sub.add_parser("run", help="Upsert rows from PVOG Suchdienst API")
+    pvog_run.add_argument(
+        "--jurisdiction-id",
+        type=UUID,
+        required=True,
+        help="Jurisdiction UUID for federal scope (ars 000000000000)",
     )
     return parser
