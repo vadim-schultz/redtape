@@ -99,6 +99,10 @@
       "not_found": "Catalogue service not found",
       "tasks_count": "{count} tasks",
       "events_count": "{count} events"
+    },
+    "emit_preview": {
+      "title": "Emit preview",
+      "empty": "No claims to preview yet."
     }
   },
   "suggest": {

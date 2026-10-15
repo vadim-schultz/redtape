@@ -4,6 +4,7 @@ import type {
   DiscoverySource,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
+  EmitPreviewResponse,
 } from "../types";
 
 const TASKS_PATH = "/api/v1/discovery/admin/tasks";
@@ -54,6 +55,19 @@ export async function fetchCataloguePipeline(params: {
   const { locale, accessToken, catalogueId } = params;
   return apiRequest<CataloguePipelineResponse>(
     `/api/v1/discovery/admin/catalogue/${catalogueId}/pipeline`,
+    { locale, accessToken },
+  );
+}
+
+/** Read-only preview of suggestion payloads for a catalogue service. */
+export async function fetchEmitPreview(params: {
+  locale: string;
+  accessToken: string;
+  catalogueId: string;
+}): Promise<EmitPreviewResponse> {
+  const { locale, accessToken, catalogueId } = params;
+  return apiRequest<EmitPreviewResponse>(
+    `/api/v1/discovery/admin/catalogue/${catalogueId}/emit-preview`,
     { locale, accessToken },
   );
 }

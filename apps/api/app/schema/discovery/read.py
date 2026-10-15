@@ -105,6 +105,21 @@ class CatalogueListResponse(BaseModel):
     limit: int
 
 
+class EmitPreviewItemRead(BaseModel):
+    """One would-be suggestion emit row for admin review."""
+
+    claim_id: UUID
+    kind: str
+    payload: dict[str, object] | None = None
+    skip_reason: str | None = None
+
+
+class EmitPreviewResponse(BaseModel):
+    """Read-only preview of suggestion payloads for a catalogue service."""
+
+    items: list[EmitPreviewItemRead]
+
+
 class CataloguePipelineResponse(BaseModel):
     """Pipeline drill-down aggregate for one catalogue service."""
 

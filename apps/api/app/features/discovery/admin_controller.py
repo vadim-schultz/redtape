@@ -11,7 +11,12 @@ from litestar.params import Parameter
 from app.features.discovery.guards import require_discovery_admin
 from app.features.discovery.service import DiscoveryAdminService
 from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
-from app.schema.discovery.read import CatalogueListResponse, CataloguePipelineResponse, DiscoveryTaskListResponse
+from app.schema.discovery.read import (
+    CatalogueListResponse,
+    CataloguePipelineResponse,
+    DiscoveryTaskListResponse,
+    EmitPreviewResponse,
+)
 
 
 class DiscoveryAdminController(Controller):
@@ -51,3 +56,14 @@ class DiscoveryAdminController(Controller):
         if aggregate is None:
             raise NotFoundException("Catalogue service not found")
         return aggregate
+
+    @get("/catalogue/{catalogue_id:uuid}/emit-preview", sync_to_thread=True)
+    def catalogue_emit_preview(
+        self,
+        discovery_admin_service: DiscoveryAdminService,
+        catalogue_id: UUID,
+    ) -> EmitPreviewResponse:
+        preview = discovery_admin_service.emit_preview(catalogue_id)
+        if preview is None:
+            raise NotFoundException("Catalogue service not found")
+        return preview
