@@ -21,6 +21,11 @@ HEAD_REVISION = "20261012_discovery_staging"
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
 
 
+def _psycopg_dsn(database_url: str) -> str:
+    """Return a libpq DSN psycopg accepts (not ``postgresql+psycopg``)."""
+    return make_url(database_url).set(drivername="postgresql").render_as_string(hide_password=False)
+
+
 def _postgres_unavailable(exc: psycopg.OperationalError) -> None:
     """Skip or fail when the migration server is unreachable."""
     if os.environ.get("REQUIRE_DB") == "1":
@@ -35,7 +40,7 @@ def _fresh_database() -> Iterator[str]:
 
     base = make_url(os.environ.get("DATABASE_URL", settings.database_url))
     name = f"redtape_discovery_mig_{uuid.uuid4().hex[:8]}"
-    admin_dsn = base.set(drivername="postgresql", database="postgres").render_as_string(hide_password=False)
+    admin_dsn = _psycopg_dsn(base.set(database="postgres").render_as_string(hide_password=False))
     try:
         admin = psycopg.connect(admin_dsn, autocommit=True)
     except psycopg.OperationalError as exc:
@@ -73,16 +78,14 @@ def _run_alembic(database_url: str, *args: str) -> subprocess.CompletedProcess[s
 
 
 def _alembic_version(database_url: str) -> str:
-    base = make_url(database_url)
-    with psycopg.connect(base.render_as_string(hide_password=False)) as conn:
+    with psycopg.connect(_psycopg_dsn(database_url)) as conn:
         row = conn.execute("SELECT version_num FROM alembic_version").fetchone()
     assert row is not None
     return row[0]
 
 
 def _table_exists(database_url: str, table_name: str) -> bool:
-    base = make_url(database_url)
-    with psycopg.connect(base.render_as_string(hide_password=False)) as conn:
+    with psycopg.connect(_psycopg_dsn(database_url)) as conn:
         row = conn.execute(
             "SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = %s",
             (table_name,),
@@ -107,8 +110,7 @@ def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() 
         parent = _run_alembic(database_url, "upgrade", PARENT_REVISION)
         assert parent.returncode == 0, parent.stdout + parent.stderr
 
-        base = make_url(database_url)
-        with psycopg.connect(base.render_as_string(hide_password=False), autocommit=True) as conn:
+        with psycopg.connect(_psycopg_dsn(database_url), autocommit=True) as conn:
             conn.execute(DISCOVERY_SOURCE_ENUM_SQL)
 
         head = _run_alembic(database_url, "upgrade", "head")
@@ -124,8 +126,7 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
         first = _run_alembic(database_url, "upgrade", "head")
         assert first.returncode == 0, first.stdout + first.stderr
 
-        base = make_url(database_url)
-        with psycopg.connect(base.render_as_string(hide_password=False)) as conn:
+        with psycopg.connect(_psycopg_dsn(database_url)) as conn:
             conn.execute(
                 text("UPDATE alembic_version SET version_num = :rev"),
                 {"rev": PARENT_REVISION},
