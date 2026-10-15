@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "22222222-2222-2222-2222-222222222201",
+      "source": "govdata",
+      "portal_url": "https://example.bund.de/leistung",
+      "title_i18n": {"de": "Beispiel-Leistung"},
+      "raw_payload": {
+        "fim_id": "LB-EXAMPLE-STECK",
+        "redaktion_id": "RED-EXAMPLE",
+        "leistung_id": "LB-EXAMPLE-001",
+        "leika_key": "12345678901234"
+      }
+    }
+  ]
+}

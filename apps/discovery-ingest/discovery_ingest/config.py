@@ -25,6 +25,10 @@ class IngestSettings(BaseSettings):
         default="https://pvog.fitko.net/suchdienst/api",
         validation_alias="PVOG_API_BASE_URL",
     )
+    fim_portal_base_url: str = Field(
+        default="https://fimportal.de",
+        validation_alias="FIM_PORTAL_BASE_URL",
+    )
 
 
 def load_ingest_settings() -> IngestSettings:

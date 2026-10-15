@@ -13,6 +13,10 @@ from app.features.discovery.service import DiscoveryMachineService
 from app.schema.discovery.machine import (
     CatalogueBatchRequest,
     CatalogueBatchResponse,
+    ClaimAppendRequest,
+    ClaimAppendResponse,
+    EntityUpsertRequest,
+    EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
     TaskClaimRequest,
@@ -71,3 +75,19 @@ class DiscoveryMachineController(Controller):
         data: FetchLogAppendRequest,
     ) -> FetchLogAppendResponse:
         return discovery_machine_service.append_fetch_log(task_id, data)
+
+    @post("/entities", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    def upsert_entity(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: EntityUpsertRequest,
+    ) -> EntityUpsertResponse:
+        return discovery_machine_service.upsert_entity(data)
+
+    @post("/claims", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    def append_claim(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: ClaimAppendRequest,
+    ) -> ClaimAppendResponse:
+        return discovery_machine_service.append_claim(data)

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import NotFoundException, ValidationException
+from pydantic import ValidationError
 
 from app.features.discovery.emit_preview import build_emit_preview_items
 from app.features.discovery.fanout import apply_fanout_for_service
@@ -28,11 +30,16 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.discovery.claim_payloads import validate_claim_payload
 from app.schema.discovery.machine import (
     CatalogueBatchItemResult,
     CatalogueBatchRequest,
     CatalogueBatchResponse,
+    ClaimAppendRequest,
+    ClaimAppendResponse,
     ClaimedTaskRead,
+    EntityUpsertRequest,
+    EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
     TaskClaimRequest,
@@ -281,6 +288,53 @@ class DiscoveryMachineService:
         task.last_error = body.error
         task.lease_expires_at = None
         return TaskFailResponse(id=task.id, status=task.status, last_error=task.last_error)
+
+    def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
+        catalogue = self._repo.get_catalogue(body.catalogue_service_id)
+        if catalogue is None:
+            raise NotFoundException("Catalogue service not found")
+        row, created = self._repo.upsert_entity(
+            catalogue_service_id=body.catalogue_service_id,
+            canonical_url=body.canonical_url,
+            label=body.label,
+        )
+        return EntityUpsertResponse(
+            id=row.id,
+            catalogue_service_id=row.catalogue_service_id,
+            canonical_url=row.canonical_url,
+            created=created,
+        )
+
+    def append_claim(self, body: ClaimAppendRequest) -> ClaimAppendResponse:
+        entity = self._repo.get_entity(body.discovery_entity_id)
+        if entity is None:
+            raise NotFoundException("Discovery entity not found")
+        try:
+            payload = validate_claim_payload(body.kind, body.payload)
+        except ValidationError as err:
+            raise ValidationException(detail=str(err)) from err
+        confidence: Decimal | None = None
+        if body.confidence is not None:
+            confidence = Decimal(str(body.confidence))
+        row = self._repo.append_claim(
+            discovery_entity_id=body.discovery_entity_id,
+            kind=body.kind,
+            payload=payload,
+            confidence=confidence,
+        )
+        catalogue = self._repo.get_catalogue(entity.catalogue_service_id)
+        if catalogue is not None and catalogue.pipeline_stage in ("T0", "T1", "T2"):
+            catalogue.pipeline_stage = "T3"
+        self._repo.record_event(
+            event_type=DiscoveryEventType.CLAIM_RECORDED,
+            catalogue_service_id=entity.catalogue_service_id,
+            payload={"claim_id": str(row.id), "kind": row.kind.value},
+        )
+        return ClaimAppendResponse(
+            id=row.id,
+            discovery_entity_id=row.discovery_entity_id,
+            kind=row.kind,
+        )
 
     def append_fetch_log(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
         task = self._require_task(task_id)

@@ -6,7 +6,14 @@ from collections.abc import Sequence
 
 import httpx
 
-from discovery_ingest.schemas import CatalogueBatchItem, CatalogueBatchRequest
+from discovery_ingest.schemas import (
+    CatalogueBatchItem,
+    CatalogueBatchRequest,
+    ClaimAppendRequest,
+    ClaimAppendResponse,
+    EntityUpsertRequest,
+    EntityUpsertResponse,
+)
 
 
 class DiscoveryMachineApiError(Exception):
@@ -50,6 +57,32 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             detail = response.text
             raise DiscoveryMachineApiError(response.status_code, detail)
+
+    def post_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
+        """Upsert a discovery entity under a catalogue row."""
+        url = f"{self._base_url}/api/v1/discovery/machine/entities"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return EntityUpsertResponse.model_validate(response.json())
+
+    def post_claim(self, body: ClaimAppendRequest) -> ClaimAppendResponse:
+        """Append a discovery claim on an entity."""
+        url = f"{self._base_url}/api/v1/discovery/machine/claims"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return ClaimAppendResponse.model_validate(response.json())
 
 
 def _post_catalogue_batches(
