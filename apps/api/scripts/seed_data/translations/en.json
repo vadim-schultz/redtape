@@ -103,6 +103,20 @@
     "emit_preview": {
       "title": "Emit preview",
       "empty": "No claims to preview yet."
+    },
+    "coverage": {
+      "source_chip": "{source}: {count}",
+      "tasks_pending": "Pending tasks: {count}",
+      "tasks_failed": "Failed tasks: {count}",
+      "emit_ready": "Emit-ready: {count}",
+      "no_sources": "No catalogue rows yet."
+    },
+    "catalogue": {
+      "empty": "No catalogue services yet.",
+      "load_error": "Could not load catalogue data.",
+      "col_external_id": "External ID",
+      "col_source": "Source",
+      "col_stage": "Stage"
     }
   },
   "suggest": {
