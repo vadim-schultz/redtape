@@ -35,15 +35,15 @@ def derive_pipeline_stage(data: PipelineStageInput) -> str:
 def claim_emit_resolvable(kind: DiscoveryClaimKind, payload: dict[str, object]) -> bool:
     """Return whether a claim can produce a suggestion payload without stubs."""
 
-    if kind == DiscoveryClaimKind.METADATA:
-        return False
-    if kind == DiscoveryClaimKind.NEW_DOCUMENT:
-        return bool(payload.get("title_i18n")) and bool(payload.get("official_url"))
-    if kind == DiscoveryClaimKind.NEW_REQUIREMENT:
-        parent = payload.get("parent_document_id")
-        required = payload.get("required_document_id")
-        return parent is not None and required is not None
-    return False
+    match kind:
+        case DiscoveryClaimKind.METADATA:
+            return False
+        case DiscoveryClaimKind.NEW_DOCUMENT:
+            return bool(payload.get("title_i18n")) and bool(payload.get("official_url"))
+        case DiscoveryClaimKind.NEW_REQUIREMENT:
+            parent = payload.get("parent_document_id")
+            required = payload.get("required_document_id")
+            return parent is not None and required is not None
 
 
 def all_emit_claims_resolvable(
@@ -59,5 +59,3 @@ def all_emit_claims_resolvable(
     if not emit_claims:
         return False
     return all(claim_emit_resolvable(kind, payload) for kind, payload in emit_claims)
-
-

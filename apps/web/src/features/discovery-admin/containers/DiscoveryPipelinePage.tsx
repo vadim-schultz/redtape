@@ -10,7 +10,13 @@ function titleForService(
   titleI18n: Record<string, string>,
   locale: string,
 ): string {
-  return titleI18n[locale] ?? titleI18n.en ?? titleI18n.de ?? Object.values(titleI18n)[0] ?? "";
+  return (
+    titleI18n[locale] ??
+    titleI18n.en ??
+    titleI18n.de ??
+    Object.values(titleI18n)[0] ??
+    ""
+  );
 }
 
 /** Pipeline drill-down at ``/admin/discovery/pipeline/:id``. */
@@ -33,9 +39,7 @@ export default function DiscoveryPipelinePage() {
 
   return (
     <Stack gap={4} align="stretch">
-      <Heading size="md">
-        {titleForService(service.title_i18n, locale)}
-      </Heading>
+      <Heading size="md">{titleForService(service.title_i18n, locale)}</Heading>
       <PipelineTimeline derivedStage={derived_stage} />
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.tasks_count", { count: tasks.length })}

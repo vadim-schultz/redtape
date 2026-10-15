@@ -207,9 +207,7 @@ class DiscoveryRepository:
     def get_catalogue(self, catalogue_id: UUID) -> CatalogueService | None:
         return self._session.get(CatalogueService, catalogue_id)
 
-    def list_catalogue_tasks(
-        self, catalogue_id: UUID
-    ) -> list[tuple[DiscoveryTask, DiscoverySource]]:
+    def list_catalogue_tasks(self, catalogue_id: UUID) -> list[tuple[DiscoveryTask, DiscoverySource]]:
         stmt = (
             select(DiscoveryTask, CatalogueService.source)
             .join(CatalogueService, DiscoveryTask.catalogue_service_id == CatalogueService.id)

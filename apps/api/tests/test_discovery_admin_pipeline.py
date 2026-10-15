@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import uuid
 
-from litestar.testing import TestClient
-
 from app.main import Litestar
 from app.models.discovery import (
     DiscoveryEvent,
@@ -14,9 +12,10 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from litestar.testing import TestClient
 from sqlalchemy.orm import Session
 
-from test_discovery_admin_api import ADMIN_EMAIL, _catalogue, _token, client
+from test_discovery_admin_api import ADMIN_EMAIL, _catalogue, _token
 
 PIPELINE_URL = "/api/v1/discovery/admin/catalogue/{catalogue_id}/pipeline"
 
