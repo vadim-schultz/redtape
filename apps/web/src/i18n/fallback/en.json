@@ -93,6 +93,12 @@
       "empty_description": "Try another status or source filter.",
       "count_one": "{count} task",
       "count_other": "{count} tasks"
+    },
+    "pipeline": {
+      "stage_label": "Pipeline stage",
+      "not_found": "Catalogue service not found",
+      "tasks_count": "{count} tasks",
+      "events_count": "{count} events"
     }
   },
   "suggest": {

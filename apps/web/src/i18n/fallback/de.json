@@ -93,6 +93,12 @@
       "empty_description": "Anderen Status- oder Quellenfilter wählen.",
       "count_one": "{count} Aufgabe",
       "count_other": "{count} Aufgaben"
+    },
+    "pipeline": {
+      "stage_label": "Pipeline-Stufe",
+      "not_found": "Katalogeintrag nicht gefunden",
+      "tasks_count": "{count} Aufgaben",
+      "events_count": "{count} Ereignisse"
     }
   },
   "suggest": {

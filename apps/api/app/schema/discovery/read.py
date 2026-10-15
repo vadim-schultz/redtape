@@ -106,9 +106,10 @@ class CatalogueListResponse(BaseModel):
 
 
 class CataloguePipelineResponse(BaseModel):
-    """Pipeline drill-down aggregate; nested collections filled in later chapters."""
+    """Pipeline drill-down aggregate for one catalogue service."""
 
     service: CatalogueServiceRead
+    derived_stage: str
     tasks: list[DiscoveryTaskRead] = Field(default_factory=list)
     entities: list[dict[str, object]] = Field(default_factory=list)
     fetch_logs: list[dict[str, object]] = Field(default_factory=list)

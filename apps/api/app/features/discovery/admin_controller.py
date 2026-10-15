@@ -47,7 +47,7 @@ class DiscoveryAdminController(Controller):
         discovery_admin_service: DiscoveryAdminService,
         catalogue_id: UUID,
     ) -> CataloguePipelineResponse:
-        aggregate = discovery_admin_service.pipeline_stub(catalogue_id)
+        aggregate = discovery_admin_service.catalogue_pipeline(catalogue_id)
         if aggregate is None:
             raise NotFoundException("Catalogue service not found")
         return aggregate

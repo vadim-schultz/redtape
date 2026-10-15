@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryClaim,
+    DiscoveryEntity,
     DiscoveryEvent,
     DiscoveryEventType,
     DiscoveryFetchLog,
@@ -204,3 +206,46 @@ class DiscoveryRepository:
 
     def get_catalogue(self, catalogue_id: UUID) -> CatalogueService | None:
         return self._session.get(CatalogueService, catalogue_id)
+
+    def list_catalogue_tasks(self, catalogue_id: UUID) -> list[tuple[DiscoveryTask, DiscoverySource]]:
+        stmt = (
+            select(DiscoveryTask, CatalogueService.source)
+            .join(CatalogueService, DiscoveryTask.catalogue_service_id == CatalogueService.id)
+            .where(DiscoveryTask.catalogue_service_id == catalogue_id)
+            .order_by(DiscoveryTask.created_at.asc(), DiscoveryTask.id.asc())
+        )
+        return list(self._session.execute(stmt).tuples().all())
+
+    def list_catalogue_events(self, catalogue_id: UUID) -> list[DiscoveryEvent]:
+        stmt = (
+            select(DiscoveryEvent)
+            .where(DiscoveryEvent.catalogue_service_id == catalogue_id)
+            .order_by(DiscoveryEvent.created_at.asc(), DiscoveryEvent.id.asc())
+        )
+        return list(self._session.scalars(stmt).all())
+
+    def list_catalogue_entities(self, catalogue_id: UUID) -> list[DiscoveryEntity]:
+        stmt = (
+            select(DiscoveryEntity)
+            .where(DiscoveryEntity.catalogue_service_id == catalogue_id)
+            .order_by(DiscoveryEntity.created_at.asc(), DiscoveryEntity.id.asc())
+        )
+        return list(self._session.scalars(stmt).all())
+
+    def list_catalogue_claims(self, catalogue_id: UUID) -> list[DiscoveryClaim]:
+        stmt = (
+            select(DiscoveryClaim)
+            .join(DiscoveryEntity, DiscoveryClaim.discovery_entity_id == DiscoveryEntity.id)
+            .where(DiscoveryEntity.catalogue_service_id == catalogue_id)
+            .order_by(DiscoveryClaim.created_at.asc(), DiscoveryClaim.id.asc())
+        )
+        return list(self._session.scalars(stmt).all())
+
+    def list_catalogue_fetch_logs(self, catalogue_id: UUID) -> list[DiscoveryFetchLog]:
+        stmt = (
+            select(DiscoveryFetchLog)
+            .join(DiscoveryTask, DiscoveryFetchLog.discovery_task_id == DiscoveryTask.id)
+            .where(DiscoveryTask.catalogue_service_id == catalogue_id)
+            .order_by(DiscoveryFetchLog.fetched_at.asc(), DiscoveryFetchLog.id.asc())
+        )
+        return list(self._session.scalars(stmt).all())

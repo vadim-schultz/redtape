@@ -88,3 +88,6 @@ def _set_test_environment() -> None:
 
     # Touch settings to make sure env-based configuration is loaded.
     _ = settings.database_url
+
+
+pytest_plugins = ("test_discovery_admin_api",)
