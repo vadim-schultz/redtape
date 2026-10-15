@@ -8,6 +8,7 @@ from uuid import UUID
 from litestar.exceptions import NotFoundException
 
 from app.features.discovery.emit_preview import build_emit_preview_items
+from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.pipeline import (
     PipelineStageInput,
     all_emit_claims_resolvable,
@@ -240,6 +241,7 @@ class DiscoveryMachineService:
                 payload={"source": row.source.value, "external_id": row.external_id},
             )
             task = _enqueue_tasks_for_service(self._repo, row)
+            apply_fanout_for_service(self._repo, row)
             results.append(
                 CatalogueBatchItemResult(
                     id=row.id,
