@@ -1,0 +1,1 @@
+"""Discovery staging ingest coordination."""

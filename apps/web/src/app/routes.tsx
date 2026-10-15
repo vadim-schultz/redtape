@@ -23,6 +23,9 @@ const SuggestionsListPage = lazy(
 const SuggestionDetailPage = lazy(
   () => import("../features/suggestions/containers/SuggestionDetailPage"),
 );
+const DiscoveryAdminRoutes = lazy(
+  () => import("../features/discovery-admin/DiscoveryAdminRoutes"),
+);
 
 export const routes = [
   { path: "/", element: <Navigate to="/documents" replace /> },
@@ -73,6 +76,14 @@ export const routes = [
     element: (
       <Suspense fallback={<SuggestionDetailSkeleton />}>
         <SuggestionDetailPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/admin/discovery/*",
+    element: (
+      <Suspense fallback={null}>
+        <DiscoveryAdminRoutes />
       </Suspense>
     ),
   },

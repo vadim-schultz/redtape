@@ -192,7 +192,10 @@ Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine dis
 | [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Loop boundary, auto-enqueue, deferred chapters |
 | [chapters/](discovery-layer/chapters/) | Executable chapter plans |
 
-Status: planned — merge suite to `main`, then loop `feat/plans-discovery-layer`. First: [01-staging-migration-lineage.md](discovery-layer/chapters/01-staging-migration-lineage.md).
+Status: shipped — twenty in-loop chapters on `feat/plans-discovery-layer` (release PR to `main` pending).
+Deferred: chapters 16 (claim evidence), 20 (crawler frontier adapter), 21 (LLM extract). Operator runbook:
+[`docs/operations/discovery-layer.md`](../docs/operations/discovery-layer.md). CoS orchestration:
+[`docs/operations/loops/discovery-layer.md`](../docs/operations/loops/discovery-layer.md).
 
 ## Conventions
 

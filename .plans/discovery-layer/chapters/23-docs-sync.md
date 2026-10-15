@@ -4,16 +4,16 @@ overview: "STATUS.md, .plans/README statuses, and planning cross-links after dis
 todos:
   - id: status
     content: "docs/planning/STATUS.md wave row"
-    status: pending
+    status: completed
   - id: plans-readme
     content: "Mark discovery-layer shipped in rollout"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 23 — Docs sync
 
-**Repo:** `redtape` (docs) · **Branch:** `docs/discovery-layer-sync` · **Status:** planned
+**Repo:** `redtape` (docs) · **Branch:** `docs/discovery-layer-sync` · **Status:** done
 
 **Depends on:** [22](22-orchestration-runbook.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

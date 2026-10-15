@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "leika_key": "12345678901234",
+      "ozgid": "OZ-EXAMPLE-001",
+      "ars": "000000000000",
+      "url": "https://example.bund.de/leistung",
+      "online_status": "ok",
+      "leistungsname": "Beispiel-Leistung",
+      "beschreibung": "Kurztext"
+    },
+    {
+      "ars": "000000000000",
+      "leistungsname": "Ohne Kennung",
+      "url": "https://example.bund.de/ohne-id"
+    }
+  ],
+  "totalElements": 2,
+  "size": 100,
+  "number": 0
+}

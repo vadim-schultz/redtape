@@ -1,53 +1,99 @@
 #!/usr/bin/env bash
-# Verify discovery-layer CoS skill files (chapters 8–11).
+# Validate discovery CoS skill markdown (chapters 8–11).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKILLS_DIR="$ROOT/.cursor/skills"
-CANON_REF="docs/discovery/government-data-sources.md"
-CANON_HEADING="Authoritative documentation"
-MIN_HTTPS=3
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CANON_REL="docs/discovery/government-data-sources.md"
+STAGING_REL=".plans/discovery-layer/02-staging-model-and-api.md"
 
-check_skill() {
-  local name="$1"
-  local required_heading="$2"
-  local path="$SKILLS_DIR/redtape-${name}/SKILL.md"
-  if [[ ! -f "$path" ]]; then
-    echo "check_discovery_skills: missing $path" >&2
-    return 1
-  fi
-  if ! grep -q "$required_heading" "$path"; then
-    echo "check_discovery_skills: $path must contain heading matching: $required_heading" >&2
-    return 1
-  fi
-  if ! grep -qE "${CANON_REF}|## ${CANON_HEADING}" "$path"; then
-    echo "check_discovery_skills: $path must link to $CANON_REF or contain '## ${CANON_HEADING}'" >&2
-    return 1
-  fi
-  local https_count
-  https_count="$(grep -o 'https://' "$path" | wc -l)"
-  if [[ "$https_count" -lt $MIN_HTTPS ]]; then
-    echo "check_discovery_skills: $path must contain at least $MIN_HTTPS https:// URLs (found $https_count)" >&2
-    return 1
-  fi
-  echo "ok: redtape-${name}"
+usage() {
+  echo "usage: $0 <govdata|pvog|fim|leika|all>" >&2
+  exit 2
 }
 
-if [[ $# -eq 0 ]]; then
-  check_skill govdata "Mapping"
-  check_skill pvog "Authentication"
-  check_skill fim "Rate limits"
-  check_skill leika "external_id"
-  exit 0
-fi
+skill_path_for() {
+  case "$1" in
+    govdata) echo ".cursor/skills/redtape-govdata/SKILL.md" ;;
+    pvog) echo ".cursor/skills/redtape-pvog/SKILL.md" ;;
+    fim) echo ".cursor/skills/redtape-fim/SKILL.md" ;;
+    leika) echo ".cursor/skills/redtape-leika/SKILL.md" ;;
+    *) return 1 ;;
+  esac
+}
 
-case "$1" in
-  govdata) check_skill govdata "Mapping" ;;
-  pvog) check_skill pvog "Authentication" ;;
-  fim) check_skill fim "Rate limits" ;;
-  leika) check_skill leika "external_id" ;;
-  *)
-    echo "usage: $0 [govdata|pvog|fim|leika]" >&2
-    exit 2
-    ;;
-esac
+require_heading() {
+  local file="$1"
+  local heading="$2"
+  if ! grep -qF "$heading" "$file"; then
+    echo "error: $file missing heading: $heading" >&2
+    exit 1
+  fi
+}
+
+check_skill_file() {
+  local skill_key="$1"
+  local rel
+  rel="$(skill_path_for "$skill_key")" || {
+    echo "error: unknown skill key: $skill_key" >&2
+    exit 1
+  }
+  local file="$ROOT/$rel"
+  if [[ ! -f "$file" ]]; then
+    echo "error: missing skill file: $rel" >&2
+    exit 1
+  fi
+
+  require_heading "$file" "## When to use"
+  require_heading "$file" "## Mapping"
+
+  if ! grep -qF "$STAGING_REL" "$file"; then
+    echo "error: $rel must link to $STAGING_REL" >&2
+    exit 1
+  fi
+
+  if ! grep -qF "$CANON_REL" "$file" && ! grep -qF "## Authoritative documentation" "$file"; then
+    echo "error: $rel must link to $CANON_REL or include ## Authoritative documentation" >&2
+    exit 1
+  fi
+
+  local url_count
+  url_count="$(grep -oE 'https://[^ )>]+' "$file" | wc -l | tr -d ' ')"
+  if [[ "$url_count" -lt 3 ]]; then
+    echo "error: $rel must include at least three https:// URLs (found $url_count)" >&2
+    exit 1
+  fi
+
+  case "$skill_key" in
+    govdata)
+      if ! grep -qE 'GOVDATA_CKAN_BASE_URL|GOVDATA_PACKAGE_ID' "$file"; then
+        echo "error: $rel must document GOVDATA_CKAN_BASE_URL and GOVDATA_PACKAGE_ID" >&2
+        exit 1
+      fi
+      ;;
+  esac
+
+  echo "ok: $rel"
+}
+
+main() {
+  local target="${1:-}"
+  [[ -n "$target" ]] || usage
+
+  case "$target" in
+    all)
+      for key in govdata pvog fim leika; do
+        if [[ -f "$ROOT/$(skill_path_for "$key")" ]]; then
+          check_skill_file "$key"
+        fi
+      done
+      ;;
+    govdata | pvog | fim | leika)
+      check_skill_file "$target"
+      ;;
+    *)
+      usage
+      ;;
+  esac
+}
+
+main "$@"

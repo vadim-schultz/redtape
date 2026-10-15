@@ -94,30 +94,30 @@ Chapter 7a can run in parallel with 1–7 once the contract in [02-staging-model
 
 | # | Chapter | Layer | Gate | In loop | Plan | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Staging migration + lineage | model + migration | pytest + round-trip + `./ci.sh` | yes | [01](chapters/01-staging-migration-lineage.md) | planned |
-| 2 | Admin discovery API | backend | pytest + `./ci.sh` | yes | [02](chapters/02-admin-discovery-api.md) | planned |
-| 3 | Task auto-enqueue + claim | backend | pytest + `./ci.sh` | yes | [03](chapters/03-task-auto-enqueue-claim.md) | planned |
-| 4 | Admin shell + email gate | web | vitest + `./ci.sh` | yes | [04](chapters/04-admin-shell-email-gate.md) | planned |
-| 5 | Crawler targets table | web | vitest + `./ci.sh` | yes | [05](chapters/05-crawler-targets-table.md) | planned |
-| 6 | Pipeline drill-down | web | vitest + `./ci.sh` | yes | [06](chapters/06-pipeline-drilldown.md) | planned |
-| 7 | Emit preview panel | web + API | vitest + pytest + `./ci.sh` | yes | [07](chapters/07-emit-preview-panel.md) | planned |
-| 7a | Government data sources canon | docs | link check + `./ci.sh` | yes | [07a](chapters/07a-government-data-sources-canon.md) | planned |
-| 8 | CoS GovData skill | docs | skill structure check | yes | [08](chapters/08-cos-govdata-skill.md) | planned |
-| 9 | CoS PVOG skill | docs | skill structure check | yes | [09](chapters/09-cos-pvog-skill.md) | planned |
-| 10 | CoS FIM skill | docs | skill structure check | yes | [10](chapters/10-cos-fim-skill.md) | planned |
-| 11 | CoS LeiKa skill | docs | skill structure check | yes | [11](chapters/11-cos-leika-skill.md) | planned |
-| 12 | GovData OZG ingest | ingest + API | pytest + `./ci.sh` | yes | [12](chapters/12-govdata-ozg-ingest.md) | planned |
-| 13 | PVOG ingest CLI | ingest + API | pytest + `./ci.sh` | yes | [13](chapters/13-pvog-ingest-cli.md) | planned |
-| 14 | Catalogue task fanout | backend | pytest + `./ci.sh` | yes | [14](chapters/14-catalogue-task-fanout.md) | planned |
-| 15 | Discovery entity dedup | backend | pytest + `./ci.sh` | yes | [15](chapters/15-discovery-entity-dedup.md) | planned |
+| 1 | Staging migration + lineage | model + migration | pytest + round-trip + `./ci.sh` | yes | [01](chapters/01-staging-migration-lineage.md) | shipped |
+| 2 | Admin discovery API | backend | pytest + `./ci.sh` | yes | [02](chapters/02-admin-discovery-api.md) | shipped |
+| 3 | Task auto-enqueue + claim | backend | pytest + `./ci.sh` | yes | [03](chapters/03-task-auto-enqueue-claim.md) | shipped |
+| 4 | Admin shell + email gate | web | vitest + `./ci.sh` | yes | [04](chapters/04-admin-shell-email-gate.md) | shipped |
+| 5 | Crawler targets table | web | vitest + `./ci.sh` | yes | [05](chapters/05-crawler-targets-table.md) | shipped |
+| 6 | Pipeline drill-down | web | vitest + `./ci.sh` | yes | [06](chapters/06-pipeline-drilldown.md) | shipped |
+| 7 | Emit preview panel | web + API | vitest + pytest + `./ci.sh` | yes | [07](chapters/07-emit-preview-panel.md) | shipped |
+| 7a | Government data sources canon | docs | link check + `./ci.sh` | yes | [07a](chapters/07a-government-data-sources-canon.md) | shipped |
+| 8 | CoS GovData skill | docs | skill structure check | yes | [08](chapters/08-cos-govdata-skill.md) | shipped |
+| 9 | CoS PVOG skill | docs | skill structure check | yes | [09](chapters/09-cos-pvog-skill.md) | shipped |
+| 10 | CoS FIM skill | docs | skill structure check | yes | [10](chapters/10-cos-fim-skill.md) | shipped |
+| 11 | CoS LeiKa skill | docs | skill structure check | yes | [11](chapters/11-cos-leika-skill.md) | shipped |
+| 12 | GovData OZG ingest | ingest + API | pytest + `./ci.sh` | yes | [12](chapters/12-govdata-ozg-ingest.md) | shipped |
+| 13 | PVOG ingest CLI | ingest + API | pytest + `./ci.sh` | yes | [13](chapters/13-pvog-ingest-cli.md) | shipped |
+| 14 | Catalogue task fanout | backend | pytest + `./ci.sh` | yes | [14](chapters/14-catalogue-task-fanout.md) | shipped |
+| 15 | Discovery entity dedup | backend | pytest + `./ci.sh` | yes | [15](chapters/15-discovery-entity-dedup.md) | shipped |
 | 16 | Discovery claim evidence | backend | — | **deferred** | [16](chapters/16-discovery-claim-evidence.md) | deferred |
-| 17 | FIM + LeiKa enrich | ingest + API | pytest + `./ci.sh` | yes | [17](chapters/17-fim-leika-enrich.md) | planned |
-| 18 | Emit suggestions | backend | pytest + `./ci.sh` | yes | [18](chapters/18-emit-suggestions.md) | planned |
-| 19 | Coverage metrics | backend + web | pytest + vitest + `./ci.sh` | yes | [19](chapters/19-coverage-metrics.md) | planned |
+| 17 | FIM + LeiKa enrich | ingest + API | pytest + `./ci.sh` | yes | [17](chapters/17-fim-leika-enrich.md) | shipped |
+| 18 | Emit suggestions | backend | pytest + `./ci.sh` | yes | [18](chapters/18-emit-suggestions.md) | shipped |
+| 19 | Coverage metrics | backend + web | pytest + vitest + `./ci.sh` | yes | [19](chapters/19-coverage-metrics.md) | shipped |
 | 20 | Crawler frontier adapter | crawler | — | **deferred** | [20](chapters/20-crawler-frontier-adapter.md) | deferred |
 | 21 | LLM extract flag | backend | — | **deferred** | [21](chapters/21-llm-extract-flag.md) | deferred |
-| 22 | Orchestration runbook | docs + ops | manual | yes | [22](chapters/22-orchestration-runbook.md) | planned |
-| 23 | Docs sync | docs | link check | yes | [23](chapters/23-docs-sync.md) | planned |
+| 22 | Orchestration runbook | docs + ops | manual | yes | [22](chapters/22-orchestration-runbook.md) | shipped |
+| 23 | Docs sync | docs | link check | yes | [23](chapters/23-docs-sync.md) | shipped |
 
 ---
 

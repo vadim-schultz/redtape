@@ -84,5 +84,23 @@ NODE_OPTIONS="--max-old-space-size=8192" npm run typecheck
 NODE_OPTIONS="--max-old-space-size=8192" npm test
 NODE_OPTIONS="--max-old-space-size=8192" npm run build
 
+echo "=== Discovery skill checks ==="
+bash "$ROOT/scripts/check_discovery_skills.sh" all
+
+echo "=== Discovery ingest checks ==="
+cd "$ROOT/apps/discovery-ingest"
+if [ ! -d ".venv" ]; then
+  uv venv
+fi
+if [ ! -x ".venv/bin/ruff" ]; then
+  uv pip install -e ".[dev]"
+else
+  echo "discovery-ingest venv present; skipping uv install"
+fi
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy discovery_ingest
+uv run pytest tests/test_govdata_client.py tests/test_govdata_cli.py tests/test_pvog_client.py tests/test_pvog_cli.py
+
 echo "✅ All CI checks passed!"
 

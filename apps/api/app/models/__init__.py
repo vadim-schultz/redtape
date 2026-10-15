@@ -2,6 +2,19 @@ from __future__ import annotations
 
 from app.models.api_key import ApiKey
 from app.models.base import Base
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryClaim,
+    DiscoveryClaimKind,
+    DiscoveryEntity,
+    DiscoveryEvent,
+    DiscoveryEventType,
+    DiscoveryFetchLog,
+    DiscoverySource,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+    DiscoveryTaskStatus,
+)
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locale import SupportedLocale, UITranslation
@@ -16,6 +29,17 @@ __all__ = [
     "ApiKey",
     "AppUser",
     "Base",
+    "CatalogueService",
+    "DiscoveryClaim",
+    "DiscoveryClaimKind",
+    "DiscoveryEntity",
+    "DiscoveryEvent",
+    "DiscoveryEventType",
+    "DiscoveryFetchLog",
+    "DiscoverySource",
+    "DiscoveryTask",
+    "DiscoveryTaskKind",
+    "DiscoveryTaskStatus",
     "Document",
     "DocumentRequirement",
     "Domain",

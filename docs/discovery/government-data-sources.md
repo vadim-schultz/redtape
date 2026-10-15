@@ -63,13 +63,29 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | **Primary dataset** | https://www.govdata.de/suche/daten/ozg-leistungen-und-zugehorige-onlinedienste |
 | OZG tag search | https://www.govdata.de/suche?tags=ozg |
 
-**Ingest default (chapter 12):** use the dataset **Leistungen** JSON resource (or the dataset **REST-API** resource). Resolve download URLs in manual runs with `package_show` and `resource_show`; record the canonical package id below when confirmed.
+**Resolved via `package_show` (2026-10-15):** `id=ozg-leistungen-und-zugehorige-onlinedienste`
 
-| CKAN field | Value (fill during chapter 7a research) |
+| CKAN field | Value |
 | --- | --- |
-| Package name / id | _TBD via `package_show`_ |
-| Resource: Leistungen JSON | _TBD_ |
-| Resource: REST-API | _TBD_ |
+| Package name / id | `ozg-leistungen-und-zugehorige-onlinedienste` |
+| Package UUID | `7e066f02-06e4-4c16-91aa-8a5e700dcdf2` |
+| Title | OZG-Leistungen und zugehörige Onlinedienste |
+
+| Resource name | Resource UUID | Ingest use |
+| --- | --- | --- |
+| **Leistungen** | `4b4fc7a2-8776-484d-834f-185590b181db` | **Primary JSON feed** — paginated `GET` (see URL below) |
+| **REST-API** | `cacb63f7-d635-40a5-9c5b-4ecc4a074f44` | OpenAPI descriptor (`dashboard-digitale-verwaltung.json`) |
+| Gebietskörperschaften | `28a0e72e-063f-41e4-9416-5e1ea3d719a4` | ARS lookup helper |
+| Leistungen pro Kommune | `ba66f608-02a9-41e2-86a4-460bce615153` | Example commune slice (Wiesbaden) |
+| Dashboard Digitale Verwaltung | `cfbc0986-105a-414b-a6d5-cd9c78d03d28` | Human HTML dashboard (not ingest) |
+
+**Leistungen JSON entry point (chapter 12 default):**
+
+`https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog?order=asc&page=0&size=100`
+
+**REST-API OpenAPI (dashboard):**
+
+`https://api.ozg-umsetzung.de/api/v3/api-docs/dashboard-digitale-verwaltung`
 
 **Authentication:** public read; no API key for CKAN Action API.
 
@@ -80,7 +96,7 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | Variable | Default |
 | --- | --- |
 | `GOVDATA_CKAN_BASE_URL` | `https://ckan.govdata.de/api/3/action` |
-| `GOVDATA_PACKAGE_ID` | OZG package id once resolved |
+| `GOVDATA_PACKAGE_ID` | `ozg-leistungen-und-zugehorige-onlinedienste` |
 
 **Note:** OZG dataset content is based on PVOG; catalogue rows may include cross-refs usable for enrich fanout.
 
@@ -95,6 +111,7 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | Suchdienst API overview | https://pvog.fitko.de/api/suchdienst/portalverbund-suchdienst-rest-api/ |
 | Suchdienst API index | https://produktportal.pvog.fitko.de/api/suchdienst/ |
 | Swagger UI | https://pvog.fitko.net/suchdienst/api/swagger-ui/index.html |
+| OpenAPI 3 | https://pvog.fitko.net/suchdienst/api/v3/api-docs |
 | Deprecations | https://pvog.fitko.de/api/deprecations/ |
 | Domain migration | https://pvog.fitko.de/blog/Umzug_pvog_fitko_net/ |
 | Bereitstelldienst (bulk) | `https://pvog.fitko.net/bereitstelldienst/api` |
@@ -105,7 +122,20 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 - **Suchdienst:** public search endpoints (chapter 13 default).
 - **Bereitstelldienst:** registered Client ID; optional bulk path, not required for v1 loop.
 
-**Deprecations:** avoid endpoints listed on the deprecations page (e.g. Bereitstelldienst `/v2/verwaltungsobjekte`, several Suchdienst `/v3/.../jzufi` paths). Honor response header `X-PVOG-DEPRECATED: true`.
+**Deprecations:** avoid endpoints listed on the [deprecations page](https://pvog.fitko.de/api/deprecations/) (Suchdienst and Bereitstelldienst tables). Honor response header `X-PVOG-DEPRECATED: true`.
+
+**Excluded Suchdienst paths (deprecated, do not use for new ingest):**
+
+| Path | Notes |
+| --- | --- |
+| `/v2/locations/suggestions` | Deprecated Mai 2026 |
+| `/v2/locations` | Deprecated Mai 2026 |
+| `/v2/organisationunits/jzufi` | Deprecated Mai 2026 |
+| `/v3/relations/{ars}/jzufi` | Deprecated Mai 2026 |
+| `/v3/servicedescriptions/jzufi` | Deprecated Mai 2026 |
+| `/v5/servicedescriptions/{ars}/detail` | Deprecated Mai 2026 |
+
+**Bereitstelldienst:** `/v2/verwaltungsobjekte` is deprecated — not used in v1 loop.
 
 **Environment:**
 
@@ -113,13 +143,40 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | --- | --- |
 | `PVOG_API_BASE_URL` | `https://pvog.fitko.net/suchdienst/api` |
 
-**Candidate endpoints (confirm in Swagger during 7a / 13):**
+### Candidate Suchdienst endpoints (chapter 13)
 
-| Area | Example paths (verify version in Swagger) |
-| --- | --- |
-| Onlinedienste | `/v2/onlineservices/detail` (detail by query params) |
-| Leistungen | Suchdienst “Leistungen” family per Swagger |
-| Pagination | Follow `next` / page links as returned by API; mirror in `tests/fixtures/pvog/` |
+Derived from OpenAPI (`v3/api-docs`, 2026-10-15). Prefer current **Leistungen** (`servicedescriptions`) and **Onlinedienste** families; use beta paths only when stable vNext is unavailable.
+
+**Onlinedienste (list / detail / orgs):**
+
+| Method | Path | Role |
+| --- | --- | --- |
+| `GET` | `/v1beta2/onlineservices` | List onlinedienste in ARS scope (`ars`, optional `leikaIds`, `nextPageToken`) |
+| `GET` | `/v1beta2/onlineservices/{odId}/organisations` | Orgs responsible for an onlinedienst |
+| `GET` | `/v2/onlineservices/detail` | Onlinedienst detail (`q` = onlinedienst id) |
+| `GET` | `/v3beta1/onlineservices/{odId}/detail` | Beta detail variant |
+
+**Leistungen / servicedescriptions (list / detail / lookup):**
+
+| Method | Path | Role |
+| --- | --- | --- |
+| `GET` | `/v7/servicedescriptions/{ars}` | Leistungen for ARS (current major list) |
+| `GET` | `/v6/servicedescriptions/{lbid}/detail` | Leistung detail by `lbId` |
+| `GET` | `/v3/servicedescriptions/leikaid` | Lookup by LeiKa id |
+| `GET` | `/v4beta1/servicedescriptions/leikaid` | Beta LeiKa lookup |
+| `GET` | `/v2/servicedescriptions/leikahierarchy` | LeiKa hierarchy |
+| `GET` | `/v1/servicedescriptions/suggestions/{ars}` | Suggestions for ARS |
+| `GET` | `/v8beta1/servicedescriptions` | Beta list (evaluate before production ingest) |
+
+**Supporting lookups (not deprecated at time of research):**
+
+| Method | Path | Role |
+| --- | --- | --- |
+| `GET` | `/v3/locations` | ARS / location search |
+| `GET` | `/v3/locations/suggestions` | Location suggestions |
+| `GET` | `/v5/organisationunits/detail` | Organisation unit detail |
+
+**Pagination:** beta onlinedienste use `nextPageToken`; mirror shapes in `tests/fixtures/pvog/` (chapter 13).
 
 ---
 
@@ -130,6 +187,7 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | Data-source matrix | https://docs.fitko.de/fim/docs/quer/fimportal/fim_portal_sources/ |
 | FIM documentation hub | https://docs.fitko.de/fim/docs/ |
 | **REST Swagger** | https://fimportal.de/docs |
+| OpenAPI JSON | https://fimportal.de/openapi.json |
 | Kataloge (bulk CSV/XZuFi) | https://fimportal.de/kataloge |
 | Route migration (steckbrief/stammtext) | https://fimportal.de/news/692ea5550be8335ab000a400 |
 
@@ -143,15 +201,23 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | --- | --- |
 | `FIM_PORTAL_BASE_URL` | `https://fimportal.de` |
 
-**Prefer** routes under `/leistung-steckbrief` and `/leistung-stammtext`. Do not build new integrations on deprecated `/services` or `/xzufi-services`.
+**Prefer** routes under `/api/v1/leistung-steckbriefe` and `/api/v1/leistung-stammtexte`. Do **not** build new integrations on legacy aggregate routes **`/services`** or **`/xzufi-services`** (removed from current OpenAPI; use steckbrief / stammtext families per [route migration](https://fimportal.de/news/692ea5550be8335ab000a400)).
 
-**Candidate enrich endpoints (confirm in Swagger during 7a / 17):**
+### Candidate enrich endpoints (chapter 17)
 
-| Use | Swagger area |
-| --- | --- |
-| Service steckbrief search/get | `leistung-steckbrief` |
-| Master text (Stammtext) | `leistung-stammtext` with `source` query (`leika`, `landesredaktion`, `pvog`) |
-| Organisational units | `organizational-units` (cursor pagination) |
+From `openapi.json` (2026-10-15). Use **`/api/v1/...`** for new code; `/api/v0/...` remains for compatibility.
+
+| Use | Method | Path |
+| --- | --- | --- |
+| Steckbrief search | `GET` | `/api/v1/leistung-steckbriefe` |
+| Steckbrief by key | `GET` | `/api/v1/leistung-steckbriefe/{leistungsschluessel}` |
+| Stammtext search | `GET` | `/api/v1/leistung-stammtexte` |
+| Stammtext by ids | `GET` | `/api/v1/leistung-stammtexte/{redaktion_id}/{leistung_id}/{source}` |
+| Organisational units | `GET` | `/api/v0/organizational-unit` |
+| Org unit XZuFi | `GET` | `/api/v0/organizational-unit/{redaktion_id}/{organisationseinheit_id}/xzufi` |
+| Onlinedienst XZuFi | `GET` | `/api/v0/online-service/{redaktion_id}/{onlinedienst_id}/xzufi` |
+
+**`source` query values** for stammtext include `leika`, `landesredaktion`, and `pvog` (see OpenAPI enum on `{source}`).
 
 ---
 
@@ -162,10 +228,10 @@ LeiKa has **no separate HTTP host**. Use FIM Portal and Kataloge.
 | Purpose | URL |
 | --- | --- |
 | Bulk LeiKa-plus / Alle Leistungen | https://fimportal.de/kataloge (XZuFi 2.2.0, CSV) |
-| API Stammtext | FIM `leistung-stammtext` / `service-texts` with `source=leika` |
-| Secondary ids | PVOG Suchdienst when OZG JSON already carries PVOG keys |
+| API Stammtext | FIM `/api/v1/leistung-stammtexte/.../{source}` with `source=leika` |
+| Secondary ids | PVOG Suchdienst `/v3/servicedescriptions/leikaid` when OZG JSON already carries LeiKa keys |
 
-**`external_id` convention (staging):** `leika:{redaktionId}:{leistungId}` (align with FIM keys; document exact JSON fields in `redtape-leika` skill).
+**`external_id` convention (staging):** `leika:{redaktionId}:{leistungId}` (align with FIM path segments; document exact JSON fields in `redtape-leika` skill).
 
 See also [FIM §](#fim-portal) and chapter 10 vs 11 skill boundary: FIM skill = portal API surface; LeiKa skill = LeiKa identifiers and `source=leika` mapping.
 
@@ -173,16 +239,50 @@ See also [FIM §](#fim-portal) and chapter 10 vs 11 skill boundary: FIM skill = 
 
 ## Cross-source identifiers (`raw_payload`)
 
-Keys below are **candidates** for [catalogue task fanout](../../.plans/discovery-layer/chapters/14-catalogue-task-fanout.md) (e.g. enqueue `enrich_metadata` when present). Confirm exact JSON paths from fixtures in chapters 12–13.
+Keys below are used in [catalogue task fanout](../../.plans/discovery-layer/chapters/14-catalogue-task-fanout.md) (for example enqueue `enrich_metadata` when `fim_id` is present). Ingest mappers should copy **source-native field names** into `catalogue_service.raw_payload` (plus normalized aliases where noted).
+
+### `govdata` (OZG Leistungen JSON)
+
+| Field | Notes |
+| --- | --- |
+| `leika_key` | LeiKa service key (14 digits); maps to LeiKa / FIM enrich |
+| `ozgid` | OZG grouping id |
+| `url` | Portal / service URL → `fetch_url` tasks |
+| `ars` | Official regional key (Bund = `000000000000`) |
+| `online_status` | Availability signal (`ok`, etc.) |
+
+**Fanout alias:** set `leistung_id` from `leika_key` (or parse LeiKa segments) and `redaktion_id` when present in row or derived from URL; set `fim_id` when FIM steckbrief key is known from export metadata.
+
+### `pvog` (Suchdienst responses)
+
+| Field | Notes |
+| --- | --- |
+| `id` | Onlinedienst id (`odId` path segment) |
+| `lbId` | Leistung id in PVOG relation payloads |
+| `ars` | Regional scope on relations / list queries |
+| `leikaIds` | Query or response LeiKa keys (beta onlinedienste list) |
+| `relations` | Nested links between onlinedienst and Leistung |
+
+**Fanout:** populate `leistung_id` / `redaktion_id` from `lbId` or LeiKa lookup; `portal_url` from onlinedienst `links[].uri`.
+
+### `fim` / `leika` (enrich snapshots)
+
+| Field | Notes |
+| --- | --- |
+| `leistungsschluessel` | Steckbrief primary key |
+| `redaktion_id` | FIM redaktion segment |
+| `leistung_id` | FIM leistung segment |
+| `source` | Stammtext source (`leika`, `pvog`, `landesredaktion`) |
+| `organisationseinheit_id` | Org unit enrich |
+
+Store the full source row in `catalogue_service.raw_payload` for audit.
 
 | Key / concept | Typical source | Fanout use |
 | --- | --- | --- |
-| `fim_id` | GovData OZG row | Enrich via FIM when present |
+| `fim_id` | GovData OZG row / FIM steckbrief key | Enrich via FIM when present |
 | `redaktion_id`, `leistung_id` | OZG / PVOG / FIM | LeiKa enrich |
-| PVOG service / portal ids | OZG JSON, PVOG API | Dedup and `external_id` for `pvog` source |
-| `portal_url` / service URL | All ingest paths | `fetch_url` tasks |
-
-Store the full source row in `catalogue_service.raw_payload` for audit.
+| PVOG `id` / `lbId` | OZG JSON, PVOG API | Dedup and `external_id` for `pvog` source (`pvog:{portal_id}:{service_id}`) |
+| `portal_url` / `url` | All ingest paths | `fetch_url` tasks |
 
 ---
 
