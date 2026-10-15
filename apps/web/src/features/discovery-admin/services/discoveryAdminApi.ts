@@ -29,8 +29,14 @@ export async function listDiscoveryTasks(params: {
   offset?: number;
   limit?: number;
 }): Promise<DiscoveryTaskListResponse> {
-  const { locale, accessToken, status, source, offset = 0, limit = 20 } =
-    params;
+  const {
+    locale,
+    accessToken,
+    status,
+    source,
+    offset = 0,
+    limit = 20,
+  } = params;
   return apiRequest<DiscoveryTaskListResponse>(TASKS_PATH, {
     locale,
     accessToken,

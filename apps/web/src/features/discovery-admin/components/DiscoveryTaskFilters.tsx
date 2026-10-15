@@ -54,7 +54,9 @@ export default function DiscoveryTaskFilters({
             filters.setSource(value === "" ? null : (value as DiscoverySource));
           }}
         >
-          <option value="">{t("discovery_admin.tasks.filter_source_all")}</option>
+          <option value="">
+            {t("discovery_admin.tasks.filter_source_all")}
+          </option>
           {SOURCES.map((source) => (
             <option key={source} value={source}>
               {source}

@@ -17,9 +17,7 @@ const adminTasksUrl = "/api/v1/discovery/admin/tasks";
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
 
-function stubTasksFetch(
-  handler: (url: URL) => Response | Promise<Response>,
-) {
+function stubTasksFetch(handler: (url: URL) => Response | Promise<Response>) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
@@ -43,28 +41,29 @@ function stubTasksFetch(
 }
 
 it("DiscoveryTasksPage · renders rows from mocked admin tasks API", async () => {
-  stubTasksFetch(() =>
-    new Response(
-      JSON.stringify({
-        items: [
-          {
-            id: "task-1",
-            catalogue_service_id: "cat-1",
-            source: "govdata",
-            kind: "fetch_url",
-            target_url: "https://example.gov/service",
-            status: "pending",
-            priority: 100,
-            lease_expires_at: null,
-            created_at: "2026-01-01T12:00:00Z",
-            updated_at: "2026-01-01T12:00:00Z",
-          },
-        ],
-        total: 1,
-        offset: 0,
-        limit: 20,
-      }),
-    ),
+  stubTasksFetch(
+    () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "task-1",
+              catalogue_service_id: "cat-1",
+              source: "govdata",
+              kind: "fetch_url",
+              target_url: "https://example.gov/service",
+              status: "pending",
+              priority: 100,
+              lease_expires_at: null,
+              created_at: "2026-01-01T12:00:00Z",
+              updated_at: "2026-01-01T12:00:00Z",
+            },
+          ],
+          total: 1,
+          offset: 0,
+          limit: 20,
+        }),
+      ),
   );
 
   renderWithProviders(<DiscoveryTasksPage />, {
@@ -85,6 +84,8 @@ it("DiscoveryTasksPage · shows error state when query fails", async () => {
   });
 
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument(),
+    expect(
+      screen.getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument(),
   );
 });

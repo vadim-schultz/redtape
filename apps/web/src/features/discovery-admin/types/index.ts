@@ -1,17 +1,9 @@
 /** Discovery task queue row from the admin API. */
 
 export type DiscoveryTaskStatus =
-  | "pending"
-  | "claimed"
-  | "completed"
-  | "failed";
+  "pending" | "claimed" | "completed" | "failed";
 
-export type DiscoverySource =
-  | "govdata"
-  | "pvog"
-  | "fim"
-  | "leika"
-  | "manual";
+export type DiscoverySource = "govdata" | "pvog" | "fim" | "leika" | "manual";
 
 export type DiscoveryTaskKind = "fetch_url" | "enrich_metadata";
 
