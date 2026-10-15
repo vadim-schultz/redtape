@@ -58,13 +58,7 @@ export async function listDiscoveryCatalogue(params: {
   offset?: number;
   limit?: number;
 }): Promise<CatalogueListResponse> {
-  const {
-    locale,
-    accessToken,
-    source,
-    offset = 0,
-    limit = 20,
-  } = params;
+  const { locale, accessToken, source, offset = 0, limit = 20 } = params;
   return apiRequest<CatalogueListResponse>(CATALOGUE_PATH, {
     locale,
     accessToken,
