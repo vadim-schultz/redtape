@@ -1,0 +1,1 @@
+"""GovData / OZG catalogue ingest."""
