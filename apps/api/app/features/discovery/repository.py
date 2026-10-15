@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -24,6 +25,16 @@ from app.models.discovery import (
     DiscoveryTaskStatus,
 )
 from app.schema.discovery.machine import CatalogueBatchItem
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryCoverageCounts:
+    """Aggregate coverage metrics for the admin catalogue index."""
+
+    by_source: dict[str, int]
+    tasks_pending: int
+    tasks_failed: int
+    emit_ready_count: int
 
 
 def _task_list_stmt(
@@ -227,6 +238,42 @@ class DiscoveryRepository:
         by_source = {str(row[0]): int(row[1]) for row in by_source_rows}
         by_stage = {str(row[0]): int(row[1]) for row in by_stage_rows}
         return total, by_source, by_stage
+
+    def fetch_coverage_metrics(self) -> DiscoveryCoverageCounts:
+        """Return catalogue and task counts for the admin coverage endpoint."""
+
+        by_source_rows = self._session.execute(
+            select(CatalogueService.source, func.count()).group_by(CatalogueService.source)
+        ).all()
+        by_source = {str(row[0].value): int(row[1]) for row in by_source_rows}
+        tasks_pending = int(
+            self._session.scalar(
+                select(func.count())
+                .select_from(DiscoveryTask)
+                .where(DiscoveryTask.status == DiscoveryTaskStatus.PENDING)
+            )
+            or 0
+        )
+        tasks_failed = int(
+            self._session.scalar(
+                select(func.count())
+                .select_from(DiscoveryTask)
+                .where(DiscoveryTask.status == DiscoveryTaskStatus.FAILED)
+            )
+            or 0
+        )
+        emit_ready_count = int(
+            self._session.scalar(
+                select(func.count()).select_from(CatalogueService).where(CatalogueService.pipeline_stage == "T4")
+            )
+            or 0
+        )
+        return DiscoveryCoverageCounts(
+            by_source=by_source,
+            tasks_pending=tasks_pending,
+            tasks_failed=tasks_failed,
+            emit_ready_count=emit_ready_count,
+        )
 
     def get_catalogue(self, catalogue_id: UUID) -> CatalogueService | None:
         return self._session.get(CatalogueService, catalogue_id)

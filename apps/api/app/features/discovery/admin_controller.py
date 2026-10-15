@@ -14,6 +14,7 @@ from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
 from app.schema.discovery.read import (
     CatalogueListResponse,
     CataloguePipelineResponse,
+    DiscoveryCoverageResponse,
     DiscoveryTaskListResponse,
     EmitPreviewResponse,
 )
@@ -45,6 +46,10 @@ class DiscoveryAdminController(Controller):
         limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> CatalogueListResponse:
         return discovery_admin_service.list_catalogue(source=source, offset=offset, limit=limit)
+
+    @get("/coverage", sync_to_thread=True)
+    def coverage(self, discovery_admin_service: DiscoveryAdminService) -> DiscoveryCoverageResponse:
+        return discovery_admin_service.coverage()
 
     @get("/catalogue/{catalogue_id:uuid}/pipeline", sync_to_thread=True)
     def catalogue_pipeline(
