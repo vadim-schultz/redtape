@@ -180,6 +180,23 @@ Eleven chapters.
 
 Status: planned — no chapter started. First: [chapters/01-crawler-package-skeleton.md](crawlers/chapters/01-crawler-package-skeleton.md).
 
+### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
+
+Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine discovery API, read-only admin at `/admin/discovery/*`, machine emit to [suggestion-interface](suggestion-interface/00-architecture.md) (`pending` only). **Loop-complete without** voting-moderation, evidence-storage, or crawlers — those suites consume or extend staging later.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-layer/00-architecture.md) | Staging graph, pipeline stages, admin review |
+| [02-staging-model-and-api.md](discovery-layer/02-staging-model-and-api.md) | Tables, routes, ingest package layout |
+| [01-rollout.md](discovery-layer/01-rollout.md) | 20 in-loop chapters + 3 deferred, CoS execution order, TDD gate |
+| [gaps-and-decisions.md](discovery-layer/gaps-and-decisions.md) | Loop boundary, auto-enqueue, deferred chapters |
+| [chapters/](discovery-layer/chapters/) | Executable chapter plans |
+
+Status: shipped — twenty in-loop chapters on `feat/plans-discovery-layer` (release PR to `main` pending).
+Deferred: chapters 16 (claim evidence), 20 (crawler frontier adapter), 21 (LLM extract). Operator runbook:
+[`docs/operations/discovery-layer.md`](../docs/operations/discovery-layer.md). CoS orchestration:
+[`docs/operations/loops/discovery-layer.md`](../docs/operations/loops/discovery-layer.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
