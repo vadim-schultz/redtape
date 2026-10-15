@@ -36,6 +36,7 @@ def test_govdata_cli_posts_batch_to_machine_api_with_api_key_header(
 
     def handler(request: httpx.Request) -> httpx.Response:
         captured["api_key"] = request.headers.get("X-API-Key")
+        captured["url"] = str(request.url)
         captured["body"] = json.loads(request.content.decode())
         return httpx.Response(201, json={"items": []})
 
@@ -54,6 +55,7 @@ def test_govdata_cli_posts_batch_to_machine_api_with_api_key_header(
 
     assert exit_code == 0
     assert captured["api_key"] == "test-machine-key"
+    assert captured["url"] == f"{API_BASE}/api/v1/discovery/machine/catalogue/batch"
     body = captured["body"]
     assert isinstance(body, dict)
     items = body["items"]
