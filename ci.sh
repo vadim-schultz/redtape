@@ -84,5 +84,8 @@ NODE_OPTIONS="--max-old-space-size=8192" npm run typecheck
 NODE_OPTIONS="--max-old-space-size=8192" npm test
 NODE_OPTIONS="--max-old-space-size=8192" npm run build
 
+echo "=== Discovery skill checks ==="
+bash "$ROOT/scripts/check_discovery_skills.sh" govdata
+
 echo "✅ All CI checks passed!"
 
