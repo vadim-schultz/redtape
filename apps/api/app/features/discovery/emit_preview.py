@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TypedDict
 from uuid import UUID
 
+from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.discovery import DiscoveryClaim, DiscoveryClaimKind, DiscoveryEntity
 from app.models.suggestion import SuggestionKind
 
@@ -37,7 +38,7 @@ def _claim_to_suggestion_payload(
             body: dict[str, object] = {
                 "kind": SuggestionKind.NEW_DOCUMENT.value,
                 "jurisdiction_id": str(jurisdiction_id),
-                "source_url": entity.canonical_url,
+                "source_url": normalize_canonical_url(entity.canonical_url),
                 "payload": claim.payload,
             }
             return body, None
@@ -49,7 +50,7 @@ def _claim_to_suggestion_payload(
             body = {
                 "kind": SuggestionKind.NEW_REQUIREMENT.value,
                 "jurisdiction_id": str(jurisdiction_id),
-                "source_url": entity.canonical_url,
+                "source_url": normalize_canonical_url(entity.canonical_url),
                 "payload": claim.payload,
             }
             return body, None

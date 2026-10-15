@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
+from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.discovery import (
     CatalogueService,
     DiscoveryClaim,
@@ -240,17 +241,17 @@ class DiscoveryRepository:
         canonical_url: str,
         label: str | None,
     ) -> tuple[DiscoveryEntity, bool]:
-        """Insert or update an entity keyed by catalogue row and canonical URL."""
+        """Insert or update an entity keyed by catalogue row and normalized canonical URL."""
 
-        stmt = select(DiscoveryEntity).where(
-            DiscoveryEntity.catalogue_service_id == catalogue_service_id,
-            DiscoveryEntity.canonical_url == canonical_url,
+        existing = self._find_entity_by_normalized_url(
+            catalogue_service_id=catalogue_service_id,
+            normalized_url=canonical_url,
         )
-        existing = self._session.scalar(stmt)
         if existing is not None:
-            if label is not None:
+            existing.canonical_url = canonical_url
+            if label is not None and label.strip():
                 existing.label = label
-                self._session.flush()
+            self._session.flush()
             return existing, False
         row = DiscoveryEntity(
             catalogue_service_id=catalogue_service_id,
@@ -260,6 +261,17 @@ class DiscoveryRepository:
         self._session.add(row)
         self._session.flush()
         return row, True
+
+    def _find_entity_by_normalized_url(
+        self,
+        *,
+        catalogue_service_id: UUID,
+        normalized_url: str,
+    ) -> DiscoveryEntity | None:
+        for entity in self.list_catalogue_entities(catalogue_service_id):
+            if normalize_canonical_url(entity.canonical_url) == normalized_url:
+                return entity
+        return None
 
     def append_claim(
         self,
