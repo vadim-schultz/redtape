@@ -1,13 +1,13 @@
 import { Box, VStack } from "@chakra-ui/react";
 
 import type { DiscoveryTask } from "../types";
-import type { DiscoveryTaskFilters } from "../hooks/useDiscoveryTaskFilters";
+import type { DiscoveryTaskFilters as DiscoveryTaskFiltersState } from "../hooks/useDiscoveryTaskFilters";
 
 import DiscoveryTaskFilters from "./DiscoveryTaskFilters";
 import DiscoveryTasksQueryStatus from "./DiscoveryTasksQueryStatus";
 
 export interface DiscoveryTasksViewProps {
-  filters: DiscoveryTaskFilters;
+  filters: DiscoveryTaskFiltersState;
   tasks: DiscoveryTask[] | undefined;
   isLoading: boolean;
   isRefreshing: boolean;

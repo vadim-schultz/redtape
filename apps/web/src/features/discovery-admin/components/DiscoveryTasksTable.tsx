@@ -6,10 +6,11 @@ import type { DiscoveryTask } from "../types";
 
 function formatLeaseExpiry(
   leaseExpiresAt: string | null,
+  locale: string,
   t: (key: string) => string,
 ): string {
   if (!leaseExpiresAt) return t("discovery_admin.tasks.lease_none");
-  return formatRelativeTime(leaseExpiresAt);
+  return formatRelativeTime(leaseExpiresAt, locale);
 }
 
 export default function DiscoveryTasksTable({
@@ -17,7 +18,7 @@ export default function DiscoveryTasksTable({
 }: {
   tasks: DiscoveryTask[];
 }) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
 
   return (
     <Table.Root size="sm" variant="line">
@@ -48,7 +49,7 @@ export default function DiscoveryTasksTable({
             <Table.Cell>{task.source}</Table.Cell>
             <Table.Cell>{task.priority}</Table.Cell>
             <Table.Cell>
-              {formatLeaseExpiry(task.lease_expires_at, t)}
+              {formatLeaseExpiry(task.lease_expires_at, locale, t)}
             </Table.Cell>
           </Table.Row>
         ))}
