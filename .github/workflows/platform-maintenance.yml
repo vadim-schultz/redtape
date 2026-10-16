@@ -129,6 +129,11 @@ jobs:
             --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
             --max-pages 50
 
+      - name: Discovery worker drain
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest worker drain --max-tasks 50
+
   skip:
     name: No maintenance job today
     needs: route

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -26,6 +27,8 @@ from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClien
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
 from discovery_ingest.pvog.client import FEDERAL_ARS, PvogClient, PvogMappingError, map_pvog_record
 from discovery_ingest.schemas import CatalogueBatchItem
+from discovery_ingest.worker.drain import run_worker_drain
+from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -45,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
         return _fim_enrich(args)
     if args.command == "leika" and args.leika_command == "enrich":
         return _leika_enrich(args)
+    if args.command == "worker" and args.worker_command == "drain":
+        return _worker_drain(args)
     parser.print_help()
     return 2
 
@@ -170,6 +175,18 @@ def _fim_enrich(args: argparse.Namespace) -> int:
             api.post_claim(claim)
     except DiscoveryMachineApiError:
         return 1
+    return 0
+
+
+def _worker_drain(args: argparse.Namespace) -> int:
+    settings = load_ingest_settings()
+    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
+    fetcher = PoliteUrlFetcher()
+    try:
+        report = run_worker_drain(client, fetcher, max_tasks=args.max_tasks)
+    except DiscoveryMachineApiError:
+        return 1
+    print(json.dumps(report.model_dump(mode="json")))
     return 0
 
 
@@ -305,4 +322,14 @@ def _build_parser() -> argparse.ArgumentParser:
     leika_enrich.add_argument("--catalogue-service-id", type=UUID, required=True)
     leika_enrich.add_argument("--catalogue-export", required=True, help="Admin catalogue export JSON")
     leika_enrich.add_argument("--input", required=True, help="Stammtext JSON fixture or snapshot")
+
+    worker = sub.add_parser("worker", help="Discovery task worker")
+    worker_sub = worker.add_subparsers(dest="worker_command")
+    worker_drain = worker_sub.add_parser("drain", help="Claim tasks, fetch URLs, complete or fail")
+    worker_drain.add_argument(
+        "--max-tasks",
+        type=int,
+        default=50,
+        help="Maximum tasks to claim per run (1–50, default 50)",
+    )
     return parser
