@@ -17,6 +17,7 @@ class FetchOutcome:
     content_type: str | None
     byte_length: int | None
     error_message: str | None
+    body: bytes | None = None
 
 
 class PoliteUrlFetcher:
@@ -41,16 +42,30 @@ class PoliteUrlFetcher:
         try:
             response = self._request(url)
         except httpx.TimeoutException as err:
-            return FetchOutcome(http_status=None, content_type=None, byte_length=None, error_message=str(err))
+            return FetchOutcome(
+                http_status=None,
+                content_type=None,
+                byte_length=None,
+                error_message=str(err),
+                body=None,
+            )
         except httpx.HTTPError as err:
-            return FetchOutcome(http_status=None, content_type=None, byte_length=None, error_message=str(err))
+            return FetchOutcome(
+                http_status=None,
+                content_type=None,
+                byte_length=None,
+                error_message=str(err),
+                body=None,
+            )
         content_type = response.headers.get("content-type")
         body = response.content
+        response_body = body if response.status_code < 400 else None
         return FetchOutcome(
             http_status=response.status_code,
             content_type=content_type,
             byte_length=len(body),
             error_message=None,
+            body=response_body,
         )
 
     def _wait_for_host(self, host: str) -> None:

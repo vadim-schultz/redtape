@@ -6,6 +6,7 @@ from typing import Protocol
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendRequest
+from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 
 
@@ -90,18 +91,7 @@ def _handle_fetch_url(
     return "completed"
 
 
-def _handle_enrich_metadata_skip(
-    task: ClaimedTask,
-    *,
-    client: DiscoveryMachineClient,
-    fetcher: PoliteUrlFetcher,
-) -> str:
-    del fetcher
-    client.complete_task(task.id)
-    return "skipped"
-
-
 _TASK_HANDLERS: dict[str, _TaskHandler] = {
     "fetch_url": _handle_fetch_url,
-    "enrich_metadata": _handle_enrich_metadata_skip,
+    "enrich_metadata": handle_enrich_metadata,
 }

@@ -11,6 +11,7 @@ from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
     CatalogueBatchRequest,
+    CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
     EntityUpsertRequest,
@@ -63,6 +64,15 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             detail = response.text
             raise DiscoveryMachineApiError(response.status_code, detail)
+
+    def get_catalogue(self, catalogue_id: UUID) -> CatalogueMachineRead:
+        """Load minimal catalogue row for enrich workers."""
+        url = f"{self._base_url}/api/v1/discovery/machine/catalogue/{catalogue_id}"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return CatalogueMachineRead.model_validate(response.json())
 
     def post_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
         """Upsert a discovery entity under a catalogue row."""

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 from discovery_ingest.catalogue_export import CatalogueExportItem
-from discovery_ingest.schemas import ClaimAppendRequest, EntityUpsertRequest
+from discovery_ingest.schemas import CatalogueMachineRead, ClaimAppendRequest, EntityUpsertRequest
 
 
 def _title_i18n_from_row(catalogue: CatalogueExportItem, response: dict[str, Any]) -> dict[str, str]:
@@ -137,6 +138,29 @@ def leika_stammtext_claim_requests(
         )
     )
     return claims
+
+
+def catalogue_export_item_from_machine(read: CatalogueMachineRead) -> CatalogueExportItem:
+    """Map a machine catalogue read DTO to offline export shape for enrich helpers."""
+    return CatalogueExportItem(
+        id=read.id,
+        source=read.source,
+        portal_url=read.portal_url,
+        title_i18n=dict(read.title_i18n),
+        raw_payload=dict(read.raw_payload),
+    )
+
+
+def fim_id_from_steckbrief_url(target_url: str) -> str | None:
+    """Extract steckbrief key from a FIM Portal steckbrief URL."""
+    path = urlparse(target_url).path
+    marker = "/leistung-steckbriefe/"
+    if marker not in path:
+        return None
+    suffix = path.split(marker, 1)[-1].strip("/")
+    if not suffix or "/" in suffix:
+        return None
+    return suffix
 
 
 def fim_id_from_catalogue(catalogue: CatalogueExportItem) -> str | None:
