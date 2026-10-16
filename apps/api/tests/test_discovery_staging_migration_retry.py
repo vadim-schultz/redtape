@@ -130,8 +130,7 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
                 (STAGING_REVISION,),
             )
             conn.execute(
-                "ALTER TABLE discovery_claim "
-                "DROP CONSTRAINT IF EXISTS uq_discovery_claim_entity_kind_fingerprint"
+                "ALTER TABLE discovery_claim DROP CONSTRAINT IF EXISTS uq_discovery_claim_entity_kind_fingerprint"
             )
             conn.execute("ALTER TABLE discovery_claim DROP COLUMN IF EXISTS payload_fingerprint")
             conn.commit()
