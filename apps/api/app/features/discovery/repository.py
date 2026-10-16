@@ -8,8 +8,10 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.features.discovery.claim_fingerprint import claim_payload_fingerprint
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.discovery import (
     CatalogueService,
@@ -78,27 +80,37 @@ class DiscoveryRepository:
         """Insert or update a catalogue row; return the row and whether it was created."""
 
         existing = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
-        if existing is None:
-            row = CatalogueService(
-                source=item.source,
-                external_id=item.external_id,
-                jurisdiction_id=item.jurisdiction_id,
-                title_i18n=item.title_i18n,
-                description_i18n=item.description_i18n,
-                portal_url=item.portal_url,
-                raw_payload=item.raw_payload,
-                pipeline_stage="T0",
-            )
-            self._session.add(row)
+        if existing is not None:
+            return self._apply_catalogue_fields(existing, item), False
+        row = CatalogueService(
+            source=item.source,
+            external_id=item.external_id,
+            jurisdiction_id=item.jurisdiction_id,
+            title_i18n=item.title_i18n,
+            description_i18n=item.description_i18n,
+            portal_url=item.portal_url,
+            raw_payload=item.raw_payload,
+            pipeline_stage="T0",
+        )
+        self._session.add(row)
+        try:
             self._session.flush()
-            return row, True
-        existing.jurisdiction_id = item.jurisdiction_id
-        existing.title_i18n = item.title_i18n
-        existing.description_i18n = item.description_i18n
-        existing.portal_url = item.portal_url
-        existing.raw_payload = item.raw_payload
+        except IntegrityError:
+            self._session.rollback()
+            raced = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
+            if raced is None:
+                raise
+            return self._apply_catalogue_fields(raced, item), False
+        return row, True
+
+    def _apply_catalogue_fields(self, row: CatalogueService, item: CatalogueBatchItem) -> CatalogueService:
+        row.jurisdiction_id = item.jurisdiction_id
+        row.title_i18n = item.title_i18n
+        row.description_i18n = item.description_i18n
+        row.portal_url = item.portal_url
+        row.raw_payload = item.raw_payload
         self._session.flush()
-        return existing, False
+        return row
 
     def record_event(
         self,
@@ -125,13 +137,28 @@ class DiscoveryRepository:
         kind: DiscoveryTaskKind,
         target_url: str,
     ) -> DiscoveryTask | None:
+        return self.find_task_for_target(
+            catalogue_service_id=catalogue_service_id,
+            kind=kind,
+            target_url=target_url,
+            statuses=(DiscoveryTaskStatus.PENDING,),
+        )
+
+    def find_task_for_target(
+        self,
+        *,
+        catalogue_service_id: UUID,
+        kind: DiscoveryTaskKind,
+        target_url: str,
+        statuses: tuple[DiscoveryTaskStatus, ...],
+    ) -> DiscoveryTask | None:
         stmt = (
             select(DiscoveryTask)
             .where(
                 DiscoveryTask.catalogue_service_id == catalogue_service_id,
                 DiscoveryTask.kind == kind,
                 DiscoveryTask.target_url == target_url,
-                DiscoveryTask.status == DiscoveryTaskStatus.PENDING,
+                DiscoveryTask.status.in_(statuses),
             )
             .limit(1)
         )
@@ -320,6 +347,24 @@ class DiscoveryRepository:
                 return entity
         return None
 
+    def find_claim_by_fingerprint(
+        self,
+        *,
+        discovery_entity_id: UUID,
+        kind: DiscoveryClaimKind,
+        payload_fingerprint: str,
+    ) -> DiscoveryClaim | None:
+        stmt = (
+            select(DiscoveryClaim)
+            .where(
+                DiscoveryClaim.discovery_entity_id == discovery_entity_id,
+                DiscoveryClaim.kind == kind,
+                DiscoveryClaim.payload_fingerprint == payload_fingerprint,
+            )
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def append_claim(
         self,
         *,
@@ -327,16 +372,44 @@ class DiscoveryRepository:
         kind: DiscoveryClaimKind,
         payload: dict[str, object],
         confidence: Decimal | None,
-    ) -> DiscoveryClaim:
+    ) -> tuple[DiscoveryClaim, bool]:
+        """Insert or update a claim keyed by payload fingerprint; return ``(row, created)``."""
+
+        fingerprint = claim_payload_fingerprint(kind, payload)
+        existing = self.find_claim_by_fingerprint(
+            discovery_entity_id=discovery_entity_id,
+            kind=kind,
+            payload_fingerprint=fingerprint,
+        )
+        if existing is not None:
+            existing.payload = payload
+            existing.confidence = confidence
+            self._session.flush()
+            return existing, False
         row = DiscoveryClaim(
             discovery_entity_id=discovery_entity_id,
             kind=kind,
             payload=payload,
+            payload_fingerprint=fingerprint,
             confidence=confidence,
         )
         self._session.add(row)
-        self._session.flush()
-        return row
+        try:
+            self._session.flush()
+        except IntegrityError:
+            self._session.rollback()
+            raced = self.find_claim_by_fingerprint(
+                discovery_entity_id=discovery_entity_id,
+                kind=kind,
+                payload_fingerprint=fingerprint,
+            )
+            if raced is None:
+                raise
+            raced.payload = payload
+            raced.confidence = confidence
+            self._session.flush()
+            return raced, False
+        return row, True
 
     def list_catalogue_tasks(self, catalogue_id: UUID) -> list[tuple[DiscoveryTask, DiscoverySource]]:
         stmt = (

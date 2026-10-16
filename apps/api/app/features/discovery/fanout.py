@@ -6,12 +6,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.models.discovery import (
     CatalogueService,
-    DiscoveryEventType,
     DiscoverySource,
     DiscoveryTask,
     DiscoveryTaskKind,
+    DiscoveryTaskStatus,
 )
 
 FIM_PORTAL_BASE_URL = "https://fimportal.de"
@@ -67,24 +68,25 @@ def apply_fanout_for_service(repo: DiscoveryRepository, service: CatalogueServic
     """Insert pending fanout tasks and record ``task_enqueued`` events (idempotent)."""
     created: list[DiscoveryTask] = []
     for spec in fanout_specs_for_service(service):
-        existing = repo.find_pending_task(
+        existing = repo.find_task_for_target(
             catalogue_service_id=service.id,
             kind=spec.kind,
             target_url=spec.target_url,
+            statuses=(
+                DiscoveryTaskStatus.PENDING,
+                DiscoveryTaskStatus.CLAIMED,
+                DiscoveryTaskStatus.COMPLETED,
+            ),
         )
         if existing is not None:
             continue
-        task = repo.insert_task(
+        task = enqueue_task_if_needed(
+            repo,
             catalogue_service_id=service.id,
             kind=spec.kind,
             target_url=spec.target_url,
             priority=spec.priority,
         )
-        repo.record_event(
-            event_type=DiscoveryEventType.TASK_ENQUEUED,
-            catalogue_service_id=service.id,
-            discovery_task_id=task.id,
-            payload={"kind": task.kind.value, "target_url": task.target_url},
-        )
-        created.append(task)
+        if task is not None:
+            created.append(task)
     return created
