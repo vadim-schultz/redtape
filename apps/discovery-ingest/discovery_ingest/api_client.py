@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from uuid import UUID
 
 import httpx
 
@@ -14,6 +15,9 @@ from discovery_ingest.schemas import (
     ClaimAppendResponse,
     EntityUpsertRequest,
     EntityUpsertResponse,
+    FetchLogAppendRequest,
+    TaskClaimRequest,
+    TaskClaimResponse,
 )
 
 
@@ -85,6 +89,52 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return ClaimAppendResponse.model_validate(response.json())
+
+    def claim_tasks(self, *, limit: int) -> TaskClaimResponse:
+        """Claim pending discovery tasks for this API key."""
+        body = TaskClaimRequest(limit=limit)
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/claim"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskClaimResponse.model_validate(response.json())
+
+    def append_fetch(self, task_id: UUID, body: FetchLogAppendRequest) -> None:
+        """Append a fetch log row for a claimed task."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fetches"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def complete_task(self, task_id: UUID) -> None:
+        """Mark a claimed task completed."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/complete"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def fail_task(self, task_id: UUID, *, error: str) -> None:
+        """Mark a claimed task failed with ``error``."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json={"error": error},
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
 
 
 def _post_catalogue_batches(
