@@ -7,6 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNBOOK = REPO_ROOT / "docs/operations/discovery-layer.md"
+DISCOVERY_ONLINE_RUNBOOK = REPO_ROOT / "docs/operations/discovery-online.md"
 
 _MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
@@ -70,3 +71,27 @@ def test_runbook_relative_links_resolve() -> None:
         if not resolved.is_file():
             missing.append(rel)
     assert not missing, f"broken relative links in runbook: {missing}"
+
+
+def test_discovery_online_runbook_mentions_platform_maintenance() -> None:
+    """Discovery online runbook points at the unified platform maintenance workflow."""
+    assert DISCOVERY_ONLINE_RUNBOOK.is_file()
+    text = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
+    assert "platform-maintenance" in text
+
+
+def test_discovery_online_runbook_documents_scheduled_first() -> None:
+    """Discovery online runbook describes GitHub Actions before laptop debugging."""
+    text = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
+    gha_pos = text.lower().find("github actions")
+    laptop_pos = text.lower().find("laptop")
+    assert gha_pos != -1
+    assert laptop_pos != -1
+    assert gha_pos < laptop_pos
+
+
+def test_discovery_online_runbook_documents_idempotency_with_openplz_parity() -> None:
+    """Idempotency section cross-links OpenPLZ import runbook."""
+    text = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
+    assert "Idempotency" in text or "idempotency" in text
+    assert "openplz-import.md" in text

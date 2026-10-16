@@ -11,7 +11,7 @@ This project has no GitLab CI — all scheduling runs on **GitHub Actions**. Ope
   | `days % 6` | Job |
   | --- | --- |
   | `0` | OpenPLZ import |
-  | `3` | Discovery online (GovData fetch + PVOG run; worker drain in later chapters) |
+  | `3` | Discovery online (health wait, GovData fetch, PVOG run, worker drain) |
   | `1`, `2`, `4`, `5` | No-op (`skip`, success) |
 - **OpenPLZ job steps:** checkout → Python 3.12 → `pip install -e .` in `apps/api` → `alembic upgrade head` → verify `uq_jurisdiction_kind_code` on `jurisdiction` → `python scripts/import_openplz_locations.py --language de`.
 Manual override ignores the calendar when `job` is set on `workflow_dispatch`.
@@ -35,7 +35,8 @@ Optional workflow environment variables (defaults in [`discovery_ingest/config.p
 | `PVOG_API_BASE_URL` | PVOG Suchdienst API base |
 | `FIM_PORTAL_BASE_URL` | FIM portal base for enrich |
 
-Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Laptop runbook:
+Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operator runbook:
+[`discovery-online.md`](discovery-online.md). Laptop debugging:
 [`discovery-layer.md`](discovery-layer.md).
 
 ## Manually triggering a run
@@ -56,6 +57,7 @@ The legacy **OpenPLZ Import** workflow ([`openplz-import.yml`](../../.github/wor
 
 ## Related
 
+- Discovery online operations: [discovery-online.md](discovery-online.md)
 - Import script details: [openplz-import.md](openplz-import.md)
 - Import script: [`apps/api/scripts/import_openplz_locations.py`](../../apps/api/scripts/import_openplz_locations.py)
 - Render keep-alive ping (separate): [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml)

@@ -11,6 +11,9 @@ ROLLOUT = REPO_ROOT / ".plans/discovery-layer/01-rollout.md"
 PLANS_README = REPO_ROOT / ".plans/README.md"
 GOVERNMENT_DATA_SOURCES = REPO_ROOT / "docs/discovery/government-data-sources.md"
 RUNBOOK = REPO_ROOT / "docs/operations/discovery-layer.md"
+DISCOVERY_ONLINE_RUNBOOK = REPO_ROOT / "docs/operations/discovery-online.md"
+SCHEDULED_JOBS = REPO_ROOT / "docs/operations/scheduled-jobs.md"
+DISCOVERY_ONLINE_LOOP = REPO_ROOT / "docs/operations/loops/discovery-online.md"
 
 _MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
@@ -89,3 +92,21 @@ def test_government_data_sources_relative_links_resolve() -> None:
 def test_runbook_file_exists_for_status_evidence() -> None:
     """Operations runbook referenced from STATUS exists."""
     assert RUNBOOK.is_file()
+
+
+def test_plans_readme_marks_discovery_online_shipped() -> None:
+    """Plans index records discovery-online as shipped."""
+    text = PLANS_README.read_text(encoding="utf-8")
+    discovery_block = text.split("### [discovery-online/](discovery-online/)", 1)[-1]
+    assert "Status: shipped" in discovery_block
+
+
+def test_discovery_online_docs_relative_links_resolve() -> None:
+    """Relative links in discovery-online ops docs resolve."""
+    for path in (
+        DISCOVERY_ONLINE_RUNBOOK,
+        SCHEDULED_JOBS,
+        DISCOVERY_ONLINE_LOOP,
+        RUNBOOK,
+    ):
+        _assert_relative_links_resolve(path)
