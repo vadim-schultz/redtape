@@ -68,6 +68,7 @@ def _new_document_claim(db_session: Session, catalogue_id: uuid.UUID) -> Discove
             "title_i18n": {"de": "Ausweis"},
             "official_url": "https://example.gov/doc",
         },
+        payload_fingerprint="emit-test-doc-fp",
     )
     db_session.add(claim)
     db_session.flush()
@@ -116,6 +117,7 @@ def test_emit_skips_requirement_claim_without_resolved_document_uuids(
             discovery_entity_id=entity.id,
             kind=DiscoveryClaimKind.NEW_REQUIREMENT,
             payload={"notes_i18n": {"de": "Braucht Pass"}},
+            payload_fingerprint="emit-test-req-fp",
         )
     )
     db_session.flush()

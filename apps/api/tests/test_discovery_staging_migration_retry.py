@@ -15,7 +15,8 @@ from sqlalchemy.engine import make_url
 
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
-HEAD_REVISION = "20261012_discovery_staging"
+STAGING_REVISION = "20261012_discovery_staging"
+HEAD_REVISION = "20261015_claim_fingerprint"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
 
@@ -118,7 +119,7 @@ def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() 
 
 
 def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_parent() -> None:
-    """Full schema with stale alembic_version (production stuck state) bumps revision."""
+    """Staging schema with stale alembic_version (production stuck state) bumps revision."""
     with _fresh_database() as database_url:
         first = _run_alembic(database_url, "upgrade", "head")
         assert first.returncode == 0, first.stdout + first.stderr
@@ -126,11 +127,15 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
         with psycopg.connect(_psycopg_dsn(database_url)) as conn:
             conn.execute(
                 "UPDATE alembic_version SET version_num = %s",
-                (PARENT_REVISION,),
+                (STAGING_REVISION,),
             )
+            conn.execute(
+                "ALTER TABLE discovery_claim DROP CONSTRAINT IF EXISTS uq_discovery_claim_entity_kind_fingerprint"
+            )
+            conn.execute("ALTER TABLE discovery_claim DROP COLUMN IF EXISTS payload_fingerprint")
             conn.commit()
 
-        assert _alembic_version(database_url) == PARENT_REVISION
+        assert _alembic_version(database_url) == STAGING_REVISION
         assert _table_exists(database_url, "catalogue_service")
 
         retry = _run_alembic(database_url, "upgrade", "head")

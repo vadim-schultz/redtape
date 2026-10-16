@@ -17,6 +17,7 @@ from app.features.discovery.pipeline import (
     derive_pipeline_stage,
 )
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
 from app.models.discovery import (
@@ -36,6 +37,7 @@ from app.schema.discovery.machine import (
     CatalogueBatchItemResult,
     CatalogueBatchRequest,
     CatalogueBatchResponse,
+    CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
     ClaimedTaskRead,
@@ -202,19 +204,14 @@ def _enqueue_tasks_for_service(
 ) -> DiscoveryTask | None:
     if not service.portal_url:
         return None
-    task = repo.insert_task(
+    task = enqueue_task_if_needed(
+        repo,
         catalogue_service_id=service.id,
         kind=DiscoveryTaskKind.FETCH_URL,
         target_url=service.portal_url,
     )
-    if service.pipeline_stage == "T0":
+    if task is not None and service.pipeline_stage == "T0":
         service.pipeline_stage = "T1"
-    repo.record_event(
-        event_type=DiscoveryEventType.TASK_ENQUEUED,
-        catalogue_service_id=service.id,
-        discovery_task_id=task.id,
-        payload={"kind": task.kind.value, "target_url": task.target_url},
-    )
     return task
 
 
@@ -270,8 +267,21 @@ class DiscoveryMachineService:
             )
         return CatalogueBatchResponse(items=results)
 
+    def get_catalogue_for_machine(self, catalogue_id: UUID) -> CatalogueMachineRead:
+        row = self._repo.get_catalogue(catalogue_id)
+        if row is None:
+            raise NotFoundException("Catalogue service not found")
+        return CatalogueMachineRead(
+            id=row.id,
+            source=row.source,
+            portal_url=row.portal_url,
+            title_i18n=row.title_i18n,
+            raw_payload=row.raw_payload,
+        )
+
     def claim_tasks(self, body: TaskClaimRequest, *, api_key: ApiKey) -> TaskClaimResponse:
         now = datetime.now(UTC)
+        self._repo.reclaim_expired_claims(now=now)
         claimed = _claim_pending_tasks(self._repo, api_key=api_key, limit=body.limit, now=now)
         items = [
             ClaimedTaskRead(
@@ -331,7 +341,7 @@ class DiscoveryMachineService:
         confidence: Decimal | None = None
         if body.confidence is not None:
             confidence = Decimal(str(body.confidence))
-        row = self._repo.append_claim(
+        row, created = self._repo.append_claim(
             discovery_entity_id=body.discovery_entity_id,
             kind=body.kind,
             payload=payload,
@@ -340,11 +350,12 @@ class DiscoveryMachineService:
         catalogue = self._repo.get_catalogue(entity.catalogue_service_id)
         if catalogue is not None and catalogue.pipeline_stage in ("T0", "T1", "T2"):
             catalogue.pipeline_stage = "T3"
-        self._repo.record_event(
-            event_type=DiscoveryEventType.CLAIM_RECORDED,
-            catalogue_service_id=entity.catalogue_service_id,
-            payload={"claim_id": str(row.id), "kind": row.kind.value},
-        )
+        if created:
+            self._repo.record_event(
+                event_type=DiscoveryEventType.CLAIM_RECORDED,
+                catalogue_service_id=entity.catalogue_service_id,
+                payload={"claim_id": str(row.id), "kind": row.kind.value},
+            )
         return ClaimAppendResponse(
             id=row.id,
             discovery_entity_id=row.discovery_entity_id,

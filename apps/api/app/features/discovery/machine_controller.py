@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from litestar import Controller, post
+from litestar import Controller, get, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
@@ -15,6 +15,7 @@ from app.schema.discovery.machine import (
     CatalogueBatchRequest,
     CatalogueBatchResponse,
     CatalogueEmitResponse,
+    CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
     EntityUpsertRequest,
@@ -34,6 +35,14 @@ class DiscoveryMachineController(Controller):
 
     path = "/"
     guards = [require_discovery_machine]
+
+    @get("/catalogue/{catalogue_id:uuid}", sync_to_thread=True, status_code=HTTP_200_OK)
+    def get_catalogue(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        catalogue_id: UUID,
+    ) -> CatalogueMachineRead:
+        return discovery_machine_service.get_catalogue_for_machine(catalogue_id)
 
     @post("/catalogue/batch", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def batch_catalogue(

@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from uuid import UUID
 
 import httpx
 
+from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
     CatalogueBatchRequest,
+    CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
     EntityUpsertRequest,
     EntityUpsertResponse,
+    FetchLogAppendRequest,
+    TaskClaimRequest,
+    TaskClaimResponse,
 )
 
 
@@ -36,8 +42,9 @@ class DiscoveryMachineClient:
         """Upsert items in chunks of at most ``batch_size``."""
         if batch_size < 1 or batch_size > 50:
             raise ValueError("batch_size must be between 1 and 50")
+        deduped = dedupe_batch_items(items)
         chunk: list[CatalogueBatchItem] = []
-        for item in items:
+        for item in deduped:
             chunk.append(item)
             if len(chunk) >= batch_size:
                 self._post_batch(chunk)
@@ -57,6 +64,15 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             detail = response.text
             raise DiscoveryMachineApiError(response.status_code, detail)
+
+    def get_catalogue(self, catalogue_id: UUID) -> CatalogueMachineRead:
+        """Load minimal catalogue row for enrich workers."""
+        url = f"{self._base_url}/api/v1/discovery/machine/catalogue/{catalogue_id}"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return CatalogueMachineRead.model_validate(response.json())
 
     def post_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
         """Upsert a discovery entity under a catalogue row."""
@@ -83,6 +99,52 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return ClaimAppendResponse.model_validate(response.json())
+
+    def claim_tasks(self, *, limit: int) -> TaskClaimResponse:
+        """Claim pending discovery tasks for this API key."""
+        body = TaskClaimRequest(limit=limit)
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/claim"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskClaimResponse.model_validate(response.json())
+
+    def append_fetch(self, task_id: UUID, body: FetchLogAppendRequest) -> None:
+        """Append a fetch log row for a claimed task."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fetches"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def complete_task(self, task_id: UUID) -> None:
+        """Mark a claimed task completed."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/complete"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def fail_task(self, task_id: UUID, *, error: str) -> None:
+        """Mark a claimed task failed with ``error``."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json={"error": error},
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
 
 
 def _post_catalogue_batches(

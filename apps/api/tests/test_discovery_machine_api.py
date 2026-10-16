@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 
 import app.features.auth.guards as auth_guards
 import pytest
@@ -175,6 +176,76 @@ def test_post_tasks_claim_returns_empty_list_when_queue_drained(
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+def test_post_tasks_claim_reclaims_expired_claimed_task(
+    client: TestClient[Litestar],
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    key = _issue_key(db_session)
+    batch = client.post(
+        BATCH_URL,
+        json={"items": [_batch_item(country, external_id="lease-expired")]},
+        headers={"X-API-Key": key},
+    )
+    assert batch.status_code == 201
+    task_id = uuid.UUID(batch.json()["items"][0]["task_id"])
+
+    first_claim = client.post(CLAIM_URL, json={"limit": 1}, headers={"X-API-Key": key})
+    assert first_claim.status_code == 200
+    assert len(first_claim.json()["items"]) == 1
+
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None
+    task.lease_expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    db_session.flush()
+
+    second_claim = client.post(CLAIM_URL, json={"limit": 1}, headers={"X-API-Key": key})
+
+    assert second_claim.status_code == 200
+    items = second_claim.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == str(task_id)
+    assert items[0]["status"] == "claimed"
+
+    db_session.refresh(task)
+    assert task.status == DiscoveryTaskStatus.CLAIMED
+    assert task.claimed_by_api_key_id is not None
+    assert task.lease_expires_at is not None
+    assert task.lease_expires_at > datetime.now(UTC)
+
+
+def test_post_tasks_claim_does_not_reclaim_task_with_future_lease(
+    client: TestClient[Litestar],
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    key = _issue_key(db_session)
+    batch = client.post(
+        BATCH_URL,
+        json={"items": [_batch_item(country, external_id="lease-active")]},
+        headers={"X-API-Key": key},
+    )
+    assert batch.status_code == 201
+    task_id = uuid.UUID(batch.json()["items"][0]["task_id"])
+
+    first_claim = client.post(CLAIM_URL, json={"limit": 1}, headers={"X-API-Key": key})
+    assert first_claim.status_code == 200
+    assert len(first_claim.json()["items"]) == 1
+
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None
+    task.lease_expires_at = datetime.now(UTC) + timedelta(hours=1)
+    db_session.flush()
+
+    second_claim = client.post(CLAIM_URL, json={"limit": 1}, headers={"X-API-Key": key})
+
+    assert second_claim.status_code == 200
+    assert second_claim.json()["items"] == []
+
+    db_session.refresh(task)
+    assert task.status == DiscoveryTaskStatus.CLAIMED
 
 
 def test_post_tasks_fetches_appends_fetch_log_and_leaves_task_claimed(

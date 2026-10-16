@@ -208,7 +208,8 @@ Move catalogue refetch and task drain off laptops onto **GitHub Actions** agains
 | [gaps-and-decisions.md](discovery-online/gaps-and-decisions.md) | Supersedes discovery-layer D4; idempotency policy |
 | [chapters/](discovery-online/chapters/) | Executable chapter plans |
 
-Status: planned — no chapter started. First: [chapters/01-maintenance-workflow-router.md](discovery-online/chapters/01-maintenance-workflow-router.md).
+Status: shipped — ten chapters on `feat/plans-discovery-online` (release PR to `main` pending).
+Operator runbook: [`docs/operations/discovery-online.md`](../docs/operations/discovery-online.md).
 CoS orchestration: [`docs/operations/loops/discovery-online.md`](../docs/operations/loops/discovery-online.md).
 
 ## Conventions

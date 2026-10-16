@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Numeric, Uuid, text
+from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +23,14 @@ class DiscoveryClaim(CreatedAtMixin, Base):
     """Proposed document or requirement edge extracted from a discovery entity."""
 
     __tablename__ = "discovery_claim"
+    __table_args__ = (
+        UniqueConstraint(
+            "discovery_entity_id",
+            "kind",
+            "payload_fingerprint",
+            name="uq_discovery_claim_entity_kind_fingerprint",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     discovery_entity_id: Mapped[uuid.UUID] = mapped_column(
@@ -33,6 +41,7 @@ class DiscoveryClaim(CreatedAtMixin, Base):
         nullable=False,
     )
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    payload_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
 
     discovery_entity: Mapped[DiscoveryEntity] = relationship("DiscoveryEntity", back_populates="claims")

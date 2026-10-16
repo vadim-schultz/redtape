@@ -4,16 +4,16 @@ overview: "Document Render env for discovery admin; GHA key rotation; deployment
 todos:
   - id: checklist
     content: "deployment-checklist.md discovery section"
-    status: pending
+    status: completed
   - id: render
     content: "render.yaml comments for DISCOVERY_*"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 9 — Render production config
 
-**Repo:** `redtape` · **Branch:** `docs/discovery-online-render-config` · **Status:** planned
+**Repo:** `redtape` · **Branch:** `feat/discovery-online-render-config` · **Status:** shipped (local)
 
 **Depends on:** [2](02-secrets-and-env-canon.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "result": {
+    "id": "ozg-leistungen-und-zugehorige-onlinedienste",
+    "name": "ozg-leistungen-und-zugehorige-onlinedienste",
+    "resources": [
+      {
+        "id": "4b4fc7a2-8776-484d-834f-185590b181db",
+        "name": "Leistungen",
+        "url": "https://ozg.test/api/public/v1/dash/open-pvog?order=asc&page=0&size=100",
+        "format": "JSON"
+      }
+    ]
+  }
+}

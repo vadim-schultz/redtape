@@ -1,11 +1,29 @@
 # Discovery layer operations runbook
 
-How to run GovData and PVOG catalogue ingest, FIM/LeiKa enrich, admin review, and machine emit to
-`pending` suggestions on a laptop. Canon URLs, ingest vs enrich roles, and staging contract pointers:
+GovData and PVOG catalogue ingest, FIM/LeiKa enrich, admin review, and machine emit to `pending`
+suggestions. Canon URLs, ingest vs enrich roles, and staging contract pointers:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
 
+## Production — scheduled ingest (primary)
+
+**Operators should use GitHub Actions**, not a laptop, for recurring catalogue refetch and worker drain
+against production Render.
+
+| Topic | Doc |
+| --- | --- |
+| Discovery online runbook (dispatch, secrets, triage, idempotency) | [discovery-online.md](discovery-online.md) |
+| 6-day OpenPLZ / discovery calendar and secrets | [scheduled-jobs.md](scheduled-jobs.md) |
+| Workflow | [platform-maintenance.yml](../../.github/workflows/platform-maintenance.yml) |
+
+Scheduled runs update **staging only** — no automatic emit to suggestions. Emit stays manual (§
+Machine emit below).
+
+## Laptop debugging (secondary)
+
+The sections below describe a **local** stack for fixtures, enrich CLIs, admin smoke, and manual emit.
+
 **Chief-of-staff orchestration** (chapter order, loop branch, release) is documented separately in
-[`loops/discovery-layer.md`](loops/discovery-layer.md) — use this runbook for hands-on operations only.
+[`loops/discovery-layer.md`](loops/discovery-layer.md).
 
 External portals and proxy notes:
 [`docs/discovery/government-data-sources.md`](../discovery/government-data-sources.md).
@@ -25,8 +43,9 @@ Set these in `apps/api/.env` (API + admin) and export the same `DISCOVERY_API_*`
 | Variable | Where | Purpose |
 | --- | --- | --- |
 | `DISCOVERY_ADMIN_EMAILS` | API | Comma-separated emails allowed to call `/api/v1/discovery/admin/*` and open `/admin/discovery/*` in the web app |
-| `DISCOVERY_API_URL` | Ingest CLIs | Machine API base, e.g. `http://localhost:8000/api/v1/discovery/machine` |
+| `DISCOVERY_API_URL` | Ingest CLIs | API **host root** (no `/api/...` suffix). Local: `http://localhost:8000`. Production: `https://redtape-api.onrender.com`. `discovery-ingest` appends `/api/v1/discovery/machine/...`. |
 | `DISCOVERY_API_KEY` | Ingest CLIs | Plaintext crawler key (`X-API-Key`) with access to discovery machine routes |
+| `FEDERAL_JURISDICTION_ID` | Ingest CLIs (optional) | Germany country UUID for federal rows; default seed `11111111-1111-1111-1111-111111111101` |
 | `DISCOVERY_MACHINE_OPT_IN` | API (optional) | When `1`, enables machine routes even if `DISCOVERY_ADMIN_EMAILS` is empty (dev only) |
 
 ### Issue a discovery machine API key
@@ -37,7 +56,14 @@ There is no HTTP endpoint for key issuance. From `apps/api`:
 python -m scripts.issue_api_key --name discovery-ingest-local
 ```
 
-Copy the printed `rt_…` value into `DISCOVERY_API_KEY`. Revocation and rotation follow
+For scheduled GitHub Actions discovery runs, issue a separate key:
+
+```bash
+python -m scripts.issue_api_key --name discovery-scheduled-gha
+```
+
+Store the printed `rt_…` in `DISCOVERY_API_KEY` (local shell or GitHub repository secret — see
+[`scheduled-jobs.md`](scheduled-jobs.md)). Revocation and rotation follow
 [`auth-setup.md` §7](auth-setup.md#7-issue-and-revoke-crawler-keys).
 
 ### Admin allowlist
@@ -61,7 +87,7 @@ export NO_PROXY=localhost,127.0.0.1,.rsint.net,.rsext.net
 
 CI and unit tests use fixtures only — they do not call GovData, FITKO, or `fimportal.de`.
 
-## Manual sequence
+## Manual sequence (local)
 
 Run steps in order for a full local pass. Fixture paths and field names:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
@@ -81,7 +107,7 @@ python -m scripts.seed_documents   # if jurisdictions are not already present
 From `apps/discovery-ingest` with venv and deps installed (`uv pip install -e ".[dev]"`):
 
 ```bash
-export DISCOVERY_API_URL=http://localhost:8000/api/v1/discovery/machine
+export DISCOVERY_API_URL=http://localhost:8000
 export DISCOVERY_API_KEY=rt_<your-key>
 
 python -m discovery_ingest govdata run \
@@ -161,4 +187,5 @@ Verify in admin emit preview or `GET /api/v1/suggestions` (public list).
 | Ingest TLS timeout / reset | Corporate `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` includes `localhost` |
 | GovData/PVOG CLI exits 1 | API logs; machine batch errors; jurisdiction UUID exists |
 
-Scheduled GitHub Actions ingest is out of scope for this runbook (deferred).
+Scheduled GitHub Actions ingest uses the same host-root `DISCOVERY_API_URL` and repository secrets
+documented in [`scheduled-jobs.md`](scheduled-jobs.md).
