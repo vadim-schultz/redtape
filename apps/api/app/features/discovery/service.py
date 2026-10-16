@@ -37,6 +37,7 @@ from app.schema.discovery.machine import (
     CatalogueBatchItemResult,
     CatalogueBatchRequest,
     CatalogueBatchResponse,
+    CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
     ClaimedTaskRead,
@@ -265,6 +266,18 @@ class DiscoveryMachineService:
                 )
             )
         return CatalogueBatchResponse(items=results)
+
+    def get_catalogue_for_machine(self, catalogue_id: UUID) -> CatalogueMachineRead:
+        row = self._repo.get_catalogue(catalogue_id)
+        if row is None:
+            raise NotFoundException("Catalogue service not found")
+        return CatalogueMachineRead(
+            id=row.id,
+            source=row.source,
+            portal_url=row.portal_url,
+            title_i18n=row.title_i18n,
+            raw_payload=row.raw_payload,
+        )
 
     def claim_tasks(self, body: TaskClaimRequest, *, api_key: ApiKey) -> TaskClaimResponse:
         now = datetime.now(UTC)

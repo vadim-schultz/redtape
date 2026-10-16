@@ -4,19 +4,19 @@ overview: "Drain enrich_metadata tasks: FIM steckbrief to entities/claims; optio
 todos:
   - id: enrich
     content: "enrich_metadata handler in worker"
-    status: pending
+    status: completed
   - id: machine-read
     content: "Optional GET /catalogue/{id} for machine"
-    status: pending
+    status: completed
   - id: leika
     content: "LeiKa path or document deferral"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 8 — Enrich metadata automation
 
-**Repo:** `redtape` (`apps/discovery-ingest`, optional `apps/api`) · **Branch:** `feat/discovery-online-enrich-auto` · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`, optional `apps/api`) · **Branch:** `feat/discovery-online-enrich-automation` · **Status:** done
 
 **Depends on:** [7](07-ingest-worker-drain.md), [5](05-ingest-idempotency.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -34,7 +34,7 @@ When drain claims an `enrich_metadata` task (FIM steckbrief URL from [fanout.py]
 
 **Catalogue context:** prefer optional machine `GET /api/v1/discovery/machine/catalogue/{id}` (new route) returning minimal row (`raw_payload`, `source`) for LeiKa segments — or read only from task’s `catalogue_service_id` + stored fanout URL if sufficient.
 
-**LeiKa:** if machine read + stammtext fetch is too large for one chapter, ship FIM-only in-loop and document LeiKa as open seam in ledger.
+**LeiKa:** deferred in-loop — worker handles FIM steckbrief only; LeiKa remains on `discovery-ingest leika enrich` CLI until a fanout + worker slice is scheduled.
 
 ## Files
 

@@ -48,6 +48,16 @@ class CatalogueBatchResponse(BaseModel):
     items: list[CatalogueBatchItemResult]
 
 
+class CatalogueMachineRead(BaseModel):
+    """Minimal catalogue row for ingest enrich workers."""
+
+    id: UUID
+    source: DiscoverySource
+    portal_url: str | None = Field(default=None, max_length=500)
+    title_i18n: dict[str, str] = Field(min_length=1)
+    raw_payload: dict[str, object] = Field(default_factory=dict)
+
+
 class TaskClaimRequest(BaseModel):
     """Claim pending discovery tasks for the caller API key."""
 

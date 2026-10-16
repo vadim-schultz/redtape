@@ -29,6 +29,16 @@ class CatalogueBatchRequest(BaseModel):
     items: list[CatalogueBatchItem] = Field(min_length=1, max_length=50)
 
 
+class CatalogueMachineRead(BaseModel):
+    """Minimal catalogue row from ``GET /catalogue/{id}`` for enrich workers."""
+
+    id: UUID
+    source: DiscoverySource
+    portal_url: str | None = Field(default=None, max_length=500)
+    title_i18n: dict[str, str] = Field(min_length=1)
+    raw_payload: dict[str, object] = Field(default_factory=dict)
+
+
 DiscoveryClaimKind = Literal["new_document", "new_requirement", "metadata"]
 
 
