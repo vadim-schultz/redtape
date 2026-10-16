@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -182,6 +182,26 @@ class DiscoveryRepository:
         self._session.add(task)
         self._session.flush()
         return task
+
+    def reclaim_expired_claims(self, *, now: datetime) -> None:
+        """Return claimed tasks with expired leases to the pending queue."""
+
+        stmt = (
+            update(DiscoveryTask)
+            .where(
+                DiscoveryTask.status == DiscoveryTaskStatus.CLAIMED,
+                DiscoveryTask.lease_expires_at.is_not(None),
+                DiscoveryTask.lease_expires_at < now,
+            )
+            .values(
+                status=DiscoveryTaskStatus.PENDING,
+                claimed_by_api_key_id=None,
+                claimed_at=None,
+                lease_expires_at=None,
+            )
+        )
+        self._session.execute(stmt)
+        self._session.flush()
 
     def list_pending_tasks_for_claim(self, *, limit: int) -> list[DiscoveryTask]:
         stmt = (

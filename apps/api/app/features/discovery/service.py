@@ -268,6 +268,7 @@ class DiscoveryMachineService:
 
     def claim_tasks(self, body: TaskClaimRequest, *, api_key: ApiKey) -> TaskClaimResponse:
         now = datetime.now(UTC)
+        self._repo.reclaim_expired_claims(now=now)
         claimed = _claim_pending_tasks(self._repo, api_key=api_key, limit=body.limit, now=now)
         items = [
             ClaimedTaskRead(
