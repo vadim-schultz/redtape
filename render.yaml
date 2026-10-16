@@ -31,3 +31,12 @@ services:
 
       # DATABASE_URL is required and should be set in the Render dashboard.
       # It is intentionally omitted here to avoid committing secrets.
+
+      # Discovery (optional — set in Render dashboard, not committed):
+      # - DISCOVERY_ADMIN_EMAILS: comma-separated emails for /admin/discovery/* and
+      #   /api/v1/discovery/admin/* (production operators).
+      # - DISCOVERY_MACHINE_OPT_IN: leave unset or 0 in production when the allowlist
+      #   is set; use 1 only for local/dev machine routes without an allowlist.
+      # GHA scheduled ingest uses DISCOVERY_API_URL + DISCOVERY_API_KEY (GitHub Secrets),
+      # not these Render vars — see docs/operations/deployment-checklist.md and
+      # docs/operations/scheduled-jobs.md.

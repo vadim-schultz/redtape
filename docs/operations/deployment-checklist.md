@@ -35,6 +35,28 @@ Checks:
   - `requirements[]` (3 direct dependencies)
 - [ ] `CORS_ALLOWED_ORIGINS` in `render.yaml` still includes the Workers origin (for direct API clients). Production browser traffic should be **same-origin** via the Worker proxy, not cross-origin to Render.
 
+### Discovery (Render environment)
+
+Set these in the Render dashboard for `redtape-api` (not in `render.yaml` — see comments there). Canon:
+[`discovery-layer.md`](discovery-layer.md).
+
+Prereqs:
+
+- [ ] `DISCOVERY_ADMIN_EMAILS` lists comma-separated operator emails (lowercase is normalized). Discovery admin routes and `/admin/discovery/*` stay off until this is non-empty (unless you intentionally enable dev-only opt-in).
+- [ ] `DISCOVERY_MACHINE_OPT_IN` is **unset** or `0`/`false` in production when the allowlist is set (leave opt-in for local dev only).
+- [ ] GitHub Actions discovery secrets match [`scheduled-jobs.md`](scheduled-jobs.md) (`DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID`).
+
+Checks (no laptop ingest required):
+
+- [ ] Allowlisted user signs in on production and can open `/admin/discovery/tasks` (queue / pipeline UI).
+- [ ] **Platform maintenance** discovery job succeeds (Actions → **Platform maintenance**, or `gh workflow run platform-maintenance.yml -f job=discovery`).
+- [ ] After a scheduled or manual discovery run, the admin catalogue view shows recent ingest activity (tasks or pipeline events).
+
+**Rotate `DISCOVERY_API_KEY` (GHA):** issue a new key with
+`python -m scripts.issue_api_key --name discovery-scheduled-gha` (`apps/api`), update the GitHub secret, run one
+successful discovery job, then revoke the old prefix per
+[`auth-setup.md` §7](auth-setup.md#7-issue-and-revoke-crawler-keys).
+
 How to troubleshoot quickly:
 - [ ] Check Render logs for startup/DB connection/a​lembic migration failures.
 - [ ] Confirm `DATABASE_URL` works from Render environment (Supabase session pooler recommended).
