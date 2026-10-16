@@ -1,11 +1,29 @@
 # Discovery layer operations runbook
 
-How to run GovData and PVOG catalogue ingest, FIM/LeiKa enrich, admin review, and machine emit to
-`pending` suggestions on a laptop. Canon URLs, ingest vs enrich roles, and staging contract pointers:
+GovData and PVOG catalogue ingest, FIM/LeiKa enrich, admin review, and machine emit to `pending`
+suggestions. Canon URLs, ingest vs enrich roles, and staging contract pointers:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
 
+## Production — scheduled ingest (primary)
+
+**Operators should use GitHub Actions**, not a laptop, for recurring catalogue refetch and worker drain
+against production Render.
+
+| Topic | Doc |
+| --- | --- |
+| Discovery online runbook (dispatch, secrets, triage, idempotency) | [discovery-online.md](discovery-online.md) |
+| 6-day OpenPLZ / discovery calendar and secrets | [scheduled-jobs.md](scheduled-jobs.md) |
+| Workflow | [platform-maintenance.yml](../../.github/workflows/platform-maintenance.yml) |
+
+Scheduled runs update **staging only** — no automatic emit to suggestions. Emit stays manual (§
+Machine emit below).
+
+## Laptop debugging (secondary)
+
+The sections below describe a **local** stack for fixtures, enrich CLIs, admin smoke, and manual emit.
+
 **Chief-of-staff orchestration** (chapter order, loop branch, release) is documented separately in
-[`loops/discovery-layer.md`](loops/discovery-layer.md) — use this runbook for hands-on operations only.
+[`loops/discovery-layer.md`](loops/discovery-layer.md).
 
 External portals and proxy notes:
 [`docs/discovery/government-data-sources.md`](../discovery/government-data-sources.md).
@@ -69,7 +87,7 @@ export NO_PROXY=localhost,127.0.0.1,.rsint.net,.rsext.net
 
 CI and unit tests use fixtures only — they do not call GovData, FITKO, or `fimportal.de`.
 
-## Manual sequence
+## Manual sequence (local)
 
 Run steps in order for a full local pass. Fixture paths and field names:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
