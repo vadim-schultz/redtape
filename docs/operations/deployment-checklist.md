@@ -60,6 +60,9 @@ successful discovery job, then revoke the old prefix per
 How to troubleshoot quickly:
 - [ ] Check Render logs for startup/DB connection/a​lembic migration failures.
 - [ ] Confirm `DATABASE_URL` works from Render environment (Supabase session pooler recommended).
+- [ ] If logs show `DuplicateObject: type "discovery_source" already exists` and discovery
+  tables already exist, verify schema (`alembic check` with session/direct URL), then
+  `alembic stamp 20261012_discovery_staging` or deploy migration hardening from `main`.
 
 ---
 

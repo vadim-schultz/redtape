@@ -164,3 +164,11 @@ script against its own throwaway `redtape_migrations` database, and CI runs it a
   continuing.
 - **Weird schema state**: `docker compose down -v` to drop the volume and
   start clean (see "Full reset" above).
+- **Render: `DuplicateObject: type "discovery_source" already exists`**: the
+  discovery staging tables may already exist while `alembic_version` is still on
+  `20260929b_suggestion_event`. Confirm all six `discovery_*` / `catalogue_service`
+  tables exist, run `alembic check` against production with a **session/direct**
+  `DATABASE_URL`, then deploy a build with the idempotent
+  `20261012_discovery_staging` migration (it no-ops when tables exist and records
+  head), or run `alembic stamp 20261012_discovery_staging` before deploy. Do not
+  `DROP TYPE discovery_source` while those tables exist.
