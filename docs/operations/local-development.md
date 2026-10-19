@@ -86,6 +86,14 @@ failing; set `REQUIRE_DB=1` to fail instead (CI and `./ci.sh` always set it).
 `./ci.sh` runs this same suite alongside lint/typecheck/build, starting the
 compose `db` service itself if nothing is listening on 5432 yet.
 
+If you keep a remote `DATABASE_URL` in `apps/api/.env` for day-to-day dev
+against Supabase or another hosted Postgres, that file still applies when you
+run `uvicorn` or ad-hoc `pytest` from `apps/api`. **`./ci.sh` and GitHub Actions
+override it** for the API test run: they always set
+`DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape`
+and `REQUIRE_DB=1`, matching [`.github/workflows/api-lint-test.yml`](../../.github/workflows/api-lint-test.yml),
+so DB-backed tests never hit a remote database during CI.
+
 ## Checking migrations
 
 ```bash

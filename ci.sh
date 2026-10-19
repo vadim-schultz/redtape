@@ -57,6 +57,7 @@ PYTHONPATH=. \
   uv run bash scripts/check_migrations.sh
 
 PYTHONPATH=. \
+  DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape" \
   REQUIRE_DB="${REQUIRE_DB:-1}" \
   uv run pytest
 
