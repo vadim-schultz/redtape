@@ -48,6 +48,7 @@ Prereqs:
 - [ ] `DISCOVERY_ADMIN_EMAILS` lists comma-separated operator emails (lowercase is normalized). Discovery admin routes and `/admin/discovery/*` stay off until this is non-empty (unless you intentionally enable dev-only opt-in).
 - [ ] `DISCOVERY_MACHINE_OPT_IN` is **unset** or `0`/`false` in production when the allowlist is set (leave opt-in for local dev only).
 - [ ] GitHub Actions discovery secrets match [`scheduled-jobs.md`](scheduled-jobs.md) (`DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID`).
+- [ ] `FEDERAL_JURISDICTION_ID` equals production `jurisdiction.id` for `kind=COUNTRY`, `code=DE` (not the seed placeholder when OpenPLZ has run) — SQL or [`print_federal_jurisdiction_id.py`](../../apps/api/scripts/print_federal_jurisdiction_id.py); see [discovery-online.md](discovery-online.md) § Catalogue batch 500 triage.
 
 Checks (no laptop ingest required):
 
@@ -91,7 +92,7 @@ Prereqs:
 - Unified workflow [`.github/workflows/platform-maintenance.yml`](../../.github/workflows/platform-maintenance.yml) is enabled.
 
 Checks:
-- [ ] Repository secrets for OpenPLZ and discovery jobs match [`scheduled-jobs.md`](scheduled-jobs.md) (`DATABASE_URL`, `DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID`).
+- [ ] Repository secrets for OpenPLZ and discovery jobs match [`scheduled-jobs.md`](scheduled-jobs.md) (`DATABASE_URL`, `DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID` set from live DE country row per [discovery-online-production-setup.md](discovery-online-production-setup.md) §3.1).
 - [ ] `DISCOVERY_API_KEY` was issued with `python -m scripts.issue_api_key --name discovery-scheduled-gha` and stored only in GitHub Secrets (not in git).
 
 ---

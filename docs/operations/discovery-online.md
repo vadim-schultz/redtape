@@ -48,7 +48,7 @@ gh workflow run platform-maintenance.yml -f job=skip
 | --- | --- | --- |
 | `DISCOVERY_API_URL` | yes | Host root, e.g. `https://redtape-api.onrender.com` — client adds `/api/v1/discovery/machine/...` |
 | `DISCOVERY_API_KEY` | yes | `rt_…` from `python -m scripts.issue_api_key --name discovery-scheduled-gha` in `apps/api` |
-| `FEDERAL_JURISDICTION_ID` | yes | Must equal live `jurisdiction.id` for `kind=COUNTRY`, `code=DE` (see triage below) — not always the seed UUID after OpenPLZ |
+| `FEDERAL_JURISDICTION_ID` | yes | Must equal live `jurisdiction.id` for `kind=COUNTRY`, `code=DE` (see triage below) — not always the seed UUID after OpenPLZ. Resolve: production SQL below, or `python -m scripts.print_federal_jurisdiction_id` in `apps/api` against the same DB |
 | `DATABASE_URL` | **no** | OpenPLZ job only |
 
 Issue and rotate keys: [auth-setup.md](auth-setup.md#7-issue-and-revoke-crawler-keys). Render admin
