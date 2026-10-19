@@ -166,7 +166,7 @@ See [auth-setup.md](auth-setup.md) §7.
 | --- | --- |
 | `DISCOVERY_API_URL` | `https://redtape-api.onrender.com` |
 | `DISCOVERY_API_KEY` | Full `rt_…` from Part 2 |
-| `FEDERAL_JURISDICTION_ID` | `11111111-1111-1111-1111-111111111101` |
+| `FEDERAL_JURISDICTION_ID` | `id` from `SELECT … WHERE kind='COUNTRY' AND code='DE'` (see §4.4 batch 500 triage) — local seed default `11111111-1111-1111-1111-111111111101` is wrong after OpenPLZ on production |
 
 **`DISCOVERY_API_URL` rules:**
 
@@ -235,6 +235,7 @@ gh run watch <run-id>
 | 401 / 403 on machine API | Key not in prod DB; revoked key; typo in secret |
 | `Discovery is disabled` (503) | `DISCOVERY_ADMIN_EMAILS` empty on Render; redeploy |
 | GovData / PVOG step failed | Step log; public APIs (no secrets in workflow) |
+| GovData: `discovery machine API 500` (health OK) | [discovery-online.md](discovery-online.md) § Catalogue batch 500 triage — Render traceback, minimal batch curl, DE jurisdiction SQL vs `FEDERAL_JURISDICTION_ID` |
 | Drain failed | Task URLs; lease reclaim — see [discovery-online.md](discovery-online.md) |
 
 Re-running `job=discovery` the same day should be **idempotent** for staging (no unbounded duplicate tasks/claims).
