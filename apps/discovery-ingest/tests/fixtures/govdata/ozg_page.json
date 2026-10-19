@@ -2,6 +2,7 @@
   "content": [
     {
       "leika_key": "12345678901234",
+      "leika_name": "Beispiel-Leistung",
       "ozgid": "OZ-EXAMPLE-001",
       "ars": "000000000000",
       "url": "https://example.bund.de/leistung",
@@ -15,7 +16,10 @@
       "url": "https://example.bund.de/ohne-id"
     }
   ],
-  "totalElements": 2,
-  "size": 100,
-  "number": 0
+  "page": {
+    "size": 100,
+    "number": 0,
+    "totalElements": 2,
+    "totalPages": 1
+  }
 }

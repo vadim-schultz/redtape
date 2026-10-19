@@ -42,7 +42,8 @@ Full URL tables, resource UUIDs, env defaults, and `raw_payload` keys live in th
 | --- | --- |
 | CKAN Action API | `https://ckan.govdata.de/api/3/action/` (override with `GOVDATA_CKAN_BASE_URL`, default `https://ckan.govdata.de/api/3/action`) |
 | Package metadata | `package_show?id={GOVDATA_PACKAGE_ID}` — default id `ozg-leistungen-und-zugehorige-onlinedienste` |
-| **Leistungen JSON (chapter 12 default)** | `https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog?order=asc&page={page}&size={size}` |
+| **Leistungen JSON (CKAN resource)** | `https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog?order=asc&page={page}&size={size}` |
+| **Leistungen JSON (scheduled ingest default)** | `.../open-pvog/000000000000?...&includeAbove=false&includeBelow=false` (`GOVDATA_OPEN_PVOG_ARS`) |
 | REST OpenAPI descriptor | `https://api.ozg-umsetzung.de/api/v3/api-docs/dashboard-digitale-verwaltung` |
 
 CKAN mirror (optional): `https://www.govdata.de/ckan/api/3/action/`.
@@ -64,7 +65,7 @@ On R&S laptops, export `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` before `curl`, 
 
 ## Pagination
 
-**Leistungen feed:** `page` (0-based) and `size` query parameters on `open-pvog`. Stop when a page returns fewer than `size` rows or an empty list.
+**Leistungen feed:** `page` (0-based) and `size` on `open-pvog` or `open-pvog/{ars}`. Scheduled ingest scopes to Bund (`000000000000`) with `includeAbove=false` and `includeBelow=false`. Stop when a page returns fewer than `size` rows or an empty list.
 
 **CKAN:** use `package_show` once per run for resource metadata; bulk row download for ingest should use the Leistungen API above (not repeated `resource_show` per row).
 
@@ -74,18 +75,17 @@ On R&S laptops, export `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` before `curl`, 
 {
   "content": [
     {
-      "leika_key": "12345678901234",
-      "ozgid": "OZ-EXAMPLE-001",
+      "leika_key": "99003007001000",
+      "leika_name": "Erlaubnis für die Teilnahme am Betäubungsmittelverkehr beantragen",
       "ars": "000000000000",
-      "url": "https://example.bund.de/leistung",
-      "online_status": "ok",
-      "leistungsname": "Beispiel-Leistung",
-      "beschreibung": "Kurztext …"
+      "leika_bezeichnung": "Erlaubnis zum Verkehr mit Betäubungsmitteln Erteilung",
+      "ozgid": 10641,
+      "ozg_bezeichnung": "Betäubungsmittelanzeigen und -genehmigungen",
+      "url": "https://verwaltung.bund.de/leistung/example",
+      "online_status": "ok"
     }
   ],
-  "totalElements": 12000,
-  "size": 100,
-  "number": 0
+  "page": { "size": 100, "number": 0, "totalElements": 960, "totalPages": 10 }
 }
 ```
 
@@ -97,6 +97,7 @@ Field names in production exports may include additional PVOG keys; store the **
 | --- | --- | --- |
 | `GOVDATA_CKAN_BASE_URL` | `https://ckan.govdata.de/api/3/action` | CKAN Action API prefix (no trailing slash on action name) |
 | `GOVDATA_PACKAGE_ID` | `ozg-leistungen-und-zugehorige-onlinedienste` | `package_show` id for OZG dataset |
+| `GOVDATA_OPEN_PVOG_ARS` | `000000000000` | ARS path segment; federal Bund scope for `govdata fetch` |
 | `DISCOVERY_API_URL` | (required for ingest) | Redtape discovery machine API base |
 | `DISCOVERY_API_KEY` | (required for ingest) | `X-API-Key` for batch upsert |
 
@@ -104,12 +105,9 @@ Field names in production exports may include additional PVOG keys; store the **
 
 Prefer a stable id that survives re-imports:
 
-1. **OZG row id (chapter 12 default):** when the export exposes a stable row key (for example `ozgid` or a dedicated `id`), use  
-   `govdata:ozg:{stable_row_id}`.
-2. **CKAN resource row:** when ingesting a specific CKAN resource file by row index or hash, use  
-   `govdata:{dataset_id}:{resource_id}:{stable_row_key}`  
-   where `dataset_id` is `GOVDATA_PACKAGE_ID` and `resource_id` is the Leistungen resource UUID from canon (`4b4fc7a2-8776-484d-834f-185590b181db`).
-3. **LeiKa fallback:** if no better key exists, `govdata:leika:{leika_key}` (only when `leika_key` is present and unique in your slice).
+1. **LeiKa key (OpenPvogDto default):** `govdata:leika:{leika_key}` when `leika_key` is present (unique per row; `ozgid` is a group id shared by many rows).
+2. **OZG group id:** `govdata:ozg:{ozgid}` only when `leika_key` is absent.
+3. **CKAN resource row:** `govdata:{dataset_id}:{resource_id}:{stable_row_key}` for file-index ingest (rare).
 
 Never omit `external_id`; batch items without it must be rejected in ingest (chapter 12).
 
@@ -122,8 +120,8 @@ Map each OZG **Leistungen** object to `CatalogueBatchItem` (`source` must be `go
 | (constant) | `source` | `govdata` |
 | see § `external_id` | `external_id` | max 200 chars |
 | `ars` → lookup | `jurisdiction_id` | UUID FK; not stored on row |
-| `leistungsname` or `title` or `name` | `title_i18n` | at least `{"de": "…"}` |
-| `beschreibung` or `description` | `description_i18n` | optional |
+| `leika_name`, `leistungsname`, `title`, or `name` | `title_i18n` | at least `{"de": "…"}` |
+| `beschreibung`, `description`, `leika_bezeichnung`, or `ozg_bezeichnung` | `description_i18n` | optional |
 | `url` | `portal_url` | triggers `fetch_url` task on upsert when set |
 | entire row object | `raw_payload` | include `leika_key`, `ozgid`, `ars`, `online_status`, `url` for fanout |
 

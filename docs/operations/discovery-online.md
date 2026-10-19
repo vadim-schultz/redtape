@@ -6,6 +6,9 @@ machine API. Staging rows are updated on a fixed calendar; **machine emit to sug
 
 Chief-of-staff orchestration (loop branch, release PR): [loops/discovery-online.md](loops/discovery-online.md).
 
+**First-time production setup** (Render, GitHub secrets, issue API key from another machine,
+manual smoke test): [discovery-online-production-setup.md](discovery-online-production-setup.md).
+
 Data sources and field mapping: [government-data-sources.md](../discovery/government-data-sources.md).
 
 ## Primary path — GitHub Actions
@@ -59,6 +62,7 @@ allowlist (`DISCOVERY_ADMIN_EMAILS`) is for the web UI — not used by the GHA d
 | Health wait timeout | Render service up; `DISCOVERY_API_URL` is host root without `/api` suffix |
 | Machine 401 / 403 | `DISCOVERY_API_KEY` matches a valid crawler key on production API |
 | GovData / PVOG step failed | GHA logs; API logs on Render; page caps in workflow may need tuning |
+| GovData `no mappable GovData rows` or mass `skip row: … no title` | OZG schema drift (`leika_name` vs legacy `leistungsname`) or unscoped national feed; confirm federal path `open-pvog/000000000000` and [OpenAPI](https://api.ozg-umsetzung.de/api/v3/api-docs/dashboard-digitale-verwaltung) |
 | Drain exits non-zero | Stuck `claimed` tasks — lease reclaim (API); re-run after fixing target URLs |
 | Duplicate tasks after re-run | Should not grow without bound — see idempotency below |
 

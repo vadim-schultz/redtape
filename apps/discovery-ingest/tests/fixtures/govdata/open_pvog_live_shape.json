@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "leika_key": "99003007001000",
+      "leika_name": "Erlaubnis für die Teilnahme am Betäubungsmittelverkehr beantragen",
+      "ars": "000000000000",
+      "ars_name": "Bund",
+      "leika_bezeichnung": "Erlaubnis zum Verkehr mit Betäubungsmitteln Erteilung",
+      "ozgid": 10641,
+      "ozg_bezeichnung": "Betäubungsmittelanzeigen und -genehmigungen",
+      "url": "https://verwaltung.bund.de/leistung/example",
+      "online_status": "ok"
+    }
+  ],
+  "page": {
+    "size": 1,
+    "number": 0,
+    "totalElements": 1,
+    "totalPages": 1
+  }
+}

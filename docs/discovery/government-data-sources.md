@@ -79,9 +79,14 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | Leistungen pro Kommune | `ba66f608-02a9-41e2-86a4-460bce615153` | Example commune slice (Wiesbaden) |
 | Dashboard Digitale Verwaltung | `cfbc0986-105a-414b-a6d5-cd9c78d03d28` | Human HTML dashboard (not ingest) |
 
-**Leistungen JSON entry point (chapter 12 default):**
+**Leistungen JSON entry points:**
 
-`https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog?order=asc&page=0&size=100`
+| Feed | URL | Ingest use |
+| --- | --- | --- |
+| National (all ARS) | `https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog?order=asc&page=0&size=100` | CKAN resource default; ~1.2M rows |
+| **Bund (scheduled GHA default)** | `https://api.ozg-umsetzung.de/api/public/v1/dash/open-pvog/000000000000?order=asc&page=0&size=100&includeAbove=false&includeBelow=false` | Federal scope only (`GOVDATA_OPEN_PVOG_ARS`) |
+
+OpenAPI: `GET /public/v1/dash/open-pvog/{ars}` on the dashboard Data Hub API.
 
 **REST-API OpenAPI (dashboard):**
 
@@ -97,6 +102,7 @@ If connections reset with no proxy, or time out with proxy misconfigured, fix en
 | --- | --- |
 | `GOVDATA_CKAN_BASE_URL` | `https://ckan.govdata.de/api/3/action` |
 | `GOVDATA_PACKAGE_ID` | `ozg-leistungen-und-zugehorige-onlinedienste` |
+| `GOVDATA_OPEN_PVOG_ARS` | `000000000000` (Bund); rewrites CKAN Leistungen URL to `open-pvog/{ars}` |
 
 **Note:** OZG dataset content is based on PVOG; catalogue rows may include cross-refs usable for enrich fanout.
 
@@ -245,8 +251,11 @@ Keys below are used in [catalogue task fanout](../../.plans/discovery-layer/chap
 
 | Field | Notes |
 | --- | --- |
-| `leika_key` | LeiKa service key (14 digits); maps to LeiKa / FIM enrich |
-| `ozgid` | OZG grouping id |
+| `leika_key` | LeiKa service key (14 digits); primary `external_id` segment |
+| `leika_name` | Display title in current OpenPvogDto exports |
+| `leika_bezeichnung` | LeiKa description / fallback title |
+| `ozgid` | OZG grouping id (numeric; not unique per row — prefer `leika_key` for `external_id`) |
+| `ozg_bezeichnung` | OZG service group label |
 | `url` | Portal / service URL → `fetch_url` tasks |
 | `ars` | Official regional key (Bund = `000000000000`) |
 | `online_status` | Availability signal (`ok`, etc.) |

@@ -21,6 +21,10 @@ class IngestSettings(BaseSettings):
         default="ozg-leistungen-und-zugehorige-onlinedienste",
         validation_alias="GOVDATA_PACKAGE_ID",
     )
+    govdata_open_pvog_ars: str = Field(
+        default="000000000000",
+        validation_alias="GOVDATA_OPEN_PVOG_ARS",
+    )
     pvog_api_base_url: str = Field(
         default="https://pvog.fitko.net/suchdienst/api",
         validation_alias="PVOG_API_BASE_URL",
