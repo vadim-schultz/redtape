@@ -212,6 +212,19 @@ Status: shipped — ten chapters on `feat/plans-discovery-online` (release PR to
 Operator runbook: [`docs/operations/discovery-online.md`](../docs/operations/discovery-online.md).
 CoS orchestration: [`docs/operations/loops/discovery-online.md`](../docs/operations/loops/discovery-online.md).
 
+### [discovery-online-smoke/](discovery-online-smoke/) — Production discovery GHA batch 500 + local CI
+
+Remediate **GovData OZG catalogue fetch** failing with Render `500` on `POST /catalogue/batch` (likely `FEDERAL_JURISDICTION_ID` vs OpenPLZ Germany UUID) and pin **local `./ci.sh`** API pytest to Postgres on `127.0.0.1` (parity with GHA). **Documentation and CoS chapters only** until chapter-implementers run.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-online-smoke/00-architecture.md) | Symptom, failure path, hypotheses |
+| [01-rollout.md](discovery-online-smoke/01-rollout.md) | Four chapters, invariants |
+| [gaps-and-decisions.md](discovery-online-smoke/gaps-and-decisions.md) | Jurisdiction id canon, CI local-only |
+| [chapters/](discovery-online-smoke/chapters/) | Executable chapter plans |
+
+Status: planned — first: [chapters/01-triage-batch-500.md](discovery-online-smoke/chapters/01-triage-batch-500.md). CoS: [`docs/operations/loops/discovery-online-smoke.md`](../docs/operations/loops/discovery-online-smoke.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
