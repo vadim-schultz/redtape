@@ -166,7 +166,7 @@ See [auth-setup.md](auth-setup.md) §7.
 | --- | --- |
 | `DISCOVERY_API_URL` | `https://redtape-api.onrender.com` |
 | `DISCOVERY_API_KEY` | Full `rt_…` from Part 2 |
-| `FEDERAL_JURISDICTION_ID` | `id` from `SELECT … WHERE kind='COUNTRY' AND code='DE'` (see §4.4 batch 500 triage) — local seed default `11111111-1111-1111-1111-111111111101` is wrong after OpenPLZ on production |
+| `FEDERAL_JURISDICTION_ID` | `id` from `SELECT … WHERE kind='COUNTRY' AND code='DE'` (see §4.4 batch 500 triage) — or run `python -m scripts.print_federal_jurisdiction_id` in `apps/api` with production `DATABASE_URL`. Local seed default `11111111-1111-1111-1111-111111111101` is wrong after OpenPLZ on production |
 
 **`DISCOVERY_API_URL` rules:**
 
