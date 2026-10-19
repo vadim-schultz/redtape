@@ -117,7 +117,8 @@ def _govdata_fetch_pages(
                 settings.discovery_api_key,
                 items,
             )
-        except DiscoveryMachineApiError:
+        except DiscoveryMachineApiError as err:
+            print(err, file=sys.stderr)
             return 1
         posted_any = True
     if not posted_any:
