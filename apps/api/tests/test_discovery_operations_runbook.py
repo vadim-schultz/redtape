@@ -8,6 +8,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNBOOK = REPO_ROOT / "docs/operations/discovery-layer.md"
 DISCOVERY_ONLINE_RUNBOOK = REPO_ROOT / "docs/operations/discovery-online.md"
+SCHEDULED_JOBS = REPO_ROOT / "docs/operations/scheduled-jobs.md"
+DEPLOYMENT_CHECKLIST = REPO_ROOT / "docs/operations/deployment-checklist.md"
 
 _MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
@@ -95,3 +97,16 @@ def test_discovery_online_runbook_documents_idempotency_with_openplz_parity() ->
     text = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
     assert "Idempotency" in text or "idempotency" in text
     assert "openplz-import.md" in text
+
+
+def test_federal_jurisdiction_docs_mention_de_country_query() -> None:
+    """Ops canon documents resolving FEDERAL_JURISDICTION_ID from DE country row."""
+    de_sql = "kind = 'COUNTRY' AND code = 'DE'"
+    online = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
+    scheduled = SCHEDULED_JOBS.read_text(encoding="utf-8")
+    checklist = DEPLOYMENT_CHECKLIST.read_text(encoding="utf-8")
+    assert de_sql in online
+    assert "FEDERAL_JURISDICTION_ID" in online
+    assert de_sql in scheduled or "kind=COUNTRY" in scheduled
+    assert "FEDERAL_JURISDICTION_ID" in scheduled
+    assert "print_federal_jurisdiction_id" in checklist or de_sql in checklist

@@ -125,6 +125,24 @@ def test_post_catalogue_batch_returns_401_without_api_key(
     assert response.status_code == 401
 
 
+def test_post_catalogue_batch_returns_422_for_unknown_jurisdiction_id(
+    client: TestClient[Litestar],
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    key = _issue_key(db_session)
+    unknown_jurisdiction_id = uuid.uuid4()
+    response = client.post(
+        BATCH_URL,
+        json={"items": [_batch_item(country, jurisdiction_id=str(unknown_jurisdiction_id))]},
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "jurisdiction" in detail.lower()
+
+
 def test_post_catalogue_batch_returns_422_for_missing_external_id(
     client: TestClient[Litestar],
     db_session: Session,
