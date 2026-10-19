@@ -37,6 +37,9 @@ Checks:
 
 ### Discovery (Render environment)
 
+Full step-by-step (Render, GitHub secrets, API key from another network, smoke test):
+[discovery-online-production-setup.md](discovery-online-production-setup.md).
+
 Set these in the Render dashboard for `redtape-api` (not in `render.yaml` — see comments there). Canon:
 [`discovery-layer.md`](discovery-layer.md).
 
