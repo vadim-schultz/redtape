@@ -7,6 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
+from litestar.exceptions import ClientException
 from sqlalchemy import Select, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -61,6 +62,28 @@ def _catalogue_list_stmt(*, source: DiscoverySource | None) -> Select:
     return stmt
 
 
+def _is_jurisdiction_foreign_key_violation(exc: IntegrityError) -> bool:
+    """Return whether ``exc`` is a failed ``catalogue_service.jurisdiction_id`` FK."""
+
+    orig = exc.orig
+    if orig is not None and getattr(orig, "pgcode", None) == "23503":
+        diag = getattr(orig, "diag", None)
+        constraint = getattr(diag, "constraint_name", None) if diag is not None else None
+        if constraint is not None and "jurisdiction" in constraint.lower():
+            return True
+        if "jurisdiction" in str(orig).lower():
+            return True
+    message = str(exc).lower()
+    return "jurisdiction" in message and "foreign key" in message
+
+
+def _unknown_jurisdiction_client_error(item: CatalogueBatchItem) -> ClientException:
+    return ClientException(
+        detail=f"Unknown jurisdiction_id: {item.jurisdiction_id}",
+        status_code=422,
+    )
+
+
 class DiscoveryRepository:
     """Discovery staging queries and machine-route persistence."""
 
@@ -95,13 +118,22 @@ class DiscoveryRepository:
         self._session.add(row)
         try:
             self._session.flush()
-        except IntegrityError:
-            self._session.rollback()
-            raced = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
-            if raced is None:
-                raise
-            return self._apply_catalogue_fields(raced, item), False
+        except IntegrityError as exc:
+            return self._recover_catalogue_insert_integrity_error(exc, item)
         return row, True
+
+    def _recover_catalogue_insert_integrity_error(
+        self,
+        exc: IntegrityError,
+        item: CatalogueBatchItem,
+    ) -> tuple[CatalogueService, bool]:
+        self._session.rollback()
+        if _is_jurisdiction_foreign_key_violation(exc):
+            raise _unknown_jurisdiction_client_error(item) from exc
+        raced = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
+        if raced is None:
+            raise exc
+        return self._apply_catalogue_fields(raced, item), False
 
     def _apply_catalogue_fields(self, row: CatalogueService, item: CatalogueBatchItem) -> CatalogueService:
         row.jurisdiction_id = item.jurisdiction_id
@@ -109,7 +141,13 @@ class DiscoveryRepository:
         row.description_i18n = item.description_i18n
         row.portal_url = item.portal_url
         row.raw_payload = item.raw_payload
-        self._session.flush()
+        try:
+            self._session.flush()
+        except IntegrityError as exc:
+            self._session.rollback()
+            if _is_jurisdiction_foreign_key_violation(exc):
+                raise _unknown_jurisdiction_client_error(item) from exc
+            raise
         return row
 
     def record_event(
