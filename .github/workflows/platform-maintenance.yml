@@ -119,7 +119,7 @@ jobs:
           set -euo pipefail
           python -m discovery_ingest govdata fetch \
             --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
-            --max-pages 150 \
+            --max-pages 15 \
             --page-size 100
 
       - name: PVOG Suchdienst catalogue run

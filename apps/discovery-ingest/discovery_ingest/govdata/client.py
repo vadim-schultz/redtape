@@ -68,16 +68,16 @@ def _map_govdata_record(
 
 
 def _external_id_for_row(row: dict[str, Any]) -> str:
-    ozgid = _optional_str(row.get("ozgid"))
-    if ozgid:
-        return f"govdata:ozg:{ozgid}"
     leika_key = _optional_str(row.get("leika_key"))
     if leika_key:
         return f"govdata:leika:{leika_key}"
+    ozgid = _optional_str(row.get("ozgid"))
+    if ozgid:
+        return f"govdata:ozg:{ozgid}"
     stable_id = _optional_str(row.get("id"))
     if stable_id:
         return f"govdata:ozg:{stable_id}"
-    raise GovDataMappingError("row has no external id (ozgid, leika_key, or id)")
+    raise GovDataMappingError("row has no external id (leika_key, ozgid, or id)")
 
 
 def _jurisdiction_id_for_row(row: dict[str, Any], *, federal_jurisdiction_id: UUID) -> UUID:
@@ -88,15 +88,24 @@ def _jurisdiction_id_for_row(row: dict[str, Any], *, federal_jurisdiction_id: UU
 
 
 def _title_for_row(row: dict[str, Any]) -> str:
-    for key in ("leistungsname", "title", "name"):
+    for key in (
+        "leika_name",
+        "leistungsname",
+        "title",
+        "name",
+        "leika_bezeichnung",
+        "ozg_bezeichnung",
+    ):
         value = _optional_str(row.get(key))
         if value:
             return value
-    raise GovDataMappingError("row has no title (leistungsname, title, or name)")
+    raise GovDataMappingError(
+        "row has no title (leika_name, leistungsname, title, name, leika_bezeichnung, or ozg_bezeichnung)",
+    )
 
 
 def _description_for_row(row: dict[str, Any]) -> str | None:
-    for key in ("beschreibung", "description"):
+    for key in ("beschreibung", "description", "leika_bezeichnung", "ozg_bezeichnung"):
         value = _optional_str(row.get(key))
         if value:
             return value

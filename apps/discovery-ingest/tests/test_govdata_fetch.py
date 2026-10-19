@@ -16,7 +16,10 @@ FEDERAL_JURISDICTION = uuid.UUID("11111111-1111-1111-1111-111111111101")
 DISCOVERY_BASE = "https://redtape.test"
 CKAN_BASE = "https://ckan.test/api/3/action"
 PACKAGE_ID = "ozg-leistungen-und-zugehorige-onlinedienste"
-LEISTUNGEN_PAGE_URL = "https://ozg.test/api/public/v1/dash/open-pvog?order=asc&page=0&size=100"
+LEISTUNGEN_PAGE_URL = (
+    "https://ozg.test/api/public/v1/dash/open-pvog/000000000000"
+    "?order=asc&page=0&size=100&includeAbove=false&includeBelow=false"
+)
 _REAL_HTTPX_CLIENT = httpx.Client
 
 
@@ -50,7 +53,7 @@ def test_govdata_fetch_maps_ckan_page_and_posts_batch_with_api_key(
             return httpx.Response(201, json={"items": []})
         if url.endswith(f"/package_show?id={PACKAGE_ID}"):
             return httpx.Response(200, json=package_show)
-        if url == LEISTUNGEN_PAGE_URL:
+        if "/open-pvog/000000000000" in url:
             return httpx.Response(200, json=ozg_page)
         return httpx.Response(404, text=f"unexpected url {url}")
 
@@ -73,7 +76,7 @@ def test_govdata_fetch_maps_ckan_page_and_posts_batch_with_api_key(
     assert isinstance(body, dict)
     items = body["items"]
     assert isinstance(items, list)
-    assert items[0]["external_id"] == "govdata:ozg:OZ-EXAMPLE-001"
+    assert items[0]["external_id"] == "govdata:leika:12345678901234"
     assert items[0]["source"] == "govdata"
 
 

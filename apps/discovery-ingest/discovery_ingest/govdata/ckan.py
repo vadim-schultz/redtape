@@ -10,6 +10,7 @@ import httpx
 
 LEISTUNGEN_RESOURCE_ID = "4b4fc7a2-8776-484d-834f-185590b181db"
 DEFAULT_PAGE_SIZE = 100
+OPEN_PVOG_PATH_SUFFIX = "/open-pvog"
 
 
 class GovDataCkanError(RuntimeError):
@@ -24,10 +25,12 @@ class GovDataCkanClient:
         ckan_base_url: str,
         package_id: str,
         *,
+        scope_ars: str | None = "000000000000",
         http_client: httpx.Client | None = None,
     ) -> None:
         self._ckan_base_url = ckan_base_url.rstrip("/")
         self._package_id = package_id
+        self._scope_ars = scope_ars
         self._http_client = http_client
 
     def iter_record_pages(
@@ -63,7 +66,10 @@ class GovDataCkanClient:
 
     def _leistungen_feed_template_url(self) -> str:
         package = self._fetch_package_show()
-        return _leistungen_url_from_package(package)
+        template = _leistungen_url_from_package(package)
+        if self._scope_ars:
+            return _scope_open_pvog_url(template, self._scope_ars)
+        return template
 
     def _fetch_package_show(self) -> dict[str, Any]:
         url = f"{self._ckan_base_url}/package_show?id={self._package_id}"
@@ -103,6 +109,21 @@ def _leistungen_url_from_package(package: dict[str, Any]) -> str:
             if url:
                 return url
     raise GovDataCkanError("CKAN package has no Leistungen resource URL")
+
+
+def _scope_open_pvog_url(template_url: str, ars: str) -> str:
+    """Rewrite unscoped ``open-pvog`` feed URL to ``open-pvog/{ars}`` with narrow scope."""
+    parsed = urlparse(template_url)
+    path = parsed.path
+    marker = OPEN_PVOG_PATH_SUFFIX
+    if marker not in path:
+        raise GovDataCkanError(f"Leistungen URL missing {marker} path: {template_url}")
+    scoped_path = path if f"{marker}/" in path else path.replace(marker, f"{marker}/{ars}", 1)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["includeAbove"] = "false"
+    query["includeBelow"] = "false"
+    new_query = urlencode(query)
+    return urlunparse(parsed._replace(path=scoped_path, query=new_query))
 
 
 def _page_url(template_url: str, *, page: int, size: int) -> str:

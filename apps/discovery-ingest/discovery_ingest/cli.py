@@ -77,6 +77,7 @@ def _govdata_fetch(args: argparse.Namespace) -> int:
     ckan = GovDataCkanClient(
         settings.govdata_ckan_base_url,
         settings.govdata_package_id,
+        scope_ars=settings.govdata_open_pvog_ars,
     )
     try:
         return _govdata_fetch_pages(
@@ -116,7 +117,8 @@ def _govdata_fetch_pages(
                 settings.discovery_api_key,
                 items,
             )
-        except DiscoveryMachineApiError:
+        except DiscoveryMachineApiError as err:
+            print(err, file=sys.stderr)
             return 1
         posted_any = True
     if not posted_any:

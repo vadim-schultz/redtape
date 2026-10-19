@@ -60,7 +60,7 @@ def test_govdata_cli_posts_batch_to_machine_api_with_api_key_header(
     assert isinstance(body, dict)
     items = body["items"]
     assert isinstance(items, list)
-    assert items[0]["external_id"] == "govdata:ozg:OZ-EXAMPLE-001"
+    assert items[0]["external_id"] == "govdata:leika:12345678901234"
 
 
 def test_govdata_cli_exits_1_when_api_returns_401(monkeypatch: pytest.MonkeyPatch) -> None:
