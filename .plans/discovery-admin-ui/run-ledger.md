@@ -24,3 +24,5 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 - [ ] Worker-origin admin API smoke passes with the expected `401`/`403`/`200` outcomes.
 - [ ] Allowlisted user sees the documented admin routes and menu links.
 - [ ] Release PR opened from `feat/plans-discovery-admin-ui` to `main`.
+
+**Last orchestration:** 2026-10-21 — stopped at chapter 1: Docker daemon unavailable and Vitest fork permissions blocked the required CI gate.
