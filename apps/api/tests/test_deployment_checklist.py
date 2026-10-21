@@ -29,9 +29,9 @@ def test_deployment_checklist_documents_worker_discovery_probe_sequence() -> Non
         "/health",
         "same-origin",
         "/api/v1/discovery/admin/tasks?limit=1&offset=0",
-        "401",
-        "403",
-        "200",
+        "HTTP `401`",
+        "expected response is HTTP `403`",
+        "expected response is HTTP `200`",
         "/api/v1/discovery/admin/coverage",
         "/api/v1/discovery/admin/catalogue?limit=50&offset=0",
     )

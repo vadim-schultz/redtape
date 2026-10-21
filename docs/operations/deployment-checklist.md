@@ -56,6 +56,43 @@ Checks (no laptop ingest required):
 - [ ] **Platform maintenance** discovery job succeeds (Actions → **Platform maintenance**, or `gh workflow run platform-maintenance.yml -f job=discovery`).
 - [ ] After a scheduled or manual discovery run, the admin catalogue view shows recent ingest activity (tasks or pipeline events).
 
+### Worker-origin discovery probe sequence
+
+Run the direct Render health check before browser checks. Production browser traffic is same-origin
+through the Worker proxy; do not treat an HTML cold-start page as an API response.
+
+1. `GET /health` on `https://redtape-api.onrender.com` returns HTTP `200` and application JSON.
+2. From the Worker origin, request
+   `/api/v1/discovery/admin/tasks?limit=1&offset=0` without a bearer token. The expected response is
+   HTTP `401`.
+3. Repeat the same Worker-origin probe with a valid session token for a non-allowlisted user. The
+   expected response is HTTP `403`.
+4. Repeat it with a valid session token for an allowlisted user. The expected response is HTTP `200`
+   with valid JSON (`items`, `total`, `offset`, and `limit`).
+5. With the same allowlisted bearer token, request
+   `/api/v1/discovery/admin/coverage`. Expect HTTP `200` and valid JSON containing `by_source`,
+   `tasks_pending`, `tasks_failed`, and `emit_ready_count`.
+6. With the same token, request
+   `/api/v1/discovery/admin/catalogue?limit=50&offset=0`. Expect HTTP `200` and valid JSON containing
+   `items`, `summary`, `total`, `offset`, and `limit`.
+
+For authenticated requests, use the Worker origin and preserve the header:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer <session-token>" \
+  "https://redtape-web.vadim-schultz.workers.dev/api/v1/discovery/admin/coverage"
+```
+
+Interpret failures in this order:
+
+| Response | Meaning and action |
+| --- | --- |
+| `401` | Session is missing or expired; sign in again. |
+| `403` | The session email is not in `DISCOVERY_ADMIN_EMAILS`; do not add a client-side allowlist. |
+| `503` | Discovery is disabled or the API is still cold-starting; wait for `/health` and retry. |
+| HTML, network failure, or invalid JSON | The request did not complete the Worker-to-Render API path; inspect Worker routing, Render logs, and the browser Network panel. |
+
 **Rotate `DISCOVERY_API_KEY` (GHA):** issue a new key with
 `python -m scripts.issue_api_key --name discovery-scheduled-gha` (`apps/api`), update the GitHub secret, run one
 successful discovery job, then revoke the old prefix per

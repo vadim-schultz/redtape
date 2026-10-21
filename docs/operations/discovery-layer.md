@@ -71,6 +71,35 @@ Store the printed `rt_…` in `DISCOVERY_API_KEY` (local shell or GitHub reposit
 Add operator emails to `DISCOVERY_ADMIN_EMAILS` (lowercase is normalized). Sign in to the web app with
 Supabase using one of those addresses before visiting admin routes.
 
+## Web admin route surface
+
+The discovery admin UI is available only after the server admin probe succeeds. The server remains the
+authorization boundary; the browser does not contain an email allowlist.
+
+| Web route | Behavior |
+| --- | --- |
+| `/admin/discovery` | Redirects to the catalogue page. |
+| `/admin/discovery/catalogue` | Shows catalogue rows and the coverage summary. |
+| `/admin/discovery/coverage` | Shows the dedicated coverage summary. |
+| `/admin/discovery/tasks` | Shows the crawler task queue. |
+| `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages and row details. |
+| `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
+
+The emit preview is a subview of the pipeline page, not a top-level route. Every discovery page has
+visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
+the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the
+existing retry action.
+
+Under **Documents**, an allowlisted user sees readable links for **Catalogue**, **Coverage**, and
+**Tasks** after the admin probe returns `200`. Non-admin and anonymous sessions do not see those links,
+and direct navigation remains guarded. The menu also keeps these application links:
+
+| Menu action | Route and behavior |
+| --- | --- |
+| **Home** | Full-width link to `/`. |
+| **Browse Documents** | Icon-only, labelled link to `/documents`. |
+| **Suggest** | Icon-only, labelled link to `/suggest`. |
+
 ## Corporate network (ingest only)
 
 GovData CKAN, PVOG, and FIM/LeiKa calls from your laptop usually need the corporate HTTP proxy.
@@ -151,12 +180,15 @@ With `./scripts/dev-up.sh` or manual API + web:
 
 | Surface | URL / route |
 | --- | --- |
+| Discovery admin root | Web: [`/admin/discovery`](http://localhost:5173/admin/discovery) |
 | Crawler queue | Web: [`/admin/discovery/tasks`](http://localhost:5173/admin/discovery/tasks) |
-| Catalogue index | `/admin/discovery/catalogue` |
+| Catalogue index and coverage chips | [`/admin/discovery/catalogue`](http://localhost:5173/admin/discovery/catalogue) |
+| Dedicated coverage summary | [`/admin/discovery/coverage`](http://localhost:5173/admin/discovery/coverage) |
 | Pipeline + emit preview | `/admin/discovery/pipeline/<catalogue-service-id>` |
 
-Confirm tasks list loads, catalogue rows appear after ingest, and pipeline shows events/claims for a row
-you enriched.
+Confirm tasks list loads, catalogue rows and coverage chips appear after ingest, and pipeline shows
+events/claims for a row you enriched. Also confirm that an unknown discovery route shows the fallback
+and that Home, Browse Documents, and Suggest keep their menu routes.
 
 Admin JSON API (session JWT, allowlisted email): prefix
 `http://localhost:8000/api/v1/discovery/admin` — e.g. `GET …/catalogue`, `GET …/coverage`.
