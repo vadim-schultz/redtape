@@ -10,7 +10,7 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 
 | Chapter | Branch / PR | Red → green evidence | Refactor outcome | CI / smoke | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1. Route contract and coverage | — | — | — | — | planned |
+| 1. Route contract and coverage | `feat/discovery-admin-ui-route-contract` / [PR #150](https://github.com/vadim-schultz/redtape/pull/150) | Happy coverage route, unknown-path fallback, and coverage error/retry tests passed | Dispatch-only routes; reused `CoverageChips` and `QueryError` | Non-Docker checks passed; Docker/Postgres checks skipped; remote checks passed | merged |
 | 2. Admin guard feedback | — | — | — | — | planned |
 | 3. Catalogue data states | — | — | — | — | planned |
 | 4. Menu discovery navigation | — | — | — | — | planned |
@@ -25,4 +25,4 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 - [ ] Allowlisted user sees the documented admin routes and menu links.
 - [ ] Release PR opened from `feat/plans-discovery-admin-ui` to `main`.
 
-**Last orchestration:** 2026-10-21 — stopped at chapter 1: Docker daemon unavailable and Vitest fork permissions blocked the required CI gate.
+**Last orchestration:** 2026-10-21 — chapter 1 merged; continuing at chapter 2.
