@@ -2,6 +2,7 @@ import { VStack } from "@chakra-ui/react";
 
 import ColorModeMenuRow from "./ColorModeMenuRow";
 import DocumentsMenuRow from "./DocumentsMenuRow";
+import HomeMenuButton from "./HomeMenuButton";
 import LanguageMenuRow from "./LanguageMenuRow";
 import ProfileMenuRow from "./ProfileMenuRow";
 
@@ -13,6 +14,7 @@ interface AppMenuPanelProps {
 export default function AppMenuPanel({ onCloseMenu }: AppMenuPanelProps) {
   return (
     <VStack align="stretch" gap="3" p="3" minW="18rem">
+      <HomeMenuButton />
       <ProfileMenuRow />
       <DocumentsMenuRow />
       <ColorModeMenuRow />

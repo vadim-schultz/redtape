@@ -20,7 +20,10 @@
     "home": "Startseite",
     "browse_documents": "Dokumente durchsuchen",
     "about": "Über uns",
-    "suggest": "Vorschlagen"
+    "suggest": "Vorschlagen",
+    "discovery_catalogue": "Katalog",
+    "discovery_coverage": "Abdeckung",
+    "discovery_tasks": "Aufgaben"
   },
   "menu": {
     "profile": "Profil",
