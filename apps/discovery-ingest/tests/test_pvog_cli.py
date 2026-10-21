@@ -81,7 +81,33 @@ def test_pvog_cli_sends_mapped_batch_with_source_pvog(monkeypatch: pytest.Monkey
     items = body["items"]
     assert isinstance(items, list)
     assert items[0]["source"] == "pvog"
-    assert items[0]["external_id"] == "pvog:PORTAL-BUND-01:OD-EXAMPLE-001"
+    assert items[0]["external_id"] == "pvog:leika:99001040001000"
+    assert items[0]["portal_url"] == "https://service.example.bund.de/online"
+
+
+def test_pvog_cli_exits_nonzero_on_400(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pvog CLI · exits non-zero when PVOG Suchdienst returns 400."""
+    monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "redtape.test":
+            return httpx.Response(201, json={"items": []})
+        return httpx.Response(400, json={"code": 1901, "message": "search criteria required"})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(
+        [
+            "pvog",
+            "run",
+            "--jurisdiction-id",
+            str(FEDERAL_JURISDICTION),
+        ],
+    )
+
+    assert exit_code == 1
 
 
 def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPatch) -> None:

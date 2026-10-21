@@ -25,7 +25,13 @@ from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
-from discovery_ingest.pvog.client import FEDERAL_ARS, PvogClient, PvogMappingError, map_pvog_record
+from discovery_ingest.pvog.client import (
+    FEDERAL_ARS,
+    PvogClient,
+    PvogClientError,
+    PvogMappingError,
+    map_pvog_record,
+)
 from discovery_ingest.schemas import CatalogueBatchItem
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
@@ -130,10 +136,14 @@ def _govdata_fetch_pages(
 def _pvog_run(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     pvog = PvogClient(settings.pvog_api_base_url)
-    items = _map_pvog_records(
-        pvog.iter_records(ars=FEDERAL_ARS, max_pages=args.max_pages),
-        jurisdiction_id=args.jurisdiction_id,
-    )
+    try:
+        items = _map_pvog_records(
+            pvog.iter_records(ars=FEDERAL_ARS, max_pages=args.max_pages),
+            jurisdiction_id=args.jurisdiction_id,
+        )
+    except PvogClientError as err:
+        print(err, file=sys.stderr)
+        return 1
     if not items:
         print("no mappable PVOG rows", file=sys.stderr)
         return 1

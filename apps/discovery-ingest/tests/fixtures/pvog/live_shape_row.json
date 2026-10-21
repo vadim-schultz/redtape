@@ -1,0 +1,11 @@
+{
+  "id": "LB-LIVE-CLI-001",
+  "name": "Live v7 Leistungsname",
+  "teaser": "Kurzer Teaser",
+  "leikakeys": ["99001040001000"],
+  "onlineServiceLinks": [
+    {
+      "uri": "https://service.example.bund.de/online"
+    }
+  ]
+}
