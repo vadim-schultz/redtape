@@ -20,10 +20,7 @@
     "home": "Home",
     "browse_documents": "Browse Documents",
     "about": "About",
-    "suggest": "Suggest",
-    "discovery_catalogue": "Catalogue",
-    "discovery_coverage": "Coverage",
-    "discovery_tasks": "Tasks"
+    "suggest": "Suggest"
   },
   "menu": {
     "profile": "Profile",
