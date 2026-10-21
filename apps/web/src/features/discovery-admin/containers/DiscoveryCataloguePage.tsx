@@ -1,34 +1,73 @@
-import { Spinner, Stack, Text } from "@chakra-ui/react";
+import { Stack, Text } from "@chakra-ui/react";
 
+import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
+import DiscoveryCatalogueQueryStatus from "../components/DiscoveryCatalogueQueryStatus";
+import type { DiscoveryCatalogueQueryState } from "../components/DiscoveryCatalogueQueryStatus";
 import CatalogueServicesTable from "../components/CatalogueServicesTable";
 import CoverageChips from "../components/CoverageChips";
 import { useDiscoveryCatalogueQuery } from "../hooks/useDiscoveryCatalogueQuery";
 import { useDiscoveryCoverageQuery } from "../hooks/useDiscoveryCoverageQuery";
+
+function queryStateFor(
+  isPending: boolean,
+  isError: boolean,
+  hasData: boolean,
+): DiscoveryCatalogueQueryState {
+  if (isPending) return "loading";
+  if (isError || !hasData) return "error";
+  return "ready";
+}
 
 /** Imported catalogue index at ``/admin/discovery/catalogue``. */
 export default function DiscoveryCataloguePage() {
   const { t } = useLocale();
   const coverageQuery = useDiscoveryCoverageQuery();
   const catalogueQuery = useDiscoveryCatalogueQuery();
+  const coverageState = queryStateFor(
+    coverageQuery.isPending,
+    coverageQuery.isError,
+    Boolean(coverageQuery.data),
+  );
+  const catalogueState = queryStateFor(
+    catalogueQuery.isPending,
+    catalogueQuery.isError,
+    Boolean(catalogueQuery.data),
+  );
 
-  const isLoading = coverageQuery.isLoading || catalogueQuery.isLoading;
-  const isError = coverageQuery.isError || catalogueQuery.isError;
-
-  if (isLoading) {
-    return <Spinner />;
+  if (coverageState === "loading" && catalogueState === "loading") {
+    return (
+      <Text role="status" aria-label={t("common.loading")}>
+        {t("common.loading")}
+      </Text>
+    );
   }
 
-  if (isError || !coverageQuery.data) {
+  if (coverageState === "error" && catalogueState === "error") {
     return (
-      <Text color="fg.error">{t("discovery_admin.catalogue.load_error")}</Text>
+      <QueryError
+        onRetry={() => {
+          void coverageQuery.refetch();
+          void catalogueQuery.refetch();
+        }}
+      />
     );
   }
 
   return (
     <Stack gap={4} align="stretch">
-      <CoverageChips coverage={coverageQuery.data} />
-      <CatalogueServicesTable items={catalogueQuery.data?.items ?? []} />
+      <DiscoveryCatalogueQueryStatus
+        state={coverageState}
+        onRetry={() => void coverageQuery.refetch()}
+      >
+        <CoverageChips coverage={coverageQuery.data!} />
+      </DiscoveryCatalogueQueryStatus>
+      <DiscoveryCatalogueQueryStatus
+        state={catalogueState}
+        onRetry={() => void catalogueQuery.refetch()}
+      >
+        <CatalogueServicesTable items={catalogueQuery.data?.items ?? []} />
+      </DiscoveryCatalogueQueryStatus>
     </Stack>
   );
 }

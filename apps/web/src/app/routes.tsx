@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
+import LoadingShell from "./LoadingShell";
 import DocumentDetailSkeleton from "../features/documents/components/document-detail/DocumentDetailSkeleton";
 import DocumentsListSkeleton from "../features/documents/components/documents-list/DocumentsListSkeleton";
 import RequireAuth from "../features/auth/components/RequireAuth";
@@ -32,7 +33,7 @@ export const routes = [
   {
     path: "/login",
     element: (
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingShell />}>
         <LoginPage />
       </Suspense>
     ),
@@ -56,7 +57,7 @@ export const routes = [
   {
     path: "/suggest",
     element: (
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingShell />}>
         <RequireAuth>
           <SuggestPage />
         </RequireAuth>
@@ -82,7 +83,7 @@ export const routes = [
   {
     path: "/admin/discovery/*",
     element: (
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingShell />}>
         <DiscoveryAdminRoutes />
       </Suspense>
     ),

@@ -46,6 +46,39 @@ function stubLocales(ok = true) {
   );
 }
 
+function stubMenuRequests(adminStatus: number) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input?: unknown) => {
+      const url = String(input);
+      if (url.includes("/api/v1/translations")) {
+        return new Response(JSON.stringify({ translations: {} }));
+      }
+      if (url.includes("/api/v1/locales")) {
+        return new Response(JSON.stringify(LOCALES));
+      }
+      if (url.includes("/api/v1/me")) {
+        return new Response(
+          JSON.stringify({
+            id: authSession.userId,
+            email: authSession.email,
+            display_name: null,
+            role: "user",
+          }),
+        );
+      }
+      if (url.includes("/api/v1/discovery/admin/tasks")) {
+        return adminStatus === 200
+          ? new Response(
+              JSON.stringify({ items: [], total: 0, offset: 0, limit: 1 }),
+            )
+          : new Response("", { status: adminStatus });
+      }
+      return new Response("", { status: 503 });
+    }),
+  );
+}
+
 async function openMenu(
   authGateway: ReturnType<typeof createFakeAuthGateway> = createFakeAuthGateway(
     {
@@ -162,4 +195,95 @@ it("AppMenu · language row absent when locales request fails", async () => {
     expect(screen.getAllByTestId("key-value-row")).toHaveLength(3),
   );
   expect(screen.queryByText("Language")).not.toBeInTheDocument();
+});
+
+it("AppMenu · allowlisted user sees discovery links under Documents", async () => {
+  stubMenuRequests(200);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  expect(
+    await screen.findByRole("link", { name: "Catalogue" }),
+  ).toHaveAttribute("href", "/admin/discovery/catalogue");
+  expect(screen.getByRole("link", { name: "Coverage" })).toHaveAttribute(
+    "href",
+    "/admin/discovery/coverage",
+  );
+  expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
+    "href",
+    "/admin/discovery/tasks",
+  );
+});
+
+it("AppMenu · non-admin user does not see discovery links", async () => {
+  stubMenuRequests(403);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  await screen.findByRole("link", { name: "Browse Documents" });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Catalogue" }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(
+    screen.queryByRole("link", { name: "Coverage" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
+});
+
+it("AppMenu · anonymous user does not see discovery links", async () => {
+  stubMenuRequests(200);
+  await openMenu();
+
+  await screen.findByRole("link", { name: "Browse Documents" });
+  expect(
+    screen.queryByRole("link", { name: "Catalogue" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Coverage" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
+});
+
+it("DocumentsMenuRow · uses labelled search and upward-arrow links", async () => {
+  stubMenuRequests(200);
+  await openMenu();
+
+  const browse = await screen.findByRole("link", { name: "Browse Documents" });
+  const suggest = screen.getByRole("link", { name: "Suggest" });
+
+  expect(browse).toHaveAttribute("href", "/documents");
+  expect(browse.querySelector("svg")).toBeTruthy();
+  expect(browse).not.toHaveTextContent("Browse Documents");
+  expect(suggest).toHaveAttribute("href", "/suggest");
+  expect(suggest.querySelector("svg")).toBeTruthy();
+  expect(suggest).not.toHaveTextContent("Suggest");
+});
+
+it("AppMenu · Home button is first and navigates to /", async () => {
+  stubMenuRequests(200);
+  await openMenu();
+
+  const home = await screen.findByRole("link", { name: "Home" });
+  const firstRow = screen.getAllByTestId("key-value-row")[0];
+
+  expect(home).toHaveAttribute("href", "/");
+  expect(
+    home.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+it("AppMenu · probe failure keeps ordinary document navigation", async () => {
+  stubMenuRequests(503);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  expect(
+    await screen.findByRole("link", { name: "Browse Documents" }),
+  ).toHaveAttribute("href", "/documents");
+  expect(screen.getByRole("link", { name: "Suggest" })).toHaveAttribute(
+    "href",
+    "/suggest",
+  );
+  expect(
+    screen.queryByRole("link", { name: "Catalogue" }),
+  ).not.toBeInTheDocument();
 });

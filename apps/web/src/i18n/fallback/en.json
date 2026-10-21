@@ -86,6 +86,10 @@
   },
   "discovery_admin": {
     "title": "Discovery admin",
+    "auth_unconfigured_title": "Authentication is not configured",
+    "auth_unconfigured_body": "Configure Supabase before trying again.",
+    "disabled_title": "Discovery admin is disabled",
+    "disabled_body": "Discovery administration is not configured on this deployment. Check the deployment configuration, then try again.",
     "tasks": {
       "filter_status": "Task status",
       "filter_source": "Source",
