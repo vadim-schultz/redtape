@@ -62,6 +62,31 @@ def test_runbook_documents_admin_tasks_route() -> None:
     assert "/admin/discovery/tasks" in text
 
 
+def test_runbook_documents_complete_admin_route_surface_and_menu_behavior() -> None:
+    """Runbook describes every discovery route and its guarded menu links."""
+    text = RUNBOOK.read_text(encoding="utf-8")
+    for route in (
+        "/admin/discovery",
+        "/admin/discovery/catalogue",
+        "/admin/discovery/coverage",
+        "/admin/discovery/tasks",
+        "/admin/discovery/pipeline/<catalogue-service-id>",
+        "/admin/discovery/unknown",
+    ):
+        assert route in text
+    for menu_label in (
+        "Home",
+        "Browse Documents",
+        "Suggest",
+        "Catalogue",
+        "Coverage",
+        "Tasks",
+    ):
+        assert menu_label in text
+    assert "allowlisted" in text.lower()
+    assert "probe" in text.lower()
+
+
 def test_runbook_relative_links_resolve() -> None:
     """Relative links from runbook resolve to existing files."""
     assert RUNBOOK.is_file(), f"missing runbook: {RUNBOOK.relative_to(REPO_ROOT)}"
