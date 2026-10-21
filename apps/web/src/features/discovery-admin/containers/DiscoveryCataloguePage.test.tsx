@@ -143,9 +143,11 @@ it("DiscoveryCataloguePage · shows a retryable state when catalogue loading fai
 
   renderCataloguePage();
 
-  expect(
-    await screen.findByRole("button", { name: "Try again" }),
-  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument(),
+  );
   expect(screen.queryByText("service-1")).not.toBeInTheDocument();
   expect(screen.getByText("govdata: 3")).toBeInTheDocument();
   expect(
