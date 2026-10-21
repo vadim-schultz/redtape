@@ -86,9 +86,17 @@ On R&S laptops, export `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` before `curl`, 
 
 **Onlinedienste (`/v1beta2/onlineservices`):** cursor via query parameter `nextPageToken`. Repeat until the response omits `nextPageToken` or returns an empty item list.
 
-**Leistungen lists (`/v7/servicedescriptions/{ars}`):** follow pagination fields documented in OpenAPI for the active major version (page index, `next` link, or token — mirror the shape you implement in the client).
+**Leistungen lists (`/v7/servicedescriptions/{ars}`):** v7 requires search criteria on every request (`personalMatters`, `q`, or LeiKa ids). Bare `GET` without them returns **400** (code **1901**).
 
-**Fixture convention (chapter 13):** store representative pages under `apps/discovery-ingest/tests/fixtures/pvog/` — for example `page1.json` with a `nextPageToken` and a second page file for link-following tests. Do not commit live API dumps with personal data.
+Federal scheduled ingest (`pvog run`) uses a **Lebenslagen tree walk** (canon § Federal ingest):
+
+1. Bootstrap: `personalMatters=Geburt`, `facades=true`, `size=100`.
+2. DFS `facades.personalMatters` for **leaf** `code` values; iterate `sorted(set(codes))`.
+3. Per code: `facades=false`, `page=0,1,…` until `serviceDescriptions.last` is true.
+4. Read rows from `serviceDescriptions.content` (not legacy top-level `content` / `next`).
+5. `--max-pages` caps **all** Suchdienst GETs in one run (bootstrap counts toward the budget).
+
+**Fixture convention:** store representative pages under `apps/discovery-ingest/tests/fixtures/pvog/` — for example `facades_personal_matters.json`, `v7_page_leaf_a.json`, and a second page file when `last` is false. Do not commit live API dumps with personal data.
 
 ## Example Suchdienst fragment (truncated)
 
@@ -121,21 +129,21 @@ Leistung detail responses expose `lbId`, LeiKa keys, and nested `relations`; map
 
 ## `external_id`
 
-Stable id for `(source, external_id)` uniqueness:
+Stable id for `(source, external_id)` uniqueness (v7 Leistungen list rows):
 
-`pvog:{portal_id}:{service_id}`
-
-| Segment | Source field (Swagger) | Notes |
-| --- | --- | --- |
-| `portal_id` | Onlinedienst id — `id` in list/detail, or `odId` path segment | Portal / onlinedienst scope |
-| `service_id` | Leistung id — `lbId` in relations and detail paths | Use the Leistung key when ingesting Leistungen; for onlinedienst-only rows use the onlinedienst `id` as both segments only when Leistung is absent (document in ingest mapper) |
+| Pattern | When |
+| --- | --- |
+| `pvog:leika:{key}` | First non-empty entry in `leikakeys` or `leikaIds` |
+| `pvog:lb:{id}` | Otherwise row `id` or `lbId` (Leistung id in v7 list payloads) |
 
 Examples:
 
-- `pvog:OD-EXAMPLE-001:LB-EXAMPLE-001`
-- Federal ARS `000000000000` is **jurisdiction** scope on queries, not part of `external_id`.
+- `pvog:leika:99001040001000`
+- `pvog:lb:LB-EXAMPLE-001`
 
-Never omit `external_id`; batch items without it must be rejected in ingest (chapter 13).
+Federal ARS `000000000000` is **jurisdiction** scope on queries (`--jurisdiction-id` / `FEDERAL_JURISDICTION_ID`), not part of `external_id`.
+
+Never omit `external_id`; batch items without LeiKa or lb id must be rejected in ingest (`PvogMappingError`).
 
 ## Mapping
 
@@ -170,7 +178,7 @@ Map each ingested **Leistung** or **Onlinedienst** row (per chapter 13 slice) to
   "items": [
     {
       "source": "pvog",
-      "external_id": "pvog:OD-EXAMPLE-001:LB-EXAMPLE-001",
+      "external_id": "pvog:leika:12345678901234",
       "jurisdiction_id": "00000000-0000-0000-0000-000000000001",
       "title_i18n": { "de": "Beispiel-Leistung" },
       "description_i18n": { "de": "Kurztext …" },
