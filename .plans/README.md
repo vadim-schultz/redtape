@@ -197,6 +197,23 @@ Deferred: chapters 16 (claim evidence), 20 (crawler frontier adapter), 21 (LLM e
 [`docs/operations/discovery-layer.md`](../docs/operations/discovery-layer.md). CoS orchestration:
 [`docs/operations/loops/discovery-layer.md`](../docs/operations/loops/discovery-layer.md).
 
+### [discovery-admin-ui/](discovery-admin-ui/) — Discovery admin UI and menu navigation
+
+Remediate the missing `/admin/discovery/coverage` route and silent admin loading states, make catalogue
+failures diagnosable, and expose allowlisted discovery links through the existing Documents menu. The
+suite also adds a full-width Home action and replaces Browse Documents/Suggest text with accessible
+existing-library icons.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-admin-ui/00-architecture.md) | Route, component, data-state, and menu contract |
+| [01-rollout.md](discovery-admin-ui/01-rollout.md) | Five chapters, dependency graph, invariants, and gates |
+| [gaps-and-decisions.md](discovery-admin-ui/gaps-and-decisions.md) | Settled admin visibility, reuse, icon, and Home decisions |
+| [chapters/](discovery-admin-ui/chapters/) | Executable chief-of-staff chapter plans |
+
+Status: planned — documentation suite only; implementation starts with
+[chapters/01-route-contract-and-coverage.md](discovery-admin-ui/chapters/01-route-contract-and-coverage.md).
+
 ### [discovery-online/](discovery-online/) — Scheduled discovery and Supabase keep-alive
 
 Move catalogue refetch and task drain off laptops onto **GitHub Actions** against production Render (machine API) and Supabase (OpenPLZ path only). Unified **6-day maintenance cycle**: OpenPLZ every 3 days, discovery on alternate days. **Staging-only** scheduled runs (no auto-emit). **Idempotent refetch** (OpenPLZ parity) in chapter 5.
