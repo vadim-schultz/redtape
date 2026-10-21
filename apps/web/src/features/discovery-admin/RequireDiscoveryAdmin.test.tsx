@@ -153,8 +153,8 @@ it("RequireDiscoveryAdmin · renders an auth configuration message when Supabase
 });
 
 it("RequireDiscoveryAdmin · explains discovery is disabled for a 503 probe", async () => {
-  const fetchMock = stubFetch(503);
   const { user } = renderGuard(createFakeAuthGateway({ session }), 503);
+  const fetchMock = vi.mocked(fetch);
 
   expect(
     await screen.findByRole("heading", {
