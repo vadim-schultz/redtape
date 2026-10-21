@@ -1,0 +1,10 @@
+{
+  "facades": {
+    "personalMatters": [
+      {
+        "code": "CLI_LEAF",
+        "label": "Single leaf for CLI fixture"
+      }
+    ]
+  }
+}

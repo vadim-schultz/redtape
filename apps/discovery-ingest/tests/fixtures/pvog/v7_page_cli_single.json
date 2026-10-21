@@ -1,0 +1,18 @@
+{
+  "serviceDescriptions": {
+    "content": [
+      {
+        "portalId": "PORTAL-BUND-01",
+        "id": "OD-EXAMPLE-001",
+        "lbId": "LB-001",
+        "ars": "000000000000",
+        "title": "Beispiel-Onlinedienst",
+        "description": "Kurzbeschreibung aus PVOG",
+        "url": "https://example.bund.de/onlinedienst",
+        "leikaIds": ["12345678901234"]
+      }
+    ],
+    "last": true,
+    "totalElements": 1
+  }
+}
