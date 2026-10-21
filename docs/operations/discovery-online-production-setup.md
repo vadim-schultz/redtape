@@ -254,6 +254,7 @@ with anchor **`2026-01-01`**. Discovery runs when `days_since_anchor % 6 == 3`. 
    (Supabase magic link — [auth-setup.md](auth-setup.md)).
 2. Open:
    - `https://redtape-web.vadim-schultz.workers.dev/admin/discovery/catalogue`
+   - `https://redtape-web.vadim-schultz.workers.dev/admin/discovery/coverage`
    - `https://redtape-web.vadim-schultz.workers.dev/admin/discovery/tasks`
 3. After a green smoke run: catalogue rows and/or tasks should show recent ingest activity.
 
