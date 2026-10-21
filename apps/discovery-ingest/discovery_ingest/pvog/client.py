@@ -20,6 +20,10 @@ class PvogMappingError(ValueError):
     """Row cannot be mapped to a catalogue batch item."""
 
 
+class PvogClientError(RuntimeError):
+    """PVOG Suchdienst request failed."""
+
+
 class PvogClient:
     """Fetch paginated Leistungen / servicedescription pages from PVOG Suchdienst."""
 
@@ -84,7 +88,12 @@ class PvogClient:
         else:
             with httpx.Client(trust_env=True, timeout=60.0) as client:
                 response = client.get(url)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as err:
+            raise PvogClientError(
+                f"PVOG Suchdienst HTTP {err.response.status_code}",
+            ) from err
         payload = response.json()
         if not isinstance(payload, dict):
             raise ValueError("expected JSON object from PVOG Suchdienst")
@@ -184,7 +193,7 @@ def map_pvog_record(
     external_id = _external_id_for_row(row)
     title = _title_for_row(row)
     description = _description_for_row(row)
-    portal_url = _optional_str(row.get("url"))
+    portal_url = _portal_url_from_row(row)
     return CatalogueBatchItem(
         source="pvog",
         external_id=external_id,
@@ -197,11 +206,45 @@ def map_pvog_record(
 
 
 def _external_id_for_row(row: dict[str, Any]) -> str:
-    portal_id = _optional_str(row.get("portalId")) or _optional_str(row.get("portal_id"))
-    service_id = _optional_str(row.get("id")) or _optional_str(row.get("lbId"))
-    if portal_id and service_id:
-        return f"pvog:{portal_id}:{service_id}"
-    raise PvogMappingError("row has no external id (portalId and id or lbId)")
+    leika_key = _first_leika_key(row)
+    if leika_key is not None:
+        return f"pvog:leika:{leika_key}"
+    lb_id = _optional_str(row.get("id")) or _optional_str(row.get("lbId"))
+    if lb_id:
+        return f"pvog:lb:{lb_id}"
+    raise PvogMappingError("row has no external id (leikakeys or id)")
+
+
+def _first_leika_key(row: dict[str, Any]) -> str | None:
+    for field in ("leikakeys", "leikaIds"):
+        keys = row.get(field)
+        if not isinstance(keys, list):
+            continue
+        for entry in keys:
+            value = _optional_str(entry)
+            if value:
+                return value
+    return None
+
+
+def _portal_url_from_row(row: dict[str, Any]) -> str | None:
+    for field in ("onlineServiceLinks", "sourcePortals"):
+        url = _uri_from_link_list(row.get(field))
+        if url:
+            return url
+    return None
+
+
+def _uri_from_link_list(links: object) -> str | None:
+    if not isinstance(links, list):
+        return None
+    for link in links:
+        if not isinstance(link, dict):
+            continue
+        uri = _optional_str(link.get("uri"))
+        if uri:
+            return uri
+    return None
 
 
 def _title_for_row(row: dict[str, Any]) -> str:
@@ -213,7 +256,7 @@ def _title_for_row(row: dict[str, Any]) -> str:
 
 
 def _description_for_row(row: dict[str, Any]) -> str | None:
-    for key in ("description", "beschreibung"):
+    for key in ("description", "beschreibung", "teaser"):
         value = _optional_str(row.get(key))
         if value:
             return value

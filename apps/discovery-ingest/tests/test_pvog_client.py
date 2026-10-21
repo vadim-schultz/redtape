@@ -7,8 +7,10 @@ import uuid
 from pathlib import Path
 
 import httpx
+import pytest
 from discovery_ingest.pvog.client import (
     PvogClient,
+    PvogMappingError,
     _build_v7_url,
     _parse_v7_page,
     _personal_matter_codes_from_facades,
@@ -148,15 +150,34 @@ def test_pvog_client_paginates_until_service_descriptions_last() -> None:
     assert [row["id"] for row in records] == ["PAGE-ROW-001", "PAGE-ROW-002"]
 
 
+def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
+    """map_pvog_record · LeiKa id and portal URI from live v7 row."""
+    row = _load_fixture("live_shape_row.json")
+    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
+
+    assert item.source == "pvog"
+    assert item.external_id == "pvog:leika:99001040001000"
+    assert item.jurisdiction_id == FEDERAL_JURISDICTION
+    assert item.title_i18n == {"de": "Live v7 Leistungsname"}
+    assert item.description_i18n == {"de": "Kurzer Teaser"}
+    assert item.portal_url == "https://service.example.bund.de/online"
+
+
+def test_map_pvog_record_rejects_row_without_id_and_leika() -> None:
+    """map_pvog_record · rejects row without lb id and LeiKa key."""
+    with pytest.raises(PvogMappingError, match="external id"):
+        map_pvog_record({"name": "orphan"}, jurisdiction_id=FEDERAL_JURISDICTION)
+
+
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:
-    """PvogClient · maps fixture row to batch upsert DTO."""
+    """PvogClient · maps v7 CLI fixture row to batch upsert DTO."""
     row = _load_fixture("v7_page_cli_single.json")["serviceDescriptions"]["content"][0]
     item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert item.source == "pvog"
-    assert item.external_id == "pvog:PORTAL-BUND-01:OD-EXAMPLE-001"
+    assert item.external_id == "pvog:leika:99001040001000"
     assert item.jurisdiction_id == FEDERAL_JURISDICTION
-    assert item.title_i18n == {"de": "Beispiel-Onlinedienst"}
+    assert item.title_i18n == {"de": "Live v7 Leistungsname"}
     assert item.description_i18n == {"de": "Kurzbeschreibung aus PVOG"}
-    assert item.portal_url == "https://example.bund.de/onlinedienst"
-    assert item.raw_payload["lbId"] == "LB-001"
+    assert item.portal_url == "https://service.example.bund.de/online"
+    assert item.raw_payload["id"] == "LB-LIVE-CLI-001"

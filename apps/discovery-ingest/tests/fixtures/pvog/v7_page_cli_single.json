@@ -2,14 +2,16 @@
   "serviceDescriptions": {
     "content": [
       {
-        "portalId": "PORTAL-BUND-01",
-        "id": "OD-EXAMPLE-001",
-        "lbId": "LB-001",
-        "ars": "000000000000",
-        "title": "Beispiel-Onlinedienst",
+        "id": "LB-LIVE-CLI-001",
+        "name": "Live v7 Leistungsname",
         "description": "Kurzbeschreibung aus PVOG",
-        "url": "https://example.bund.de/onlinedienst",
-        "leikaIds": ["12345678901234"]
+        "leikakeys": ["99001040001000"],
+        "onlineServiceLinks": [
+          {
+            "uri": "https://service.example.bund.de/online"
+          }
+        ],
+        "ars": "000000000000"
       }
     ],
     "last": true,
