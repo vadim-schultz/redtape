@@ -1,0 +1,13 @@
+{
+  "serviceDescriptions": {
+    "content": [
+      {
+        "id": "SHARED-LB-001",
+        "lbId": "LB-SHARED",
+        "title": "From leaf A"
+      }
+    ],
+    "last": true,
+    "totalElements": 1
+  }
+}

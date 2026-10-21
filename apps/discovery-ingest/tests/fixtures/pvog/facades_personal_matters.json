@@ -1,0 +1,24 @@
+{
+  "facades": {
+    "personalMatters": [
+      {
+        "code": "ParentLebenslage",
+        "label": "Parent (not a leaf)",
+        "children": [
+          {
+            "code": "LEAF_B",
+            "label": "Leaf B"
+          },
+          {
+            "code": "LEAF_A",
+            "label": "Leaf A"
+          }
+        ]
+      },
+      {
+        "code": "LEAF_C",
+        "label": "Standalone leaf"
+      }
+    ]
+  }
+}

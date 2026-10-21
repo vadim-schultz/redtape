@@ -1,0 +1,18 @@
+{
+  "serviceDescriptions": {
+    "content": [
+      {
+        "id": "SHARED-LB-001",
+        "lbId": "LB-SHARED",
+        "title": "Duplicate from leaf B"
+      },
+      {
+        "id": "UNIQUE-LB-002",
+        "lbId": "LB-UNIQUE",
+        "title": "Only on leaf B"
+      }
+    ],
+    "last": true,
+    "totalElements": 2
+  }
+}

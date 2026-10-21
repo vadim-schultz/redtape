@@ -1,0 +1,20 @@
+{
+  "serviceDescriptions": {
+    "content": [
+      {
+        "id": "LB-LIVE-CLI-001",
+        "name": "Live v7 Leistungsname",
+        "description": "Kurzbeschreibung aus PVOG",
+        "leikakeys": ["99001040001000"],
+        "onlineServiceLinks": [
+          {
+            "uri": "https://service.example.bund.de/online"
+          }
+        ],
+        "ars": "000000000000"
+      }
+    ],
+    "last": true,
+    "totalElements": 1
+  }
+}

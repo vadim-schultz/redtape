@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 import pytest
 from discovery_ingest.cli import main
+from discovery_ingest.pvog.client import _build_v7_url
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "pvog"
 FEDERAL_JURISDICTION = uuid.UUID("11111111-1111-1111-1111-111111111101")
@@ -17,6 +18,14 @@ DISCOVERY_BASE = "https://redtape.test"
 PVOG_BASE = "https://pvog.fitko.net/suchdienst/api"
 FEDERAL_ARS = "000000000000"
 _REAL_HTTPX_CLIENT = httpx.Client
+
+
+def _bootstrap_url() -> str:
+    return _build_v7_url(PVOG_BASE, FEDERAL_ARS, personal_matter="Geburt", facades=True)
+
+
+def _search_url(code: str, page: int = 0) -> str:
+    return _build_v7_url(PVOG_BASE, FEDERAL_ARS, personal_matter=code, facades=False, page=page)
 
 
 def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTransport) -> None:
@@ -28,16 +37,20 @@ def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTr
     monkeypatch.setattr("discovery_ingest.pvog.client.httpx.Client", client_factory)
 
 
+def _cli_pvog_pages() -> dict[str, Path]:
+    return {
+        _bootstrap_url(): FIXTURE_DIR / "facades_cli_single_leaf.json",
+        _search_url("CLI_LEAF"): FIXTURE_DIR / "v7_page_cli_single.json",
+    }
+
+
 def test_pvog_cli_sends_mapped_batch_with_source_pvog(monkeypatch: pytest.MonkeyPatch) -> None:
     """pvog CLI · sends mapped batch with source pvog."""
     monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
     monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
 
-    pvog_pages = {
-        f"{PVOG_BASE}/v7/servicedescriptions/{FEDERAL_ARS}": FIXTURE_DIR / "page1.json",
-        f"{PVOG_BASE}/v7/servicedescriptions/{FEDERAL_ARS}?page=2": FIXTURE_DIR / "page3_empty.json",
-    }
+    pvog_pages = _cli_pvog_pages()
     discovery_captured: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -68,7 +81,33 @@ def test_pvog_cli_sends_mapped_batch_with_source_pvog(monkeypatch: pytest.Monkey
     items = body["items"]
     assert isinstance(items, list)
     assert items[0]["source"] == "pvog"
-    assert items[0]["external_id"] == "pvog:PORTAL-BUND-01:OD-EXAMPLE-001"
+    assert items[0]["external_id"] == "pvog:leika:99001040001000"
+    assert items[0]["portal_url"] == "https://service.example.bund.de/online"
+
+
+def test_pvog_cli_exits_nonzero_on_400(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pvog CLI · exits non-zero when PVOG Suchdienst returns 400."""
+    monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "redtape.test":
+            return httpx.Response(201, json={"items": []})
+        return httpx.Response(400, json={"code": 1901, "message": "search criteria required"})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(
+        [
+            "pvog",
+            "run",
+            "--jurisdiction-id",
+            str(FEDERAL_JURISDICTION),
+        ],
+    )
+
+    assert exit_code == 1
 
 
 def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -77,10 +116,7 @@ def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPat
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
     monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
 
-    pvog_pages = {
-        f"{PVOG_BASE}/v7/servicedescriptions/{FEDERAL_ARS}": FIXTURE_DIR / "page1.json",
-        f"{PVOG_BASE}/v7/servicedescriptions/{FEDERAL_ARS}?page=2": FIXTURE_DIR / "page3_empty.json",
-    }
+    pvog_pages = _cli_pvog_pages()
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "redtape.test":
