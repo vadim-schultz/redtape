@@ -4,7 +4,8 @@ Production catalogue refetch and worker drain run on **GitHub Actions** against 
 machine API. Staging rows are updated on a fixed calendar; **machine emit to suggestions stays manual**
 (see [discovery-layer.md](discovery-layer.md) § Machine emit).
 
-Chief-of-staff orchestration (loop branch, release PR): [loops/discovery-online.md](loops/discovery-online.md).
+Chief-of-staff orchestration (loop branch, release PR): [loops/discovery-online.md](loops/discovery-online.md),
+[loops/pvog-v7-ingest.md](loops/pvog-v7-ingest.md).
 
 **First-time production setup** (Render, GitHub secrets, issue API key from another machine,
 manual smoke test): [discovery-online-production-setup.md](discovery-online-production-setup.md).
@@ -62,6 +63,7 @@ allowlist (`DISCOVERY_ADMIN_EMAILS`) is for the web UI — not used by the GHA d
 | Health wait timeout | Render service up; `DISCOVERY_API_URL` is host root without `/api` suffix |
 | Machine 401 / 403 | `DISCOVERY_API_KEY` matches a valid crawler key on production API |
 | GovData / PVOG step failed | GHA logs; API logs on Render; page caps in workflow may need tuning |
+| PVOG step: `400` / HTTPStatusError, API code **1901** | **PVOG v7 search triage** (below) — bare list URL without `personalMatters`, `q`, or LeiKa |
 | GovData step: `discovery machine API 500` on batch POST | **Catalogue batch 500 triage** (below); health may still be 200 |
 | GovData `no mappable GovData rows` or mass `skip row: … no title` | OZG schema drift (`leika_name` vs legacy `leistungsname`) or unscoped national feed; confirm federal path `open-pvog/000000000000` and [OpenAPI](https://api.ozg-umsetzung.de/api/v3/api-docs/dashboard-digitale-verwaltung) |
 | Drain exits non-zero | Stuck `claimed` tasks — lease reclaim (API); re-run after fixing target URLs |
@@ -114,6 +116,41 @@ SELECT id, kind, code FROM jurisdiction WHERE kind = 'COUNTRY' AND code = 'DE';
 **Remediation:** Update `FEDERAL_JURISDICTION_ID` to the SQL `id`, re-run minimal curl → **201**, then
 `gh workflow run platform-maintenance.yml -f job=discovery`. See
 [discovery-online-production-setup.md](discovery-online-production-setup.md) §4.4.
+
+### PVOG v7 search triage
+
+Use when **PVOG Suchdienst catalogue run** fails immediately with `httpx.HTTPStatusError: 400` and ingest logs or
+response JSON mention code **1901** (search must include terms, LeiKa ids, or Lebenslagen). GovData may have
+succeeded in the same workflow run.
+
+**Leading hypothesis:** ingest still calls v7 without required search parameters (for example bare
+`GET …/v7/servicedescriptions/000000000000`). Current federal path uses a **Lebenslagen tree walk**
+(`personalMatters` bootstrap + per-leaf pagination) — see [government-data-sources.md § Federal ingest](../discovery/government-data-sources.md#federal-ingest-pvog-run-v7).
+
+1. **GHA log** — Confirm the failing URL includes `personalMatters=` and `facades=` query parameters. A path with only
+   `{ars}` and no search criteria matches the 1901 failure mode.
+2. **Deployed ingest** — Ensure production runs a build that includes the v7 client from
+   [`.plans/pvog-v7-ingest/`](../../.plans/pvog-v7-ingest/00-architecture.md) (merged via release PR), not an older
+   chapter-13 list client.
+3. **Partial catalogue under page cap** — Workflow passes `--max-pages 50` (global GET budget including bootstrap).
+   Step may exit **0** while only a subset of Lebenslagen codes were crawled; raise the cap in
+   [platform-maintenance.yml](../../.github/workflows/platform-maintenance.yml) when operators need fuller
+   `source=pvog` coverage (open seam in [gaps-and-decisions](../../.plans/pvog-v7-ingest/gaps-and-decisions.md)).
+4. **Manual repro (corporate proxy)** — Export proxy vars from
+   [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), then:
+
+```bash
+curl -fsS "${PVOG_API_BASE_URL:-https://pvog.fitko.net/suchdienst/api}/v7/servicedescriptions/000000000000?personalMatters=Geburt&facades=true&size=1" | head -c 400
+```
+
+| Outcome | Meaning |
+| --- | --- |
+| 400 / JSON code 1901 on bootstrap curl | Search params rejected — check URL encoding and proxy |
+| 200 with `facades` JSON | Suchdienst OK; if GHA still fails, inspect ingest build and `DISCOVERY_API_*` batch POST on Render |
+| Connection reset / timeout | Corporate proxy not exported — see corporate-build-env |
+
+**Remediation:** Merge and deploy the v7 ingest fix, re-run `gh workflow run platform-maintenance.yml -f job=discovery`.
+Admin check: `/admin/discovery/catalogue` filtered by `source=pvog`.
 
 ## Idempotency and safe re-runs
 

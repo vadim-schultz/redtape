@@ -166,7 +166,7 @@ Derived from OpenAPI (`v3/api-docs`, 2026-10-15). Prefer current **Leistungen** 
 
 | Method | Path | Role |
 | --- | --- | --- |
-| `GET` | `/v7/servicedescriptions/{ars}` | Leistungen for ARS (current major list) |
+| `GET` | `/v7/servicedescriptions/{ars}` | Leistungen for ARS (current major list; **requires** search criteria — see below) |
 | `GET` | `/v6/servicedescriptions/{lbid}/detail` | Leistung detail by `lbId` |
 | `GET` | `/v3/servicedescriptions/leikaid` | Lookup by LeiKa id |
 | `GET` | `/v4beta1/servicedescriptions/leikaid` | Beta LeiKa lookup |
@@ -182,7 +182,29 @@ Derived from OpenAPI (`v3/api-docs`, 2026-10-15). Prefer current **Leistungen** 
 | `GET` | `/v3/locations/suggestions` | Location suggestions |
 | `GET` | `/v5/organisationunits/detail` | Organisation unit detail |
 
-**Pagination:** beta onlinedienste use `nextPageToken`; mirror shapes in `tests/fixtures/pvog/` (chapter 13).
+**Pagination:** beta onlinedienste use `nextPageToken`; v7 Leistungen use `serviceDescriptions` page index (see **Federal ingest**); mirror shapes in `tests/fixtures/pvog/` (chapter 13).
+
+### Federal ingest (`pvog run`, v7)
+
+Scheduled **Platform maintenance** discovery runs call `python -m discovery_ingest pvog run` with federal ARS
+`000000000000` ([`FEDERAL_ARS`](../../apps/discovery-ingest/discovery_ingest/pvog/client.py)). PVOG v7 rejects
+parameterless list requests (`400`, API code **1901** — search must include `q`, LeiKa ids, or Lebenslagen).
+
+| Phase | Query | Role |
+| --- | --- | --- |
+| Bootstrap | `personalMatters=Geburt`, `facades=true`, `size=100` | Discover `facades.personalMatters` tree ([`BOOTSTRAP_PERSONAL_MATTER`](../../apps/discovery-ingest/discovery_ingest/pvog/client.py)) |
+| Code list | DFS on bootstrap tree | Collect **leaf** `code` only (nodes without `children`); `sorted(set(codes))` for deterministic order |
+| Search | Per leaf code: `personalMatters={code}`, `facades=false`, `page=0…` | Paginate until `serviceDescriptions.last` is true |
+| Dedupe | Within one run | Skip rows whose lb `id` was already yielded from another `personalMatters` code |
+
+**v7 response shape:** rows live in `serviceDescriptions.content`; advance `page` while `last` is false. Do not rely on
+legacy top-level `content` / `next` on bare `GET …/v7/servicedescriptions/{ars}`.
+
+**HTTP budget:** CLI `--max-pages` counts **every** Suchdienst GET (bootstrap plus all code pages). GHA uses
+`--max-pages 50` until a follow-up raises the cap ([platform-maintenance workflow](../../.github/workflows/platform-maintenance.yml)).
+
+**Alternatives (not the scheduled path):** `q` text search or LeiKa id parameters satisfy v7 without a Lebenslagen walk;
+supplement crawls are documented as open seams in [`.plans/pvog-v7-ingest/gaps-and-decisions.md`](../../.plans/pvog-v7-ingest/gaps-and-decisions.md).
 
 ---
 
@@ -266,13 +288,16 @@ Keys below are used in [catalogue task fanout](../../.plans/discovery-layer/chap
 
 | Field | Notes |
 | --- | --- |
-| `id` | Onlinedienst id (`odId` path segment) |
+| `id` | Leistung id in v7 list rows (lb id); onlinedienst id in relation payloads |
 | `lbId` | Leistung id in PVOG relation payloads |
+| `leikakeys` / `leikaIds` | LeiKa keys on v7 rows or beta onlinedienste list |
 | `ars` | Regional scope on relations / list queries |
-| `leikaIds` | Query or response LeiKa keys (beta onlinedienste list) |
+| `onlineServiceLinks` / `sourcePortals` | Link objects with `uri` → ingest `portal_url` |
 | `relations` | Nested links between onlinedienst and Leistung |
 
-**Fanout:** populate `leistung_id` / `redaktion_id` from `lbId` or LeiKa lookup; `portal_url` from onlinedienst `links[].uri`.
+**`external_id` (ingest):** `pvog:leika:{key}` when `leikakeys[0]` or `leikaIds[0]` is present; else `pvog:lb:{id}` from row `id` or `lbId`.
+
+**Fanout:** populate `leistung_id` / `redaktion_id` from `lbId` or LeiKa lookup; `portal_url` from `onlineServiceLinks` / `sourcePortals` or onlinedienst `links[].uri`.
 
 ### `fim` / `leika` (enrich snapshots)
 
@@ -290,7 +315,7 @@ Store the full source row in `catalogue_service.raw_payload` for audit.
 | --- | --- | --- |
 | `fim_id` | GovData OZG row / FIM steckbrief key | Enrich via FIM when present |
 | `redaktion_id`, `leistung_id` | OZG / PVOG / FIM | LeiKa enrich |
-| PVOG `id` / `lbId` | OZG JSON, PVOG API | Dedup and `external_id` for `pvog` source (`pvog:{portal_id}:{service_id}`) |
+| PVOG `id` / `lbId` / LeiKa keys | OZG JSON, PVOG API | Dedup and `external_id` for `pvog` source (`pvog:leika:…` or `pvog:lb:…`) |
 | `portal_url` / `url` | All ingest paths | `fetch_url` tasks |
 
 ---
