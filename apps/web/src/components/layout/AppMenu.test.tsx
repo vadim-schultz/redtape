@@ -220,9 +220,13 @@ it("AppMenu · non-admin user does not see discovery links", async () => {
 
   await screen.findByRole("link", { name: "Browse Documents" });
   await waitFor(() =>
-    expect(screen.queryByRole("link", { name: "Catalogue" })).not.toBeInTheDocument(),
+    expect(
+      screen.queryByRole("link", { name: "Catalogue" }),
+    ).not.toBeInTheDocument(),
   );
-  expect(screen.queryByRole("link", { name: "Coverage" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Coverage" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
 });
 
@@ -231,8 +235,12 @@ it("AppMenu · anonymous user does not see discovery links", async () => {
   await openMenu();
 
   await screen.findByRole("link", { name: "Browse Documents" });
-  expect(screen.queryByRole("link", { name: "Catalogue" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "Coverage" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Catalogue" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Coverage" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
 });
 
@@ -275,5 +283,7 @@ it("AppMenu · probe failure keeps ordinary document navigation", async () => {
     "href",
     "/suggest",
   );
-  expect(screen.queryByRole("link", { name: "Catalogue" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Catalogue" }),
+  ).not.toBeInTheDocument();
 });
