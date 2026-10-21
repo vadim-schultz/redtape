@@ -223,7 +223,20 @@ Remediate **GovData OZG catalogue fetch** failing with Render `500` on `POST /ca
 | [gaps-and-decisions.md](discovery-online-smoke/gaps-and-decisions.md) | Jurisdiction id canon, CI local-only |
 | [chapters/](discovery-online-smoke/chapters/) | Executable chapter plans |
 
-Status: planned — first: [chapters/01-triage-batch-500.md](discovery-online-smoke/chapters/01-triage-batch-500.md). CoS: [`docs/operations/loops/discovery-online-smoke.md`](../docs/operations/loops/discovery-online-smoke.md).
+Status: shipped — CoS: [`docs/operations/loops/discovery-online-smoke.md`](../docs/operations/loops/discovery-online-smoke.md).
+
+### [pvog-v7-ingest/](pvog-v7-ingest/) — PVOG Suchdienst v7 scheduled ingest
+
+Fix **PVOG Suchdienst catalogue run** in Platform maintenance (`400` on bare v7 list): deterministic **Lebenslagen facades tree walk**, `serviceDescriptions` pagination, and live row mapping in `discovery-ingest`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](pvog-v7-ingest/00-architecture.md) | Symptom, target flow, tree-walk contract |
+| [01-rollout.md](pvog-v7-ingest/01-rollout.md) | Three chapters, execution order |
+| [gaps-and-decisions.md](pvog-v7-ingest/gaps-and-decisions.md) | Leaf codes, dedupe, max_pages, external_id |
+| [chapters/](pvog-v7-ingest/chapters/) | Executable chapter plans |
+
+Status: planned — first: [chapters/01-v7-tree-walk-client.md](pvog-v7-ingest/chapters/01-v7-tree-walk-client.md). CoS: [`docs/operations/loops/pvog-v7-ingest.md`](../docs/operations/loops/pvog-v7-ingest.md).
 
 ## Conventions
 
