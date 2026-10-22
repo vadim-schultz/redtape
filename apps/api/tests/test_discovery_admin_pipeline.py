@@ -96,9 +96,7 @@ def test_get_catalogue_pipeline_is_idempotent_and_leaves_stored_stage_unchanged(
     assert stored.pipeline_stage == "T0"
 
 
-def test_get_catalogue_pipeline_unknown_id_writes_nothing(
-    client: TestClient[Litestar], db_session: Session
-) -> None:
+def test_get_catalogue_pipeline_unknown_id_writes_nothing(client: TestClient[Litestar], db_session: Session) -> None:
     catalogue = _catalogue(db_session)
     response = client.get(
         PIPELINE_URL.format(catalogue_id=uuid.uuid4()),

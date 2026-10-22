@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import ColumnElement, func, select
 
+from app.features.discovery.pipeline import PipelineStage
 from app.features.discovery.repository.base import SessionRepository
 from app.models.base import Base
 from app.models.discovery import CatalogueService, DiscoveryTask, DiscoveryTaskStatus
@@ -30,7 +31,9 @@ class CoverageRepository(SessionRepository):
             by_source=self._catalogue_counts_by_source(),
             tasks_pending=self._count_where(DiscoveryTask, DiscoveryTask.status == DiscoveryTaskStatus.PENDING),
             tasks_failed=self._count_where(DiscoveryTask, DiscoveryTask.status == DiscoveryTaskStatus.FAILED),
-            emit_ready_count=self._count_where(CatalogueService, CatalogueService.pipeline_stage == "T4"),
+            emit_ready_count=self._count_where(
+                CatalogueService, CatalogueService.pipeline_stage == PipelineStage.T4.value
+            ),
         )
 
     def _catalogue_counts_by_source(self) -> dict[str, int]:
