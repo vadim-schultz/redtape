@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/plans-discovery-admin-remediation`
 **Release branch:** `main`
-**Release PR:** _(filled when opened)_
+**Release PR:** [#161](https://github.com/vadim-schultz/redtape/pull/161) — merged into `main`
 
 Chapter PRs merge into the loop branch only. The chapter implementer does not edit this file.
 
