@@ -25,7 +25,7 @@ const SuggestionDetailPage = lazy(
   () => import("../features/suggestions/containers/SuggestionDetailPage"),
 );
 const DiscoveryAdminRoutes = lazy(
-  () => import("../features/discovery-admin/DiscoveryAdminRoutes"),
+  () => import("../features/discovery-admin/routes"),
 );
 
 export const routes = [

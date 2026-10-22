@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../auth/services/authGateway";
-import DiscoveryAdminRoutes from "./DiscoveryAdminRoutes";
+import DiscoveryAdminRoutes from "./routes";
 
 const session: AuthSession = {
   accessToken: "token-1",

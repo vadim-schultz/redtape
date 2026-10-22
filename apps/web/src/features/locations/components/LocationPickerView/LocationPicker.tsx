@@ -1,5 +1,5 @@
 import { useLocale } from "../../../../contexts/LocaleContext";
-import { DEFAULT_COUNTRY_CODE } from "../../config/countries";
+import { DEFAULT_COUNTRY_CODE } from "../../utils/countries";
 import { useDistrictsQuery } from "../../hooks/useDistrictsQuery";
 import { useLocationCascade } from "../../hooks/useLocationCascade";
 import { useMunicipalitiesQuery } from "../../hooks/useMunicipalitiesQuery";

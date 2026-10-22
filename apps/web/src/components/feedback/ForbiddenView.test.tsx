@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import { it, expect } from "vitest";
 
-import { renderWithProviders } from "../test/renderWithProviders";
+import { renderWithProviders } from "../../test/renderWithProviders";
 import ForbiddenView from "./ForbiddenView";
 
 it("ForbiddenView · explains the denial and links back to the documents", async () => {

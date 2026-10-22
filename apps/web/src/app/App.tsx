@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 
 import LoadingShell from "./LoadingShell";
-import NotFoundView from "../views/NotFoundView";
+import NotFoundView from "../components/feedback/NotFoundView";
 import { routes } from "./routes";
 
 function App() {

@@ -1,19 +1,19 @@
 import { Button } from "@chakra-ui/react";
-import { LuShieldAlert } from "react-icons/lu";
+import { LuCompass } from "react-icons/lu";
 import { Link } from "react-router-dom";
 
-import EmptyStateCard from "../components/feedback/EmptyStateCard";
-import { useLocale } from "../contexts/LocaleContext";
+import EmptyStateCard from "./EmptyStateCard";
+import { useLocale } from "../../contexts/LocaleContext";
 
-export default function ForbiddenView() {
+export default function NotFoundView() {
   const { t } = useLocale();
 
   return (
     <EmptyStateCard
-      icon={LuShieldAlert}
+      icon={LuCompass}
       content={{
-        title: t("errors.forbidden_title"),
-        description: t("errors.forbidden_body"),
+        title: t("errors.page_not_found_title"),
+        description: t("errors.page_not_found_body"),
         action: (
           <Button asChild variant="outline">
             <Link to="/documents">{t("nav.browse_documents")}</Link>

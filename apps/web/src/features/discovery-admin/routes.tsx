@@ -1,12 +1,12 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import NotFoundView from "../../views/NotFoundView";
-import DiscoveryAdminLayout from "./DiscoveryAdminLayout";
+import NotFoundView from "../../components/feedback/NotFoundView";
+import DiscoveryAdminLayout from "./components/DiscoveryAdminLayout";
 import DiscoveryCataloguePage from "./containers/DiscoveryCataloguePage";
 import DiscoveryCoveragePage from "./containers/DiscoveryCoveragePage";
 import DiscoveryPipelinePage from "./containers/DiscoveryPipelinePage";
 import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
-import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
+import RequireDiscoveryAdmin from "./components/RequireDiscoveryAdmin";
 
 /** Routes relative to the ``/admin/discovery/*`` mount. */
 export default function DiscoveryAdminRoutes() {

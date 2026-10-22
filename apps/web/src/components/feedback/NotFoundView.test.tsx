@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import { it, expect } from "vitest";
 
-import { renderWithProviders } from "../test/renderWithProviders";
+import { renderWithProviders } from "../../test/renderWithProviders";
 import NotFoundView from "./NotFoundView";
 
 it("NotFoundView · heading uses the sectionHeader style", async () => {

@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation, type Location } from "react-router-dom";
 
-import QueryError from "../../components/feedback/QueryError";
-import ForbiddenView from "../../views/ForbiddenView";
-import { useAuth } from "../auth/contexts/AuthContext";
-import DiscoveryAdminDisabled from "./components/DiscoveryAdminDisabled";
-import DiscoveryAdminLoading from "./components/DiscoveryAdminLoading";
-import type { DiscoveryAdminGuardOutcome } from "./discoveryAdminGuardOutcome";
-import { discoveryAdminGuardOutcome } from "./discoveryAdminGuardOutcome";
-import { useDiscoveryAdminProbe } from "./hooks/useDiscoveryAdminProbe";
+import QueryError from "../../../components/feedback/QueryError";
+import ForbiddenView from "../../../components/feedback/ForbiddenView";
+import { useAuth } from "../../auth/contexts/AuthContext";
+import DiscoveryAdminDisabled from "./DiscoveryAdminDisabled";
+import DiscoveryAdminLoading from "./DiscoveryAdminLoading";
+import type { DiscoveryAdminGuardOutcome } from "../utils/discoveryAdminGuardOutcome";
+import { discoveryAdminGuardOutcome } from "../utils/discoveryAdminGuardOutcome";
+import { useDiscoveryAdminProbe } from "../hooks/useDiscoveryAdminProbe";
 
 type GuardContext = {
   location: Location;

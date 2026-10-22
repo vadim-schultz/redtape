@@ -3,7 +3,7 @@ import { useLocale } from "../../../contexts/LocaleContext";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchDomains } from "../services/taxonomyApi";
 import type { Term } from "../types";
-import { TAXONOMY_STALE_TIME_MS } from "./staleTime";
+import { TAXONOMY_STALE_TIME_MS } from "../utils/staleTime";
 
 export function useDomainsQuery() {
   const { locale } = useLocale();

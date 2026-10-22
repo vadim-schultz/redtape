@@ -7,13 +7,13 @@ import {
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { renderWithProviders } from "../../test/renderWithProviders";
-import { createFakeAuthGateway } from "../auth/services/fakeAuthGateway";
-import type { AuthSession } from "../auth/services/authGateway";
+import { renderWithProviders } from "../../../test/renderWithProviders";
+import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
+import type { AuthSession } from "../../auth/services/authGateway";
 import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
 
-vi.mock("../../app/retryPolicy", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../app/retryPolicy")>()),
+vi.mock("../../../app/retryPolicy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../app/retryPolicy")>()),
   retryDelay: () => 0,
 }));
 

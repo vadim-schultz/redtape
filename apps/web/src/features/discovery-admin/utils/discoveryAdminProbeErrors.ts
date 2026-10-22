@@ -1,4 +1,4 @@
-import { ApiRequestError } from "../../services/api";
+import { ApiRequestError } from "../../../services/api";
 
 export function isDiscoveryAdminForbidden(error: unknown): boolean {
   return error instanceof ApiRequestError && error.status === 403;

@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { expect, it } from "vitest";
 
-import NotFoundView from "../views/NotFoundView";
+import NotFoundView from "../components/feedback/NotFoundView";
 import { renderWithProviders } from "./renderWithProviders";
 
 function Probe() {

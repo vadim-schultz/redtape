@@ -1,4 +1,4 @@
-import type { AuthStatus } from "../auth/contexts/AuthContext";
+import type { AuthStatus } from "../../auth/contexts/AuthContext";
 import { discoveryAdminProbeErrorOutcome } from "./discoveryAdminProbeErrors";
 
 export type DiscoveryAdminGuardOutcome =
