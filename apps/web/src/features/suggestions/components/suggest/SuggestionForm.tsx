@@ -73,10 +73,8 @@ export default function SuggestionForm({
       <Stack gap={4}>
         <MunicipalityField onMunicipalityChange={setMunicipalityCode} />
         <TitleFields
-          title={title}
-          onTitleChange={setTitle}
-          titleOther={titleOther}
-          onTitleOtherChange={setTitleOther}
+          title={{ value: title, onChange: setTitle }}
+          titleOther={{ value: titleOther, onChange: setTitleOther }}
           invalid={titleInvalid}
         />
         <UrlField

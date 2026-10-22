@@ -7,5 +7,11 @@ export interface RequirementsEmptyProps {
 }
 
 export default function RequirementsEmpty({ label }: RequirementsEmptyProps) {
-  return <EmptyStateCard size="sm" icon={LuListChecks} title={label} />;
+  return (
+    <EmptyStateCard
+      icon={LuListChecks}
+      content={{ title: label }}
+      appearance={{ size: "sm" }}
+    />
+  );
 }

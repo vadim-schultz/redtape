@@ -9,9 +9,11 @@ it("EmptyStateCard · renders title, description and action", () => {
   renderWithProviders(
     <EmptyStateCard
       icon={LuFileSearch}
-      title="Nothing here"
-      description="Try another place"
-      action={<button type="button">Change</button>}
+      content={{
+        title: "Nothing here",
+        description: "Try another place",
+        action: <button type="button">Change</button>,
+      }}
     />,
   );
 
@@ -24,7 +26,7 @@ it("EmptyStateCard · renders title, description and action", () => {
 
 it("EmptyStateCard · icon is decorative", () => {
   const { container } = renderWithProviders(
-    <EmptyStateCard icon={LuFileSearch} title="Nothing here" />,
+    <EmptyStateCard icon={LuFileSearch} content={{ title: "Nothing here" }} />,
   );
 
   expect(
@@ -33,7 +35,9 @@ it("EmptyStateCard · icon is decorative", () => {
 });
 
 it("EmptyStateCard · omits description and action when not given", () => {
-  renderWithProviders(<EmptyStateCard icon={LuFileSearch} title="Nothing" />);
+  renderWithProviders(
+    <EmptyStateCard icon={LuFileSearch} content={{ title: "Nothing" }} />,
+  );
 
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(screen.getByRole("status").textContent).toBe("Nothing");
@@ -41,7 +45,11 @@ it("EmptyStateCard · omits description and action when not given", () => {
 
 it("EmptyStateCard · error variant tints the icon as an error", () => {
   const { container } = renderWithProviders(
-    <EmptyStateCard icon={LuFileSearch} title="Oops" variant="error" />,
+    <EmptyStateCard
+      icon={LuFileSearch}
+      content={{ title: "Oops" }}
+      appearance={{ variant: "error" }}
+    />,
   );
 
   const indicator = container.querySelector(".chakra-empty-state__indicator");

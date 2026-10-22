@@ -8,9 +8,9 @@ export default function SuggestErrorNotice() {
 
   return (
     <EmptyStateCard
-      variant="error"
       icon={LuAlertCircle}
-      title={t("suggest.error_generic")}
+      content={{ title: t("suggest.error_generic") }}
+      appearance={{ variant: "error" }}
     />
   );
 }

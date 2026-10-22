@@ -9,8 +9,10 @@ export default function LoginSentNotice() {
   return (
     <EmptyStateCard
       icon={LuMailCheck}
-      title={t("auth.link_sent_title")}
-      description={t("auth.link_sent_body")}
+      content={{
+        title: t("auth.link_sent_title"),
+        description: t("auth.link_sent_body"),
+      }}
     />
   );
 }

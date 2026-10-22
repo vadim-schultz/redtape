@@ -9,9 +9,7 @@ const level = { options: undefined, isLoading: false };
 function renderBar(cascade: Partial<LocationBarProps["cascade"]> = {}) {
   const props: LocationBarProps = {
     countryCode: "DE",
-    states: level,
-    districts: level,
-    municipalities: level,
+    levels: { states: level, districts: level, municipalities: level },
     cascade: {
       stateCode: "",
       districtCode: "",

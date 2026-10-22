@@ -1,6 +1,7 @@
 import { LuFileSearch } from "react-icons/lu";
 
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import QueryStatusView from "../../../../components/feedback/QueryStatusView";
 import { useLocale } from "../../../../contexts/LocaleContext";
 
@@ -9,11 +10,7 @@ import DocumentCard from "./DocumentCard";
 import DocumentsListSkeleton from "./DocumentsListSkeleton";
 
 export interface DocumentsListQueryStatusProps {
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   documents: DocumentSummary[] | undefined;
 }
 
@@ -23,15 +20,17 @@ function EmptyDocumentsState() {
   return (
     <EmptyStateCard
       icon={LuFileSearch}
-      title={t("documents.empty_title")}
-      description={t("documents.empty_description")}
+      content={{
+        title: t("documents.empty_title"),
+        description: t("documents.empty_description"),
+      }}
     />
   );
 }
 
 export default function DocumentsListQueryStatus({
   documents,
-  ...status
+  status,
 }: DocumentsListQueryStatusProps) {
   const { t } = useLocale();
   const countKey = (count: number) =>
@@ -39,13 +38,15 @@ export default function DocumentsListQueryStatus({
 
   return (
     <QueryStatusView
-      {...status}
+      status={status}
       items={documents}
-      getKey={(d) => d.id}
-      renderItem={(d) => <DocumentCard document={d} />}
-      renderSkeleton={() => <DocumentsListSkeleton />}
-      renderEmpty={() => <EmptyDocumentsState />}
-      countLabel={(count) => t(`documents.${countKey(count)}`, { count })}
+      slots={{
+        getKey: (d) => d.id,
+        renderItem: (d) => <DocumentCard document={d} />,
+        renderSkeleton: () => <DocumentsListSkeleton />,
+        renderEmpty: () => <EmptyDocumentsState />,
+        countLabel: (count) => t(`documents.${countKey(count)}`, { count }),
+      }}
     />
   );
 }

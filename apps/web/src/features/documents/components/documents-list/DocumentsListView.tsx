@@ -1,6 +1,7 @@
 import { Box, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { DocumentSummary } from "../../types";
 import LocationPicker from "../../../locations/components/location-picker/LocationPicker";
 
@@ -9,47 +10,34 @@ import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 export interface DocumentsListViewProps {
   title: string;
-  filters: ReactNode;
-  documents: DocumentSummary[] | undefined;
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
-  onMunicipalityChange: (municipalityCode: string | null) => void;
+  toolbar: {
+    filters: ReactNode;
+    onMunicipalityChange: (municipalityCode: string | null) => void;
+  };
+  list: {
+    documents: DocumentSummary[] | undefined;
+    status: QueryStatus;
+  };
 }
 
 export default function DocumentsListView({
   title,
-  filters,
-  documents,
-  isLoading,
-  isRefreshing,
-  isError,
-  error,
-  onRetry,
-  onMunicipalityChange,
+  toolbar,
+  list,
 }: DocumentsListViewProps) {
   return (
     <Box>
       <DocumentsListHeader title={title} />
 
       <Box mt={6}>
-        <LocationPicker onMunicipalityChange={onMunicipalityChange} />
+        <LocationPicker onMunicipalityChange={toolbar.onMunicipalityChange} />
       </Box>
 
-      <Box mt={6}>{filters}</Box>
+      <Box mt={6}>{toolbar.filters}</Box>
 
       <Box mt={6}>
         <VStack align="stretch" gap={3}>
-          <DocumentsListQueryStatus
-            isLoading={isLoading}
-            isRefreshing={isRefreshing}
-            isError={isError}
-            error={error}
-            onRetry={onRetry}
-            documents={documents}
-          />
+          <DocumentsListQueryStatus {...list} />
         </VStack>
       </Box>
     </Box>

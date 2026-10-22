@@ -2,14 +2,9 @@ import { Box, Text } from "@chakra-ui/react";
 import { Fragment, type ReactNode } from "react";
 
 import QueryError from "./QueryError";
+import type { QueryStatus } from "./queryStatus";
 
-export interface QueryStatusViewProps<T> {
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
-  items: T[] | undefined;
+export interface QueryStatusSlots<T> {
   getKey: (item: T) => string;
   renderItem: (item: T) => ReactNode;
   renderSkeleton: () => ReactNode;
@@ -17,21 +12,28 @@ export interface QueryStatusViewProps<T> {
   countLabel: (count: number) => string;
 }
 
+export interface QueryStatusViewProps<T> {
+  status: QueryStatus;
+  items: T[] | undefined;
+  slots: QueryStatusSlots<T>;
+}
+
+interface PopulatedListProps<T> {
+  items: T[];
+  isRefreshing: boolean;
+  slots: QueryStatusSlots<T>;
+}
+
 function PopulatedList<T>({
   items,
   isRefreshing,
-  getKey,
-  renderItem,
-  countLabel,
-}: Pick<
-  QueryStatusViewProps<T>,
-  "items" | "isRefreshing" | "getKey" | "renderItem" | "countLabel"
-> & { items: T[] }) {
+  slots,
+}: PopulatedListProps<T>) {
   return (
     <>
       <Box data-testid="query-status-count-row" mb={2}>
         <Text data-testid="query-status-count" color="muted" fontSize="sm">
-          {countLabel(items.length)}
+          {slots.countLabel(items.length)}
         </Text>
       </Box>
       <Box
@@ -43,28 +45,23 @@ function PopulatedList<T>({
         transition="opacity 0.2s"
       >
         {items.map((item) => (
-          <Fragment key={getKey(item)}>{renderItem(item)}</Fragment>
+          <Fragment key={slots.getKey(item)}>{slots.renderItem(item)}</Fragment>
         ))}
       </Box>
     </>
   );
 }
 
-function renderContent<T>(props: QueryStatusViewProps<T>) {
-  const { isLoading, isError, onRetry, items, renderSkeleton, renderEmpty } =
-    props;
-
-  if (isLoading) return renderSkeleton();
-  if (isError) return <QueryError onRetry={onRetry} />;
-  if ((items?.length ?? 0) === 0) return renderEmpty();
+function renderContent<T>({ status, items, slots }: QueryStatusViewProps<T>) {
+  if (status.isLoading) return slots.renderSkeleton();
+  if (status.isError) return <QueryError onRetry={status.onRetry} />;
+  if ((items?.length ?? 0) === 0) return slots.renderEmpty();
 
   return (
     <PopulatedList
       items={items ?? []}
-      isRefreshing={props.isRefreshing}
-      getKey={props.getKey}
-      renderItem={props.renderItem}
-      countLabel={props.countLabel}
+      isRefreshing={status.isRefreshing}
+      slots={slots}
     />
   );
 }

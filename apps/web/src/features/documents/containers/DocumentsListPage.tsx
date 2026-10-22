@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useDocumentFilters } from "../hooks/useDocumentFilters";
 import { useDocumentsListQuery } from "../hooks/useDocumentsListQuery";
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -18,14 +19,14 @@ export default function DocumentsListPage() {
   return (
     <DocumentsListView
       title={t("documents.list_title")}
-      filters={<DocumentFilters />}
-      documents={docsQuery.data?.items}
-      isLoading={docsQuery.isLoading}
-      isRefreshing={docsQuery.isFetching && !docsQuery.isLoading}
-      isError={docsQuery.isError}
-      error={docsQuery.error}
-      onRetry={() => void docsQuery.refetch()}
-      onMunicipalityChange={setMunicipalityCode}
+      toolbar={{
+        filters: <DocumentFilters />,
+        onMunicipalityChange: setMunicipalityCode,
+      }}
+      list={{
+        documents: docsQuery.data?.items,
+        status: toQueryStatus(docsQuery),
+      }}
     />
   );
 }

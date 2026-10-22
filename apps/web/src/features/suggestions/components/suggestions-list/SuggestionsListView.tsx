@@ -1,6 +1,7 @@
 import { Box, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { SuggestionRead } from "../../types";
 
 import SuggestionsListHeader from "./SuggestionsListHeader";
@@ -9,18 +10,16 @@ import SuggestionsListQueryStatus from "./SuggestionsListQueryStatus";
 export interface SuggestionsListViewProps {
   title: string;
   filters: ReactNode;
-  suggestions: SuggestionRead[] | undefined;
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  list: {
+    suggestions: SuggestionRead[] | undefined;
+    status: QueryStatus;
+  };
 }
 
 export default function SuggestionsListView({
   title,
   filters,
-  ...status
+  list,
 }: SuggestionsListViewProps) {
   return (
     <Box>
@@ -30,7 +29,7 @@ export default function SuggestionsListView({
 
       <Box mt={6}>
         <VStack align="stretch" gap={3}>
-          <SuggestionsListQueryStatus {...status} />
+          <SuggestionsListQueryStatus {...list} />
         </VStack>
       </Box>
     </Box>

@@ -12,7 +12,7 @@ const items: Item[] = [
   { id: "2", label: "Two" },
 ];
 
-const baseProps = {
+const slots = {
   getKey: (item: Item) => item.id,
   renderItem: (item: Item) => <a href={`/items/${item.id}`}>{item.label}</a>,
   renderSkeleton: () => <div data-testid="skeleton" />,
@@ -23,12 +23,14 @@ const baseProps = {
 it("QueryStatusView · loading renders the skeleton, not items", () => {
   renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading
-      isRefreshing={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      slots={slots}
+      status={{
+        isLoading: true,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       items={items}
     />,
   );
@@ -41,12 +43,14 @@ it("QueryStatusView · error offers retry and shows zero items", async () => {
   const onRetry = vi.fn();
   const { user } = renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading={false}
-      isRefreshing={false}
-      isError
-      error={new Error("boom")}
-      onRetry={onRetry}
+      slots={slots}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: true,
+        error: new Error("boom"),
+        onRetry,
+      }}
       items={undefined}
     />,
   );
@@ -61,12 +65,14 @@ it("QueryStatusView · error offers retry and shows zero items", async () => {
 it("QueryStatusView · empty renders the caller's empty state", () => {
   renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading={false}
-      isRefreshing={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      slots={slots}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       items={[]}
     />,
   );
@@ -77,12 +83,14 @@ it("QueryStatusView · empty renders the caller's empty state", () => {
 it("QueryStatusView · populated count row has no expand control", async () => {
   const { container } = renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading={false}
-      isRefreshing={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      slots={slots}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       items={items}
     />,
   );
@@ -99,12 +107,14 @@ it("QueryStatusView · populated count row has no expand control", async () => {
 it("QueryStatusView · populated renders the count label and each item", async () => {
   renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading={false}
-      isRefreshing={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      slots={slots}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       items={items}
     />,
   );
@@ -116,12 +126,14 @@ it("QueryStatusView · populated renders the count label and each item", async (
 it("QueryStatusView · refreshing keeps items visible, dims and marks the list busy", async () => {
   renderWithProviders(
     <QueryStatusView
-      {...baseProps}
-      isLoading={false}
-      isRefreshing
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      slots={slots}
+      status={{
+        isLoading: false,
+        isRefreshing: true,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       items={items}
     />,
   );

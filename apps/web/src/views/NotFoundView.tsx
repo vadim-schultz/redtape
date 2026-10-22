@@ -11,13 +11,15 @@ export default function NotFoundView() {
   return (
     <EmptyStateCard
       icon={LuCompass}
-      title={t("errors.page_not_found_title")}
-      description={t("errors.page_not_found_body")}
-      action={
-        <Button asChild variant="outline">
-          <Link to="/documents">{t("nav.browse_documents")}</Link>
-        </Button>
-      }
+      content={{
+        title: t("errors.page_not_found_title"),
+        description: t("errors.page_not_found_body"),
+        action: (
+          <Button asChild variant="outline">
+            <Link to="/documents">{t("nav.browse_documents")}</Link>
+          </Button>
+        ),
+      }}
     />
   );
 }

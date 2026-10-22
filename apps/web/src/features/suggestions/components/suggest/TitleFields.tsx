@@ -2,19 +2,20 @@ import { Field, Input } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 
+export interface TextFieldState {
+  value: string;
+  onChange: (value: string) => void;
+}
+
 export interface TitleFieldsProps {
-  title: string;
-  onTitleChange: (value: string) => void;
-  titleOther: string;
-  onTitleOtherChange: (value: string) => void;
+  title: TextFieldState;
+  titleOther: TextFieldState;
   invalid: boolean;
 }
 
 export default function TitleFields({
   title,
-  onTitleChange,
   titleOther,
-  onTitleOtherChange,
   invalid,
 }: TitleFieldsProps) {
   const { t } = useLocale();
@@ -23,7 +24,10 @@ export default function TitleFields({
     <>
       <Field.Root invalid={invalid}>
         <Field.Label>{t("suggest.document_title")}</Field.Label>
-        <Input value={title} onChange={(e) => onTitleChange(e.target.value)} />
+        <Input
+          value={title.value}
+          onChange={(e) => title.onChange(e.target.value)}
+        />
         {invalid ? (
           <Field.ErrorText>{t("errors.validation_error")}</Field.ErrorText>
         ) : null}
@@ -31,8 +35,8 @@ export default function TitleFields({
       <Field.Root>
         <Field.Label>{t("suggest.document_title_other")}</Field.Label>
         <Input
-          value={titleOther}
-          onChange={(e) => onTitleOtherChange(e.target.value)}
+          value={titleOther.value}
+          onChange={(e) => titleOther.onChange(e.target.value)}
         />
       </Field.Root>
     </>

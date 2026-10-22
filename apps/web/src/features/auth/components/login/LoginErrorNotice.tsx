@@ -8,9 +8,9 @@ export default function LoginErrorNotice() {
 
   return (
     <EmptyStateCard
-      variant="error"
       icon={LuAlertCircle}
-      title={t("auth.error_generic")}
+      content={{ title: t("auth.error_generic") }}
+      appearance={{ variant: "error" }}
     />
   );
 }

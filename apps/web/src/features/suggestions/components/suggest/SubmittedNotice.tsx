@@ -17,15 +17,17 @@ export default function SubmittedNotice({
   return (
     <EmptyStateCard
       icon={LuCheckCircle}
-      title={t("suggest.success_title")}
-      description={t("suggest.success_body")}
-      action={
-        <Button asChild variant="outline">
-          <Link to={`/suggestions/${suggestionId}`}>
-            {t("suggest.view_suggestion")}
-          </Link>
-        </Button>
-      }
+      content={{
+        title: t("suggest.success_title"),
+        description: t("suggest.success_body"),
+        action: (
+          <Button asChild variant="outline">
+            <Link to={`/suggestions/${suggestionId}`}>
+              {t("suggest.view_suggestion")}
+            </Link>
+          </Button>
+        ),
+      }}
     />
   );
 }

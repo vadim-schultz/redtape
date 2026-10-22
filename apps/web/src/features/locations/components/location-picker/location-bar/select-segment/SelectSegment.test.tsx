@@ -2,20 +2,37 @@ import { screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import type { LocationNode } from "../../../../types";
 import SelectSegment, { type SelectSegmentProps } from "./SelectSegment";
 
-function renderSegment(props: Partial<SelectSegmentProps> = {}) {
+interface SegmentOverrides {
+  value?: string;
+  disabled?: boolean;
+  onChange?: SelectSegmentProps["selection"]["onChange"];
+  options?: LocationNode[] | undefined;
+  isLoading?: boolean;
+}
+
+function renderSegment(overrides: SegmentOverrides = {}) {
+  const { options, isLoading, ...selection } = {
+    value: "",
+    disabled: false,
+    onChange: vi.fn(),
+    options: [{ code: "BE", name: "Berlin", kind: "REGION" }] as
+      LocationNode[] | undefined,
+    isLoading: false,
+    ...overrides,
+  };
+
   return renderWithProviders(
     <SelectSegment
-      label="State"
-      placeholder="Select state"
-      emptyLabel="No options available"
-      value=""
-      disabled={false}
-      options={[{ code: "BE", name: "Berlin", kind: "REGION" }]}
-      onChange={vi.fn()}
-      isLoading={false}
-      {...props}
+      labels={{
+        label: "State",
+        placeholder: "Select state",
+        emptyLabel: "No options available",
+      }}
+      level={{ options, isLoading }}
+      selection={selection}
     />,
   );
 }
