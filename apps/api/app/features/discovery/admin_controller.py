@@ -7,7 +7,7 @@ from uuid import UUID
 from litestar import Controller, get
 from litestar.params import Parameter
 
-from app.features.discovery.guards import require_discovery_admin
+from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
 from app.features.discovery.service import DiscoveryAdminService
 from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
 from app.schema.discovery.read import (
@@ -23,7 +23,7 @@ class DiscoveryAdminController(Controller):
     """Allowlisted operators review the staging pipeline."""
 
     path = "/"
-    guards = [require_discovery_admin]
+    guards = DISCOVERY_ADMIN_GUARDS
 
     @get("/tasks", sync_to_thread=True)
     def list_tasks(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, get_type_hints
+from typing import Any, get_args, get_type_hints
 from unittest.mock import MagicMock
 
 import pytest
@@ -68,6 +68,6 @@ def test_auth_enabled_guard_raises_401_when_unconfigured(monkeypatch: pytest.Mon
 
 
 def test_create_suggestion_principal_has_the_precise_type() -> None:
-    hints: dict[str, Any] = get_type_hints(SuggestionsController.create.fn)
+    hints: dict[str, Any] = get_type_hints(SuggestionsController.create.fn, include_extras=True)
 
-    assert hints["principal"] == Principal
+    assert get_args(hints["principal"])[0] == Principal

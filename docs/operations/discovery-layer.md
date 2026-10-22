@@ -263,7 +263,7 @@ Correction (2026-10-22): the earlier theory that Supabase variables were unset o
 - `/discovery/admin/tasks`, `/coverage` and `/catalogue` returned 500 every time.
 - Alembic was at head (`20261015_claim_fingerprint`), all six discovery tables, the
   `payload_fingerprint` column and five enum types existed, and 1413 catalogue rows were present.
-- Root cause: `require_discovery_admin` read `user.email` after its session closed
+- Root cause: `require_discovery_admin_allowlist` read `user.email` after its session closed
   (`DetachedInstanceError`). Fixed by reading the email inside the session block.
 
 ### Verifying the schema

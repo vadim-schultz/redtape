@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 import app.features.auth.dependencies as auth_dependencies
-import app.features.discovery.guards as discovery_guards
+import app.features.auth.guard_session as guard_session_module
 import jwt
 import pytest
 from app.config import settings
@@ -123,7 +123,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "discovery_admin_emails", ADMIN_EMAIL)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
     monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
-    monkeypatch.setattr(discovery_guards, "SessionLocal", lambda: _closing(db_session))
+    monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _closing(db_session))
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:

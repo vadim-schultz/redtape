@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated
 from uuid import UUID
 
 from litestar import Controller, Request, Response, get, post
 from litestar.datastructures import CacheControlHeader
 from litestar.exceptions import HTTPException, NotFoundException
-from litestar.params import Parameter
+from litestar.params import Dependency, Parameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.features.auth.principal import Principal
@@ -65,7 +65,7 @@ class SuggestionsController(Controller):
         self,
         request: Request,
         suggestion_service: SuggestionService,
-        principal: object,  # Principal; msgspec can't validate a union of two dataclasses (auth chapter 8)
+        principal: Annotated[Principal, Dependency(skip_validation=True)],
         data: SuggestionCreate,
         idempotency_key: str | None = Parameter(
             header="Idempotency-Key",
@@ -74,10 +74,9 @@ class SuggestionsController(Controller):
             pattern=IDEMPOTENCY_KEY_PATTERN,
         ),
     ) -> Response[SuggestionRead]:
-        who = cast(Principal, principal)
         try:
             result = suggestion_service.create(
-                submitter=submitter_ref(who), request=data, idempotency_key=idempotency_key
+                submitter=submitter_ref(principal), request=data, idempotency_key=idempotency_key
             )
         except (
             DuplicateSuggestionError,
@@ -88,7 +87,7 @@ class SuggestionsController(Controller):
             CycleError,
         ) as exc:
             raise _to_http(exc) from exc
-        read = SuggestionRead.from_row(result.suggestion, submitter_display_name=submitter_display_name(who))
+        read = SuggestionRead.from_row(result.suggestion, submitter_display_name=submitter_display_name(principal))
         location = f"{request.url.path.rstrip('/')}/{result.suggestion.id}"
         status_code = HTTP_200_OK if result.replayed else HTTP_201_CREATED
         return Response(read, status_code=status_code, headers={"Location": location})
