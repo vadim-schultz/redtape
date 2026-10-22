@@ -31,6 +31,7 @@ def require_discovery_admin(connection: ASGIConnection, _: BaseRouteHandler) -> 
         raise NotAuthorizedException("Not authenticated")
     with SessionLocal() as session:
         user = user_from_connection(connection, provide_jwt_verifier(), UserService(UserRepository(session)))
+        email = user.email.lower()
         session.commit()
-    if user.email.lower() not in settings.discovery_admin_email_set:
+    if email not in settings.discovery_admin_email_set:
         raise PermissionDeniedException("Discovery admin required")
