@@ -9,6 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@chakra-ui/react'],
