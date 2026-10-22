@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-import app.features.auth.guards as guards_module
+import app.features.auth.guard_session as guard_session_module
 import jwt
 import pytest
 from app.config import settings
@@ -89,7 +89,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(guards_module, "SessionLocal", lambda: _keep_open(db_session))
+    monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
     app = Litestar(
         route_handlers=[_probe_principal, _probe_current_user, _probe_machine],
         dependencies={
