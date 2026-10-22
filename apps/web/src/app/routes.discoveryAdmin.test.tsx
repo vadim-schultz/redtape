@@ -7,6 +7,11 @@ import type { AuthSession } from "../features/auth/services/authGateway";
 import { renderWithProviders } from "../test/renderWithProviders";
 import App from "./App";
 
+vi.mock("./retryPolicy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./retryPolicy")>()),
+  retryDelay: () => 0,
+}));
+
 const session: AuthSession = {
   accessToken: "token-1",
   userId: "user-1",
@@ -16,7 +21,7 @@ const session: AuthSession = {
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
 
-function stubFetch() {
+function stubFetch(probeStatus = 200) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
@@ -31,9 +36,11 @@ function stubFetch() {
           }),
         );
       if (pathname.endsWith("/discovery/admin/tasks"))
-        return new Response(
-          JSON.stringify({ items: [], total: 0, offset: 0, limit: 1 }),
-        );
+        return probeStatus === 200
+          ? new Response(
+              JSON.stringify({ items: [], total: 0, offset: 0, limit: 1 }),
+            )
+          : new Response("", { status: probeStatus });
       if (pathname.endsWith("/discovery/admin/coverage"))
         return new Response(
           JSON.stringify({
@@ -48,15 +55,20 @@ function stubFetch() {
   );
 }
 
-function renderAppAt(path: string) {
-  stubFetch();
+function renderAppAt(
+  path: string,
+  { probeStatus = 200, signedIn = true } = {},
+) {
+  stubFetch(probeStatus);
   return renderWithProviders(
     <AppLayout>
       <App />
     </AppLayout>,
     {
       initialEntries: [path],
-      authGateway: createFakeAuthGateway({ session }),
+      authGateway: createFakeAuthGateway({
+        session: signedIn ? session : null,
+      }),
     },
   );
 }
@@ -72,5 +84,43 @@ it("app · renders not-found for an unknown discovery path", async () => {
 
   expect(
     await screen.findByRole("heading", { name: "Page not found" }),
+  ).toBeInTheDocument();
+});
+
+it("app · menu Coverage link opens the coverage page", async () => {
+  const { user } = renderAppAt("/documents");
+
+  await user.click(await screen.findByRole("button", { name: "Menu" }));
+  await user.click(await screen.findByRole("link", { name: "Coverage" }));
+
+  expect(await screen.findByText("govdata: 3")).toBeInTheDocument();
+});
+
+it("app · anonymous visitor at /admin/discovery/catalogue lands on login", async () => {
+  renderAppAt("/admin/discovery/catalogue", { signedIn: false });
+
+  expect(
+    await screen.findByRole("button", { name: /send|sign in|log in/i }),
+  ).toBeInTheDocument();
+});
+
+it.each([
+  { status: 403, text: "Access denied", name: "the forbidden view" },
+  {
+    status: 503,
+    text: "Discovery admin is disabled",
+    name: "the disabled message with retry",
+  },
+])("app · probe $status shows $name", async ({ status, text }) => {
+  renderAppAt("/admin/discovery/catalogue", { probeStatus: status });
+
+  expect(await screen.findByText(text)).toBeInTheDocument();
+});
+
+it("app · probe 503 offers the retry action", async () => {
+  renderAppAt("/admin/discovery/catalogue", { probeStatus: 503 });
+
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
   ).toBeInTheDocument();
 });
