@@ -1,4 +1,4 @@
-import { Heading, Stack, Text } from "@chakra-ui/react";
+import { Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { useParams } from "react-router-dom";
 
@@ -6,7 +6,7 @@ import QueryError from "../../../components/feedback/QueryError";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import EmitPreviewPanel from "../components/EmitPreviewPanel";
-import PipelineTimeline from "../components/PipelineTimeline";
+import PipelineDetail from "../components/PipelineDetail";
 import { useDiscoveryEmitPreviewQuery } from "../hooks/useDiscoveryEmitPreviewQuery";
 import { useDiscoveryPipelineQuery } from "../hooks/useDiscoveryPipelineQuery";
 import type { CataloguePipelineResponse } from "../types";
@@ -16,19 +16,6 @@ type PipelineView =
   | { kind: "error" }
   | { kind: "missing" }
   | { kind: "ready"; data: CataloguePipelineResponse };
-
-function titleForService(
-  titleI18n: Record<string, string>,
-  locale: string,
-): string {
-  return (
-    titleI18n[locale] ??
-    titleI18n.en ??
-    titleI18n.de ??
-    Object.values(titleI18n)[0] ??
-    ""
-  );
-}
 
 function pipelineView(
   query: ReturnType<typeof useDiscoveryPipelineQuery>,
@@ -56,31 +43,6 @@ function previewPanel(
   if (!id) return null;
   return (
     <EmitPreviewPanel status={toQueryStatus(query)} items={query.data?.items} />
-  );
-}
-
-function PipelineDetail({
-  data,
-  preview,
-}: {
-  data: CataloguePipelineResponse;
-  preview: ReactNode;
-}) {
-  const { locale, t } = useLocale();
-  const { service, derived_stage, tasks, events } = data;
-
-  return (
-    <Stack gap={4} align="stretch">
-      <Heading size="md">{titleForService(service.title_i18n, locale)}</Heading>
-      <PipelineTimeline derivedStage={derived_stage} />
-      <Text fontSize="sm" color="muted">
-        {t("discovery_admin.pipeline.tasks_count", { count: tasks.length })}
-      </Text>
-      <Text fontSize="sm" color="muted">
-        {t("discovery_admin.pipeline.events_count", { count: events.length })}
-      </Text>
-      {preview}
-    </Stack>
   );
 }
 
