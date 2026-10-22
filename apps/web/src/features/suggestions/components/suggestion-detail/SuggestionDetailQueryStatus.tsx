@@ -5,7 +5,7 @@ import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
 import QueryError from "../../../../components/feedback/QueryError";
 import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import { useLocale } from "../../../../contexts/LocaleContext";
-import { ApiRequestError } from "../../../../services/api";
+import { isNotFound } from "../../../../services/apiErrors";
 import type { SuggestionRead } from "../../types";
 
 import SuggestionDetailContent from "./SuggestionDetailContent";
@@ -27,10 +27,6 @@ function SuggestionNotFound() {
       />
     </AppCard>
   );
-}
-
-function isNotFound(error: unknown) {
-  return error instanceof ApiRequestError && error.status === 404;
 }
 
 function renderQueryStatus({
