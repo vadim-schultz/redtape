@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.errors import (
     CatalogueNotFoundError,
     DiscoveryEntityNotFoundError,
@@ -14,7 +15,7 @@ from app.features.discovery.errors import (
     UnknownJurisdictionError,
 )
 from app.features.discovery.repository import DiscoveryRepository
-from app.features.discovery.service import DiscoveryAdminService, DiscoveryMachineService
+from app.features.discovery.service import DiscoveryMachineService
 from app.models.discovery import CatalogueService, DiscoverySource
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.schema.discovery.machine import (

@@ -7,8 +7,8 @@ from uuid import UUID
 from litestar import Controller, get
 from litestar.params import Parameter
 
+from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
-from app.features.discovery.service import DiscoveryAdminService
 from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
 from app.schema.discovery.read import (
     CatalogueListResponse,
