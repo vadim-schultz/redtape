@@ -57,7 +57,7 @@ it("EmitPreviewPanel · shows the empty note when there are no rows", () => {
   renderPanel(status(), []);
 
   expect(
-    screen.getByText("discovery_admin.emit_preview.empty"),
+    screen.getByText("No claims to preview yet."),
   ).toBeInTheDocument();
 });
 

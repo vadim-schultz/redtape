@@ -2,9 +2,11 @@ import { Heading, Stack, Text } from "@chakra-ui/react";
 import { useParams } from "react-router-dom";
 
 import QueryError from "../../../components/feedback/QueryError";
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import EmitPreviewPanel from "../components/EmitPreviewPanel";
 import PipelineTimeline from "../components/PipelineTimeline";
+import { useDiscoveryEmitPreviewQuery } from "../hooks/useDiscoveryEmitPreviewQuery";
 import { useDiscoveryPipelineQuery } from "../hooks/useDiscoveryPipelineQuery";
 
 function titleForService(
@@ -25,6 +27,7 @@ export default function DiscoveryPipelinePage() {
   const { id } = useParams();
   const { locale, t } = useLocale();
   const pipelineQuery = useDiscoveryPipelineQuery(id);
+  const previewQuery = useDiscoveryEmitPreviewQuery(id);
 
   if (pipelineQuery.isLoading) {
     return <Text>{t("common.loading")}</Text>;
@@ -48,7 +51,12 @@ export default function DiscoveryPipelinePage() {
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.events_count", { count: events.length })}
       </Text>
-      {id ? <EmitPreviewPanel catalogueId={id} /> : null}
+      {id ? (
+        <EmitPreviewPanel
+          status={toQueryStatus(previewQuery)}
+          items={previewQuery.data?.items}
+        />
+      ) : null}
     </Stack>
   );
 }

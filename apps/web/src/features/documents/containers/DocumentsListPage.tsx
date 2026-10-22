@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useDocumentFilters } from "../hooks/useDocumentFilters";
+import { useFilterTaxonomy } from "../hooks/useFilterTaxonomy";
 import { useDocumentsListQuery } from "../hooks/useDocumentsListQuery";
 import { useLocale } from "../../../contexts/LocaleContext";
 import DocumentFilters from "../components/documents-list/document-filters/DocumentFilters";
@@ -11,16 +12,15 @@ export default function DocumentsListPage() {
   const { t } = useLocale();
   const [municipalityCode, setMunicipalityCode] = useState<string | null>(null);
 
-  const docsQuery = useDocumentsListQuery(
-    municipalityCode,
-    useDocumentFilters(),
-  );
+  const filters = useDocumentFilters();
+  const taxonomy = useFilterTaxonomy();
+  const docsQuery = useDocumentsListQuery(municipalityCode, filters);
 
   return (
     <DocumentsListView
       title={t("documents.list_title")}
       toolbar={{
-        filters: <DocumentFilters />,
+        filters: <DocumentFilters taxonomy={taxonomy} filters={filters} />,
         onMunicipalityChange: setMunicipalityCode,
       }}
       list={{

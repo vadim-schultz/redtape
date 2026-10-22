@@ -2,28 +2,23 @@ import { Button, VStack } from "@chakra-ui/react";
 
 import QueryError from "../../../../../components/feedback/QueryError";
 import { useLocale } from "../../../../../contexts/LocaleContext";
-import { useDomainsQuery } from "../../../../taxonomy/hooks/useDomainsQuery";
-import { useLifeSituationsQuery } from "../../../../taxonomy/hooks/useLifeSituationsQuery";
-import { useDocumentFilters } from "../../../hooks/useDocumentFilters";
+import type { DocumentFilters as DocumentFiltersState } from "../../../hooks/useDocumentFilters";
+import type { FilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
 
 import FilterGroup from "./FilterGroup";
 
-export default function DocumentFilters() {
-  const { t } = useLocale();
-  const filters = useDocumentFilters();
-  const domains = useDomainsQuery();
-  const situations = useLifeSituationsQuery();
+export interface DocumentFiltersProps {
+  taxonomy: FilterTaxonomy;
+  filters: DocumentFiltersState;
+}
 
-  if (domains.isError || situations.isError) {
-    return (
-      <QueryError
-        onRetry={() => {
-          void domains.refetch();
-          void situations.refetch();
-        }}
-      />
-    );
-  }
+export default function DocumentFilters({
+  taxonomy,
+  filters,
+}: DocumentFiltersProps) {
+  const { t } = useLocale();
+
+  if (taxonomy.isError) return <QueryError onRetry={taxonomy.onRetry} />;
 
   const hasFilters = filters.domains.length + filters.situations.length > 0;
 
@@ -31,13 +26,13 @@ export default function DocumentFilters() {
     <VStack align="stretch" gap={4}>
       <FilterGroup
         heading={t("filters.domain")}
-        terms={domains.data ?? []}
+        terms={taxonomy.domains}
         selected={filters.domains}
         onToggle={filters.toggleDomain}
       />
       <FilterGroup
         heading={t("filters.situation")}
-        terms={situations.data ?? []}
+        terms={taxonomy.situations}
         selected={filters.situations}
         onToggle={filters.toggleSituation}
       />

@@ -1,25 +1,23 @@
 import { Stack, Text } from "@chakra-ui/react";
 
 import QueryError from "../../../components/feedback/QueryError";
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import { useDiscoveryEmitPreviewQuery } from "../hooks/useDiscoveryEmitPreviewQuery";
+import type { EmitPreviewItem } from "../types";
+
+export interface EmitPreviewPanelProps {
+  status: QueryStatus;
+  items: EmitPreviewItem[] | undefined;
+}
 
 export default function EmitPreviewPanel({
-  catalogueId,
-}: {
-  catalogueId: string;
-}) {
+  status,
+  items = [],
+}: EmitPreviewPanelProps) {
   const { t } = useLocale();
-  const previewQuery = useDiscoveryEmitPreviewQuery(catalogueId);
 
-  if (previewQuery.isLoading) {
-    return <Text>{t("common.loading")}</Text>;
-  }
-  if (previewQuery.isError) {
-    return <QueryError onRetry={() => void previewQuery.refetch()} />;
-  }
-
-  const items = previewQuery.data?.items ?? [];
+  if (status.isLoading) return <Text>{t("common.loading")}</Text>;
+  if (status.isError) return <QueryError onRetry={status.onRetry} />;
 
   return (
     <Stack gap={2} align="stretch">
