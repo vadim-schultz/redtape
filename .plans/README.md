@@ -272,6 +272,19 @@ Fix **PVOG Suchdienst catalogue run** in Platform maintenance (`400` on bare v7 
 
 Status: planned — first: [chapters/01-v7-tree-walk-client.md](pvog-v7-ingest/chapters/01-v7-tree-walk-client.md). CoS: [`docs/operations/loops/pvog-v7-ingest.md`](../docs/operations/loops/pvog-v7-ingest.md).
 
+### [code-rules-remediation/](code-rules-remediation/) — House coding rules across API and web
+
+Bring the Litestar API and the React web app in line with the house rules (size limits, rule of three, layer breakdown, strict types) and align the frontend feature layout with `rsb-test-storage`. Behaviour-preserving; six backend chapters, five frontend chapters, after a completed chapter 0 (green CI).
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](code-rules-remediation/00-architecture.md) | The standard, audit findings, target frontend layout |
+| [01-rollout.md](code-rules-remediation/01-rollout.md) | Chapters, dependency graph, execution order, per-chapter gate |
+| [gaps-and-decisions.md](code-rules-remediation/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](code-rules-remediation/chapters/) | Executable chapter plans |
+
+Status: chapter 0 done (on `main`); chapters 1-11 planned — first: [chapters/01-discovery-domain-errors.md](code-rules-remediation/chapters/01-discovery-domain-errors.md). CoS: [`docs/operations/loops/code-rules-remediation.md`](../docs/operations/loops/code-rules-remediation.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
