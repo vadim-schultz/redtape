@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
+from decimal import Decimal
 
 from app.main import Litestar
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryClaim,
+    DiscoveryClaimKind,
+    DiscoveryEntity,
     DiscoveryEvent,
     DiscoveryEventType,
+    DiscoveryFetchLog,
     DiscoveryTask,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -107,3 +113,49 @@ def test_get_catalogue_pipeline_unknown_id_writes_nothing(client: TestClient[Lit
     db_session.flush()
     db_session.expire_all()
     assert catalogue.pipeline_stage == "T0"
+
+
+def test_get_catalogue_pipeline_pins_the_shape_of_entities_claims_and_fetch_logs(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id,
+        kind=DiscoveryTaskKind.FETCH_URL,
+        target_url="https://example.gov/service",
+        status=DiscoveryTaskStatus.PENDING,
+    )
+    entity = DiscoveryEntity(catalogue_service_id=catalogue.id, canonical_url="https://example.gov/a", label="A")
+    db_session.add_all([task, entity])
+    db_session.flush()
+    claim = DiscoveryClaim(
+        discovery_entity_id=entity.id,
+        kind=DiscoveryClaimKind.METADATA,
+        payload={"k": "v"},
+        payload_fingerprint="f" * 64,
+        confidence=Decimal("0.5"),
+    )
+    log = DiscoveryFetchLog(discovery_task_id=task.id, http_status=200, fetched_at=datetime.now(UTC))
+    db_session.add_all([claim, log])
+    db_session.flush()
+
+    response = client.get(
+        PIPELINE_URL.format(catalogue_id=catalogue.id),
+        headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"},
+    )
+
+    body = response.json()
+    assert set(body["entities"][0]) == {"id", "catalogue_service_id", "canonical_url", "label", "created_at"}
+    assert body["claims"][0]["kind"] == "metadata"
+    assert body["claims"][0]["confidence"] == 0.5
+    assert body["claims"][0]["payload"] == {"k": "v"}
+    assert body["fetch_logs"][0]["http_status"] == 200
+    assert set(body["fetch_logs"][0]) == {
+        "id",
+        "discovery_task_id",
+        "http_status",
+        "fetched_at",
+        "content_type",
+        "byte_length",
+        "error_message",
+    }
