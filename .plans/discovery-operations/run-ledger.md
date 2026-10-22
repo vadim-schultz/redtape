@@ -7,7 +7,7 @@ Update this ledger after every chapter implementation or documented operator ver
 
 | Chapter | Plan | Status | Verification | Refactor outcome | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | [Representative row end-to-end smoke](chapters/01-representative-row-smoke.md) | pending | — | — | |
+| 1 | [Representative row end-to-end smoke](chapters/01-representative-row-smoke.md) | merged — blocked | PR [#177](https://github.com/vadim-schultz/redtape/pull/177) merged into `feat/discovery-operations`; local and remote checks green; fixture smoke is partial | no refactor needed — docs-only | Blocker: complete persisted T4/manual-emit smoke remains unverified because the fixture lacks `fim_id` and no authorized API/admin session was available |
 | 2 | [Queue observability](chapters/02-queue-observability.md) | pending | — | — | |
 | 3 | [Bounded repeatable worker drain](chapters/03-bounded-repeatable-drain.md) | pending | — | — | |
 | 4 | [Discovery admin icon navigation](chapters/04-admin-icon-navigation.md) | pending | — | — | |
