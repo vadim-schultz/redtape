@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/plans-discovery-admin-remediation`
 **Release branch:** `main`
-**Release PR:** _(filled when opened)_
+**Release PR:** [#161](https://github.com/vadim-schultz/redtape/pull/161) — merged into `main`
 
 Chapter PRs merge into the loop branch only. The chapter implementer does not edit this file.
 
@@ -23,3 +23,5 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 - [ ] Worker-origin admin API smoke passes with the expected `401`/`403`/`200` outcomes.
 - [ ] Allowlisted user sees Catalogue, Coverage, and Tasks in the menu and all three pages render.
 - [ ] Release PR opened from `feat/plans-discovery-admin-remediation` to `main`.
+
+**Last orchestration:** 2026-10-22 — completed (all chapters merged; release PR #161 merged)
