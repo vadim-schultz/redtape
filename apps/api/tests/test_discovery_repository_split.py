@@ -11,6 +11,7 @@ from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
 from app.features.discovery.repository.entities import EntityRepository
+from app.features.discovery.repository.task_listing import TaskListingRepository
 from app.features.discovery.repository.tasks import TaskRepository
 from app.models.discovery import DiscoveryClaimKind
 from sqlalchemy.orm import Session
@@ -21,6 +22,7 @@ AGGREGATES = (
     ClaimRepository,
     CoverageRepository,
     EntityRepository,
+    TaskListingRepository,
     TaskRepository,
 )
 BUSINESS_METHODS = ("upsert_catalogue_item", "append_claim")
