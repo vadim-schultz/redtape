@@ -24,4 +24,6 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 - [ ] Allowlisted user sees Catalogue, Coverage, and Tasks in the menu and all three pages render.
 - [ ] Release PR opened from `feat/plans-discovery-admin-remediation` to `main`.
 
-**Last orchestration:** 2026-10-22 — completed (all chapters merged; release PR #161 merged)
+## Post-release note (2026-10-22)
+
+Root cause of the missing Discovery links was `require_discovery_admin` reading a detached user (500), fixed on `fix/discovery-admin-guard-detached-user`. The earlier 401 / unset Supabase variables theory is retracted; see `docs/operations/discovery-layer.md` section 7.

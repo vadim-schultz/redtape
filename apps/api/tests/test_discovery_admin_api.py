@@ -98,8 +98,14 @@ def _catalogue(
 
 
 @contextmanager
-def _keep_open(session: Session) -> Iterator[Session]:
-    yield session
+def _closing(db_session: Session) -> Iterator[Session]:
+    """Mimic real SessionLocal(): a separate session on the test connection, closed on exit."""
+
+    session = Session(bind=db_session.get_bind(), autoflush=False, join_transaction_mode="create_savepoint")
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture
@@ -109,7 +115,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "discovery_admin_emails", ADMIN_EMAIL)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
     monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
-    monkeypatch.setattr(discovery_guards, "SessionLocal", lambda: _keep_open(db_session))
+    monkeypatch.setattr(discovery_guards, "SessionLocal", lambda: _closing(db_session))
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:
