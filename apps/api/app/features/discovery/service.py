@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
+from app.features.discovery.catalogue_upsert import CatalogueUpsertService
+from app.features.discovery.claim_service import ClaimDraft, ClaimService
 from app.features.discovery.emit_preview import build_emit_preview_items
 from app.features.discovery.errors import (
     DiscoveryEntityNotFoundError,
@@ -20,7 +22,7 @@ from app.features.discovery.pipeline import (
     all_emit_claims_resolvable,
     derive_pipeline_stage,
 )
-from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, Page, TaskTarget
 from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
@@ -129,7 +131,7 @@ class DiscoveryAdminService:
         limit: int,
     ) -> DiscoveryTaskListResponse:
         total = self._repo.count_tasks(status=status, source=source)
-        rows = self._repo.list_tasks_page(offset=offset, limit=limit, status=status, source=source)
+        rows = self._repo.list_tasks_page(Page(offset=offset, limit=limit), status=status, source=source)
         items = [DiscoveryTaskRead.from_row(task, source=task_source) for task, task_source in rows]
         return DiscoveryTaskListResponse(items=items, total=total, offset=offset, limit=limit)
 
@@ -204,12 +206,12 @@ def _enqueue_tasks_for_service(
 ) -> DiscoveryTask | None:
     if not service.portal_url:
         return None
-    task = enqueue_task_if_needed(
-        repo,
+    target = TaskTarget(
         catalogue_service_id=service.id,
         kind=DiscoveryTaskKind.FETCH_URL,
         target_url=service.portal_url,
     )
+    task = enqueue_task_if_needed(repo, target)
     if task is not None and service.pipeline_stage == "T0":
         service.pipeline_stage = "T1"
     return task
@@ -231,10 +233,12 @@ def _claim_pending_tasks(
         task.claimed_by_api_key_id = api_key.id
         task.lease_expires_at = lease_expires_at
         repo.record_event(
-            event_type=DiscoveryEventType.TASK_CLAIMED,
-            catalogue_service_id=task.catalogue_service_id,
-            discovery_task_id=task.id,
-            payload={"api_key_id": str(api_key.id)},
+            NewEvent(
+                event_type=DiscoveryEventType.TASK_CLAIMED,
+                catalogue_service_id=task.catalogue_service_id,
+                discovery_task_id=task.id,
+                payload={"api_key_id": str(api_key.id)},
+            )
         )
         claimed.append(task)
     return claimed
@@ -245,15 +249,19 @@ class DiscoveryMachineService:
 
     def __init__(self, repository: DiscoveryRepository) -> None:
         self._repo = repository
+        self._catalogue_upserts = CatalogueUpsertService(repository)
+        self._claims = ClaimService(repository)
 
     def batch_upsert(self, body: CatalogueBatchRequest) -> CatalogueBatchResponse:
         results: list[CatalogueBatchItemResult] = []
         for item in body.items:
-            row, _created = self._repo.upsert_catalogue_item(item)
+            row, _created = self._catalogue_upserts.upsert(item)
             self._repo.record_event(
-                event_type=DiscoveryEventType.CATALOGUE_UPSERTED,
-                catalogue_service_id=row.id,
-                payload={"source": row.source.value, "external_id": row.external_id},
+                NewEvent(
+                    event_type=DiscoveryEventType.CATALOGUE_UPSERTED,
+                    catalogue_service_id=row.id,
+                    payload={"source": row.source.value, "external_id": row.external_id},
+                )
             )
             task = _enqueue_tasks_for_service(self._repo, row)
             apply_fanout_for_service(self._repo, row)
@@ -337,20 +345,23 @@ class DiscoveryMachineService:
         confidence: Decimal | None = None
         if body.confidence is not None:
             confidence = Decimal(str(body.confidence))
-        row, created = self._repo.append_claim(
+        draft = ClaimDraft(
             discovery_entity_id=body.discovery_entity_id,
             kind=body.kind,
             payload=payload,
             confidence=confidence,
         )
+        row, created = self._claims.append_claim(draft)
         catalogue = self._repo.get_catalogue(entity.catalogue_service_id)
         if catalogue is not None and catalogue.pipeline_stage in ("T0", "T1", "T2"):
             catalogue.pipeline_stage = "T3"
         if created:
             self._repo.record_event(
-                event_type=DiscoveryEventType.CLAIM_RECORDED,
-                catalogue_service_id=entity.catalogue_service_id,
-                payload={"claim_id": str(row.id), "kind": row.kind.value},
+                NewEvent(
+                    event_type=DiscoveryEventType.CLAIM_RECORDED,
+                    catalogue_service_id=entity.catalogue_service_id,
+                    payload={"claim_id": str(row.id), "kind": row.kind.value},
+                )
             )
         return ClaimAppendResponse(
             id=row.id,
@@ -361,17 +372,21 @@ class DiscoveryMachineService:
     def append_fetch_log(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
         task = require_task(self._repo, task_id)
         row = self._repo.append_fetch_log(
-            task=task,
-            http_status=body.http_status,
-            content_type=body.content_type,
-            byte_length=body.byte_length,
-            error_message=body.error_message,
-            fetched_at=datetime.now(UTC),
+            FetchLogEntry(
+                discovery_task_id=task.id,
+                http_status=body.http_status,
+                content_type=body.content_type,
+                byte_length=body.byte_length,
+                error_message=body.error_message,
+                fetched_at=datetime.now(UTC),
+            )
         )
         self._repo.record_event(
-            event_type=DiscoveryEventType.FETCH_LOGGED,
-            catalogue_service_id=task.catalogue_service_id,
-            discovery_task_id=task.id,
-            payload={"fetch_log_id": str(row.id)},
+            NewEvent(
+                event_type=DiscoveryEventType.FETCH_LOGGED,
+                catalogue_service_id=task.catalogue_service_id,
+                discovery_task_id=task.id,
+                payload={"fetch_log_id": str(row.id)},
+            )
         )
         return FetchLogAppendResponse(id=row.id, discovery_task_id=task.id, task_status=task.status)

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from app.features.discovery.emit_preview import claim_to_suggestion_payload
 from app.features.discovery.lookups import require_catalogue
-from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.repository import DiscoveryRepository, NewEvent
 from app.features.suggestions.service import SubmitterRef, SuggestionService
 from app.models.api_key import ApiKey
 from app.models.discovery import DiscoveryClaim, DiscoveryEntity, DiscoveryEventType
@@ -51,14 +51,16 @@ class DiscoveryEmitService:
             submitter=submitter,
         )
         self._repo.record_event(
-            event_type=DiscoveryEventType.EMIT_ATTEMPTED,
-            catalogue_service_id=catalogue_id,
-            payload={
-                "created_count": created_count,
-                "skipped_count": skipped_count,
-                "replayed_count": replayed_count,
-                "claim_count": len(claims),
-            },
+            NewEvent(
+                event_type=DiscoveryEventType.EMIT_ATTEMPTED,
+                catalogue_service_id=catalogue_id,
+                payload={
+                    "created_count": created_count,
+                    "skipped_count": skipped_count,
+                    "replayed_count": replayed_count,
+                    "claim_count": len(claims),
+                },
+            )
         )
         return CatalogueEmitResponse(
             items=items,
