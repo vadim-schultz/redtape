@@ -5,7 +5,7 @@ import { useLocationCascade } from "../../hooks/useLocationCascade";
 import { useMunicipalitiesQuery } from "../../hooks/useMunicipalitiesQuery";
 import { useStatesQuery } from "../../hooks/useStatesQuery";
 
-import LocationBar from "./location-bar/LocationBar";
+import { LocationBar } from "./LocationBarView";
 
 export interface LocationPickerProps {
   onMunicipalityChange: (municipalityCode: string | null) => void;

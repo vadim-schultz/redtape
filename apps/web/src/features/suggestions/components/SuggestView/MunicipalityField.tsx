@@ -1,7 +1,7 @@
 import { Stack, Text } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
-import LocationPicker from "../../../locations/components/location-picker/LocationPicker";
+import { LocationPicker } from "../../../locations/components/LocationPickerView";
 
 export interface MunicipalityFieldProps {
   onMunicipalityChange: (municipalityCode: string | null) => void;

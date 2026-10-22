@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { DocumentSummary } from "../../types";
-import LocationPicker from "../../../locations/components/location-picker/LocationPicker";
+import { LocationPicker } from "../../../locations/components/LocationPickerView";
 
 import DocumentsListHeader from "./DocumentsListHeader";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";

@@ -4,12 +4,10 @@ import { Fragment } from "react";
 import { useLocale } from "../../../../../contexts/LocaleContext";
 import type { LocationCascade } from "../../../hooks/useLocationCascade";
 
-import CountrySegment from "./country-segment/CountrySegment";
+import { CountrySegment } from "./CountrySegmentView";
 import ResetButton from "./ResetButton";
 import SegmentDivider from "./SegmentDivider";
-import SelectSegment, {
-  type LocationLevel,
-} from "./select-segment/SelectSegment";
+import { SelectSegment, type LocationLevel } from "./SelectSegmentView";
 
 export type { LocationLevel };
 
