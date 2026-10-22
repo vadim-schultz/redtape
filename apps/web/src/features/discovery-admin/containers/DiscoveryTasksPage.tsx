@@ -1,3 +1,4 @@
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import DiscoveryTasksView from "../components/DiscoveryTasksView";
 import { useDiscoveryTaskFilters } from "../hooks/useDiscoveryTaskFilters";
 import { useDiscoveryTasksQuery } from "../hooks/useDiscoveryTasksQuery";
@@ -11,11 +12,7 @@ export default function DiscoveryTasksPage() {
     <DiscoveryTasksView
       filters={filters}
       tasks={tasksQuery.data?.items}
-      isLoading={tasksQuery.isLoading}
-      isRefreshing={tasksQuery.isFetching && !tasksQuery.isLoading}
-      isError={tasksQuery.isError}
-      error={tasksQuery.error}
-      onRetry={() => void tasksQuery.refetch()}
+      status={toQueryStatus(tasksQuery)}
     />
   );
 }

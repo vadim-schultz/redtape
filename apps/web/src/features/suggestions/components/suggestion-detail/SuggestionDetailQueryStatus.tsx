@@ -3,6 +3,7 @@ import { LuFileX } from "react-icons/lu";
 import AppCard from "../../../../components/data-display/AppCard";
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
 import QueryError from "../../../../components/feedback/QueryError";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import { ApiRequestError } from "../../../../services/api";
 import type { SuggestionRead } from "../../types";
@@ -11,10 +12,7 @@ import SuggestionDetailContent from "./SuggestionDetailContent";
 import SuggestionDetailSkeleton from "./SuggestionDetailSkeleton";
 
 export interface SuggestionDetailQueryStatusProps {
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   suggestion: SuggestionRead | undefined;
 }
 
@@ -32,14 +30,15 @@ function isNotFound(error: unknown) {
   return error instanceof ApiRequestError && error.status === 404;
 }
 
-function renderQueryStatus(props: SuggestionDetailQueryStatusProps) {
-  const { isLoading, isError, error, onRetry, suggestion } = props;
-
-  if (isLoading) return <SuggestionDetailSkeleton />;
-  if (isError && !isNotFound(error)) {
+function renderQueryStatus({
+  status,
+  suggestion,
+}: SuggestionDetailQueryStatusProps) {
+  if (status.isLoading) return <SuggestionDetailSkeleton />;
+  if (status.isError && !isNotFound(status.error)) {
     return (
       <AppCard>
-        <QueryError onRetry={onRetry} />
+        <QueryError onRetry={status.onRetry} />
       </AppCard>
     );
   }

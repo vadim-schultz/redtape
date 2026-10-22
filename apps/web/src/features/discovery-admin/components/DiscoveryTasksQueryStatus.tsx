@@ -3,6 +3,7 @@ import { LuListTodo } from "react-icons/lu";
 
 import EmptyStateCard from "../../../components/feedback/EmptyStateCard";
 import QueryError from "../../../components/feedback/QueryError";
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryTask } from "../types";
 
@@ -10,11 +11,7 @@ import DiscoveryTasksSkeleton from "./DiscoveryTasksSkeleton";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
 
 export interface DiscoveryTasksQueryStatusProps {
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   tasks: DiscoveryTask[] | undefined;
 }
 
@@ -31,18 +28,15 @@ function EmptyTasksState() {
 }
 
 export default function DiscoveryTasksQueryStatus({
-  isLoading,
-  isRefreshing,
-  isError,
-  onRetry,
+  status,
   tasks,
 }: DiscoveryTasksQueryStatusProps) {
   const { t } = useLocale();
   const count = tasks?.length ?? 0;
   const countKey = count === 1 ? "count_one" : "count_other";
 
-  if (isLoading) return <DiscoveryTasksSkeleton />;
-  if (isError) return <QueryError onRetry={onRetry} />;
+  if (status.isLoading) return <DiscoveryTasksSkeleton />;
+  if (status.isError) return <QueryError onRetry={status.onRetry} />;
   if (count === 0) return <EmptyTasksState />;
 
   return (
@@ -51,8 +45,8 @@ export default function DiscoveryTasksQueryStatus({
         {t(`discovery_admin.tasks.${countKey}`, { count })}
       </Text>
       <Box
-        aria-busy={isRefreshing}
-        opacity={isRefreshing ? 0.6 : 1}
+        aria-busy={status.isRefreshing}
+        opacity={status.isRefreshing ? 0.6 : 1}
         transition="opacity 0.2s"
       >
         <DiscoveryTasksTable tasks={tasks ?? []} />

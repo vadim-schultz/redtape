@@ -3,15 +3,26 @@ import { it, expect, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import { ApiRequestError } from "../../../../services/api";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { DocumentDetail } from "../../types";
 import DocumentDetailQueryStatus from "./DocumentDetailQueryStatus";
 
-const baseProps = {
-  onRetry: vi.fn(),
+const labels = {
   requirementsTitle: "Requirements",
   noRequirementsLabel: "No requirements",
   officialSourceTitle: "Official source",
 };
+
+function statusOf(overrides: Partial<QueryStatus> = {}): QueryStatus {
+  return {
+    isLoading: false,
+    isRefreshing: false,
+    isError: false,
+    error: undefined,
+    onRetry: vi.fn(),
+    ...overrides,
+  };
+}
 
 const document: DocumentDetail = {
   id: "doc-1",
@@ -26,11 +37,8 @@ const document: DocumentDetail = {
 it("DocumentDetailQueryStatus · loading shows skeleton not breadcrumb content", async () => {
   const { container } = renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      isLoading
-      isError={false}
-      error={undefined}
-      document={document}
+      status={statusOf({ isLoading: true })}
+      content={{ document: document, ...labels }}
     />,
   );
 
@@ -42,12 +50,12 @@ it("DocumentDetailQueryStatus · failure explains the problem and offers retry",
   const onRetry = vi.fn();
   const { user } = renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      onRetry={onRetry}
-      isLoading={false}
-      isError
-      error={new Error("boom")}
-      document={undefined}
+      status={statusOf({
+        isError: true,
+        error: new Error("boom"),
+        onRetry: onRetry,
+      })}
+      content={{ document: undefined, ...labels }}
     />,
   );
 
@@ -62,11 +70,8 @@ it("DocumentDetailQueryStatus · a 404 shows a not-found state instead of an err
   const error = new ApiRequestError({ status: 404, url: "/x", bodyText: "" });
   renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      isLoading={false}
-      isError
-      error={error}
-      document={undefined}
+      status={statusOf({ isError: true, error: error })}
+      content={{ document: undefined, ...labels }}
     />,
   );
 
@@ -77,11 +82,8 @@ it("DocumentDetailQueryStatus · a 404 shows a not-found state instead of an err
 it("DocumentDetailQueryStatus · no document without an error shows not found", async () => {
   renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      document={undefined}
+      status={statusOf()}
+      content={{ document: undefined, ...labels }}
     />,
   );
 
@@ -91,11 +93,8 @@ it("DocumentDetailQueryStatus · no document without an error shows not found", 
 it("DocumentDetailQueryStatus · empty requirements shows empty state", async () => {
   const { container } = renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      document={document}
+      status={statusOf()}
+      content={{ document: document, ...labels }}
     />,
   );
 
@@ -114,11 +113,11 @@ it("DocumentDetailQueryStatus · empty requirements shows empty state", async ()
 it("DocumentDetailQueryStatus · official source link renders when url present", async () => {
   renderWithProviders(
     <DocumentDetailQueryStatus
-      {...baseProps}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      document={{ ...document, official_url: "https://example.gov" }}
+      status={statusOf()}
+      content={{
+        document: { ...document, official_url: "https://example.gov" },
+        ...labels,
+      }}
     />,
   );
 

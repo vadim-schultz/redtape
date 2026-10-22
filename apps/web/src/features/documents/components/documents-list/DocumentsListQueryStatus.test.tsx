@@ -14,11 +14,13 @@ const documents: DocumentSummary[] = [
 it("DocumentsListQueryStatus · loading renders skeleton not cards", async () => {
   const { container } = renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: true,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={documents}
     />,
   );
@@ -31,11 +33,13 @@ it("DocumentsListQueryStatus · error explains the failure, offers retry and sho
   const onRetry = vi.fn();
   const { user } = renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isError
-      error={new Error("boom")}
-      onRetry={onRetry}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: true,
+        error: new Error("boom"),
+        onRetry,
+      }}
       documents={undefined}
     />,
   );
@@ -51,11 +55,13 @@ it("DocumentsListQueryStatus · error explains the failure, offers retry and sho
 it("DocumentsListQueryStatus · empty list renders an empty state with guidance", async () => {
   renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={[]}
     />,
   );
@@ -70,11 +76,13 @@ it("DocumentsListQueryStatus · empty list renders an empty state with guidance"
 it("DocumentsListQueryStatus · populated count row has no expand control", async () => {
   renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={documents}
     />,
   );
@@ -88,11 +96,13 @@ it("DocumentsListQueryStatus · populated count row has no expand control", asyn
 it("DocumentsListQueryStatus · populated list renders count and cards", async () => {
   renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={documents}
     />,
   );
@@ -104,11 +114,13 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
 it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks the list busy", async () => {
   renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isRefreshing
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      status={{
+        isLoading: false,
+        isRefreshing: true,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={documents}
     />,
   );
@@ -123,11 +135,13 @@ it("DocumentsListQueryStatus · singular count reads naturally", async () => {
   window.localStorage.setItem("locale", "de");
   renderWithProviders(
     <DocumentsListQueryStatus
-      isLoading={false}
-      isRefreshing={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       documents={[documents[0]]}
     />,
   );

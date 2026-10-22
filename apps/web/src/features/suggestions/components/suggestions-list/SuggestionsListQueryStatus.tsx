@@ -1,6 +1,7 @@
 import { LuInbox } from "react-icons/lu";
 
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import QueryStatusView from "../../../../components/feedback/QueryStatusView";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { SuggestionRead } from "../../types";
@@ -9,11 +10,7 @@ import SuggestionCard from "./SuggestionCard";
 import SuggestionsListSkeleton from "./SuggestionsListSkeleton";
 
 export interface SuggestionsListQueryStatusProps {
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   suggestions: SuggestionRead[] | undefined;
 }
 
@@ -31,7 +28,7 @@ function EmptySuggestionsState() {
 
 export default function SuggestionsListQueryStatus({
   suggestions,
-  ...status
+  status,
 }: SuggestionsListQueryStatusProps) {
   const { t } = useLocale();
   const countKey = (count: number) =>
@@ -39,13 +36,15 @@ export default function SuggestionsListQueryStatus({
 
   return (
     <QueryStatusView
-      {...status}
+      status={status}
       items={suggestions}
-      getKey={(s) => s.id}
-      renderItem={(s) => <SuggestionCard suggestion={s} />}
-      renderSkeleton={() => <SuggestionsListSkeleton />}
-      renderEmpty={() => <EmptySuggestionsState />}
-      countLabel={(count) => t(`suggestions.${countKey(count)}`, { count })}
+      slots={{
+        getKey: (s) => s.id,
+        renderItem: (s) => <SuggestionCard suggestion={s} />,
+        renderSkeleton: () => <SuggestionsListSkeleton />,
+        renderEmpty: () => <EmptySuggestionsState />,
+        countLabel: (count) => t(`suggestions.${countKey(count)}`, { count }),
+      }}
     />
   );
 }

@@ -3,6 +3,7 @@ import { LuFileX } from "react-icons/lu";
 import AppCard from "../../../../components/data-display/AppCard";
 import EmptyStateCard from "../../../../components/feedback/EmptyStateCard";
 import QueryError from "../../../../components/feedback/QueryError";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import { ApiRequestError } from "../../../../services/api";
 import type { DocumentDetail } from "../../types";
@@ -10,15 +11,16 @@ import type { DocumentDetail } from "../../types";
 import DocumentDetailContent from "./DocumentDetailContent";
 import DocumentDetailSkeleton from "./DocumentDetailSkeleton";
 
-export interface DocumentDetailQueryStatusProps {
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+export interface DocumentDetailContentData {
   document: DocumentDetail | undefined;
   requirementsTitle: string;
   noRequirementsLabel: string;
   officialSourceTitle: string;
+}
+
+export interface DocumentDetailQueryStatusProps {
+  status: QueryStatus;
+  content: DocumentDetailContentData;
 }
 
 function DocumentNotFound() {
@@ -35,14 +37,17 @@ function isNotFound(error: unknown) {
   return error instanceof ApiRequestError && error.status === 404;
 }
 
-function renderQueryStatus(props: DocumentDetailQueryStatusProps) {
-  const { isLoading, isError, error, onRetry, document, ...titles } = props;
+function renderQueryStatus({
+  status,
+  content,
+}: DocumentDetailQueryStatusProps) {
+  const { document, ...titles } = content;
 
-  if (isLoading) return <DocumentDetailSkeleton />;
-  if (isError && !isNotFound(error)) {
+  if (status.isLoading) return <DocumentDetailSkeleton />;
+  if (status.isError && !isNotFound(status.error)) {
     return (
       <AppCard>
-        <QueryError onRetry={onRetry} />
+        <QueryError onRetry={status.onRetry} />
       </AppCard>
     );
   }

@@ -5,6 +5,14 @@ import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DocumentDetail } from "../../types";
 import DocumentDetailView from "./DocumentDetailView";
 
+const status = {
+  isLoading: false,
+  isRefreshing: false,
+  isError: false,
+  error: undefined,
+  onRetry: () => {},
+};
+
 const document: DocumentDetail = {
   id: "doc-1",
   slug: "doc-1-slug",
@@ -18,15 +26,14 @@ const document: DocumentDetail = {
 it("DocumentDetailView · encloses document details in a card", async () => {
   const { container } = renderWithProviders(
     <DocumentDetailView
-      document={document}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={() => {}}
+      status={status}
       onBack={() => {}}
-      requirementsTitle="Requirements"
-      noRequirementsLabel="No requirements"
-      officialSourceTitle="Official source"
+      content={{
+        document: document,
+        requirementsTitle: "Requirements",
+        noRequirementsLabel: "No requirements",
+        officialSourceTitle: "Official source",
+      }}
     />,
   );
 
@@ -40,15 +47,14 @@ it("DocumentDetailView · encloses document details in a card", async () => {
 it("DocumentDetailView · keeps the back button outside the card", async () => {
   const { container } = renderWithProviders(
     <DocumentDetailView
-      document={document}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={() => {}}
+      status={status}
       onBack={() => {}}
-      requirementsTitle="Requirements"
-      noRequirementsLabel="No requirements"
-      officialSourceTitle="Official source"
+      content={{
+        document: document,
+        requirementsTitle: "Requirements",
+        noRequirementsLabel: "No requirements",
+        officialSourceTitle: "Official source",
+      }}
     />,
   );
 
@@ -67,15 +73,14 @@ it("DocumentDetailView · requirements are separate cards under a heading on the
   );
   const { container } = renderWithProviders(
     <DocumentDetailView
-      document={{ ...document, requirements }}
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={() => {}}
+      status={status}
       onBack={() => {}}
-      requirementsTitle="Required documents"
-      noRequirementsLabel="No requirements"
-      officialSourceTitle="Official source"
+      content={{
+        document: { ...document, requirements },
+        requirementsTitle: "Required documents",
+        noRequirementsLabel: "No requirements",
+        officialSourceTitle: "Official source",
+      }}
     />,
   );
 

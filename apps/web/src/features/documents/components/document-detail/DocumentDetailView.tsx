@@ -1,31 +1,28 @@
 import { Box, VStack } from "@chakra-ui/react";
 
-import type { DocumentDetail } from "../../types";
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 
 import DocumentBackButton from "./DocumentBackButton";
-import DocumentDetailQueryStatus from "./DocumentDetailQueryStatus";
+import DocumentDetailQueryStatus, {
+  type DocumentDetailContentData,
+} from "./DocumentDetailQueryStatus";
 
 export interface DocumentDetailViewProps {
-  document: DocumentDetail | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
+  content: DocumentDetailContentData;
   onBack: () => void;
-  requirementsTitle: string;
-  noRequirementsLabel: string;
-  officialSourceTitle: string;
 }
 
 export default function DocumentDetailView({
+  status,
+  content,
   onBack,
-  ...status
 }: DocumentDetailViewProps) {
   return (
     <Box>
       <VStack align="stretch" gap={4}>
         <DocumentBackButton onBack={onBack} />
-        <DocumentDetailQueryStatus {...status} />
+        <DocumentDetailQueryStatus status={status} content={content} />
       </VStack>
     </Box>
   );

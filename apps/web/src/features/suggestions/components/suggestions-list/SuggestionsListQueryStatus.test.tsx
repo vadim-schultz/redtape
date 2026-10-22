@@ -43,11 +43,13 @@ const suggestions: SuggestionRead[] = [
 it("SuggestionsListQueryStatus · loading renders skeleton not cards", () => {
   renderWithProviders(
     <SuggestionsListQueryStatus
-      isLoading
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: true,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       suggestions={suggestions}
     />,
   );
@@ -58,11 +60,13 @@ it("SuggestionsListQueryStatus · loading renders skeleton not cards", () => {
 it("SuggestionsListQueryStatus · empty list renders an empty state", () => {
   renderWithProviders(
     <SuggestionsListQueryStatus
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       suggestions={[]}
     />,
   );
@@ -74,11 +78,13 @@ it("SuggestionsListQueryStatus · error offers retry", async () => {
   const onRetry = vi.fn();
   const { user } = renderWithProviders(
     <SuggestionsListQueryStatus
-      isLoading={false}
-      isError
-      error={new Error("boom")}
-      onRetry={onRetry}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: true,
+        error: new Error("boom"),
+        onRetry,
+      }}
       suggestions={undefined}
     />,
   );
@@ -90,11 +96,13 @@ it("SuggestionsListQueryStatus · error offers retry", async () => {
 it("SuggestionsListQueryStatus · populated list renders count and cards", async () => {
   renderWithProviders(
     <SuggestionsListQueryStatus
-      isLoading={false}
-      isError={false}
-      error={undefined}
-      onRetry={vi.fn()}
-      isRefreshing={false}
+      status={{
+        isLoading: false,
+        isRefreshing: false,
+        isError: false,
+        error: undefined,
+        onRetry: vi.fn(),
+      }}
       suggestions={suggestions}
     />,
   );

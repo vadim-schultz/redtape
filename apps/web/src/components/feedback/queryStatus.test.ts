@@ -14,9 +14,7 @@ function queryOf(overrides: Partial<Parameters<typeof toQueryStatus>[0]> = {}) {
 }
 
 it("toQueryStatus · a loading query is loading, not refreshing", () => {
-  const status = toQueryStatus(
-    queryOf({ isLoading: true, isFetching: true }),
-  );
+  const status = toQueryStatus(queryOf({ isLoading: true, isFetching: true }));
 
   expect(status.isLoading).toBe(true);
   expect(status.isRefreshing).toBe(false);

@@ -1,5 +1,6 @@
 import { Box, VStack } from "@chakra-ui/react";
 
+import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { SuggestionRead } from "../../types";
 
 import SuggestionBackButton from "./SuggestionBackButton";
@@ -7,22 +8,20 @@ import SuggestionDetailQueryStatus from "./SuggestionDetailQueryStatus";
 
 export interface SuggestionDetailViewProps {
   suggestion: SuggestionRead | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   onBack: () => void;
 }
 
 export default function SuggestionDetailView({
+  suggestion,
+  status,
   onBack,
-  ...status
 }: SuggestionDetailViewProps) {
   return (
     <Box>
       <VStack align="stretch" gap={4}>
         <SuggestionBackButton onBack={onBack} />
-        <SuggestionDetailQueryStatus {...status} />
+        <SuggestionDetailQueryStatus suggestion={suggestion} status={status} />
       </VStack>
     </Box>
   );
