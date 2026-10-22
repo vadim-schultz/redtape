@@ -2,8 +2,8 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
 import LoadingShell from "./LoadingShell";
-import DocumentDetailSkeleton from "../features/documents/components/document-detail/DocumentDetailSkeleton";
-import DocumentsListSkeleton from "../features/documents/components/documents-list/DocumentsListSkeleton";
+import { DocumentDetailSkeleton } from "../features/documents/components/DocumentDetailView";
+import { DocumentsListSkeleton } from "../features/documents/components/DocumentsListView";
 import RequireAuth from "../features/auth/components/RequireAuth";
 import SuggestionDetailSkeleton from "../features/suggestions/components/suggestion-detail/SuggestionDetailSkeleton";
 import SuggestionsListSkeleton from "../features/suggestions/components/suggestions-list/SuggestionsListSkeleton";

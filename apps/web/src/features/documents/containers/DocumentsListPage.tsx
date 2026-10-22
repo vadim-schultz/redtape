@@ -5,8 +5,8 @@ import { useDocumentFilters } from "../hooks/useDocumentFilters";
 import { useFilterTaxonomy } from "../hooks/useFilterTaxonomy";
 import { useDocumentsListQuery } from "../hooks/useDocumentsListQuery";
 import { useLocale } from "../../../contexts/LocaleContext";
-import DocumentFilters from "../components/documents-list/document-filters/DocumentFilters";
-import DocumentsListView from "../components/documents-list/DocumentsListView";
+import { DocumentFilters } from "../components/DocumentsListView/DocumentFiltersView";
+import { DocumentsListView } from "../components/DocumentsListView";
 
 export default function DocumentsListPage() {
   const { t } = useLocale();

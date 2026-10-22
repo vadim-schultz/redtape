@@ -1,7 +1,7 @@
 import { Heading, Text, VStack } from "@chakra-ui/react";
 
 import type { Term } from "../../../taxonomy/types";
-import DocumentTags from "../document-tags/DocumentTags";
+import { DocumentTags } from "../DocumentTagsView";
 
 export interface DocumentHeaderProps {
   title: string;
