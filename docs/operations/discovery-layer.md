@@ -240,9 +240,10 @@ of that request (browser devtools, then curl against the web origin and
 | Probe status | Cause | Fix |
 | --- | --- | --- |
 | 200 | Probe works | Inspect the deployed bundle and menu code |
-| 401 | `SUPABASE_JWKS_URL` / `SUPABASE_JWT_ISSUER` unset on Render (auth disabled), JWKS/issuer wrong, or no valid bearer token reached the API (worker proxy or client dropped it) | Set both Supabase variables on Render (`auth_enabled` needs both); compare web-origin and direct-API curl |
+| 401 | No or invalid bearer token, or `auth_enabled` is false. A curl request without a token always returns 401 | Send a fresh bearer token; if a valid token still gets 401, check both Supabase variables on Render |
 | 403 | Email not on `DISCOVERY_ADMIN_EMAILS` (compared lowercase) | Add the exact login email on Render |
 | 503 | Discovery disabled, or cold start / proxy 503 (menu shows **Discovery unavailable** after two retries) | Enable discovery; repeat after `/health` is warm |
+| 500 | Authenticated, but the guard or handler crashed. `/api/v1/me` 200 with `/discovery/admin/*` 500 is a code fault, not config: read the traceback in Render logs (e.g. `DetachedInstanceError`) | Check Render logs; see "Logging gap" below |
 | 5xx / timeout | Cold start or API fault (menu shows **Discovery unavailable** after two retries) | Check Render logs |
 
 Triage record (operator-reported, 2026-10):
@@ -255,20 +256,40 @@ Triage record (operator-reported, 2026-10):
   `No routes matched location` console warning appears was not reported.
 - Cloudflare serves deployment `59339dfc-06e3-4470-bbf8-0cd27e6e8dce` (not yet verified against `main`).
 
-Reading of the 401: `require_discovery_admin` raises "Not authenticated" when `auth_enabled` is false
-(`SUPABASE_JWKS_URL` or `SUPABASE_JWT_ISSUER` missing) and also when the bearer token is missing or
-fails verification, so the body alone does not separate them. Most likely cause: Supabase JWT
-verification is not configured on Render (`render.yaml` carries no Supabase auth variables, they live
-in the dashboard). Next operator checks: confirm both variables are set on the API service; repeat the
-curl with a fresh token against the direct Render origin; if that returns 200 but the web origin
-returns 401, the worker proxy or client drops the `Authorization` header. A Render config fix is likely
-needed but is unconfirmed until those checks run.
+Correction (2026-10-22): the earlier theory that Supabase variables were unset on Render was wrong. The
+401 came from a request that carried no bearer token. Verified facts:
+
+- `/api/v1/me` returned 200, so JWT auth and the Supabase variables work.
+- `/discovery/admin/tasks`, `/coverage` and `/catalogue` returned 500 every time.
+- Alembic was at head (`20261015_claim_fingerprint`), all six discovery tables, the
+  `payload_fingerprint` column and five enum types existed, and 1413 catalogue rows were present.
+- Root cause: `require_discovery_admin` read `user.email` after its session closed
+  (`DetachedInstanceError`). Fixed by reading the email inside the session block.
+
+### Verifying the schema
+
+Run these in the Supabase SQL editor when triaging a 5xx:
+
+```sql
+select version_num from alembic_version;
+select table_name from information_schema.tables
+  where table_schema = 'public' and (table_name like '%discovery%' or table_name like 'catalogue%');
+select column_name from information_schema.columns where column_name = 'payload_fingerprint';
+select typname from pg_type where typtype = 'e' order by typname;
+```
+
+### Logging gap
+
+Render logs showed only access lines for the 500s, with no traceback. The Litestar app in
+`apps/api/app/main.py` sets no `logging_config`, and Litestar logs unhandled exceptions only in debug
+mode by default. Until that is changed (follow-up), reproduce locally to see the traceback.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | Admin page blank, console warns `No routes matched location` | Section 7; confirm the deployed build includes the relative-route fix |
+| Discovery links missing but `/me` is 200 | Check the probe status (section 7); on 500 read the Render logs traceback |
 | Admin UI forbidden | `DISCOVERY_ADMIN_EMAILS` includes your signed-in email; discovery feature enabled |
 | Machine routes 401 | Valid `DISCOVERY_API_KEY`; or `DISCOVERY_MACHINE_OPT_IN=1` for local dev |
 | Ingest TLS timeout / reset | Corporate `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` includes `localhost` |
