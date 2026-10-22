@@ -9,7 +9,7 @@ import pytest
 from scripts.measure_code_rules import MeasureError, measure_file, summarise
 
 SAMPLE = textwrap.dedent(
-    '''
+    """
     class Big:
         def short(self, a, b):
             return a
@@ -24,7 +24,7 @@ SAMPLE = textwrap.dedent(
 
     def helper(a):
         return a
-    '''
+    """
 )
 
 
