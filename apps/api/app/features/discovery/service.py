@@ -6,11 +6,15 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from litestar.exceptions import NotFoundException, ValidationException
 from pydantic import ValidationError
 
 from app.features.discovery.emit_preview import build_emit_preview_items
+from app.features.discovery.errors import (
+    DiscoveryEntityNotFoundError,
+    InvalidDiscoveryInputError,
+)
 from app.features.discovery.fanout import apply_fanout_for_service
+from app.features.discovery.lookups import require_catalogue, require_task
 from app.features.discovery.pipeline import (
     PipelineStageInput,
     all_emit_claims_resolvable,
@@ -152,10 +156,8 @@ class DiscoveryAdminService:
             emit_ready_count=counts.emit_ready_count,
         )
 
-    def emit_preview(self, catalogue_id: UUID) -> EmitPreviewResponse | None:
-        row = self._repo.get_catalogue(catalogue_id)
-        if row is None:
-            return None
+    def emit_preview(self, catalogue_id: UUID) -> EmitPreviewResponse:
+        row = require_catalogue(self._repo, catalogue_id)
         entities = self._repo.list_catalogue_entities(catalogue_id)
         claims = self._repo.list_catalogue_claims(catalogue_id)
         entities_by_id = {entity.id: entity for entity in entities}
@@ -167,10 +169,8 @@ class DiscoveryAdminService:
         items = [EmitPreviewItemRead.model_validate(item) for item in preview_rows]
         return EmitPreviewResponse(items=items)
 
-    def catalogue_pipeline(self, catalogue_id: UUID) -> CataloguePipelineResponse | None:
-        row = self._repo.get_catalogue(catalogue_id)
-        if row is None:
-            return None
+    def catalogue_pipeline(self, catalogue_id: UUID) -> CataloguePipelineResponse:
+        row = require_catalogue(self._repo, catalogue_id)
         task_rows = self._repo.list_catalogue_tasks(catalogue_id)
         tasks = [DiscoveryTaskRead.from_row(task, source=source) for task, source in task_rows]
         fetch_logs = self._repo.list_catalogue_fetch_logs(catalogue_id)
@@ -268,9 +268,7 @@ class DiscoveryMachineService:
         return CatalogueBatchResponse(items=results)
 
     def get_catalogue_for_machine(self, catalogue_id: UUID) -> CatalogueMachineRead:
-        row = self._repo.get_catalogue(catalogue_id)
-        if row is None:
-            raise NotFoundException("Catalogue service not found")
+        row = require_catalogue(self._repo, catalogue_id)
         return CatalogueMachineRead(
             id=row.id,
             source=row.source,
@@ -298,26 +296,24 @@ class DiscoveryMachineService:
         return TaskClaimResponse(items=items)
 
     def complete_task(self, task_id: UUID) -> TaskCompleteResponse:
-        task = self._require_task(task_id)
+        task = require_task(self._repo, task_id)
         task.status = DiscoveryTaskStatus.COMPLETED
         task.lease_expires_at = None
         return TaskCompleteResponse(id=task.id, status=task.status)
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
-        task = self._require_task(task_id)
+        task = require_task(self._repo, task_id)
         task.status = DiscoveryTaskStatus.FAILED
         task.last_error = body.error
         task.lease_expires_at = None
         return TaskFailResponse(id=task.id, status=task.status, last_error=task.last_error)
 
     def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
-        catalogue = self._repo.get_catalogue(body.catalogue_service_id)
-        if catalogue is None:
-            raise NotFoundException("Catalogue service not found")
+        require_catalogue(self._repo, body.catalogue_service_id)
         try:
             canonical_url = normalize_canonical_url(body.canonical_url)
         except ValueError as err:
-            raise ValidationException(detail=str(err)) from err
+            raise InvalidDiscoveryInputError(str(err)) from err
         row, created = self._repo.upsert_entity(
             catalogue_service_id=body.catalogue_service_id,
             canonical_url=canonical_url,
@@ -333,11 +329,11 @@ class DiscoveryMachineService:
     def append_claim(self, body: ClaimAppendRequest) -> ClaimAppendResponse:
         entity = self._repo.get_entity(body.discovery_entity_id)
         if entity is None:
-            raise NotFoundException("Discovery entity not found")
+            raise DiscoveryEntityNotFoundError()
         try:
             payload = validate_claim_payload(body.kind, body.payload)
         except ValidationError as err:
-            raise ValidationException(detail=str(err)) from err
+            raise InvalidDiscoveryInputError(str(err)) from err
         confidence: Decimal | None = None
         if body.confidence is not None:
             confidence = Decimal(str(body.confidence))
@@ -363,7 +359,7 @@ class DiscoveryMachineService:
         )
 
     def append_fetch_log(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
-        task = self._require_task(task_id)
+        task = require_task(self._repo, task_id)
         row = self._repo.append_fetch_log(
             task=task,
             http_status=body.http_status,
@@ -379,9 +375,3 @@ class DiscoveryMachineService:
             payload={"fetch_log_id": str(row.id)},
         )
         return FetchLogAppendResponse(id=row.id, discovery_task_id=task.id, task_status=task.status)
-
-    def _require_task(self, task_id: UUID) -> DiscoveryTask:
-        task = self._repo.get_task(task_id)
-        if task is None:
-            raise NotFoundException("Discovery task not found")
-        return task

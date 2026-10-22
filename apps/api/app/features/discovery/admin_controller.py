@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, get
-from litestar.exceptions import NotFoundException
 from litestar.params import Parameter
 
 from app.features.discovery.guards import require_discovery_admin
@@ -57,10 +56,7 @@ class DiscoveryAdminController(Controller):
         discovery_admin_service: DiscoveryAdminService,
         catalogue_id: UUID,
     ) -> CataloguePipelineResponse:
-        aggregate = discovery_admin_service.catalogue_pipeline(catalogue_id)
-        if aggregate is None:
-            raise NotFoundException("Catalogue service not found")
-        return aggregate
+        return discovery_admin_service.catalogue_pipeline(catalogue_id)
 
     @get("/catalogue/{catalogue_id:uuid}/emit-preview", sync_to_thread=True)
     def catalogue_emit_preview(
@@ -68,7 +64,4 @@ class DiscoveryAdminController(Controller):
         discovery_admin_service: DiscoveryAdminService,
         catalogue_id: UUID,
     ) -> EmitPreviewResponse:
-        preview = discovery_admin_service.emit_preview(catalogue_id)
-        if preview is None:
-            raise NotFoundException("Catalogue service not found")
-        return preview
+        return discovery_admin_service.emit_preview(catalogue_id)

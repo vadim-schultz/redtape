@@ -7,12 +7,12 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from litestar.exceptions import ClientException
 from sqlalchemy import Select, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.features.discovery.claim_fingerprint import claim_payload_fingerprint
+from app.features.discovery.errors import UnknownJurisdictionError
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.discovery import (
     CatalogueService,
@@ -77,13 +77,6 @@ def _is_jurisdiction_foreign_key_violation(exc: IntegrityError) -> bool:
     return "jurisdiction" in message and "foreign key" in message
 
 
-def _unknown_jurisdiction_client_error(item: CatalogueBatchItem) -> ClientException:
-    return ClientException(
-        detail=f"Unknown jurisdiction_id: {item.jurisdiction_id}",
-        status_code=422,
-    )
-
-
 class DiscoveryRepository:
     """Discovery staging queries and machine-route persistence."""
 
@@ -129,7 +122,7 @@ class DiscoveryRepository:
     ) -> tuple[CatalogueService, bool]:
         self._session.rollback()
         if _is_jurisdiction_foreign_key_violation(exc):
-            raise _unknown_jurisdiction_client_error(item) from exc
+            raise UnknownJurisdictionError(item.jurisdiction_id) from exc
         raced = self.get_catalogue_by_source_external_id(source=item.source, external_id=item.external_id)
         if raced is None:
             raise exc
@@ -146,7 +139,7 @@ class DiscoveryRepository:
         except IntegrityError as exc:
             self._session.rollback()
             if _is_jurisdiction_foreign_key_violation(exc):
-                raise _unknown_jurisdiction_client_error(item) from exc
+                raise UnknownJurisdictionError(item.jurisdiction_id) from exc
             raise
         return row
 

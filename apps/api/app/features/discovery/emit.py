@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from litestar.exceptions import NotFoundException
-
 from app.features.discovery.emit_preview import claim_to_suggestion_payload
+from app.features.discovery.lookups import require_catalogue
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.suggestions.service import SubmitterRef, SuggestionService
 from app.models.api_key import ApiKey
@@ -40,9 +39,7 @@ class DiscoveryEmitService:
         self._suggestions = suggestions
 
     def emit_catalogue(self, catalogue_id: UUID, *, api_key: ApiKey) -> CatalogueEmitResponse:
-        row = self._repo.get_catalogue(catalogue_id)
-        if row is None:
-            raise NotFoundException("Catalogue service not found")
+        row = require_catalogue(self._repo, catalogue_id)
         submitter = SubmitterRef("crawler", api_key.id)
         entities = self._repo.list_catalogue_entities(catalogue_id)
         entities_by_id = {entity.id: entity for entity in entities}
