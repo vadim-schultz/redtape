@@ -12,7 +12,7 @@ Use this ledger to record chapter implementation, verification, refactor outcome
 | --- | --- | --- | --- | --- | --- |
 | 1. Live triage — probe and routes | `docs/discovery-admin-remediation-triage` / [#157](https://github.com/vadim-schultz/redtape/pull/157) | Probe 401 "Not authenticated" (operator-reported; origin unconfirmed); allowlist OK, MACHINE_OPT_IN=false. Likely cause: Supabase JWKS/issuer unset on Render (auth_enabled false) or Authorization dropped by proxy. Blank page reported (F1). Chapter 3 cause-specific part: no-go until operator checks Render Supabase vars | n/a (ops) | local ci pass; remote pass; merged | merged |
 | 2. Route nesting fix | `fix/discovery-admin-route-nesting` / [#158](https://github.com/vadim-schultz/redtape/pull/158) | 2 real-App tests red (empty body) → green via relative routes under pathless guarded layout | Audited; no refactor needed | remote pass; local ./ci.sh red only from pre-existing flaky suggestions tests (timeouts under load, pass in isolation) | merged |
-| 3. Admin probe resilience and menu feedback | `fix/discovery-admin-probe-resilience` | | | | planned |
+| 3. Admin probe resilience and menu feedback | `fix/discovery-admin-probe-resilience` / [#159](https://github.com/vadim-schultz/redtape/pull/159) | Tests-first: recovery after 502, hint on persistent 503, no hint on 401/403, retry cap | MENU_VIEWS lookup extracted; narrow suites 41 pass | remote pass; local ./ci.sh red only from known flaky suggestions tests (54/54 pass in isolation) | merged |
 | 4. Real-tree smoke and docs | `docs/discovery-admin-remediation-smoke` | | | | planned |
 
 ## Release gate
