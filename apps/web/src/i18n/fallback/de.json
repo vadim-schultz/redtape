@@ -85,6 +85,7 @@
     "remove_situation": "Lebenslagen-Filter entfernen: {name}"
   },
   "discovery_admin": {
+    "menu_unavailable": "Discovery nicht verfügbar",
     "title": "Discovery-Administration",
     "auth_unconfigured_title": "Authentifizierung ist nicht konfiguriert",
     "auth_unconfigured_body": "Konfiguriere Supabase, bevor du es erneut versuchst.",

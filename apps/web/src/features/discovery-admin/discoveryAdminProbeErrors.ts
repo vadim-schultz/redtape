@@ -24,3 +24,9 @@ export function discoveryAdminProbeErrorOutcome(
   if (isDiscoveryAdminDisabled(error)) return "disabled";
   return "error";
 }
+
+/** True when discovery is down (503, 5xx, network), not when access is denied. */
+export function isDiscoveryAdminUnavailable(error: unknown): boolean {
+  const outcome = discoveryAdminProbeErrorOutcome(error);
+  return outcome === "disabled" || outcome === "error";
+}
