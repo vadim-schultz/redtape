@@ -7,9 +7,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest.mock import patch
 
-import app.features.auth.guards as auth_guards
+import app.features.auth.guard_session as guard_session_module
 import pytest
 from app.config import settings
+from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.repository import DiscoveryRepository
 from app.main import create_app
 from app.models.discovery import (
@@ -45,7 +46,7 @@ def _keep_open(session: Session) -> Iterator[Session]:
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     monkeypatch.setattr(settings, "discovery_machine_opt_in", True)
-    monkeypatch.setattr(auth_guards, "SessionLocal", lambda: _keep_open(db_session))
+    monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:
@@ -163,6 +164,7 @@ def test_concurrent_catalogue_insert_integrity_error_recovers_to_update(
 ) -> None:
     """concurrent catalogue insert · IntegrityError recovers to update."""
     repo = DiscoveryRepository(db_session)
+    upserts = CatalogueUpsertService(repo)
     item = CatalogueBatchItem(
         source=DiscoverySource.GOVDATA,
         external_id="race-key",
@@ -171,7 +173,7 @@ def test_concurrent_catalogue_insert_integrity_error_recovers_to_update(
         portal_url="https://example.gov/race",
         raw_payload={"v": 1},
     )
-    row, created = repo.upsert_catalogue_item(item)
+    row, created = upserts.upsert(item)
     assert created is True
     db_session.commit()
 
@@ -205,7 +207,7 @@ def test_concurrent_catalogue_insert_integrity_error_recovers_to_update(
         patch.object(repo, "get_catalogue_by_source_external_id", racing_get),
         patch.object(db_session, "flush", racing_flush),
     ):
-        result_row, created_again = repo.upsert_catalogue_item(updated_item)
+        result_row, created_again = upserts.upsert(updated_item)
 
     assert created_again is False
     assert result_row.id == row.id

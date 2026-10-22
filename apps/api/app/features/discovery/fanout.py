@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.repository import DiscoveryRepository, TaskTarget
 from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.models.discovery import (
     CatalogueService,
@@ -68,10 +68,9 @@ def apply_fanout_for_service(repo: DiscoveryRepository, service: CatalogueServic
     """Insert pending fanout tasks and record ``task_enqueued`` events (idempotent)."""
     created: list[DiscoveryTask] = []
     for spec in fanout_specs_for_service(service):
+        target = TaskTarget(catalogue_service_id=service.id, kind=spec.kind, target_url=spec.target_url)
         existing = repo.find_task_for_target(
-            catalogue_service_id=service.id,
-            kind=spec.kind,
-            target_url=spec.target_url,
+            target,
             statuses=(
                 DiscoveryTaskStatus.PENDING,
                 DiscoveryTaskStatus.CLAIMED,
@@ -80,13 +79,7 @@ def apply_fanout_for_service(repo: DiscoveryRepository, service: CatalogueServic
         )
         if existing is not None:
             continue
-        task = enqueue_task_if_needed(
-            repo,
-            catalogue_service_id=service.id,
-            kind=spec.kind,
-            target_url=spec.target_url,
-            priority=spec.priority,
-        )
+        task = enqueue_task_if_needed(repo, target, priority=spec.priority)
         if task is not None:
             created.append(task)
     return created

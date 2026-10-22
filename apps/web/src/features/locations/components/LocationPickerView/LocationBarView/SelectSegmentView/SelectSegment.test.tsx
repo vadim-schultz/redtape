@@ -1,0 +1,98 @@
+import { screen } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
+
+import { renderWithProviders } from "../../../../../../test/renderWithProviders";
+import type { LocationNode } from "../../../../types";
+import SelectSegment, { type SelectSegmentProps } from "./SelectSegment";
+
+interface SegmentOverrides {
+  value?: string;
+  disabled?: boolean;
+  onChange?: SelectSegmentProps["selection"]["onChange"];
+  options?: LocationNode[] | undefined;
+  isLoading?: boolean;
+}
+
+function renderSegment(overrides: SegmentOverrides = {}) {
+  const { options, isLoading, ...selection } = {
+    value: "",
+    disabled: false,
+    onChange: vi.fn(),
+    options: [{ code: "BE", name: "Berlin", kind: "REGION" }] as
+      LocationNode[] | undefined,
+    isLoading: false,
+    ...overrides,
+  };
+
+  return renderWithProviders(
+    <SelectSegment
+      labels={{
+        label: "State",
+        placeholder: "Select state",
+        emptyLabel: "No options available",
+      }}
+      level={{ options, isLoading }}
+      selection={selection}
+    />,
+  );
+}
+
+it("SelectSegment · shows a call to action while keeping the label as accessible name", () => {
+  renderSegment();
+
+  expect(screen.getByRole("combobox", { name: "State" })).toBeInTheDocument();
+  expect(screen.getByText("Select state")).toBeInTheDocument();
+});
+
+it("SelectSegment · reports the chosen code", async () => {
+  const onChange = vi.fn();
+  const { user } = renderSegment({ onChange });
+
+  await user.click(screen.getByRole("combobox"));
+  await user.click(await screen.findByRole("option", { name: "Berlin" }));
+
+  expect(onChange).toHaveBeenCalledWith("BE");
+});
+
+it("SelectSegment · shows the chosen option name", () => {
+  renderSegment({ value: "BE" });
+
+  expect(screen.getByRole("combobox")).toHaveTextContent("Berlin");
+});
+
+it("SelectSegment · disabled segment is disabled and does not lift on hover", () => {
+  renderSegment({ disabled: true });
+
+  const trigger = screen.getByRole("combobox");
+
+  expect(trigger).toBeDisabled();
+  expect(getComputedStyle(trigger).transform).not.toContain("translateY");
+});
+
+it("SelectSegment · flags itself busy while loading", () => {
+  renderSegment({ isLoading: true });
+
+  expect(screen.getByRole("combobox")).toHaveAttribute("aria-busy", "true");
+});
+
+it("SelectSegment · is not busy when loaded", () => {
+  renderSegment();
+
+  expect(screen.getByRole("combobox")).not.toHaveAttribute("aria-busy", "true");
+});
+
+it("SelectSegment · says so when there is nothing to choose from", async () => {
+  const { user } = renderSegment({ options: [] });
+
+  await user.click(screen.getByRole("combobox"));
+
+  expect(await screen.findByText("No options available")).toBeInTheDocument();
+});
+
+it("SelectSegment · does not claim emptiness while options are loading", async () => {
+  const { user } = renderSegment({ options: undefined, isLoading: true });
+
+  await user.click(screen.getByRole("combobox"));
+
+  expect(screen.queryByText("No options available")).not.toBeInTheDocument();
+});

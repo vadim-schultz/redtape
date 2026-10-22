@@ -1,39 +1,29 @@
 import { Heading, Stack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-import { ApiRequestError } from "../../../services/api";
-import ConflictList from "../components/suggest/ConflictList";
-import SubmittedNotice from "../components/suggest/SubmittedNotice";
-import SuggestErrorNotice from "../components/suggest/SuggestErrorNotice";
-import SuggestionForm from "../components/suggest/SuggestionForm";
+import { ConflictList } from "../components/SuggestView";
+import { SubmittedNotice } from "../components/SuggestView";
+import { SuggestErrorNotice } from "../components/SuggestView";
+import { SuggestionForm } from "../components/SuggestView";
 import { useCreateSuggestion } from "../hooks/useCreateSuggestion";
-import { SuggestionConflictError } from "../services/suggestionsApi";
-import { parseFieldErrors } from "../utils/parseFieldErrors";
+import { useSuggestionError } from "../hooks/useSuggestionError";
 
 export default function SuggestPage() {
   const { t } = useLocale();
   const mutation = useCreateSuggestion();
+  const error = useSuggestionError(mutation.error);
 
   if (mutation.data) return <SubmittedNotice suggestionId={mutation.data.id} />;
-  if (mutation.error instanceof SuggestionConflictError) {
-    return <ConflictList conflicts={mutation.error.conflicts} />;
-  }
-
-  const fieldErrors =
-    mutation.error instanceof ApiRequestError && mutation.error.status === 422
-      ? parseFieldErrors(mutation.error)
-      : {};
-  const showGenericError =
-    Boolean(mutation.error) && Object.keys(fieldErrors).length === 0;
+  if (error.conflicts) return <ConflictList conflicts={error.conflicts} />;
 
   return (
     <Stack gap={4}>
       <Heading textStyle="sectionHeader">{t("suggest.title")}</Heading>
-      {showGenericError ? <SuggestErrorNotice /> : null}
+      {error.showGenericError ? <SuggestErrorNotice /> : null}
       <SuggestionForm
         onSubmit={(request) => mutation.mutate(request)}
         isSending={mutation.isPending}
-        fieldErrors={fieldErrors}
+        fieldErrors={error.fieldErrors}
       />
     </Stack>
   );

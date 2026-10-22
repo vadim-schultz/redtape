@@ -107,3 +107,14 @@ it("AuthProvider · sign-out clears cached queries", async () => {
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0),
   );
 });
+
+it("AuthProvider · a failing gateway yields anonymous instead of crashing", async () => {
+  const gateway = createFakeAuthGateway({ session });
+  gateway.getSession = () => Promise.reject(new Error("gateway down"));
+
+  renderProbe(gateway);
+
+  await waitFor(() =>
+    expect(screen.getByText("anonymous")).toBeInTheDocument(),
+  );
+});

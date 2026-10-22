@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TypedDict
 from uuid import UUID
 
@@ -19,6 +20,38 @@ class EmitPreviewItem(TypedDict):
     skip_reason: str | None
 
 
+def _metadata_skip(payload: dict[str, object]) -> str | None:
+    return "metadata_not_emitted"
+
+
+def _document_skip(payload: dict[str, object]) -> str | None:
+    if not payload.get("title_i18n") or not payload.get("official_url"):
+        return "invalid_new_document_payload"
+    return None
+
+
+def _requirement_skip(payload: dict[str, object]) -> str | None:
+    if payload.get("parent_document_id") is None or payload.get("required_document_id") is None:
+        return "unresolved_requirement_documents"
+    return None
+
+
+_SKIP_CHECKS: dict[DiscoveryClaimKind, Callable[[dict[str, object]], str | None]] = {
+    DiscoveryClaimKind.METADATA: _metadata_skip,
+    DiscoveryClaimKind.NEW_DOCUMENT: _document_skip,
+    DiscoveryClaimKind.NEW_REQUIREMENT: _requirement_skip,
+}
+
+
+def _suggestion_body(claim: DiscoveryClaim, entity: DiscoveryEntity, jurisdiction_id: UUID) -> dict[str, object]:
+    return {
+        "kind": SuggestionKind(claim.kind.value).value,
+        "jurisdiction_id": str(jurisdiction_id),
+        "source_url": normalize_canonical_url(entity.canonical_url),
+        "payload": claim.payload,
+    }
+
+
 def claim_to_suggestion_payload(
     *,
     claim: DiscoveryClaim,
@@ -26,34 +59,21 @@ def claim_to_suggestion_payload(
     jurisdiction_id: UUID,
 ) -> tuple[dict[str, object] | None, str | None]:
     """Return suggestion-shaped payload or a skip reason."""
+    skip_reason = _SKIP_CHECKS[claim.kind](claim.payload)
+    if skip_reason is not None:
+        return None, skip_reason
+    return _suggestion_body(claim, entity, jurisdiction_id), None
 
-    match claim.kind:
-        case DiscoveryClaimKind.METADATA:
-            return None, "metadata_not_emitted"
-        case DiscoveryClaimKind.NEW_DOCUMENT:
-            title_i18n = claim.payload.get("title_i18n")
-            official_url = claim.payload.get("official_url")
-            if not title_i18n or not official_url:
-                return None, "invalid_new_document_payload"
-            body: dict[str, object] = {
-                "kind": SuggestionKind.NEW_DOCUMENT.value,
-                "jurisdiction_id": str(jurisdiction_id),
-                "source_url": normalize_canonical_url(entity.canonical_url),
-                "payload": claim.payload,
-            }
-            return body, None
-        case DiscoveryClaimKind.NEW_REQUIREMENT:
-            parent = claim.payload.get("parent_document_id")
-            required = claim.payload.get("required_document_id")
-            if parent is None or required is None:
-                return None, "unresolved_requirement_documents"
-            body = {
-                "kind": SuggestionKind.NEW_REQUIREMENT.value,
-                "jurisdiction_id": str(jurisdiction_id),
-                "source_url": normalize_canonical_url(entity.canonical_url),
-                "payload": claim.payload,
-            }
-            return body, None
+
+def _preview_item(claim: DiscoveryClaim, payload: dict[str, object] | None, skip: str | None) -> EmitPreviewItem:
+    return {"claim_id": str(claim.id), "kind": claim.kind.value, "payload": payload, "skip_reason": skip}
+
+
+def _preview_one(claim: DiscoveryClaim, entity: DiscoveryEntity | None, jurisdiction_id: UUID) -> EmitPreviewItem:
+    if entity is None:
+        return _preview_item(claim, None, "missing_entity")
+    payload, skip_reason = claim_to_suggestion_payload(claim=claim, entity=entity, jurisdiction_id=jurisdiction_id)
+    return _preview_item(claim, payload, skip_reason)
 
 
 def build_emit_preview_items(
@@ -63,31 +83,4 @@ def build_emit_preview_items(
     jurisdiction_id: UUID,
 ) -> list[EmitPreviewItem]:
     """Build preview rows for all claims under a catalogue service."""
-
-    items: list[EmitPreviewItem] = []
-    for claim in claims:
-        entity = entities_by_id.get(claim.discovery_entity_id)
-        if entity is None:
-            items.append(
-                {
-                    "claim_id": str(claim.id),
-                    "kind": claim.kind.value,
-                    "payload": None,
-                    "skip_reason": "missing_entity",
-                }
-            )
-            continue
-        payload, skip_reason = claim_to_suggestion_payload(
-            claim=claim,
-            entity=entity,
-            jurisdiction_id=jurisdiction_id,
-        )
-        items.append(
-            {
-                "claim_id": str(claim.id),
-                "kind": claim.kind.value,
-                "payload": payload,
-                "skip_reason": skip_reason,
-            }
-        )
-    return items
+    return [_preview_one(c, entities_by_id.get(c.discovery_entity_id), jurisdiction_id) for c in claims]

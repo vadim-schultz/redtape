@@ -1,6 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 
+import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../auth/contexts/AuthContext";
 import { listDiscoveryTasks } from "../services/discoveryAdminApi";
 import type { DiscoveryTaskListResponse } from "../types";
@@ -14,16 +16,15 @@ export function useDiscoveryTasksQuery({
   const { session } = useAuth();
   const accessToken = session?.accessToken;
 
-  return useQuery<DiscoveryTaskListResponse>({
-    queryKey: ["discovery-admin", "tasks", status, source, locale],
-    queryFn: () =>
+  return useApiQuery<DiscoveryTaskListResponse>(
+    queryKeys.discoveryAdmin.tasks(status, source, locale),
+    () =>
       listDiscoveryTasks({
         locale,
         accessToken: accessToken!,
         status,
         source: source ?? undefined,
       }),
-    enabled: Boolean(accessToken),
-    placeholderData: keepPreviousData,
-  });
+    { enabled: Boolean(accessToken), placeholderData: keepPreviousData },
+  );
 }

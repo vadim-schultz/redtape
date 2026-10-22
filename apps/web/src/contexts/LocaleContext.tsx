@@ -5,13 +5,12 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { initialLocale } from "../i18n/initialLocale";
-import { fallbackBundle, type TranslationBundle } from "../i18n/fallback";
-import { buildApiUrl } from "../services/apiOrigin";
+import { fallbackBundle } from "../i18n/fallback";
+import { useRemoteTranslations } from "../hooks/useRemoteTranslations";
 
 export type LocaleContextValue = {
   locale: string;
@@ -22,46 +21,13 @@ export type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 
-async function fetchTranslations(
-  locale: string,
-  signal: AbortSignal,
-): Promise<TranslationBundle> {
-  const url = buildApiUrl("/api/v1/translations");
-  url.searchParams.set("locale", locale);
-  const res = await fetch(url.toString(), {
-    headers: { "Accept-Language": locale },
-    signal,
-  });
-  if (!res.ok) throw new Error(`Translations request failed: ${res.status}`);
-  const data = (await res.json()) as { translations?: TranslationBundle };
-  return data.translations ?? {};
-}
-
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [locale, setLocaleState] = useState(() => initialLocale());
-  const [remote, setRemote] = useState<TranslationBundle>({});
-  const [isLoading, setIsLoading] = useState(true);
-
-  const abortRef = useRef<AbortController | null>(null);
+  const { remote, isLoading } = useRemoteTranslations(locale);
 
   useEffect(() => {
     document.documentElement.lang = locale;
-  }, [locale]);
-
-  useEffect(() => {
-    abortRef.current?.abort();
-    const abort = new AbortController();
-    abortRef.current = abort;
-
-    setIsLoading(true);
-    fetchTranslations(locale, abort.signal)
-      .then(setRemote)
-      // Bundled strings keep the UI usable while the API is down or waking up.
-      .catch(() => setRemote({}))
-      .finally(() => setIsLoading(false));
-
-    return () => abort.abort();
   }, [locale]);
 
   const translations = useMemo(

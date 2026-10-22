@@ -58,6 +58,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]     # allow assert in tests
+"tests/test_discovery_error_responses.py" = ["F811"]  # reuses fixtures imported from sibling test modules
 "scripts/*" = ["T201"]   # allow print in scripts
 
 [tool.mypy]

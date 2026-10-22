@@ -9,6 +9,7 @@ import AppLayout from "../components/layout/AppLayout";
 
 import { ColorModeProvider } from "../components/ui/color-mode";
 import { AuthProvider } from "../features/auth/contexts/AuthContext";
+import { supabaseAuthGateway } from "../features/auth/services/supabaseAuthGateway";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
 
@@ -21,7 +22,7 @@ const AppBootstrap = () => (
       <ChakraProvider value={system}>
         <ColorModeProvider>
           <LocaleProvider>
-            <AuthProvider>
+            <AuthProvider gateway={supabaseAuthGateway}>
               <BrowserRouter>
                 <AppLayout>
                   <App />

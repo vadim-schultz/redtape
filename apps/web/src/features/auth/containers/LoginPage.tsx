@@ -28,7 +28,9 @@ function renderLoginContent({
   unavailableTitle: string;
 }) {
   if (status === "unconfigured")
-    return <EmptyStateCard icon={LuUserX} title={unavailableTitle} />;
+    return (
+      <EmptyStateCard icon={LuUserX} content={{ title: unavailableTitle }} />
+    );
   if (status === "authenticated") return null;
   if (formState === "sent") return <LoginSentNotice />;
 

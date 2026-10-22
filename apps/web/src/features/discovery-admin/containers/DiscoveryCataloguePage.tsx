@@ -1,73 +1,79 @@
 import { Stack, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 
 import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
-import DiscoveryCatalogueQueryStatus from "../components/DiscoveryCatalogueQueryStatus";
-import type { DiscoveryCatalogueQueryState } from "../components/DiscoveryCatalogueQueryStatus";
 import CatalogueServicesTable from "../components/CatalogueServicesTable";
 import CoverageChips from "../components/CoverageChips";
-import { useDiscoveryCatalogueQuery } from "../hooks/useDiscoveryCatalogueQuery";
-import { useDiscoveryCoverageQuery } from "../hooks/useDiscoveryCoverageQuery";
+import DiscoveryCatalogueQueryStatus from "../components/DiscoveryCatalogueQueryStatus";
+import {
+  useCatalogueState,
+  type CatalogueState,
+  type PanelState,
+} from "../hooks/useCatalogueState";
+import type {
+  CatalogueListResponse,
+  DiscoveryCoverageResponse,
+} from "../types";
 
-function queryStateFor(
-  isPending: boolean,
-  isError: boolean,
-  hasData: boolean,
-): DiscoveryCatalogueQueryState {
-  if (isPending) return "loading";
-  if (isError || !hasData) return "error";
-  return "ready";
+type ReadyState = Extract<CatalogueState, { kind: "ready" }>;
+
+function CatalogueLoading() {
+  const { t } = useLocale();
+  return (
+    <Text role="status" aria-label={t("common.loading")}>
+      {t("common.loading")}
+    </Text>
+  );
+}
+
+function CoveragePanel({
+  panel,
+}: {
+  panel: PanelState<DiscoveryCoverageResponse>;
+}) {
+  return (
+    <DiscoveryCatalogueQueryStatus state={panel.state} onRetry={panel.retry}>
+      {panel.state === "ready" ? <CoverageChips coverage={panel.data} /> : null}
+    </DiscoveryCatalogueQueryStatus>
+  );
+}
+
+function CataloguePanel({
+  panel,
+}: {
+  panel: PanelState<CatalogueListResponse>;
+}) {
+  return (
+    <DiscoveryCatalogueQueryStatus state={panel.state} onRetry={panel.retry}>
+      {panel.state === "ready" ? (
+        <CatalogueServicesTable items={panel.data.items} />
+      ) : null}
+    </DiscoveryCatalogueQueryStatus>
+  );
+}
+
+function CatalogueReady({ state }: { state: ReadyState }) {
+  return (
+    <Stack gap={4} align="stretch">
+      <CoveragePanel panel={state.coverage} />
+      <CataloguePanel panel={state.catalogue} />
+    </Stack>
+  );
+}
+
+function renderCatalogueState(state: CatalogueState): ReactNode {
+  switch (state.kind) {
+    case "loading":
+      return <CatalogueLoading />;
+    case "error":
+      return <QueryError onRetry={state.retry} />;
+    case "ready":
+      return <CatalogueReady state={state} />;
+  }
 }
 
 /** Imported catalogue index at ``/admin/discovery/catalogue``. */
 export default function DiscoveryCataloguePage() {
-  const { t } = useLocale();
-  const coverageQuery = useDiscoveryCoverageQuery();
-  const catalogueQuery = useDiscoveryCatalogueQuery();
-  const coverageState = queryStateFor(
-    coverageQuery.isPending,
-    coverageQuery.isError,
-    Boolean(coverageQuery.data),
-  );
-  const catalogueState = queryStateFor(
-    catalogueQuery.isPending,
-    catalogueQuery.isError,
-    Boolean(catalogueQuery.data),
-  );
-
-  if (coverageState === "loading" && catalogueState === "loading") {
-    return (
-      <Text role="status" aria-label={t("common.loading")}>
-        {t("common.loading")}
-      </Text>
-    );
-  }
-
-  if (coverageState === "error" && catalogueState === "error") {
-    return (
-      <QueryError
-        onRetry={() => {
-          void coverageQuery.refetch();
-          void catalogueQuery.refetch();
-        }}
-      />
-    );
-  }
-
-  return (
-    <Stack gap={4} align="stretch">
-      <DiscoveryCatalogueQueryStatus
-        state={coverageState}
-        onRetry={() => void coverageQuery.refetch()}
-      >
-        <CoverageChips coverage={coverageQuery.data!} />
-      </DiscoveryCatalogueQueryStatus>
-      <DiscoveryCatalogueQueryStatus
-        state={catalogueState}
-        onRetry={() => void catalogueQuery.refetch()}
-      >
-        <CatalogueServicesTable items={catalogueQuery.data?.items ?? []} />
-      </DiscoveryCatalogueQueryStatus>
-    </Stack>
-  );
+  return <>{renderCatalogueState(useCatalogueState())}</>;
 }

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-import ForbiddenView from "../../../views/ForbiddenView";
-import NotFoundView from "../../../views/NotFoundView";
+import ForbiddenView from "../../../components/feedback/ForbiddenView";
+import NotFoundView from "../../../components/feedback/NotFoundView";
 import { useAuth, type AuthStatus } from "../contexts/AuthContext";
 
 export type MinRole = "user" | "moderator";

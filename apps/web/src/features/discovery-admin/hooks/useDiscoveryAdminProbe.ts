@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { queryKeys } from "../../../app/queryKeys";
 import { retryDelay, shouldRetry } from "../../../app/retryPolicy";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../auth/contexts/AuthContext";
 import { probeDiscoveryAdminAccess } from "../services/discoveryAdminApi";
 
@@ -12,16 +12,18 @@ export function useDiscoveryAdminProbe() {
   const { status, session } = useAuth();
   const enabled = status === "authenticated" && Boolean(session?.accessToken);
 
-  return useQuery({
-    queryKey: ["discovery-admin", "probe", locale],
-    queryFn: () =>
+  return useApiQuery(
+    queryKeys.discoveryAdmin.probe(locale),
+    () =>
       probeDiscoveryAdminAccess({
         locale,
         accessToken: session!.accessToken,
       }),
-    enabled,
-    retry: (failureCount, error) =>
-      failureCount < MAX_PROBE_RETRIES && shouldRetry(failureCount, error),
-    retryDelay,
-  });
+    {
+      enabled,
+      retry: (failureCount, error) =>
+        failureCount < MAX_PROBE_RETRIES && shouldRetry(failureCount, error),
+      retryDelay,
+    },
+  );
 }

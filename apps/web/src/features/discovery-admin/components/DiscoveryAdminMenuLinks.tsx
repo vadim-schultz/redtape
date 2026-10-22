@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-import { isDiscoveryAdminUnavailable } from "../discoveryAdminProbeErrors";
+import { isDiscoveryAdminUnavailable } from "../utils/discoveryAdminProbeErrors";
 import DiscoveryAdminMenuUnavailable from "./DiscoveryAdminMenuUnavailable";
 import { useDiscoveryAdminProbe } from "../hooks/useDiscoveryAdminProbe";
 

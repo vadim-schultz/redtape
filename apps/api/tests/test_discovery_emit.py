@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-import app.features.auth.guards as auth_guards
+import app.features.auth.guard_session as guard_session_module
 import pytest
 from app.config import settings
 from app.features.auth.repository import ApiKeyRepository
@@ -38,7 +38,7 @@ def _keep_open(session: Session) -> Iterator[Session]:
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     monkeypatch.setattr(settings, "discovery_machine_opt_in", True)
-    monkeypatch.setattr(auth_guards, "SessionLocal", lambda: _keep_open(db_session))
+    monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:

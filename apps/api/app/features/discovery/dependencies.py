@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.features.auth.dependencies import provide_machine_principal
 from app.features.auth.dependencies import router_dependencies as auth_dependencies
+from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.repository import DiscoveryRepository
-from app.features.discovery.service import DiscoveryAdminService, DiscoveryMachineService
+from app.features.discovery.service import DiscoveryMachineService
 from app.features.documents.dependencies import router_dependencies as document_dependencies
 from app.features.events.dependencies import router_dependencies as event_dependencies
 from app.features.suggestions.dependencies import (

@@ -1,58 +1,42 @@
 import { Box, Text } from "@chakra-ui/react";
 import { LuListTodo } from "react-icons/lu";
 
-import EmptyStateCard from "../../../components/feedback/EmptyStateCard";
+import NamespacedEmptyState from "../../../components/feedback/NamespacedEmptyState";
 import QueryError from "../../../components/feedback/QueryError";
-import { useLocale } from "../../../contexts/LocaleContext";
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
+import { useCountLabel } from "../../../components/feedback/useCountLabel";
 import type { DiscoveryTask } from "../types";
 
 import DiscoveryTasksSkeleton from "./DiscoveryTasksSkeleton";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
 
 export interface DiscoveryTasksQueryStatusProps {
-  isLoading: boolean;
-  isRefreshing: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry: () => void;
+  status: QueryStatus;
   tasks: DiscoveryTask[] | undefined;
 }
 
-function EmptyTasksState() {
-  const { t } = useLocale();
-
-  return (
-    <EmptyStateCard
-      icon={LuListTodo}
-      title={t("discovery_admin.tasks.empty_title")}
-      description={t("discovery_admin.tasks.empty_description")}
-    />
-  );
-}
+const NAMESPACE = "discovery_admin.tasks";
 
 export default function DiscoveryTasksQueryStatus({
-  isLoading,
-  isRefreshing,
-  isError,
-  onRetry,
+  status,
   tasks,
 }: DiscoveryTasksQueryStatusProps) {
-  const { t } = useLocale();
+  const countLabel = useCountLabel(NAMESPACE);
   const count = tasks?.length ?? 0;
-  const countKey = count === 1 ? "count_one" : "count_other";
 
-  if (isLoading) return <DiscoveryTasksSkeleton />;
-  if (isError) return <QueryError onRetry={onRetry} />;
-  if (count === 0) return <EmptyTasksState />;
+  if (status.isLoading) return <DiscoveryTasksSkeleton />;
+  if (status.isError) return <QueryError onRetry={status.onRetry} />;
+  if (count === 0)
+    return <NamespacedEmptyState namespace={NAMESPACE} icon={LuListTodo} />;
 
   return (
     <>
       <Text mb={2} color="muted" fontSize="sm">
-        {t(`discovery_admin.tasks.${countKey}`, { count })}
+        {countLabel(count)}
       </Text>
       <Box
-        aria-busy={isRefreshing}
-        opacity={isRefreshing ? 0.6 : 1}
+        aria-busy={status.isRefreshing}
+        opacity={status.isRefreshing ? 0.6 : 1}
         transition="opacity 0.2s"
       >
         <DiscoveryTasksTable tasks={tasks ?? []} />

@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import SuggestionDetailView from "../components/suggestion-detail/SuggestionDetailView";
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
+import { SuggestionDetailView } from "../components/SuggestionDetailView";
 import { useSuggestionDetailQuery } from "../hooks/useSuggestionDetailQuery";
 
 export default function SuggestionDetailPage() {
@@ -12,10 +13,7 @@ export default function SuggestionDetailPage() {
   return (
     <SuggestionDetailView
       suggestion={suggestionQuery.data}
-      isLoading={suggestionQuery.isLoading}
-      isError={suggestionQuery.isError}
-      error={suggestionQuery.error}
-      onRetry={() => void suggestionQuery.refetch()}
+      status={toQueryStatus(suggestionQuery)}
       onBack={() => navigate("/suggestions")}
     />
   );

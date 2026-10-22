@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../auth/contexts/AuthContext";
 import { fetchDiscoveryCoverage } from "../services/discoveryAdminApi";
 import type { DiscoveryCoverageResponse } from "../types";
@@ -11,13 +11,9 @@ export function useDiscoveryCoverageQuery() {
   const { session } = useAuth();
   const accessToken = session?.accessToken;
 
-  return useQuery<DiscoveryCoverageResponse>({
-    queryKey: ["discovery-admin", "coverage", locale],
-    queryFn: () =>
-      fetchDiscoveryCoverage({
-        locale,
-        accessToken: accessToken!,
-      }),
-    enabled: Boolean(accessToken),
-  });
+  return useApiQuery<DiscoveryCoverageResponse>(
+    queryKeys.discoveryAdmin.coverage(locale),
+    () => fetchDiscoveryCoverage({ locale, accessToken: accessToken! }),
+    { enabled: Boolean(accessToken) },
+  );
 }

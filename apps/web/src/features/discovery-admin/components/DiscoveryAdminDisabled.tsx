@@ -39,9 +39,11 @@ export default function DiscoveryAdminDisabled(
   return (
     <EmptyStateCard
       icon={LuSettings2}
-      title={t(feedback.title)}
-      description={t(feedback.description)}
-      action={action}
+      content={{
+        title: t(feedback.title),
+        description: t(feedback.description),
+        action,
+      }}
     />
   );
 }

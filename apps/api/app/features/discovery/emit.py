@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from uuid import UUID
 
-from litestar.exceptions import NotFoundException
-
 from app.features.discovery.emit_preview import claim_to_suggestion_payload
-from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.lookups import require_catalogue
+from app.features.discovery.repository import DiscoveryRepository, NewEvent
 from app.features.suggestions.service import SubmitterRef, SuggestionService
 from app.models.api_key import ApiKey
 from app.models.discovery import DiscoveryClaim, DiscoveryEntity, DiscoveryEventType
@@ -32,106 +32,79 @@ def _suggestion_create_from_body(body: dict[str, object]) -> SuggestionCreate:
     )
 
 
+@dataclass(frozen=True, slots=True)
+class _EmitContext:
+    """Per-run inputs shared by every claim in one emit."""
+
+    entities_by_id: dict[UUID, DiscoveryEntity]
+    jurisdiction_id: UUID
+    submitter: SubmitterRef
+
+
+def _skipped(claim: DiscoveryClaim, reason: str | None) -> CatalogueEmitItemResult:
+    return CatalogueEmitItemResult(claim_id=claim.id, suggestion_id=None, skip_reason=reason, replayed=False)
+
+
+def _tally(items: list[CatalogueEmitItemResult]) -> CatalogueEmitResponse:
+    skipped = sum(i.skip_reason is not None for i in items)
+    replayed = sum(i.skip_reason is None and i.replayed for i in items)
+    return CatalogueEmitResponse(
+        items=items,
+        created_count=len(items) - skipped - replayed,
+        skipped_count=skipped,
+        replayed_count=replayed,
+    )
+
+
+def _attempt_event(catalogue_id: UUID, response: CatalogueEmitResponse, claim_count: int) -> NewEvent:
+    return NewEvent(
+        event_type=DiscoveryEventType.EMIT_ATTEMPTED,
+        catalogue_service_id=catalogue_id,
+        payload={
+            "created_count": response.created_count,
+            "skipped_count": response.skipped_count,
+            "replayed_count": response.replayed_count,
+            "claim_count": claim_count,
+        },
+    )
+
+
 class DiscoveryEmitService:
     """Create pending suggestions from emit-ready staging claims."""
 
     def __init__(self, repository: DiscoveryRepository, suggestions: SuggestionService) -> None:
+        """Bind the service to its repository and the suggestion service."""
         self._repo = repository
         self._suggestions = suggestions
 
     def emit_catalogue(self, catalogue_id: UUID, *, api_key: ApiKey) -> CatalogueEmitResponse:
-        row = self._repo.get_catalogue(catalogue_id)
-        if row is None:
-            raise NotFoundException("Catalogue service not found")
-        submitter = SubmitterRef("crawler", api_key.id)
+        """Emit every claim of a catalogue row and record the attempt."""
+        row = require_catalogue(self._repo, catalogue_id)
         entities = self._repo.list_catalogue_entities(catalogue_id)
-        entities_by_id = {entity.id: entity for entity in entities}
+        context = _EmitContext({e.id: e for e in entities}, row.jurisdiction_id, SubmitterRef("crawler", api_key.id))
         claims = self._repo.list_catalogue_claims(catalogue_id)
-        items, created_count, skipped_count, replayed_count = self._emit_claims(
-            claims=claims,
-            entities_by_id=entities_by_id,
-            jurisdiction_id=row.jurisdiction_id,
-            submitter=submitter,
-        )
-        self._repo.record_event(
-            event_type=DiscoveryEventType.EMIT_ATTEMPTED,
-            catalogue_service_id=catalogue_id,
-            payload={
-                "created_count": created_count,
-                "skipped_count": skipped_count,
-                "replayed_count": replayed_count,
-                "claim_count": len(claims),
-            },
-        )
-        return CatalogueEmitResponse(
-            items=items,
-            created_count=created_count,
-            skipped_count=skipped_count,
-            replayed_count=replayed_count,
-        )
+        response = _tally([self._emit_one_claim(claim, context) for claim in claims])
+        self._repo.record_event(_attempt_event(catalogue_id, response, len(claims)))
+        return response
 
-    def _emit_claims(
-        self,
-        *,
-        claims: list[DiscoveryClaim],
-        entities_by_id: dict[UUID, DiscoveryEntity],
-        jurisdiction_id: UUID,
-        submitter: SubmitterRef,
-    ) -> tuple[list[CatalogueEmitItemResult], int, int, int]:
-        items: list[CatalogueEmitItemResult] = []
-        created_count = 0
-        skipped_count = 0
-        replayed_count = 0
-        for claim in claims:
-            item = self._emit_one_claim(
-                claim=claim,
-                entities_by_id=entities_by_id,
-                jurisdiction_id=jurisdiction_id,
-                submitter=submitter,
-            )
-            items.append(item)
-            if item.skip_reason is not None:
-                skipped_count += 1
-            elif item.replayed:
-                replayed_count += 1
-            else:
-                created_count += 1
-        return items, created_count, skipped_count, replayed_count
-
-    def _emit_one_claim(
-        self,
-        *,
-        claim: DiscoveryClaim,
-        entities_by_id: dict[UUID, DiscoveryEntity],
-        jurisdiction_id: UUID,
-        submitter: SubmitterRef,
-    ) -> CatalogueEmitItemResult:
-        entity = entities_by_id.get(claim.discovery_entity_id)
+    def _emit_one_claim(self, claim: DiscoveryClaim, context: _EmitContext) -> CatalogueEmitItemResult:
+        entity = context.entities_by_id.get(claim.discovery_entity_id)
         if entity is None:
-            return CatalogueEmitItemResult(
-                claim_id=claim.id,
-                suggestion_id=None,
-                skip_reason="missing_entity",
-                replayed=False,
-            )
+            return _skipped(claim, "missing_entity")
         body, skip_reason = claim_to_suggestion_payload(
-            claim=claim,
-            entity=entity,
-            jurisdiction_id=jurisdiction_id,
+            claim=claim, entity=entity, jurisdiction_id=context.jurisdiction_id
         )
         if skip_reason is not None or body is None:
-            return CatalogueEmitItemResult(
-                claim_id=claim.id,
-                suggestion_id=None,
-                skip_reason=skip_reason,
-                replayed=False,
-            )
-        request = _suggestion_create_from_body(body)
-        idempotency_key = _idempotency_key_for_claim(claim.id)
+            return _skipped(claim, skip_reason)
+        return self._create(claim, body, context.submitter)
+
+    def _create(
+        self, claim: DiscoveryClaim, body: dict[str, object], submitter: SubmitterRef
+    ) -> CatalogueEmitItemResult:
         result = self._suggestions.create(
             submitter=submitter,
-            request=request,
-            idempotency_key=idempotency_key,
+            request=_suggestion_create_from_body(body),
+            idempotency_key=_idempotency_key_for_claim(claim.id),
         )
         return CatalogueEmitItemResult(
             claim_id=claim.id,

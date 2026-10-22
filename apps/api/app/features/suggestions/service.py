@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypedDict
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -21,11 +21,13 @@ from app.features.suggestions.handlers import (
     UnknownTaxonomyCodeError,
 )
 from app.features.suggestions.repository import SuggestionRepository
+from app.features.suggestions.transitions import AlreadyDecidedError, SuggestionTransitions
 from app.features.taxonomy.service import TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
+from app.schema.suggestion.payload import NewDocumentPayload, NewRequirementPayload
 from app.schema.suggestion.read import SuggestionListResponse, SuggestionRead
 
 __all__ = [
@@ -46,7 +48,6 @@ __all__ = [
 
 _SUBMITTER_COLUMN = {"user": "submitted_by_user_id", "crawler": "submitted_by_api_key_id"}
 _SUBMITTER_SOURCE = {"user": SuggestionSource.HUMAN, "crawler": SuggestionSource.CRAWLER}
-_PROMOTED_TABLE = {SuggestionKind.NEW_DOCUMENT: "document", SuggestionKind.NEW_REQUIREMENT: "document_requirement"}
 
 
 class UnknownJurisdictionError(ValueError):
@@ -55,10 +56,6 @@ class UnknownJurisdictionError(ValueError):
 
 class MissingSourceUrlError(ValueError):
     """Raised when a crawler-submitted suggestion has no source_url (D9)."""
-
-
-class AlreadyDecidedError(ValueError):
-    """Raised when transitioning a suggestion that is already approved or rejected (D6)."""
 
 
 @dataclass(frozen=True)
@@ -95,6 +92,22 @@ class SuggestionFilters:
     jurisdiction_id: UUID | None = None
 
 
+class _FilterKwargs(TypedDict):
+    status: Sequence[SuggestionStatus]
+    kind: SuggestionKind | None
+    source_type: SuggestionSource | None
+    jurisdiction_id: UUID | None
+
+
+def _filter_kwargs(filters: SuggestionFilters) -> _FilterKwargs:
+    return {
+        "status": filters.status,
+        "kind": filters.kind,
+        "source_type": filters.source_type,
+        "jurisdiction_id": filters.jurisdiction_id,
+    }
+
+
 class SuggestionService:
     """Domain logic for creating a suggestion; dispatches per-kind rules to `KIND_HANDLERS`."""
 
@@ -111,6 +124,7 @@ class SuggestionService:
         self._handlers: dict[SuggestionKind, KindHandler] = {
             kind: cls(documents, taxonomy, repository) for kind, cls in KIND_HANDLERS.items()
         }
+        self._transitions = SuggestionTransitions(repository, self._handlers, events)
 
     def create(
         self, *, submitter: SubmitterRef, request: SuggestionCreate, idempotency_key: str | None = None
@@ -129,20 +143,9 @@ class SuggestionService:
         return self._repo.get(suggestion_id)
 
     def list_suggestions(self, *, filters: SuggestionFilters, offset: int, limit: int) -> SuggestionListResponse:
-        total = self._repo.count(
-            status=filters.status,
-            kind=filters.kind,
-            source_type=filters.source_type,
-            jurisdiction_id=filters.jurisdiction_id,
-        )
-        rows = self._repo.list_page(
-            offset=offset,
-            limit=limit,
-            status=filters.status,
-            kind=filters.kind,
-            source_type=filters.source_type,
-            jurisdiction_id=filters.jurisdiction_id,
-        )
+        """Return one page of suggestions matching ``filters``."""
+        total = self._repo.count(**_filter_kwargs(filters))
+        rows = self._repo.list_page(offset=offset, limit=limit, **_filter_kwargs(filters))
         items = [SuggestionRead.from_row(row, submitter_display_name=name) for row, name in rows]
         return SuggestionListResponse(items=items, total=total, offset=offset, limit=limit)
 
@@ -156,37 +159,8 @@ class SuggestionService:
     def transition_to(
         self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None
     ) -> Suggestion:
-        """The one place `status` changes (D5); pending is idempotent, approved/rejected are terminal (D6)."""
-        suggestion = self._get_pending(suggestion_id)
-        if new_status == SuggestionStatus.PENDING:
-            return suggestion
-        old_status = suggestion.status
-        if new_status == SuggestionStatus.APPROVED:
-            self._promote_and_log(suggestion, actor)
-        suggestion.status = new_status
-        self._log_status_change(suggestion_id, old_status, new_status, actor)
-        return self._repo.save(suggestion)
-
-    def _get_pending(self, suggestion_id: UUID) -> Suggestion:
-        suggestion = self._repo.get(suggestion_id)
-        if suggestion is None:
-            raise ValueError(f"suggestion {suggestion_id} not found")
-        if suggestion.status != SuggestionStatus.PENDING:
-            raise AlreadyDecidedError(f"suggestion {suggestion_id} is already {suggestion.status}")
-        return suggestion
-
-    def _promote_and_log(self, suggestion: Suggestion, actor: AppUser | None) -> None:
-        created_id = self._handlers[suggestion.kind].promote(suggestion)
-        data = {"created_id": str(created_id), "table": _PROMOTED_TABLE[suggestion.kind]}
-        self._events.record(suggestion.id, EventType.PROMOTED, data=data, actor_user_id=actor.id if actor else None)
-
-    def _log_status_change(
-        self, suggestion_id: UUID, old_status: SuggestionStatus, new_status: SuggestionStatus, actor: AppUser | None
-    ) -> None:
-        data = {"from": old_status.value, "to": new_status.value}
-        self._events.record(
-            suggestion_id, EventType.STATUS_CHANGED, data=data, actor_user_id=actor.id if actor else None
-        )
+        """Delegate to `SuggestionTransitions`, the one place `status` changes (D5)."""
+        return self._transitions.transition_to(suggestion_id, new_status, actor, reason)
 
     def _replay(self, submitter: SubmitterRef, idempotency_key: str | None) -> Suggestion | None:
         """Keys are only honoured for API keys (D8); a human's header is ignored."""
@@ -225,7 +199,9 @@ class SuggestionService:
             raise UnknownJurisdictionError("jurisdiction_id or municipality_code does not resolve to a jurisdiction")
         return jurisdiction_id
 
-    def _check_duplicates(self, handler: KindHandler, jurisdiction_id: UUID, payload: object) -> None:
+    def _check_duplicates(
+        self, handler: KindHandler, jurisdiction_id: UUID, payload: NewDocumentPayload | NewRequirementPayload
+    ) -> None:
         conflicts = handler.conflicts(payload, jurisdiction_id=jurisdiction_id)
         if conflicts:
             raise DuplicateSuggestionError(conflicts)

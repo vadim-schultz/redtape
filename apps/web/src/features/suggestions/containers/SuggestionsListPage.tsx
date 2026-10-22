@@ -1,6 +1,7 @@
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import SuggestionFilters from "../components/suggestions-list/SuggestionFilters";
-import SuggestionsListView from "../components/suggestions-list/SuggestionsListView";
+import { SuggestionFilters } from "../components/SuggestionsListView";
+import { SuggestionsListView } from "../components/SuggestionsListView";
 import { useSuggestionFilters } from "../hooks/useSuggestionFilters";
 import { useSuggestionsListQuery } from "../hooks/useSuggestionsListQuery";
 
@@ -18,12 +19,10 @@ export default function SuggestionsListPage() {
     <SuggestionsListView
       title={t("suggestions.list_title")}
       filters={<SuggestionFilters />}
-      suggestions={suggestionsQuery.data?.items}
-      isLoading={suggestionsQuery.isLoading}
-      isRefreshing={suggestionsQuery.isFetching && !suggestionsQuery.isLoading}
-      isError={suggestionsQuery.isError}
-      error={suggestionsQuery.error}
-      onRetry={() => void suggestionsQuery.refetch()}
+      list={{
+        suggestions: suggestionsQuery.data?.items,
+        status: toQueryStatus(suggestionsQuery),
+      }}
     />
   );
 }

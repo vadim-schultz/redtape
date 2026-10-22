@@ -1,6 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 
+import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchSuggestions } from "../services/suggestionsApi";
 import type { SuggestionListResponse } from "../types";
 import type { SuggestionStatusFilter } from "./useSuggestionFilters";
@@ -22,15 +24,15 @@ export function useSuggestionsListQuery({
 }: SuggestionsListFilters) {
   const { locale } = useLocale();
 
-  return useQuery<SuggestionListResponse>({
-    queryKey: ["suggestions", status, kind, jurisdictionId, locale],
-    queryFn: () =>
+  return useApiQuery<SuggestionListResponse>(
+    queryKeys.suggestions.list(status, kind, jurisdictionId, locale),
+    () =>
       fetchSuggestions({
         locale,
         status: statusParam(status),
         kind: kind ?? undefined,
         jurisdictionId: jurisdictionId ?? undefined,
       }),
-    placeholderData: keepPreviousData,
-  });
+    { placeholderData: keepPreviousData },
+  );
 }

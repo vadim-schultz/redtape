@@ -3,8 +3,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from app.models.discovery import DiscoveryClaimKind
+
+
+class PipelineStage(StrEnum):
+    """Ordered catalogue pipeline stages persisted in ``pipeline_stage``."""
+
+    T0 = "T0"
+    T1 = "T1"
+    T2 = "T2"
+    T3 = "T3"
+    T4 = "T4"
+
+    @property
+    def rank(self) -> int:
+        """Return the numeric position of the stage (``T0`` is 0)."""
+
+        return int(self.value[1:])
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,19 +34,19 @@ class PipelineStageInput:
     all_emit_claims_resolvable: bool
 
 
-def derive_pipeline_stage(data: PipelineStageInput) -> str:
+def derive_pipeline_stage(data: PipelineStageInput) -> PipelineStage:
     """Return ``T0``–``T4`` using ordered rules from highest to lowest stage."""
 
-    rules: tuple[tuple[bool, str], ...] = (
-        (data.claim_count > 0 and data.all_emit_claims_resolvable, "T4"),
-        (data.claim_count > 0, "T3"),
-        (data.has_fetch_log, "T2"),
-        (data.task_count > 0, "T1"),
+    rules: tuple[tuple[bool, PipelineStage], ...] = (
+        (data.claim_count > 0 and data.all_emit_claims_resolvable, PipelineStage.T4),
+        (data.claim_count > 0, PipelineStage.T3),
+        (data.has_fetch_log, PipelineStage.T2),
+        (data.task_count > 0, PipelineStage.T1),
     )
     for matches, stage in rules:
         if matches:
             return stage
-    return "T0"
+    return PipelineStage.T0
 
 
 def claim_emit_resolvable(kind: DiscoveryClaimKind, payload: dict[str, object]) -> bool:
