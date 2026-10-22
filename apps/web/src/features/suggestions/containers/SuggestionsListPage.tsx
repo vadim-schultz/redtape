@@ -1,7 +1,7 @@
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import SuggestionFilters from "../components/suggestions-list/SuggestionFilters";
-import SuggestionsListView from "../components/suggestions-list/SuggestionsListView";
+import { SuggestionFilters } from "../components/SuggestionsListView";
+import { SuggestionsListView } from "../components/SuggestionsListView";
 import { useSuggestionFilters } from "../hooks/useSuggestionFilters";
 import { useSuggestionsListQuery } from "../hooks/useSuggestionsListQuery";
 

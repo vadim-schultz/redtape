@@ -2,7 +2,7 @@ import { Alert, Spinner } from "@chakra-ui/react";
 
 import { useLocale } from "../../contexts/LocaleContext";
 
-import { useSlowRequest } from "./useSlowRequest";
+import { useSlowRequest } from "../../hooks/useSlowRequest";
 
 const SLOW_AFTER_MS = 4_000;
 

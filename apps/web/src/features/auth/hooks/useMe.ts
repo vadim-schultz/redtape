@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchMe } from "../services/authApi";
 import type { AuthUser } from "../types";
 
@@ -10,9 +10,9 @@ export function useMe(
 ) {
   const { locale } = useLocale();
 
-  return useQuery<AuthUser>({
-    queryKey: ["me", userId],
-    queryFn: () => fetchMe(locale, accessToken as string),
-    enabled: Boolean(accessToken && userId),
-  });
+  return useApiQuery<AuthUser>(
+    queryKeys.me.detail(userId),
+    () => fetchMe(locale, accessToken as string),
+    { enabled: Boolean(accessToken && userId) },
+  );
 }

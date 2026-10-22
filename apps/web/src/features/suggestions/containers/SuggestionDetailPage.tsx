@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
-import SuggestionDetailView from "../components/suggestion-detail/SuggestionDetailView";
+import { SuggestionDetailView } from "../components/SuggestionDetailView";
 import { useSuggestionDetailQuery } from "../hooks/useSuggestionDetailQuery";
 
 export default function SuggestionDetailPage() {
