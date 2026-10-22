@@ -97,19 +97,27 @@ def _catalogue(
     return row
 
 
+OPENED_SESSIONS: list[Session] = []
+CLOSED_SESSIONS: list[Session] = []
+
+
 @contextmanager
 def _closing(db_session: Session) -> Iterator[Session]:
     """Mimic real SessionLocal(): a separate session on the test connection, closed on exit."""
 
     session = Session(bind=db_session.get_bind(), autoflush=False, join_transaction_mode="create_savepoint")
+    OPENED_SESSIONS.append(session)
     try:
         yield session
     finally:
         session.close()
+        CLOSED_SESSIONS.append(session)
 
 
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    OPENED_SESSIONS.clear()
+    CLOSED_SESSIONS.clear()
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     monkeypatch.setattr(settings, "discovery_admin_emails", ADMIN_EMAIL)
@@ -162,6 +170,37 @@ def test_get_discovery_admin_tasks_returns_401_without_bearer(client: TestClient
     response = client.get(TASKS_URL)
 
     assert response.status_code == 401
+
+
+def test_get_discovery_admin_tasks_returns_503_when_discovery_is_disabled(
+    client: TestClient[Litestar], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "discovery_admin_emails", "")
+    monkeypatch.setattr(settings, "discovery_machine_opt_in", False)
+
+    response = client.get(TASKS_URL, headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"})
+
+    assert response.status_code == 503
+    assert OPENED_SESSIONS == []
+
+
+def test_get_discovery_admin_tasks_returns_401_when_auth_is_disabled(
+    client: TestClient[Litestar], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "supabase_jwks_url", None)
+
+    response = client.get(TASKS_URL, headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"})
+
+    assert response.status_code == 401
+    assert OPENED_SESSIONS == []
+
+
+def test_guard_closes_every_session_it_opens(client: TestClient[Litestar]) -> None:
+    client.get(TASKS_URL, headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"})
+    client.get(TASKS_URL, headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email='x@example.com')}"})
+
+    assert len(OPENED_SESSIONS) == 2
+    assert CLOSED_SESSIONS == OPENED_SESSIONS
 
 
 def test_get_discovery_admin_catalogue_lists_catalogue_services_with_source_filter(
