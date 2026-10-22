@@ -1,10 +1,10 @@
 import { Heading, Stack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-import ConflictList from "../components/suggest/ConflictList";
-import SubmittedNotice from "../components/suggest/SubmittedNotice";
-import SuggestErrorNotice from "../components/suggest/SuggestErrorNotice";
-import SuggestionForm from "../components/suggest/SuggestionForm";
+import { ConflictList } from "../components/SuggestView";
+import { SubmittedNotice } from "../components/SuggestView";
+import { SuggestErrorNotice } from "../components/SuggestView";
+import { SuggestionForm } from "../components/SuggestView";
 import { useCreateSuggestion } from "../hooks/useCreateSuggestion";
 import { useSuggestionError } from "../hooks/useSuggestionError";
 

@@ -1,8 +1,8 @@
 import { Heading, HStack, Text, VStack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
-import SourceBadge from "../suggestions-list/SourceBadge";
-import StatusBadge from "../suggestions-list/StatusBadge";
+import { SourceBadge } from "../SuggestionsListView";
+import { StatusBadge } from "../SuggestionsListView";
 import type { SuggestionRead } from "../../types";
 import { formatRelativeTime } from "../../utils/formatRelativeTime";
 import { suggestionTitle } from "../../utils/suggestionTitle";
