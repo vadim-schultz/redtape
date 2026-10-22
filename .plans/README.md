@@ -214,6 +214,23 @@ existing-library icons.
 Status: planned — documentation suite only; implementation starts with
 [chapters/01-route-contract-and-coverage.md](discovery-admin-ui/chapters/01-route-contract-and-coverage.md).
 
+### [discovery-admin-remediation/](discovery-admin-remediation/) — Blank admin pages and missing menu links
+
+Fix the blank `/admin/discovery/*` pages (a descendant `<Routes>` declared with an absolute path under the
+splat mount), make the admin probe resilient to Render cold starts, and show an explicit hint instead of
+silently hiding the discovery menu links. Tests run through the real route tree. Both admin guards stay.
+Orchestrate with **chief of staff**; loop branch `feat/plans-discovery-admin-remediation`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-admin-remediation/00-architecture.md) | Findings, failure paths, target route and probe contract |
+| [01-rollout.md](discovery-admin-remediation/01-rollout.md) | Four chapters, dependency graph, invariants, gates |
+| [gaps-and-decisions.md](discovery-admin-remediation/gaps-and-decisions.md) | Settled route, guard, retry, and menu decisions |
+| [chapters/](discovery-admin-remediation/chapters/) | Executable chief-of-staff chapter plans |
+
+Status: planned — first: [chapters/01-live-triage-probe-and-routes.md](discovery-admin-remediation/chapters/01-live-triage-probe-and-routes.md).
+CoS orchestration: [`docs/operations/loops/discovery-admin-remediation.md`](../docs/operations/loops/discovery-admin-remediation.md).
+
 ### [discovery-online/](discovery-online/) — Scheduled discovery and Supabase keep-alive
 
 Move catalogue refetch and task drain off laptops onto **GitHub Actions** against production Render (machine API) and Supabase (OpenPLZ path only). Unified **6-day maintenance cycle**: OpenPLZ every 3 days, discovery on alternate days. **Staging-only** scheduled runs (no auto-emit). **Idempotent refetch** (OpenPLZ parity) in chapter 5.
