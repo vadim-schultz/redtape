@@ -1,67 +1,79 @@
 import { screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { renderWithProviders } from "../../../test/renderWithProviders";
-import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
-import type { AuthSession } from "../../auth/services/authGateway";
+import type { EmitPreviewItem } from "../types";
 import EmitPreviewPanel from "./EmitPreviewPanel";
 
-const session: AuthSession = {
-  accessToken: "token-1",
-  userId: "user-1",
-  email: "admin@example.com",
-};
+const items: EmitPreviewItem[] = [
+  {
+    claim_id: "claim-1",
+    kind: "new_document",
+    payload: { kind: "new_document" },
+    skip_reason: null,
+  },
+  {
+    claim_id: "claim-2",
+    kind: "new_requirement",
+    payload: null,
+    skip_reason: "unresolved_requirement_documents",
+  },
+];
 
-const catalogueId = "cat-1";
+function status(overrides: Partial<QueryStatus> = {}): QueryStatus {
+  return {
+    isLoading: false,
+    isRefreshing: false,
+    isError: false,
+    error: null,
+    onRetry: vi.fn(),
+    ...overrides,
+  };
+}
 
-beforeEach(() => window.localStorage.setItem("locale", "en"));
-afterEach(() => vi.unstubAllGlobals());
+function renderPanel(
+  state: QueryStatus,
+  data: EmitPreviewItem[] | undefined = items,
+) {
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  return {
+    fetchMock,
+    ...renderWithProviders(<EmitPreviewPanel status={state} items={data} />),
+  };
+}
 
-it("EmitPreviewPanel · lists preview rows from API", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input?: unknown) => {
-      const url = String(input);
-      if (url.includes("/api/v1/me")) {
-        return new Response(
-          JSON.stringify({
-            id: "user-1",
-            email: session.email,
-            display_name: null,
-            role: "user",
-          }),
-        );
-      }
-      if (url.includes(`/catalogue/${catalogueId}/emit-preview`)) {
-        return new Response(
-          JSON.stringify({
-            items: [
-              {
-                claim_id: "claim-1",
-                kind: "new_document",
-                payload: { kind: "new_document" },
-                skip_reason: null,
-              },
-              {
-                claim_id: "claim-2",
-                kind: "new_requirement",
-                payload: null,
-                skip_reason: "unresolved_requirement_documents",
-              },
-            ],
-          }),
-        );
-      }
-      return new Response("", { status: 503 });
-    }),
-  );
+it("EmitPreviewPanel · lists the preview rows it is given", () => {
+  renderPanel(status());
 
-  renderWithProviders(<EmitPreviewPanel catalogueId={catalogueId} />, {
-    authGateway: createFakeAuthGateway({ session }),
-  });
-
-  expect(await screen.findByText("new_document")).toBeInTheDocument();
+  expect(screen.getByText("new_document")).toBeInTheDocument();
   expect(
     screen.getByText(/unresolved_requirement_documents/),
   ).toBeInTheDocument();
+});
+
+it("EmitPreviewPanel · shows the empty note when there are no rows", () => {
+  renderPanel(status(), []);
+
+  expect(
+    screen.getByText("discovery_admin.emit_preview.empty"),
+  ).toBeInTheDocument();
+});
+
+it("EmitPreviewPanel · error shows retry, which calls onRetry and no API", async () => {
+  const onRetry = vi.fn();
+  const { user, fetchMock } = renderPanel(
+    status({ isError: true, onRetry }),
+    undefined,
+  );
+
+  await user.click(screen.getByRole("button", { name: /try again/i }));
+
+  expect(onRetry).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText("new_document")).toBeNull();
+  expect(fetchMock).not.toHaveBeenCalledWith(
+    expect.stringContaining("emit-preview"),
+    expect.anything(),
+  );
 });

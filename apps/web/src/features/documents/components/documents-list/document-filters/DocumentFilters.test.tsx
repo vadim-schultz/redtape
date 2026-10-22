@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../../../test/renderWithProviders";
+import { useFilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
+import { useDocumentFilters } from "../../../hooks/useDocumentFilters";
 import DocumentFilters from "./DocumentFilters";
 
 const fetchMock = vi.fn();
@@ -28,10 +30,19 @@ function LocationProbe() {
   return <output data-testid="search">{useLocation().search}</output>;
 }
 
+function Container() {
+  return (
+    <DocumentFilters
+      taxonomy={useFilterTaxonomy()}
+      filters={useDocumentFilters()}
+    />
+  );
+}
+
 function renderFilters(url: string) {
   return renderWithProviders(
     <>
-      <DocumentFilters />
+      <Container />
       <LocationProbe />
     </>,
     { initialEntries: [url] },
@@ -90,4 +101,47 @@ it("DocumentFilters · taxonomy error shows compact error and no chips", async (
     ).toBeGreaterThan(0),
   );
   expect(screen.queryByRole("button", { name: "Housing" })).toBeNull();
+});
+
+const noopFilters = {
+  domains: [],
+  situations: [],
+  toggleDomain: vi.fn(),
+  toggleSituation: vi.fn(),
+  clear: vi.fn(),
+};
+
+function renderPresentational(taxonomy: {
+  isError: boolean;
+  onRetry: () => void;
+}) {
+  const props = { domains: domains, situations: situations, ...taxonomy };
+  return renderWithProviders(
+    <DocumentFilters taxonomy={props} filters={noopFilters} />,
+  );
+}
+
+it("DocumentFilters · renders the terms it is given without calling an API", () => {
+  renderPresentational({ isError: false, onRetry: vi.fn() });
+
+  expect(screen.getByRole("button", { name: "Housing" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
+  expect(fetchMock).not.toHaveBeenCalledWith(
+    expect.stringContaining("/domains"),
+    expect.anything(),
+  );
+});
+
+it("DocumentFilters · error flag shows retry, which calls onRetry only", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderPresentational({ isError: true, onRetry });
+
+  await user.click(screen.getByRole("button", { name: /try again/i }));
+
+  expect(onRetry).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("button", { name: "Housing" })).toBeNull();
+  const taxonomyCalls = fetchMock.mock.calls.filter(([url]) =>
+    /domains|life-situations|situations/.test(String(url)),
+  );
+  expect(taxonomyCalls).toHaveLength(0);
 });
