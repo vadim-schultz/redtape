@@ -178,3 +178,12 @@ it("RequireDiscoveryAdmin · explains discovery is disabled for a 503 probe", as
   await user.click(screen.getByRole("button", { name: "Try again" }));
   await waitFor(() => expect(probeCalls()).toBeGreaterThan(callsBeforeRetry));
 });
+
+it("RequireDiscoveryAdmin · renders a retryable error for a 500 probe", async () => {
+  renderGuard(createFakeAuthGateway({ session }), 500);
+
+  expect(
+    await screen.findByText("Server error. Please try again later."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+});
