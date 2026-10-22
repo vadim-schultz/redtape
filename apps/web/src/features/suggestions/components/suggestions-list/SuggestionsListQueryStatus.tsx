@@ -20,8 +20,10 @@ function EmptySuggestionsState() {
   return (
     <EmptyStateCard
       icon={LuInbox}
-      title={t("suggestions.empty_title")}
-      description={t("suggestions.empty_description")}
+      content={{
+        title: t("suggestions.empty_title"),
+        description: t("suggestions.empty_description"),
+      }}
     />
   );
 }

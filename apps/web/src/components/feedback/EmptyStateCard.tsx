@@ -2,13 +2,21 @@ import { EmptyState, Heading } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
 
-export interface EmptyStateCardProps {
-  icon: IconType;
+export interface EmptyStateContent {
   title: string;
   description?: string;
   action?: ReactNode;
+}
+
+export interface EmptyStateAppearance {
   variant?: "default" | "error";
   size?: "sm" | "md" | "lg";
+}
+
+export interface EmptyStateCardProps {
+  icon: IconType;
+  content: EmptyStateContent;
+  appearance?: EmptyStateAppearance;
 }
 
 const iconColor = {
@@ -19,11 +27,8 @@ const iconColor = {
 /** One look for every "nothing to show" state: empty, not found, failed. */
 export default function EmptyStateCard({
   icon: Icon,
-  title,
-  description,
-  action,
-  variant = "default",
-  size = "md",
+  content: { title, description, action },
+  appearance: { variant = "default", size = "md" } = {},
 }: EmptyStateCardProps) {
   return (
     <EmptyState.Root role="status" size={size}>

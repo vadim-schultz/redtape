@@ -3,31 +3,31 @@ import { Fragment } from "react";
 
 import { useLocale } from "../../../../../contexts/LocaleContext";
 import type { LocationCascade } from "../../../hooks/useLocationCascade";
-import type { LocationNode } from "../../../types";
 
 import CountrySegment from "./country-segment/CountrySegment";
 import ResetButton from "./ResetButton";
 import SegmentDivider from "./SegmentDivider";
-import SelectSegment from "./select-segment/SelectSegment";
+import SelectSegment, {
+  type LocationLevel,
+} from "./select-segment/SelectSegment";
 
-export interface LocationLevel {
-  options: LocationNode[] | undefined;
-  isLoading: boolean;
+export type { LocationLevel };
+
+export interface LocationLevels {
+  states: LocationLevel;
+  districts: LocationLevel;
+  municipalities: LocationLevel;
 }
 
 export interface LocationBarProps {
   countryCode: string;
-  states: LocationLevel;
-  districts: LocationLevel;
-  municipalities: LocationLevel;
+  levels: LocationLevels;
   cascade: LocationCascade;
 }
 
 export default function LocationBar({
   countryCode,
-  states,
-  districts,
-  municipalities,
+  levels: { states, districts, municipalities },
   cascade,
 }: LocationBarProps) {
   const { t } = useLocale();
@@ -75,16 +75,17 @@ export default function LocationBar({
         <Fragment key={key}>
           <SegmentDivider />
           <SelectSegment
-            label={t(`location.${key}`)}
-            emptyLabel={t("location.no_options")}
-            placeholder={t(
-              segment.disabled && lockedHint
-                ? lockedHint
-                : `location.select_${key}`,
-            )}
-            options={level.options}
-            isLoading={level.isLoading}
-            {...segment}
+            labels={{
+              label: t(`location.${key}`),
+              emptyLabel: t("location.no_options"),
+              placeholder: t(
+                segment.disabled && lockedHint
+                  ? lockedHint
+                  : `location.select_${key}`,
+              ),
+            }}
+            level={level}
+            selection={segment}
           />
         </Fragment>
       ))}

@@ -5,26 +5,33 @@ import { useMemo } from "react";
 import { hoverMotion } from "../../../../../../theme/transitions";
 import type { LocationNode } from "../../../../types";
 
-export interface SelectSegmentProps {
-  label: string;
-  placeholder: string;
-  emptyLabel: string;
-  value: string;
-  disabled: boolean;
+export interface LocationLevel {
   options: LocationNode[] | undefined;
-  onChange: (next: string) => void;
   isLoading: boolean;
 }
 
+export interface SegmentLabels {
+  label: string;
+  placeholder: string;
+  emptyLabel: string;
+}
+
+export interface SegmentSelection {
+  value: string;
+  disabled: boolean;
+  onChange: (next: string) => void;
+}
+
+export interface SelectSegmentProps {
+  labels: SegmentLabels;
+  level: LocationLevel;
+  selection: SegmentSelection;
+}
+
 export default function SelectSegment({
-  label,
-  placeholder,
-  emptyLabel,
-  value,
-  disabled,
-  options,
-  onChange,
-  isLoading,
+  labels: { label, placeholder, emptyLabel },
+  level: { options, isLoading },
+  selection: { value, disabled, onChange },
 }: SelectSegmentProps) {
   const collection = useMemo(
     () =>

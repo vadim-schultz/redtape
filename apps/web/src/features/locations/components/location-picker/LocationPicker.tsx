@@ -30,14 +30,16 @@ export default function LocationPicker({
   return (
     <LocationBar
       countryCode={DEFAULT_COUNTRY_CODE}
-      states={{ options: states.data?.items, isLoading: states.isLoading }}
-      districts={{
-        options: districts.data?.items,
-        isLoading: districts.isLoading,
-      }}
-      municipalities={{
-        options: municipalities.data?.items,
-        isLoading: municipalities.isLoading,
+      levels={{
+        states: { options: states.data?.items, isLoading: states.isLoading },
+        districts: {
+          options: districts.data?.items,
+          isLoading: districts.isLoading,
+        },
+        municipalities: {
+          options: municipalities.data?.items,
+          isLoading: municipalities.isLoading,
+        },
       }}
       cascade={cascade}
     />

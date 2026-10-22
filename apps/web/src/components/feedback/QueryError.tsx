@@ -14,14 +14,16 @@ export default function QueryError({ onRetry }: QueryErrorProps) {
 
   return (
     <EmptyStateCard
-      variant="error"
       icon={LuCloudOff}
-      title={t("errors.server_error")}
-      action={
-        <Button variant="outline" onClick={onRetry}>
-          {t("common.retry")}
-        </Button>
-      }
+      content={{
+        title: t("errors.server_error"),
+        action: (
+          <Button variant="outline" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        ),
+      }}
+      appearance={{ variant: "error" }}
     />
   );
 }

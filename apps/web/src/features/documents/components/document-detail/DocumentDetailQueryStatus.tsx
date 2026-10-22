@@ -28,7 +28,10 @@ function DocumentNotFound() {
 
   return (
     <AppCard>
-      <EmptyStateCard icon={LuFileX} title={t("documents.not_found")} />
+      <EmptyStateCard
+        icon={LuFileX}
+        content={{ title: t("documents.not_found") }}
+      />
     </AppCard>
   );
 }

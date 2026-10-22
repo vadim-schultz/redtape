@@ -20,8 +20,10 @@ function EmptyDocumentsState() {
   return (
     <EmptyStateCard
       icon={LuFileSearch}
-      title={t("documents.empty_title")}
-      description={t("documents.empty_description")}
+      content={{
+        title: t("documents.empty_title"),
+        description: t("documents.empty_description"),
+      }}
     />
   );
 }

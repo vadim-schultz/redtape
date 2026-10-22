@@ -21,7 +21,10 @@ function SuggestionNotFound() {
 
   return (
     <AppCard>
-      <EmptyStateCard icon={LuFileX} title={t("suggestions.not_found")} />
+      <EmptyStateCard
+        icon={LuFileX}
+        content={{ title: t("suggestions.not_found") }}
+      />
     </AppCard>
   );
 }

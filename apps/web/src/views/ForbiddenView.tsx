@@ -11,13 +11,15 @@ export default function ForbiddenView() {
   return (
     <EmptyStateCard
       icon={LuShieldAlert}
-      title={t("errors.forbidden_title")}
-      description={t("errors.forbidden_body")}
-      action={
-        <Button asChild variant="outline">
-          <Link to="/documents">{t("nav.browse_documents")}</Link>
-        </Button>
-      }
+      content={{
+        title: t("errors.forbidden_title"),
+        description: t("errors.forbidden_body"),
+        action: (
+          <Button asChild variant="outline">
+            <Link to="/documents">{t("nav.browse_documents")}</Link>
+          </Button>
+        ),
+      }}
     />
   );
 }

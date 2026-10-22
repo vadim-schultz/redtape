@@ -21,8 +21,10 @@ function EmptyTasksState() {
   return (
     <EmptyStateCard
       icon={LuListTodo}
-      title={t("discovery_admin.tasks.empty_title")}
-      description={t("discovery_admin.tasks.empty_description")}
+      content={{
+        title: t("discovery_admin.tasks.empty_title"),
+        description: t("discovery_admin.tasks.empty_description"),
+      }}
     />
   );
 }
