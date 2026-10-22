@@ -23,6 +23,7 @@ from app.features.discovery.pipeline import (
     derive_pipeline_stage,
 )
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, Page, TaskTarget
+from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
@@ -176,28 +177,33 @@ class DiscoveryAdminService:
         task_rows = self._repo.list_catalogue_tasks(catalogue_id)
         tasks = [DiscoveryTaskRead.from_row(task, source=source) for task, source in task_rows]
         fetch_logs = self._repo.list_catalogue_fetch_logs(catalogue_id)
-        entities = self._repo.list_catalogue_entities(catalogue_id)
         claims = self._repo.list_catalogue_claims(catalogue_id)
-        events = self._repo.list_catalogue_events(catalogue_id)
-        claim_pairs = [(claim.kind, claim.payload) for claim in claims]
-        derived_stage = derive_pipeline_stage(
-            PipelineStageInput(
-                task_count=len(tasks),
-                has_fetch_log=len(fetch_logs) > 0,
-                claim_count=len(claims),
-                all_emit_claims_resolvable=all_emit_claims_resolvable(claim_pairs),
-            )
-        )
-        row.pipeline_stage = derived_stage
         return CataloguePipelineResponse(
             service=CatalogueServiceRead.from_row(row),
-            derived_stage=derived_stage,
+            derived_stage=_stage_of(tasks, fetch_logs, claims),
             tasks=tasks,
             fetch_logs=[_fetch_log_dict(log) for log in fetch_logs],
-            entities=[_entity_dict(entity) for entity in entities],
+            entities=[_entity_dict(e) for e in self._repo.list_catalogue_entities(catalogue_id)],
             claims=[_claim_dict(claim) for claim in claims],
-            events=[_event_dict(event) for event in events],
+            events=[_event_dict(e) for e in self._repo.list_catalogue_events(catalogue_id)],
         )
+
+
+def _stage_of(
+    tasks: list[DiscoveryTaskRead],
+    fetch_logs: list[DiscoveryFetchLog],
+    claims: list[DiscoveryClaim],
+) -> str:
+    """Derive the stage for the admin read without touching the stored row."""
+
+    return derive_pipeline_stage(
+        PipelineStageInput(
+            task_count=len(tasks),
+            has_fetch_log=len(fetch_logs) > 0,
+            claim_count=len(claims),
+            all_emit_claims_resolvable=all_emit_claims_resolvable([(c.kind, c.payload) for c in claims]),
+        )
+    ).value
 
 
 def _enqueue_tasks_for_service(
@@ -212,8 +218,8 @@ def _enqueue_tasks_for_service(
         target_url=service.portal_url,
     )
     task = enqueue_task_if_needed(repo, target)
-    if task is not None and service.pipeline_stage == "T0":
-        service.pipeline_stage = "T1"
+    if task is not None:
+        advance_stage(repo, service)
     return task
 
 
@@ -353,8 +359,8 @@ class DiscoveryMachineService:
         )
         row, created = self._claims.append_claim(draft)
         catalogue = self._repo.get_catalogue(entity.catalogue_service_id)
-        if catalogue is not None and catalogue.pipeline_stage in ("T0", "T1", "T2"):
-            catalogue.pipeline_stage = "T3"
+        if catalogue is not None:
+            advance_stage(self._repo, catalogue)
         if created:
             self._repo.record_event(
                 NewEvent(
@@ -389,4 +395,10 @@ class DiscoveryMachineService:
                 payload={"fetch_log_id": str(row.id)},
             )
         )
+        self._advance_task_catalogue(task.catalogue_service_id)
         return FetchLogAppendResponse(id=row.id, discovery_task_id=task.id, task_status=task.status)
+
+    def _advance_task_catalogue(self, catalogue_id: UUID) -> None:
+        catalogue = self._repo.get_catalogue(catalogue_id)
+        if catalogue is not None:
+            advance_stage(self._repo, catalogue)

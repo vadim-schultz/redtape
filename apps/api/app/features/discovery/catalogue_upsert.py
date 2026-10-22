@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.features.discovery.db_errors import is_jurisdiction_foreign_key_violation
 from app.features.discovery.errors import UnknownJurisdictionError
+from app.features.discovery.pipeline import PipelineStage
 from app.features.discovery.repository import DiscoveryRepository
 from app.models.discovery import CatalogueService
 from app.schema.discovery.machine import CatalogueBatchItem
@@ -72,5 +73,5 @@ def _new_row(item: CatalogueBatchItem) -> CatalogueService:
         description_i18n=item.description_i18n,
         portal_url=item.portal_url,
         raw_payload=item.raw_payload,
-        pipeline_stage="T0",
+        pipeline_stage=PipelineStage.T0.value,
     )

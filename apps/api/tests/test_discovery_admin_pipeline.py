@@ -6,6 +6,7 @@ import uuid
 
 from app.main import Litestar
 from app.models.discovery import (
+    CatalogueService,
     DiscoveryEvent,
     DiscoveryEventType,
     DiscoveryTask,
@@ -65,3 +66,44 @@ def test_get_catalogue_pipeline_includes_tasks_and_events_for_seeded_row(
     assert body["tasks"][0]["id"] == str(task.id)
     assert len(body["events"]) == 1
     assert body["events"][0]["event_type"] == "task_enqueued"
+
+
+def test_get_catalogue_pipeline_is_idempotent_and_leaves_stored_stage_unchanged(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    db_session.add(
+        DiscoveryTask(
+            catalogue_service_id=catalogue.id,
+            kind=DiscoveryTaskKind.FETCH_URL,
+            target_url="https://example.gov/service",
+            status=DiscoveryTaskStatus.PENDING,
+        )
+    )
+    db_session.flush()
+    headers = {"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"}
+    url = PIPELINE_URL.format(catalogue_id=catalogue.id)
+
+    first = client.get(url, headers=headers)
+    second = client.get(url, headers=headers)
+
+    assert first.json() == second.json()
+    assert first.json()["derived_stage"] == "T1"
+    db_session.flush()
+    db_session.expire_all()
+    stored = db_session.get(CatalogueService, catalogue.id)
+    assert stored is not None
+    assert stored.pipeline_stage == "T0"
+
+
+def test_get_catalogue_pipeline_unknown_id_writes_nothing(client: TestClient[Litestar], db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    response = client.get(
+        PIPELINE_URL.format(catalogue_id=uuid.uuid4()),
+        headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"},
+    )
+
+    assert response.status_code == 404
+    db_session.flush()
+    db_session.expire_all()
+    assert catalogue.pipeline_stage == "T0"
