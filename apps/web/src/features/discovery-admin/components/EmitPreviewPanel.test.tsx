@@ -56,9 +56,7 @@ it("EmitPreviewPanel · lists the preview rows it is given", () => {
 it("EmitPreviewPanel · shows the empty note when there are no rows", () => {
   renderPanel(status(), []);
 
-  expect(
-    screen.getByText("No claims to preview yet."),
-  ).toBeInTheDocument();
+  expect(screen.getByText("No claims to preview yet.")).toBeInTheDocument();
 });
 
 it("EmitPreviewPanel · error shows retry, which calls onRetry and no API", async () => {
