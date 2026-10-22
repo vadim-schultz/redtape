@@ -210,6 +210,40 @@ emit preview (`GET …/emit-preview`) shows the mapped payload before you call m
 
 Verify in admin emit preview or `GET /api/v1/suggestions` (public list).
 
+### 7. Admin probe triage (menu links missing)
+
+The menu shows the discovery admin links only when
+`GET /api/v1/discovery/admin/tasks?limit=1` succeeds for the signed-in user. Read the HTTP status
+of that request (browser devtools, then curl against the web origin and
+`https://redtape-api.onrender.com`; never paste or commit tokens) and use this table.
+
+| Probe status | Cause | Fix |
+| --- | --- | --- |
+| 200 | Probe works | Inspect the deployed bundle and menu code |
+| 401 | `SUPABASE_JWKS_URL` / `SUPABASE_JWT_ISSUER` unset on Render (auth disabled), JWKS/issuer wrong, or no valid bearer token reached the API (worker proxy or client dropped it) | Set both Supabase variables on Render (`auth_enabled` needs both); compare web-origin and direct-API curl |
+| 403 | Email not on `DISCOVERY_ADMIN_EMAILS` (compared lowercase) | Add the exact login email on Render |
+| 503 | Discovery disabled, or cold start / proxy 503 | Enable discovery; repeat after `/health` is warm |
+| 5xx / timeout | Cold start or API fault | Check Render logs |
+
+Triage record (operator-reported, 2026-10):
+
+- Probe returned **401** `{"status_code":401,"detail":"Not authenticated"}` while signed in. Whether
+  this was browser or curl, and which origin, is **unconfirmed**.
+- Render: `DISCOVERY_ADMIN_EMAILS` holds the operator email, so 403 is ruled out;
+  `DISCOVERY_MACHINE_OPT_IN` is false (irrelevant to admin routes). Auth-enabled state was not reported.
+- Admin pages render blank in the browser, consistent with the route-nesting defect; whether the
+  `No routes matched location` console warning appears was not reported.
+- Cloudflare serves deployment `59339dfc-06e3-4470-bbf8-0cd27e6e8dce` (not yet verified against `main`).
+
+Reading of the 401: `require_discovery_admin` raises "Not authenticated" when `auth_enabled` is false
+(`SUPABASE_JWKS_URL` or `SUPABASE_JWT_ISSUER` missing) and also when the bearer token is missing or
+fails verification, so the body alone does not separate them. Most likely cause: Supabase JWT
+verification is not configured on Render (`render.yaml` carries no Supabase auth variables, they live
+in the dashboard). Next operator checks: confirm both variables are set on the API service; repeat the
+curl with a fresh token against the direct Render origin; if that returns 200 but the web origin
+returns 401, the worker proxy or client drops the `Authorization` header. A Render config fix is likely
+needed but is unconfirmed until those checks run.
+
 ## Troubleshooting
 
 | Symptom | Check |
