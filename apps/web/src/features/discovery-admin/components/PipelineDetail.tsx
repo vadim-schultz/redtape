@@ -1,0 +1,45 @@
+import { Heading, Stack, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
+
+import { useLocale } from "../../../contexts/LocaleContext";
+import type { CataloguePipelineResponse } from "../types";
+import PipelineTimeline from "./PipelineTimeline";
+
+function titleForService(
+  titleI18n: Record<string, string>,
+  locale: string,
+): string {
+  return (
+    titleI18n[locale] ??
+    titleI18n.en ??
+    titleI18n.de ??
+    Object.values(titleI18n)[0] ??
+    ""
+  );
+}
+
+/** Pipeline drill-down body: title, timeline, counts, and a preview slot. */
+export default function PipelineDetail({
+  data,
+  preview,
+}: {
+  data: CataloguePipelineResponse;
+  preview: ReactNode;
+}) {
+  const { locale, t } = useLocale();
+  const { service, derived_stage, tasks, events } = data;
+
+  return (
+    <Stack gap={4} align="stretch">
+      <Heading size="md">{titleForService(service.title_i18n, locale)}</Heading>
+      <PipelineTimeline derivedStage={derived_stage} />
+      <Text fontSize="sm" color="muted">
+        {t("discovery_admin.pipeline.tasks_count", { count: tasks.length })}
+      </Text>
+      <Text fontSize="sm" color="muted">
+        {t("discovery_admin.pipeline.events_count", { count: events.length })}
+      </Text>
+      {preview}
+    </Stack>
+  );
+}
