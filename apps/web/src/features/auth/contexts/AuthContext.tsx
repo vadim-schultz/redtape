@@ -1,21 +1,13 @@
 import type { ReactNode } from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useMe } from "../hooks/useMe";
-import { supabaseAuthGateway } from "../services/supabaseAuthGateway";
+import { useAuthSession, type AuthStatus } from "../hooks/useAuthSession";
 import type { AuthGateway, AuthSession } from "../services/authGateway";
 import type { AuthUser } from "../types";
 
-export type AuthStatus =
-  "loading" | "anonymous" | "authenticated" | "unconfigured";
+export type { AuthStatus };
 
 export type AuthContextValue = {
   status: AuthStatus;
@@ -27,46 +19,15 @@ export type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function statusFor(session: AuthSession | null): AuthStatus {
-  return session ? "authenticated" : "anonymous";
-}
-
 export function AuthProvider({
   children,
-  gateway = supabaseAuthGateway,
+  gateway,
 }: {
   children: ReactNode;
-  gateway?: AuthGateway;
+  gateway: AuthGateway;
 }) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [status, setStatus] = useState<AuthStatus>(() =>
-    gateway.isConfigured() ? "loading" : "unconfigured",
-  );
-
-  useEffect(() => {
-    if (!gateway.isConfigured()) {
-      setStatus("unconfigured");
-      return;
-    }
-
-    let cancelled = false;
-    gateway.getSession().then((initial) => {
-      if (cancelled) return;
-      setSession(initial);
-      setStatus(statusFor(initial));
-    });
-
-    const unsubscribe = gateway.onChange((next) => {
-      setSession(next);
-      setStatus(statusFor(next));
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [gateway]);
+  const { session, status } = useAuthSession(gateway);
 
   const { data: user } = useMe(session?.accessToken, session?.userId);
 

@@ -7,6 +7,7 @@ import { MemoryRouter, type InitialEntry } from "react-router-dom";
 
 import { ColorModeProvider } from "../components/ui/color-mode";
 import { AuthProvider } from "../features/auth/contexts/AuthContext";
+import { createFakeAuthGateway } from "../features/auth/services/fakeAuthGateway";
 import type { AuthGateway } from "../features/auth/services/authGateway";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { system } from "../theme";
@@ -41,7 +42,11 @@ function createWrapper(
         <ChakraProvider value={system}>
           <ColorModeProvider defaultTheme="light" enableSystem={false}>
             <LocaleProvider>
-              <AuthProvider gateway={authGateway}>
+              <AuthProvider
+                gateway={
+                  authGateway ?? createFakeAuthGateway({ configured: false })
+                }
+              >
                 <MemoryRouter initialEntries={initialEntries}>
                   {children}
                 </MemoryRouter>
