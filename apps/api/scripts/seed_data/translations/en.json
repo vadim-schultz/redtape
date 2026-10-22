@@ -85,6 +85,7 @@
     "remove_situation": "Remove situation filter: {name}"
   },
   "discovery_admin": {
+    "menu_unavailable": "Discovery unavailable",
     "title": "Discovery admin",
     "auth_unconfigured_title": "Authentication is not configured",
     "auth_unconfigured_body": "Configure Supabase before trying again.",

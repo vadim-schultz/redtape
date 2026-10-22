@@ -6,6 +6,11 @@ import { createFakeAuthGateway } from "../../features/auth/services/fakeAuthGate
 import type { AuthSession } from "../../features/auth/services/authGateway";
 import AppMenu from "./AppMenu";
 
+vi.mock("../../app/retryPolicy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../app/retryPolicy")>()),
+  retryDelay: () => 0,
+}));
+
 const LOCALES = [
   {
     code: "de",
@@ -286,4 +291,58 @@ it("AppMenu · probe failure keeps ordinary document navigation", async () => {
   expect(
     screen.queryByRole("link", { name: "Catalogue" }),
   ).not.toBeInTheDocument();
+});
+
+it("AppMenu · shows discovery links after the probe recovers from a 502", async () => {
+  let probeCalls = 0;
+  stubMenuRequests(200);
+  const base = vi.mocked(fetch);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input?: unknown, init?: RequestInit) => {
+      if (String(input).includes("/discovery/admin/tasks") && !probeCalls++) {
+        return new Response("", { status: 502 });
+      }
+      return base(input as RequestInfo, init);
+    }),
+  );
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  expect(
+    await screen.findByRole("link", { name: "Catalogue" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Coverage" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Tasks" })).toBeInTheDocument();
+});
+
+it("AppMenu · shows an unavailable hint when the probe keeps returning 503", async () => {
+  stubMenuRequests(503);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  expect(await screen.findByText("Discovery unavailable")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Catalogue" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Browse Documents" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Suggest" })).toBeInTheDocument();
+});
+
+it("AppMenu · shows no hint for a 403 probe", async () => {
+  stubMenuRequests(403);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  await screen.findByRole("link", { name: "Browse Documents" });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(screen.queryByText("Discovery unavailable")).not.toBeInTheDocument();
+});
+
+it("AppMenu · shows no hint for a 401 probe", async () => {
+  stubMenuRequests(401);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  await screen.findByRole("link", { name: "Browse Documents" });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(screen.queryByText("Discovery unavailable")).not.toBeInTheDocument();
 });

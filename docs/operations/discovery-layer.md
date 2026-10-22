@@ -90,6 +90,10 @@ visible loading, success, empty, and error feedback. A `401` sends the session t
 the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the
 existing retry action.
 
+If the probe fails with `503`, a 5xx status, or a network error, the app retries it twice. If it still
+fails, the menu shows a muted **Discovery unavailable** hint instead of the links. A `401` or `403`
+shows no hint, because that case looks the same as a non-admin session.
+
 Under **Documents**, an allowlisted user sees readable links for **Catalogue**, **Coverage**, and
 **Tasks** after the admin probe returns `200`. Non-admin and anonymous sessions do not see those links,
 and direct navigation remains guarded. The menu also keeps these application links:
@@ -176,19 +180,30 @@ python -m discovery_ingest leika enrich \
 
 ### 5. Admin review (smoke)
 
-With `./scripts/dev-up.sh` or manual API + web:
+Unit tests are not a live smoke. They show that the route tree and the guard outcomes work in a test
+renderer; they do not show that the deployed API, auth configuration, and web proxy work. Run the
+sequence below against the target environment and record each result.
+
+1. **Worker-origin check.** Send `GET /api/v1/discovery/admin/tasks?limit=1` with a valid bearer token
+   to the web origin. Expect `200` for an allowlisted user. Compare with the direct API origin if the
+   status differs (see section 7). Do not paste or commit the token.
+2. **Sign-in check.** Sign in with an email that is on `DISCOVERY_ADMIN_EMAILS`. Open the menu and
+   confirm that **Catalogue**, **Coverage**, and **Tasks** appear under **Documents**. A muted
+   **Discovery unavailable** hint means the probe failed with 503, 5xx, or a network error.
+3. **Page checks.** Open each page and confirm content or a deliberate loading, empty, or error state.
+   The browser console must show no `No routes matched location` warning.
 
 | Surface | URL / route |
 | --- | --- |
-| Discovery admin root | Web: [`/admin/discovery`](http://localhost:5173/admin/discovery) |
+| Discovery admin root | Web: [`/admin/discovery`](http://localhost:5173/admin/discovery), redirects to the catalogue |
 | Crawler queue | Web: [`/admin/discovery/tasks`](http://localhost:5173/admin/discovery/tasks) |
 | Catalogue index and coverage chips | [`/admin/discovery/catalogue`](http://localhost:5173/admin/discovery/catalogue) |
 | Dedicated coverage summary | [`/admin/discovery/coverage`](http://localhost:5173/admin/discovery/coverage) |
 | Pipeline + emit preview | `/admin/discovery/pipeline/<catalogue-service-id>` |
 
-Confirm tasks list loads, catalogue rows and coverage chips appear after ingest, and pipeline shows
-events/claims for a row you enriched. Also confirm that an unknown discovery route shows the fallback
-and that Home, Browse Documents, and Suggest keep their menu routes.
+Also confirm that an unknown discovery route shows **Page not found**, that a non-allowlisted user sees
+no discovery links and the forbidden view on direct navigation, and that Home, Browse Documents, and
+Suggest keep their menu routes. Locally, use `./scripts/dev-up.sh` or a manual API and web start.
 
 Admin JSON API (session JWT, allowlisted email): prefix
 `http://localhost:8000/api/v1/discovery/admin` — e.g. `GET …/catalogue`, `GET …/coverage`.
@@ -210,10 +225,50 @@ emit preview (`GET …/emit-preview`) shows the mapped payload before you call m
 
 Verify in admin emit preview or `GET /api/v1/suggestions` (public list).
 
+### 7. Admin probe triage (blank admin page or missing menu links)
+
+A blank admin page body with the shell visible, and the browser console warning
+`No routes matched location "/admin/discovery/..."`, means a route-nesting defect (fixed by relative
+child paths under the `/admin/discovery/*` mount). Missing menu links mean the probe below did not
+return `200`.
+
+The menu shows the discovery admin links only when
+`GET /api/v1/discovery/admin/tasks?limit=1` succeeds for the signed-in user. Read the HTTP status
+of that request (browser devtools, then curl against the web origin and
+`https://redtape-api.onrender.com`; never paste or commit tokens) and use this table.
+
+| Probe status | Cause | Fix |
+| --- | --- | --- |
+| 200 | Probe works | Inspect the deployed bundle and menu code |
+| 401 | `SUPABASE_JWKS_URL` / `SUPABASE_JWT_ISSUER` unset on Render (auth disabled), JWKS/issuer wrong, or no valid bearer token reached the API (worker proxy or client dropped it) | Set both Supabase variables on Render (`auth_enabled` needs both); compare web-origin and direct-API curl |
+| 403 | Email not on `DISCOVERY_ADMIN_EMAILS` (compared lowercase) | Add the exact login email on Render |
+| 503 | Discovery disabled, or cold start / proxy 503 (menu shows **Discovery unavailable** after two retries) | Enable discovery; repeat after `/health` is warm |
+| 5xx / timeout | Cold start or API fault (menu shows **Discovery unavailable** after two retries) | Check Render logs |
+
+Triage record (operator-reported, 2026-10):
+
+- Probe returned **401** `{"status_code":401,"detail":"Not authenticated"}` while signed in. Whether
+  this was browser or curl, and which origin, is **unconfirmed**.
+- Render: `DISCOVERY_ADMIN_EMAILS` holds the operator email, so 403 is ruled out;
+  `DISCOVERY_MACHINE_OPT_IN` is false (irrelevant to admin routes). Auth-enabled state was not reported.
+- Admin pages render blank in the browser, consistent with the route-nesting defect; whether the
+  `No routes matched location` console warning appears was not reported.
+- Cloudflare serves deployment `59339dfc-06e3-4470-bbf8-0cd27e6e8dce` (not yet verified against `main`).
+
+Reading of the 401: `require_discovery_admin` raises "Not authenticated" when `auth_enabled` is false
+(`SUPABASE_JWKS_URL` or `SUPABASE_JWT_ISSUER` missing) and also when the bearer token is missing or
+fails verification, so the body alone does not separate them. Most likely cause: Supabase JWT
+verification is not configured on Render (`render.yaml` carries no Supabase auth variables, they live
+in the dashboard). Next operator checks: confirm both variables are set on the API service; repeat the
+curl with a fresh token against the direct Render origin; if that returns 200 but the web origin
+returns 401, the worker proxy or client drops the `Authorization` header. A Render config fix is likely
+needed but is unconfirmed until those checks run.
+
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
+| Admin page blank, console warns `No routes matched location` | Section 7; confirm the deployed build includes the relative-route fix |
 | Admin UI forbidden | `DISCOVERY_ADMIN_EMAILS` includes your signed-in email; discovery feature enabled |
 | Machine routes 401 | Valid `DISCOVERY_API_KEY`; or `DISCOVERY_MACHINE_OPT_IN=1` for local dev |
 | Ingest TLS timeout / reset | Corporate `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` includes `localhost` |

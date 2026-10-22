@@ -12,6 +12,11 @@ import { createFakeAuthGateway } from "../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../auth/services/authGateway";
 import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
 
+vi.mock("../../app/retryPolicy", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../app/retryPolicy")>()),
+  retryDelay: () => 0,
+}));
+
 const session: AuthSession = {
   accessToken: "token-1",
   userId: "user-1",

@@ -1,7 +1,10 @@
 import { Link, VStack } from "@chakra-ui/react";
+import type { ComponentType } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
+import { isDiscoveryAdminUnavailable } from "../discoveryAdminProbeErrors";
+import DiscoveryAdminMenuUnavailable from "./DiscoveryAdminMenuUnavailable";
 import { useDiscoveryAdminProbe } from "../hooks/useDiscoveryAdminProbe";
 
 type LocalizedLabel = Record<string, string> & { en: string };
@@ -24,12 +27,18 @@ const DISCOVERY_MENU_LINKS: ReadonlyArray<{
   },
 ];
 
-/** Render discovery navigation after the server admin probe succeeds. */
-export default function DiscoveryAdminMenuLinks() {
-  const { locale } = useLocale();
-  const probe = useDiscoveryAdminProbe();
+type MenuView = "links" | "unavailable" | "hidden";
 
-  if (!probe.isSuccess) return null;
+function menuView(probe: ReturnType<typeof useDiscoveryAdminProbe>): MenuView {
+  if (probe.isSuccess) return "links";
+  if (probe.isError && isDiscoveryAdminUnavailable(probe.error)) {
+    return "unavailable";
+  }
+  return "hidden";
+}
+
+function DiscoveryLinks() {
+  const { locale } = useLocale();
 
   return (
     <VStack align="stretch" gap="1">
@@ -40,4 +49,16 @@ export default function DiscoveryAdminMenuLinks() {
       ))}
     </VStack>
   );
+}
+
+const MENU_VIEWS: Record<MenuView, ComponentType> = {
+  links: DiscoveryLinks,
+  unavailable: DiscoveryAdminMenuUnavailable,
+  hidden: () => null,
+};
+
+/** Render discovery navigation, or feedback, for the server admin probe outcome. */
+export default function DiscoveryAdminMenuLinks() {
+  const View = MENU_VIEWS[menuView(useDiscoveryAdminProbe())];
+  return <View />;
 }
