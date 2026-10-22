@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from litestar import Controller, Request, get
+from litestar import Controller, get
 from litestar.params import Parameter
 
 from app.features.locations.service import LocationsService
 from app.schema.location.read import LocationListResponse
-
-
-def _request_locale(request: Request) -> str:
-    state = request.scope.get("state") or {}
-    return str(state.get("locale", "de"))
+from app.shared.locale import ResolvedLocale
 
 
 class LocationsController(Controller):
@@ -20,53 +16,47 @@ class LocationsController(Controller):
     @get("/countries", sync_to_thread=True)
     def list_countries(
         self,
-        request: Request,
         locations_service: LocationsService,
+        locale: ResolvedLocale,
     ) -> LocationListResponse:
-        locale = _request_locale(request)
-        enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_countries(locale=locale, enabled_locales=enabled)
+        return locations_service.list_countries(locale=locale.code, enabled_locales=locale.enabled)
 
     @get("/states", sync_to_thread=True)
     def list_states(
         self,
-        request: Request,
         locations_service: LocationsService,
+        locale: ResolvedLocale,
         country: str = Parameter(query="country"),
     ) -> LocationListResponse:
-        locale = _request_locale(request)
-        enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_states(country_code=country, locale=locale, enabled_locales=enabled)
+        return locations_service.list_states(country_code=country, locale=locale.code, enabled_locales=locale.enabled)
 
     @get("/districts", sync_to_thread=True)
     def list_districts(
         self,
-        request: Request,
         locations_service: LocationsService,
+        locale: ResolvedLocale,
         state_code: str = Parameter(query="state"),
     ) -> LocationListResponse:
-        locale = _request_locale(request)
-        enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_districts(state_code=state_code, locale=locale, enabled_locales=enabled)
+        return locations_service.list_districts(
+            state_code=state_code, locale=locale.code, enabled_locales=locale.enabled
+        )
 
     @get("/cities", sync_to_thread=True)
     def list_cities(
         self,
-        request: Request,
         locations_service: LocationsService,
+        locale: ResolvedLocale,
         district: str = Parameter(query="district"),
     ) -> LocationListResponse:
-        locale = _request_locale(request)
-        enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_cities(district_code=district, locale=locale, enabled_locales=enabled)
+        return locations_service.list_cities(district_code=district, locale=locale.code, enabled_locales=locale.enabled)
 
     @get("/localities", sync_to_thread=True)
     def list_localities(
         self,
-        request: Request,
         locations_service: LocationsService,
+        locale: ResolvedLocale,
         city: str = Parameter(query="city"),
     ) -> LocationListResponse:
-        locale = _request_locale(request)
-        enabled: set[str] = getattr(request.app.state, "enabled_locale_codes", {"de", "en"})
-        return locations_service.list_localities(municipality_code=city, locale=locale, enabled_locales=enabled)
+        return locations_service.list_localities(
+            municipality_code=city, locale=locale.code, enabled_locales=locale.enabled
+        )

@@ -18,6 +18,7 @@ from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
 from app.middleware.locale import LocaleResolverMiddleware
 from app.routes import health, list_locales, translations_bundle
+from app.shared.dependencies import shared_dependencies
 
 
 def create_app() -> Litestar:
@@ -35,7 +36,7 @@ def create_app() -> Litestar:
             taxonomy_router,
             voting_router,
         ],
-        dependencies={"session": Provide(provide_session)},
+        dependencies={"session": Provide(provide_session), **shared_dependencies},
         middleware=[DefineMiddleware(LocaleResolverMiddleware)],
         lifespan=[app_lifespan],
         cors_config=cors_config,

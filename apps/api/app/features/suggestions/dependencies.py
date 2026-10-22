@@ -10,8 +10,10 @@ from app.features.documents.dependencies import router_dependencies as document_
 from app.features.documents.service import DocumentService
 from app.features.events.dependencies import router_dependencies as event_dependencies
 from app.features.events.service import EventLogService
+from app.features.suggestions.query import provide_suggestion_list_query
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.submission import provide_submission
 from app.features.taxonomy.service import TaxonomyService
 
 
@@ -34,4 +36,6 @@ router_dependencies = {
     **event_dependencies,
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),
     "suggestion_service": Provide(provide_suggestion_service, sync_to_thread=False),
+    "submission": Provide(provide_submission, sync_to_thread=False),
+    "suggestion_query": Provide(provide_suggestion_list_query, sync_to_thread=False),
 }

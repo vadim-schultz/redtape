@@ -11,7 +11,7 @@ from app.features.auth import guard_session as guard_session_module
 from app.features.auth.guard_session import guard_session
 from app.features.auth.principal import Principal
 from app.features.discovery.guards import require_auth_enabled, require_discovery_enabled
-from app.features.suggestions.controller import SuggestionsController
+from app.features.suggestions.submission import provide_submission
 from litestar.exceptions import NotAuthorizedException, ServiceUnavailableException
 
 
@@ -67,7 +67,7 @@ def test_auth_enabled_guard_raises_401_when_unconfigured(monkeypatch: pytest.Mon
         require_auth_enabled(MagicMock(), MagicMock())
 
 
-def test_create_suggestion_principal_has_the_precise_type() -> None:
-    hints: dict[str, Any] = get_type_hints(SuggestionsController.create.fn, include_extras=True)
+def test_submission_principal_has_the_precise_type() -> None:
+    hints: dict[str, Any] = get_type_hints(provide_submission, include_extras=True)
 
     assert get_args(hints["principal"])[0] == Principal
