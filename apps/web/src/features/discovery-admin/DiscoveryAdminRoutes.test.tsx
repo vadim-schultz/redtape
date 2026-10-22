@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
+import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
@@ -18,6 +19,14 @@ const coverageResponse = {
   tasks_failed: 1,
   emit_ready_count: 4,
 };
+
+function Mounted() {
+  return (
+    <Routes>
+      <Route path="/admin/discovery/*" element={<DiscoveryAdminRoutes />} />
+    </Routes>
+  );
+}
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
@@ -59,7 +68,7 @@ function stubDiscoveryFetch(coverageStatus = 200) {
 it("DiscoveryAdminRoutes · renders the coverage page at /admin/discovery/coverage", async () => {
   stubDiscoveryFetch();
 
-  renderWithProviders(<DiscoveryAdminRoutes />, {
+  renderWithProviders(<Mounted />, {
     initialEntries: ["/admin/discovery/coverage"],
     authGateway: createFakeAuthGateway({ session }),
   });
@@ -70,7 +79,7 @@ it("DiscoveryAdminRoutes · renders the coverage page at /admin/discovery/covera
 it("DiscoveryAdminRoutes · renders a fallback for an unknown discovery path", async () => {
   stubDiscoveryFetch();
 
-  renderWithProviders(<DiscoveryAdminRoutes />, {
+  renderWithProviders(<Mounted />, {
     initialEntries: ["/admin/discovery/unknown"],
     authGateway: createFakeAuthGateway({ session }),
   });
@@ -83,7 +92,7 @@ it("DiscoveryAdminRoutes · renders a fallback for an unknown discovery path", a
 it("DiscoveryCoveragePage · shows an error and retry action when coverage fails", async () => {
   stubDiscoveryFetch(500);
 
-  renderWithProviders(<DiscoveryAdminRoutes />, {
+  renderWithProviders(<Mounted />, {
     initialEntries: ["/admin/discovery/coverage"],
     authGateway: createFakeAuthGateway({ session }),
   });

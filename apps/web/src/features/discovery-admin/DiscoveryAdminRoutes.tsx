@@ -8,12 +8,11 @@ import DiscoveryPipelinePage from "./containers/DiscoveryPipelinePage";
 import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
 import RequireDiscoveryAdmin from "./RequireDiscoveryAdmin";
 
-/** Nested routes under ``/admin/discovery``. */
+/** Routes relative to the ``/admin/discovery/*`` mount. */
 export default function DiscoveryAdminRoutes() {
   return (
     <Routes>
       <Route
-        path="/admin/discovery"
         element={
           <RequireDiscoveryAdmin>
             <DiscoveryAdminLayout />
