@@ -17,6 +17,7 @@ from app.schema.discovery.read import (
     DiscoveryTaskListResponse,
     EmitPreviewResponse,
 )
+from app.shared.paging import PageParams
 
 
 class DiscoveryAdminController(Controller):
@@ -29,22 +30,20 @@ class DiscoveryAdminController(Controller):
     def list_tasks(
         self,
         discovery_admin_service: DiscoveryAdminService,
+        page: PageParams,
         status: DiscoveryTaskStatus | None = Parameter(query="status", default=None),
         source: DiscoverySource | None = Parameter(query="source", default=None),
-        offset: int = Parameter(query="offset", default=0, ge=0),
-        limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> DiscoveryTaskListResponse:
-        return discovery_admin_service.list_tasks(status=status, source=source, offset=offset, limit=limit)
+        return discovery_admin_service.list_tasks(status=status, source=source, offset=page.offset, limit=page.limit)
 
     @get("/catalogue", sync_to_thread=True)
     def list_catalogue(
         self,
         discovery_admin_service: DiscoveryAdminService,
+        page: PageParams,
         source: DiscoverySource | None = Parameter(query="source", default=None),
-        offset: int = Parameter(query="offset", default=0, ge=0),
-        limit: int = Parameter(query="limit", default=20, ge=1, le=100),
     ) -> CatalogueListResponse:
-        return discovery_admin_service.list_catalogue(source=source, offset=offset, limit=limit)
+        return discovery_admin_service.list_catalogue(source=source, offset=page.offset, limit=page.limit)
 
     @get("/coverage", sync_to_thread=True)
     def coverage(self, discovery_admin_service: DiscoveryAdminService) -> DiscoveryCoverageResponse:
