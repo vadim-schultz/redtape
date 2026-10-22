@@ -1,6 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 
+import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchDocuments } from "../services/documentsApi";
 import type { DocumentListResponse } from "../types";
 
@@ -15,10 +17,9 @@ export function useDocumentsListQuery(
 ) {
   const { locale } = useLocale();
 
-  return useQuery<DocumentListResponse>({
-    queryKey: ["documents", municipalityCode, domains, situations, locale],
-    queryFn: () =>
-      fetchDocuments({ locale, municipalityCode, domains, situations }),
-    placeholderData: keepPreviousData,
-  });
+  return useApiQuery<DocumentListResponse>(
+    queryKeys.documents.list(municipalityCode, domains, situations, locale),
+    () => fetchDocuments({ locale, municipalityCode, domains, situations }),
+    { placeholderData: keepPreviousData },
+  );
 }

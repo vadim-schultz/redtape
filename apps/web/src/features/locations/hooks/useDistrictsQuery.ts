@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { queryKeys } from "../../../app/queryKeys";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchDistricts } from "../services/locationsApi";
 import type { LocationListResponse } from "../types";
 
@@ -9,9 +9,9 @@ export function useDistrictsQuery(params: {
 }) {
   const { locale, stateCode } = params;
 
-  return useQuery<LocationListResponse>({
-    queryKey: ["districts", stateCode, locale],
-    enabled: !!stateCode,
-    queryFn: () => fetchDistricts({ locale, stateCode }),
-  });
+  return useApiQuery<LocationListResponse>(
+    queryKeys.locations.districts(stateCode, locale),
+    () => fetchDistricts({ locale, stateCode }),
+    { enabled: !!stateCode },
+  );
 }

@@ -2,7 +2,7 @@ import { HStack, IconButton, Skeleton } from "@chakra-ui/react";
 
 import KeyValueRow from "../../ui/KeyValueRow";
 import { useLocale } from "../../../contexts/LocaleContext";
-import { useLocalesQuery } from "../useLocalesQuery";
+import { useLocalesQuery } from "../../../hooks/useLocalesQuery";
 
 interface LanguageMenuRowProps {
   onLocaleSelected?: () => void;

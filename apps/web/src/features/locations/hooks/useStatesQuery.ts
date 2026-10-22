@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { queryKeys } from "../../../app/queryKeys";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchStates } from "../services/locationsApi";
 import type { LocationListResponse } from "../types";
 
 export function useStatesQuery(locale: string) {
-  return useQuery<LocationListResponse>({
-    queryKey: ["states", locale],
-    enabled: true,
-    queryFn: () => fetchStates(locale),
-  });
+  return useApiQuery<LocationListResponse>(
+    queryKeys.locations.states(locale),
+    () => fetchStates(locale),
+    { enabled: true },
+  );
 }
