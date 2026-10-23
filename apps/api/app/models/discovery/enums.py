@@ -78,3 +78,17 @@ class DiscoveryRunStatus(enum.StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+
+
+class DiscoveryCandidateStatus(enum.StrEnum):
+    """Lifecycle of a document candidate."""
+
+    STAGED = "staged"
+    EMITTED = "emitted"
+
+
+class DiscoveryMentionRole(enum.StrEnum):
+    """How a procedure relates to a mentioned document."""
+
+    REQUIRED = "required"
+    FORM = "form"
