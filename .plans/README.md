@@ -292,6 +292,19 @@ Bring the Litestar API and the React web app in line with the house rules (size 
 
 Status: chapter 0 done (on `main`); chapters 1-11 planned — first: [chapters/01-discovery-domain-errors.md](code-rules-remediation/chapters/01-discovery-domain-errors.md). CoS: [`docs/operations/loops/code-rules-remediation.md`](../docs/operations/loops/code-rules-remediation.md).
 
+### [gha-budget/](gha-budget/) — GitHub Actions minute budget
+
+The Free plan's 2,000 Actions minutes are shared by every repository on the account and ran out a week early. Cancel superseded CI runs, retire the keep-alive and the legacy OpenPLZ workflow, run platform maintenance monthly, budget the daily discovery drain with a repository variable, and speed up the OpenPLZ import. CI and workflow work only; **no remote CI is available until the quota resets, so every gate is local.** Orchestrate with **chief of staff**; loop branch `chore/gha-budget`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](gha-budget/00-architecture.md) | Where the minutes went, target budget, target workflow inventory |
+| [01-rollout.md](gha-budget/01-rollout.md) | Six chapters, invariants (local gates only), execution order |
+| [gaps-and-decisions.md](gha-budget/gaps-and-decisions.md) | Settled decisions and open seams |
+| [chapters/](gha-budget/chapters/) | Executable chapter plans |
+
+Status: planned — first: [chapters/01-ci-trim.md](gha-budget/chapters/01-ci-trim.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
