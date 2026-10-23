@@ -21,11 +21,12 @@ QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), Dis
 
 @dataclass(frozen=True, slots=True)
 class TaskTarget:
-    """Identify a task by catalogue row, kind and target URL."""
+    """Identify a task by catalogue row, kind, target URL and optional input key."""
 
     catalogue_service_id: UUID
     kind: DiscoveryTaskKind
     target_url: str
+    input_key: str | None = None
 
 
 def _reclaim_expired_stmt(now: datetime) -> Update:
@@ -58,6 +59,7 @@ class TaskRepository(SessionRepository):
                 DiscoveryTask.catalogue_service_id == target.catalogue_service_id,
                 DiscoveryTask.kind == target.kind,
                 DiscoveryTask.target_url == target.target_url,
+                DiscoveryTask.input_key == target.input_key,
                 DiscoveryTask.status.in_(statuses),
             )
             .limit(1)
@@ -70,6 +72,7 @@ class TaskRepository(SessionRepository):
             catalogue_service_id=target.catalogue_service_id,
             kind=target.kind,
             target_url=target.target_url,
+            input_key=target.input_key,
             status=DiscoveryTaskStatus.PENDING,
             priority=priority,
         )

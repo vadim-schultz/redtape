@@ -10,7 +10,7 @@ from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.lookups import require_catalogue, require_task
-from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent
+from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_queue import TaskQueue
 from app.features.discovery.url_normalize import normalize_canonical_url
@@ -32,6 +32,8 @@ from app.schema.discovery.machine import (
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
 )
@@ -46,6 +48,15 @@ def _claimed_task_read(task: DiscoveryTask, now: datetime) -> ClaimedTaskRead:
         status=task.status,
         priority=task.priority,
         lease_expires_at=task.lease_expires_at or now,
+    )
+
+
+def _enqueue_target(body: TaskEnqueueRequest) -> TaskTarget:
+    return TaskTarget(
+        catalogue_service_id=body.catalogue_service_id,
+        kind=body.kind,
+        target_url=body.target_url,
+        input_key=body.input_key,
     )
 
 
@@ -95,6 +106,12 @@ class DiscoveryMachineService:
         now = datetime.now(UTC)
         claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now, kinds=body.resolved_kinds)
         return TaskClaimResponse(items=[_claimed_task_read(task, now) for task in claimed])
+
+    def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
+        """Enqueue a follow-up task idempotently for an existing catalogue row."""
+        require_catalogue(self._repo, body.catalogue_service_id)
+        outcome = self._queue.enqueue(_enqueue_target(body), priority=body.priority)
+        return TaskEnqueueResponse(id=outcome.task.id, created=outcome.created)
 
     def complete_task(self, task_id: UUID) -> TaskCompleteResponse:
         """Mark a task completed."""

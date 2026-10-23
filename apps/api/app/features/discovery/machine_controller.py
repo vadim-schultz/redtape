@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from litestar import Controller, get, post
+from litestar import Controller, Response, get, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
@@ -29,6 +29,8 @@ from app.schema.discovery.machine import (
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
 )
@@ -55,6 +57,15 @@ class DiscoveryMachineController(Controller):
         data: CatalogueBatchRequest,
     ) -> CatalogueBatchResponse:
         return discovery_machine_service.batch_upsert(data)
+
+    @post("/tasks", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    def enqueue_task(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskEnqueueRequest,
+    ) -> Response[TaskEnqueueResponse]:
+        result = discovery_machine_service.enqueue_task(data)
+        return Response(result, status_code=HTTP_201_CREATED if result.created else HTTP_200_OK)
 
     @post("/tasks/claim", sync_to_thread=True, status_code=HTTP_200_OK)
     def claim_tasks(
