@@ -35,6 +35,10 @@ CLAIM_URL = "/api/v1/discovery/machine/tasks/claim"
 ENQUEUE_URL = "/api/v1/discovery/machine/tasks"
 
 
+def _fail_url(task_id: uuid.UUID) -> str:
+    return f"{ENQUEUE_URL}/{task_id}/fail"
+
+
 @contextmanager
 def _keep_open(session: Session) -> Iterator[Session]:
     yield session
@@ -317,6 +321,41 @@ def test_post_tasks_claim_does_not_reclaim_task_with_future_lease(
 
     db_session.refresh(task)
     assert task.status == DiscoveryTaskStatus.CLAIMED
+
+
+def _claimed_task(client: TestClient[Litestar], db_session: Session, key: str) -> uuid.UUID:
+    _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+    claim = client.post(CLAIM_URL, json={"limit": 1}, headers={"X-API-Key": key})
+    return uuid.UUID(claim.json()["items"][0]["id"])
+
+
+def test_post_task_fail_with_retryable_returns_the_task_to_pending(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(_fail_url(task_id), json={"error": "timeout", "retryable": True}, headers={"X-API-Key": key})
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "pending"
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.not_before is not None
+
+
+def test_post_task_fail_without_retryable_stays_failed(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(_fail_url(task_id), json={"error": "http 404"}, headers={"X-API-Key": key})
+
+    assert response.json()["status"] == "failed"
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.not_before is None
 
 
 def test_post_tasks_fetches_appends_fetch_log_and_leaves_task_claimed(

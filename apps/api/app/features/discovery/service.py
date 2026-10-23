@@ -120,7 +120,7 @@ class DiscoveryMachineService:
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
         """Mark a task failed with the crawler's error."""
-        task = self._queue.fail(task_id, body.error)
+        task = self._queue.fail(task_id, body.error, retryable=body.retryable, now=datetime.now(UTC))
         return TaskFailResponse(id=task.id, status=task.status, last_error=body.error)
 
     def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:

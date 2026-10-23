@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261024_task_kinds"
+HEAD_REVISION = "20261025_task_retry"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
 
@@ -135,6 +135,8 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
             conn.execute("ALTER TABLE discovery_claim DROP COLUMN IF EXISTS payload_fingerprint")
             conn.execute("DROP TABLE IF EXISTS discovery_run")
             conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS input_key")
+            conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS attempt_count")
+            conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS not_before")
             conn.commit()
 
         assert _alembic_version(database_url) == STAGING_REVISION

@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import json
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -464,3 +465,68 @@ def test_client_enqueue_task_raises_on_an_api_error(monkeypatch: pytest.MonkeyPa
         client.enqueue_task(body)
 
     assert error.value.status_code == 404
+
+
+_Fetch = Callable[[httpx.Request], httpx.Response]
+
+
+def _fail_bodies_handler(kind: str, fail_bodies: list[dict[str, object]], fetch: _Fetch) -> Any:
+    """Serve one claimed ``kind`` task; ``fetch`` answers the target URL; record every fail body."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        url = str(request.url)
+        if url == TARGET_URL:
+            return fetch(request)
+        if url.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [{**_task_json(TASK_ID), "kind": kind}]})
+        if url.endswith("/fetches"):
+            return httpx.Response(
+                201, json={"id": str(uuid.uuid4()), "discovery_task_id": str(TASK_ID), "task_status": "claimed"}
+            )
+        if url.endswith("/fail"):
+            fail_bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(200, json={"id": str(TASK_ID), "status": "failed", "last_error": "x"})
+
+    return handler
+
+
+def _raise_timeout(request: httpx.Request) -> httpx.Response:
+    raise httpx.ReadTimeout("timed out")
+
+
+def _answer_404(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(404, headers={"content-type": "text/html"}, content=b"gone")
+
+
+def _drain_fail_bodies(monkeypatch: pytest.MonkeyPatch, kind: str, fetch: _Fetch) -> list[dict[str, object]]:
+    fail_bodies: list[dict[str, object]] = []
+    handler = _fail_bodies_handler(kind, fail_bodies, fetch)
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+    assert main(["worker", "drain", "--max-tasks", "1"]) == 0
+    return fail_bodies
+
+
+def test_fetch_url_reports_a_timeout_as_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """fetch_url reports a timeout as retryable."""
+    bodies = _drain_fail_bodies(monkeypatch, "fetch_url", _raise_timeout)
+
+    assert [body["retryable"] for body in bodies] == [True]
+
+
+def test_fetch_url_reports_a_404_as_permanent(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """fetch_url reports a 404 as permanent."""
+    bodies = _drain_fail_bodies(monkeypatch, "fetch_url", _answer_404)
+
+    assert [body["retryable"] for body in bodies] == [False]
+    assert bodies[0]["error"] == "HTTP 404"
+
+
+def test_unknown_kind_is_failed_as_non_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """A claimed kind without a handler is failed permanently."""
+    bodies = _drain_fail_bodies(monkeypatch, "extract_page", _answer_404)
+
+    assert [body["retryable"] for body in bodies] == [False]
+    assert str(bodies[0]["error"]).startswith("unsupported task kind")
