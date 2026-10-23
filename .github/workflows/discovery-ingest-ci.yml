@@ -2,7 +2,7 @@ name: Discovery ingest CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "apps/discovery-ingest/**"
       - ".github/workflows/discovery-ingest-ci.yml"
