@@ -4,52 +4,25 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: "Force job (default: calendar router)"
+        description: "Which job to run"
         required: false
         type: choice
+        default: all
         options:
+          - all
           - openplz
           - discovery
-          - skip
   schedule:
-    # Daily 02:00 UTC — 6-day OpenPLZ / discovery cycle (see docs/operations/scheduled-jobs.md)
-    - cron: "0 2 * * *"
+    # Monthly, day 28 at 02:00 UTC (day 28 exists in every month); see docs/operations/scheduled-jobs.md
+    - cron: "0 2 28 * *"
 
-env:
-  MAINTENANCE_ANCHOR_DATE: "2026-01-01"
+permissions:
+  contents: read
 
 jobs:
-  route:
-    name: Resolve maintenance job
-    runs-on: ubuntu-latest
-    outputs:
-      job: ${{ steps.router.outputs.job }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Resolve job from calendar or dispatch input
-        id: router
-        env:
-          DISPATCH_JOB: ${{ github.event.inputs.job }}
-        run: |
-          set -euo pipefail
-          args=(--anchor "${MAINTENANCE_ANCHOR_DATE}")
-          if [ -n "${DISPATCH_JOB:-}" ]; then
-            args+=(--dispatch-job "${DISPATCH_JOB}")
-          fi
-          job="$(python scripts/maintenance_job_router.py "${args[@]}")"
-          echo "job=${job}" >> "${GITHUB_OUTPUT}"
-
   openplz:
     name: Import OpenPLZ Germany locations
-    needs: route
-    if: needs.route.outputs.job == 'openplz'
+    if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'openplz' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -87,10 +60,11 @@ jobs:
 
   discovery:
     name: Discovery online (catalogue ingest)
-    needs: route
-    if: needs.route.outputs.job == 'discovery'
+    needs: openplz
+    # Runs even when openplz failed or was skipped.
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'discovery') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     # Shares the group with discovery-drain.yml so two drains never overlap.
     concurrency:
       group: discovery-drain
@@ -132,17 +106,3 @@ jobs:
           python -m discovery_ingest pvog run \
             --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
             --max-pages 50
-
-      - name: Discovery worker drain
-        run: |
-          set -euo pipefail
-          python -m discovery_ingest worker drain --max-tasks 50
-
-  skip:
-    name: No maintenance job today
-    needs: route
-    if: needs.route.outputs.job == 'skip'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip (success)
-        run: echo "No OpenPLZ or discovery job scheduled for this cycle day."

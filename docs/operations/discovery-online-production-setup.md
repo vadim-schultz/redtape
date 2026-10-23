@@ -6,7 +6,7 @@ suite is on `main`. Run this from a machine and network that can reach **Supabas
 issue API keys locally.
 
 **Related:** [discovery-online.md](discovery-online.md) (operations) ·
-[scheduled-jobs.md](scheduled-jobs.md) (calendar & secrets) ·
+[scheduled-jobs.md](scheduled-jobs.md) (schedule & secrets) ·
 [deployment-checklist.md](deployment-checklist.md) (Render checklist) ·
 [auth-setup.md](auth-setup.md) §7 (crawler keys)
 
@@ -29,7 +29,7 @@ issue API keys locally.
 | **GitHub Actions** | Repository secrets | Scheduled/manual ingest calls the live API |
 | **GitHub Actions** | Manual workflow run | First smoke test (`job=discovery`) |
 
-Discovery jobs **never** use `DATABASE_URL` in GHA. OpenPLZ days still need `DATABASE_URL`
+Discovery jobs **never** use `DATABASE_URL` in GHA. The OpenPLZ job still needs `DATABASE_URL`
 as a GitHub secret (see [scheduled-jobs.md](scheduled-jobs.md)).
 
 ---
@@ -160,7 +160,7 @@ See [auth-setup.md](auth-setup.md) §7.
 **GitHub** → repo → **Settings** → **Secrets and variables** → **Actions** →
 **New repository secret**.
 
-### 3.1 Required for discovery (smoke test + discovery days)
+### 3.1 Required for discovery (smoke test + monthly discovery job)
 
 | Secret name | Value |
 | --- | --- |
@@ -174,7 +174,7 @@ See [auth-setup.md](auth-setup.md) §7.
 - Ingest client appends `/api/v1/discovery/machine/...`
   ([`api_client.py`](../../apps/discovery-ingest/discovery_ingest/api_client.py)).
 
-### 3.2 Required for OpenPLZ maintenance days (`days % 6 == 0`)
+### 3.2 Required for the OpenPLZ job
 
 | Secret name | Value |
 | --- | --- |
@@ -198,7 +198,7 @@ Only if you need non-default government endpoints
 
 ## Part 4 — First smoke test (manual discovery run)
 
-Forces **discovery** regardless of calendar ([`platform-maintenance.yml`](../../.github/workflows/platform-maintenance.yml)).
+Runs only the **discovery** job ([`platform-maintenance.yml`](../../.github/workflows/platform-maintenance.yml)).
 
 ### 4.1 CLI (recommended)
 
@@ -218,32 +218,30 @@ gh run watch <run-id>
 
 ### 4.3 Expected job graph
 
-1. **Resolve maintenance job** → selects `discovery` (forced by input).
-2. **Discovery online (catalogue ingest)** runs (not “No maintenance job today”).
+1. **Import OpenPLZ Germany locations** is skipped (`job=discovery`).
+2. **Discovery online (catalogue ingest)** runs.
 3. Steps, in order:
    - **Wait for Render API health** — polls `GET {DISCOVERY_API_URL}/health` (up to ~12×10s).
    - **GovData OZG catalogue fetch** — `govdata fetch --jurisdiction-id … --max-pages 150`.
    - **PVOG Suchdienst catalogue run** — `pvog run --max-pages 50`.
-   - **Discovery worker drain** — `worker drain --max-tasks 50` (JSON on stdout).
 
 ### 4.4 Failure triage
 
 | Symptom | Check |
 | --- | --- |
-| Workflow runs `skip` only | You forgot `-f job=discovery`; or wrong workflow |
+| `discovery` job does not run | You dispatched `job=openplz`; use `-f job=discovery`; or wrong workflow |
 | Health wait timeout | Render asleep; wrong `DISCOVERY_API_URL` (must be host root) |
 | 401 / 403 on machine API | Key not in prod DB; revoked key; typo in secret |
 | `Discovery is disabled` (503) | `DISCOVERY_ADMIN_EMAILS` empty on Render; redeploy |
 | GovData / PVOG step failed | Step log; public APIs (no secrets in workflow) |
 | GovData: `discovery machine API 500` (health OK) | [discovery-online.md](discovery-online.md) § Catalogue batch 500 triage — Render traceback, minimal batch curl, DE jurisdiction SQL vs `FEDERAL_JURISDICTION_ID` |
-| Drain failed | Task URLs; lease reclaim — see [discovery-online.md](discovery-online.md) |
 
 Re-running `job=discovery` the same day should be **idempotent** for staging (no unbounded duplicate tasks/claims).
 
-### 4.5 Calendar (after smoke test)
+### 4.5 Schedule (after smoke test)
 
-Daily cron **02:00 UTC** uses [`maintenance_job_router.py`](../../scripts/maintenance_job_router.py)
-with anchor **`2026-01-01`**. Discovery runs when `days_since_anchor % 6 == 3`. See
+Monthly cron **02:00 UTC on day 28** runs OpenPLZ, then discovery. The worker drain runs daily in
+[`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml). See
 [scheduled-jobs.md](scheduled-jobs.md).
 
 ---
@@ -268,7 +266,7 @@ with anchor **`2026-01-01`**. Discovery runs when `days_since_anchor % 6 == 3`. 
 - [ ] Render: `DISCOVERY_ADMIN_EMAILS` set; `DISCOVERY_MACHINE_OPT_IN` unset; `/health` → 200
 - [ ] Key issued: `.venv/bin/python -m scripts.issue_api_key --name discovery-scheduled-gha` against **production** `DATABASE_URL`
 - [ ] GitHub secrets: `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID`
-- [ ] (Optional) GitHub `DATABASE_URL` for OpenPLZ days
+- [ ] (Optional) GitHub `DATABASE_URL` for the OpenPLZ job
 - [ ] `gh workflow run platform-maintenance.yml -f job=discovery` → green
 - [ ] Admin UI: catalogue / tasks look sane
 - [ ] Store `DISCOVERY_API_KEY` only in GitHub Secrets (never in git)

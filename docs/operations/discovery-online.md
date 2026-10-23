@@ -1,7 +1,7 @@
 # Discovery online (scheduled production ingest)
 
-Production catalogue refetch and worker drain run on **GitHub Actions** against the live Render
-machine API. Staging rows are updated on a fixed calendar; **machine emit to suggestions stays manual**
+Production catalogue refetch (monthly, platform maintenance) and the worker drain (daily, `discovery-drain.yml`)
+run on **GitHub Actions** against the live Render machine API. Staging rows are updated on a fixed schedule; **machine emit to suggestions stays manual**
 (see [discovery-layer.md](discovery-layer.md) § Machine emit).
 
 Chief-of-staff orchestration (loop branch, release PR): [loops/discovery-online.md](loops/discovery-online.md),
@@ -15,21 +15,21 @@ Data sources and field mapping: [government-data-sources.md](../discovery/govern
 ## Primary path — GitHub Actions
 
 Workflow: [`.github/workflows/platform-maintenance.yml`](../../.github/workflows/platform-maintenance.yml)
-(**Platform maintenance**). Schedule, secrets, and the 6-day calendar are documented in
+(**Platform maintenance**). Schedule (monthly, day 28), secrets, and manual dispatch are documented in
 [scheduled-jobs.md](scheduled-jobs.md).
 
-### What runs on discovery days (`days % 6 == 3`)
+### What the monthly discovery job runs
 
 1. **Wake API** — `discovery_ingest.health.wait_for_api` retries `GET /health` on cold Render.
 2. **GovData OZG fetch** — `python -m discovery_ingest govdata fetch` (bounded pages) →
    `POST /api/v1/discovery/machine/catalogue/batch`.
 3. **PVOG Suchdienst** — `python -m discovery_ingest pvog run` → same machine batch endpoint.
-4. **Worker drain** — `python -m discovery_ingest worker drain --max-tasks 50` claims `fetch_url`
-   tasks, fetches portal pages, logs events, completes or fails tasks.
+
+The worker drain is not part of this job. [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml)
+runs it daily: it claims `fetch_url` tasks, fetches portal pages, logs events, completes or fails tasks.
 
 Discovery jobs use **`DISCOVERY_API_URL`** (Render **host root**), **`DISCOVERY_API_KEY`**, and
-**`FEDERAL_JURISDICTION_ID`** only — never `DATABASE_URL`. OpenPLZ uses the database path on
-alternate days (`days % 6 == 0`).
+**`FEDERAL_JURISDICTION_ID`** only — never `DATABASE_URL`. OpenPLZ (the `openplz` job, run before discovery) uses the database path.
 
 ## Bounded drain, run reports, and queue metrics
 
@@ -88,10 +88,10 @@ GitHub → **Actions** → **Platform maintenance** → **Run workflow**, or:
 ```bash
 gh workflow run platform-maintenance.yml -f job=discovery
 gh workflow run platform-maintenance.yml -f job=openplz
-gh workflow run platform-maintenance.yml -f job=skip
+gh workflow run platform-maintenance.yml -f job=all
 ```
 
-`workflow_dispatch` with `job=discovery` or `job=openplz` **ignores the calendar** for that run.
+`workflow_dispatch` runs only the job named in `job` (`all` runs OpenPLZ, then discovery).
 
 ### Repository secrets
 
@@ -109,7 +109,7 @@ allowlist (`DISCOVERY_ADMIN_EMAILS`) is for the web UI — not used by the GHA d
 
 | Symptom | Check |
 | --- | --- |
-| Workflow skipped / `skip` job | Expected on `days % 6` in `1,2,4,5`; see [scheduled-jobs.md](scheduled-jobs.md) |
+| `discovery` job skipped | Expected when dispatched with `job=openplz`; scheduled runs always run it; see [scheduled-jobs.md](scheduled-jobs.md) |
 | Health wait timeout | Render service up; `DISCOVERY_API_URL` is host root without `/api` suffix |
 | Machine 401 / 403 | `DISCOVERY_API_KEY` matches a valid crawler key on production API |
 | GovData / PVOG step failed | GHA logs; API logs on Render; page caps in workflow may need tuning |
@@ -226,6 +226,6 @@ from a laptop is documented there.
 
 ## Related
 
-- Unified maintenance calendar: [scheduled-jobs.md](scheduled-jobs.md)
+- Maintenance schedule and secrets: [scheduled-jobs.md](scheduled-jobs.md)
 - OpenPLZ import (database path): [openplz-import.md](openplz-import.md)
 - Architecture and decisions: [`.plans/discovery-online/`](../../.plans/discovery-online/00-architecture.md)

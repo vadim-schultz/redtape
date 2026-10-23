@@ -6,21 +6,18 @@ This project has no GitLab CI — all scheduling runs on **GitHub Actions**. Ope
 
 `Platform maintenance` (`.github/workflows/platform-maintenance.yml`):
 
-- **Triggers:** `schedule` — daily cron `0 2 * * *` (02:00 UTC), and `workflow_dispatch` with optional `job` input (`openplz`, `discovery`, or `skip`).
-- **Router:** [`scripts/maintenance_job_router.py`](../../scripts/maintenance_job_router.py) computes `days_since_anchor % 6` with anchor **`2026-01-01` UTC** (`MAINTENANCE_ANCHOR_DATE` in the workflow).  
-  | `days % 6` | Job |
-  | --- | --- |
-  | `0` | OpenPLZ import |
-  | `3` | Discovery online (health wait, GovData fetch, PVOG run, worker drain) |
-  | `1`, `2`, `4`, `5` | No-op (`skip`, success) |
+- **Triggers:** `schedule` — monthly cron `0 2 28 * *` (02:00 UTC on day 28, which exists in every month), and `workflow_dispatch` with a `job` input: `all` (default), `openplz`, or `discovery`.
+- **Jobs on a scheduled run:** `openplz` first, then `discovery` (catalogue ingest: health wait, GovData fetch, PVOG run). `discovery` waits for `openplz` but still runs when it failed or was skipped.
+- **No worker drain here.** Draining the task queue is the job of [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml), which runs daily on its own budget.
 - **OpenPLZ job steps:** checkout → Python 3.12 → `pip install -e .` in `apps/api` → `alembic upgrade head` → verify `uq_jurisdiction_kind_code` on `jurisdiction` → `python scripts/import_openplz_locations.py --language de`.
-Manual override ignores the calendar when `job` is set on `workflow_dispatch`.
+
+A manual dispatch runs only the job named in `job` (`all` runs both, in order).
 
 ## Repository secrets (GitHub Actions)
 
 Configure these under **Settings → Secrets and variables → Actions** for the repo.
 
-| Secret | OpenPLZ job (`days % 6 == 0`) | Discovery job (`days % 6 == 3`) | Notes |
+| Secret | OpenPLZ job | Discovery job | Notes |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | yes | **no** | Supabase pooler URL; migrations + OpenPLZ import only |
 | `DISCOVERY_API_URL` | no | yes | Render **host root**, e.g. `https://redtape-api.onrender.com` — ingest client adds `/api/v1/discovery/machine/...` |
@@ -35,9 +32,9 @@ Optional workflow environment variables (defaults in [`discovery_ingest/config.p
 | `PVOG_API_BASE_URL` | PVOG Suchdienst API base |
 | `FIM_PORTAL_BASE_URL` | FIM portal base for enrich |
 
-The discovery job is bounded: the worker drain runs `--max-tasks 50` with the default of one batch and
-records a `discovery_run` report (see [discovery-online.md](discovery-online.md) § Bounded drain). Scheduled
-jobs do **not** auto-emit; emit to suggestions is manual.
+The discovery job only fetches the GovData and PVOG catalogues into staging. The bounded worker drain
+(`discovery_run` report, see [discovery-online.md](discovery-online.md) § Bounded drain) runs in
+`discovery-drain.yml`. Scheduled jobs do **not** auto-emit; emit to suggestions is manual.
 
 Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operator runbook:
 [`discovery-online.md`](discovery-online.md). Laptop debugging:
@@ -48,13 +45,12 @@ Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operat
 GitHub → **Actions** → **Platform maintenance** → **Run workflow**, or via the CLI:
 
 ```bash
-# Calendar router for today (UTC)
-gh workflow run platform-maintenance.yml
-
-# Force OpenPLZ or discovery for debugging
+# Run one job
 gh workflow run platform-maintenance.yml -f job=openplz
 gh workflow run platform-maintenance.yml -f job=discovery
-gh workflow run platform-maintenance.yml -f job=skip
+
+# Run both, OpenPLZ first
+gh workflow run platform-maintenance.yml -f job=all
 ```
 
 ## Related
