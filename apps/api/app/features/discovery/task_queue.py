@@ -10,7 +10,7 @@ from app.features.discovery.lookups import require_task
 from app.features.discovery.repository import DiscoveryRepository, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
-from app.features.discovery.task_retry import settle_failure
+from app.features.discovery.task_retry import MAX_ATTEMPTS, settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
@@ -58,8 +58,8 @@ class TaskQueue:
         kinds: Sequence[DiscoveryTaskKind] = LEGACY_TASK_KINDS,
     ) -> list[DiscoveryTask]:
         """Reclaim expired leases, then lease up to ``limit`` pending ``kinds`` tasks to ``api_key``."""
-        self._repo.reclaim_expired_claims(now=now)
-        pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds)
+        self._repo.reclaim_expired_claims(now=now, max_attempts=MAX_ATTEMPTS)
+        pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds, now=now)
         return [self._lease(task, api_key, now) for task in pending]
 
     def complete(self, task_id: UUID) -> DiscoveryTask:

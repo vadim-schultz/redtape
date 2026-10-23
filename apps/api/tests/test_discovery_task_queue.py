@@ -63,7 +63,7 @@ def test_complete_and_fail_reject_unknown_task_ids(queue: TaskQueue) -> None:
 
 
 def _key(db_session: Session) -> ApiKey:
-    key = ApiKey(name="k", key_hash="h" * 64, key_prefix="p" * 8)
+    key = ApiKey(name="k", key_hash=uuid.uuid4().hex * 2, key_prefix="p" * 8)
     db_session.add(key)
     db_session.flush()
     return key
@@ -173,3 +173,55 @@ def test_retryable_failure_at_the_attempt_cap_becomes_failed(queue: TaskQueue, d
     assert task.status == DiscoveryTaskStatus.FAILED
     assert task.not_before is None
     assert task.last_error == "timeout"
+
+
+def test_claim_skips_a_pending_task_whose_not_before_is_in_the_future(queue: TaskQueue, db_session: Session) -> None:
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="held")
+    task.not_before = NOW + timedelta(minutes=5)
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW)
+
+    assert claimed == []
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.attempt_count == 0
+
+
+def test_claim_takes_a_pending_task_once_not_before_has_passed(queue: TaskQueue, db_session: Session) -> None:
+    held = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="held")
+    held.not_before = NOW + timedelta(minutes=5)
+    db_session.flush()
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW + timedelta(minutes=5))
+
+    assert [t.id for t in claimed] == [held.id]
+
+
+def _expire_lease(task: DiscoveryTask, db_session: Session) -> None:
+    task.lease_expires_at = NOW - timedelta(minutes=1)
+    db_session.flush()
+
+
+def test_reclaim_of_an_expired_lease_below_the_cap_returns_the_task_to_pending(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS - 1)
+    _expire_lease(task, db_session)
+
+    queue.claim_pending(api_key=_key(db_session), limit=0, now=NOW)
+    db_session.refresh(task)
+
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.attempt_count == MAX_ATTEMPTS - 1
+
+
+def test_reclaim_of_an_expired_lease_at_the_cap_marks_the_task_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS)
+    _expire_lease(task, db_session)
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW)
+    db_session.refresh(task)
+
+    assert claimed == []
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.last_error == f"lease expired after {MAX_ATTEMPTS} attempts"
+    assert task.lease_expires_at is None
