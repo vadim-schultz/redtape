@@ -10,6 +10,7 @@ from app.models.discovery.discovery_fetch_log import DiscoveryFetchLog
 from app.models.discovery.discovery_run import DiscoveryRun
 from app.models.discovery.discovery_task import DiscoveryTask
 from app.models.discovery.enums import (
+    LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
     DiscoveryEventType,
     DiscoveryRunKind,
@@ -20,6 +21,7 @@ from app.models.discovery.enums import (
 )
 
 __all__ = [
+    "LEGACY_TASK_KINDS",
     "CatalogueService",
     "DiscoveryClaim",
     "DiscoveryClaimKind",
