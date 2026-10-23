@@ -13,7 +13,7 @@ services:
     # plan ignores `preDeployCommand` and offers no shell, so this is the only hook.
     startCommand: cd apps/api && sh scripts/start.sh
 
-    # Health endpoint used by Render + GitHub keep-alive.
+    # Health endpoint used by Render and the external pinger.
     healthCheckPath: /health
 
     # NOTE: Supabase credentials are stored in Render "Environment" variables

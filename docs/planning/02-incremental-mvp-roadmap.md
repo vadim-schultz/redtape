@@ -111,7 +111,7 @@ This wave deploys the already-built MVP slice on free-tier–friendly services.
 | D5 | Cloudflare Pages project created and connected | Manual dashboard work |
 | D6 | Frontend deployed + `VITE_API_URL` configured | Manual: set env var + rebuild |
 | D7 | CORS allows the Pages frontend origin | Agent step (production origin) |
-| D8 | Keep-alive workflow enabled (Render free tier) | Agent step: GitHub Actions cron ping |
+| D8 | External pinger on `/health` (Render free tier) | Operator step: UptimeRobot or cron-job.org monitor |
 | D9 | Production smoke tests pass for list/detail | Use the deployment checklist |
 | D10 | Environment/URL notes captured for later waves | Record Render + Pages URLs |
 | D11 | Deployment checklist document updated | Agent step |

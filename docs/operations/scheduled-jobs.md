@@ -57,11 +57,8 @@ gh workflow run platform-maintenance.yml -f job=discovery
 gh workflow run platform-maintenance.yml -f job=skip
 ```
 
-The legacy **OpenPLZ Import** workflow ([`openplz-import.yml`](../../.github/workflows/openplz-import.yml)) remains for manual `workflow_dispatch` only; its Mon+Thu schedule was retired in favor of the unified maintenance router.
-
 ## Related
 
 - Discovery online operations: [discovery-online.md](discovery-online.md)
 - Import script details: [openplz-import.md](openplz-import.md)
 - Import script: [`apps/api/scripts/import_openplz_locations.py`](../../apps/api/scripts/import_openplz_locations.py)
-- Render keep-alive ping (separate): [`.github/workflows/keep-alive.yml`](../../.github/workflows/keep-alive.yml)

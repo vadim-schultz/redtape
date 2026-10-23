@@ -41,7 +41,7 @@ as a GitHub secret (see [scheduled-jobs.md](scheduled-jobs.md)).
 1. [Render Dashboard](https://dashboard.render.com) → service **`redtape-api`** (from
    [`render.yaml`](../../render.yaml)).
 2. Confirm status **Live**. If cold, open `/health` in a browser or wait for
-   [keep-alive](../../.github/workflows/keep-alive.yml).
+   the external pinger (see [deployment-checklist.md](deployment-checklist.md#external-pinger-render-free-tier)).
 
 ### 1.2 Confirm existing variables
 
