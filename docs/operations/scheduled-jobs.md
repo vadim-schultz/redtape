@@ -42,17 +42,7 @@ Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operat
 
 ## Crawl budget
 
-The crawler is [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml). It runs daily at 04:00 UTC and gets the largest share of this repository's Actions minutes. The account is on the GitHub Free plan: 2,000 Linux minutes a month, shared by every repository on the account. Assume about 960 of them belong to this repository.
-
-| Item | Min per month |
-| --- | --- |
-| CI (API, web, ingest) | ~330 |
-| Platform maintenance (monthly OpenPLZ import and catalogue ingest) | ~65 |
-| Keep-alive | 0 (external pinger) |
-| Headroom | ~100 |
-| **Crawl (`discovery-drain.yml`)** | **~465** |
-
-The crawl figure is 15 minutes a day over 31 days. Days with an empty queue stop early on `queue_empty` and cost less.
+The crawler is [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml). It runs daily at 04:00 UTC and gets the largest share of this repository's Actions minutes. The account is on the GitHub Free plan with 2,000 Linux minutes a month shared by every repository. The monthly budget table and the operator checklist are in [gha-budget.md](gha-budget.md).
 
 The drain time budget resolves in this order: the `time_budget_seconds` dispatch input, then the repository variable `DISCOVERY_DRAIN_BUDGET_SECONDS`, then 900 seconds. The dispatch input defaults to empty so the variable takes effect. The job timeout is 45 minutes and the pip install is cached.
 
@@ -78,6 +68,7 @@ gh workflow run platform-maintenance.yml -f job=all
 
 ## Related
 
+- Actions minute budget and operator checklist: [gha-budget.md](gha-budget.md)
 - Discovery online operations: [discovery-online.md](discovery-online.md)
 - Import script details: [openplz-import.md](openplz-import.md)
 - Import script: [`apps/api/scripts/import_openplz_locations.py`](../../apps/api/scripts/import_openplz_locations.py)
