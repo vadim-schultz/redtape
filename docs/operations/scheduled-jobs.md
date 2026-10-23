@@ -35,6 +35,10 @@ Optional workflow environment variables (defaults in [`discovery_ingest/config.p
 | `PVOG_API_BASE_URL` | PVOG Suchdienst API base |
 | `FIM_PORTAL_BASE_URL` | FIM portal base for enrich |
 
+The discovery job is bounded: the worker drain runs `--max-tasks 50` with the default of one batch and
+records a `discovery_run` report (see [discovery-online.md](discovery-online.md) § Bounded drain). Scheduled
+jobs do **not** auto-emit; emit to suggestions is manual.
+
 Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operator runbook:
 [`discovery-online.md`](discovery-online.md). Laptop debugging:
 [`discovery-layer.md`](discovery-layer.md).

@@ -94,8 +94,9 @@ If the probe fails with `503`, a 5xx status, or a network error, the app retries
 fails, the menu shows a muted **Discovery unavailable** hint instead of the links. A `401` or `403`
 shows no hint, because that case looks the same as a non-admin session.
 
-Under **Documents**, an allowlisted user sees readable links for **Catalogue**, **Coverage**, and
-**Tasks** after the admin probe returns `200`. Non-admin and anonymous sessions do not see those links,
+Under **Documents**, an allowlisted user sees icon controls for **Catalogue** (`FaList`), **Coverage**
+(`FaTasks`), and **Tasks** (`FaClipboard`) after the admin probe returns `200`. Each control keeps a
+translated `aria-label` and a title, and the routes are unchanged. Non-admin and anonymous sessions do not see those links,
 and direct navigation remains guarded. The menu also keeps these application links:
 
 | Menu action | Route and behavior |
@@ -103,6 +104,45 @@ and direct navigation remains guarded. The menu also keeps these application lin
 | **Home** | Full-width link to `/`. |
 | **Browse Documents** | Icon-only, labelled link to `/documents`. |
 | **Suggest** | Icon-only, labelled link to `/suggest`. |
+
+## Staging vocabulary and the T4 handoff
+
+Four kinds of state exist. Do not mix them up.
+
+| State | Where it lives | Meaning |
+| --- | --- | --- |
+| Catalogue state | `catalogue_service`, keyed by `(source, external_id)` | Current imported row. It is not a canonical document. |
+| Task history | `discovery_task` and `discovery_fetch_log` | Durable queue work (pending, claimed, completed, failed) and append-only fetch attempts. |
+| Claims | `discovery_entity` and `discovery_claim` | Staged assertions that can become suggestions. |
+| Canonical documents | the document tables | Reached only through a future moderation and promotion suite. |
+
+The admin pipeline derives a stage for each catalogue row:
+
+| Stage | Meaning |
+| --- | --- |
+| T0 | Row imported, no portal task. |
+| T1 | Row has a portal task. |
+| T2 | At least one fetch attempt is logged. |
+| T3 | Entities and claims exist. |
+| T4 | Claims are eligible for emit. |
+
+T4 is an emit-readiness milestone, not a canonical-document state. The handoff stops at a pending
+suggestion:
+
+```text
+T4 -> inspect emit preview -> manual machine emit -> pending suggestion
+```
+
+This process does not vote, promote, attach evidence, capture screenshots, or emit automatically.
+
+### Representative smoke status
+
+The chapter 1 smoke of the discovery-operations suite is **partial**. It covered T0, T1, and T2 plus
+fixture-backed downstream contract tests. It did **not** verify a persisted T4 row or a manual emit
+against a running API: the fixture row has no `fim_id`, and no authorized API session was available.
+Treat the full row-to-pending-suggestion path as unverified until an operator runs it with a row
+that has a `fim_id`. Evidence and gaps:
+[`.plans/discovery-operations/chapters/01-representative-row-smoke.md`](../../.plans/discovery-operations/chapters/01-representative-row-smoke.md).
 
 ## Corporate network (ingest only)
 
@@ -210,8 +250,11 @@ Admin JSON API (session JWT, allowlisted email): prefix
 
 ### 6. Machine emit to suggestions
 
-Requires the machine `POST …/catalogue/{id}/emit` route (discovery layer chapter 18) on your API
-build. Emit creates **`pending`** suggestions only (no voting or promotion). From any directory:
+Emit is a machine API operation. It creates **`pending`** suggestions only (no voting or promotion):
+
+```text
+POST /api/v1/discovery/machine/catalogue/<catalogue-service-id>/emit
+```
 
 ```bash
 curl -s -X POST \
@@ -219,11 +262,23 @@ curl -s -X POST \
   -H "X-API-Key: rt_<your-key>" | python -m json.tool
 ```
 
-Unresolved requirement claims are skipped; idempotent replays return the same suggestion ids. Admin
-emit preview (`GET …/emit-preview`) shows the mapped payload before you call machine emit; see
+The admin emit preview (`GET …/emit-preview`, shown on the pipeline page) is read-only and does not
+emit. Use it first; mapping code is in
 [`emit_preview.py`](../../apps/api/app/features/discovery/emit_preview.py).
 
-Verify in admin emit preview or `GET /api/v1/suggestions` (public list).
+| Claim kind | Emit behavior |
+| --- | --- |
+| `new_document` | Eligible only when the title and official URL fields are present. |
+| `metadata` | Preview-only (`metadata_not_emitted`); not emitted. |
+| `new_requirement` | Skipped (`unresolved_requirement_documents`) until both document UUIDs resolve. |
+
+Emit is idempotent by claim identity. A replay returns the existing suggestion and creates no
+duplicate. The suggestion stays `pending` until a future moderation suite acts on it.
+
+**Emit one verified row first.** Open its pipeline page, confirm T4 and the preview, emit that single
+row, and check the response counts (`created_count`, `skipped_count`, `replayed_count`) and the
+suggestion ID. Do not bulk emit until that smoke is clean. Verify in the admin preview or
+`GET /api/v1/suggestions` (public list).
 
 ### 7. Admin probe triage (blank admin page or missing menu links)
 
