@@ -11,6 +11,8 @@ isProject: false
 **Loop branch:** `feat/crawlers`
 **Release branch:** `main`
 
+**Staged release:** chapters 1–6 were merged to `main` on 2026-10-23 (without remote CI, Actions quota exhausted). `feat/crawlers` stays the loop branch for chapters 7–22, and the final release is a second PR to `main`. Resume instructions: [run-ledger.md](run-ledger.md) § Resume next month.
+
 **Prerequisites (already on `main`):** [discovery-layer](../discovery-layer/01-rollout.md), [discovery-online](../discovery-online/01-rollout.md), [discovery-operations](../discovery-operations/01-rollout.md), [suggestion-interface](../suggestion-interface/01-rollout.md), and the API-side votes, transitions and promotion from [voting-moderation](../voting-moderation/01-rollout.md).
 
 ## Invariants
