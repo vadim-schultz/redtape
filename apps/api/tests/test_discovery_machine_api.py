@@ -32,6 +32,7 @@ from test_discovery_admin_api import _catalogue
 
 BATCH_URL = "/api/v1/discovery/machine/catalogue/batch"
 CLAIM_URL = "/api/v1/discovery/machine/tasks/claim"
+SUMMARY_URL = "/api/v1/discovery/machine/tasks/summary"
 ENQUEUE_URL = "/api/v1/discovery/machine/tasks"
 
 

@@ -12,6 +12,7 @@ from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
+from app.models.discovery import DiscoveryTaskKind
 from app.schema.discovery.machine import (
     CatalogueBatchRequest,
     CatalogueBatchResponse,
@@ -33,6 +34,7 @@ from app.schema.discovery.machine import (
     TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskSummaryResponse,
 )
 
 
@@ -75,6 +77,14 @@ class DiscoveryMachineController(Controller):
         data: TaskClaimRequest,
     ) -> TaskClaimResponse:
         return discovery_machine_service.claim_tasks(data, api_key=machine_principal.api_key)
+
+    @get("/tasks/summary", sync_to_thread=True, status_code=HTTP_200_OK)
+    def tasks_summary(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        kinds: list[DiscoveryTaskKind] | None = None,
+    ) -> TaskSummaryResponse:
+        return discovery_machine_service.task_summary(kinds)
 
     @post("/tasks/{task_id:uuid}/complete", sync_to_thread=True)
     def complete_task(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
@@ -61,6 +62,11 @@ class CatalogueMachineRead(BaseModel):
     raw_payload: dict[str, object] = Field(default_factory=dict)
 
 
+def resolve_task_kinds(kinds: Sequence[DiscoveryTaskKind] | None) -> tuple[DiscoveryTaskKind, ...]:
+    """Return the named kinds, or the legacy kinds when none were named."""
+    return LEGACY_TASK_KINDS if kinds is None else tuple(kinds)
+
+
 class TaskClaimRequest(BaseModel):
     """Claim pending discovery tasks for the caller API key."""
 
@@ -70,7 +76,18 @@ class TaskClaimRequest(BaseModel):
     @property
     def resolved_kinds(self) -> tuple[DiscoveryTaskKind, ...]:
         """Return the requested kinds, or the legacy kinds when none were named."""
-        return LEGACY_TASK_KINDS if self.kinds is None else tuple(self.kinds)
+        return resolve_task_kinds(self.kinds)
+
+
+class TaskSummaryResponse(BaseModel):
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+
+    pending_ready: int
+    pending_delayed: int
+    claimed: int
+    claimed_stale: int
+    completed: int
+    failed: int
 
 
 class TaskEnqueueRequest(BaseModel):

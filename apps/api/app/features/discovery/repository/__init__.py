@@ -8,7 +8,7 @@ from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.composite import DiscoveryRepository
 from app.features.discovery.repository.coverage import CoverageRepository, DiscoveryCoverageCounts
 from app.features.discovery.repository.entities import EntityRepository
-from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts
+from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts, TaskSummary
 from app.features.discovery.repository.runs import RunReport, RunRepository
 from app.features.discovery.repository.task_listing import Page, TaskListingRepository
 from app.features.discovery.repository.tasks import TaskRepository, TaskTarget
@@ -30,5 +30,6 @@ __all__ = [
     "TaskListingRepository",
     "TaskRepository",
     "TaskStatusCounts",
+    "TaskSummary",
     "TaskTarget",
 ]
