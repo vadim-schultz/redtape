@@ -219,6 +219,19 @@ it("AppMenu · allowlisted user sees discovery links under Documents", async () 
   );
 });
 
+it("AppMenu · allowlisted discovery links are icon-only with titles", async () => {
+  stubMenuRequests(200);
+  await openMenu(createFakeAuthGateway({ session: authSession }));
+
+  await screen.findByRole("link", { name: "Catalogue" });
+  for (const name of ["Catalogue", "Coverage", "Tasks"]) {
+    const link = screen.getByRole("link", { name });
+    expect(link.querySelector("svg")).toBeTruthy();
+    expect(link).toHaveAttribute("title", name);
+    expect(link).not.toHaveTextContent(name);
+  }
+});
+
 it("AppMenu · non-admin user does not see discovery links", async () => {
   stubMenuRequests(403);
   await openMenu(createFakeAuthGateway({ session: authSession }));
@@ -233,6 +246,7 @@ it("AppMenu · non-admin user does not see discovery links", async () => {
     screen.queryByRole("link", { name: "Coverage" }),
   ).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
+  expect(document.querySelector('a[href^="/admin/discovery"]')).toBeNull();
 });
 
 it("AppMenu · anonymous user does not see discovery links", async () => {
