@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from discovery_ingest.worker.outcome import FetchAbort
+from discovery_ingest.worker.outcome import FetchAbort, FetchFailure
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +25,8 @@ def read_reply(response: httpx.Response, *, max_bytes: int) -> Reply:
     for chunk in response.iter_bytes():
         total += len(chunk)
         if total > max_bytes:
-            raise FetchAbort(f"response exceeds {max_bytes} bytes", http_status=response.status_code)
+            raise FetchAbort(
+                f"response exceeds {max_bytes} bytes", FetchFailure.TOO_LARGE, http_status=response.status_code
+            )
         chunks.append(chunk)
     return Reply(response.status_code, response.headers, b"".join(chunks))

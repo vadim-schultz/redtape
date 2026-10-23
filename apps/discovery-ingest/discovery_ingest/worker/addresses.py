@@ -7,7 +7,7 @@ import socket
 from typing import Protocol
 from urllib.parse import urlparse
 
-from discovery_ingest.worker.outcome import FetchAbort
+from discovery_ingest.worker.outcome import FetchAbort, FetchFailure
 
 ALLOWED_SCHEMES = frozenset({"http", "https"})
 
@@ -54,14 +54,14 @@ def _addresses_of(host: str, resolver: HostResolver) -> list[str]:
     try:
         return resolver.resolve(host)
     except OSError as err:
-        raise FetchAbort(f"cannot resolve host {host}: {err}") from err
+        raise FetchAbort(f"cannot resolve host {host}: {err}", FetchFailure.CONNECTION) from err
 
 
 def validate_destination(url: str, resolver: HostResolver) -> None:
     """Abort unless ``url`` is http(s) and every address of its host is public."""
     parts = urlparse(url)
     if parts.scheme not in ALLOWED_SCHEMES:
-        raise FetchAbort(f"unsupported scheme {parts.scheme or '(none)'!r}")
+        raise FetchAbort(f"unsupported scheme {parts.scheme or '(none)'!r}", FetchFailure.BLOCKED)
     host = parts.hostname or ""
     if not all(is_public_address(address) for address in _addresses_of(host, resolver)):
-        raise FetchAbort(f"host {host} resolves to a non-public address")
+        raise FetchAbort(f"host {host} resolves to a non-public address", FetchFailure.BLOCKED)

@@ -9,7 +9,7 @@ import httpx
 
 from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, build_user_agent
 from discovery_ingest.worker.addresses import HostResolver, SystemResolver, validate_destination
-from discovery_ingest.worker.outcome import FetchAbort, FetchOutcome, failure_outcome
+from discovery_ingest.worker.outcome import FetchAbort, FetchFailure, FetchOutcome, classified, failure_outcome
 from discovery_ingest.worker.pacing import HostPacer
 from discovery_ingest.worker.redirects import MAX_REDIRECTS, REDIRECT_STATUSES, next_url
 from discovery_ingest.worker.reply import Reply, read_reply
@@ -21,17 +21,21 @@ DEFAULT_MAX_BYTES = 5 * 1024 * 1024
 __all__ = ["MAX_REDIRECTS", "FetchOutcome", "PoliteUrlFetcher"]
 
 
-def _success(reply: Reply, *, final_url: str, redirect_count: int) -> FetchOutcome:
+def _reply_outcome(reply: Reply, *, final_url: str, redirect_count: int) -> FetchOutcome:
     body = reply.body
     return FetchOutcome(
         http_status=reply.status_code,
         content_type=reply.headers.get("content-type"),
         byte_length=len(body),
         error_message=None,
-        body=body if reply.status_code < 400 else None,
+        body=body if 200 <= reply.status_code < 300 else None,
         final_url=final_url,
         redirect_count=redirect_count,
     )
+
+
+def _transport_failure(err: httpx.HTTPError) -> FetchFailure:
+    return FetchFailure.TIMEOUT if isinstance(err, httpx.TimeoutException) else FetchFailure.CONNECTION
 
 
 class PoliteUrlFetcher:
@@ -60,12 +64,15 @@ class PoliteUrlFetcher:
         return self._settle(url, self._check_page)
 
     def _settle(self, url: str, guard: Guard) -> FetchOutcome:
+        return classified(self._attempt(url, guard))
+
+    def _attempt(self, url: str, guard: Guard) -> FetchOutcome:
         try:
             return self._follow(url, guard)
         except FetchAbort as abort:
             return abort.outcome()
         except httpx.HTTPError as err:
-            return failure_outcome(str(err))
+            return failure_outcome(str(err), _transport_failure(err))
 
     def _validate_hop(self, url: str) -> None:
         validate_destination(url, self._resolver)
@@ -78,9 +85,9 @@ class PoliteUrlFetcher:
         try:
             allowed = self._robots.allowed(url)
         except RobotsUnavailableError as err:
-            raise FetchAbort(str(err)) from err
+            raise FetchAbort(str(err), FetchFailure.ROBOTS_UNAVAILABLE) from err
         if not allowed:
-            raise FetchAbort(f"robots.txt disallows {url}")
+            raise FetchAbort(f"robots.txt disallows {url}", FetchFailure.ROBOTS_DISALLOWED)
 
     def _follow(self, url: str, guard: Guard) -> FetchOutcome:
         current, seen = url, {url}
@@ -88,9 +95,9 @@ class PoliteUrlFetcher:
             guard(current)
             reply = self._visit(current)
             if reply.status_code not in REDIRECT_STATUSES:
-                return _success(reply, final_url=current, redirect_count=redirect_count)
+                return _reply_outcome(reply, final_url=current, redirect_count=redirect_count)
             current = next_url(current, reply, seen)
-        raise FetchAbort(f"too many redirects (limit {MAX_REDIRECTS})")
+        raise FetchAbort(f"too many redirects (limit {MAX_REDIRECTS})", FetchFailure.REDIRECT)
 
     def _visit(self, url: str) -> Reply:
         self._pacer.wait(urlparse(url).netloc or url)
