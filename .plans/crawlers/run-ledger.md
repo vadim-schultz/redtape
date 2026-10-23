@@ -2,12 +2,13 @@
 
 **Loop branch:** `feat/crawlers`
 **Release branch:** `main`
+**Release PR:** _(filled when opened)_
 
 Update this ledger after every chapter implementation or documented operator verification. A chapter is not complete until its gate, its live gate (or the reason it is deferred), and its refactor outcome are recorded. Record GitHub Actions run IDs for every live gate.
 
 | Chapter | Plan | Status | Verification | Refactor outcome | Live gate (run ID) | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | [Ingest CI](chapters/01-ingest-ci.md) | planned | | | | |
+| 1 | [Ingest CI](chapters/01-ingest-ci.md) | merged | [PR #184](https://github.com/vadim-schultz/redtape/pull/184) into `feat/crawlers`; `lint-and-test` green (51 passed); path-filter negative confirmed (throwaway PR #185 closed) | audited, nothing needed (one job, ~30 s) | n/a (no live gate); Loop A 39942708773, Loop B red 39942856076 (format) / 39942946857 (assertion), green after revert 39943054982 | Required check name if branch protection is added: `lint-and-test`. Local full `ci.sh` not run (no Docker/PyPI); ingest section run by hand. |
 | 2 | [Fetcher hardening](chapters/02-fetcher-hardening.md) | planned | | | | |
 | 3 | [Kind-filtered claim and enum groundwork](chapters/03-kind-filtered-claim.md) | planned | | | | |
 | 4 | [Retry and backoff](chapters/04-retry-and-backoff.md) | planned | | | | |
