@@ -329,3 +329,32 @@ def test_worker_drain_marks_run_failed_when_second_claim_fails(
     assert capsys.readouterr().out == ""
     assert [f["status"] for f in finishes] == ["failed"]
     assert finishes[0]["stop_reason"] == "error"
+
+
+def test_worker_drain_sends_the_configured_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · fetcher identifies itself with the configured contact url."""
+    monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("BOT_CONTACT_URL", "https://ops.example/bot")
+    agents: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        if request.url.host == "portal.example":
+            agents.append(request.headers["user-agent"])
+            return httpx.Response(200, content=b"ok")
+        if str(request.url).endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [_task_json(TASK_ID)]})
+        if str(request.url).endswith("/fetches"):
+            return httpx.Response(
+                201, json={"id": str(uuid.uuid4()), "discovery_task_id": str(TASK_ID), "task_status": "claimed"}
+            )
+        return httpx.Response(200, json={"id": str(TASK_ID), "status": "completed"})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    assert main(["worker", "drain", "--max-tasks", "1"]) == 0
+    assert agents
+    assert set(agents) == {"RedtapeBot/1.0 (+https://ops.example/bot)"}

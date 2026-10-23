@@ -81,3 +81,121 @@ def test_fetcher_never_reports_an_unresolved_3xx_as_success(status: int) -> None
 
     _assert_failed(outcome, "Location")
     assert outcome.http_status == status
+
+
+# Loop B: politeness
+
+USER_AGENT = "RedtapeBot/1.0 (+https://github.com/vadim-schultz/redtape)"
+ROBOTS = "https://portal.example/robots.txt"
+
+
+class _Site:
+    """Mock origin that serves a configurable robots.txt and records requests."""
+
+    def __init__(self, robots: httpx.Response | None = None) -> None:
+        self.robots = robots if robots is not None else httpx.Response(404)
+        self.requests: list[httpx.Request] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        if request.url.path == "/robots.txt":
+            return self.robots
+        return httpx.Response(200, content=b"page")
+
+    def paths(self) -> list[str]:
+        return [request.url.path for request in self.requests]
+
+
+def _disallow(path: str) -> httpx.Response:
+    return httpx.Response(200, text=f"User-agent: *\nDisallow: {path}\n")
+
+
+def test_fetcher_sends_the_identifying_user_agent() -> None:
+    """fetcher sends the identifying user agent on the page and robots.txt requests."""
+    site = _Site()
+
+    _fetcher(site).get("https://portal.example/page")
+
+    assert site.paths() == ["/robots.txt", "/page"]
+    assert {request.headers["user-agent"] for request in site.requests} == {USER_AGENT}
+
+
+def test_fetcher_uses_the_configured_user_agent() -> None:
+    """fetcher uses the user agent it was constructed with."""
+    site = _Site()
+
+    _fetcher(site, user_agent="RedtapeBot/1.0 (+https://ops.example/bot)").get("https://portal.example/page")
+
+    assert {request.headers["user-agent"] for request in site.requests} == {"RedtapeBot/1.0 (+https://ops.example/bot)"}
+
+
+def test_fetcher_skips_a_path_disallowed_by_robots() -> None:
+    """fetcher skips a path disallowed by robots.txt."""
+    site = _Site(_disallow("/private"))
+
+    outcome = _fetcher(site).get("https://portal.example/private/form")
+
+    _assert_failed(outcome, "robots.txt disallows")
+    assert site.paths() == ["/robots.txt"]
+
+
+def test_fetcher_fetches_an_allowed_path_next_to_a_disallowed_one() -> None:
+    """fetcher fetches a path robots.txt does not disallow."""
+    site = _Site(_disallow("/private"))
+
+    outcome = _fetcher(site).get("https://portal.example/public")
+
+    assert outcome.error_message is None
+    assert site.paths() == ["/robots.txt", "/public"]
+
+
+@pytest.mark.parametrize("status", [404, 410, 401, 403])
+def test_fetcher_treats_a_client_error_on_robots_as_allowed(status: int) -> None:
+    """fetcher treats a missing or refused robots.txt as allowed."""
+    site = _Site(httpx.Response(status))
+
+    outcome = _fetcher(site).get("https://portal.example/page")
+
+    assert outcome.http_status == 200
+    assert site.paths() == ["/robots.txt", "/page"]
+
+
+@pytest.mark.parametrize("failure", [httpx.Response(503), httpx.ReadTimeout("slow")])
+def test_fetcher_skips_the_host_when_robots_is_unavailable(failure: httpx.Response | Exception) -> None:
+    """fetcher skips pages on a host whose robots.txt answers 5xx or times out."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if isinstance(failure, Exception):
+            raise failure
+        return failure
+
+    outcome = _fetcher(handler).get("https://portal.example/page")
+
+    _assert_failed(outcome, "robots.txt unavailable")
+
+
+def test_fetcher_requests_robots_once_per_host() -> None:
+    """fetcher caches robots.txt for the process."""
+    site = _Site()
+    fetcher = _fetcher(site)
+
+    fetcher.get("https://portal.example/a")
+    fetcher.get("https://portal.example/b")
+    fetcher.get("https://other.example/c")
+
+    assert [r.url.path for r in site.requests if r.url.path == "/robots.txt"] == ["/robots.txt", "/robots.txt"]
+    assert sorted(r.url.host for r in site.requests if r.url.path == "/robots.txt") == [
+        "other.example",
+        "portal.example",
+    ]
+
+
+def test_fetcher_does_not_retry_robots_after_it_failed_this_run() -> None:
+    """fetcher keeps a host with unavailable robots.txt skipped without asking again."""
+    site = _Site(httpx.Response(503))
+    fetcher = _fetcher(site)
+
+    fetcher.get("https://portal.example/a")
+    fetcher.get("https://portal.example/b")
+
+    assert site.paths() == ["/robots.txt"]
