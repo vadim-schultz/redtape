@@ -18,11 +18,11 @@ One executable plan per chapter. Order, dependencies and gates: [../01-rollout.m
 | 12 | [12-fim-key-fix.md](12-fim-key-fix.md) | API + worker + probe | documents |
 | 13 | [13-object-store-port-and-supabase-adapter.md](13-object-store-port-and-supabase-adapter.md) | API + CI workflow | storage |
 | 14 | [14-artifact-model-and-api.md](14-artifact-model-and-api.md) | model + migration + API | storage |
-| 15 | [15-snapshot-on-fetch.md](15-snapshot-on-fetch.md) | worker | storage |
+| 15 | [15-cloudflare-render-and-snapshot.md](15-cloudflare-render-and-snapshot.md) | worker + CI workflow | storage |
 | 16 | [16-admin-artifacts-panel.md](16-admin-artifacts-panel.md) | frontend | storage |
 | 17 | [17-extractor-framework.md](17-extractor-framework.md) | worker | extraction |
 | 18 | [18-first-page-extractor.md](18-first-page-extractor.md) | worker | extraction |
-| 19 | [19-screenshot-capture.md](19-screenshot-capture.md) | worker + CI workflow | evidence |
+| 19 | [19-screenshot-capture.md](19-screenshot-capture.md) | worker | evidence |
 | 20 | [20-admin-document-detail-and-evidence.md](20-admin-document-detail-and-evidence.md) | frontend | evidence |
 | 21 | [21-docs-sync.md](21-docs-sync.md) | docs | wrap-up |
 | 22 | [22-operator-manual-steps.md](22-operator-manual-steps.md) | docs + ops | wrap-up |

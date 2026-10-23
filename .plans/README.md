@@ -171,10 +171,11 @@ Status: planned — no chapter started. First: [chapters/01-vote-model-migration
 
 A queue-based, document-first crawl layer on the discovery staging path: new task kinds in the existing
 `discovery_task` table (payload harvest, page extraction, screenshot capture), a kind-filtered claim, retry and
-multi-batch draining, deduplicated document candidates with provenance, HTML snapshots and screenshots in an
-object store (Supabase Storage first), manual candidate emit to pending `new_document` suggestions, and admin
-screens for documents and their evidence. Workers stay HTTP-only. Replaces the earlier standalone
-`apps/crawler` design. Twenty-two chapters; loop branch `feat/crawlers`.
+multi-batch draining, deduplicated document candidates with provenance, rendered HTML snapshots and screenshots
+(Cloudflare Browser Run quick actions on the free plan, throttled and budgeted; no browser in the repository)
+stored in an object store (Supabase Storage first), manual candidate emit to pending `new_document`
+suggestions, and admin screens for documents and their evidence. Workers stay HTTP-only. Replaces the earlier
+standalone `apps/crawler` design. Twenty-two chapters; loop branch `feat/crawlers`.
 
 | Doc | What it is |
 | --- | --- |

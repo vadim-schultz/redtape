@@ -1,6 +1,6 @@
 ---
 name: Crawlers — Rollout
-overview: "Twenty-two independently shippable chapters: CI and fetch fixes, kind-filtered queue work, a documents-first slice (candidates, PVOG payload harvest, admin Documents, emit), an object-store slice (adapter, artifacts, snapshots, panel), page extraction, screenshot capture, evidence in the admin, docs sync, and the operator checklist."
+overview: "Twenty-two independently shippable chapters: CI and fetch fixes, kind-filtered queue work, a documents-first slice (candidates, PVOG payload harvest, admin Documents, emit), an object-store slice (adapter, artifacts, Cloudflare-rendered snapshots, panel), page extraction, Cloudflare screenshots, evidence in the admin, docs sync, and the operator checklist."
 isProject: false
 ---
 
@@ -17,16 +17,18 @@ isProject: false
 
 ## Invariants
 
-1. **Every chapter is CI-green and shippable on its own.** A chapter that needs live infrastructure (the object store) has unit tests against fakes; its live gate is recorded separately in the ledger and never blocks the merge.
+1. **Every chapter is CI-green and shippable on its own.** A chapter that needs live infrastructure (the object store, Cloudflare Browser Run) has unit tests against fakes; its live gate is recorded separately in the ledger and never blocks the merge.
 2. **Workers stay HTTP-only.** `apps/discovery-ingest` uses the machine API and an API key; it never receives `DATABASE_URL` and never imports API persistence code.
 3. **Additive schema.** New tables, new nullable columns, new enum labels. Nothing existing is renamed or dropped. The default kind filter keeps the scheduled drain on the two legacy kinds.
 4. **No automatic emit.** Scheduled jobs harvest and stage; emit is a deliberate operator action.
 5. **Storage credentials stay in Render.** GitHub Actions secrets for object storage exist only for the probe workflow.
 6. **Procedures are not documents.** Service-level claims are excluded from document-first emit.
-7. **Every drain is bounded** by batch count and/or time budget and reports why it stopped.
+7. **Every drain is bounded** by batch count and/or time budget (browser drains also by browser seconds) and reports why it stopped.
 8. **Politeness is not optional.** robots.txt, identifying User-Agent, per-host interval, no login-wall bypass.
 9. **Navigation links are `react-icons` buttons in one `HStack` row**, added to the config array.
 10. **Tests are paired** (happy and negative) with an explicit refactor audit per chapter.
+11. **The Cloudflare browser token is narrow and never reaches the API.** A custom token with only "Browser Run - Edit", held as GitHub Actions secrets (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN`) and in the operator's local environment; never in Render, the web app or the repository. The browser kinds (`render_page`, `capture_screenshot`) are never in a default kind list, and a drain of them refuses to start without the token, storage, and both budgets (chapter 15).
+12. **The free-plan limits are a design input, not an error.** Hitting the Cloudflare quota or finding storage unavailable releases tasks without consuming an attempt and ends the run successfully (decisions D20, D21).
 
 ## Dependency graph
 
@@ -52,13 +54,15 @@ flowchart TD
   C1 --> C13[13 ObjectStore]
   C13 --> C14[14 ArtifactApi]
   C3 --> C14
-  C2 --> C15[15 SnapshotOnFetch]
+  C2 --> C15[15 CloudflareRender]
   C14 --> C15
-  C14 --> C16[16 AdminArtifactsPanel]
+  C15 --> C16[16 AdminArtifactsPanel]
+  C14 --> C16
   C6 --> C17[17 ExtractorFramework]
   C15 --> C17
   C17 --> C18[18 FirstExtractor]
-  C14 --> C19[19 ScreenshotCapture]
+  C15 --> C19[19 ScreenshotCapture]
+  C14 --> C19
   C17 --> C19
   C11 --> C20[20 AdminDocumentDetail]
   C16 --> C20
@@ -86,7 +90,7 @@ Chapters 1–5 touch no new tables. The **documents slice** (6–12) and the **s
 12. [chapters/12-fim-key-fix.md](chapters/12-fim-key-fix.md)
 13. [chapters/13-object-store-port-and-supabase-adapter.md](chapters/13-object-store-port-and-supabase-adapter.md)
 14. [chapters/14-artifact-model-and-api.md](chapters/14-artifact-model-and-api.md)
-15. [chapters/15-snapshot-on-fetch.md](chapters/15-snapshot-on-fetch.md)
+15. [chapters/15-cloudflare-render-and-snapshot.md](chapters/15-cloudflare-render-and-snapshot.md)
 16. [chapters/16-admin-artifacts-panel.md](chapters/16-admin-artifacts-panel.md)
 17. [chapters/17-extractor-framework.md](chapters/17-extractor-framework.md)
 18. [chapters/18-first-page-extractor.md](chapters/18-first-page-extractor.md)
@@ -112,12 +116,12 @@ Chapters 1–5 touch no new tables. The **documents slice** (6–12) and the **s
 | 11 | Candidate emit | API + worker | paired tests + CI + live emit | [11](chapters/11-candidate-emit.md) | planned |
 | 12 | FIM key fix | API + worker + probe | paired tests + CI + live probe | [12](chapters/12-fim-key-fix.md) | planned |
 | 13 | Object store port and Supabase adapter | API + CI workflow | paired tests (moto) + CI + live probe | [13](chapters/13-object-store-port-and-supabase-adapter.md) | planned |
-| 14 | Artifact model and API | model + migration + API | paired tests + round trip + CI | [14](chapters/14-artifact-model-and-api.md) | planned |
-| 15 | Snapshot on fetch | worker | paired tests + CI + live drain | [15](chapters/15-snapshot-on-fetch.md) | planned |
-| 16 | Admin Artifacts panel | frontend | paired tests + web CI | [16](chapters/16-admin-artifacts-panel.md) | planned |
+| 14 | Artifact model and API (with browser-task groundwork) | model + migration + API | paired tests + round trip + CI | [14](chapters/14-artifact-model-and-api.md) | planned |
+| 15 | Cloudflare render and snapshot | worker + CI workflow | probe + paired tests + CI + live render | [15](chapters/15-cloudflare-render-and-snapshot.md) | planned |
+| 16 | Admin Artifacts panel (and `render_page` kind) | frontend | paired tests + web CI | [16](chapters/16-admin-artifacts-panel.md) | planned |
 | 17 | Extractor framework and `extract_page` | worker | paired tests + CI | [17](chapters/17-extractor-framework.md) | planned |
 | 18 | First page extractor | worker | fixture tests + CI + live drain | [18](chapters/18-first-page-extractor.md) | planned |
-| 19 | Screenshot capture | worker + CI workflow | paired tests + CI + live capture | [19](chapters/19-screenshot-capture.md) | planned |
+| 19 | Screenshot capture | worker | paired tests + CI + live capture | [19](chapters/19-screenshot-capture.md) | planned |
 | 20 | Admin document detail and evidence | frontend | paired tests + web CI + browser check | [20](chapters/20-admin-document-detail-and-evidence.md) | planned |
 | 21 | Docs sync | docs | link checks + docs tests | [21](chapters/21-docs-sync.md) | planned |
 | 22 | Operator manual steps | docs + ops | checklist ticked by the operator | [22](chapters/22-operator-manual-steps.md) | planned |
@@ -138,6 +142,8 @@ gh run list --workflow=platform-maintenance.yml --limit 3
 gh run watch            # pick the dispatched run
 gh run view --log       # copy the drain report into the ledger
 ```
+
+Browser live gates (chapters 15 and 19) spend Cloudflare's free allowance (10 browser minutes a day, one request every 10 seconds) and runner minutes. Keep them short, for example `-f max_tasks=5 -f max_batches=2 -f time_budget_seconds=300`, and never run two in the same day on purpose: the worker's default browser budget leaves a margin of two minutes, not more. Record the `browser_seconds_used` of every run in the ledger.
 
 Narrow test pairs first, then the affected package checks:
 
@@ -164,6 +170,7 @@ Each chapter uses a feature branch `feat/crawlers-<slug>` from `feat/crawlers` a
 - Redirects are followed; transient failures retry; permanent failures stay failed.
 - Document candidates exist, deduplicated, with provenance, visible in the admin Documents screens.
 - At least one operator-driven emit creates pending `new_document` suggestions from candidates.
-- HTML snapshots and screenshots are stored in the object store and visible in the admin.
+- Rendered HTML snapshots (Cloudflare Browser Run, free plan) and screenshots are stored in the object store and visible in the admin.
+- A render run stays inside both budgets: it ends on `time_budget`, `browser_budget`, `browser_quota` or `queue_empty` without failing tasks, and its report states the browser seconds used.
 - At least one page extractor produces candidates from live snapshots.
 - The operator checklist is complete and the ledger records run IDs for every live gate.

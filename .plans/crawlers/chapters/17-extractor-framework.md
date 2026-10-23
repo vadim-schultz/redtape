@@ -1,6 +1,6 @@
 ---
 name: "Chapter 17 — Extractor framework and extract_page"
-overview: "A registry-based extractor interface, an extract_page task kind that reads a stored snapshot and records mentions, fixture-capture tooling, and the enqueue wiring after a snapshot."
+overview: "A registry-based extractor interface, an extract_page task kind that reads a stored rendered snapshot and records mentions, fixture-capture tooling, and the enqueue wiring after a snapshot."
 todos:
   - id: interface
     content: "Extractor protocol, PageContext, registry, charset-safe decoding"
@@ -19,15 +19,15 @@ isProject: false
 
 # Chapter 17 — Extractor framework and `extract_page`
 
-**Repo:** `redtape` (`apps/discovery-ingest`, `apps/api` for the result note, `.github/workflows`) · **Branch:** `feat/crawlers-extractor-framework` · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`, `.github/workflows`) · **Branch:** `feat/crawlers-extractor-framework` · **Status:** planned
 
-**Depends on:** [06](06-candidate-staging-model-and-api.md), [15](15-snapshot-on-fetch.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [06](06-candidate-staging-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
 ## Goal
 
-Hand-written extractors for specific hosts must plug into the queue without any host knowledge in the API. The framework ships with an empty production registry; chapter 18 adds the first real extractor.
+Hand-written extractors for specific hosts must plug into the queue without any host knowledge in the API. The framework ships with an empty production registry; chapter 18 adds the first real extractor. Snapshots are the **rendered DOM** Cloudflare produced in chapter 15, so extractors see single-page content that raw HTML would not contain; they still make no network calls.
 
 ## Contract
 
@@ -45,13 +45,15 @@ class Extractor(Protocol):
 
 **Decoding.** Bytes are decoded using the `Content-Type` charset, then a `<meta charset>` sniff, then UTF-8 with replacement, in one function with tests. NUL bytes are stripped.
 
-**Wiring.** The `after_snapshot` hook from chapter 15 calls `find_extractor(artifact.source_url, artifact.content_type)`. If one matches it enqueues `extract_page` through `POST /machine/tasks` with `artifact_id` and `input_key = "<extractor.id>@<extractor.version>"`, priority 100. If none matches, nothing is enqueued, so a page with no extractor creates no task. A version bump enqueues a new task for the same snapshot, which is how re-extraction works without touching completed tasks.
+**Wiring.** The `after_snapshot` hook of the `render_page` handler (chapter 15) calls `find_extractor(artifact.source_url, artifact.content_type)`. If one matches it enqueues `extract_page` through `POST /machine/tasks` with `artifact_id` and `input_key = "<extractor.id>@<extractor.version>"`, priority 100. If none matches, nothing is enqueued, so a page with no extractor creates no task. A version bump enqueues a new task for the same snapshot, which is how re-extraction works without touching completed tasks.
 
 **Handler.** `handle_extract_page`: read the artifact through `GET /machine/artifacts/{id}/content`, decode, re-resolve the extractor (a task whose extractor has disappeared completes with note `no_extractor` rather than failing), run it, drop mentions that fail validation, `post_mentions` with `artifact_id` set, then complete. The extractor must not raise on malformed markup; an exception is caught at the handler boundary and fails the task non-retryably with the extractor id and version in the error. A task that completes with no mentions is a normal outcome.
 
-**API.** `POST /tasks/{id}/complete` accepts an optional `{note}` stored in a new nullable `discovery_task.result_note String(200)` (additive migration). The admin task DTO exposes it. The note vocabulary starts with `no_extractor`, `no_mentions`, `login_wall` (chapter 19).
+**Result notes.** The worker completes tasks with `{note}` through the route and column added in chapter 14 (`result_note`; the admin task DTO already exposes it). This chapter uses `no_extractor` and `no_mentions`; `login_wall` and `oversize` come from chapter 15. There is no API or migration work in this chapter.
 
-**Default kinds.** The worker's default `--kinds` gains `extract_page`.
+**Default kinds.** The worker's default `--kinds` gains `extract_page` (no network, so it belongs in the plain drain). `render_page` and `capture_screenshot` stay out of the defaults (chapter 15).
+
+**Login walls.** A page that is a login wall never gets a snapshot (chapter 15), so it can never be extracted or screenshotted.
 
 **Fixture tooling.** `python -m discovery_ingest artifacts download --id <uuid> --out <path>` (uses the machine content route) and `python -m discovery_ingest artifacts list --host <host> --limit N`. A manual workflow `discovery-fixture-capture.yml` (inputs `host`, `limit`) lists matching snapshots, downloads them, and uploads them as a GitHub Actions artifact; `gh run download` brings them to the developer. This is how chapter 18 obtains real markup in a limited local environment.
 
@@ -79,27 +81,25 @@ class Extractor(Protocol):
 
 **Green:** handler with named steps (fetch, decode, extract, post). **Refactor:** about five lines per step.
 
-### Loop C — Wiring and API note
+### Loop C — Wiring
 
 **Red**
 
 1. `after_snapshot enqueues extract_page with the artifact id and extractor key only when an extractor matches`.
 2. `a new extractor version enqueues a second task; the same version does not`.
-3. (API) `complete accepts an optional note and the admin task exposes it`; `a note over 200 characters is rejected`.
+3. `the worker sends the note when completing with no_extractor or no_mentions`.
 
-**Green/Refactor:** pass the hook at handler construction; migration adds one column.
+**Green/Refactor:** pass the hook at handler construction.
 
 ## Verification
 
 ```bash
 cd apps/discovery-ingest && python -m pytest tests/test_extract_registry.py tests/test_extract_worker.py tests/test_worker_drain.py && ruff check . && mypy discovery_ingest
-cd apps/api && python -m pytest tests/test_discovery_task_queue.py tests/test_discovery_machine_api.py
-cd apps/api && alembic upgrade head && alembic downgrade -1 && alembic upgrade head
 gh pr checks --watch
 ```
 
-Live gate: none that exercises extraction (the registry is empty). Dispatch `discovery-drain.yml -f kinds=extract_page` and confirm `queue_empty`; dispatch `discovery-fixture-capture.yml -f host=verwaltung.bund.de -f limit=5` after chapter 15's live gate and confirm the downloaded files are real HTML. Record both run IDs.
+Live gate: none that exercises extraction (the registry is empty). Dispatch `discovery-drain.yml -f kinds=extract_page` and confirm `queue_empty`; dispatch `discovery-fixture-capture.yml -f host=verwaltung.bund.de -f limit=5` after chapter 15's live gate and confirm the downloaded files are rendered HTML (not the raw response). Record both run IDs.
 
 ## Out of scope
 
-The first real extractor (chapter 18), link following, PDF parsing, LLM extraction, JavaScript rendering.
+The first real extractor (chapter 18), link following, PDF parsing, LLM extraction. JavaScript rendering is done upstream by chapter 15 and is not repeated here.
