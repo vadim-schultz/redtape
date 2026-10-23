@@ -69,4 +69,4 @@ Also confirm that a PR touching only `apps/web/**` does not trigger the workflow
 
 ## Out of scope
 
-Coverage thresholds, dependency caching beyond pip, running Playwright tests (chapter 19), changing any worker behaviour.
+Coverage thresholds, dependency caching beyond pip, browser tests (none exist; chapters 15 and 19 render through Cloudflare's hosted browser), changing any worker behaviour.

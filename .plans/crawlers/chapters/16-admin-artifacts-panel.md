@@ -11,6 +11,9 @@ todos:
   - id: coverage
     content: "Artifact counts and bytes chips in Coverage"
     status: pending
+  - id: kinds
+    content: "render_page in the task kind union and result_note in the Tasks table"
+    status: pending
 isProject: false
 ---
 
@@ -18,7 +21,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/web`) · **Branch:** `feat/crawlers-admin-artifacts-panel` · **Status:** planned
 
-**Depends on:** [14](14-artifact-model-and-api.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -38,6 +41,7 @@ Under `apps/web/src/features/discovery-admin/`:
 - `PipelineDetail.tsx` receives the panel through a slot prop like `preview`; `DiscoveryPipelinePage.tsx` wires the query, so components stay presentational and the architecture test's layering holds.
 - Coverage view: chips for artifact counts and total bytes per kind, with a warning style when bytes pass 80 percent of a configured display budget (constant 1 GB for the free plan, defined once).
 - Strings in `apps/web/src/i18n/fallback/{de,en}.json` under `discovery_admin.artifacts.*`.
+- **Browser kinds.** `DiscoveryTaskKind` gains `render_page` (the label ships in chapter 14 and the kind is first used in chapter 15; chapter 8 widened the union before it existed, which the unknown-kind tolerance test covers). `DiscoveryTask` gains `result_note` and the Tasks table shows it as a small chip beside the status (`login_wall`, `oversize`, `no_mentions`, ...), with German and English labels and the raw value as the fallback for unknown notes. The kind select and Coverage chips list `render_page` and `capture_screenshot` like the others.
 
 ## TDD loops
 
@@ -50,6 +54,7 @@ Under `apps/web/src/features/discovery-admin/`:
 5. `artifacts query refetches after the stale window` — fake timers.
 6. `coverage view shows artifact bytes and highlights the budget warning`.
 7. `all strings resolve in German and English` — the existing i18n fallback test pattern.
+8. `tasks table shows the render_page kind and a result_note chip, and falls back to the raw value for an unknown note`.
 
 **Green:** container → hook → panel; keep URLs as opaque strings.
 
@@ -62,7 +67,7 @@ cd apps/web && npm run test -- src/features/discovery-admin && npm run lint && n
 gh pr checks --watch
 ```
 
-Live gate: after the chapter 15 live drain, open the pipeline detail of a fetched row; the snapshot appears, downloads, and its presigned link works within five minutes and fails after expiry (expected). Record the row id.
+Live gate: after the chapter 15 live render run, open the pipeline detail of a rendered row; the snapshot appears, downloads, and its presigned link works within five minutes and fails after expiry (expected). The Tasks page lists the `render_page` tasks, and a `login_wall` note shows as a chip. Record the row id.
 
 ## Out of scope
 

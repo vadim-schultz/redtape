@@ -1,6 +1,6 @@
 ---
 name: "Chapter 22 — Operator manual steps"
-overview: "Everything the operator must do by hand: create the Supabase bucket and keys, set secrets, variables and environment, run repairs and census queries, enable schedules, and monitor limits."
+overview: "Everything the operator must do by hand: create the Supabase bucket and keys, create the Cloudflare browser token, set secrets, variables and environment, run repairs, probes and census queries, enable schedules, and monitor limits."
 todos:
   - id: checklist
     content: "Publish the numbered checklist with commands and SQL"
@@ -32,10 +32,12 @@ Merging a chapter never waits for a step: code is tested against fakes in CI. St
 | S12 census | chapter 7 starts (module selection), chapter 12 (F3) |
 | S11 repair | chapter 2 live gate, chapter 4 live gate |
 | S1–S4, S6 | chapter 13 live gate; ideally before chapter 13 merges |
-| S14 re-pend, then S13 | chapter 15 live gate; the scheduled drain must not run before S14 |
+| S15, S16 | chapter 15 Step 0 (the probe must run before the client is written) |
+| S17 | chapter 15 live gate; ideally before chapter 15 starts |
+| S14 re-pend, then S13 drain schedule | chapter 15 live gate; the scheduled drain must not run before chapter 15 is deployed and S14 is done |
+| S13 render schedule | after the chapter 15 and chapter 19 live gates |
 | S10 emit routine | after chapter 11 |
-| S13 capture schedule | after chapter 19 live gate |
-| S5, S7, S8, S9 | ongoing |
+| S5, S7, S8, S9, S18 | ongoing |
 
 ## Steps
 
@@ -67,7 +69,7 @@ gh run list --workflow=discovery-drain.yml --limit 5
 gh run view <run-id> --log
 ```
 
-**S8 — Monitor limits (monthly, or when alerted).** Free plan: 500 MB database, 1 GB file storage, 5 GB egress, 50 MB per file. Supabase puts a project into read-only mode when the database limit is exceeded, so check the database as well as storage.
+**S8 — Monitor limits (monthly, or when alerted).** Supabase free plan: 500 MB database, 1 GB file storage, 5 GB egress, 50 MB per file. Cloudflare free plan: 10 browser minutes a day (Dashboard → Browser Run usage). Supabase puts a project into read-only mode when the database limit is exceeded, so check the database as well as storage.
 
 ```sql
 select pg_size_pretty(pg_database_size(current_database())) as db_size;
@@ -81,8 +83,8 @@ The admin Coverage screen shows the same artifact totals. Act at 80 percent: pru
 
 **S9 — Rotation, rollback and provider swap.**
 
-- Rotate: create a new access key, update Render and the GitHub secrets, redeploy, run S6, then delete the old key.
-- Roll back: unset the Render `OBJECT_STORE_*` variables and redeploy. Artifact routes answer 503, workers skip snapshots and report `snapshot_skipped`, and nothing else breaks.
+- Rotate: create a new access key, update Render and the GitHub secrets, redeploy, run S6, then delete the old key. For the Cloudflare token, create a new one (S15), replace the `CLOUDFLARE_BROWSER_API_TOKEN` secret, run the browser probe (S16), then delete the old token.
+- Roll back: unset the Render `OBJECT_STORE_*` variables and redeploy. Artifact routes answer 503, browser drains refuse to start (S17), any run already in flight releases its tasks and stops with `storage_unavailable`, and nothing else breaks. To stop rendering without touching storage, delete `DISCOVERY_RENDER_SCHEDULE` and the Cloudflare secrets.
 - Swap to Cloudflare R2: create the bucket and an S3 API token, change the five variables (endpoint `https://<account>.r2.cloudflarestorage.com`, region `auto`), run S6. Existing keys are content-addressed; copy the bucket contents with `rclone` if history matters.
 
 **S10 — Review and emit candidates (after chapter 11).**
@@ -152,9 +154,9 @@ union all
    from catalogue_service where source = 'pvog' order by random() limit 5);
 ```
 
-**S13 — Enable schedules (variables).** Repository → Settings → Secrets and variables → Actions → Variables. Set `DISCOVERY_DRAIN_SCHEDULE=enabled` only after S14 and the chapter 15 live gate (otherwise the backlog is fetched without snapshots). Set `DISCOVERY_CAPTURE_SCHEDULE=enabled` after the chapter 19 live gate. To pause, delete the variable; manual dispatch keeps working.
+**S13 — Enable schedules (variables).** Repository → Settings → Secrets and variables → Actions → Variables. Set `DISCOVERY_DRAIN_SCHEDULE=enabled` only after chapter 15 is deployed and S14 is done (otherwise the backlog is fetched without enqueuing any render). Set `DISCOVERY_RENDER_SCHEDULE=enabled` after the chapter 15 live gate; the same schedule drains screenshots once chapter 19 ships. The render schedule spends about 15 runner minutes a day (budget: this repository's share is roughly 960 Actions minutes a month), so consider leaving it off and running the drain locally (S18) or dispatching it by hand. To pause, delete the variable; manual dispatch keeps working.
 
-**S14 — Re-pend completed fetches so snapshots are captured (after chapter 15 deploys).** About a hundred pages; the fetcher is polite (per-host interval). Dry run, then update.
+**S14 — Re-pend completed fetches so each gets a render task (after chapter 15 deploys).** About a hundred pages; the plain fetcher is polite (per-host interval) and cheap; the render tasks it enqueues are throttled separately. Dry run, then update.
 
 ```sql
 select count(*) from discovery_task where kind = 'fetch_url' and status = 'completed';
@@ -165,11 +167,36 @@ set status = 'pending', claimed_at = null, lease_expires_at = null, last_error =
 where kind = 'fetch_url' and status = 'completed';
 ```
 
-Then dispatch `discovery-drain.yml` with `kinds=fetch_url` and confirm snapshots appear (chapter 15 live gate).
+Then dispatch `discovery-drain.yml` with `kinds=fetch_url`, then `discovery-render.yml` (S13), and confirm snapshots appear (chapter 15 live gate).
+
+**S15 — Create the Cloudflare browser token and note the account id (before chapter 15 Step 0).** The Cloudflare account that hosts the frontend is used; the **free plan** is enough (10 browser minutes a day, one request every 10 seconds). Dashboard → your account → copy the Account ID. My Profile → API Tokens → Create Token → Create Custom Token, permission **Account · Browser Run · Edit** (and nothing else), limited to this account, with no client IP filter (GitHub runners have changing addresses). Copy the token once. It is not a Render variable and must never be committed.
+
+**S16 — Store the Cloudflare secrets and run the browser probe.** Add the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_BROWSER_API_TOKEN` (`gh secret set CLOUDFLARE_BROWSER_API_TOKEN`). Only `discovery-render.yml` and `discovery-browser-probe.yml` use them. The probe workflow is the first deliverable of chapter 15, and `workflow_dispatch` only works once the file is on the default branch, so run it right after that part reaches `main` (or run the same command locally with the two variables exported):
+
+```bash
+gh workflow run discovery-browser-probe.yml -f urls="https://example.com,https://fimportal.de"
+gh run watch && gh run view --log
+# or locally
+python -m discovery_ingest browser probe --url https://example.com --url https://fimportal.de
+```
+
+Record the run ID and the findings (response shape, `X-Browser-Ms-Used`, error behaviour, browser milliseconds per page) in the ledger; chapter 15 turns them into its error table.
+
+**S17 — Confirm storage is ready for snapshots.** Browser drains refuse to start while `GET /machine/artifacts/status` reports `storage_enabled: false`, so S1–S4 must be done before the first render run. The check is `curl -H "Authorization: Bearer $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"`.
+
+**S18 — Run the browser drain locally (optional, costs no Actions minutes).** With the two Cloudflare variables and `DISCOVERY_API_URL`/`DISCOVERY_API_KEY` exported:
+
+```bash
+cd apps/discovery-ingest && pip install -e .
+python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
+  --time-budget-seconds 900 --browser-budget-seconds 480
+```
+
+At most one run a day: Cloudflare's free allowance is 10 browser minutes a day and the budget leaves a two-minute margin. The report shows `browser_seconds_used`, `released` and why the run stopped. The Cloudflare dashboard shows the account's total usage.
 
 ## Verification
 
-The operator ticks each step in the checklist document and the ledger. The suite's release checklist in [../run-ledger.md](../run-ledger.md) is complete only when S1–S6, S10 and S12–S14 are recorded with dates and run IDs.
+The operator ticks each step in the checklist document and the ledger. The suite's release checklist in [../run-ledger.md](../run-ledger.md) is complete only when S1–S6, S10 and S12–S17 are recorded with dates and run IDs (S18 is optional).
 
 ## Out of scope
 
