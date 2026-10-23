@@ -1,5 +1,7 @@
-import { Link, VStack } from "@chakra-ui/react";
+import { HStack, IconButton } from "@chakra-ui/react";
 import type { ComponentType } from "react";
+import { FaClipboard, FaList, FaTasks } from "react-icons/fa";
+import type { IconType } from "react-icons";
 import { Link as RouterLink } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -10,18 +12,22 @@ import { useDiscoveryAdminProbe } from "../hooks/useDiscoveryAdminProbe";
 type LocalizedLabel = Record<string, string> & { en: string };
 
 const DISCOVERY_MENU_LINKS: ReadonlyArray<{
+  Icon: IconType;
   label: LocalizedLabel;
   to: string;
 }> = [
   {
+    Icon: FaList,
     label: { de: "Katalog", en: "Catalogue" },
     to: "/admin/discovery/catalogue",
   },
   {
+    Icon: FaTasks,
     label: { de: "Abdeckung", en: "Coverage" },
     to: "/admin/discovery/coverage",
   },
   {
+    Icon: FaClipboard,
     label: { de: "Aufgaben", en: "Tasks" },
     to: "/admin/discovery/tasks",
   },
@@ -41,13 +47,18 @@ function DiscoveryLinks() {
   const { locale } = useLocale();
 
   return (
-    <VStack align="stretch" gap="1">
-      {DISCOVERY_MENU_LINKS.map(({ label, to }) => (
-        <Link asChild color="fg" key={to} fontSize="sm">
-          <RouterLink to={to}>{label[locale] ?? label.en}</RouterLink>
-        </Link>
-      ))}
-    </VStack>
+    <HStack gap="1">
+      {DISCOVERY_MENU_LINKS.map(({ Icon, label, to }) => {
+        const text = label[locale] ?? label.en;
+        return (
+          <IconButton variant="ghost" size="sm" asChild key={to}>
+            <RouterLink to={to} aria-label={text} title={text}>
+              <Icon aria-hidden="true" />
+            </RouterLink>
+          </IconButton>
+        );
+      })}
+    </HStack>
   );
 }
 
