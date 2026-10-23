@@ -12,6 +12,7 @@ from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendReq
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.settle import fail_from_outcome, fail_permanently
 
 
 class _TaskHandler(Protocol):
@@ -86,8 +87,7 @@ def _dispatch_task(
 ) -> str:
     handler = _TASK_HANDLERS.get(task.kind)
     if handler is None:
-        client.fail_task(task.id, error=f"unsupported task kind: {task.kind}")
-        return "failed"
+        return fail_permanently(client, task.id, f"unsupported task kind: {task.kind}")
     return handler(task, client=client, fetcher=fetcher)
 
 
@@ -108,8 +108,7 @@ def _handle_fetch_url(
         ),
     )
     if outcome.failed:
-        client.fail_task(task.id, error=outcome.failure_message)
-        return "failed"
+        return fail_from_outcome(client, task.id, outcome)
     client.complete_task(task.id)
     return "completed"
 

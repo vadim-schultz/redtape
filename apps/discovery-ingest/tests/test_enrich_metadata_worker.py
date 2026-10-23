@@ -14,6 +14,8 @@ from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 
+from run_stub import run_response
+
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 CATALOGUE_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -199,3 +201,53 @@ def test_enrich_metadata_fails_task_when_steckbrief_redirect_cannot_be_followed(
 
     assert (report.completed, report.failed) == (0, 1)
     assert "Location" in str(fail_calls[0]["error"])
+
+
+def _drain_enrich_fail_bodies(monkeypatch: pytest.MonkeyPatch, steckbrief: Any) -> list[dict[str, object]]:
+    fail_bodies: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        url = str(request.url)
+        if url == STECKBRIEF_URL:
+            return steckbrief(request)
+        if url.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [_claimed_enrich_task()]})
+        if request.url.path == f"/api/v1/discovery/machine/catalogue/{CATALOGUE_ID}":
+            raw = {"fim_id": FIM_ID}
+            body = {
+                "id": str(CATALOGUE_ID),
+                "source": "govdata",
+                "portal_url": None,
+                "title_i18n": {"de": "L"},
+                "raw_payload": raw,
+            }
+            return httpx.Response(200, json=body)
+        if url.endswith("/fail"):
+            fail_bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(200, json={"id": str(TASK_ID), "status": "failed", "last_error": "x"})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    return fail_bodies
+
+
+def _timeout(request: httpx.Request) -> httpx.Response:
+    raise httpx.ReadTimeout("timed out")
+
+
+def test_enrich_metadata_reports_a_steckbrief_timeout_as_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """enrich_metadata reports a steckbrief timeout as retryable."""
+    bodies = _drain_enrich_fail_bodies(monkeypatch, _timeout)
+
+    assert [body["retryable"] for body in bodies] == [True]
+
+
+def test_enrich_metadata_reports_an_unparseable_steckbrief_as_permanent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """enrich_metadata never retries a steckbrief it cannot parse."""
+    bodies = _drain_enrich_fail_bodies(monkeypatch, lambda request: httpx.Response(200, content=b"[]"))
+
+    assert [body["retryable"] for body in bodies] == [False]

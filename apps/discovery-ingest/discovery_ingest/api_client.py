@@ -169,13 +169,13 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
 
-    def fail_task(self, task_id: UUID, *, error: str) -> None:
-        """Mark a claimed task failed with ``error``."""
+    def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
+        """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
                 url,
-                json={"error": error},
+                json={"error": error, "retryable": retryable},
                 headers={"X-API-Key": self._api_key},
             )
         if response.status_code >= 400:
