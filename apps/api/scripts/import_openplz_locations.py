@@ -4,10 +4,10 @@ import argparse
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from app.db import SessionLocal
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.locality import Locality
 from app.schema.openplz import (
     OpenPLZDistrict,
     OpenPLZFederalState,
@@ -17,6 +17,10 @@ from app.schema.openplz import (
 from app.services.openplz_client import OpenPLZClient
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from scripts.openplz_rows import JurisdictionRow, KnownRows, LocalityRow
+from scripts.openplz_writes import insert_jurisdiction, insert_locality, sync_jurisdiction, sync_locality
 
 UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
 
@@ -43,7 +47,7 @@ def _should_import_state(state_code: str, allowed_state_codes: set[str] | None) 
 
 
 def upsert_jurisdiction(
-    session,
+    session: Session,
     *,
     jurisdiction_id: uuid.UUID,
     kind: JurisdictionKind,
@@ -55,61 +59,15 @@ def upsert_jurisdiction(
     postal_code: str | None = None,
     multiple_postal_codes: bool = False,
     touched_at: datetime,
-) -> Jurisdiction:
+    known: KnownRows | None = None,
+) -> JurisdictionRow:
+    """Insert the jurisdiction, update it when an imported field differs, else leave it alone."""
     # `(kind, code)` is the DB's actual uniqueness guarantee (uq_jurisdiction_kind_code),
     # not `(geographic_parent_id, code)` -- a row can legitimately need to move to a
     # new parent (a re-imported district, a corrected hierarchy) while keeping its code.
     # Looking up by the old parent would miss such a row and attempt a duplicate INSERT.
-    existing = session.execute(
-        select(Jurisdiction).where(
-            Jurisdiction.kind == kind,
-            Jurisdiction.code == code,
-        )
-    ).scalar_one_or_none()
-
-    if existing is None:
-        return _insert_jurisdiction(
-            session,
-            jurisdiction_id=jurisdiction_id,
-            kind=kind,
-            geographic_parent_id=geographic_parent_id,
-            code=code,
-            openplz_type=openplz_type,
-            name_de=name_de,
-            administrative_roles=administrative_roles,
-            postal_code=postal_code,
-            multiple_postal_codes=multiple_postal_codes,
-            touched_at=touched_at,
-        )
-
-    return _update_jurisdiction(
-        existing,
-        kind=kind,
-        geographic_parent_id=geographic_parent_id,
-        openplz_type=openplz_type,
-        postal_code=postal_code,
-        multiple_postal_codes=multiple_postal_codes,
-        administrative_roles=administrative_roles,
-        name_de=name_de,
-        touched_at=touched_at,
-    )
-
-
-def _insert_jurisdiction(
-    session,
-    *,
-    jurisdiction_id: uuid.UUID,
-    kind: JurisdictionKind,
-    geographic_parent_id: uuid.UUID | None,
-    code: str,
-    openplz_type: str | None,
-    name_de: str,
-    administrative_roles: list[str],
-    postal_code: str | None,
-    multiple_postal_codes: bool,
-    touched_at: datetime,
-) -> Jurisdiction:
-    obj = Jurisdiction(
+    known = known if known is not None else KnownRows()
+    wanted = JurisdictionRow(
         id=jurisdiction_id,
         kind=kind,
         geographic_parent_id=geographic_parent_id,
@@ -119,104 +77,41 @@ def _insert_jurisdiction(
         multiple_postal_codes=multiple_postal_codes,
         administrative_roles=administrative_roles,
         name_i18n={"de": name_de, "en": name_de},
-        last_updated=touched_at.replace(tzinfo=None),
     )
-    session.add(obj)
-    return obj
-
-
-def _update_jurisdiction(
-    existing: Jurisdiction,
-    *,
-    kind: JurisdictionKind,
-    geographic_parent_id: uuid.UUID | None,
-    openplz_type: str | None,
-    postal_code: str | None,
-    multiple_postal_codes: bool,
-    administrative_roles: list[str],
-    name_de: str,
-    touched_at: datetime,
-) -> Jurisdiction:
-    # Update fields (idempotent re-import). Reassigning geographic_parent_id
-    # lets a stale/misparented row self-heal onto the authoritative parent
-    # instead of the import raising on the next INSERT attempt.
-    existing.kind = kind
-    existing.geographic_parent_id = geographic_parent_id
-    existing.openplz_type = openplz_type
-    existing.postal_code = postal_code
-    existing.multiple_postal_codes = multiple_postal_codes
-    existing.administrative_roles = administrative_roles
-    existing.name_i18n = {"de": name_de, "en": name_de}
-    existing.last_updated = touched_at.replace(tzinfo=None)
-    return existing
+    existing = known.jurisdiction(session, kind, code)
+    if existing is None:
+        row = insert_jurisdiction(session, wanted, touched_at)
+    else:
+        row = sync_jurisdiction(session, existing, wanted, touched_at)
+    known.jurisdictions[row.key] = row
+    return row
 
 
 def upsert_locality(
-    session,
+    session: Session,
     *,
     locality_id: uuid.UUID,
     municipality_id: uuid.UUID,
     postal_code: str,
     name: str,
     touched_at: datetime,
-) -> Locality:
+    known: KnownRows | None = None,
+) -> LocalityRow:
+    """Insert the locality, update it when its municipality or name differs, else leave it alone."""
     # locality_id is the deterministic identity (derived from municipality code,
     # postal_code, name -- see _stable_uuid callers), independent of
     # municipality_id. Looking up by (municipality_id, postal_code, name)
     # instead misses a row whose municipality was reparented/self-healed since
     # (see upsert_jurisdiction) and attempts a duplicate-primary-key INSERT.
-    existing = session.get(Locality, locality_id)
-
+    known = known if known is not None else KnownRows()
+    wanted = LocalityRow(id=locality_id, municipality_id=municipality_id, name_i18n={"de": name, "en": name})
+    existing = known.locality(session, locality_id)
     if existing is None:
-        return _insert_locality(
-            session,
-            locality_id=locality_id,
-            municipality_id=municipality_id,
-            postal_code=postal_code,
-            name=name,
-            touched_at=touched_at,
-        )
-
-    return _update_locality(
-        existing,
-        municipality_id=municipality_id,
-        name=name,
-        touched_at=touched_at,
-    )
-
-
-def _insert_locality(
-    session,
-    *,
-    locality_id: uuid.UUID,
-    municipality_id: uuid.UUID,
-    postal_code: str,
-    name: str,
-    touched_at: datetime,
-) -> Locality:
-    obj = Locality(
-        id=locality_id,
-        municipality_id=municipality_id,
-        postal_code=postal_code,
-        name=name,
-        name_i18n={"de": name, "en": name},
-        last_updated=touched_at.replace(tzinfo=None),
-    )
-    session.add(obj)
-    return obj
-
-
-def _update_locality(
-    existing: Locality,
-    *,
-    municipality_id: uuid.UUID,
-    name: str,
-    touched_at: datetime,
-) -> Locality:
-    existing.municipality_id = municipality_id
-    existing.name_i18n = {"de": name, "en": name}
-    existing.last_updated = touched_at.replace(tzinfo=None)
-    return existing
+        row = insert_locality(session, wanted, postal_code=postal_code, name=name, touched_at=touched_at)
+    else:
+        row = sync_locality(session, existing, wanted, touched_at)
+    known.localities[locality_id] = row
+    return row
 
 
 @dataclass
@@ -230,7 +125,7 @@ class _OpenPLZLocationsDbOps:
     def __init__(
         self,
         *,
-        session,
+        session: Session,
         touched_at: datetime,
         dry_run: bool,
         commit_every: int,
@@ -239,18 +134,25 @@ class _OpenPLZLocationsDbOps:
         self._touched_at = touched_at
         self._dry_run = dry_run
         self._commit_every = commit_every
+        self._known = KnownRows()
 
-    def upsert_jurisdiction(self, **kwargs) -> Jurisdiction:
+    def preload(self) -> None:
+        """Load existing jurisdictions and localities so upserts compare in memory."""
+        self._known = KnownRows.load(self._session)
+
+    def upsert_jurisdiction(self, **kwargs: Any) -> JurisdictionRow:
         return upsert_jurisdiction(
             self._session,
             touched_at=self._touched_at,
+            known=self._known,
             **kwargs,
         )
 
-    def upsert_locality(self, **kwargs) -> Locality:
+    def upsert_locality(self, **kwargs: Any) -> LocalityRow:
         return upsert_locality(
             self._session,
             touched_at=self._touched_at,
+            known=self._known,
             **kwargs,
         )
 
@@ -304,6 +206,7 @@ class OpenPLZLocationsImporter:
 
     def import_all(self) -> None:
         try:
+            self._db.preload()
             self._import_country()
             self._import_states()
             self._db.finish()

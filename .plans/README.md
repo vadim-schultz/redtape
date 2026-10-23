@@ -303,7 +303,7 @@ The Free plan's 2,000 Actions minutes are shared by every repository on the acco
 | [gaps-and-decisions.md](gha-budget/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](gha-budget/chapters/) | Executable chapter plans |
 
-Status: planned — first: [chapters/01-ci-trim.md](gha-budget/chapters/01-ci-trim.md).
+Status: shipped — all six chapters done on `chore/gha-budget`. Steps only the account owner can do (billing, external pinger, repository variables, first live runs): [`docs/operations/gha-budget.md`](../docs/operations/gha-budget.md).
 
 ## Conventions
 

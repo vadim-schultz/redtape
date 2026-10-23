@@ -53,7 +53,9 @@ alembic upgrade head
 
 The importer uses deterministic UUIDs so re-running does not create duplicates. Rows are looked up and reconciled by `(kind, code)` — the DB's real uniqueness guarantee (`uq_jurisdiction_kind_code`) — so a row that needs to move to a different parent (e.g. a corrected hierarchy or a stale/misparented row) is repointed in place instead of causing a duplicate-key failure.
 
-It also updates `last_updated` for rows it touches, so Supabase connection/security policies and any cache-busting logic based on timestamps can keep working.
+The importer preloads the existing jurisdictions and localities with one query each, compares every OpenPLZ record in memory, and writes only rows that are new or differ. A repeat run over unchanged data performs no `INSERT` or `UPDATE`, so it finishes in the time it takes to fetch the pages.
+
+`last_updated` is set when a row is inserted or changed, not on every run. Nothing at runtime reads it as "last import time" (decision D11 in the GitHub Actions budget plan); the only readers are the one-shot dedupe migrations that used it as a tie-break.
 
 ## Resetting/wiping location data
 

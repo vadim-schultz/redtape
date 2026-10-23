@@ -3,11 +3,11 @@
 This checklist is intended for the **Wave 3 deployment**:
 - Backend: Litestar API on **Render** (`/health` must work)
 - Frontend: Vite/React SPA on **Cloudflare Pages**
-- Free-tier friendliness: GitHub Actions keep-alive prevents Render from sleeping during use
+- Free-tier friendliness: an external pinger (see [External pinger](#external-pinger-render-free-tier)) keeps Render from sleeping during use
 
 Update the stored service URLs if you change project/service names.
 
-> **Last verified: 2026-08-22.** `render.yaml`, CORS config, and the keep-alive workflow are all committed and correctly wired, but nothing below was confirmed live from this repo's evidence alone:
+> **Last verified: 2026-08-22.** `render.yaml` and the CORS config are committed and correctly wired, but nothing below was confirmed live from this repo's evidence alone:
 > - `https://redtape-api.onrender.com/health` returned **HTTP 503 with `Retry-After`** on two direct checks — consistent with a real Render service that exists but is asleep/cold (free tier) or currently unhealthy. Not confirmed as a working `200 {"status":"ok"}`.
 > - `https://redtape-web.pages.dev` **failed DNS resolution entirely** (`ENOTFOUND`) — this Cloudflare Pages project does not appear to exist right now. Treat the frontend as **not deployed** until a Pages project is actually created and connected (Wave 3 steps D5–D6 look undone in practice, even though CORS/env-var config for it is already in place).
 >
@@ -135,13 +135,16 @@ Checks:
 
 ---
 
-## Keep-Alive Automation (Render Free Tier)
+## External pinger (Render free tier)
+
+The Render free tier cold-starts after 15 idle minutes. A free external monitor keeps the API warm and costs zero GitHub Actions minutes (GitHub cron is best-effort and bills each run).
 
 Prereqs:
-- Keep-alive GitHub workflow is added and enabled.
+- A free [UptimeRobot](https://uptimerobot.com) (5 minute interval) or [cron-job.org](https://cron-job.org) account.
+
+Setup:
+- Create an HTTP monitor on `https://redtape-api.onrender.com/health`, ideally limited to browsing hours.
 
 Checks:
-- [ ] GitHub Actions workflow ran recently and `curl` to `/health` succeeds.
+- [ ] The monitor reports the endpoint as up (`200 {"status":"ok"}`).
 - [ ] Render service remains awake during your testing window (at least 15–30 minutes).
-- [ ] GitHub Actions usage stays within free-tier monthly minutes.
-

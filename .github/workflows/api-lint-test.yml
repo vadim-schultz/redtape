@@ -2,7 +2,7 @@ name: API Lint & Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "apps/api/**"
       - ".github/workflows/api-lint-test.yml"
@@ -10,6 +10,10 @@ on:
     paths:
       - "apps/api/**"
       - ".github/workflows/api-lint-test.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:

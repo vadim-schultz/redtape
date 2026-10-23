@@ -12,7 +12,7 @@ against production Render.
 | Topic | Doc |
 | --- | --- |
 | Discovery online runbook (dispatch, secrets, triage, idempotency) | [discovery-online.md](discovery-online.md) |
-| 6-day OpenPLZ / discovery calendar and secrets | [scheduled-jobs.md](scheduled-jobs.md) |
+| Monthly OpenPLZ / discovery schedule and secrets | [scheduled-jobs.md](scheduled-jobs.md) |
 | Workflow | [platform-maintenance.yml](../../.github/workflows/platform-maintenance.yml) |
 
 Scheduled runs update **staging only** — no automatic emit to suggestions. Emit stays manual (§
