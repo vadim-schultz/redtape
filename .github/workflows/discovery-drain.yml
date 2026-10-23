@@ -2,7 +2,7 @@ name: Discovery drain
 
 on:
   schedule:
-    # Daily 04:00 UTC, after the 02:00 maintenance router. Runs only when the repository variable
+    # Daily 04:00 UTC. Runs only when the repository variable
     # DISCOVERY_DRAIN_SCHEDULE equals "enabled" (see the job condition).
     - cron: "0 4 * * *"
   workflow_dispatch:
@@ -18,9 +18,9 @@ on:
         default: "20"
         type: string
       time_budget_seconds:
-        description: "Wall-clock budget in seconds (empty uses the 1500 second default)"
+        description: "Wall-clock budget in seconds (empty uses DISCOVERY_DRAIN_BUDGET_SECONDS, else 900)"
         required: false
-        default: "1500"
+        default: ""
         type: string
       kinds:
         description: "Comma separated task kinds to claim"
@@ -40,13 +40,13 @@ jobs:
     name: Drain discovery tasks
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_DRAIN_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
       MAX_TASKS: ${{ inputs.max_tasks || '50' }}
       MAX_BATCHES: ${{ inputs.max_batches || '20' }}
-      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '1500' }}
+      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || vars.DISCOVERY_DRAIN_BUDGET_SECONDS || '900' }}
       TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata' }}
     steps:
       - name: Check out repository
@@ -56,6 +56,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
 
       - name: Install discovery ingest
         working-directory: apps/discovery-ingest
