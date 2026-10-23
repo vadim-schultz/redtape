@@ -14,6 +14,7 @@ from discovery_ingest.schemas import (
     CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
+    DiscoveryTaskKind,
     EntityUpsertRequest,
     EntityUpsertResponse,
     FetchLogAppendRequest,
@@ -21,6 +22,8 @@ from discovery_ingest.schemas import (
     RunStartResponse,
     TaskClaimRequest,
     TaskClaimResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
 )
 
 
@@ -102,9 +105,9 @@ class DiscoveryMachineClient:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return ClaimAppendResponse.model_validate(response.json())
 
-    def claim_tasks(self, *, limit: int) -> TaskClaimResponse:
-        """Claim pending discovery tasks for this API key."""
-        body = TaskClaimRequest(limit=limit)
+    def claim_tasks(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> TaskClaimResponse:
+        """Claim pending discovery tasks of ``kinds`` for this API key."""
+        body = TaskClaimRequest(limit=limit, kinds=list(kinds))
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/claim"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
@@ -115,6 +118,19 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return TaskClaimResponse.model_validate(response.json())
+
+    def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
+        """Enqueue a follow-up task; an equivalent existing task is returned instead."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskEnqueueResponse.model_validate(response.json())
 
     def start_run(self) -> UUID:
         """Open a ``worker_drain`` run record and return its id."""

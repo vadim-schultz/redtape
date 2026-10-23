@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -20,11 +21,12 @@ QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), Dis
 
 @dataclass(frozen=True, slots=True)
 class TaskTarget:
-    """Identify a task by catalogue row, kind and target URL."""
+    """Identify a task by catalogue row, kind, target URL and optional input key."""
 
     catalogue_service_id: UUID
     kind: DiscoveryTaskKind
     target_url: str
+    input_key: str | None = None
 
 
 def _reclaim_expired_stmt(now: datetime) -> Update:
@@ -57,6 +59,7 @@ class TaskRepository(SessionRepository):
                 DiscoveryTask.catalogue_service_id == target.catalogue_service_id,
                 DiscoveryTask.kind == target.kind,
                 DiscoveryTask.target_url == target.target_url,
+                DiscoveryTask.input_key == target.input_key,
                 DiscoveryTask.status.in_(statuses),
             )
             .limit(1)
@@ -69,6 +72,7 @@ class TaskRepository(SessionRepository):
             catalogue_service_id=target.catalogue_service_id,
             kind=target.kind,
             target_url=target.target_url,
+            input_key=target.input_key,
             status=DiscoveryTaskStatus.PENDING,
             priority=priority,
         )
@@ -81,9 +85,12 @@ class TaskRepository(SessionRepository):
         self._session.execute(_reclaim_expired_stmt(now))
         self._session.flush()
 
-    def list_pending_tasks_for_claim(self, *, limit: int) -> list[DiscoveryTask]:
-        """Return up to ``limit`` pending tasks in queue order."""
-        stmt = select(DiscoveryTask).where(DiscoveryTask.status == DiscoveryTaskStatus.PENDING)
+    def list_pending_tasks_for_claim(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> list[DiscoveryTask]:
+        """Return up to ``limit`` pending tasks of the given ``kinds`` in queue order."""
+        stmt = select(DiscoveryTask).where(
+            DiscoveryTask.status == DiscoveryTaskStatus.PENDING,
+            DiscoveryTask.kind.in_(kinds),
+        )
         return list(self._session.scalars(stmt.order_by(*QUEUE_ORDER).limit(limit)).all())
 
     def get_task(self, task_id: UUID) -> DiscoveryTask | None:

@@ -10,7 +10,9 @@ from typing import Any
 
 import httpx
 import pytest
+from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
+from discovery_ingest.schemas import TaskEnqueueRequest
 
 from run_stub import run_response
 
@@ -374,3 +376,91 @@ def test_worker_drain_fails_a_task_whose_fetch_ended_in_an_unfollowed_3xx(
 
     report = json.loads(capsys.readouterr().out)
     assert (report["completed"], report["failed"]) == (0, 2)
+
+
+def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
+    """Record every claim request body; the queue is always empty."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(200, json={"items": []})
+
+    return handler
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [
+        ([], ["fetch_url", "enrich_metadata"]),
+        (["--kinds", "extract_page,capture_screenshot"], ["extract_page", "capture_screenshot"]),
+    ],
+)
+def test_worker_drain_sends_the_configured_kinds_when_claiming(
+    monkeypatch: pytest.MonkeyPatch, flags: list[str], expected: list[str], _env: None
+) -> None:
+    """worker drain sends the default or the configured kinds in the claim body."""
+    bodies: list[dict[str, object]] = []
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
+
+    assert main(["worker", "drain", *flags]) == 0
+
+    assert [body["kinds"] for body in bodies] == [expected]
+
+
+@pytest.mark.parametrize("raw", ["fetch_url,no_such_kind", "no_such_kind", ""])
+def test_worker_drain_rejects_an_unknown_or_empty_kind_before_claiming(
+    monkeypatch: pytest.MonkeyPatch, raw: str, _env: None
+) -> None:
+    """worker drain refuses an unknown or empty --kinds value without any API call."""
+    bodies: list[dict[str, object]] = []
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["worker", "drain", "--kinds", raw])
+
+    assert exit_info.value.code == 2
+    assert bodies == []
+
+
+def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The machine client posts the enqueue body and reads back id and created."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(201, json={"id": str(TASK_ID), "created": True})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+
+    result = client.enqueue_task(
+        TaskEnqueueRequest(
+            catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL, input_key="html@1"
+        )
+    )
+
+    assert (result.id, result.created) == (TASK_ID, True)
+    assert seen[0].url == httpx.URL(f"{API_BASE}/api/v1/discovery/machine/tasks")
+    assert seen[0].headers["x-api-key"] == "test-machine-key"
+    assert json.loads(seen[0].content.decode()) == {
+        "catalogue_service_id": str(CATALOGUE_ID),
+        "kind": "extract_page",
+        "target_url": TARGET_URL,
+        "priority": 100,
+        "input_key": "html@1",
+    }
+
+
+def test_client_enqueue_task_raises_on_an_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 404 from the enqueue route surfaces as DiscoveryMachineApiError."""
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(lambda request: httpx.Response(404, text="gone")))
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    body = TaskEnqueueRequest(catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL)
+
+    with pytest.raises(DiscoveryMachineApiError) as error:
+        client.enqueue_task(body)
+
+    assert error.value.status_code == 404
