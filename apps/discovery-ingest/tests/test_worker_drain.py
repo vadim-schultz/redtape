@@ -359,3 +359,18 @@ def test_worker_drain_sends_the_configured_user_agent(monkeypatch: pytest.Monkey
     assert main(["worker", "drain", "--max-tasks", "1"]) == 0
     assert agents
     assert set(agents) == {"RedtapeBot/1.0 (+https://ops.example/bot)"}
+
+
+@pytest.mark.parametrize("fetch_status", [304, 302])
+def test_worker_drain_fails_a_task_whose_fetch_ended_in_an_unfollowed_3xx(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], _env: None, fetch_status: int
+) -> None:
+    """worker drain · a 3xx that could not be resolved fails the task instead of completing it."""
+    claims, finishes = [0], []
+    handler = _queue_handler(_two_batches(), claims, finishes, fetch_status=fetch_status)
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    assert main(["worker", "drain", "--max-tasks", "2"]) == 0
+
+    report = json.loads(capsys.readouterr().out)
+    assert (report["completed"], report["failed"]) == (0, 2)

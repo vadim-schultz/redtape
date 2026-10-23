@@ -360,3 +360,100 @@ def test_fetcher_rejects_a_redirect_to_a_non_http_scheme() -> None:
 def test_is_public_address_classifies_addresses(address: str, expected: bool) -> None:
     """is_public_address accepts only globally routable unicast addresses."""
     assert is_public_address(address) is expected
+
+
+# Loop D: classification
+
+
+def _status_handler(status: int) -> Handler:
+    return _without_robots(lambda _request: httpx.Response(status))
+
+
+def _raising(error: Exception) -> Handler:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        raise error
+
+    return handler
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [
+        _raising(httpx.ReadTimeout("timed out")),
+        _raising(httpx.ConnectTimeout("connect timed out")),
+        _raising(httpx.ConnectError("connection refused")),
+        _raising(httpx.ReadError("connection reset by peer")),
+        _status_handler(429),
+        _status_handler(500),
+        _status_handler(502),
+        _status_handler(503),
+        _status_handler(504),
+        lambda _request: httpx.Response(503),
+    ],
+    ids=["read-timeout", "connect-timeout", "connect-error", "reset", "429", "500", "502", "503", "504", "robots-503"],
+)
+def test_fetcher_marks_timeouts_resets_429_and_5xx_retryable(handler: Handler) -> None:
+    """fetcher marks timeouts, resets, 429 and 5xx retryable."""
+    outcome = _fetcher(handler).get(PAGE)
+
+    assert outcome.retryable is True
+    assert outcome.body is None
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 410, 451])
+def test_fetcher_marks_client_errors_permanent(status: int) -> None:
+    """fetcher marks 4xx other than 429 permanent and never retries around a block."""
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(404) if request.url.path == "/robots.txt" else httpx.Response(status, content=b"blocked!")
+
+    outcome = _fetcher(handler).get(PAGE)
+
+    assert outcome.retryable is False
+    assert outcome.http_status == status
+    assert outcome.failed is True
+    assert [r.url.path for r in requests] == ["/robots.txt", "/old"]
+
+
+def test_fetcher_marks_robots_denials_permanent() -> None:
+    """fetcher marks a robots.txt denial permanent."""
+    outcome = _fetcher(_Site(_disallow("/"))).get(PAGE)
+
+    assert outcome.retryable is False
+    assert outcome.failed is True
+
+
+def test_fetcher_marks_guard_and_limit_failures_permanent() -> None:
+    """fetcher marks blocked addresses, schemes, oversize bodies and redirect loops permanent."""
+    loop = _without_robots(lambda r: _redirect(302, "/b" if r.url.path == "/old" else "/old"))
+    oversize = _without_robots(lambda _request: httpx.Response(200, content=b"x" * 11))
+    cases = [
+        _fetcher(_Site(), {"portal.example": ["10.0.0.1"]}).get(PAGE),
+        _fetcher(_Site()).get("ftp://portal.example/file"),
+        _fetcher(oversize, max_bytes=10).get(PAGE),
+        _fetcher(loop).get(PAGE),
+    ]
+
+    assert [outcome.retryable for outcome in cases] == [False] * 4
+    assert [outcome.failed for outcome in cases] == [True] * 4
+
+
+def test_fetcher_does_not_mark_a_success_retryable() -> None:
+    """fetcher reports a 200 as neither failed nor retryable."""
+    outcome = _fetcher(_Site()).get(PAGE)
+
+    assert (outcome.failed, outcome.retryable) == (False, False)
+
+
+@pytest.mark.parametrize("status", [300, 304, 305])
+def test_fetcher_treats_a_non_redirect_3xx_as_failed(status: int) -> None:
+    """fetcher never reports a 3xx it did not follow as success."""
+    outcome = _fetcher(_status_handler(status)).get(PAGE)
+
+    assert outcome.failed is True
+    assert outcome.failure_message == f"HTTP {status}"
+    assert outcome.retryable is False
