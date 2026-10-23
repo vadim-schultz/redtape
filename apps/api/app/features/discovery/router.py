@@ -9,6 +9,7 @@ from litestar.status_codes import HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENT
 from litestar.types import ExceptionHandlersMap
 
 from app.features.discovery.admin_controller import DiscoveryAdminController
+from app.features.discovery.candidate_machine_controller import DiscoveryCandidateMachineController
 from app.features.discovery.dependencies import router_dependencies
 from app.features.discovery.errors import DiscoveryNotFoundError, InvalidDiscoveryInputError
 from app.features.discovery.machine_controller import DiscoveryMachineController
@@ -43,7 +44,7 @@ discovery_admin_router = Router(
 
 discovery_machine_router = Router(
     path="/api/v1/discovery/machine",
-    route_handlers=[DiscoveryMachineController],
+    route_handlers=[DiscoveryMachineController, DiscoveryCandidateMachineController],
     dependencies=router_dependencies,
     exception_handlers={**_DOMAIN_ERROR_HANDLERS, ValidationException: _invalid_payload_is_422},
     tags=["discovery-machine"],

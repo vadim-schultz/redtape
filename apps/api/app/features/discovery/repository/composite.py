@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.features.discovery.repository.activity import ActivityRepository
+from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
@@ -18,6 +19,7 @@ class DiscoveryRepository(
     TaskListingRepository,
     EntityRepository,
     ClaimRepository,
+    CandidateRepository,
     ActivityRepository,
     CoverageRepository,
     RunRepository,
