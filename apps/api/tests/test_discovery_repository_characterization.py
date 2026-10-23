@@ -244,12 +244,12 @@ def test_coverage_metrics_count_sources_tasks_and_t4(repo: DiscoveryRepository, 
     repo.insert_task(_target(cat))
     metrics = repo.fetch_coverage_metrics()
     assert metrics.by_source == {"fim": 1}
-    assert (metrics.tasks_pending, metrics.tasks_failed, metrics.emit_ready_count) == (1, 0, 1)
+    assert (metrics.task_counts.pending, metrics.task_counts.failed, metrics.emit_ready_count) == (1, 0, 1)
 
 
 def test_coverage_metrics_empty_database_is_all_zero(repo: DiscoveryRepository) -> None:
     metrics = repo.fetch_coverage_metrics()
-    assert (metrics.by_source, metrics.tasks_pending, metrics.tasks_failed, metrics.emit_ready_count) == ({}, 0, 0, 0)
+    assert (metrics.by_source, metrics.task_counts.total, metrics.emit_ready_count) == ({}, 0, 0)
 
 
 def test_catalogue_summary_groups_by_source_and_stage(

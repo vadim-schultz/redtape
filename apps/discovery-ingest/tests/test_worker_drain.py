@@ -11,6 +11,8 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 
+from run_stub import run_response
+
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 CATALOGUE_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -39,6 +41,9 @@ def test_worker_drain_claims_task_posts_fetch_log_and_completes(
     calls: list[tuple[str, str]] = []
 
     def api_handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
         url = str(request.url)
         calls.append((request.method, url))
         if url.endswith("/tasks/claim"):
@@ -97,6 +102,9 @@ def test_worker_drain_marks_fail_when_get_times_out(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
 
     def api_handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
         url = str(request.url)
         if url.endswith("/tasks/claim"):
             return httpx.Response(

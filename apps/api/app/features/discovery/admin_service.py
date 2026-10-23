@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from uuid import UUID
 
 from app.features.discovery.emit_preview import build_emit_preview_items
@@ -21,10 +22,12 @@ from app.schema.discovery.read import (
     CatalogueServiceRead,
     CatalogueSummaryChips,
     DiscoveryCoverageResponse,
+    DiscoveryRunRead,
     DiscoveryTaskListResponse,
     DiscoveryTaskRead,
     EmitPreviewItemRead,
     EmitPreviewResponse,
+    TaskCountsRead,
 )
 
 
@@ -67,11 +70,18 @@ class DiscoveryAdminService:
     def coverage(self) -> DiscoveryCoverageResponse:
         """Return coverage counters across sources."""
         counts = self._repo.fetch_coverage_metrics()
+        run = counts.last_successful_run
         return DiscoveryCoverageResponse(
             by_source=counts.by_source,
-            tasks_pending=counts.tasks_pending,
-            tasks_failed=counts.tasks_failed,
+            tasks_pending=counts.task_counts.pending,
+            tasks_failed=counts.task_counts.failed,
             emit_ready_count=counts.emit_ready_count,
+            task_counts=TaskCountsRead(**asdict(counts.task_counts)),
+            fetch_attempts_total=counts.fetch_attempts_total,
+            stale_claims=counts.stale_claims,
+            stale_runs=counts.stale_runs,
+            failures_by_source=counts.failures_by_source,
+            last_successful_run=DiscoveryRunRead.model_validate(run) if run is not None else None,
         )
 
     def emit_preview(self, catalogue_id: UUID) -> EmitPreviewResponse:

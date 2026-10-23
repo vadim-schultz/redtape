@@ -33,8 +33,8 @@ from discovery_ingest.pvog.client import (
     map_pvog_record,
 )
 from discovery_ingest.schemas import CatalogueBatchItem
-from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.run import run_recorded_drain
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -195,7 +195,7 @@ def _worker_drain(args: argparse.Namespace) -> int:
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     fetcher = PoliteUrlFetcher()
     try:
-        report = run_worker_drain(client, fetcher, max_tasks=args.max_tasks)
+        report = run_recorded_drain(client, fetcher, max_tasks=args.max_tasks)
     except DiscoveryMachineApiError:
         return 1
     print(json.dumps(report.model_dump(mode="json")))

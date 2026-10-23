@@ -121,7 +121,18 @@
       "tasks_pending": "Pending tasks: {count}",
       "tasks_failed": "Failed tasks: {count}",
       "emit_ready": "Emit-ready: {count}",
-      "no_sources": "No catalogue rows yet."
+      "no_sources": "No catalogue rows yet.",
+      "tasks_total": "Total tasks: {count}",
+      "tasks_claimed": "Claimed tasks: {count}",
+      "tasks_completed": "Completed tasks: {count}",
+      "fetch_attempts": "Fetch attempts: {count}",
+      "stale_claims": "Stale leases: {count}",
+      "stale_runs": "Stale runs: {count}",
+      "failures_by_source": "Failed tasks by source",
+      "no_failures": "No failed tasks.",
+      "last_run": "Last successful run: {finished_at}",
+      "last_run_summary": "Claimed {claimed}, completed {completed}, failed {failed}, skipped {skipped}; stopped: {reason}",
+      "no_successful_run": "No successful run recorded yet."
     },
     "catalogue": {
       "empty": "No catalogue services yet.",

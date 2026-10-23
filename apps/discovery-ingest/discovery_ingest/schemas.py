@@ -120,3 +120,25 @@ class DrainReport(BaseModel):
     completed: int
     failed: int
     skipped: int
+
+
+class RunStartResponse(BaseModel):
+    """Run record opened by the machine API."""
+
+    id: UUID
+
+
+StopReason = Literal["queue_empty", "batch_limit", "time_budget", "error"]
+
+
+class RunFinishRequest(BaseModel):
+    """Report that closes a worker run."""
+
+    status: Literal["succeeded", "failed"]
+    claimed_count: int
+    completed_count: int
+    failed_count: int
+    skipped_count: int
+    remaining_count: int | None = None
+    stop_reason: StopReason | None = None
+    error_detail: str | None = None

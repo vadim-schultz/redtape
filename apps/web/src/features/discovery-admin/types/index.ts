@@ -76,9 +76,38 @@ export type CatalogueListResponse = {
   limit: number;
 };
 
+export type DiscoveryTaskCounts = {
+  total: number;
+  pending: number;
+  claimed: number;
+  completed: number;
+  failed: number;
+};
+
+export type DiscoveryRun = {
+  id: string;
+  kind: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  claimed_count: number;
+  completed_count: number;
+  failed_count: number;
+  skipped_count: number;
+  remaining_count: number | null;
+  stop_reason: string | null;
+  error_detail: string | null;
+};
+
 export type DiscoveryCoverageResponse = {
   by_source: Partial<Record<DiscoverySource, number>>;
   tasks_pending: number;
   tasks_failed: number;
   emit_ready_count: number;
+  task_counts: DiscoveryTaskCounts;
+  fetch_attempts_total: number;
+  stale_claims: number;
+  stale_runs: number;
+  failures_by_source: Partial<Record<DiscoverySource, number>>;
+  last_successful_run: DiscoveryRun | null;
 };

@@ -6,6 +6,7 @@ import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 
 import app.features.auth.dependencies as auth_dependencies
 import app.features.auth.guard_session as guard_session_module
@@ -16,6 +17,8 @@ from app.features.auth.jwt import JwtVerifier
 from app.main import create_app
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryFetchLog,
+    DiscoveryRun,
     DiscoverySource,
     DiscoveryTask,
     DiscoveryTaskKind,
@@ -102,12 +105,14 @@ def _task(
     *,
     catalogue: CatalogueService,
     status: DiscoveryTaskStatus,
+    lease_expires_at: datetime | None = None,
 ) -> DiscoveryTask:
     task = DiscoveryTask(
         catalogue_service_id=catalogue.id,
         kind=DiscoveryTaskKind.FETCH_URL,
         target_url="https://example.gov/service",
         status=status,
+        lease_expires_at=lease_expires_at,
     )
     session.add(task)
     session.flush()
@@ -161,3 +166,86 @@ def test_get_discovery_admin_coverage_returns_403_for_non_admin(client: TestClie
     )
 
     assert response.status_code == 403
+
+
+def _get_coverage(client: TestClient[Litestar]) -> dict[str, object]:
+    token = _token(sub=uuid.uuid4(), email=ADMIN_EMAIL)
+    response = client.get(COVERAGE_URL, headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    body: dict[str, object] = response.json()
+    return body
+
+
+def test_coverage_returns_total_and_status_counts_for_mixed_task_history(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    row = _catalogue(db_session, external_id="gov-mixed")
+    for status in (
+        DiscoveryTaskStatus.PENDING,
+        DiscoveryTaskStatus.CLAIMED,
+        DiscoveryTaskStatus.COMPLETED,
+        DiscoveryTaskStatus.COMPLETED,
+        DiscoveryTaskStatus.FAILED,
+    ):
+        _task(db_session, catalogue=row, status=status)
+    task = _task(db_session, catalogue=row, status=DiscoveryTaskStatus.COMPLETED)
+    db_session.add(DiscoveryFetchLog(discovery_task_id=task.id, http_status=200))
+    db_session.add(DiscoveryFetchLog(discovery_task_id=task.id, http_status=500))
+    db_session.flush()
+
+    body = _get_coverage(client)
+
+    assert body["task_counts"] == {"total": 6, "pending": 1, "claimed": 1, "completed": 3, "failed": 1}
+    assert body["fetch_attempts_total"] == 2
+    assert body["last_successful_run"] is None
+
+
+def test_coverage_with_empty_queue_reports_zero_counts_and_no_run(client: TestClient[Litestar]) -> None:
+    body = _get_coverage(client)
+
+    assert body["task_counts"] == {"total": 0, "pending": 0, "claimed": 0, "completed": 0, "failed": 0}
+    assert body["fetch_attempts_total"] == 0
+    assert body["stale_claims"] == 0
+    assert body["failures_by_source"] == {}
+    assert body["last_successful_run"] is None
+
+
+def test_coverage_reports_stale_leases_and_per_source_failures(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    now = datetime.now(UTC)
+    gov = _catalogue(db_session, source=DiscoverySource.GOVDATA, external_id="gov-stale")
+    pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="pvog-fail")
+    _task(db_session, catalogue=gov, status=DiscoveryTaskStatus.CLAIMED, lease_expires_at=now - timedelta(minutes=1))
+    _task(db_session, catalogue=gov, status=DiscoveryTaskStatus.CLAIMED, lease_expires_at=now + timedelta(minutes=10))
+    _task(db_session, catalogue=gov, status=DiscoveryTaskStatus.FAILED)
+    _task(db_session, catalogue=pvog, status=DiscoveryTaskStatus.FAILED)
+    _task(db_session, catalogue=pvog, status=DiscoveryTaskStatus.FAILED)
+    _task(db_session, catalogue=pvog, status=DiscoveryTaskStatus.COMPLETED)
+
+    body = _get_coverage(client)
+
+    assert body["stale_claims"] == 1
+    assert body["failures_by_source"] == {"govdata": 1, "pvog": 2}
+
+
+def test_coverage_returns_latest_successful_run_and_ignores_failed_and_running_runs(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    now = datetime.now(UTC)
+    db_session.add_all(
+        [
+            DiscoveryRun(status="succeeded", started_at=now, finished_at=now - timedelta(hours=2), claimed_count=1),
+            DiscoveryRun(status="succeeded", started_at=now, finished_at=now - timedelta(hours=1), claimed_count=7),
+            DiscoveryRun(status="failed", started_at=now, finished_at=now, claimed_count=9),
+            DiscoveryRun(status="running", started_at=now - timedelta(hours=3)),
+        ]
+    )
+    db_session.flush()
+
+    body = _get_coverage(client)
+
+    last_run = body["last_successful_run"]
+    assert isinstance(last_run, dict)
+    assert last_run["claimed_count"] == 7
+    assert body["stale_runs"] == 1

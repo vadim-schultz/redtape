@@ -17,6 +17,8 @@ from discovery_ingest.schemas import (
     EntityUpsertRequest,
     EntityUpsertResponse,
     FetchLogAppendRequest,
+    RunFinishRequest,
+    RunStartResponse,
     TaskClaimRequest,
     TaskClaimResponse,
 )
@@ -113,6 +115,23 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return TaskClaimResponse.model_validate(response.json())
+
+    def start_run(self) -> UUID:
+        """Open a ``worker_drain`` run record and return its id."""
+        url = f"{self._base_url}/api/v1/discovery/machine/runs"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, json={"kind": "worker_drain"}, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return RunStartResponse.model_validate(response.json()).id
+
+    def finish_run(self, run_id: UUID, body: RunFinishRequest) -> None:
+        """Close ``run_id`` with its report."""
+        url = f"{self._base_url}/api/v1/discovery/machine/runs/{run_id}/finish"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, json=body.model_dump(mode="json"), headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
 
     def append_fetch(self, task_id: UUID, body: FetchLogAppendRequest) -> None:
         """Append a fetch log row for a claimed task."""
