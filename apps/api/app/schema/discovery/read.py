@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryCandidateMention,
+    DiscoveryCandidateStatus,
+    DiscoveryDocumentCandidate,
+    DiscoveryMentionRole,
     DiscoverySource,
     DiscoveryTask,
     DiscoveryTaskKind,
@@ -174,3 +178,87 @@ class CataloguePipelineResponse(BaseModel):
     fetch_logs: list[dict[str, object]] = Field(default_factory=list)
     claims: list[dict[str, object]] = Field(default_factory=list)
     events: list[dict[str, object]] = Field(default_factory=list)
+
+
+class CandidateRead(BaseModel):
+    """Document candidate with the number of procedures mentioning it."""
+
+    model_config = ConfigDict(from_attributes=False)
+
+    id: UUID
+    jurisdiction_id: UUID
+    key: str
+    title_i18n: dict[str, str]
+    official_url: str | None
+    status: DiscoveryCandidateStatus
+    suggestion_id: UUID | None
+    mention_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(cls, row: DiscoveryDocumentCandidate, *, mention_count: int) -> CandidateRead:
+        return cls(
+            id=row.id,
+            jurisdiction_id=row.jurisdiction_id,
+            key=row.key,
+            title_i18n=row.title_i18n,
+            official_url=row.official_url,
+            status=row.status,
+            suggestion_id=row.suggestion_id,
+            mention_count=mention_count,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+
+
+class CandidateListResponse(BaseModel):
+    """Paginated document candidates."""
+
+    items: list[CandidateRead]
+    total: int
+    offset: int
+    limit: int
+
+
+class CandidateMentionRead(BaseModel):
+    """One mention with the procedure it was found in."""
+
+    model_config = ConfigDict(from_attributes=False)
+
+    id: UUID
+    catalogue_service_id: UUID
+    procedure_title_i18n: dict[str, str]
+    procedure_source: DiscoverySource
+    portal_url: str | None
+    role: DiscoveryMentionRole
+    excerpt: str
+    source_field: str
+    artifact_id: UUID | None
+    extractor: str
+    extractor_version: str
+    created_at: datetime
+
+    @classmethod
+    def from_row(cls, mention: DiscoveryCandidateMention, procedure: CatalogueService) -> CandidateMentionRead:
+        return cls(
+            id=mention.id,
+            catalogue_service_id=procedure.id,
+            procedure_title_i18n=procedure.title_i18n,
+            procedure_source=procedure.source,
+            portal_url=procedure.portal_url,
+            role=mention.role,
+            excerpt=mention.excerpt,
+            source_field=mention.source_field,
+            artifact_id=mention.artifact_id,
+            extractor=mention.extractor,
+            extractor_version=mention.extractor_version,
+            created_at=mention.created_at,
+        )
+
+
+class CandidateDetailResponse(BaseModel):
+    """A candidate with every mention."""
+
+    candidate: CandidateRead
+    mentions: list[CandidateMentionRead]

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from app.features.discovery.repository.activity import ActivityRepository, FetchLogEntry, NewEvent
+from app.features.discovery.repository.candidate_listing import CandidateListingRepository
+from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.composite import DiscoveryRepository
@@ -15,6 +17,8 @@ from app.features.discovery.repository.tasks import TaskRepository, TaskTarget
 
 __all__ = [
     "ActivityRepository",
+    "CandidateListingRepository",
+    "CandidateRepository",
     "CatalogueRepository",
     "ClaimRepository",
     "CoverageRepository",

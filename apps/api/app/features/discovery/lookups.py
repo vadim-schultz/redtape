@@ -5,12 +5,13 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.features.discovery.errors import (
+    CandidateNotFoundError,
     CatalogueNotFoundError,
     DiscoveryRunNotFoundError,
     DiscoveryTaskNotFoundError,
 )
 from app.features.discovery.repository import DiscoveryRepository
-from app.models.discovery import CatalogueService, DiscoveryRun, DiscoveryTask
+from app.models.discovery import CatalogueService, DiscoveryDocumentCandidate, DiscoveryRun, DiscoveryTask
 
 
 def require_catalogue(repo: DiscoveryRepository, catalogue_id: UUID) -> CatalogueService:
@@ -35,3 +36,11 @@ def require_run(repo: DiscoveryRepository, run_id: UUID) -> DiscoveryRun:
     if run is None:
         raise DiscoveryRunNotFoundError()
     return run
+
+
+def require_candidate(repo: DiscoveryRepository, candidate_id: UUID) -> DiscoveryDocumentCandidate:
+    """Return the candidate row or raise ``CandidateNotFoundError``."""
+    candidate = repo.get_candidate(candidate_id)
+    if candidate is None:
+        raise CandidateNotFoundError()
+    return candidate

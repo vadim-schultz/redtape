@@ -7,9 +7,13 @@ import uuid
 import pytest
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryCandidateMention,
+    DiscoveryCandidateStatus,
+    DiscoveryDocumentCandidate,
     DiscoveryEntity,
     DiscoveryEvent,
     DiscoveryEventType,
+    DiscoveryMentionRole,
     DiscoverySource,
     DiscoveryTask,
     DiscoveryTaskKind,
@@ -135,3 +139,112 @@ def test_pipeline_stage_check_rejects_t9(db_session: Session) -> None:
 
     with pytest.raises(IntegrityError):
         db_session.flush()
+
+
+def _candidate(
+    session: Session, jurisdiction_id: uuid.UUID, *, key: str = "personalausweis"
+) -> DiscoveryDocumentCandidate:
+    row = DiscoveryDocumentCandidate(jurisdiction_id=jurisdiction_id, key=key, title_i18n={"de": "Personalausweis"})
+    session.add(row)
+    session.flush()
+    return row
+
+
+def _mention(
+    candidate: DiscoveryDocumentCandidate,
+    catalogue: CatalogueService,
+    *,
+    role: DiscoveryMentionRole = DiscoveryMentionRole.REQUIRED,
+    source_field: str = "details[0]",
+) -> DiscoveryCandidateMention:
+    return DiscoveryCandidateMention(
+        candidate_id=candidate.id,
+        catalogue_service_id=catalogue.id,
+        role=role,
+        excerpt="Bitte Personalausweis mitbringen",
+        source_field=source_field,
+        extractor="pvog_payload",
+        extractor_version="1",
+    )
+
+
+def test_candidate_defaults_to_staged_without_suggestion(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    db_session.expire(candidate)
+
+    assert candidate.status == DiscoveryCandidateStatus.STAGED
+    assert candidate.suggestion_id is None
+    assert candidate.official_url is None
+
+
+def test_candidate_unique_per_jurisdiction_and_key(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    _candidate(db_session, catalogue.jurisdiction_id)
+    db_session.add(
+        DiscoveryDocumentCandidate(
+            jurisdiction_id=catalogue.jurisdiction_id, key="personalausweis", title_i18n={"en": "ID card"}
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+def test_candidate_key_may_repeat_across_jurisdictions(db_session: Session) -> None:
+    first = _catalogue_service(db_session, external_id="svc-a")
+    second = _catalogue_service(db_session, external_id="svc-b")
+
+    _candidate(db_session, first.jurisdiction_id)
+    _candidate(db_session, second.jurisdiction_id)
+
+
+def test_mention_unique_per_candidate_service_role_and_field(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    db_session.add(_mention(candidate, catalogue))
+    db_session.flush()
+    db_session.add(_mention(candidate, catalogue))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+def test_mention_may_repeat_with_another_role(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    db_session.add(_mention(candidate, catalogue))
+    db_session.add(_mention(candidate, catalogue, role=DiscoveryMentionRole.FORM))
+
+    db_session.flush()
+
+
+def test_deleting_a_catalogue_row_cascades_its_mentions(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    mention = _mention(candidate, catalogue)
+    db_session.add(mention)
+    db_session.flush()
+    mention_id = mention.id
+
+    db_session.delete(catalogue)
+    db_session.flush()
+    db_session.expire_all()
+
+    assert db_session.get(DiscoveryCandidateMention, mention_id) is None
+    assert db_session.get(DiscoveryDocumentCandidate, candidate.id) is not None
+
+
+def test_deleting_a_candidate_cascades_its_mentions(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    mention = _mention(candidate, catalogue)
+    db_session.add(mention)
+    db_session.flush()
+    mention_id = mention.id
+
+    db_session.delete(candidate)
+    db_session.flush()
+    db_session.expire_all()
+
+    assert db_session.get(DiscoveryCandidateMention, mention_id) is None
