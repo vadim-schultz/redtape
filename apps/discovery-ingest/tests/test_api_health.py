@@ -16,7 +16,7 @@ def test_wait_for_api_returns_when_health_200() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal calls
         calls += 1
-        assert request.url.path == "/deliberately-wrong"
+        assert request.url.path == "/health"
         return httpx.Response(200, json={"status": "ok"})
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
