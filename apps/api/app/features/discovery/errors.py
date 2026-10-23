@@ -29,6 +29,14 @@ class DiscoveryTaskNotFoundError(DiscoveryNotFoundError):
         super().__init__("Discovery task not found")
 
 
+class DiscoveryRunNotFoundError(DiscoveryNotFoundError):
+    """The discovery run does not exist."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Discovery run not found")
+
+
 class DiscoveryEntityNotFoundError(DiscoveryNotFoundError):
     """The discovery entity does not exist."""
 
@@ -47,3 +55,11 @@ class UnknownJurisdictionError(InvalidDiscoveryInputError):
     def __init__(self, jurisdiction_id: UUID) -> None:
         """Build the error naming the offending ``jurisdiction_id``."""
         super().__init__(f"Unknown jurisdiction_id: {jurisdiction_id}")
+
+
+class RunAlreadyFinishedError(InvalidDiscoveryInputError):
+    """A run that already finished cannot be finished again."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Discovery run already finished")

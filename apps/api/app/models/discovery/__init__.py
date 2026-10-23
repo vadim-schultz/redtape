@@ -7,10 +7,13 @@ from app.models.discovery.discovery_claim import DiscoveryClaim
 from app.models.discovery.discovery_entity import DiscoveryEntity
 from app.models.discovery.discovery_event import DiscoveryEvent
 from app.models.discovery.discovery_fetch_log import DiscoveryFetchLog
+from app.models.discovery.discovery_run import DiscoveryRun
 from app.models.discovery.discovery_task import DiscoveryTask
 from app.models.discovery.enums import (
     DiscoveryClaimKind,
     DiscoveryEventType,
+    DiscoveryRunKind,
+    DiscoveryRunStatus,
     DiscoverySource,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -24,6 +27,9 @@ __all__ = [
     "DiscoveryEvent",
     "DiscoveryEventType",
     "DiscoveryFetchLog",
+    "DiscoveryRun",
+    "DiscoveryRunKind",
+    "DiscoveryRunStatus",
     "DiscoverySource",
     "DiscoveryTask",
     "DiscoveryTaskKind",

@@ -3,37 +3,48 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import ColumnElement, func, select
 
 from app.features.discovery.pipeline import PipelineStage
-from app.features.discovery.repository.base import SessionRepository
+from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts
+from app.features.discovery.repository.runs import RunRepository
 from app.models.base import Base
-from app.models.discovery import CatalogueService, DiscoveryTask, DiscoveryTaskStatus
+from app.models.discovery import CatalogueService, DiscoveryRun
 
 
 @dataclass(frozen=True, slots=True)
 class DiscoveryCoverageCounts:
-    """Aggregate coverage metrics for the admin catalogue index."""
+    """Aggregate coverage and queue metrics for the admin coverage surface."""
 
     by_source: dict[str, int]
-    tasks_pending: int
-    tasks_failed: int
     emit_ready_count: int
+    task_counts: TaskStatusCounts
+    fetch_attempts_total: int
+    stale_claims: int
+    stale_runs: int
+    failures_by_source: dict[str, int]
+    last_successful_run: DiscoveryRun | None
 
 
-class CoverageRepository(SessionRepository):
-    """Count catalogue rows and tasks for the coverage endpoint."""
+class CoverageRepository(QueueMetricsRepository, RunRepository):
+    """Count catalogue rows, tasks, fetches, and runs for the coverage endpoint."""
 
     def fetch_coverage_metrics(self) -> DiscoveryCoverageCounts:
-        """Return catalogue and task counts for the admin coverage endpoint."""
+        """Return catalogue, queue, and run metrics for the admin coverage endpoint."""
+        now = datetime.now(UTC)
         return DiscoveryCoverageCounts(
             by_source=self._catalogue_counts_by_source(),
-            tasks_pending=self._count_where(DiscoveryTask, DiscoveryTask.status == DiscoveryTaskStatus.PENDING),
-            tasks_failed=self._count_where(DiscoveryTask, DiscoveryTask.status == DiscoveryTaskStatus.FAILED),
             emit_ready_count=self._count_where(
                 CatalogueService, CatalogueService.pipeline_stage == PipelineStage.T4.value
             ),
+            task_counts=self.task_status_counts(),
+            fetch_attempts_total=self.count_fetch_attempts(),
+            stale_claims=self.count_stale_claims(now=now),
+            stale_runs=self.count_stale_runs(now=now),
+            failures_by_source=self.failed_counts_by_source(),
+            last_successful_run=self.latest_successful_run(),
         )
 
     def _catalogue_counts_by_source(self) -> dict[str, int]:

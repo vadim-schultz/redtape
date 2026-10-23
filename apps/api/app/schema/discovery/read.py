@@ -105,13 +105,48 @@ class CatalogueListResponse(BaseModel):
     limit: int
 
 
+class TaskCountsRead(BaseModel):
+    """Task totals grouped by current status."""
+
+    total: int
+    pending: int
+    claimed: int
+    completed: int
+    failed: int
+
+
+class DiscoveryRunRead(BaseModel):
+    """Operational run record as shown to operators."""
+
+    id: UUID
+    kind: str
+    status: str
+    started_at: datetime
+    finished_at: datetime | None = None
+    claimed_count: int
+    completed_count: int
+    failed_count: int
+    skipped_count: int
+    remaining_count: int | None = None
+    stop_reason: str | None = None
+    error_detail: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DiscoveryCoverageResponse(BaseModel):
-    """Ingest completeness metrics for the admin catalogue index."""
+    """Operational queue and ingest counts for the admin coverage surface."""
 
     by_source: dict[str, int] = Field(default_factory=dict)
     tasks_pending: int
     tasks_failed: int
     emit_ready_count: int
+    task_counts: TaskCountsRead
+    fetch_attempts_total: int
+    stale_claims: int
+    stale_runs: int
+    failures_by_source: dict[str, int] = Field(default_factory=dict)
+    last_successful_run: DiscoveryRunRead | None = None
 
 
 class EmitPreviewItemRead(BaseModel):

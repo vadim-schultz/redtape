@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
     DiscoveryClaimKind,
+    DiscoveryRunKind,
     DiscoverySource,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -172,3 +174,32 @@ class CatalogueEmitResponse(BaseModel):
     created_count: int
     skipped_count: int
     replayed_count: int
+
+
+class RunStartRequest(BaseModel):
+    """Open a run record before the worker starts draining."""
+
+    kind: DiscoveryRunKind = DiscoveryRunKind.WORKER_DRAIN
+
+
+class RunFinishRequest(BaseModel):
+    """Close a run with its report."""
+
+    status: Literal["succeeded", "failed"]
+    claimed_count: int = Field(ge=0)
+    completed_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    skipped_count: int = Field(ge=0)
+    remaining_count: int | None = Field(default=None, ge=0)
+    stop_reason: Literal["queue_empty", "batch_limit", "time_budget", "error"] | None = None
+    error_detail: str | None = Field(default=None, max_length=1000)
+
+
+class RunRead(BaseModel):
+    """Run record returned to workers."""
+
+    id: UUID
+    kind: str
+    status: str
+    started_at: datetime
+    finished_at: datetime | None = None

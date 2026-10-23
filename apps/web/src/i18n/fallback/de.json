@@ -121,7 +121,18 @@
       "tasks_pending": "Ausstehende Aufgaben: {count}",
       "tasks_failed": "Fehlgeschlagene Aufgaben: {count}",
       "emit_ready": "Emit-bereit: {count}",
-      "no_sources": "Noch keine Katalogzeilen."
+      "no_sources": "Noch keine Katalogzeilen.",
+      "tasks_total": "Aufgaben gesamt: {count}",
+      "tasks_claimed": "Reservierte Aufgaben: {count}",
+      "tasks_completed": "Abgeschlossene Aufgaben: {count}",
+      "fetch_attempts": "Abrufversuche: {count}",
+      "stale_claims": "Abgelaufene Reservierungen: {count}",
+      "stale_runs": "Veraltete Läufe: {count}",
+      "failures_by_source": "Fehlgeschlagene Aufgaben nach Quelle",
+      "no_failures": "Keine fehlgeschlagenen Aufgaben.",
+      "last_run": "Letzter erfolgreicher Lauf: {finished_at}",
+      "last_run_summary": "Reserviert {claimed}, abgeschlossen {completed}, fehlgeschlagen {failed}, übersprungen {skipped}; Stopp: {reason}",
+      "no_successful_run": "Noch kein erfolgreicher Lauf erfasst."
     },
     "catalogue": {
       "empty": "Noch keine Katalogdienste.",

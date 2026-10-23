@@ -1,13 +1,16 @@
-import { Badge, HStack, Text, Wrap, WrapItem } from "@chakra-ui/react";
+import { Badge, HStack, Stack, Text, Wrap, WrapItem } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCoverageResponse } from "../types";
+import FailuresBySource from "./FailuresBySource";
+import LastRunSummary from "./LastRunSummary";
+import QueueStatusChips from "./QueueStatusChips";
 
 export interface CoverageChipsProps {
   coverage: DiscoveryCoverageResponse;
 }
 
-/** Summary chips for ingest coverage on the catalogue index. */
+/** Operational queue and ingest counts with the last successful worker run. */
 export default function CoverageChips({ coverage }: CoverageChipsProps) {
   const { t } = useLocale();
   const sourceEntries = Object.entries(coverage.by_source).sort(([a], [b]) =>
@@ -15,42 +18,26 @@ export default function CoverageChips({ coverage }: CoverageChipsProps) {
   );
 
   return (
-    <Wrap gap={2}>
-      {sourceEntries.map(([source, count]) => (
-        <WrapItem key={source}>
-          <Badge variant="subtle" colorPalette="blue">
-            {t("discovery_admin.coverage.source_chip", { source, count })}
-          </Badge>
-        </WrapItem>
-      ))}
-      <WrapItem>
-        <Badge variant="subtle" colorPalette="orange">
-          {t("discovery_admin.coverage.tasks_pending", {
-            count: coverage.tasks_pending,
-          })}
-        </Badge>
-      </WrapItem>
-      <WrapItem>
-        <Badge variant="subtle" colorPalette="red">
-          {t("discovery_admin.coverage.tasks_failed", {
-            count: coverage.tasks_failed,
-          })}
-        </Badge>
-      </WrapItem>
-      <WrapItem>
-        <Badge variant="subtle" colorPalette="green">
-          {t("discovery_admin.coverage.emit_ready", {
-            count: coverage.emit_ready_count,
-          })}
-        </Badge>
-      </WrapItem>
-      {sourceEntries.length === 0 ? (
-        <HStack>
-          <Text color="fg.muted" textStyle="bodySm">
-            {t("discovery_admin.coverage.no_sources")}
-          </Text>
-        </HStack>
-      ) : null}
-    </Wrap>
+    <Stack gap={3}>
+      <Wrap gap={2}>
+        {sourceEntries.map(([source, count]) => (
+          <WrapItem key={source}>
+            <Badge variant="subtle" colorPalette="blue">
+              {t("discovery_admin.coverage.source_chip", { source, count })}
+            </Badge>
+          </WrapItem>
+        ))}
+        <QueueStatusChips coverage={coverage} />
+        {sourceEntries.length === 0 ? (
+          <HStack>
+            <Text color="fg.muted" textStyle="bodySm">
+              {t("discovery_admin.coverage.no_sources")}
+            </Text>
+          </HStack>
+        ) : null}
+      </Wrap>
+      <FailuresBySource failures={coverage.failures_by_source} />
+      <LastRunSummary run={coverage.last_successful_run} />
+    </Stack>
   );
 }

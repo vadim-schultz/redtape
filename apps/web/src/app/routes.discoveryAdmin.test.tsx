@@ -48,6 +48,18 @@ function stubFetch(probeStatus = 200) {
             tasks_pending: 2,
             tasks_failed: 1,
             emit_ready_count: 4,
+            task_counts: {
+              total: 3,
+              pending: 2,
+              claimed: 0,
+              completed: 0,
+              failed: 1,
+            },
+            fetch_attempts_total: 0,
+            stale_claims: 0,
+            stale_runs: 0,
+            failures_by_source: {},
+            last_successful_run: null,
           }),
         );
       return new Response("", { status: 503 });

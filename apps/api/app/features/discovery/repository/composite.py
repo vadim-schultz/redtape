@@ -7,6 +7,7 @@ from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
 from app.features.discovery.repository.entities import EntityRepository
+from app.features.discovery.repository.runs import RunRepository
 from app.features.discovery.repository.task_listing import TaskListingRepository
 from app.features.discovery.repository.tasks import TaskRepository
 
@@ -19,5 +20,6 @@ class DiscoveryRepository(
     ClaimRepository,
     ActivityRepository,
     CoverageRepository,
+    RunRepository,
 ):
     """One session-bound handle exposing every discovery aggregate repository."""
