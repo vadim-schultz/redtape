@@ -6,7 +6,7 @@ import httpx
 import pytest
 from discovery_ingest.health import ApiHealthError, wait_for_api
 
-API_BASE   =   "https://redtape.test"
+API_BASE = "https://redtape.test"
 
 
 def test_wait_for_api_returns_when_health_200() -> None:
