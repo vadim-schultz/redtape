@@ -9,3 +9,4 @@ Chapter PRs merge into the loop branch only. The chapter-implementer does not ed
 | chapter | branch | pr | local gate | remote ci | merged | blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 CI trim | `chore/gha-budget-ci-trim` | [#193](https://github.com/vadim-schultz/redtape/pull/193) | actionlint (docker) clean; no api/scripts changes | not available (billing) | yes, into `chore/gha-budget` 2026-10-23 | none |
+| 2 Retire keep-alive and legacy OpenPLZ | `chore/gha-budget-retire-workflows` | [#194](https://github.com/vadim-schultz/redtape/pull/194) | actionlint (docker) clean; grep for dangling references empty; render.yaml parses | not available (billing) | yes, into `chore/gha-budget` 2026-10-23 | none |
