@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import asdict
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -15,7 +17,12 @@ from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_queue import TaskQueue
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
-from app.models.discovery import CatalogueService, DiscoveryEventType, DiscoveryTask
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryEventType,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+)
 from app.schema.discovery.machine import (
     CatalogueBatchItem,
     CatalogueBatchItemResult,
@@ -36,6 +43,8 @@ from app.schema.discovery.machine import (
     TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskSummaryResponse,
+    resolve_task_kinds,
 )
 
 
@@ -106,6 +115,11 @@ class DiscoveryMachineService:
         now = datetime.now(UTC)
         claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now, kinds=body.resolved_kinds)
         return TaskClaimResponse(items=[_claimed_task_read(task, now) for task in claimed])
+
+    def task_summary(self, kinds: Sequence[DiscoveryTaskKind] | None) -> TaskSummaryResponse:
+        """Count the queue for ``kinds`` (the legacy kinds when none are named) without leasing."""
+        summary = self._repo.task_summary(kinds=resolve_task_kinds(kinds), now=datetime.now(UTC))
+        return TaskSummaryResponse.model_validate(asdict(summary))
 
     def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
         """Enqueue a follow-up task idempotently for an existing catalogue row."""

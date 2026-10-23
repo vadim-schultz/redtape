@@ -1,6 +1,10 @@
 name: Discovery drain
 
 on:
+  schedule:
+    # Daily 04:00 UTC, after the 02:00 maintenance router. Runs only when the repository variable
+    # DISCOVERY_DRAIN_SCHEDULE equals "enabled" (see the job condition).
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
       max_tasks:
@@ -11,12 +15,12 @@ on:
       max_batches:
         description: "Maximum claim/process batches"
         required: false
-        default: "1"
+        default: "20"
         type: string
       time_budget_seconds:
-        description: "Optional wall-clock budget in seconds (empty for none)"
+        description: "Wall-clock budget in seconds (empty uses the 1500 second default)"
         required: false
-        default: ""
+        default: "1500"
         type: string
       kinds:
         description: "Comma separated task kinds to claim"
@@ -34,15 +38,16 @@ concurrency:
 jobs:
   drain:
     name: Drain discovery tasks
+    if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_DRAIN_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
-      MAX_TASKS: ${{ inputs.max_tasks }}
-      MAX_BATCHES: ${{ inputs.max_batches }}
-      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds }}
-      TASK_KINDS: ${{ inputs.kinds }}
+      MAX_TASKS: ${{ inputs.max_tasks || '50' }}
+      MAX_BATCHES: ${{ inputs.max_batches || '20' }}
+      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '1500' }}
+      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -65,10 +70,12 @@ jobs:
       - name: Drain worker tasks
         run: |
           set -euo pipefail
-          args=(--max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --kinds "${TASK_KINDS}")
-          if [ -n "${TIME_BUDGET_SECONDS}" ]; then
-            args+=(--time-budget-seconds "${TIME_BUDGET_SECONDS}")
-          fi
+          args=(
+            --max-tasks "${MAX_TASKS}"
+            --max-batches "${MAX_BATCHES}"
+            --time-budget-seconds "${TIME_BUDGET_SECONDS}"
+            --kinds "${TASK_KINDS}"
+          )
           python -m discovery_ingest worker drain "${args[@]}" | tee drain-report.json
 
       - name: Write drain report to job summary
@@ -86,3 +93,7 @@ jobs:
             echo "### Discovery drain report" >> "${GITHUB_STEP_SUMMARY}"
             echo "No report was produced; see the drain step log." >> "${GITHUB_STEP_SUMMARY}"
           fi
+
+      - name: Fail the job when the drain did not succeed
+        run: |
+          python -c "import json,sys; sys.exit(0 if json.load(open('drain-report.json')).get('succeeded') else 1)"

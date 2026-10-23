@@ -24,6 +24,7 @@ from discovery_ingest.schemas import (
     TaskClaimResponse,
     TaskEnqueueRequest,
     TaskEnqueueResponse,
+    TaskSummary,
 )
 
 
@@ -118,6 +119,15 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return TaskClaimResponse.model_validate(response.json())
+
+    def get_task_summary(self, *, kinds: Sequence[DiscoveryTaskKind]) -> TaskSummary:
+        """Return queue counts for ``kinds`` without leasing anything."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/summary"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, params={"kinds": list(kinds)}, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskSummary.model_validate(response.json())
 
     def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
         """Enqueue a follow-up task; an equivalent existing task is returned instead."""
