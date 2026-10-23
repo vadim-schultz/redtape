@@ -121,6 +121,7 @@ class TaskFailRequest(BaseModel):
     """Failure reason for a discovery task."""
 
     error: str = Field(min_length=1)
+    retryable: bool = False
 
 
 class TaskFailResponse(BaseModel):

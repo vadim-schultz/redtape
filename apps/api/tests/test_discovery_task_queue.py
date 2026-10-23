@@ -9,6 +9,7 @@ import pytest
 from app.features.discovery.errors import DiscoveryTaskNotFoundError
 from app.features.discovery.repository import DiscoveryRepository, TaskTarget
 from app.features.discovery.task_queue import TaskQueue
+from app.features.discovery.task_retry import BACKOFF, MAX_ATTEMPTS
 from app.models.api_key import ApiKey
 from app.models.discovery import CatalogueService, DiscoveryTask, DiscoveryTaskKind, DiscoveryTaskStatus
 from sqlalchemy.orm import Session
@@ -58,7 +59,7 @@ def test_complete_and_fail_reject_unknown_task_ids(queue: TaskQueue) -> None:
     with pytest.raises(DiscoveryTaskNotFoundError):
         queue.complete(uuid.uuid4())
     with pytest.raises(DiscoveryTaskNotFoundError):
-        queue.fail(uuid.uuid4(), "boom")
+        queue.fail(uuid.uuid4(), "boom", now=datetime.now(UTC))
 
 
 def _key(db_session: Session) -> ApiKey:
@@ -108,3 +109,67 @@ def test_claim_pending_with_kinds_returns_only_those_kinds_in_queue_order(
     claimed = queue.claim_pending(api_key=_key(db_session), limit=10, now=datetime.now(UTC), kinds=kinds)
 
     assert [t.id for t in claimed] == [urgent.id, early.id, late.id]
+
+
+NOW = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
+
+
+def _leased(queue: TaskQueue, db_session: Session, *, attempts: int) -> DiscoveryTask:
+    """Seed a fetch task and lease it ``attempts`` times, as a worker would."""
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="retry")
+    key = _key(db_session)
+    for _ in range(attempts):
+        task.status = DiscoveryTaskStatus.PENDING
+        db_session.flush()
+        queue.claim_pending(api_key=key, limit=1, now=NOW)
+    return task
+
+
+def test_claim_pending_counts_one_attempt_per_lease(queue: TaskQueue, db_session: Session) -> None:
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="count")
+
+    queue.claim_pending(api_key=_key(db_session), limit=1, now=NOW)
+
+    assert task.attempt_count == 1
+
+
+def test_retryable_failure_returns_the_task_to_pending_with_a_backoff(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=1)
+
+    queue.fail(task.id, "connection reset", retryable=True, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.not_before == NOW + BACKOFF[0]
+    assert task.attempt_count == 1
+    assert task.last_error == "connection reset"
+    assert task.lease_expires_at is None
+    assert task.claimed_by_api_key_id is None
+
+
+def test_retryable_failure_backs_off_longer_on_each_attempt(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=2)
+
+    queue.fail(task.id, "timeout", retryable=True, now=NOW)
+
+    assert task.not_before == NOW + BACKOFF[1]
+
+
+def test_permanent_failure_stays_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=1)
+
+    queue.fail(task.id, "http 404", retryable=False, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.not_before is None
+    assert task.last_error == "http 404"
+    assert task.lease_expires_at is None
+
+
+def test_retryable_failure_at_the_attempt_cap_becomes_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS)
+
+    queue.fail(task.id, "timeout", retryable=True, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.not_before is None
+    assert task.last_error == "timeout"

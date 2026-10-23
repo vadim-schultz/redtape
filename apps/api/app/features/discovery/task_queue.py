@@ -10,6 +10,7 @@ from app.features.discovery.lookups import require_task
 from app.features.discovery.repository import DiscoveryRepository, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
+from app.features.discovery.task_retry import settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
@@ -68,12 +69,10 @@ class TaskQueue:
         task.lease_expires_at = None
         return task
 
-    def fail(self, task_id: UUID, error: str) -> DiscoveryTask:
-        """Mark a task failed with ``error`` and release its lease."""
+    def fail(self, task_id: UUID, error: str, *, retryable: bool = False, now: datetime) -> DiscoveryTask:
+        """Record ``error`` on a task: re-pend it with backoff if retryable and under the cap, else fail it."""
         task = require_task(self._repo, task_id)
-        task.status = DiscoveryTaskStatus.FAILED
-        task.last_error = error
-        task.lease_expires_at = None
+        settle_failure(task, error, retryable=retryable, now=now)
         return task
 
     def _lease(self, task: DiscoveryTask, api_key: ApiKey, now: datetime) -> DiscoveryTask:
@@ -81,6 +80,7 @@ class TaskQueue:
         task.claimed_at = now
         task.claimed_by_api_key_id = api_key.id
         task.lease_expires_at = now + timedelta(minutes=TASK_LEASE_MINUTES)
+        task.attempt_count += 1
         self._repo.record_event(_claimed_event(task, api_key))
         return task
 
