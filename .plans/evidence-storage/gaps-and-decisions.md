@@ -6,6 +6,8 @@ isProject: false
 
 # Evidence Storage — Gaps and decisions
 
+> **Planned amendment (crawlers suite, 2026-10-23).** The [crawlers suite](../crawlers/00-architecture.md) builds the object-store port and S3 adapter itself (its chapter 13, under `apps/api/app/shared/object_store`), with **Supabase Storage first** and Cloudflare R2 as a configuration swap, and stores crawler snapshots and screenshots as staging `discovery_artifact` rows. Chapters 1–2 of this suite are therefore absorbed; the suggestion-keyed `evidence` model, routes and viewer (chapters 3–7) remain here, and bridging `discovery_artifact` objects to `evidence` rows at emit time is an open seam of this suite. Statements below that name R2 as the only provider are superseded by that amendment.
+
 **Architecture:** [00-architecture.md](00-architecture.md) · **Rollout:** [01-rollout.md](01-rollout.md)
 
 ## Settled
@@ -29,4 +31,5 @@ isProject: false
 | Orphaned objects if a DB write fails after upload | Accepted (object without a row); a periodic sweep is not built | Storage cost becomes noticeable |
 | Virus/malware scanning of uploaded HTML | None | First abuse report |
 | CDN in front of presigned URLs | None; direct-to-R2 | Latency or cost complaints |
+| Bridge from crawler `discovery_artifact` rows to suggestion `evidence` rows | None; artifacts stay linked to staging (content-addressed keys allow a shared key or a copy) | Moderators need the crawl screenshot on the suggestion detail page |
 | Multiple evidence files per fetch (e.g. screenshot + HTML together) | Modeled as two independent `evidence` rows sharing `source_url`/`fetched_at` | If a "capture" needs its own identity, add a `capture` parent row |

@@ -7,7 +7,7 @@ isProject: false
 
 # Chapter 20 — Crawler frontier adapter
 
-**Branch:** `feat/discovery-layer-crawler-adapter` · **Status:** deferred
+**Branch:** `feat/discovery-layer-crawler-adapter` · **Status:** deferred — **superseded** by the rewritten [crawlers suite](../../crawlers/00-architecture.md): the queue-consumer role is chapters 3 (kind-filtered claim), 17 (extractor framework) and 19 (screenshot capture); no `apps/crawler` package is built
 
 **Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md) (not in CoS execution order)
 

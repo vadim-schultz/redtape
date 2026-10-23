@@ -97,15 +97,18 @@ flowchart LR
   CI --> ES[evidence-storage]
   AU --> ES
   SI --> ES
-  ES --> CR[crawlers]
+  CI --> CR[crawlers]
   SI --> CR
   AU --> CR
   VM -.optional order.-> CR
+  ES -.later bridge.-> CR
 ```
 
-`evidence-storage` chapters 1–2 (the object-store port and the S3/MinIO adapter) have no suggestion
-dependency and can start immediately, in parallel with `ci-foundation` and `auth`. `voting-moderation` and
-`crawlers` do not depend on each other and can proceed in parallel once their own prerequisites ship.
+`evidence-storage` chapters 1–2 (the object-store port and the S3 adapter) have no suggestion
+dependency; the `crawlers` suite now builds that port itself (its chapter 13, Supabase Storage first) and
+stores its snapshots and screenshots as staging `discovery_artifact` rows, so it no longer waits for
+`evidence-storage`. Attaching those artifacts to suggestions as `evidence` rows is a later bridge owned by
+`evidence-storage`. `voting-moderation` (API side largely implemented) and `crawlers` proceed in parallel.
 
 ### [auth/](auth/) — Login, roles and machine API keys
 
@@ -166,19 +169,23 @@ Status: planned — no chapter started. First: [chapters/01-vote-model-migration
 
 ### [crawlers/](crawlers/) — Discovery crawler
 
-A separate `apps/crawler` package: fetches configured sources politely, extracts document candidates,
-captures a screenshot as evidence, and submits both through the suggestion API — as scheduled GitHub
-Actions jobs, with no direct database access. Discovery mode only (see the strand's freshness mode).
-Eleven chapters.
+A queue-based, document-first crawl layer on the discovery staging path: new task kinds in the existing
+`discovery_task` table (payload harvest, page extraction, screenshot capture), a kind-filtered claim, retry and
+multi-batch draining, deduplicated document candidates with provenance, HTML snapshots and screenshots in an
+object store (Supabase Storage first), manual candidate emit to pending `new_document` suggestions, and admin
+screens for documents and their evidence. Workers stay HTTP-only. Replaces the earlier standalone
+`apps/crawler` design. Twenty-two chapters; loop branch `feat/crawlers`.
 
 | Doc | What it is |
 | --- | --- |
-| [00-architecture.md](crawlers/00-architecture.md) | Vocabulary, package layout, fetching, extraction, scheduling |
-| [01-rollout.md](crawlers/01-rollout.md) | Eleven chapters, dependency graph, invariants, per-chapter gate |
-| [gaps-and-decisions.md](crawlers/gaps-and-decisions.md) | Settled decisions and open seams |
-| [chapters/](crawlers/chapters/) | One executable plan per chapter |
+| [00-architecture.md](crawlers/00-architecture.md) | Vocabulary, task kinds, document-first strategy, storage, tables, admin surface |
+| [01-rollout.md](crawlers/01-rollout.md) | Twenty-two chapters, dependency graph, invariants, per-chapter gate (GitHub Actions) |
+| [gaps-and-decisions.md](crawlers/gaps-and-decisions.md) | Settled decisions, open seams, risks |
+| [run-ledger.md](crawlers/run-ledger.md) | Chapter outcomes and live-gate run IDs |
+| [chapters/](crawlers/chapters/) | One executable plan per chapter; the last is the operator checklist |
 
-Status: planned — no chapter started. First: [chapters/01-crawler-package-skeleton.md](crawlers/chapters/01-crawler-package-skeleton.md).
+Status: planned — no chapter started. First: [chapters/01-ingest-ci.md](crawlers/chapters/01-ingest-ci.md).
+CoS orchestration: [`docs/operations/loops/crawlers.md`](../docs/operations/loops/crawlers.md).
 
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 
