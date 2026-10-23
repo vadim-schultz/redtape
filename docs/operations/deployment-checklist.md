@@ -71,7 +71,8 @@ through the Worker proxy; do not treat an HTML cold-start page as an API respons
    with valid JSON (`items`, `total`, `offset`, and `limit`).
 5. With the same allowlisted bearer token, request
    `/api/v1/discovery/admin/coverage`. Expect HTTP `200` and valid JSON containing `by_source`,
-   `tasks_pending`, `tasks_failed`, and `emit_ready_count`.
+   `tasks_pending`, `tasks_failed`, `emit_ready_count`, `task_counts`, `fetch_attempts_total`,
+   `stale_claims`, `stale_runs`, `failures_by_source`, and `last_successful_run`.
 6. With the same token, request
    `/api/v1/discovery/admin/catalogue?limit=50&offset=0`. Expect HTTP `200` and valid JSON containing
    `items`, `summary`, `total`, `offset`, and `limit`.

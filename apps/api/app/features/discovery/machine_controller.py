@@ -10,6 +10,7 @@ from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from app.features.auth.principal import MachinePrincipal
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
+from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
 from app.schema.discovery.machine import (
     CatalogueBatchRequest,
@@ -22,6 +23,9 @@ from app.schema.discovery.machine import (
     EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
+    RunFinishRequest,
+    RunRead,
+    RunStartRequest,
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteResponse,
@@ -86,6 +90,23 @@ class DiscoveryMachineController(Controller):
         data: FetchLogAppendRequest,
     ) -> FetchLogAppendResponse:
         return discovery_machine_service.append_fetch_log(task_id, data)
+
+    @post("/runs", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    def start_run(
+        self,
+        discovery_run_service: DiscoveryRunService,
+        data: RunStartRequest,
+    ) -> RunRead:
+        return discovery_run_service.start(data)
+
+    @post("/runs/{run_id:uuid}/finish", sync_to_thread=True, status_code=HTTP_200_OK)
+    def finish_run(
+        self,
+        discovery_run_service: DiscoveryRunService,
+        run_id: UUID,
+        data: RunFinishRequest,
+    ) -> RunRead:
+        return discovery_run_service.finish(run_id, data)
 
     @post("/entities", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def upsert_entity(

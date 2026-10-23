@@ -33,8 +33,9 @@ from discovery_ingest.pvog.client import (
     map_pvog_record,
 )
 from discovery_ingest.schemas import CatalogueBatchItem
-from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.run import run_recorded_drain
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -190,13 +191,26 @@ def _fim_enrich(args: argparse.Namespace) -> int:
     return 0
 
 
+def _drain_policy(args: argparse.Namespace) -> DrainPolicy:
+    return DrainPolicy(
+        max_tasks=args.max_tasks,
+        max_batches=args.max_batches,
+        time_budget_seconds=args.time_budget_seconds,
+    )
+
+
 def _worker_drain(args: argparse.Namespace) -> int:
+    try:
+        policy = _drain_policy(args)
+    except ValueError as err:
+        print(f"invalid drain bounds: {err}", file=sys.stderr)
+        return 2
     settings = load_ingest_settings()
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
-    fetcher = PoliteUrlFetcher()
     try:
-        report = run_worker_drain(client, fetcher, max_tasks=args.max_tasks)
-    except DiscoveryMachineApiError:
+        report = run_recorded_drain(client, PoliteUrlFetcher(), policy)
+    except DiscoveryMachineApiError as err:
+        print(f"drain failed: {err}", file=sys.stderr)
         return 1
     print(json.dumps(report.model_dump(mode="json")))
     return 0
@@ -342,6 +356,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "--max-tasks",
         type=int,
         default=50,
-        help="Maximum tasks to claim per run (1–50, default 50)",
+        help="Maximum tasks per claim request (1–50, default 50)",
+    )
+    worker_drain.add_argument(
+        "--max-batches",
+        type=int,
+        default=1,
+        help="Maximum claim/process batches (positive, default 1)",
+    )
+    worker_drain.add_argument(
+        "--time-budget-seconds",
+        type=float,
+        default=None,
+        help="Optional positive wall-clock budget for the whole drain",
     )
     return parser

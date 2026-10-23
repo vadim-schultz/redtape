@@ -54,3 +54,17 @@ class DiscoveryEventType(enum.StrEnum):
     FETCH_LOGGED = "fetch_logged"
     CLAIM_RECORDED = "claim_recorded"
     EMIT_ATTEMPTED = "emit_attempted"
+
+
+class DiscoveryRunKind(enum.StrEnum):
+    """Which operational job a run record describes."""
+
+    WORKER_DRAIN = "worker_drain"
+
+
+class DiscoveryRunStatus(enum.StrEnum):
+    """Lifecycle of an operational run."""
+
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"

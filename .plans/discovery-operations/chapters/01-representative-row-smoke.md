@@ -19,7 +19,7 @@ isProject: false
 
 # Chapter 1 — Representative row end-to-end smoke
 
-**Repo:** `redtape` · **Branch:** `feat/discovery-operations-row-smoke` · **Status:** planned
+**Repo:** `redtape` · **Branch:** `feat/discovery-operations-row-smoke` · **Status:** partial — fixture-backed verification complete; cross-stage operator smoke blocked
 
 **Depends on:** [discovery-layer](../../discovery-layer/01-rollout.md), [discovery-online](../../discovery-online/01-rollout.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
@@ -101,6 +101,59 @@ Record both failure scenarios in the smoke evidence:
 
 Do not manufacture a production failure to satisfy the negative path. Use existing fixtures, a local test server, or a documented API mock.
 
+## Execution record — 2026-10-22
+
+This pass used repository fixtures and mock transports only. It did not call GovData, PVOG, FIM,
+Render, or a production admin surface, and it did not print or create an API key.
+
+### Selected row
+
+The representative ingest fixture is the first row in
+`apps/discovery-ingest/tests/fixtures/govdata/ozg_page.json`:
+
+- source: `govdata`;
+- external ID: `govdata:leika:12345678901234`;
+- jurisdiction: `11111111-1111-1111-1111-111111111101`;
+- title: `Beispiel-Leistung`;
+- portal URL: `https://example.bund.de/leistung`;
+- raw payload identifiers: `ozgid=OZ-EXAMPLE-001`, `leika_key=12345678901234`.
+
+The row has a portal URL, but its raw payload has no `fim_id`. It therefore proves the ingest and
+fetch boundary only; it is a partial smoke and cannot prove automatic FIM fanout for this exact row.
+
+### Fixture and API evidence
+
+The following checks passed:
+
+- `cd apps/discovery-ingest && uv run pytest -q --tb=short tests/test_govdata_client.py tests/test_govdata_cli.py tests/test_pvog_cli.py tests/test_worker_drain.py tests/test_enrich_metadata_worker.py` — **14 passed**.
+- The GovData CLI test posts the selected fixture shape to `/api/v1/discovery/machine/catalogue/batch`, preserves the source/external ID, and sends a non-secret mock `X-API-Key`.
+- The successful fetch mock records a `200` HTML fetch log and completes its `fetch_url` task. The worker and enrich tests use mocked catalogue ID `bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb`; these IDs are test fixtures, not IDs returned by the selected GovData row.
+- The successful FIM mock serves `LB-EXAMPLE-STECK`, then the worker posts one entity and at least one claim and completes the `enrich_metadata` task.
+- `docker compose up -d --wait db` produced a healthy local PostgreSQL container. With that local database,
+  `cd apps/api && REQUIRE_DB=1 DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape PYTHONPATH=. uv run pytest -q --tb=short tests/test_discovery_pipeline.py tests/test_discovery_emit_preview.py tests/test_discovery_emit.py` — **11 passed**.
+- The API tests verify T0/T1/T2 stage derivation, `new_document` preview payload mapping, the
+  `unresolved_requirement_documents` skip reason, one pending suggestion, and idempotent replay.
+
+### Negative-path evidence
+
+- **Failed fetch:** `test_worker_drain_marks_fail_when_get_times_out` makes the portal request raise
+  `httpx.ReadTimeout`. The worker posts a fetch log with `http_status=null` and an error, marks the
+  task failed with a non-empty error, and reports `failed=1`; no entity/claim request is accepted by
+  the mock.
+- **Invalid FIM enrichment:** `test_enrich_metadata_fails_task_when_steckbrief_404` returns HTTP
+  `404` for the FIM steckbrief. The worker reports `failed=1`, posts one explicit task failure with
+  a non-empty error, and does not accept a partial entity/claim write.
+
+### Unverified boundary and blocker
+
+No persisted catalogue service ID, task IDs, drain JSON report, admin pipeline response, T4 stage,
+or emitted suggestion ID can be recorded for the selected GovData row: no local API server/admin
+session was started, and no authorized target API/key/session was provided. The API tests above use
+synthetic database rows to verify the downstream contracts; they do not turn the selected fixture
+into a persisted end-to-end row. The next smoke must provide a local API session plus a fixture row
+with a `fim_id` (or an equivalent controlled FIM mock) before claiming complete T4/manual-emit
+coverage.
+
 ## Evidence to record
 
 - source, external ID, catalogue service ID, and jurisdiction;
@@ -116,7 +169,12 @@ Red/green implementation is not required for this docs-only operator chapter. If
 
 ## Verification
 
-The chapter gate is a reproducible operator checklist with local fixture evidence and, when authorized, one bounded production smoke. The final record must distinguish a complete T4 smoke from a partial T0/T1/T2 smoke.
+The chapter gate is a reproducible operator checklist with local fixture evidence and, when authorized,
+one bounded production smoke. This record is explicitly a **partial T0/T1/T2 plus downstream contract
+smoke**; it is not a complete T4 smoke. No product code or unplanned operational capability was added.
+
+**Refactor gate:** no refactor was needed — this chapter changed one operator document only; there is
+no production method, class, branch, or test fixture implementation to refactor.
 
 ## Out of scope
 

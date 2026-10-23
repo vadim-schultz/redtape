@@ -31,6 +31,52 @@ Discovery jobs use **`DISCOVERY_API_URL`** (Render **host root**), **`DISCOVERY_
 **`FEDERAL_JURISDICTION_ID`** only — never `DATABASE_URL`. OpenPLZ uses the database path on
 alternate days (`days % 6 == 0`).
 
+## Bounded drain, run reports, and queue metrics
+
+`worker drain` is always bounded. It stops on the first of: an empty queue, the batch limit, or the
+time budget.
+
+```bash
+python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-budget-seconds 300
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--max-tasks` | 50 | Tasks per claim request (1–50) |
+| `--max-batches` | 1 | Maximum claim and process batches (positive) |
+| `--time-budget-seconds` | none | Optional positive wall-clock budget for the whole drain |
+
+Invalid bounds exit with code 2. An API failure exits with code 1. The scheduled workflow uses the
+defaults (`--max-tasks 50`, one batch), so each scheduled run is one batch.
+
+Each drain prints one JSON report with `batches`, `claimed`, `completed`, `failed`, `skipped`,
+`stop_reason` (`queue_empty`, `batch_limit`, `time_budget`, or `error`), `run_id`, and `succeeded`.
+The worker records the run through the machine API (`POST …/runs`, then `POST …/runs/{id}/finish`)
+into the `discovery_run` table. The worker never touches the database directly.
+
+**`remaining` is unknown.** No queue-summary route is available to the worker, and the worker must not
+claim an extra task to estimate backlog. The report therefore sets `remaining_unknown` to true. Read
+the backlog on the admin Coverage page instead.
+
+The admin Coverage surface (`GET /api/v1/discovery/admin/coverage`) reports task counts (pending,
+claimed, completed, failed), `fetch_attempts_total`, `failures_by_source`, `stale_claims` (claimed tasks
+with an expired 15-minute lease), `stale_runs` (runs still `running` after one hour), and
+`last_successful_run`. That last value comes from `discovery_run` rows with status `succeeded`, not
+from fetch timestamps. A failed or interrupted run is never reported as the last successful run.
+
+**Not verified:** a manual multi-batch drain and an interrupted-claim lease-reclaim check were not
+performed during the discovery-operations suite. Run both against a non-production stack before relying
+on them.
+
+### Triage for queue state
+
+| Symptom | Check |
+| --- | --- |
+| `stale_claims` above zero | A worker died mid-batch. The next claim reclaims expired leases; re-run a bounded drain. |
+| `stale_runs` above zero | A run never finished. It stays visible as stale and is not counted as successful. |
+| `last_successful_run` old or empty | Check recent `discovery_run` failures and the drain `stop_reason`. |
+| `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source. |
+
 ### Manual dispatch (debugging)
 
 GitHub → **Actions** → **Platform maintenance** → **Run workflow**, or:
@@ -68,6 +114,8 @@ allowlist (`DISCOVERY_ADMIN_EMAILS`) is for the web UI — not used by the GHA d
 | GovData `no mappable GovData rows` or mass `skip row: … no title` | OZG schema drift (`leika_name` vs legacy `leistungsname`) or unscoped national feed; confirm federal path `open-pvog/000000000000` and [OpenAPI](https://api.ozg-umsetzung.de/api/v3/api-docs/dashboard-digitale-verwaltung) |
 | Drain exits non-zero | Stuck `claimed` tasks — lease reclaim (API); re-run after fixing target URLs |
 | Duplicate tasks after re-run | Should not grow without bound — see idempotency below |
+
+Scheduled runs never emit. Manual emit follows [discovery-layer.md](discovery-layer.md) § Machine emit.
 
 Admin review after a scheduled run: `/admin/discovery/catalogue` and `/admin/discovery/tasks` on the
 production web app (allowlisted email).
