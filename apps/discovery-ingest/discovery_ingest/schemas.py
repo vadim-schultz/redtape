@@ -113,22 +113,28 @@ class FetchLogAppendRequest(BaseModel):
     error_message: str | None = None
 
 
+StopReason = Literal["queue_empty", "batch_limit", "time_budget", "error"]
+
+
 class DrainReport(BaseModel):
     """JSON-serializable worker drain summary."""
 
+    batches: int = 0
     claimed: int
     completed: int
     failed: int
     skipped: int
+    remaining: int | None = None
+    remaining_unknown: bool = True
+    stop_reason: StopReason
+    run_id: UUID | None = None
+    succeeded: bool = True
 
 
 class RunStartResponse(BaseModel):
     """Run record opened by the machine API."""
 
     id: UUID
-
-
-StopReason = Literal["queue_empty", "batch_limit", "time_budget", "error"]
 
 
 class RunFinishRequest(BaseModel):

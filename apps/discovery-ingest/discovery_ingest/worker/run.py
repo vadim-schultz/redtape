@@ -3,22 +3,23 @@
 from __future__ import annotations
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
-from discovery_ingest.schemas import DrainReport, RunFinishRequest, StopReason
+from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.policy import DrainPolicy
 
 _MAX_ERROR_DETAIL = 1000
 
 
-def _succeeded(report: DrainReport, *, max_tasks: int) -> RunFinishRequest:
-    stop_reason: StopReason = "batch_limit" if report.claimed >= max_tasks else "queue_empty"
+def _succeeded(report: DrainReport) -> RunFinishRequest:
     return RunFinishRequest(
         status="succeeded",
         claimed_count=report.claimed,
         completed_count=report.completed,
         failed_count=report.failed,
         skipped_count=report.skipped,
-        stop_reason=stop_reason,
+        remaining_count=report.remaining,
+        stop_reason=report.stop_reason,
     )
 
 
@@ -37,18 +38,17 @@ def _failed(err: DiscoveryMachineApiError) -> RunFinishRequest:
 def run_recorded_drain(
     client: DiscoveryMachineClient,
     fetcher: PoliteUrlFetcher,
-    *,
-    max_tasks: int,
+    policy: DrainPolicy,
 ) -> DrainReport:
-    """Drain one bounded batch between a run start and a run finish.
+    """Drain bounded batches between a run start and a run finish.
 
     Individual task failures stay in the report; only an API failure marks the run failed.
     """
     run_id = client.start_run()
     try:
-        report = run_worker_drain(client, fetcher, max_tasks=max_tasks)
+        report = run_worker_drain(client, fetcher, policy)
     except DiscoveryMachineApiError as err:
         client.finish_run(run_id, _failed(err))
         raise
-    client.finish_run(run_id, _succeeded(report, max_tasks=max_tasks))
-    return report
+    client.finish_run(run_id, _succeeded(report))
+    return report.model_copy(update={"run_id": run_id})
