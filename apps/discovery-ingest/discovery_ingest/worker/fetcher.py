@@ -3,49 +3,19 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
-from urllib.parse import urldefrag, urljoin, urlparse
+from collections.abc import Callable
+from urllib.parse import urlparse
 
 import httpx
 
-MAX_REDIRECTS = 5
-_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, build_user_agent
+from discovery_ingest.worker.outcome import FetchAbort, FetchOutcome, failure_outcome
+from discovery_ingest.worker.redirects import MAX_REDIRECTS, REDIRECT_STATUSES, next_url
+from discovery_ingest.worker.robots import RobotsCache, RobotsUnavailableError
 
+Guard = Callable[[str], None]
 
-@dataclass(frozen=True, slots=True)
-class FetchOutcome:
-    """Result of one polite GET attempt."""
-
-    http_status: int | None
-    content_type: str | None
-    byte_length: int | None
-    error_message: str | None
-    body: bytes | None = None
-    final_url: str | None = None
-    redirect_count: int = 0
-
-
-class _FetchAbort(Exception):
-    """A fetch that must stop with a failure outcome."""
-
-    def __init__(self, message: str, *, http_status: int | None = None) -> None:
-        super().__init__(message)
-        self.message = message
-        self.http_status = http_status
-
-    def outcome(self) -> FetchOutcome:
-        """Return the failure outcome this abort stands for."""
-        return _failure(self.message, http_status=self.http_status)
-
-
-def _failure(message: str, *, http_status: int | None = None) -> FetchOutcome:
-    return FetchOutcome(
-        http_status=http_status,
-        content_type=None,
-        byte_length=None,
-        error_message=message,
-        body=None,
-    )
+__all__ = ["MAX_REDIRECTS", "FetchOutcome", "PoliteUrlFetcher"]
 
 
 def _success(response: httpx.Response, *, final_url: str, redirect_count: int) -> FetchOutcome:
@@ -61,16 +31,8 @@ def _success(response: httpx.Response, *, final_url: str, redirect_count: int) -
     )
 
 
-def _next_url(current: str, response: httpx.Response, seen: set[str]) -> str:
-    """Resolve the redirect target of ``response`` or abort when it is unusable."""
-    location = response.headers.get("location")
-    if not location:
-        raise _FetchAbort(f"HTTP {response.status_code} without Location header", http_status=response.status_code)
-    target = str(urldefrag(urljoin(current, location)).url)
-    if target in seen:
-        raise _FetchAbort(f"redirect loop at {target}", http_status=response.status_code)
-    seen.add(target)
-    return target
+def _unguarded(url: str) -> None:
+    """Guard for requests that need no pre-flight check."""
 
 
 class PoliteUrlFetcher:
@@ -82,29 +44,44 @@ class PoliteUrlFetcher:
         timeout_s: float = 30.0,
         min_interval_per_host_s: float = 1.0,
         http_client: httpx.Client | None = None,
+        user_agent: str = build_user_agent(DEFAULT_BOT_CONTACT_URL),
     ) -> None:
+        self._user_agent = user_agent
         self._timeout_s = timeout_s
         self._min_interval_s = min_interval_per_host_s
         self._http_client = http_client
         self._last_fetch_by_host: dict[str, float] = {}
+        self._robots = RobotsCache(lambda robots_url: self._settle(robots_url, _unguarded))
 
     def get(self, url: str) -> FetchOutcome:
         """Perform a polite GET on ``url`` and return status and body metadata."""
+        return self._settle(url, self._require_robots)
+
+    def _settle(self, url: str, guard: Guard) -> FetchOutcome:
         try:
-            return self._follow(url)
-        except _FetchAbort as abort:
+            return self._follow(url, guard)
+        except FetchAbort as abort:
             return abort.outcome()
         except httpx.HTTPError as err:
-            return _failure(str(err))
+            return failure_outcome(str(err))
 
-    def _follow(self, url: str) -> FetchOutcome:
+    def _require_robots(self, url: str) -> None:
+        try:
+            allowed = self._robots.allowed(url)
+        except RobotsUnavailableError as err:
+            raise FetchAbort(str(err)) from err
+        if not allowed:
+            raise FetchAbort(f"robots.txt disallows {url}")
+
+    def _follow(self, url: str, guard: Guard) -> FetchOutcome:
         current, seen = url, {url}
         for redirect_count in range(MAX_REDIRECTS + 1):
+            guard(current)
             response = self._visit(current)
-            if response.status_code not in _REDIRECT_STATUSES:
+            if response.status_code not in REDIRECT_STATUSES:
                 return _success(response, final_url=current, redirect_count=redirect_count)
-            current = _next_url(current, response, seen)
-        raise _FetchAbort(f"too many redirects (limit {MAX_REDIRECTS})")
+            current = next_url(current, response, seen)
+        raise FetchAbort(f"too many redirects (limit {MAX_REDIRECTS})")
 
     def _visit(self, url: str) -> httpx.Response:
         self._wait_for_host(urlparse(url).netloc or url)
@@ -120,6 +97,10 @@ class PoliteUrlFetcher:
 
     def _request(self, url: str) -> httpx.Response:
         if self._http_client is not None:
-            return self._http_client.get(url, timeout=self._timeout_s)
-        with httpx.Client(trust_env=True, timeout=self._timeout_s) as client:
+            return self._http_client.get(url, headers=self._headers, timeout=self._timeout_s)
+        with httpx.Client(trust_env=True, timeout=self._timeout_s, headers=self._headers) as client:
             return client.get(url)
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {"User-Agent": self._user_agent}

@@ -18,6 +18,17 @@ def _fetcher(handler: Handler, **kwargs: object) -> PoliteUrlFetcher:
     return PoliteUrlFetcher(min_interval_per_host_s=0, http_client=client, **kwargs)  # type: ignore[arg-type]
 
 
+def _without_robots(handler: Handler) -> Handler:
+    """Serve a missing robots.txt so a test only exercises page requests."""
+
+    def wrapped(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        return handler(request)
+
+    return wrapped
+
+
 def _redirect(status: int, location: str | None) -> httpx.Response:
     headers = {} if location is None else {"location": location}
     return httpx.Response(status, headers=headers)
@@ -40,7 +51,7 @@ def test_fetcher_follows_a_301_to_a_200_and_reports_the_final_url() -> None:
             return _redirect(301, "/new")
         return httpx.Response(200, headers={"content-type": "text/html"}, content=b"<html/>")
 
-    outcome = _fetcher(handler).get(PAGE)
+    outcome = _fetcher(_without_robots(handler)).get(PAGE)
 
     assert outcome.http_status == 200
     assert outcome.error_message is None
@@ -57,7 +68,7 @@ def test_fetcher_fails_after_more_than_five_redirects() -> None:
         requested.append(request.url.path)
         return _redirect(302, f"/hop{len(requested)}")
 
-    outcome = _fetcher(handler).get(PAGE)
+    outcome = _fetcher(_without_robots(handler)).get(PAGE)
 
     _assert_failed(outcome, "too many redirects")
     assert len(requested) == 6
@@ -69,7 +80,7 @@ def test_fetcher_fails_on_a_redirect_loop() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return _redirect(302, "/b" if request.url.path == "/old" else "/old")
 
-    outcome = _fetcher(handler).get(PAGE)
+    outcome = _fetcher(_without_robots(handler)).get(PAGE)
 
     _assert_failed(outcome, "redirect loop")
 
@@ -77,7 +88,7 @@ def test_fetcher_fails_on_a_redirect_loop() -> None:
 @pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
 def test_fetcher_never_reports_an_unresolved_3xx_as_success(status: int) -> None:
     """fetcher never reports an unresolved 3xx as success."""
-    outcome = _fetcher(lambda _request: _redirect(status, None)).get(PAGE)
+    outcome = _fetcher(_without_robots(lambda _request: _redirect(status, None))).get(PAGE)
 
     _assert_failed(outcome, "Location")
     assert outcome.http_status == status

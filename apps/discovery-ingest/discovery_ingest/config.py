@@ -5,6 +5,14 @@ from __future__ import annotations
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_BOT_CONTACT_URL = "https://github.com/vadim-schultz/redtape"
+BOT_PRODUCT_TOKEN = "RedtapeBot"
+
+
+def build_user_agent(contact_url: str) -> str:
+    """Return the identifying ``User-Agent`` for the crawl bot."""
+    return f"{BOT_PRODUCT_TOKEN}/1.0 (+{contact_url})"
+
 
 class IngestSettings(BaseSettings):
     """Discovery machine API and optional GovData CKAN overrides."""
@@ -33,6 +41,15 @@ class IngestSettings(BaseSettings):
         default="https://fimportal.de",
         validation_alias="FIM_PORTAL_BASE_URL",
     )
+    bot_contact_url: str = Field(
+        default=DEFAULT_BOT_CONTACT_URL,
+        validation_alias="BOT_CONTACT_URL",
+    )
+
+    @property
+    def user_agent(self) -> str:
+        """Identifying ``User-Agent`` carrying the configured contact URL."""
+        return build_user_agent(self.bot_contact_url)
 
 
 def load_ingest_settings() -> IngestSettings:
