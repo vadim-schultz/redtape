@@ -22,6 +22,7 @@ isProject: false
 | D8 | **The crawl budget is a repository variable** (`DISCOVERY_DRAIN_BUDGET_SECONDS`, fallback 900 s), never hard-coded. The dispatch input default is empty so the variable takes effect. |
 | D9 | **OpenPLZ import is made incremental** (preload, write only changed rows) instead of moving it off GitHub. Decision on `last_updated` is taken in chapter 5 after auditing its readers. |
 | D10 | **No remote CI in this suite.** Local gates only; implementers never dispatch workflows or wait on `gh pr checks`. |
+| D11 | **`last_updated` is not an import-recency signal; unchanged OpenPLZ rows are not touched.** Audit (`grep -rn last_updated apps/api/app apps/web apps/mobile apps/discovery-ingest`): the only runtime code that touches `jurisdiction.last_updated` and `locality.last_updated` is the importer itself, which writes it. No API response, repository query, schema, web or mobile code reads it. The remaining readers are the already-applied one-shot dedupe migrations (`20260610_fix_dup_juris`, `20260928d_fix_jurisdiction_kind_code_dupes`), which only used it as a tie-break. The model comment ("refresh Supabase/WAF caches") and the ops doc described intent, not a consumer. So the importer sets `last_updated` on insert and when a field changes, and skips unchanged rows; no bulk `UPDATE ... WHERE id IN (...)` per run is needed. |
 
 ## Open seams
 
