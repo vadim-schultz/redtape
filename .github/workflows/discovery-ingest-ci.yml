@@ -2,7 +2,7 @@ name: Discovery ingest CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "apps/discovery-ingest/**"
       - ".github/workflows/discovery-ingest-ci.yml"
@@ -10,6 +10,10 @@ on:
     paths:
       - "apps/discovery-ingest/**"
       - ".github/workflows/discovery-ingest-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
