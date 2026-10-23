@@ -12,6 +12,7 @@ import pytest
 from app.config import settings
 from app.features.auth.repository import ApiKeyRepository
 from app.features.auth.service import ApiKeyService
+from app.features.discovery.repository import DiscoveryRepository, TaskTarget
 from app.main import create_app
 from app.models.discovery import (
     DiscoveryEvent,
@@ -26,6 +27,8 @@ from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from test_discovery_admin_api import _catalogue
 
 BATCH_URL = "/api/v1/discovery/machine/catalogue/batch"
 CLAIM_URL = "/api/v1/discovery/machine/tasks/claim"
@@ -194,6 +197,55 @@ def test_post_tasks_claim_returns_empty_list_when_queue_drained(
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+def _seed_pending(db_session: Session, kind: DiscoveryTaskKind) -> DiscoveryTask:
+    catalogue = _catalogue(db_session, external_id=f"seed-{kind.value}")
+    target = TaskTarget(catalogue_service_id=catalogue.id, kind=kind, target_url=f"https://example.gov/{kind.value}")
+    return DiscoveryRepository(db_session).insert_task(target)
+
+
+def test_post_tasks_claim_with_kinds_leases_only_those_kinds(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+    extract = _seed_pending(db_session, DiscoveryTaskKind.EXTRACT_PAGE)
+
+    claim = client.post(CLAIM_URL, json={"limit": 5, "kinds": ["extract_page"]}, headers={"X-API-Key": key})
+
+    assert claim.status_code == 200
+    assert [item["id"] for item in claim.json()["items"]] == [str(extract.id)]
+
+
+def test_post_tasks_claim_without_kinds_never_leases_new_kinds(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    extract = _seed_pending(db_session, DiscoveryTaskKind.EXTRACT_PAGE)
+
+    claim = client.post(CLAIM_URL, json={"limit": 5}, headers={"X-API-Key": key})
+
+    assert claim.status_code == 200
+    assert claim.json()["items"] == []
+    assert extract.status == DiscoveryTaskStatus.PENDING
+
+
+@pytest.mark.parametrize("kinds", [[], ["no_such_kind"]])
+def test_post_tasks_claim_rejects_empty_or_unknown_kinds_without_leasing(
+    client: TestClient[Litestar],
+    db_session: Session,
+    kinds: list[str],
+) -> None:
+    key = _issue_key(db_session)
+    fetch = _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+
+    claim = client.post(CLAIM_URL, json={"limit": 5, "kinds": kinds}, headers={"X-API-Key": key})
+
+    assert claim.status_code == 422
+    assert fetch.status == DiscoveryTaskStatus.PENDING
 
 
 def test_post_tasks_claim_reclaims_expired_claimed_task(
