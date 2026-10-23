@@ -1,0 +1,82 @@
+name: Discovery drain
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_tasks:
+        description: "Maximum tasks per claim request (1-50)"
+        required: false
+        default: "50"
+        type: string
+      max_batches:
+        description: "Maximum claim/process batches"
+        required: false
+        default: "1"
+        type: string
+      time_budget_seconds:
+        description: "Optional wall-clock budget in seconds (empty for none)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-drain
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    name: Drain discovery tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      MAX_TASKS: ${{ inputs.max_tasks }}
+      MAX_BATCHES: ${{ inputs.max_batches }}
+      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Wait for Render API health
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Drain worker tasks
+        run: |
+          set -euo pipefail
+          args=(--max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}")
+          if [ -n "${TIME_BUDGET_SECONDS}" ]; then
+            args+=(--time-budget-seconds "${TIME_BUDGET_SECONDS}")
+          fi
+          python -m discovery_ingest worker drain "${args[@]}" | tee drain-report.json
+
+      - name: Write drain report to job summary
+        if: always()
+        run: |
+          if [ -s drain-report.json ]; then
+            {
+              echo "### Discovery drain report"
+              echo
+              echo '```json'
+              cat drain-report.json
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "### Discovery drain report" >> "${GITHUB_STEP_SUMMARY}"
+            echo "No report was produced; see the drain step log." >> "${GITHUB_STEP_SUMMARY}"
+          fi
