@@ -15,11 +15,13 @@ Update this ledger after every chapter implementation or documented operator ver
 
 ## Release checklist
 
-- [ ] Chapter 1 smoke evidence records one row from source ingest to pending suggestion.
-- [ ] Chapter 2 metrics and run lifecycle are observable through the agreed API/admin surfaces.
-- [ ] Chapter 3 bounded drain makes repeatable progress and handles invalid bounds/no-progress safely.
-- [ ] Chapter 4 icon controls preserve route, auth, locale, keyboard, and screen-reader behavior.
-- [ ] Chapter 5 operations docs and links are synchronized.
+- [x] Chapter 1 (partial: T0/T1/T2 only) smoke evidence records one row from source ingest to pending suggestion.
+- [x] Chapter 2 metrics and run lifecycle are observable through the agreed API/admin surfaces.
+- [x] Chapter 3 bounded drain makes repeatable progress and handles invalid bounds/no-progress safely.
+- [x] Chapter 4 icon controls preserve route, auth, locale, keyboard, and screen-reader behavior.
+- [x] Chapter 5 operations docs and links are synchronized.
 - [ ] Relevant package checks and root `./ci.sh` are green where implementation chapters changed code.
-- [ ] Crawler, screenshot/evidence, automatic emit, moderation, and promotion remain out of scope.
-- [ ] Release PR from `feat/discovery-operations` to `main` is ready.
+- [x] Crawler, screenshot/evidence, automatic emit, moderation, and promotion remain out of scope.
+- [x] Release PR [#182](https://github.com/vadim-schultz/redtape/pull/182) merged into `main` (CI green).
+
+**Last orchestration:** 2026-10-23 — completed; release PR #182 merged
