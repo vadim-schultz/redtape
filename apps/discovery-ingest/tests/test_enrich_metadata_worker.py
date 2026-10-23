@@ -12,6 +12,7 @@ import pytest
 from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.policy import DrainPolicy
 
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -106,7 +107,7 @@ def test_enrich_metadata_fetches_steckbrief_and_posts_entity_and_claim(
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
     client = DiscoveryMachineClient(API_BASE, "test-machine-key")
-    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), max_tasks=1)
+    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
 
     assert report.completed == 1
     entity_posts = [p for p in posts if p[1].endswith("/entities")]
@@ -156,7 +157,7 @@ def test_enrich_metadata_fails_task_when_steckbrief_404(monkeypatch: pytest.Monk
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
     client = DiscoveryMachineClient(API_BASE, "test-machine-key")
-    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), max_tasks=1)
+    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
 
     assert report.failed == 1
     assert len(fail_calls) == 1
