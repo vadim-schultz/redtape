@@ -31,9 +31,9 @@ Prove the whole page path on one real host. The choice is made from data, not as
 
 ## Step 0 — Choose the host (blocking)
 
-1. After chapter 15's live gate and the S14 re-pend, drain fetch tasks so snapshots exist for the top hosts.
+1. After chapter 15's live gate and the S14 re-pend, drain fetch tasks, then run `discovery-render.yml` two or three times. The render queue is throttled by Cloudflare's free plan (about 80 pages per run, chapter 15), but the top hosts make up roughly 30, 10 and 9 percent of the tasks, so about 240 rendered pages are enough to hold five snapshots for each of them.
 2. Run `discovery-fixture-capture.yml` for the three most frequent hosts (five snapshots each) and download them.
-3. Inspect: does the page list required documents, forms or evidence in stable markup? Landing or login pages and JavaScript shells (likely for `fimportal.de/detail/...`) do not qualify.
+3. Inspect: does the page list required documents, forms or evidence in stable markup? Landing pages and login pages do not qualify. A JavaScript shell (likely for `fimportal.de/detail/...`) is **not** disqualified any more, because the snapshot is the rendered DOM: judge the markup the snapshot contains, not the raw response.
 4. Record the decision and its evidence in the ledger. If no top host qualifies, record the negative finding in [gaps-and-decisions.md](../gaps-and-decisions.md), pick the best candidate from the next hosts, and keep PVOG payload harvest (chapter 7) as the primary source. A negative result is a valid outcome of this chapter.
 
 ## Contract
@@ -41,7 +41,7 @@ Prove the whole page path on one real host. The choice is made from data, not as
 - `discovery_ingest/extract/<host_slug>.py` implements the `Extractor` protocol with `id`, `version = "1"`, `matches` by exact host (and path prefix when pages differ in shape), and `extract` building `MentionItem`s with `role`, `excerpt`, `source_field` (a CSS-path-like locator) and absolute `official_url` for linked forms.
 - Relative links resolve against `final_url`. Items with no usable title are skipped and counted in a returned diagnostic (logged, not raised). Duplicates within a page collapse.
 - The extractor is added to `EXTRACTORS` in `registry.py`.
-- Politeness is inherited from the fetcher; the extractor itself makes no network calls.
+- Politeness is inherited from the fetcher and the render step; the extractor itself makes no network calls.
 - Fixtures live in `apps/discovery-ingest/tests/fixtures/html/<host_slug>/{listing,edge-case}.html`: real markup with personal data removed and size trimmed. The edge case is something actually observed (an item without a link, a relative URL, an empty list).
 
 ## TDD loops
@@ -67,7 +67,8 @@ Prove the whole page path on one real host. The choice is made from data, not as
 ```bash
 cd apps/discovery-ingest && python -m pytest tests/test_extractor_<host_slug>.py tests/test_extract_registry.py tests/test_extract_worker.py && ruff check . && mypy discovery_ingest
 gh pr checks --watch
-gh workflow run discovery-drain.yml -f kinds=fetch_url -f max_tasks=50 -f max_batches=2   # snapshots, then extract tasks are enqueued
+gh workflow run discovery-drain.yml -f kinds=fetch_url -f max_tasks=50 -f max_batches=2   # enqueues render_page
+gh workflow run discovery-render.yml -f max_tasks=5 -f max_batches=4                       # snapshots, then extract tasks are enqueued
 gh workflow run discovery-drain.yml -f kinds=extract_page -f max_batches=2
 gh run view --log
 ```

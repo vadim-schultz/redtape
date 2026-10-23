@@ -1,56 +1,59 @@
 ---
 name: "Chapter 19 — Screenshot capture"
-overview: "A capture_screenshot task kind run by a Playwright worker in its own workflow, enqueued only for pages that yielded documents, skipping login walls."
+overview: "A capture_screenshot task kind served by the Cloudflare client from chapter 15, enqueued only for pages that yielded documents, skipping login walls, and drained by the same throttled browser workflow."
 todos:
   - id: enqueue
     content: "Extraction enqueues capture_screenshot once per page with mentions"
     status: pending
   - id: capture
-    content: "Playwright handler behind an optional extra with a driver protocol"
+    content: "capture_screenshot handler on the BrowserClient port with the shared quota and storage stop rules"
     status: pending
   - id: guards
-    content: "robots, private-address and login-wall guards; size fallback"
+    content: "robots, login-wall and oversize guards"
     status: pending
   - id: workflow
-    content: "discovery-capture.yml and a marked integration job in ingest CI"
+    content: "Live capture through discovery-render.yml; no new workflow, extra or CI job"
     status: pending
 isProject: false
 ---
 
 # Chapter 19 — Screenshot capture
 
-**Repo:** `redtape` (`apps/discovery-ingest`, `.github/workflows`) · **Branch:** `feat/crawlers-screenshot-capture` · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-screenshot-capture` · **Status:** planned
 
-**Depends on:** [14](14-artifact-model-and-api.md), [17](17-extractor-framework.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md), [17](17-extractor-framework.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
 ## Goal
 
-Capture visual evidence for pages that produced documents, as a separate, optional runtime. Screenshots are evidence (durable), unlike snapshots (working input). Per decision D13 a page that yielded nothing, or a login wall, gets no screenshot.
+Capture visual evidence for pages that produced documents. Screenshots are evidence (durable), unlike snapshots (working input). Per decision D13 a page that yielded nothing, or a login wall, gets no screenshot. The browser is Cloudflare's (decision D14): this chapter adds no Playwright, no optional extra, no new workflow and no CI job. It is a handler on the client, throttle and budget that chapter 15 built.
 
 ## Contract
 
-**Enqueue.** The `extract_page` handler (chapter 17), after posting at least one mention, enqueues `capture_screenshot` through `POST /machine/tasks` with `target_url = final_url`, `input_key = "shot@1"`, priority 300. Identity dedupes it, so one page produces one capture however many extractor versions run. No mentions, no task.
+**Enqueue.** The `extract_page` handler (chapter 17), after posting at least one mention, enqueues `capture_screenshot` through `POST /machine/tasks` with `target_url = final_url`, `input_key = "shot@1"`, priority 300 (claimed after renders, because the queue takes lower numbers first). Identity dedupes it, so one page produces one capture however many extractor versions run. No mentions, no task. An enqueue error is logged and counted; it never fails the extraction.
 
-**Package.** `pyproject.toml` gains the optional extra `capture` (`playwright`). The handler lives in `discovery_ingest/capture/` and talks to a small `PageDriver` protocol (`goto`, `screenshot`, `final_url`, `has_password_field`); the Playwright implementation is the only module importing `playwright`. The handler registry registers `capture_screenshot` only when the import succeeds, so the ingest CI job without browsers still passes. Starting `worker drain --kinds capture_screenshot` without the extra fails with a clear message **before** claiming anything.
+**Handler** `handle_capture_screenshot`, registered in the task-kind table beside `render_page`. Steps, each a named function:
 
-**Capture behaviour.**
+1. robots.txt for the URL (chapter 2 cache); denied is a permanent failure.
+2. URL login-wall rule (the same function as chapter 15): complete with `result_note = "login_wall"`.
+3. `client.screenshot(url)` (chapter 15 port). Quota exceeded, an exhausted run budget, or a storage `503` follow the chapter 15 rules exactly: **release** this task and every unstarted task of the batch, then stop with `browser_quota`, `browser_budget` or `storage_unavailable`. Nothing is failed because of a limit.
+4. **Login wall by content:** when the client returned the DOM (`html` set) and it has an `input[type=password]`: complete with `result_note = "login_wall"`, upload nothing.
+5. Over 8 MB: complete with `result_note = "oversize"`, upload nothing (a viewport-only retry is an open seam, not built).
+6. Upload as a `screenshot` artifact (`image/jpeg`) with `source_url = task.target_url`, `final_url = task.target_url`, `fetched_at` captured when the call returned.
+7. Complete.
 
-- Chromium, headless, viewport 1280×800, navigation timeout 30 s, `wait_until="networkidle"`, full-page screenshot clamped to 12,000 px height.
-- robots.txt is honoured with the chapter 2 cache; denied is a permanent failure.
-- Every request the page makes is routed through the chapter 2 address guard; requests to private, loopback or link-local addresses are aborted. Downloads are disabled.
-- **Login wall** (final URL path or host contains `login`, `signin`, `auth` or `openid-connect`, or the page has a password input): complete the task with `result_note = "login_wall"` and upload nothing.
-- PNG first; if it exceeds 8 MB re-encode as JPEG quality 80; if still too large fail permanently.
-- Upload as a `screenshot` artifact with `fetched_at` set to the capture instant, `source_url` the task URL and `final_url` the page's final URL.
-- Navigation timeout and 5xx are retryable; denials, login walls and oversize are not. A browser that cannot launch is an infrastructure error that fails the run, not the task.
+Errors follow the chapter 15 table: `5xx`, timeout and connection errors are retryable; other `4xx` are permanent. A rejected token (`BrowserAuthError`) is infrastructure: release, stop the run, fail the job.
 
-**Workflows.**
+**Why a page can still be a login wall here.** Chapter 15 never snapshots login walls, so an extracted page was not one when rendered. Content can change or redirect later, which is why the guard runs again on the captured DOM. Evidence of a login page has no value.
 
-- `.github/workflows/discovery-capture.yml`: `workflow_dispatch` with inputs for `max_batches` and `time_budget_seconds`, plus a daily schedule gated by the repository variable `DISCOVERY_CAPTURE_SCHEDULE=enabled`. Steps: checkout, Python, `pip install -e ".[capture]"`, `playwright install --with-deps chromium`, API health wait, `worker drain --kinds capture_screenshot`, report to the job summary. It shares the `discovery-drain` concurrency group.
-- `discovery-ingest-ci.yml` gains a second job `capture-integration` that installs the extra and Chromium and runs tests marked `needs_playwright` against a local `http.server` fixture page. Unit tests never need a browser.
+**No new runtime.** Capture runs in `discovery-render.yml` (chapter 15, default kinds `render_page,capture_screenshot`), under the same two budgets (run wall clock and browser seconds) and the same `discovery-drain` concurrency group. `DISCOVERY_RENDER_SCHEDULE` gates the daily schedule. There is no `[capture]` extra, no `PageDriver`, no `discovery-capture.yml` and no `capture-integration` CI job.
+
+**Volume.** Screenshots are taken only for pages with mentions, so the count is a fraction of the rendered pages and stays well under the 1 GB storage budget (JPEG, typically a few hundred kilobytes); each also costs one browser call in the same 11-second cadence.
 
 ## TDD loops
+
+All tests use the fake `BrowserClient` and injected clock from chapter 15.
 
 ### Loop A — Enqueue rule
 
@@ -59,38 +62,40 @@ Capture visual evidence for pages that produced documents, as a separate, option
 1. `extract_page enqueues one capture task when mentions exist`.
 2. `extract_page enqueues none when there are no mentions`.
 3. `re-extraction with a new extractor version does not create a second capture task`.
+4. `a failed capture enqueue is counted and does not fail the extraction`.
 
 **Green/Refactor:** one small helper called at the end of the handler.
 
-### Loop B — Handler with a fake driver
+### Loop B — Handler
 
 **Red** (`test_capture_worker.py`)
 
-1. `capture uploads a png screenshot artifact and completes`.
-2. `capture completes with note login_wall and uploads nothing`.
-3. `capture fails permanently when robots.txt disallows`.
-4. `capture fails retryably on navigation timeout`.
-5. `capture falls back to jpeg when the png is too large`.
-6. `capture aborts requests to private addresses`.
-7. `starting the capture kind without the extra fails before claiming`.
+1. `capture uploads a jpeg screenshot artifact and completes`.
+2. `capture completes with note login_wall for a login url without calling the browser`.
+3. `capture completes with note login_wall and uploads nothing when the captured dom has a password field`.
+4. `capture completes with note oversize and uploads nothing for an image over 8 MB`.
+5. `capture fails permanently when robots.txt disallows`.
+6. `capture releases the task and stops the run on quota exceeded, budget spent, or storage unavailable` — unstarted tasks of the batch are released too and no attempt is consumed.
+7. `capture fails retryably on a 5xx and permanently on a 4xx from the browser`.
+8. `capture still works when the client returns no dom` — the URL rule is the only guard.
 
-**Green:** handler built on `PageDriver`. **Refactor:** each guard is its own named function; the handler reads as a short pipeline.
+**Green:** handler built on the port. **Refactor:** each guard is its own named function shared with `render_page` where the rule is identical; the handler reads as a short pipeline.
 
-### Loop C — Real browser (marked)
+### Loop C — Kind registry
 
-**Red** (`needs_playwright`): `capture produces a non-empty png of a local fixture page` and `capture detects a password field page as a login wall`. **Green/Refactor:** the Playwright driver only.
+**Red** (`test_worker_drain.py`) `capture_screenshot is dispatched to its handler, and is absent from the default kinds`. **Green/Refactor:** one table entry.
 
 ## Verification
 
 ```bash
-cd apps/discovery-ingest && python -m pytest -m "not needs_playwright" && ruff check . && mypy discovery_ingest
-gh pr checks --watch                           # includes capture-integration
-gh workflow run discovery-capture.yml -f max_batches=1
+cd apps/discovery-ingest && python -m pytest tests/test_extract_worker.py tests/test_capture_worker.py tests/test_worker_drain.py && ruff check . && mypy discovery_ingest
+gh pr checks --watch
+gh workflow run discovery-render.yml -f kinds=capture_screenshot -f max_tasks=5 -f max_batches=1
 gh run watch && gh run view --log
 ```
 
-Live gate (needs S1–S4 and at least one chapter 18 extraction): the run completes at least one capture; the screenshot is visible in the admin Artifacts panel; a known login URL yields `login_wall` without an upload. Record the run ID, artifact id and the storage bytes shown in Coverage.
+Live gate (needs S15–S17 and at least one chapter 18 extraction): the run completes at least one capture; the screenshot is visible in the admin Artifacts panel; a known login URL completes with `login_wall` and no upload. Record the run ID, artifact id, the browser seconds reported and the storage bytes shown in Coverage.
 
 ## Out of scope
 
-Capturing arbitrary catalogue pages, interaction scripts (clicks, form filling), cookie-banner dismissal, video, PDF capture, attaching screenshots to suggestions.
+Capturing arbitrary catalogue pages, interaction scripts (clicks, form filling), cookie-banner dismissal, video, PDF capture, a viewport-only retry for oversize pages, attaching screenshots to suggestions.
