@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
+    LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
     DiscoveryRunKind,
     DiscoverySource,
@@ -64,6 +65,12 @@ class TaskClaimRequest(BaseModel):
     """Claim pending discovery tasks for the caller API key."""
 
     limit: int = Field(default=1, ge=1, le=50)
+    kinds: list[DiscoveryTaskKind] | None = Field(default=None, min_length=1)
+
+    @property
+    def resolved_kinds(self) -> tuple[DiscoveryTaskKind, ...]:
+        """Return the requested kinds, or the legacy kinds when none were named."""
+        return LEGACY_TASK_KINDS if self.kinds is None else tuple(self.kinds)
 
 
 class ClaimedTaskRead(BaseModel):

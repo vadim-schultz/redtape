@@ -93,7 +93,7 @@ class DiscoveryMachineService:
     def claim_tasks(self, body: TaskClaimRequest, *, api_key: ApiKey) -> TaskClaimResponse:
         """Lease pending tasks to the calling key."""
         now = datetime.now(UTC)
-        claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now)
+        claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now, kinds=body.resolved_kinds)
         return TaskClaimResponse(items=[_claimed_task_read(task, now) for task in claimed])
 
     def complete_task(self, task_id: UUID) -> TaskCompleteResponse:

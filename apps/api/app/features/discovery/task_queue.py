@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import enqueue_task_if_needed
 from app.models.api_key import ApiKey
 from app.models.discovery import (
+    LEGACY_TASK_KINDS,
     CatalogueService,
     DiscoveryEventType,
     DiscoveryTask,
@@ -42,10 +44,17 @@ class TaskQueue:
             advance_stage(self._repo, service)
         return task
 
-    def claim_pending(self, *, api_key: ApiKey, limit: int, now: datetime) -> list[DiscoveryTask]:
-        """Reclaim expired leases, then lease up to ``limit`` pending tasks to ``api_key``."""
+    def claim_pending(
+        self,
+        *,
+        api_key: ApiKey,
+        limit: int,
+        now: datetime,
+        kinds: Sequence[DiscoveryTaskKind] = LEGACY_TASK_KINDS,
+    ) -> list[DiscoveryTask]:
+        """Reclaim expired leases, then lease up to ``limit`` pending ``kinds`` tasks to ``api_key``."""
         self._repo.reclaim_expired_claims(now=now)
-        pending = self._repo.list_pending_tasks_for_claim(limit=limit)
+        pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds)
         return [self._lease(task, api_key, now) for task in pending]
 
     def complete(self, task_id: UUID) -> DiscoveryTask:

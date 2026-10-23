@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -81,9 +82,12 @@ class TaskRepository(SessionRepository):
         self._session.execute(_reclaim_expired_stmt(now))
         self._session.flush()
 
-    def list_pending_tasks_for_claim(self, *, limit: int) -> list[DiscoveryTask]:
-        """Return up to ``limit`` pending tasks in queue order."""
-        stmt = select(DiscoveryTask).where(DiscoveryTask.status == DiscoveryTaskStatus.PENDING)
+    def list_pending_tasks_for_claim(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> list[DiscoveryTask]:
+        """Return up to ``limit`` pending tasks of the given ``kinds`` in queue order."""
+        stmt = select(DiscoveryTask).where(
+            DiscoveryTask.status == DiscoveryTaskStatus.PENDING,
+            DiscoveryTask.kind.in_(kinds),
+        )
         return list(self._session.scalars(stmt.order_by(*QUEUE_ORDER).limit(limit)).all())
 
     def get_task(self, task_id: UUID) -> DiscoveryTask | None:
