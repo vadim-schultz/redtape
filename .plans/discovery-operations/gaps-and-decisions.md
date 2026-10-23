@@ -22,7 +22,7 @@ isProject: false
 | D8 | **Remaining work is observable without leaking claims.** The worker must not claim one extra task merely to estimate backlog. Use the queue-summary contract from the observability chapter, or report remaining as unknown when that contract is unavailable. |
 | D9 | **Discovery links become icon controls.** Catalogue uses `FaList`, Coverage uses `FaTasks`, and Tasks uses `FaClipboard` from the installed `react-icons/fa` family, subject to export verification during implementation. No new icon dependency is allowed. |
 | D10 | **Accessibility is retained.** Icon-only controls have translated `aria-label` values and title or tooltip text, preserve keyboard focus and stable routes, and remain hidden unless the existing server admin probe succeeds. |
-| D11 | **Crawler and evidence are deferred.** Do not create `apps/crawler`, extractors, Playwright capture, screenshots, evidence uploads, or the chapter-20 frontier adapter in this suite. Keep stable catalogue, task, entity, claim, and run identifiers usable by that future work. |
+| D11 | **Crawler and evidence are deferred.** Do not create `apps/crawler`, extractors, Playwright capture, screenshots, evidence uploads, or the chapter-20 frontier adapter in this suite. Keep stable catalogue, task, entity, claim, and run identifiers usable by that future work. The crawl work is now planned as the queue-based [crawlers suite](../crawlers/00-architecture.md) (no standalone `apps/crawler` package). |
 | D12 | **Manual emit remains deliberate.** Scheduled ingestion and worker drains do not emit automatically. The smoke chapter performs one explicit emit only after preview and T4 verification. |
 
 ## Open seams

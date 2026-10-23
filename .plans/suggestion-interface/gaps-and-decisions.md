@@ -20,7 +20,7 @@ isProject: false
 | D6 | **Jurisdiction is given as `jurisdiction_id` (crawlers, stable seeded UUIDs) or `municipality_code` (web picker, matching the documents filters).** Exactly one must be present; the service resolves the code through `DocumentService`. |
 | D7 | **Reads are public.** Pending suggestions are the voting agenda and transparency helps review. Submitter identity is shown as display name only, never email. |
 | D8 | **Machine retries are idempotent** through `Idempotency-Key`, scoped to the API key. Replay returns the original with 200. |
-| D9 | **Crawler suggestions require `source_url`.** Human suggestions may omit it; the payload's `official_url` is still required for `new_document`. |
+| D9 | **Crawler suggestions require `source_url`.** Human suggestions may omit it; the payload's `official_url` is still required for `new_document`. *Planned amendment ([crawlers D8](../crawlers/gaps-and-decisions.md), chapter 11): `official_url` becomes optional on `new_document`, because documents such as "Personalausweis" have no URL of their own and a shared page URL would trigger duplicate rejection; provenance travels in `source_url`.* |
 
 ## Open seams
 

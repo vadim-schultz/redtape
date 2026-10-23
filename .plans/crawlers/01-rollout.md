@@ -1,80 +1,167 @@
 ---
 name: Crawlers — Rollout
-overview: "Eleven independently shippable chapters: a new crawler package with its own CI, an API client, a polite fetcher, the source registry, extraction, one real extractor, screenshot capture, evidence submission, the run orchestrator, the GitHub Actions schedule, and docs."
+overview: "Twenty-two independently shippable chapters: CI and fetch fixes, kind-filtered queue work, a documents-first slice (candidates, PVOG payload harvest, admin Documents, emit), an object-store slice (adapter, artifacts, snapshots, panel), page extraction, screenshot capture, evidence in the admin, docs sync, and the operator checklist."
 isProject: false
 ---
 
 # Crawlers — Rollout
 
-**Architecture:** [00-architecture.md](00-architecture.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/)
+**Architecture:** [00-architecture.md](00-architecture.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/) · **Ledger:** [run-ledger.md](run-ledger.md)
 
-**Prerequisites:** [suggestion-interface](../suggestion-interface/01-rollout.md) chapter 6 (machine submit,
-idempotency); [evidence-storage](../evidence-storage/01-rollout.md) chapter 5 (evidence upload); [auth](../auth/01-rollout.md) chapter 8 (API keys).
+**Loop branch:** `feat/crawlers`
+**Release branch:** `main`
 
----
+**Prerequisites (already on `main`):** [discovery-layer](../discovery-layer/01-rollout.md), [discovery-online](../discovery-online/01-rollout.md), [discovery-operations](../discovery-operations/01-rollout.md), [suggestion-interface](../suggestion-interface/01-rollout.md), and the API-side votes, transitions and promotion from [voting-moderation](../voting-moderation/01-rollout.md).
 
-## The three invariants
+## Invariants
 
-1. **No database access.** `apps/crawler` never imports `app.db` or any SQLAlchemy model; every write is an
-   HTTP call with an API key (D3).
-2. **Independently shippable.** Chapters 1–5 build and test entirely offline (fixtures, `respx`) with no
-   real network call; only chapter 6 (the first real extractor) and chapter 10 (the schedule) touch a real
-   site.
-3. **Never silently fails.** The orchestrator's exit code reflects real failures; duplicates (D7) and
-   individually failed sources are reported, not swallowed, and do not fail the whole run.
-
----
+1. **Every chapter is CI-green and shippable on its own.** A chapter that needs live infrastructure (the object store) has unit tests against fakes; its live gate is recorded separately in the ledger and never blocks the merge.
+2. **Workers stay HTTP-only.** `apps/discovery-ingest` uses the machine API and an API key; it never receives `DATABASE_URL` and never imports API persistence code.
+3. **Additive schema.** New tables, new nullable columns, new enum labels. Nothing existing is renamed or dropped. The default kind filter keeps the scheduled drain on the two legacy kinds.
+4. **No automatic emit.** Scheduled jobs harvest and stage; emit is a deliberate operator action.
+5. **Storage credentials stay in Render.** GitHub Actions secrets for object storage exist only for the probe workflow.
+6. **Procedures are not documents.** Service-level claims are excluded from document-first emit.
+7. **Every drain is bounded** by batch count and/or time budget and reports why it stopped.
+8. **Politeness is not optional.** robots.txt, identifying User-Agent, per-host interval, no login-wall bypass.
+9. **Navigation links are `react-icons` buttons in one `HStack` row**, added to the config array.
+10. **Tests are paired** (happy and negative) with an explicit refactor audit per chapter.
 
 ## Dependency graph
 
 ```mermaid
 flowchart TD
-  C1[1. Package skeleton] --> C2[2. Suggestion API client]
-  C1 --> C3[3. Polite fetcher]
-  C1 --> C4[4. Source registry]
-  C3 --> C5[5. Extractor interface and fixtures]
+  C1[1 IngestCI] --> C2[2 FetcherHardening]
+  C1 --> C3[3 KindFilteredClaim]
+  C3 --> C4[4 RetryAndBackoff]
+  C2 --> C5[5 DrainThroughput]
+  C3 --> C5
   C4 --> C5
-  C5 --> C6[6. First extractor]
-  C1 --> C7[7. Screenshot capture]
-  C2 --> C8[8. Evidence submission]
+  C3 --> C6[6 CandidateStaging]
+  C6 --> C7[7 PvogHarvester]
+  C3 --> C8[8 AdminQueueKinds]
+  C4 --> C8
   C7 --> C8
-  C6 --> C9[9. Run orchestrator and report]
-  C8 --> C9
-  C9 --> C10[10. GitHub Actions schedule]
-  C10 --> C11[11. Docs sync]
+  C6 --> C10[10 AdminDocumentsList]
+  C7 --> C10
+  C9[9 MenuIconRow] --> C10
+  C6 --> C11[11 CandidateEmit]
+  C7 --> C11
+  C3 --> C12[12 FimKeyFix]
+  C1 --> C13[13 ObjectStore]
+  C13 --> C14[14 ArtifactApi]
+  C3 --> C14
+  C2 --> C15[15 SnapshotOnFetch]
+  C14 --> C15
+  C14 --> C16[16 AdminArtifactsPanel]
+  C6 --> C17[17 ExtractorFramework]
+  C15 --> C17
+  C17 --> C18[18 FirstExtractor]
+  C14 --> C19[19 ScreenshotCapture]
+  C17 --> C19
+  C11 --> C20[20 AdminDocumentDetail]
+  C16 --> C20
+  C18 --> C20
+  C20 --> C21[21 DocsSync]
+  C19 --> C21
+  C21 --> C22[22 OperatorSteps]
 ```
 
-Chapters 2, 3 and 4 have no dependency on each other and can proceed in parallel once chapter 1 exists.
-Chapter 7 (screenshots) can proceed in parallel with 2–6.
+Chapters 1–5 touch no new tables. The **documents slice** (6–12) and the **storage slice** (13–16) are independent once chapter 5 is merged. The documents slice runs first so documents appear before anything depends on a bucket. Chapter 9 is independent and small; it lands before chapter 10 so the Documents icon is verified in a single row.
 
----
+## Execution order
+
+1. [chapters/01-ingest-ci.md](chapters/01-ingest-ci.md)
+2. [chapters/02-fetcher-hardening.md](chapters/02-fetcher-hardening.md)
+3. [chapters/03-kind-filtered-claim.md](chapters/03-kind-filtered-claim.md)
+4. [chapters/04-retry-and-backoff.md](chapters/04-retry-and-backoff.md)
+5. [chapters/05-drain-throughput-and-queue-summary.md](chapters/05-drain-throughput-and-queue-summary.md)
+6. [chapters/06-candidate-staging-model-and-api.md](chapters/06-candidate-staging-model-and-api.md)
+7. [chapters/07-pvog-payload-harvester.md](chapters/07-pvog-payload-harvester.md)
+8. [chapters/08-admin-queue-kinds-and-metrics.md](chapters/08-admin-queue-kinds-and-metrics.md)
+9. [chapters/09-menu-icon-row.md](chapters/09-menu-icon-row.md)
+10. [chapters/10-admin-documents-list.md](chapters/10-admin-documents-list.md)
+11. [chapters/11-candidate-emit.md](chapters/11-candidate-emit.md)
+12. [chapters/12-fim-key-fix.md](chapters/12-fim-key-fix.md)
+13. [chapters/13-object-store-port-and-supabase-adapter.md](chapters/13-object-store-port-and-supabase-adapter.md)
+14. [chapters/14-artifact-model-and-api.md](chapters/14-artifact-model-and-api.md)
+15. [chapters/15-snapshot-on-fetch.md](chapters/15-snapshot-on-fetch.md)
+16. [chapters/16-admin-artifacts-panel.md](chapters/16-admin-artifacts-panel.md)
+17. [chapters/17-extractor-framework.md](chapters/17-extractor-framework.md)
+18. [chapters/18-first-page-extractor.md](chapters/18-first-page-extractor.md)
+19. [chapters/19-screenshot-capture.md](chapters/19-screenshot-capture.md)
+20. [chapters/20-admin-document-detail-and-evidence.md](chapters/20-admin-document-detail-and-evidence.md)
+21. [chapters/21-docs-sync.md](chapters/21-docs-sync.md)
+22. [chapters/22-operator-manual-steps.md](chapters/22-operator-manual-steps.md)
 
 ## Chapters
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Crawler package skeleton | tooling | ruff + mypy + pytest + `./ci.sh` | [01-crawler-package-skeleton.md](chapters/01-crawler-package-skeleton.md) | planned |
-| 2 | Suggestion API client | backend | pytest (respx) | [02-suggestion-api-client.md](chapters/02-suggestion-api-client.md) | planned |
-| 3 | Polite fetcher | backend | pytest (respx) | [03-polite-fetcher.md](chapters/03-polite-fetcher.md) | planned |
-| 4 | Source registry | backend | pytest | [04-source-registry.md](chapters/04-source-registry.md) | planned |
-| 5 | Extractor interface and fixtures | backend | pytest | [05-extractor-interface-and-fixtures.md](chapters/05-extractor-interface-and-fixtures.md) | planned |
-| 6 | First extractor | backend | pytest + manual | [06-first-extractor.md](chapters/06-first-extractor.md) | planned |
-| 7 | Screenshot capture | backend | pytest (marked, needs Playwright) | [07-screenshot-capture.md](chapters/07-screenshot-capture.md) | planned |
-| 8 | Evidence submission | backend | pytest (respx) | [08-evidence-submission.md](chapters/08-evidence-submission.md) | planned |
-| 9 | Run orchestrator and report | backend | pytest + `./ci.sh` | [09-run-orchestrator-and-report.md](chapters/09-run-orchestrator-and-report.md) | planned |
-| 10 | GitHub Actions schedule | CI | workflow dry run | [10-github-actions-schedule.md](chapters/10-github-actions-schedule.md) | planned |
-| 11 | Docs sync | docs | link check | [11-docs-sync.md](chapters/11-docs-sync.md) | planned |
+| 1 | Ingest CI | CI | workflow green on PR | [01](chapters/01-ingest-ci.md) | planned |
+| 2 | Fetcher hardening | worker | paired tests + CI + live drain | [02](chapters/02-fetcher-hardening.md) | planned |
+| 3 | Kind-filtered claim and enum groundwork | API + worker + migration | paired tests + round trip + CI | [03](chapters/03-kind-filtered-claim.md) | planned |
+| 4 | Retry and backoff | API + worker + migration | paired tests + round trip + CI | [04](chapters/04-retry-and-backoff.md) | planned |
+| 5 | Drain throughput and queue summary | API + CI workflow | paired tests + CI + live drain | [05](chapters/05-drain-throughput-and-queue-summary.md) | planned |
+| 6 | Candidate staging model and API | model + migration + API | paired tests + round trip + CI | [06](chapters/06-candidate-staging-model-and-api.md) | planned |
+| 7 | PVOG payload harvester | worker + API | paired tests + CI + live drain | [07](chapters/07-pvog-payload-harvester.md) | planned |
+| 8 | Admin queue kinds and metrics | API + frontend | paired tests + web CI | [08](chapters/08-admin-queue-kinds-and-metrics.md) | planned |
+| 9 | Menu icon row | frontend | Vitest + web CI + browser check | [09](chapters/09-menu-icon-row.md) | planned |
+| 10 | Admin Documents list | API + frontend | paired tests + web CI + browser check | [10](chapters/10-admin-documents-list.md) | planned |
+| 11 | Candidate emit | API + worker | paired tests + CI + live emit | [11](chapters/11-candidate-emit.md) | planned |
+| 12 | FIM key fix | API + worker + probe | paired tests + CI + live probe | [12](chapters/12-fim-key-fix.md) | planned |
+| 13 | Object store port and Supabase adapter | API + CI workflow | paired tests (moto) + CI + live probe | [13](chapters/13-object-store-port-and-supabase-adapter.md) | planned |
+| 14 | Artifact model and API | model + migration + API | paired tests + round trip + CI | [14](chapters/14-artifact-model-and-api.md) | planned |
+| 15 | Snapshot on fetch | worker | paired tests + CI + live drain | [15](chapters/15-snapshot-on-fetch.md) | planned |
+| 16 | Admin Artifacts panel | frontend | paired tests + web CI | [16](chapters/16-admin-artifacts-panel.md) | planned |
+| 17 | Extractor framework and `extract_page` | worker | paired tests + CI | [17](chapters/17-extractor-framework.md) | planned |
+| 18 | First page extractor | worker | fixture tests + CI + live drain | [18](chapters/18-first-page-extractor.md) | planned |
+| 19 | Screenshot capture | worker + CI workflow | paired tests + CI + live capture | [19](chapters/19-screenshot-capture.md) | planned |
+| 20 | Admin document detail and evidence | frontend | paired tests + web CI + browser check | [20](chapters/20-admin-document-detail-and-evidence.md) | planned |
+| 21 | Docs sync | docs | link checks + docs tests | [21](chapters/21-docs-sync.md) | planned |
+| 22 | Operator manual steps | docs + ops | checklist ticked by the operator | [22](chapters/22-operator-manual-steps.md) | planned |
 
 ## Per-chapter gate
 
+Local checks are best-effort because the development environment is limited. **GitHub Actions is the authoritative gate**: open the chapter PR into `feat/crawlers`, then
+
 ```bash
-cd apps/crawler
-ruff format --check . && ruff check . && mypy crawler
-python -m pytest -m "not needs_playwright"   # chapters 1-6, 8-9
-python -m pytest -m needs_playwright         # chapter 7 only, requires `playwright install chromium`
-cd ../.. && ./ci.sh
+gh pr checks --watch
 ```
 
-**Refactor gate** (reported per chapter): methods ~5 LOC, classes ~100 LOC, at most one level of nesting,
-commit at least once per green. Branches `feat/crawler-<name>`, conventional commits (`test(crawler): …`
-then `feat(crawler): …`), one PR per chapter, never commit to `main`.
+Live verification uses workflow dispatch against the non-production stack, which may be used freely:
+
+```bash
+gh workflow run platform-maintenance.yml -f job=discovery
+gh run list --workflow=platform-maintenance.yml --limit 3
+gh run watch            # pick the dispatched run
+gh run view --log       # copy the drain report into the ledger
+```
+
+Narrow test pairs first, then the affected package checks:
+
+```bash
+# API chapters
+cd apps/api && python -m pytest tests/<file>.py
+# migration chapters, additionally
+cd apps/api && alembic upgrade head && alembic downgrade -1 && alembic upgrade head
+# worker chapters
+cd apps/discovery-ingest && python -m pytest tests/<file>.py && ruff check . && mypy discovery_ingest
+# web chapters
+cd apps/web && npm run test -- <paths> && npm run lint && npm run format:check && npm run typecheck && npm run build
+```
+
+Each chapter reports its refactor outcome in the ledger before the next chapter starts. **Refactor gate:** methods about five lines, classes about a hundred, at most one level of nesting, one commit per green step.
+
+## Branch and release protocol
+
+Each chapter uses a feature branch `feat/crawlers-<slug>` from `feat/crawlers` and opens one PR into `feat/crawlers`. Conventional commits (`test(...)` then `feat(...)`). After the ledger is complete, open one release PR from `feat/crawlers` to `main`. Never commit to `main`.
+
+## Exit criteria
+
+- The scheduled drain makes real progress (multi-batch, time-bounded) and reports `remaining`.
+- Redirects are followed; transient failures retry; permanent failures stay failed.
+- Document candidates exist, deduplicated, with provenance, visible in the admin Documents screens.
+- At least one operator-driven emit creates pending `new_document` suggestions from candidates.
+- HTML snapshots and screenshots are stored in the object store and visible in the admin.
+- At least one page extractor produces candidates from live snapshots.
+- The operator checklist is complete and the ledger records run IDs for every live gate.

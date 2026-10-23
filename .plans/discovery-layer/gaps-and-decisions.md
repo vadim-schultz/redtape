@@ -14,7 +14,7 @@ isProject: false
 | --- | --- |
 | D1 | **Public UX is documents-only.** Pipeline stages appear only under `/admin/discovery/*`. |
 | D2 | **Staging ≠ canonical.** Promotion only via [voting-moderation](../voting-moderation/00-architecture.md). |
-| D3 | **Workers use HTTP only** — no `DATABASE_URL` on ingest/crawler ([crawlers D3](../crawlers/gaps-and-decisions.md)). |
+| D3 | **Workers use HTTP only** — no `DATABASE_URL` on ingest/crawler ([crawlers D4](../crawlers/gaps-and-decisions.md)). |
 | D4 | **No standing GHA discovery job.** |
 | D5 | **Auto-enqueue** `discovery_task` on catalogue upsert. |
 | D6 | **Admin pipeline read-only** — no approve/reject/hold in v1. |

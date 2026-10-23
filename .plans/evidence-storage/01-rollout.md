@@ -6,6 +6,8 @@ isProject: false
 
 # Evidence Storage — Rollout
 
+> **Planned amendment (crawlers suite, 2026-10-23).** The [crawlers suite](../crawlers/00-architecture.md) builds the object-store port and S3 adapter itself (its chapter 13, under `apps/api/app/shared/object_store`), with **Supabase Storage first** and Cloudflare R2 as a configuration swap, and stores crawler snapshots and screenshots as staging `discovery_artifact` rows. Chapters 1–2 of this suite are therefore absorbed; the suggestion-keyed `evidence` model, routes and viewer (chapters 3–7) remain here, and bridging `discovery_artifact` objects to `evidence` rows at emit time is an open seam of this suite. Statements below that name R2 as the only provider are superseded by that amendment.
+
 **Architecture:** [00-architecture.md](00-architecture.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/)
 
 **Prerequisites:** [ci-foundation](../ci-foundation/01-rollout.md) 1–2. Chapters 3 onward also need
