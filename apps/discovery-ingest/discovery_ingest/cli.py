@@ -32,7 +32,13 @@ from discovery_ingest.pvog.client import (
     PvogMappingError,
     map_pvog_record,
 )
-from discovery_ingest.schemas import CatalogueBatchItem
+from discovery_ingest.schemas import (
+    LEGACY_TASK_KINDS,
+    TASK_KINDS,
+    CatalogueBatchItem,
+    DiscoveryTaskKind,
+    is_task_kind,
+)
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
@@ -191,11 +197,21 @@ def _fim_enrich(args: argparse.Namespace) -> int:
     return 0
 
 
+def _task_kinds_arg(raw: str) -> tuple[DiscoveryTaskKind, ...]:
+    """Parse a comma separated ``--kinds`` value into known task kinds."""
+    names = [name.strip() for name in raw.split(",")]
+    kinds = tuple(name for name in names if is_task_kind(name))
+    if not kinds or len(kinds) != len(names):
+        raise argparse.ArgumentTypeError(f"expected a comma separated subset of {', '.join(TASK_KINDS)}; got {raw!r}")
+    return kinds
+
+
 def _drain_policy(args: argparse.Namespace) -> DrainPolicy:
     return DrainPolicy(
         max_tasks=args.max_tasks,
         max_batches=args.max_batches,
         time_budget_seconds=args.time_budget_seconds,
+        kinds=args.kinds,
     )
 
 
@@ -369,5 +385,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Optional positive wall-clock budget for the whole drain",
+    )
+    worker_drain.add_argument(
+        "--kinds",
+        type=_task_kinds_arg,
+        default=LEGACY_TASK_KINDS,
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata)",
     )
     return parser

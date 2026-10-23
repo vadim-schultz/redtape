@@ -53,7 +53,7 @@ def _run_batch(
     tally: _Tally,
 ) -> int:
     """Claim one batch, settle every task in it, and return the batch size."""
-    items = client.claim_tasks(limit=policy.max_tasks).items
+    items = client.claim_tasks(limit=policy.max_tasks, kinds=policy.kinds).items
     tally.batches += 1
     tally.claimed += len(items)
     for task in items:

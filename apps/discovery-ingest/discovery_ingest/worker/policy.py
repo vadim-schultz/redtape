@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from discovery_ingest.schemas import StopReason
+from discovery_ingest.schemas import LEGACY_TASK_KINDS, DiscoveryTaskKind, StopReason
 
 MAX_TASKS_PER_CLAIM = 50
 
 
 @dataclass(frozen=True, slots=True)
 class DrainPolicy:
-    """Validated batch size, batch-count, and wall-clock bounds for one drain."""
+    """Validated batch size, batch-count, wall-clock bounds and task kinds for one drain."""
 
     max_tasks: int = MAX_TASKS_PER_CLAIM
     max_batches: int = 1
     time_budget_seconds: float | None = None
+    kinds: tuple[DiscoveryTaskKind, ...] = LEGACY_TASK_KINDS
 
     def __post_init__(self) -> None:
         """Reject bounds that would make a drain empty or unbounded."""
@@ -25,6 +26,8 @@ class DrainPolicy:
             raise ValueError("max_batches must be a positive integer")
         if self.time_budget_seconds is not None and self.time_budget_seconds <= 0:
             raise ValueError("time_budget_seconds must be positive")
+        if not self.kinds:
+            raise ValueError("kinds must name at least one task kind")
 
     def stop_reason(self, *, batches: int, last_claimed: int, elapsed: float) -> StopReason | None:
         """Return why the drain must stop after a batch, or ``None`` to continue."""
