@@ -11,6 +11,10 @@ on:
       - "apps/discovery-ingest/**"
       - ".github/workflows/discovery-ingest-ci.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 defaults:
   run:
     working-directory: apps/discovery-ingest

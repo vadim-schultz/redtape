@@ -11,6 +11,10 @@ on:
       - "apps/api/**"
       - ".github/workflows/api-lint-test.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 defaults:
   run:
     working-directory: apps/api
