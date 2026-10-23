@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.features.discovery.lookups import require_task
 from app.features.discovery.repository import DiscoveryRepository, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
-from app.features.discovery.task_enqueue import enqueue_task_if_needed
+from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
+from app.features.discovery.task_retry import MAX_ATTEMPTS, settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
+    LEGACY_TASK_KINDS,
     CatalogueService,
     DiscoveryEventType,
     DiscoveryTask,
@@ -42,10 +45,21 @@ class TaskQueue:
             advance_stage(self._repo, service)
         return task
 
-    def claim_pending(self, *, api_key: ApiKey, limit: int, now: datetime) -> list[DiscoveryTask]:
-        """Reclaim expired leases, then lease up to ``limit`` pending tasks to ``api_key``."""
-        self._repo.reclaim_expired_claims(now=now)
-        pending = self._repo.list_pending_tasks_for_claim(limit=limit)
+    def enqueue(self, target: TaskTarget, *, priority: int = 100) -> EnqueueOutcome:
+        """Enqueue ``target`` unless an equivalent task exists; report whether it was created."""
+        return enqueue_task_with_outcome(self._repo, target, priority=priority)
+
+    def claim_pending(
+        self,
+        *,
+        api_key: ApiKey,
+        limit: int,
+        now: datetime,
+        kinds: Sequence[DiscoveryTaskKind] = LEGACY_TASK_KINDS,
+    ) -> list[DiscoveryTask]:
+        """Reclaim expired leases, then lease up to ``limit`` pending ``kinds`` tasks to ``api_key``."""
+        self._repo.reclaim_expired_claims(now=now, max_attempts=MAX_ATTEMPTS)
+        pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds, now=now)
         return [self._lease(task, api_key, now) for task in pending]
 
     def complete(self, task_id: UUID) -> DiscoveryTask:
@@ -55,12 +69,10 @@ class TaskQueue:
         task.lease_expires_at = None
         return task
 
-    def fail(self, task_id: UUID, error: str) -> DiscoveryTask:
-        """Mark a task failed with ``error`` and release its lease."""
+    def fail(self, task_id: UUID, error: str, *, retryable: bool = False, now: datetime) -> DiscoveryTask:
+        """Record ``error`` on a task: re-pend it with backoff if retryable and under the cap, else fail it."""
         task = require_task(self._repo, task_id)
-        task.status = DiscoveryTaskStatus.FAILED
-        task.last_error = error
-        task.lease_expires_at = None
+        settle_failure(task, error, retryable=retryable, now=now)
         return task
 
     def _lease(self, task: DiscoveryTask, api_key: ApiKey, now: datetime) -> DiscoveryTask:
@@ -68,6 +80,7 @@ class TaskQueue:
         task.claimed_at = now
         task.claimed_by_api_key_id = api_key.id
         task.lease_expires_at = now + timedelta(minutes=TASK_LEASE_MINUTES)
+        task.attempt_count += 1
         self._repo.record_event(_claimed_event(task, api_key))
         return task
 

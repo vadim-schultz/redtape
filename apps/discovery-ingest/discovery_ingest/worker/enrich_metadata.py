@@ -13,6 +13,7 @@ from discovery_ingest.enrich import (
 )
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.settle import fail_from_outcome, fail_permanently
 
 _DEFAULT_FIM_BASE = "https://fimportal.de"
 
@@ -28,26 +29,21 @@ def handle_enrich_metadata(
     try:
         catalogue = client.get_catalogue(task.catalogue_service_id)
     except DiscoveryMachineApiError as err:
-        client.fail_task(task.id, error=err.detail)
-        return "failed"
+        return fail_permanently(client, task.id, err.detail)
 
     outcome = fetcher.get(task.target_url)
-    if outcome.error_message is not None or outcome.http_status is None or outcome.http_status >= 400:
-        error = outcome.error_message or f"HTTP {outcome.http_status}"
-        client.fail_task(task.id, error=error)
-        return "failed"
+    if outcome.failed:
+        return fail_from_outcome(client, task.id, outcome)
 
     steckbrief = _parse_steckbrief_body(outcome.body)
     if steckbrief is None:
-        client.fail_task(task.id, error="steckbrief response is not JSON object")
-        return "failed"
+        return fail_permanently(client, task.id, "steckbrief response is not JSON object")
 
     export_row = catalogue_export_item_from_machine(catalogue)
     try:
         entity_body = fim_steckbrief_entity_request(export_row, steckbrief, fim_base_url=fim_base_url)
     except ValueError as err:
-        client.fail_task(task.id, error=str(err))
-        return "failed"
+        return fail_permanently(client, task.id, str(err))
 
     try:
         entity = client.post_entity(entity_body)
@@ -59,8 +55,7 @@ def handle_enrich_metadata(
         ):
             client.post_claim(claim)
     except DiscoveryMachineApiError as err:
-        client.fail_task(task.id, error=err.detail)
-        return "failed"
+        return fail_permanently(client, task.id, err.detail)
 
     client.complete_task(task.id)
     return "completed"

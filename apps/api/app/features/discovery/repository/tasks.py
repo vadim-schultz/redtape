@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Update, select, update
+from sqlalchemy import select
 
 from app.features.discovery.repository.base import SessionRepository
+from app.features.discovery.repository.task_clauses import claimable, fail_exhausted_stmt, repend_expired_stmt
 from app.models.discovery import (
     DiscoveryTask,
     DiscoveryTaskKind,
@@ -20,28 +22,12 @@ QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), Dis
 
 @dataclass(frozen=True, slots=True)
 class TaskTarget:
-    """Identify a task by catalogue row, kind and target URL."""
+    """Identify a task by catalogue row, kind, target URL and optional input key."""
 
     catalogue_service_id: UUID
     kind: DiscoveryTaskKind
     target_url: str
-
-
-def _reclaim_expired_stmt(now: datetime) -> Update:
-    return (
-        update(DiscoveryTask)
-        .where(
-            DiscoveryTask.status == DiscoveryTaskStatus.CLAIMED,
-            DiscoveryTask.lease_expires_at.is_not(None),
-            DiscoveryTask.lease_expires_at < now,
-        )
-        .values(
-            status=DiscoveryTaskStatus.PENDING,
-            claimed_by_api_key_id=None,
-            claimed_at=None,
-            lease_expires_at=None,
-        )
-    )
+    input_key: str | None = None
 
 
 class TaskRepository(SessionRepository):
@@ -57,6 +43,7 @@ class TaskRepository(SessionRepository):
                 DiscoveryTask.catalogue_service_id == target.catalogue_service_id,
                 DiscoveryTask.kind == target.kind,
                 DiscoveryTask.target_url == target.target_url,
+                DiscoveryTask.input_key == target.input_key,
                 DiscoveryTask.status.in_(statuses),
             )
             .limit(1)
@@ -69,6 +56,7 @@ class TaskRepository(SessionRepository):
             catalogue_service_id=target.catalogue_service_id,
             kind=target.kind,
             target_url=target.target_url,
+            input_key=target.input_key,
             status=DiscoveryTaskStatus.PENDING,
             priority=priority,
         )
@@ -76,14 +64,17 @@ class TaskRepository(SessionRepository):
         self._session.flush()
         return task
 
-    def reclaim_expired_claims(self, *, now: datetime) -> None:
-        """Return claimed tasks with expired leases to the pending queue."""
-        self._session.execute(_reclaim_expired_stmt(now))
+    def reclaim_expired_claims(self, *, now: datetime, max_attempts: int) -> None:
+        """Fail expired leases that used ``max_attempts``; return the rest to the pending queue."""
+        self._session.execute(fail_exhausted_stmt(now, max_attempts))
+        self._session.execute(repend_expired_stmt(now))
         self._session.flush()
 
-    def list_pending_tasks_for_claim(self, *, limit: int) -> list[DiscoveryTask]:
-        """Return up to ``limit`` pending tasks in queue order."""
-        stmt = select(DiscoveryTask).where(DiscoveryTask.status == DiscoveryTaskStatus.PENDING)
+    def list_pending_tasks_for_claim(
+        self, *, limit: int, kinds: Sequence[DiscoveryTaskKind], now: datetime
+    ) -> list[DiscoveryTask]:
+        """Return up to ``limit`` tasks of the given ``kinds`` that are claimable at ``now``, in queue order."""
+        stmt = select(DiscoveryTask).where(*claimable(now), DiscoveryTask.kind.in_(kinds))
         return list(self._session.scalars(stmt.order_by(*QUEUE_ORDER).limit(limit)).all())
 
     def get_task(self, task_id: UUID) -> DiscoveryTask | None:

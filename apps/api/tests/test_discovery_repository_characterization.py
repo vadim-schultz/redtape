@@ -13,6 +13,7 @@ from app.features.discovery.claim_service import ClaimDraft, ClaimService
 from app.features.discovery.errors import UnknownJurisdictionError
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, TaskTarget
 from app.models.discovery import (
+    LEGACY_TASK_KINDS,
     CatalogueService,
     DiscoveryClaim,
     DiscoveryClaimKind,
@@ -102,7 +103,7 @@ def test_task_insert_is_found_by_target_and_status(repo: DiscoveryRepository, co
     cat = _catalogue(repo, country)
     task = repo.insert_task(_target(cat))
     assert repo.find_task_for_target(_target(cat), statuses=(DiscoveryTaskStatus.PENDING,)) == task
-    assert repo.list_pending_tasks_for_claim(limit=10) == [task]
+    assert repo.list_pending_tasks_for_claim(limit=10, kinds=LEGACY_TASK_KINDS, now=datetime.now(UTC)) == [task]
     assert repo.get_task(task.id) == task
 
 
@@ -121,7 +122,7 @@ def test_reclaim_expired_claims_returns_task_to_pending(
     now = datetime.now(UTC)
     task.status = DiscoveryTaskStatus.CLAIMED
     task.lease_expires_at = now - timedelta(minutes=1)
-    repo.reclaim_expired_claims(now=now)
+    repo.reclaim_expired_claims(now=now, max_attempts=3)
     db_session.refresh(task)
     assert task.status == DiscoveryTaskStatus.PENDING
     assert task.lease_expires_at is None
@@ -135,7 +136,7 @@ def test_reclaim_expired_claims_keeps_live_lease(
     now = datetime.now(UTC)
     task.status = DiscoveryTaskStatus.CLAIMED
     task.lease_expires_at = now + timedelta(minutes=5)
-    repo.reclaim_expired_claims(now=now)
+    repo.reclaim_expired_claims(now=now, max_attempts=3)
     db_session.refresh(task)
     assert task.status == DiscoveryTaskStatus.CLAIMED
 

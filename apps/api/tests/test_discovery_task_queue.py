@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.features.discovery.errors import DiscoveryTaskNotFoundError
-from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.repository import DiscoveryRepository, TaskTarget
 from app.features.discovery.task_queue import TaskQueue
+from app.features.discovery.task_retry import BACKOFF, MAX_ATTEMPTS
 from app.models.api_key import ApiKey
-from app.models.discovery import DiscoveryTaskStatus
+from app.models.discovery import CatalogueService, DiscoveryTask, DiscoveryTaskKind, DiscoveryTaskStatus
 from sqlalchemy.orm import Session
 
 from test_discovery_admin_api import _catalogue
@@ -58,4 +59,169 @@ def test_complete_and_fail_reject_unknown_task_ids(queue: TaskQueue) -> None:
     with pytest.raises(DiscoveryTaskNotFoundError):
         queue.complete(uuid.uuid4())
     with pytest.raises(DiscoveryTaskNotFoundError):
-        queue.fail(uuid.uuid4(), "boom")
+        queue.fail(uuid.uuid4(), "boom", now=datetime.now(UTC))
+
+
+def _key(db_session: Session) -> ApiKey:
+    key = ApiKey(name="k", key_hash=uuid.uuid4().hex * 2, key_prefix="p" * 8)
+    db_session.add(key)
+    db_session.flush()
+    return key
+
+
+def _seed_task(
+    db_session: Session,
+    catalogue: CatalogueService,
+    kind: DiscoveryTaskKind,
+    *,
+    path: str,
+    priority: int = 100,
+    age_minutes: int = 0,
+) -> DiscoveryTask:
+    target = TaskTarget(catalogue_service_id=catalogue.id, kind=kind, target_url=f"https://example.gov/{path}")
+    task = DiscoveryRepository(db_session).insert_task(target, priority=priority)
+    task.created_at = datetime.now(UTC) - timedelta(minutes=age_minutes)
+    db_session.flush()
+    return task
+
+
+def test_claim_pending_without_kinds_ignores_new_task_kinds(queue: TaskQueue, db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    legacy = _seed_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL, path="fetch")
+    new = _seed_task(db_session, catalogue, DiscoveryTaskKind.EXTRACT_PAGE, path="extract")
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=10, now=datetime.now(UTC))
+
+    assert [t.id for t in claimed] == [legacy.id]
+    assert new.status == DiscoveryTaskStatus.PENDING
+
+
+def test_claim_pending_with_kinds_returns_only_those_kinds_in_queue_order(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    late = _seed_task(db_session, catalogue, DiscoveryTaskKind.EXTRACT_PAGE, path="late", age_minutes=1)
+    early = _seed_task(db_session, catalogue, DiscoveryTaskKind.EXTRACT_PAGE, path="early", age_minutes=9)
+    urgent = _seed_task(db_session, catalogue, DiscoveryTaskKind.CAPTURE_SCREENSHOT, path="urgent", priority=10)
+    _seed_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL, path="legacy", priority=1)
+
+    kinds = (DiscoveryTaskKind.EXTRACT_PAGE, DiscoveryTaskKind.CAPTURE_SCREENSHOT)
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=10, now=datetime.now(UTC), kinds=kinds)
+
+    assert [t.id for t in claimed] == [urgent.id, early.id, late.id]
+
+
+NOW = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
+
+
+def _leased(queue: TaskQueue, db_session: Session, *, attempts: int) -> DiscoveryTask:
+    """Seed a fetch task and lease it ``attempts`` times, as a worker would."""
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="retry")
+    key = _key(db_session)
+    for _ in range(attempts):
+        task.status = DiscoveryTaskStatus.PENDING
+        db_session.flush()
+        queue.claim_pending(api_key=key, limit=1, now=NOW)
+    return task
+
+
+def test_claim_pending_counts_one_attempt_per_lease(queue: TaskQueue, db_session: Session) -> None:
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="count")
+
+    queue.claim_pending(api_key=_key(db_session), limit=1, now=NOW)
+
+    assert task.attempt_count == 1
+
+
+def test_retryable_failure_returns_the_task_to_pending_with_a_backoff(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=1)
+
+    queue.fail(task.id, "connection reset", retryable=True, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.not_before == NOW + BACKOFF[0]
+    assert task.attempt_count == 1
+    assert task.last_error == "connection reset"
+    assert task.lease_expires_at is None
+    assert task.claimed_by_api_key_id is None
+
+
+def test_retryable_failure_backs_off_longer_on_each_attempt(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=2)
+
+    queue.fail(task.id, "timeout", retryable=True, now=NOW)
+
+    assert task.not_before == NOW + BACKOFF[1]
+
+
+def test_permanent_failure_stays_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=1)
+
+    queue.fail(task.id, "http 404", retryable=False, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.not_before is None
+    assert task.last_error == "http 404"
+    assert task.lease_expires_at is None
+
+
+def test_retryable_failure_at_the_attempt_cap_becomes_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS)
+
+    queue.fail(task.id, "timeout", retryable=True, now=NOW)
+
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.not_before is None
+    assert task.last_error == "timeout"
+
+
+def test_claim_skips_a_pending_task_whose_not_before_is_in_the_future(queue: TaskQueue, db_session: Session) -> None:
+    task = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="held")
+    task.not_before = NOW + timedelta(minutes=5)
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW)
+
+    assert claimed == []
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.attempt_count == 0
+
+
+def test_claim_takes_a_pending_task_once_not_before_has_passed(queue: TaskQueue, db_session: Session) -> None:
+    held = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="held")
+    held.not_before = NOW + timedelta(minutes=5)
+    db_session.flush()
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW + timedelta(minutes=5))
+
+    assert [t.id for t in claimed] == [held.id]
+
+
+def _expire_lease(task: DiscoveryTask, db_session: Session) -> None:
+    task.lease_expires_at = NOW - timedelta(minutes=1)
+    db_session.flush()
+
+
+def test_reclaim_of_an_expired_lease_below_the_cap_returns_the_task_to_pending(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS - 1)
+    _expire_lease(task, db_session)
+
+    queue.claim_pending(api_key=_key(db_session), limit=0, now=NOW)
+    db_session.refresh(task)
+
+    assert task.status == DiscoveryTaskStatus.PENDING
+    assert task.attempt_count == MAX_ATTEMPTS - 1
+
+
+def test_reclaim_of_an_expired_lease_at_the_cap_marks_the_task_failed(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=MAX_ATTEMPTS)
+    _expire_lease(task, db_session)
+
+    claimed = queue.claim_pending(api_key=_key(db_session), limit=5, now=NOW)
+    db_session.refresh(task)
+
+    assert claimed == []
+    assert task.status == DiscoveryTaskStatus.FAILED
+    assert task.last_error == f"lease expired after {MAX_ATTEMPTS} attempts"
+    assert task.lease_expires_at is None

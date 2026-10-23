@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
@@ -9,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
+    LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
     DiscoveryRunKind,
     DiscoverySource,
@@ -60,10 +62,49 @@ class CatalogueMachineRead(BaseModel):
     raw_payload: dict[str, object] = Field(default_factory=dict)
 
 
+def resolve_task_kinds(kinds: Sequence[DiscoveryTaskKind] | None) -> tuple[DiscoveryTaskKind, ...]:
+    """Return the named kinds, or the legacy kinds when none were named."""
+    return LEGACY_TASK_KINDS if kinds is None else tuple(kinds)
+
+
 class TaskClaimRequest(BaseModel):
     """Claim pending discovery tasks for the caller API key."""
 
     limit: int = Field(default=1, ge=1, le=50)
+    kinds: list[DiscoveryTaskKind] | None = Field(default=None, min_length=1)
+
+    @property
+    def resolved_kinds(self) -> tuple[DiscoveryTaskKind, ...]:
+        """Return the requested kinds, or the legacy kinds when none were named."""
+        return resolve_task_kinds(self.kinds)
+
+
+class TaskSummaryResponse(BaseModel):
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+
+    pending_ready: int
+    pending_delayed: int
+    claimed: int
+    claimed_stale: int
+    completed: int
+    failed: int
+
+
+class TaskEnqueueRequest(BaseModel):
+    """Enqueue a follow-up task for a catalogue row."""
+
+    catalogue_service_id: UUID
+    kind: DiscoveryTaskKind
+    target_url: str = Field(min_length=1, max_length=500)
+    priority: int = Field(default=100, ge=0)
+    input_key: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+class TaskEnqueueResponse(BaseModel):
+    """The task behind an enqueue request."""
+
+    id: UUID
+    created: bool
 
 
 class ClaimedTaskRead(BaseModel):
@@ -97,6 +138,7 @@ class TaskFailRequest(BaseModel):
     """Failure reason for a discovery task."""
 
     error: str = Field(min_length=1)
+    retryable: bool = False
 
 
 class TaskFailResponse(BaseModel):

@@ -1,0 +1,202 @@
+"""Machine route that records candidate mentions (chapter 6, loop C)."""
+
+from __future__ import annotations
+
+import uuid
+
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryCandidateMention,
+    DiscoveryCandidateStatus,
+    DiscoveryDocumentCandidate,
+)
+from litestar import Litestar
+from litestar.testing import TestClient
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from test_discovery_admin_api import _catalogue
+from test_discovery_machine_api import _issue_key, client  # noqa: F401
+
+MENTIONS_URL = "/api/v1/discovery/machine/candidates/mentions"
+
+
+def _item(catalogue: CatalogueService, **overrides: object) -> dict[str, object]:
+    body: dict[str, object] = {
+        "catalogue_service_id": str(catalogue.id),
+        "title_i18n": {"de": "Personalausweis"},
+        "role": "required",
+        "excerpt": "Bitte bringen Sie Ihren Personalausweis mit.",
+        "source_field": "details[0]",
+        "extractor": "pvog_payload",
+        "extractor_version": "1",
+    }
+    body.update(overrides)
+    return body
+
+
+def _post(client: TestClient[Litestar], key: str, *items: dict[str, object]):  # noqa: F811
+    return client.post(MENTIONS_URL, json={"items": list(items)}, headers={"X-API-Key": key})
+
+
+def _count(db_session: Session, model: type) -> int:
+    return int(db_session.scalar(select(func.count()).select_from(model)) or 0)
+
+
+def test_mentions_batch_creates_a_candidate_and_a_mention(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue))
+
+    assert response.status_code == 200
+    assert response.json() == {"candidates_created": 1, "mentions_created": 1, "mentions_updated": 0}
+    candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
+    assert candidate.key == "personalausweis"
+    assert candidate.jurisdiction_id == catalogue.jurisdiction_id
+    assert candidate.status == DiscoveryCandidateStatus.STAGED
+
+
+def test_mentions_batch_is_idempotent(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue))
+
+    replay = _post(client, key, _item(catalogue, excerpt="Neuer Text", extractor_version="2"))
+
+    assert replay.json() == {"candidates_created": 0, "mentions_created": 0, "mentions_updated": 1}
+    assert _count(db_session, DiscoveryDocumentCandidate) == 1
+    mention = db_session.scalars(select(DiscoveryCandidateMention)).one()
+    assert (mention.excerpt, mention.extractor_version) == ("Neuer Text", "2")
+
+
+def test_two_services_mentioning_one_title_share_one_candidate(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    first = _catalogue(db_session, external_id="svc-a")
+    second = _catalogue(db_session, external_id="svc-b")
+    second.jurisdiction_id = first.jurisdiction_id
+    db_session.flush()
+
+    response = _post(client, key, _item(first), _item(second, title_i18n={"de": " PERSONALAUSWEIS "}))
+
+    assert response.json() == {"candidates_created": 1, "mentions_created": 2, "mentions_updated": 0}
+    assert _count(db_session, DiscoveryDocumentCandidate) == 1
+    assert _count(db_session, DiscoveryCandidateMention) == 2
+
+
+def test_same_title_in_two_jurisdictions_stays_two_candidates(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    first = _catalogue(db_session, external_id="svc-a")
+    second = _catalogue(db_session, external_id="svc-b")
+
+    _post(client, key, _item(first), _item(second))
+
+    assert _count(db_session, DiscoveryDocumentCandidate) == 2
+
+
+def test_title_locales_merge_without_overwriting(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue, title_i18n={"de": "Personalausweis"}))
+
+    _post(client, key, _item(catalogue, title_i18n={"de": "Anderer Text", "en": "Personalausweis", "fr": "  "}))
+
+    candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
+    assert candidate.title_i18n == {"de": "Personalausweis", "en": "Personalausweis"}
+
+
+def test_official_url_is_set_once(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue))
+    _post(client, key, _item(catalogue, official_url="https://example.gov/id"))
+
+    _post(client, key, _item(catalogue, official_url="https://example.gov/other"))
+
+    candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
+    assert candidate.official_url == "https://example.gov/id"
+
+
+def test_an_emitted_candidate_keeps_its_status_but_accepts_mentions(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue))
+    candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
+    candidate.status = DiscoveryCandidateStatus.EMITTED
+    db_session.flush()
+
+    response = _post(client, key, _item(catalogue, source_field="details[1]"))
+
+    assert response.json()["mentions_created"] == 1
+    db_session.refresh(candidate)
+    assert candidate.status == DiscoveryCandidateStatus.EMITTED
+
+
+def test_batch_with_an_unknown_catalogue_row_is_rejected_whole(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue), _item(catalogue, catalogue_service_id=str(uuid.uuid4())))
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Catalogue service not found"
+    assert _count(db_session, DiscoveryDocumentCandidate) == 0
+    assert _count(db_session, DiscoveryCandidateMention) == 0
+
+
+def test_batch_with_an_unusable_title_is_rejected_whole(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue), _item(catalogue, title_i18n={"de": "!!!"}, source_field="x"))
+
+    assert response.status_code == 422
+    assert _count(db_session, DiscoveryDocumentCandidate) == 0
+
+
+def test_batch_over_100_items_is_rejected(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, *[_item(catalogue, source_field=f"f{n}") for n in range(101)])
+
+    assert response.status_code == 422
+    assert _count(db_session, DiscoveryCandidateMention) == 0
+
+
+def test_batch_with_a_blank_title_is_rejected(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue, title_i18n={"de": "   "}))
+
+    assert response.status_code == 422
+
+
+def test_batch_of_exactly_100_items_is_accepted(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, *[_item(catalogue, source_field=f"f{n}") for n in range(100)])
+
+    assert response.json()["mentions_created"] == 100
+
+
+def test_route_requires_the_machine_api_key(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
+    catalogue = _catalogue(db_session)
+
+    response = client.post(MENTIONS_URL, json={"items": [_item(catalogue)]})
+
+    assert response.status_code == 401

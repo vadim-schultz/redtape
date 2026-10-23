@@ -7,11 +7,15 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Protocol
 
-from discovery_ingest.api_client import DiscoveryMachineClient
-from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendRequest
+import httpx
+from pydantic import ValidationError
+
+from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendRequest, StopReason
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.settle import fail_from_outcome, fail_permanently
 
 
 class _TaskHandler(Protocol):
@@ -53,7 +57,7 @@ def _run_batch(
     tally: _Tally,
 ) -> int:
     """Claim one batch, settle every task in it, and return the batch size."""
-    items = client.claim_tasks(limit=policy.max_tasks).items
+    items = client.claim_tasks(limit=policy.max_tasks, kinds=policy.kinds).items
     tally.batches += 1
     tally.claimed += len(items)
     for task in items:
@@ -75,7 +79,25 @@ def run_worker_drain(
         last_claimed = _run_batch(client, fetcher, policy, tally)
         reason = policy.stop_reason(batches=tally.batches, last_claimed=last_claimed, elapsed=clock() - started)
         if reason is not None:
-            return DrainReport(**asdict(tally), stop_reason=reason)
+            return _report(client, policy, tally, reason)
+
+
+def _remaining(client: DiscoveryMachineClient, policy: DrainPolicy) -> int | None:
+    """Return the ready backlog for the drained kinds, or ``None`` when the summary is unavailable."""
+    try:
+        return client.get_task_summary(kinds=policy.kinds).pending_ready
+    except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError):
+        return None
+
+
+def _report(client: DiscoveryMachineClient, policy: DrainPolicy, tally: _Tally, reason: StopReason) -> DrainReport:
+    remaining = _remaining(client, policy)
+    return DrainReport(
+        **asdict(tally),
+        remaining=remaining,
+        remaining_unknown=remaining is None,
+        stop_reason=reason,
+    )
 
 
 def _dispatch_task(
@@ -86,8 +108,7 @@ def _dispatch_task(
 ) -> str:
     handler = _TASK_HANDLERS.get(task.kind)
     if handler is None:
-        client.fail_task(task.id, error=f"unsupported task kind: {task.kind}")
-        return "failed"
+        return fail_permanently(client, task.id, f"unsupported task kind: {task.kind}")
     return handler(task, client=client, fetcher=fetcher)
 
 
@@ -107,10 +128,8 @@ def _handle_fetch_url(
             error_message=outcome.error_message,
         ),
     )
-    if outcome.error_message is not None or outcome.http_status is None or outcome.http_status >= 400:
-        error = outcome.error_message or f"HTTP {outcome.http_status}"
-        client.fail_task(task.id, error=error)
-        return "failed"
+    if outcome.failed:
+        return fail_from_outcome(client, task.id, outcome)
     client.complete_task(task.id)
     return "completed"
 

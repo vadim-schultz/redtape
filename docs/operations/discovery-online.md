@@ -45,6 +45,10 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 | `--max-tasks` | 50 | Tasks per claim request (1–50) |
 | `--max-batches` | 1 | Maximum claim and process batches (positive) |
 | `--time-budget-seconds` | none | Optional positive wall-clock budget for the whole drain |
+| `--kinds` | `fetch_url,enrich_metadata` | Comma separated task kinds to claim; an unknown kind stops the drain before any claim |
+
+The claim route serves only `fetch_url` and `enrich_metadata` when a request names no `kinds`, so a drain
+never leases a kind it cannot handle.
 
 Invalid bounds exit with code 2. An API failure exits with code 1. The scheduled workflow uses the
 defaults (`--max-tasks 50`, one batch), so each scheduled run is one batch.

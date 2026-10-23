@@ -35,6 +35,16 @@ class DiscoveryTaskKind(enum.StrEnum):
 
     FETCH_URL = "fetch_url"
     ENRICH_METADATA = "enrich_metadata"
+    HARVEST_PAYLOAD = "harvest_payload"
+    EXTRACT_PAGE = "extract_page"
+    CAPTURE_SCREENSHOT = "capture_screenshot"
+
+
+LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (
+    DiscoveryTaskKind.FETCH_URL,
+    DiscoveryTaskKind.ENRICH_METADATA,
+)
+"""Kinds every worker handles; the default when a claim names no ``kinds``."""
 
 
 class DiscoveryClaimKind(enum.StrEnum):
@@ -68,3 +78,17 @@ class DiscoveryRunStatus(enum.StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+
+
+class DiscoveryCandidateStatus(enum.StrEnum):
+    """Lifecycle of a document candidate."""
+
+    STAGED = "staged"
+    EMITTED = "emitted"
+
+
+class DiscoveryMentionRole(enum.StrEnum):
+    """How a procedure relates to a mentioned document."""
+
+    REQUIRED = "required"
+    FORM = "form"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import asdict
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -10,12 +12,17 @@ from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.lookups import require_catalogue, require_task
-from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent
+from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_queue import TaskQueue
 from app.features.discovery.url_normalize import normalize_canonical_url
 from app.models.api_key import ApiKey
-from app.models.discovery import CatalogueService, DiscoveryEventType, DiscoveryTask
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryEventType,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+)
 from app.schema.discovery.machine import (
     CatalogueBatchItem,
     CatalogueBatchItemResult,
@@ -32,8 +39,12 @@ from app.schema.discovery.machine import (
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskSummaryResponse,
+    resolve_task_kinds,
 )
 
 
@@ -46,6 +57,15 @@ def _claimed_task_read(task: DiscoveryTask, now: datetime) -> ClaimedTaskRead:
         status=task.status,
         priority=task.priority,
         lease_expires_at=task.lease_expires_at or now,
+    )
+
+
+def _enqueue_target(body: TaskEnqueueRequest) -> TaskTarget:
+    return TaskTarget(
+        catalogue_service_id=body.catalogue_service_id,
+        kind=body.kind,
+        target_url=body.target_url,
+        input_key=body.input_key,
     )
 
 
@@ -93,8 +113,19 @@ class DiscoveryMachineService:
     def claim_tasks(self, body: TaskClaimRequest, *, api_key: ApiKey) -> TaskClaimResponse:
         """Lease pending tasks to the calling key."""
         now = datetime.now(UTC)
-        claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now)
+        claimed = self._queue.claim_pending(api_key=api_key, limit=body.limit, now=now, kinds=body.resolved_kinds)
         return TaskClaimResponse(items=[_claimed_task_read(task, now) for task in claimed])
+
+    def task_summary(self, kinds: Sequence[DiscoveryTaskKind] | None) -> TaskSummaryResponse:
+        """Count the queue for ``kinds`` (the legacy kinds when none are named) without leasing."""
+        summary = self._repo.task_summary(kinds=resolve_task_kinds(kinds), now=datetime.now(UTC))
+        return TaskSummaryResponse.model_validate(asdict(summary))
+
+    def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
+        """Enqueue a follow-up task idempotently for an existing catalogue row."""
+        require_catalogue(self._repo, body.catalogue_service_id)
+        outcome = self._queue.enqueue(_enqueue_target(body), priority=body.priority)
+        return TaskEnqueueResponse(id=outcome.task.id, created=outcome.created)
 
     def complete_task(self, task_id: UUID) -> TaskCompleteResponse:
         """Mark a task completed."""
@@ -103,7 +134,7 @@ class DiscoveryMachineService:
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
         """Mark a task failed with the crawler's error."""
-        task = self._queue.fail(task_id, body.error)
+        task = self._queue.fail(task_id, body.error, retryable=body.retryable, now=datetime.now(UTC))
         return TaskFailResponse(id=task.id, status=task.status, last_error=body.error)
 
     def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:

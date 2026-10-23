@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, TypeGuard, get_args
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -76,7 +76,16 @@ class ClaimAppendResponse(BaseModel):
     kind: DiscoveryClaimKind
 
 
-DiscoveryTaskKind = Literal["fetch_url", "enrich_metadata"]
+DiscoveryTaskKind = Literal["fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "capture_screenshot"]
+TASK_KINDS: tuple[DiscoveryTaskKind, ...] = get_args(DiscoveryTaskKind)
+LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("fetch_url", "enrich_metadata")
+
+
+def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:
+    """Return whether ``value`` names a task kind the API knows."""
+    return value in TASK_KINDS
+
+
 DiscoveryTaskStatus = Literal["pending", "claimed", "completed", "failed"]
 
 
@@ -84,6 +93,24 @@ class TaskClaimRequest(BaseModel):
     """Body for ``POST /tasks/claim``."""
 
     limit: int = Field(default=1, ge=1, le=50)
+    kinds: list[DiscoveryTaskKind] | None = Field(default=None, min_length=1)
+
+
+class TaskEnqueueRequest(BaseModel):
+    """Body for ``POST /tasks``: a follow-up task for one catalogue row."""
+
+    catalogue_service_id: UUID
+    kind: DiscoveryTaskKind
+    target_url: str = Field(min_length=1, max_length=500)
+    priority: int = Field(default=100, ge=0)
+    input_key: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+class TaskEnqueueResponse(BaseModel):
+    """The task behind an enqueue request."""
+
+    id: UUID
+    created: bool
 
 
 class ClaimedTask(BaseModel):
@@ -102,6 +129,17 @@ class TaskClaimResponse(BaseModel):
     """Tasks claimed in one request."""
 
     items: list[ClaimedTask]
+
+
+class TaskSummary(BaseModel):
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+
+    pending_ready: int
+    pending_delayed: int
+    claimed: int
+    claimed_stale: int
+    completed: int
+    failed: int
 
 
 class FetchLogAppendRequest(BaseModel):

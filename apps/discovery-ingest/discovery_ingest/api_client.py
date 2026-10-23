@@ -14,6 +14,7 @@ from discovery_ingest.schemas import (
     CatalogueMachineRead,
     ClaimAppendRequest,
     ClaimAppendResponse,
+    DiscoveryTaskKind,
     EntityUpsertRequest,
     EntityUpsertResponse,
     FetchLogAppendRequest,
@@ -21,6 +22,9 @@ from discovery_ingest.schemas import (
     RunStartResponse,
     TaskClaimRequest,
     TaskClaimResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
+    TaskSummary,
 )
 
 
@@ -102,9 +106,9 @@ class DiscoveryMachineClient:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return ClaimAppendResponse.model_validate(response.json())
 
-    def claim_tasks(self, *, limit: int) -> TaskClaimResponse:
-        """Claim pending discovery tasks for this API key."""
-        body = TaskClaimRequest(limit=limit)
+    def claim_tasks(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> TaskClaimResponse:
+        """Claim pending discovery tasks of ``kinds`` for this API key."""
+        body = TaskClaimRequest(limit=limit, kinds=list(kinds))
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/claim"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
@@ -115,6 +119,28 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return TaskClaimResponse.model_validate(response.json())
+
+    def get_task_summary(self, *, kinds: Sequence[DiscoveryTaskKind]) -> TaskSummary:
+        """Return queue counts for ``kinds`` without leasing anything."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks/summary"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, params={"kinds": list(kinds)}, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskSummary.model_validate(response.json())
+
+    def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
+        """Enqueue a follow-up task; an equivalent existing task is returned instead."""
+        url = f"{self._base_url}/api/v1/discovery/machine/tasks"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(
+                url,
+                json=body.model_dump(mode="json"),
+                headers={"X-API-Key": self._api_key},
+            )
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return TaskEnqueueResponse.model_validate(response.json())
 
     def start_run(self) -> UUID:
         """Open a ``worker_drain`` run record and return its id."""
@@ -153,13 +179,13 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
 
-    def fail_task(self, task_id: UUID, *, error: str) -> None:
-        """Mark a claimed task failed with ``error``."""
+    def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
+        """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
                 url,
-                json={"error": error},
+                json={"error": error, "retryable": retryable},
                 headers={"X-API-Key": self._api_key},
             )
         if response.status_code >= 400:

@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 import pytest
+from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
+from discovery_ingest.schemas import TaskEnqueueRequest
 
 from run_stub import run_response
 
@@ -166,8 +170,9 @@ def _queue_handler(
     finishes: list[dict[str, object]],
     *,
     fetch_status: int = 200,
+    summary: httpx.Response | None = None,
 ) -> Any:
-    """Serve ``batches`` one per claim call, then empty; count claims."""
+    """Serve ``batches`` one per claim call, then empty; count claims; answer the summary with ``summary`` or 500."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         stub = run_response(request, finishes)
@@ -176,6 +181,8 @@ def _queue_handler(
         url = str(request.url)
         if url == TARGET_URL:
             return httpx.Response(fetch_status, headers={"content-type": "text/html"}, content=b"x")
+        if request.url.path.endswith("/tasks/summary"):
+            return summary if summary is not None else httpx.Response(500, text="no summary")
         if url.endswith("/tasks/claim"):
             items = batches[claims[0]] if claims[0] < len(batches) else []
             claims[0] += 1
@@ -265,7 +272,7 @@ def test_worker_drain_stops_at_time_budget_without_speculative_claim(
 ) -> None:
     """worker drain stops at the configured bound and reports remaining work."""
     claims, finishes = [0], []
-    ticks = iter([0.0, 5.0, 5.0, 5.0])
+    ticks = itertools.chain([0.0], itertools.repeat(5.0))
     monkeypatch.setattr("discovery_ingest.worker.drain.time.monotonic", lambda: next(ticks))
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_queue_handler(_two_batches(), claims, finishes)))
 
@@ -329,3 +336,252 @@ def test_worker_drain_marks_run_failed_when_second_claim_fails(
     assert capsys.readouterr().out == ""
     assert [f["status"] for f in finishes] == ["failed"]
     assert finishes[0]["stop_reason"] == "error"
+
+
+def test_worker_drain_sends_the_configured_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · fetcher identifies itself with the configured contact url."""
+    monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("BOT_CONTACT_URL", "https://ops.example/bot")
+    agents: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        if request.url.host == "portal.example":
+            agents.append(request.headers["user-agent"])
+            return httpx.Response(200, content=b"ok")
+        if str(request.url).endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [_task_json(TASK_ID)]})
+        if str(request.url).endswith("/fetches"):
+            return httpx.Response(
+                201, json={"id": str(uuid.uuid4()), "discovery_task_id": str(TASK_ID), "task_status": "claimed"}
+            )
+        return httpx.Response(200, json={"id": str(TASK_ID), "status": "completed"})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    assert main(["worker", "drain", "--max-tasks", "1"]) == 0
+    assert agents
+    assert set(agents) == {"RedtapeBot/1.0 (+https://ops.example/bot)"}
+
+
+@pytest.mark.parametrize("fetch_status", [304, 302])
+def test_worker_drain_fails_a_task_whose_fetch_ended_in_an_unfollowed_3xx(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], _env: None, fetch_status: int
+) -> None:
+    """worker drain · a 3xx that could not be resolved fails the task instead of completing it."""
+    claims, finishes = [0], []
+    handler = _queue_handler(_two_batches(), claims, finishes, fetch_status=fetch_status)
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    assert main(["worker", "drain", "--max-tasks", "2"]) == 0
+
+    report = json.loads(capsys.readouterr().out)
+    assert (report["completed"], report["failed"]) == (0, 2)
+
+
+def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
+    """Record every claim request body; the queue is always empty."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        if request.url.path.endswith("/tasks/summary"):
+            return httpx.Response(500, text="no summary")
+        bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(200, json={"items": []})
+
+    return handler
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [
+        ([], ["fetch_url", "enrich_metadata"]),
+        (["--kinds", "extract_page,capture_screenshot"], ["extract_page", "capture_screenshot"]),
+    ],
+)
+def test_worker_drain_sends_the_configured_kinds_when_claiming(
+    monkeypatch: pytest.MonkeyPatch, flags: list[str], expected: list[str], _env: None
+) -> None:
+    """worker drain sends the default or the configured kinds in the claim body."""
+    bodies: list[dict[str, object]] = []
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
+
+    assert main(["worker", "drain", *flags]) == 0
+
+    assert [body["kinds"] for body in bodies] == [expected]
+
+
+@pytest.mark.parametrize("raw", ["fetch_url,no_such_kind", "no_such_kind", ""])
+def test_worker_drain_rejects_an_unknown_or_empty_kind_before_claiming(
+    monkeypatch: pytest.MonkeyPatch, raw: str, _env: None
+) -> None:
+    """worker drain refuses an unknown or empty --kinds value without any API call."""
+    bodies: list[dict[str, object]] = []
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["worker", "drain", "--kinds", raw])
+
+    assert exit_info.value.code == 2
+    assert bodies == []
+
+
+def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The machine client posts the enqueue body and reads back id and created."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(201, json={"id": str(TASK_ID), "created": True})
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+
+    result = client.enqueue_task(
+        TaskEnqueueRequest(
+            catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL, input_key="html@1"
+        )
+    )
+
+    assert (result.id, result.created) == (TASK_ID, True)
+    assert seen[0].url == httpx.URL(f"{API_BASE}/api/v1/discovery/machine/tasks")
+    assert seen[0].headers["x-api-key"] == "test-machine-key"
+    assert json.loads(seen[0].content.decode()) == {
+        "catalogue_service_id": str(CATALOGUE_ID),
+        "kind": "extract_page",
+        "target_url": TARGET_URL,
+        "priority": 100,
+        "input_key": "html@1",
+    }
+
+
+def test_client_enqueue_task_raises_on_an_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 404 from the enqueue route surfaces as DiscoveryMachineApiError."""
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(lambda request: httpx.Response(404, text="gone")))
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    body = TaskEnqueueRequest(catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL)
+
+    with pytest.raises(DiscoveryMachineApiError) as error:
+        client.enqueue_task(body)
+
+    assert error.value.status_code == 404
+
+
+_Fetch = Callable[[httpx.Request], httpx.Response]
+
+
+def _fail_bodies_handler(kind: str, fail_bodies: list[dict[str, object]], fetch: _Fetch) -> Any:
+    """Serve one claimed ``kind`` task; ``fetch`` answers the target URL; record every fail body."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        if stub is not None:
+            return stub
+        url = str(request.url)
+        if url == TARGET_URL:
+            return fetch(request)
+        if url.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [{**_task_json(TASK_ID), "kind": kind}]})
+        if url.endswith("/fetches"):
+            return httpx.Response(
+                201, json={"id": str(uuid.uuid4()), "discovery_task_id": str(TASK_ID), "task_status": "claimed"}
+            )
+        if url.endswith("/fail"):
+            fail_bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(200, json={"id": str(TASK_ID), "status": "failed", "last_error": "x"})
+
+    return handler
+
+
+def _raise_timeout(request: httpx.Request) -> httpx.Response:
+    raise httpx.ReadTimeout("timed out")
+
+
+def _answer_404(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(404, headers={"content-type": "text/html"}, content=b"gone")
+
+
+def _drain_fail_bodies(monkeypatch: pytest.MonkeyPatch, kind: str, fetch: _Fetch) -> list[dict[str, object]]:
+    fail_bodies: list[dict[str, object]] = []
+    handler = _fail_bodies_handler(kind, fail_bodies, fetch)
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+    assert main(["worker", "drain", "--max-tasks", "1"]) == 0
+    return fail_bodies
+
+
+def test_fetch_url_reports_a_timeout_as_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """fetch_url reports a timeout as retryable."""
+    bodies = _drain_fail_bodies(monkeypatch, "fetch_url", _raise_timeout)
+
+    assert [body["retryable"] for body in bodies] == [True]
+
+
+def test_fetch_url_reports_a_404_as_permanent(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """fetch_url reports a 404 as permanent."""
+    bodies = _drain_fail_bodies(monkeypatch, "fetch_url", _answer_404)
+
+    assert [body["retryable"] for body in bodies] == [False]
+    assert bodies[0]["error"] == "HTTP 404"
+
+
+def test_unknown_kind_is_failed_as_non_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
+    """A claimed kind without a handler is failed permanently."""
+    bodies = _drain_fail_bodies(monkeypatch, "extract_page", _answer_404)
+
+    assert [body["retryable"] for body in bodies] == [False]
+    assert str(bodies[0]["error"]).startswith("unsupported task kind")
+
+
+def _summary(pending_ready: int) -> httpx.Response:
+    counts = {"pending_delayed": 2, "claimed": 0, "claimed_stale": 0, "completed": 9, "failed": 1}
+    return httpx.Response(200, json={"pending_ready": pending_ready, **counts})
+
+
+def test_worker_drain_report_carries_remaining_from_the_queue_summary(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], _env: None
+) -> None:
+    """worker drain reports the ready backlog from the summary for the drained kinds, asked once after the loop."""
+    claims, finishes, summary_queries = [0], [], []
+    inner = _queue_handler(_two_batches(), claims, finishes, summary=_summary(7))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/tasks/summary"):
+            summary_queries.append((claims[0], request.url.params.get_list("kinds")))
+        return inner(request)
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["worker", "drain", "--max-tasks", "2", "--max-batches", "2", "--kinds", "fetch_url"])
+
+    report = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert (report["remaining"], report["remaining_unknown"]) == (7, False)
+    assert finishes[0]["remaining_count"] == 7
+    assert summary_queries == [(2, ["fetch_url"])]
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [httpx.Response(500, text="boom"), httpx.Response(200, json={"unexpected": True})],
+    ids=["http_error", "malformed_body"],
+)
+def test_worker_drain_keeps_remaining_unknown_when_the_summary_fails(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], summary: httpx.Response, _env: None
+) -> None:
+    """worker drain still succeeds, with unknown remaining, when the summary call fails."""
+    claims, finishes = [0], []
+    handler = _queue_handler(_two_batches(), claims, finishes, summary=summary)
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["worker", "drain", "--max-tasks", "2", "--max-batches", "2"])
+
+    report = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert (report["remaining"], report["remaining_unknown"]) == (None, True)
+    assert (report["succeeded"], report["stop_reason"]) == (True, "batch_limit")
+    assert (finishes[0]["status"], finishes[0]["remaining_count"]) == ("succeeded", None)

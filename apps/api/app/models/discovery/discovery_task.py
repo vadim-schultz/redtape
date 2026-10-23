@@ -47,6 +47,9 @@ class DiscoveryTask(TimestampMixin, Base):
     )
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    input_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    not_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     catalogue_service: Mapped[CatalogueService] = relationship(
         "CatalogueService", back_populates="tasks", single_parent=True

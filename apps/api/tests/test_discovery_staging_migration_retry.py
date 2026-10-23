@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261023_discovery_run"
+HEAD_REVISION = "20261026_candidates"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
 
@@ -101,6 +101,8 @@ def test_discovery_staging_upgrade_from_clean_database() -> None:
         assert _alembic_version(database_url) == HEAD_REVISION
         assert _table_exists(database_url, "catalogue_service")
         assert _table_exists(database_url, "discovery_event")
+        assert _table_exists(database_url, "discovery_document_candidate")
+        assert _table_exists(database_url, "discovery_candidate_mention")
 
 
 def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() -> None:
@@ -134,6 +136,13 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
             )
             conn.execute("ALTER TABLE discovery_claim DROP COLUMN IF EXISTS payload_fingerprint")
             conn.execute("DROP TABLE IF EXISTS discovery_run")
+            conn.execute("DROP TABLE IF EXISTS discovery_candidate_mention")
+            conn.execute("DROP TABLE IF EXISTS discovery_document_candidate")
+            conn.execute("DROP TYPE IF EXISTS discovery_candidate_status")
+            conn.execute("DROP TYPE IF EXISTS discovery_mention_role")
+            conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS input_key")
+            conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS attempt_count")
+            conn.execute("ALTER TABLE discovery_task DROP COLUMN IF EXISTS not_before")
             conn.commit()
 
         assert _alembic_version(database_url) == STAGING_REVISION

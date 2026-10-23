@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from litestar import Controller, get, post
+from litestar import Controller, Response, get, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
@@ -12,6 +12,7 @@ from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
+from app.models.discovery import DiscoveryTaskKind
 from app.schema.discovery.machine import (
     CatalogueBatchRequest,
     CatalogueBatchResponse,
@@ -29,8 +30,11 @@ from app.schema.discovery.machine import (
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteResponse,
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskSummaryResponse,
 )
 
 
@@ -56,6 +60,15 @@ class DiscoveryMachineController(Controller):
     ) -> CatalogueBatchResponse:
         return discovery_machine_service.batch_upsert(data)
 
+    @post("/tasks", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    def enqueue_task(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskEnqueueRequest,
+    ) -> Response[TaskEnqueueResponse]:
+        result = discovery_machine_service.enqueue_task(data)
+        return Response(result, status_code=HTTP_201_CREATED if result.created else HTTP_200_OK)
+
     @post("/tasks/claim", sync_to_thread=True, status_code=HTTP_200_OK)
     def claim_tasks(
         self,
@@ -64,6 +77,14 @@ class DiscoveryMachineController(Controller):
         data: TaskClaimRequest,
     ) -> TaskClaimResponse:
         return discovery_machine_service.claim_tasks(data, api_key=machine_principal.api_key)
+
+    @get("/tasks/summary", sync_to_thread=True, status_code=HTTP_200_OK)
+    def tasks_summary(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        kinds: list[DiscoveryTaskKind] | None = None,
+    ) -> TaskSummaryResponse:
+        return discovery_machine_service.task_summary(kinds)
 
     @post("/tasks/{task_id:uuid}/complete", sync_to_thread=True)
     def complete_task(

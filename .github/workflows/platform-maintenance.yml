@@ -91,6 +91,10 @@ jobs:
     if: needs.route.outputs.job == 'discovery'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    # Shares the group with discovery-drain.yml so two drains never overlap.
+    concurrency:
+      group: discovery-drain
+      cancel-in-progress: false
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
