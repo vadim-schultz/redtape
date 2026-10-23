@@ -9,6 +9,7 @@ from litestar.status_codes import HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENT
 from litestar.types import ExceptionHandlersMap
 
 from app.features.discovery.admin_controller import DiscoveryAdminController
+from app.features.discovery.candidate_admin_controller import DiscoveryCandidateAdminController
 from app.features.discovery.candidate_machine_controller import DiscoveryCandidateMachineController
 from app.features.discovery.dependencies import router_dependencies
 from app.features.discovery.errors import DiscoveryNotFoundError, InvalidDiscoveryInputError
@@ -36,7 +37,7 @@ _DOMAIN_ERROR_HANDLERS: ExceptionHandlersMap = {
 
 discovery_admin_router = Router(
     path="/api/v1/discovery/admin",
-    route_handlers=[DiscoveryAdminController],
+    route_handlers=[DiscoveryAdminController, DiscoveryCandidateAdminController],
     dependencies=router_dependencies,
     exception_handlers=_DOMAIN_ERROR_HANDLERS,
     tags=["discovery-admin"],

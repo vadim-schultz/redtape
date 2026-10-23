@@ -37,6 +37,14 @@ class DiscoveryRunNotFoundError(DiscoveryNotFoundError):
         super().__init__("Discovery run not found")
 
 
+class CandidateNotFoundError(DiscoveryNotFoundError):
+    """The document candidate does not exist."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Document candidate not found")
+
+
 class DiscoveryEntityNotFoundError(DiscoveryNotFoundError):
     """The discovery entity does not exist."""
 
