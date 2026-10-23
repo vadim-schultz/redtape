@@ -32,6 +32,7 @@ from test_discovery_admin_api import _catalogue
 
 BATCH_URL = "/api/v1/discovery/machine/catalogue/batch"
 CLAIM_URL = "/api/v1/discovery/machine/tasks/claim"
+ENQUEUE_URL = "/api/v1/discovery/machine/tasks"
 
 
 @contextmanager
@@ -350,3 +351,105 @@ def test_post_tasks_fetches_appends_fetch_log_and_leaves_task_claimed(
     logs = list(db_session.scalars(select(DiscoveryFetchLog).where(DiscoveryFetchLog.discovery_task_id == task_id)))
     assert len(logs) == 1
     assert logs[0].http_status == 200
+
+
+def _enqueue_body(catalogue_id: uuid.UUID, **overrides: object) -> dict[str, object]:
+    body: dict[str, object] = {
+        "catalogue_service_id": str(catalogue_id),
+        "kind": "extract_page",
+        "target_url": "https://example.gov/page",
+    }
+    body.update(overrides)
+    return body
+
+
+def _tasks_for(db_session: Session, catalogue_id: uuid.UUID) -> list[DiscoveryTask]:
+    stmt = select(DiscoveryTask).where(DiscoveryTask.catalogue_service_id == catalogue_id)
+    return list(db_session.scalars(stmt).all())
+
+
+def test_post_tasks_enqueue_creates_a_pending_task_and_records_an_event(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = client.post(
+        ENQUEUE_URL, json=_enqueue_body(catalogue.id, input_key="html@1", priority=5), headers={"X-API-Key": key}
+    )
+
+    assert response.status_code == 201
+    assert response.json()["created"] is True
+    task = db_session.get(DiscoveryTask, uuid.UUID(response.json()["id"]))
+    assert task is not None
+    assert (task.kind, task.status, task.priority, task.input_key) == (
+        DiscoveryTaskKind.EXTRACT_PAGE,
+        DiscoveryTaskStatus.PENDING,
+        5,
+        "html@1",
+    )
+    events = db_session.scalars(select(DiscoveryEvent).where(DiscoveryEvent.discovery_task_id == task.id)).all()
+    assert [event.event_type for event in events] == [DiscoveryEventType.TASK_ENQUEUED]
+
+
+def test_post_tasks_enqueue_is_idempotent_for_the_same_target_and_input_key(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    body = _enqueue_body(catalogue.id, input_key="html@1")
+
+    first = client.post(ENQUEUE_URL, json=body, headers={"X-API-Key": key})
+    second = client.post(ENQUEUE_URL, json=body, headers={"X-API-Key": key})
+
+    assert (first.status_code, second.status_code) == (201, 200)
+    assert second.json() == {"id": first.json()["id"], "created": False}
+    assert len(_tasks_for(db_session, catalogue.id)) == 1
+
+
+def test_post_tasks_enqueue_distinguishes_input_keys(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    responses = [
+        client.post(ENQUEUE_URL, json=_enqueue_body(catalogue.id, **extra), headers={"X-API-Key": key})
+        for extra in ({}, {"input_key": "html@1"}, {"input_key": "html@2"})
+    ]
+
+    assert [r.status_code for r in responses] == [201, 201, 201]
+    assert len({r.json()["id"] for r in responses}) == 3
+    assert len(_tasks_for(db_session, catalogue.id)) == 3
+
+
+def test_post_tasks_enqueue_returns_404_for_an_unknown_catalogue_row(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+
+    response = client.post(ENQUEUE_URL, json=_enqueue_body(uuid.uuid4()), headers={"X-API-Key": key})
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"kind": "no_such_kind"}, {"target_url": "https://example.gov/" + "x" * 500}, {"input_key": "k" * 129}],
+)
+def test_post_tasks_enqueue_returns_422_for_invalid_bodies_and_creates_nothing(
+    client: TestClient[Litestar],
+    db_session: Session,
+    overrides: dict[str, object],
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = client.post(ENQUEUE_URL, json=_enqueue_body(catalogue.id, **overrides), headers={"X-API-Key": key})
+
+    assert response.status_code == 422
+    assert _tasks_for(db_session, catalogue.id) == []
