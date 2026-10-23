@@ -131,6 +131,17 @@ class TaskClaimResponse(BaseModel):
     items: list[ClaimedTask]
 
 
+class TaskSummary(BaseModel):
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+
+    pending_ready: int
+    pending_delayed: int
+    claimed: int
+    claimed_stale: int
+    completed: int
+    failed: int
+
+
 class FetchLogAppendRequest(BaseModel):
     """One HTTP fetch attempt against a task target."""
 
