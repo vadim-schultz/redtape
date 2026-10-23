@@ -32,9 +32,8 @@ def handle_enrich_metadata(
         return "failed"
 
     outcome = fetcher.get(task.target_url)
-    if outcome.error_message is not None or outcome.http_status is None or outcome.http_status >= 400:
-        error = outcome.error_message or f"HTTP {outcome.http_status}"
-        client.fail_task(task.id, error=error)
+    if outcome.failed:
+        client.fail_task(task.id, error=outcome.failure_message)
         return "failed"
 
     steckbrief = _parse_steckbrief_body(outcome.body)

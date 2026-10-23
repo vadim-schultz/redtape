@@ -14,6 +14,7 @@ CLI workers that upsert discovery catalogue rows via the RedTape machine API (`X
 | `GOVDATA_CKAN_BASE_URL` | no | Default in [`config.py`](discovery_ingest/config.py) |
 | `PVOG_API_BASE_URL` | no | Default in `config.py` |
 | `FIM_PORTAL_BASE_URL` | no | Default in `config.py` |
+| `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 
 Copy [`.env.example`](.env.example) to `.env` for local runs.
 

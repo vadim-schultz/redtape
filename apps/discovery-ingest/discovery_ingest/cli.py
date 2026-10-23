@@ -208,7 +208,7 @@ def _worker_drain(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        report = run_recorded_drain(client, PoliteUrlFetcher(), policy)
+        report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy)
     except DiscoveryMachineApiError as err:
         print(f"drain failed: {err}", file=sys.stderr)
         return 1

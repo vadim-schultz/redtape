@@ -162,3 +162,40 @@ def test_enrich_metadata_fails_task_when_steckbrief_404(monkeypatch: pytest.Monk
     assert report.failed == 1
     assert len(fail_calls) == 1
     assert "error" in fail_calls[0] and fail_calls[0]["error"]
+
+
+def test_enrich_metadata_fails_task_when_steckbrief_redirect_cannot_be_followed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """enrich_metadata · fails task when the steckbrief answers 3xx without a usable Location."""
+    fail_calls: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url == STECKBRIEF_URL:
+            return httpx.Response(302)
+        if url.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [_claimed_enrich_task()]})
+        if request.url.path == f"/api/v1/discovery/machine/catalogue/{CATALOGUE_ID}":
+            return httpx.Response(
+                200,
+                json={
+                    "id": str(CATALOGUE_ID),
+                    "source": "govdata",
+                    "portal_url": None,
+                    "title_i18n": {"de": "Leistung"},
+                    "raw_payload": {"fim_id": FIM_ID},
+                },
+            )
+        if url.endswith(f"/tasks/{TASK_ID}/fail"):
+            fail_calls.append(json.loads(request.content.decode()))
+            return httpx.Response(200, json={"id": str(TASK_ID), "status": "failed", "last_error": "x"})
+        return httpx.Response(404, text=f"unexpected {url}")
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+
+    assert (report.completed, report.failed) == (0, 1)
+    assert "Location" in str(fail_calls[0]["error"])
