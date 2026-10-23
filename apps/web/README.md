@@ -5,3 +5,4 @@ Vite + React + Chakra UI frontend. **Wave 2** scaffolds the app (`npm create vit
 ## Wave 0
 
 The web `LocaleProvider` lives in `src/contexts/LocaleContext.tsx` (DB-backed bundles + `Accept-Language`).
+
