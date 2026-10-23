@@ -15,9 +15,27 @@ Handler = Callable[[httpx.Request], httpx.Response]
 PAGE = "https://portal.example/old"
 
 
-def _fetcher(handler: Handler, **kwargs: object) -> PoliteUrlFetcher:
+PUBLIC_IP = "93.184.216.34"
+
+
+class _StaticResolver:
+    """Resolver stub: hosts map to fixed addresses, unknown hosts resolve to a public one."""
+
+    def __init__(self, addresses: dict[str, list[str]] | None = None) -> None:
+        self._addresses = addresses or {}
+
+    def resolve(self, host: str) -> list[str]:
+        return self._addresses.get(host, [PUBLIC_IP])
+
+
+def _fetcher(handler: Handler, addresses: dict[str, list[str]] | None = None, **kwargs: object) -> PoliteUrlFetcher:
     client = httpx.Client(transport=httpx.MockTransport(handler))
-    return PoliteUrlFetcher(min_interval_per_host_s=0, http_client=client, **kwargs)  # type: ignore[arg-type]
+    return PoliteUrlFetcher(
+        min_interval_per_host_s=0,
+        http_client=client,
+        resolver=_StaticResolver(addresses),
+        **kwargs,  # type: ignore[arg-type]
+    )
 
 
 def _without_robots(handler: Handler) -> Handler:
@@ -216,34 +234,12 @@ def test_fetcher_does_not_retry_robots_after_it_failed_this_run() -> None:
 
 # Loop C: limits and guards
 
-PUBLIC_IP = "93.184.216.34"
-
-
-class _StaticResolver:
-    """Resolver stub: hosts map to fixed addresses, unknown hosts resolve to a public one."""
-
-    def __init__(self, addresses: dict[str, list[str]] | None = None) -> None:
-        self._addresses = addresses or {}
-
-    def resolve(self, host: str) -> list[str]:
-        return self._addresses.get(host, [PUBLIC_IP])
-
-
-def _guarded(handler: Handler, addresses: dict[str, list[str]] | None = None, **kwargs: object) -> PoliteUrlFetcher:
-    client = httpx.Client(transport=httpx.MockTransport(handler))
-    return PoliteUrlFetcher(
-        min_interval_per_host_s=0,
-        http_client=client,
-        resolver=_StaticResolver(addresses),
-        **kwargs,  # type: ignore[arg-type]
-    )
-
 
 def test_fetcher_aborts_a_response_larger_than_the_cap() -> None:
     """fetcher aborts a response larger than the cap and discards the partial body."""
     handler = _without_robots(lambda _request: httpx.Response(200, content=b"x" * 101))
 
-    outcome = _guarded(handler, max_bytes=100).get("https://portal.example/big")
+    outcome = _fetcher(handler, max_bytes=100).get("https://portal.example/big")
 
     _assert_failed(outcome, "exceeds 100 bytes")
     assert outcome.byte_length is None
@@ -253,7 +249,7 @@ def test_fetcher_accepts_a_response_exactly_at_the_cap() -> None:
     """fetcher accepts a response whose size equals the cap."""
     handler = _without_robots(lambda _request: httpx.Response(200, content=b"x" * 100))
 
-    outcome = _guarded(handler, max_bytes=100).get("https://portal.example/edge")
+    outcome = _fetcher(handler, max_bytes=100).get("https://portal.example/edge")
 
     assert outcome.error_message is None
     assert outcome.byte_length == 100
@@ -270,7 +266,7 @@ def test_fetcher_stops_reading_once_the_cap_is_passed() -> None:
 
     handler = _without_robots(lambda _request: httpx.Response(200, content=endless()))
 
-    outcome = _guarded(handler, max_bytes=50).get("https://portal.example/endless")
+    outcome = _fetcher(handler, max_bytes=50).get("https://portal.example/endless")
 
     _assert_failed(outcome, "exceeds 50 bytes")
     assert len(chunks_read) <= 7
@@ -284,7 +280,7 @@ def test_fetcher_rejects_a_host_that_resolves_to_a_non_public_address(address: s
     """fetcher rejects private, loopback, link-local, multicast and reserved addresses."""
     site = _Site()
 
-    outcome = _guarded(site, {"portal.example": [address]}).get("https://portal.example/page")
+    outcome = _fetcher(site, {"portal.example": [address]}).get("https://portal.example/page")
 
     _assert_failed(outcome, "non-public address")
     assert site.requests == []
@@ -294,7 +290,7 @@ def test_fetcher_rejects_a_host_when_any_resolved_address_is_non_public() -> Non
     """fetcher rejects a host with one public and one private address."""
     site = _Site()
 
-    outcome = _guarded(site, {"portal.example": [PUBLIC_IP, "10.0.0.5"]}).get("https://portal.example/page")
+    outcome = _fetcher(site, {"portal.example": [PUBLIC_IP, "10.0.0.5"]}).get("https://portal.example/page")
 
     _assert_failed(outcome, "non-public address")
     assert site.requests == []
@@ -310,7 +306,7 @@ def test_fetcher_rejects_a_redirect_that_points_at_loopback() -> None:
             return httpx.Response(404)
         return _redirect(302, "http://127.0.0.1/admin")
 
-    outcome = _guarded(handler).get(PAGE)
+    outcome = _fetcher(handler).get(PAGE)
 
     _assert_failed(outcome, "non-public address")
     assert "127.0.0.1" not in hosts
@@ -335,7 +331,7 @@ def test_fetcher_rejects_non_http_schemes(url: str) -> None:
     """fetcher rejects file, ftp and other non-http schemes without a request."""
     site = _Site()
 
-    outcome = _guarded(site).get(url)
+    outcome = _fetcher(site).get(url)
 
     _assert_failed(outcome, "unsupported scheme")
     assert site.requests == []
@@ -345,7 +341,7 @@ def test_fetcher_rejects_a_redirect_to_a_non_http_scheme() -> None:
     """fetcher rejects a redirect that leaves http and https."""
     handler = _without_robots(lambda _request: _redirect(302, "ftp://portal.example/file"))
 
-    _assert_failed(_guarded(handler).get(PAGE), "unsupported scheme")
+    _assert_failed(_fetcher(handler).get(PAGE), "unsupported scheme")
 
 
 @pytest.mark.parametrize(
