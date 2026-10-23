@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/crawlers`
 **Release branch:** `main`
-**Release PR:** staged release of chapters 1–6 to `main`: _(PR URL filled below)_. The final release (a second PR `feat/crawlers` → `main`) is still pending.
+**Release PR:** staged release of chapters 1–6 to `main`: [PR #191](https://github.com/vadim-schultz/redtape/pull/191). The final release (a second PR `feat/crawlers` → `main`) is still pending.
 
 Update this ledger after every chapter implementation or documented operator verification. A chapter is not complete until its gate, its live gate (or the reason it is deferred), and its refactor outcome are recorded. Record GitHub Actions run IDs for every live gate.
 
