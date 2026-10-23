@@ -52,12 +52,12 @@ Update this ledger after every chapter implementation or documented operator ver
 
 Chapters 1–6 reached `main` on 2026-10-23 through a staged release PR, merged without remote CI because the shared GitHub Actions quota (Free plan, 2,000 min across all repos) was exhausted. `feat/crawlers` stays the loop branch. **Next chapter: 7** ([07-pvog-payload-harvester.md](chapters/07-pvog-payload-harvester.md)). The final release is a second PR `feat/crawlers` → `main`.
 
-The Actions budget work was done in the separate suite [`.plans/gha-budget/`](../gha-budget/01-rollout.md) (loop branch `chore/gha-budget`, released to `main` the same day). It retires keep-alive, makes platform maintenance monthly, adds the drain budget variable and cancels superseded CI runs.
+The Actions budget work was done in the separate suite [`.plans/gha-budget/`](../gha-budget/01-rollout.md) (loop branch `chore/gha-budget`, released to `main` the same day as [PR #199](https://github.com/vadim-schultz/redtape/pull/199); the owner's operator steps O1–O5 are in [docs/operations/gha-budget.md](../../docs/operations/gha-budget.md)). It retires keep-alive, makes platform maintenance monthly, adds the drain budget variable and cancels superseded CI runs.
 
 First actions once the quota resets (about 2026-11-01):
 
 1. Confirm Actions billing works (any workflow job starts instead of failing in 3 s).
-2. `git checkout feat/crawlers && git pull && git merge main` to pick up the gha-budget changes.
+2. `feat/crawlers` already contains `main` as of 2026-10-23 (including the gha-budget release, PR #199). Still run `git checkout feat/crawlers && git pull && git merge main` to pick up anything merged since.
 3. Chapter 6 never had remote CI. The chapter 7 PR doubles as its remote verification; if it is red because of chapter 6 code, fix that in a fix-up branch before continuing.
 4. The deferred live gates of chapters 2, 3, 4 and 5 can run now, because `discovery-drain.yml` is on `main`. Keep them short (`max_batches=3 time_budget_seconds=600`), and run chapter 22 step S11 (re-pend the 3xx tasks) first.
 5. Keep the repository variable `DISCOVERY_DRAIN_SCHEDULE` unset until chapter 22 step S13.
