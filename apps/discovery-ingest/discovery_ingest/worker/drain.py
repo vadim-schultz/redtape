@@ -14,6 +14,7 @@ from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachi
 from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendRequest, StopReason
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.harvest import handle_harvest_payload
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.settle import fail_from_outcome, fail_permanently
 
@@ -137,4 +138,5 @@ def _handle_fetch_url(
 _TASK_HANDLERS: dict[str, _TaskHandler] = {
     "fetch_url": _handle_fetch_url,
     "enrich_metadata": handle_enrich_metadata,
+    "harvest_payload": handle_harvest_payload,
 }

@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 import app.features.auth.guard_session as guard_session_module
+import app.features.discovery.fanout as fanout_module
 import pytest
 from app.config import settings
 from app.features.auth.repository import ApiKeyRepository
@@ -197,3 +198,132 @@ def test_batch_upsert_integration_creates_fetch_and_enrich_tasks(
     enrich = next(task for task in tasks if task.kind == DiscoveryTaskKind.ENRICH_METADATA)
     assert FIM_STECKBRIEF_KEY in enrich.target_url
     assert enrich.priority > next(task for task in tasks if task.kind == DiscoveryTaskKind.FETCH_URL).priority
+
+
+PVOG_PORTAL_URL = "https://pvog.example.de/leistung/1"
+PVOG_DETAILS: list[dict[str, object]] = [{"code": "08", "title": "Erforderliche Unterlagen", "filled": True}]
+
+
+def _pvog_service(
+    db_session: Session,
+    country: Jurisdiction,
+    *,
+    raw_payload: dict[str, object],
+    portal_url: str | None = PVOG_PORTAL_URL,
+) -> CatalogueService:
+    row = CatalogueService(
+        source=DiscoverySource.PVOG,
+        external_id="pvog:leika:99001040001000",
+        jurisdiction_id=country.id,
+        title_i18n={"de": "Leistung"},
+        portal_url=portal_url,
+        raw_payload=raw_payload,
+        pipeline_stage="T0",
+    )
+    db_session.add(row)
+    db_session.flush()
+    return row
+
+
+def _harvest_tasks(db_session: Session, service: CatalogueService) -> list[DiscoveryTask]:
+    return list(
+        db_session.scalars(
+            select(DiscoveryTask)
+            .where(
+                DiscoveryTask.catalogue_service_id == service.id,
+                DiscoveryTask.kind == DiscoveryTaskKind.HARVEST_PAYLOAD,
+            )
+            .order_by(DiscoveryTask.created_at.asc())
+        )
+    )
+
+
+def test_pvog_row_with_details_enqueues_a_harvest_task_with_a_versioned_input_key(
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    """pvog row with details · enqueues a harvest task with a versioned input key."""
+    service = _pvog_service(db_session, country, raw_payload={"details": PVOG_DETAILS})
+
+    specs = fanout_specs_for_service(service)
+    assert [(s.kind, s.target_url, s.priority, s.input_key) for s in specs] == [
+        (DiscoveryTaskKind.HARVEST_PAYLOAD, PVOG_PORTAL_URL, 50, f"pvog-payload@{fanout_module.PVOG_HARVESTER_VERSION}")
+    ]
+
+    tasks = apply_fanout_for_service(DiscoveryRepository(db_session), service)
+    assert [(t.kind, t.status, t.input_key) for t in tasks] == [
+        (DiscoveryTaskKind.HARVEST_PAYLOAD, DiscoveryTaskStatus.PENDING, specs[0].input_key)
+    ]
+
+
+def test_pvog_row_without_a_portal_url_still_gets_a_harvest_task_keyed_by_its_external_id(
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    """pvog row without a portal url · still gets a harvest task keyed by its external id."""
+    service = _pvog_service(db_session, country, raw_payload={"details": PVOG_DETAILS}, portal_url=None)
+
+    specs = fanout_specs_for_service(service)
+
+    assert [s.target_url for s in specs] == ["pvog-payload:pvog:leika:99001040001000"]
+
+
+def test_govdata_row_and_pvog_row_without_details_enqueue_none(db_session: Session, country: Jurisdiction) -> None:
+    """govdata row and pvog row without details · enqueue none."""
+    govdata = _govdata_service(db_session, country, raw_payload={"details": PVOG_DETAILS})
+    repo = DiscoveryRepository(db_session)
+
+    assert fanout_specs_for_service(govdata) == []
+    for payload in ({}, {"details": []}, {"details": "broken"}, {"details": None}):
+        service = _pvog_service(db_session, country, raw_payload=payload)
+        assert fanout_specs_for_service(service) == []
+        assert apply_fanout_for_service(repo, service) == []
+        db_session.delete(service)
+        db_session.flush()
+
+
+def test_re_fanout_is_idempotent_for_the_same_version_and_creates_a_task_for_a_new_version(
+    db_session: Session,
+    country: Jurisdiction,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """re-fanout · is idempotent for the same version and creates a task for a new version."""
+    service = _pvog_service(db_session, country, raw_payload={"details": PVOG_DETAILS})
+    repo = DiscoveryRepository(db_session)
+
+    first = apply_fanout_for_service(repo, service)
+    again = apply_fanout_for_service(repo, service)
+    monkeypatch.setattr(fanout_module, "PVOG_HARVESTER_VERSION", "next")
+    bumped = apply_fanout_for_service(repo, service)
+
+    assert (len(first), again) == (1, [])
+    assert [t.input_key for t in bumped] == ["pvog-payload@next"]
+    assert len(_harvest_tasks(db_session, service)) == 2
+
+
+def test_batch_upsert_of_a_pvog_row_creates_fetch_and_harvest_tasks(
+    client: TestClient[Litestar],
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    """batch upsert · of a pvog row creates fetch and harvest tasks."""
+    item = _batch_item(
+        country,
+        source="pvog",
+        external_id="pvog:leika:99001040001000",
+        portal_url=PVOG_PORTAL_URL,
+        raw_payload={"details": PVOG_DETAILS},
+    )
+    response = client.post(BATCH_URL, json={"items": [item]}, headers={"X-API-Key": _issue_key(db_session)})
+
+    assert response.status_code == 201
+    tasks = list(
+        db_session.scalars(
+            select(DiscoveryTask).where(
+                DiscoveryTask.catalogue_service_id == uuid.UUID(response.json()["items"][0]["id"])
+            )
+        )
+    )
+    assert {t.kind for t in tasks} == {DiscoveryTaskKind.FETCH_URL, DiscoveryTaskKind.HARVEST_PAYLOAD}
+    harvest = next(t for t in tasks if t.kind == DiscoveryTaskKind.HARVEST_PAYLOAD)
+    assert (harvest.priority, harvest.target_url) == (50, PVOG_PORTAL_URL)

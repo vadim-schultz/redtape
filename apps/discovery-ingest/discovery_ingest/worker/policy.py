@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from discovery_ingest.schemas import LEGACY_TASK_KINDS, DiscoveryTaskKind, StopReason
+from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS, DiscoveryTaskKind, StopReason
 
 MAX_TASKS_PER_CLAIM = 50
 
@@ -16,7 +16,7 @@ class DrainPolicy:
     max_tasks: int = MAX_TASKS_PER_CLAIM
     max_batches: int = 1
     time_budget_seconds: float | None = None
-    kinds: tuple[DiscoveryTaskKind, ...] = LEGACY_TASK_KINDS
+    kinds: tuple[DiscoveryTaskKind, ...] = WORKER_DEFAULT_TASK_KINDS
 
     def __post_init__(self) -> None:
         """Reject bounds that would make a drain empty or unbounded."""
