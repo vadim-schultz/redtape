@@ -5,9 +5,11 @@ from __future__ import annotations
 import pytest
 from app.config import Settings
 from app.main import create_app
+from app.shared.dependencies import shared_dependencies
 from app.shared.object_store import (
     MeteredObjectStore,
     ObjectNotFoundError,
+    ObjectStore,
     ObjectStoreQuotaError,
     ObjectStoreUnavailableError,
     OperationClass,
@@ -105,6 +107,19 @@ def test_quota_error_is_mapped_to_503_like_unavailable() -> None:
 
     assert response.status_code == HTTP_503_SERVICE_UNAVAILABLE
     assert "cap reached" in response.json()["detail"]
+
+
+def test_the_object_store_dependency_injects_none_when_storage_is_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.shared.object_store.provider.settings", Settings(_env_file=None))
+
+    @get("/injected", sync_to_thread=False)
+    def injected(object_store: ObjectStore | None) -> dict[str, bool]:
+        return {"unconfigured": object_store is None}
+
+    with TestClient(Litestar([injected], dependencies=shared_dependencies)) as client:
+        assert client.get("/injected").json() == {"unconfigured": True}
 
 
 def test_only_availability_errors_are_mapped_to_503() -> None:

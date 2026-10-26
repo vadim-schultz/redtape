@@ -42,9 +42,35 @@ class Settings(BaseSettings):
         description="Enable discovery machine routes in dev when the admin allowlist is empty.",
     )
 
+    object_store_endpoint_url: str | None = Field(
+        default=None,
+        description="S3 endpoint. Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com (not a custom domain).",
+    )
+    object_store_region: str | None = Field(default=None, description="Signing region; `auto` for Cloudflare R2.")
+    object_store_bucket: str | None = None
+    object_store_access_key_id: str | None = None
+    object_store_secret_access_key: str | None = Field(default=None, repr=False)
+    object_store_force_path_style: bool = True
+    object_store_max_bytes: int = Field(
+        default=8 * 1024**3,
+        description="Ceiling for the sum of stored artifact bytes (8 GiB, below the R2 free 10 GB); enforced on upload.",
+    )
+
     @property
     def auth_enabled(self) -> bool:
         return self.supabase_jwks_url is not None and self.supabase_jwt_issuer is not None
+
+    @property
+    def object_store_enabled(self) -> bool:
+        """Return whether all five required object store values are set."""
+        required = (
+            self.object_store_endpoint_url,
+            self.object_store_region,
+            self.object_store_bucket,
+            self.object_store_access_key_id,
+            self.object_store_secret_access_key,
+        )
+        return all(required)
 
     @property
     def discovery_admin_email_set(self) -> frozenset[str]:
