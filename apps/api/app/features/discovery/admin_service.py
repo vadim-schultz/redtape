@@ -14,8 +14,8 @@ from app.features.discovery.pipeline_rows import (
     fetch_log_dict,
     stage_of,
 )
-from app.features.discovery.repository import DiscoveryRepository, Page
-from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
+from app.features.discovery.repository import DiscoveryRepository, Page, TaskFilter
+from app.models.discovery import DiscoverySource
 from app.schema.discovery.read import (
     CatalogueListResponse,
     CataloguePipelineResponse,
@@ -38,19 +38,12 @@ class DiscoveryAdminService:
         """Bind the service to ``repository``."""
         self._repo = repository
 
-    def list_tasks(
-        self,
-        *,
-        status: DiscoveryTaskStatus | None,
-        source: DiscoverySource | None,
-        offset: int,
-        limit: int,
-    ) -> DiscoveryTaskListResponse:
-        """Return one page of tasks with the total count."""
-        total = self._repo.count_tasks(status=status, source=source)
-        rows = self._repo.list_tasks_page(Page(offset=offset, limit=limit), status=status, source=source)
+    def list_tasks(self, task_filter: TaskFilter, page: Page) -> DiscoveryTaskListResponse:
+        """Return one page of tasks matching ``task_filter`` with the total count."""
+        total = self._repo.count_tasks(task_filter)
+        rows = self._repo.list_tasks_page(page, task_filter)
         items = [DiscoveryTaskRead.from_row(task, source=task_source) for task, task_source in rows]
-        return DiscoveryTaskListResponse(items=items, total=total, offset=offset, limit=limit)
+        return DiscoveryTaskListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def list_catalogue(
         self,

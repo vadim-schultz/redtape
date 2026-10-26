@@ -243,8 +243,12 @@ def _kind_task(
     return task
 
 
+ADMIN_SUB = uuid.uuid4()
+
+
 def _admin_headers() -> dict[str, str]:
-    return {"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"}
+    """Return bearer headers for one stable admin user, so repeated calls reuse the same app_user row."""
+    return {"Authorization": f"Bearer {_token(sub=ADMIN_SUB, email=ADMIN_EMAIL)}"}
 
 
 def test_admin_tasks_lists_kind_attempts_and_not_before(client: TestClient[Litestar], db_session: Session) -> None:
