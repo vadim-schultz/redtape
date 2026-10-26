@@ -11,6 +11,8 @@ from app.features.auth.dependencies import router_dependencies as auth_dependenc
 from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.artifact_read import ArtifactReadService
 from app.features.discovery.artifact_upload import ArtifactUploadService
+from app.features.discovery.budget_access import BudgetApiService
+from app.features.discovery.budgets import BudgetService
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
@@ -67,6 +69,16 @@ def provide_discovery_artifact_read_service(
     return ArtifactReadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
 
 
+def provide_discovery_budget_service(discovery_repository: DiscoveryRepository) -> BudgetService:
+    return BudgetService(discovery_repository)
+
+
+def provide_discovery_budget_api_service(
+    discovery_repository: DiscoveryRepository, discovery_budget_service: BudgetService
+) -> BudgetApiService:
+    return BudgetApiService(discovery_repository, discovery_budget_service)
+
+
 def provide_discovery_run_service(discovery_repository: DiscoveryRepository) -> DiscoveryRunService:
     return DiscoveryRunService(discovery_repository)
 
@@ -90,6 +102,8 @@ router_dependencies = {
     "discovery_candidate_emit_service": Provide(provide_discovery_candidate_emit_service, sync_to_thread=False),
     "discovery_artifact_upload_service": Provide(provide_discovery_artifact_upload_service, sync_to_thread=False),
     "discovery_artifact_read_service": Provide(provide_discovery_artifact_read_service, sync_to_thread=False),
+    "discovery_budget_service": Provide(provide_discovery_budget_service, sync_to_thread=False),
+    "discovery_budget_api_service": Provide(provide_discovery_budget_api_service, sync_to_thread=False),
     "discovery_run_service": Provide(provide_discovery_run_service, sync_to_thread=False),
     "discovery_emit_service": Provide(provide_discovery_emit_service, sync_to_thread=False),
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),

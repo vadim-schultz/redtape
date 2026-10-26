@@ -18,6 +18,7 @@ from litestar.types import ExceptionHandler, ExceptionHandlersMap
 from app.features.discovery.admin_controller import DiscoveryAdminController
 from app.features.discovery.artifact_admin_controller import DiscoveryArtifactAdminController
 from app.features.discovery.artifact_machine_controller import DiscoveryArtifactMachineController
+from app.features.discovery.budget_controllers import DiscoveryBudgetAdminController, DiscoveryBudgetMachineController
 from app.features.discovery.candidate_admin_controller import DiscoveryCandidateAdminController
 from app.features.discovery.candidate_machine_controller import DiscoveryCandidateMachineController
 from app.features.discovery.dependencies import router_dependencies
@@ -69,7 +70,12 @@ _DOMAIN_ERROR_HANDLERS: ExceptionHandlersMap = {
 
 discovery_admin_router = Router(
     path="/api/v1/discovery/admin",
-    route_handlers=[DiscoveryAdminController, DiscoveryCandidateAdminController, DiscoveryArtifactAdminController],
+    route_handlers=[
+        DiscoveryAdminController,
+        DiscoveryCandidateAdminController,
+        DiscoveryArtifactAdminController,
+        DiscoveryBudgetAdminController,
+    ],
     dependencies=router_dependencies,
     exception_handlers=_DOMAIN_ERROR_HANDLERS,
     tags=["discovery-admin"],
@@ -81,6 +87,7 @@ discovery_machine_router = Router(
         DiscoveryMachineController,
         DiscoveryCandidateMachineController,
         DiscoveryArtifactMachineController,
+        DiscoveryBudgetMachineController,
     ],
     dependencies=router_dependencies,
     exception_handlers=_DOMAIN_ERROR_HANDLERS,
