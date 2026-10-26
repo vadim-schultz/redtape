@@ -8,6 +8,7 @@ from uuid import UUID
 import httpx
 
 from discovery_ingest.batch_dedup import dedupe_batch_items
+from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
     CatalogueBatchRequest,
@@ -105,6 +106,16 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return ClaimAppendResponse.model_validate(response.json())
+
+    def post_mentions(self, items: Sequence[MentionItem]) -> MentionsResponse:
+        """Record up to 100 document mentions in one transaction."""
+        body = MentionsRequest(items=list(items))
+        url = f"{self._base_url}/api/v1/discovery/machine/candidates/mentions"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, json=body.model_dump(mode="json"), headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return MentionsResponse.model_validate(response.json())
 
     def claim_tasks(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> TaskClaimResponse:
         """Claim pending discovery tasks of ``kinds`` for this API key."""

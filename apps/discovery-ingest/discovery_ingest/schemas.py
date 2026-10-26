@@ -79,6 +79,7 @@ class ClaimAppendResponse(BaseModel):
 DiscoveryTaskKind = Literal["fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "capture_screenshot"]
 TASK_KINDS: tuple[DiscoveryTaskKind, ...] = get_args(DiscoveryTaskKind)
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("fetch_url", "enrich_metadata")
+WORKER_DEFAULT_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (*LEGACY_TASK_KINDS, "harvest_payload")
 
 
 def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:

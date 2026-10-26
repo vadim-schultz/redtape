@@ -33,8 +33,8 @@ from discovery_ingest.pvog.client import (
     map_pvog_record,
 )
 from discovery_ingest.schemas import (
-    LEGACY_TASK_KINDS,
     TASK_KINDS,
+    WORKER_DEFAULT_TASK_KINDS,
     CatalogueBatchItem,
     DiscoveryTaskKind,
     is_task_kind,
@@ -389,7 +389,7 @@ def _build_parser() -> argparse.ArgumentParser:
     worker_drain.add_argument(
         "--kinds",
         type=_task_kinds_arg,
-        default=LEGACY_TASK_KINDS,
-        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata)",
+        default=WORKER_DEFAULT_TASK_KINDS,
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload)",
     )
     return parser
