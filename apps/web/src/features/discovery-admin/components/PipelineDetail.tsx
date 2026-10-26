@@ -3,20 +3,8 @@ import type { ReactNode } from "react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CataloguePipelineResponse } from "../types";
+import { localizedTitle } from "../utils/localizedTitle";
 import PipelineTimeline from "./PipelineTimeline";
-
-function titleForService(
-  titleI18n: Record<string, string>,
-  locale: string,
-): string {
-  return (
-    titleI18n[locale] ??
-    titleI18n.en ??
-    titleI18n.de ??
-    Object.values(titleI18n)[0] ??
-    ""
-  );
-}
 
 /** Pipeline drill-down body: title, timeline, counts, and a preview slot. */
 export default function PipelineDetail({
@@ -31,7 +19,7 @@ export default function PipelineDetail({
 
   return (
     <Stack gap={4} align="stretch">
-      <Heading size="md">{titleForService(service.title_i18n, locale)}</Heading>
+      <Heading size="md">{localizedTitle(service.title_i18n, locale)}</Heading>
       <PipelineTimeline derivedStage={derived_stage} />
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.tasks_count", { count: tasks.length })}

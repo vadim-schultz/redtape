@@ -2,7 +2,10 @@ import { apiRequest } from "../../../services/api";
 import type {
   CatalogueListResponse,
   CataloguePipelineResponse,
+  DiscoveryCandidateListResponse,
+  DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
+  DiscoveryMentionRole,
   DiscoverySource,
   DiscoveryTaskKind,
   DiscoveryTaskListResponse,
@@ -12,6 +15,7 @@ import type {
 
 const TASKS_PATH = "/api/v1/discovery/admin/tasks";
 const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
+const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 
 /** Probe allowlist by listing tasks (server enforces admin emails). */
@@ -105,4 +109,30 @@ export async function fetchEmitPreview(params: {
     `/api/v1/discovery/admin/catalogue/${catalogueId}/emit-preview`,
     { locale, accessToken },
   );
+}
+
+/** Query of the document candidate list; unset filters are left out of the request. */
+export type DiscoveryCandidateQuery = {
+  q?: string;
+  minMentions?: number;
+  role?: DiscoveryMentionRole;
+  source?: DiscoverySource;
+  sort?: DiscoveryCandidateSort;
+  offset?: number;
+  limit?: number;
+};
+
+/** Paginated document candidates with search, filters and sort. */
+export async function listDiscoveryCandidates(params: {
+  locale: string;
+  accessToken: string;
+  query: DiscoveryCandidateQuery;
+}): Promise<DiscoveryCandidateListResponse> {
+  const { locale, accessToken, query } = params;
+  const { minMentions, offset = 0, limit = 20, ...filters } = query;
+  return apiRequest<DiscoveryCandidateListResponse>(CANDIDATES_PATH, {
+    locale,
+    accessToken,
+    query: { ...filters, min_mentions: minMentions, offset, limit },
+  });
 }

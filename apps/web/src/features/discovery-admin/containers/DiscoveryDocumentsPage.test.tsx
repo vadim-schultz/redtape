@@ -169,7 +169,7 @@ it("documents page shows the empty state and hides paging when nothing matches",
 
   renderPage();
 
-  expect(await screen.findByText("No documents found")).toBeInTheDocument();
+  await screen.findByText("No documents found");
   expect(screen.queryByRole("table")).toBeNull();
   expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
 });

@@ -129,3 +129,32 @@ export type DiscoveryCoverageResponse = {
   failures_by_source: Partial<Record<DiscoverySource, number>>;
   last_successful_run: DiscoveryRun | null;
 };
+
+export type DiscoveryMentionRole = "required" | "form";
+
+export type DiscoveryCandidateStatus = "staged" | "emitted";
+
+export type DiscoveryCandidateSort = "mentions_desc" | "title_asc" | "newest";
+
+/** One listed document candidate with its mention statistics. */
+export type DiscoveryCandidate = {
+  id: string;
+  jurisdiction_id: string;
+  key: string;
+  title_i18n: Record<string, string>;
+  official_url: string | null;
+  status: DiscoveryCandidateStatus;
+  suggestion_id: string | null;
+  mention_count: number;
+  roles: DiscoveryMentionRole[];
+  jurisdiction_name_i18n: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DiscoveryCandidateListResponse = {
+  items: DiscoveryCandidate[];
+  total: number;
+  offset: number;
+  limit: number;
+};

@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { FaClipboard, FaList, FaTasks } from "react-icons/fa";
+import { FaClipboard, FaFileAlt, FaList, FaTasks } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 import MenuIconLink from "../../../components/ui/MenuIconLink";
@@ -29,6 +29,11 @@ const DISCOVERY_MENU_LINKS: ReadonlyArray<{
     Icon: FaClipboard,
     label: { de: "Aufgaben", en: "Tasks" },
     to: "/admin/discovery/tasks",
+  },
+  {
+    Icon: FaFileAlt,
+    label: { de: "Dokumente", en: "Documents" },
+    to: "/admin/discovery/documents",
   },
 ];
 
