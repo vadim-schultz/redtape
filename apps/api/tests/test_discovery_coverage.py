@@ -17,6 +17,8 @@ from app.features.auth.jwt import JwtVerifier
 from app.main import create_app
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -281,7 +283,14 @@ def _mention(session: Session, candidate: DiscoveryDocumentCandidate, catalogue:
 
 
 ZERO_COUNTS = {"total": 0, "pending": 0, "claimed": 0, "completed": 0, "failed": 0}
-ALL_KINDS = {"fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "capture_screenshot"}
+ALL_KINDS = {
+    "fetch_url",
+    "enrich_metadata",
+    "harvest_payload",
+    "extract_page",
+    "capture_screenshot",
+    "render_page",
+}
 
 
 def test_coverage_returns_per_kind_status_counts_and_candidate_totals(
@@ -316,3 +325,44 @@ def test_coverage_without_tasks_or_candidates_reports_every_kind_and_zero_candid
 
     assert body["task_counts_by_kind"] == {kind: ZERO_COUNTS for kind in ALL_KINDS}
     assert body["candidates"] == {"total": 0, "staged": 0, "emitted": 0, "mentions": 0}
+
+
+def _artifact(session: Session, catalogue: CatalogueService, kind: DiscoveryArtifactKind, sha: str, size: int) -> None:
+    session.add(
+        DiscoveryArtifact(
+            catalogue_service_id=catalogue.id,
+            kind=kind,
+            storage_key=f"discovery/{catalogue.id}/{kind.value}/{sha}",
+            sha256=sha,
+            content_type="text/html",
+            byte_size=size,
+            source_url="https://example.gov/page",
+            fetched_at=datetime.now(UTC),
+        )
+    )
+    session.flush()
+
+
+def test_coverage_reports_artifact_counts_and_bytes_per_kind(client: TestClient[Litestar], db_session: Session) -> None:
+    row = _catalogue(db_session, external_id="gov-artifacts")
+    _artifact(db_session, row, DiscoveryArtifactKind.HTML_SNAPSHOT, "a" * 64, 100)
+    _artifact(db_session, row, DiscoveryArtifactKind.HTML_SNAPSHOT, "b" * 64, 250)
+    _artifact(db_session, row, DiscoveryArtifactKind.SCREENSHOT, "c" * 64, 4000)
+
+    artifacts = _get_coverage(client)["artifacts"]
+
+    assert artifacts == {
+        "by_kind": {"html_snapshot": {"count": 2, "bytes": 350}, "screenshot": {"count": 1, "bytes": 4000}},
+        "total_bytes": 4350,
+        "bytes_cap": settings.object_store_max_bytes,
+    }
+
+
+def test_coverage_artifacts_are_zero_when_there_are_none(client: TestClient[Litestar]) -> None:
+    artifacts = _get_coverage(client)["artifacts"]
+
+    assert artifacts == {
+        "by_kind": {"html_snapshot": {"count": 0, "bytes": 0}, "screenshot": {"count": 0, "bytes": 0}},
+        "total_bytes": 0,
+        "bytes_cap": settings.object_store_max_bytes,
+    }
