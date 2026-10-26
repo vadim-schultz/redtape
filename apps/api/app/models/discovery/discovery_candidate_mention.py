@@ -48,7 +48,9 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     )
     excerpt: Mapped[str] = mapped_column(Text, nullable=False)
     source_field: Mapped[str] = mapped_column(String(200), nullable=False)
-    artifact_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    artifact_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("discovery_artifact.id", ondelete="SET NULL"), nullable=True
+    )
     extractor: Mapped[str] = mapped_column(String(64), nullable=False)
     extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
 

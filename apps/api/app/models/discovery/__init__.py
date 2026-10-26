@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.models.discovery.catalogue_service import CatalogueService
+from app.models.discovery.discovery_artifact import DiscoveryArtifact
 from app.models.discovery.discovery_candidate_mention import DiscoveryCandidateMention
 from app.models.discovery.discovery_claim import DiscoveryClaim
 from app.models.discovery.discovery_document_candidate import DiscoveryDocumentCandidate
@@ -13,6 +14,7 @@ from app.models.discovery.discovery_run import DiscoveryRun
 from app.models.discovery.discovery_task import DiscoveryTask
 from app.models.discovery.enums import (
     LEGACY_TASK_KINDS,
+    DiscoveryArtifactKind,
     DiscoveryCandidateStatus,
     DiscoveryClaimKind,
     DiscoveryEventType,
@@ -27,6 +29,8 @@ from app.models.discovery.enums import (
 __all__ = [
     "LEGACY_TASK_KINDS",
     "CatalogueService",
+    "DiscoveryArtifact",
+    "DiscoveryArtifactKind",
     "DiscoveryCandidateMention",
     "DiscoveryCandidateStatus",
     "DiscoveryClaim",
