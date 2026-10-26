@@ -75,7 +75,7 @@ disallow_untyped_defs = false
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["alembic.*", "litestar.*", "sqlalchemy.*"]
+module = ["alembic.*", "litestar.*", "sqlalchemy.*", "boto3.*", "botocore.*", "moto.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

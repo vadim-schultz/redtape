@@ -55,19 +55,17 @@ def _expiry_seconds(url: str) -> int:
     return int(query[key][0])
 
 
+def _content_type_of(store: ObjectStore, key: str) -> str:
+    if isinstance(store, InMemoryObjectStore):
+        return store.content_type(key)
+    return boto3.client("s3", region_name=REGION).head_object(Bucket=BUCKET, Key=key)["ContentType"]
+
+
 def test_put_then_get_returns_the_same_bytes_and_content_type(store: ObjectStore) -> None:
     store.put("a/b.html", b"<p>hi</p>", "text/html")
 
     assert store.get("a/b.html") == b"<p>hi</p>"
-
-
-def test_get_returns_the_stored_content_type_in_the_s3_adapter(moto_bucket: None) -> None:
-    store = S3ObjectStore.from_config(_s3_config())
-    store.put("shot.png", b"\x89PNG", "image/png")
-
-    head = boto3.client("s3", region_name=REGION).head_object(Bucket=BUCKET, Key="shot.png")
-
-    assert head["ContentType"] == "image/png"
+    assert _content_type_of(store, "a/b.html") == "text/html"
 
 
 def test_exists_is_false_before_put_and_true_after_and_delete_makes_it_false(store: ObjectStore) -> None:
