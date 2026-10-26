@@ -11,19 +11,21 @@ import type { DiscoveryTaskFilters } from "./useDiscoveryTaskFilters";
 export function useDiscoveryTasksQuery({
   status,
   source,
-}: Pick<DiscoveryTaskFilters, "status" | "source">) {
+  kind,
+}: Pick<DiscoveryTaskFilters, "status" | "source" | "kind">) {
   const { locale } = useLocale();
   const { session } = useAuth();
   const accessToken = session?.accessToken;
 
   return useApiQuery<DiscoveryTaskListResponse>(
-    queryKeys.discoveryAdmin.tasks(status, source, locale),
+    queryKeys.discoveryAdmin.tasks(status, source, kind, locale),
     () =>
       listDiscoveryTasks({
         locale,
         accessToken: accessToken!,
         status,
         source: source ?? undefined,
+        kind: kind ?? undefined,
       }),
     { enabled: Boolean(accessToken), placeholderData: keepPreviousData },
   );

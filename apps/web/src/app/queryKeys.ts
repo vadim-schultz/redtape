@@ -75,12 +75,18 @@ export const queryKeys = {
       [...queryKeys.discoveryAdmin.all, "catalogue", locale] as const,
     coverage: (locale: string) =>
       [...queryKeys.discoveryAdmin.all, "coverage", locale] as const,
-    tasks: (status: string, source: string | null, locale: string) =>
+    tasks: (
+      status: string,
+      source: string | null,
+      kind: string | null,
+      locale: string,
+    ) =>
       [
         ...queryKeys.discoveryAdmin.all,
         "tasks",
         status,
         source,
+        kind,
         locale,
       ] as const,
     pipeline: (catalogueId: string | undefined, locale: string) =>

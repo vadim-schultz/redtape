@@ -4,6 +4,7 @@ import type {
   CataloguePipelineResponse,
   DiscoveryCoverageResponse,
   DiscoverySource,
+  DiscoveryTaskKind,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
   EmitPreviewResponse,
@@ -26,12 +27,13 @@ export async function probeDiscoveryAdminAccess(params: {
   });
 }
 
-/** Paginated crawler queue with optional status and source filters. */
+/** Paginated crawler queue with optional status, source and kind filters. */
 export async function listDiscoveryTasks(params: {
   locale: string;
   accessToken: string;
   status?: DiscoveryTaskStatus;
   source?: DiscoverySource;
+  kind?: DiscoveryTaskKind;
   offset?: number;
   limit?: number;
 }): Promise<DiscoveryTaskListResponse> {
@@ -40,13 +42,14 @@ export async function listDiscoveryTasks(params: {
     accessToken,
     status,
     source,
+    kind,
     offset = 0,
     limit = 20,
   } = params;
   return apiRequest<DiscoveryTaskListResponse>(TASKS_PATH, {
     locale,
     accessToken,
-    query: { status, source, offset, limit },
+    query: { status, source, kind, offset, limit },
   });
 }
 
