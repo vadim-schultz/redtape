@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -49,25 +49,11 @@ def main(argv: list[str] | None = None) -> int:
     """Run a discovery ingest subcommand."""
     parser = _build_parser()
     args = parser.parse_args(argv)
-    if args.command is None:
+    handler = _COMMANDS.get((args.command, getattr(args, f"{args.command}_command", None)))
+    if handler is None:
         parser.print_help()
         return 2
-    if args.command == "govdata" and args.govdata_command == "run":
-        return _govdata_run(args)
-    if args.command == "govdata" and args.govdata_command == "fetch":
-        return _govdata_fetch(args)
-    if args.command == "pvog" and args.pvog_command == "run":
-        return _pvog_run(args)
-    if args.command == "fim" and args.fim_command == "enrich":
-        return _fim_enrich(args)
-    if args.command == "leika" and args.leika_command == "enrich":
-        return _leika_enrich(args)
-    if args.command == "worker" and args.worker_command == "drain":
-        return _worker_drain(args)
-    if args.command == "candidates" and args.candidates_command == "emit":
-        return _candidates_emit(args)
-    parser.print_help()
-    return 2
+    return handler(args)
 
 
 def _govdata_run(args: argparse.Namespace) -> int:
@@ -315,6 +301,17 @@ def _map_pvog_records(
         except PvogMappingError as err:
             print(f"skip row: {err}", file=sys.stderr)
     return items
+
+
+_COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
+    ("govdata", "run"): _govdata_run,
+    ("govdata", "fetch"): _govdata_fetch,
+    ("pvog", "run"): _pvog_run,
+    ("fim", "enrich"): _fim_enrich,
+    ("leika", "enrich"): _leika_enrich,
+    ("worker", "drain"): _worker_drain,
+    ("candidates", "emit"): _candidates_emit,
+}
 
 
 def _build_parser() -> argparse.ArgumentParser:

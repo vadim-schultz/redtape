@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -10,6 +9,7 @@ from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.emit_models import MAX_EMIT_CANDIDATES, EmitItem, EmitPreview
 
 DEFAULT_EMIT_LIMIT = 10
+NOTHING_SELECTED = ["no candidates selected"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,21 +54,19 @@ def _emit_line(item: EmitItem) -> str:
 def preview_report(client: DiscoveryMachineClient, selection: EmitSelection) -> list[str]:
     """Preview every selected candidate through the read-only route and describe the result."""
     ids = select_candidate_ids(client, selection)
+    if not ids:
+        return NOTHING_SELECTED
     previews = [client.preview_candidate_emit(candidate_id) for candidate_id in ids]
     skipped = sum(preview.skip_reason is not None for preview in previews)
     summary = f"dry run: would create {len(previews) - skipped}, skipped {skipped}"
-    return _with_lines(summary, [_preview_line(preview) for preview in previews], empty=not ids)
+    return [summary, *(_preview_line(preview) for preview in previews)]
 
 
 def emit_report(client: DiscoveryMachineClient, selection: EmitSelection) -> list[str]:
     """Emit every selected candidate in one call and describe the result."""
     ids = select_candidate_ids(client, selection)
     if not ids:
-        return ["no candidates selected"]
+        return NOTHING_SELECTED
     response = client.emit_candidates(ids)
     counts = f"created {response.created_count}, replayed {response.replayed_count}, skipped {response.skipped_count}"
     return [counts, *(_emit_line(item) for item in response.items)]
-
-
-def _with_lines(summary: str, lines: Sequence[str], *, empty: bool) -> list[str]:
-    return ["no candidates selected"] if empty else [summary, *lines]
