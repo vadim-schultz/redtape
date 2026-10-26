@@ -19,11 +19,15 @@ isProject: false
 
 # Chapter 18 — First page extractor
 
-**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-first-extractor` · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-first-extractor` · **Status:** planned, **optional** (revised 2026-10-26)
 
 **Depends on:** [17](17-extractor-framework.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
+
+## Status: optional
+
+The [extraction](../../extraction/00-architecture.md) suite is now the primary page extractor: one Cloudflare Workers AI call per rendered snapshot, validated and grounded, covers all 123 hosts without per-host selectors. This chapter is kept for hosts where its eval (extraction chapter E5) shows the LLM is weak, or where a deterministic extractor is wanted for precision and zero neurons. Chapter 20's live gate then uses a candidate from the LLM path. If this chapter is skipped, nothing downstream breaks: chapter 17's registry stays empty.
 
 ## Goal
 

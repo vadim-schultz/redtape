@@ -108,11 +108,12 @@ Procedures are **not** document nodes. The FIM enrichment claims that carry a se
 
 ## 6. Storage
 
-Both artifact kinds live in an S3-compatible object store; Postgres holds only metadata. The free Supabase database is capped at 500 MB, whereas the free Storage allowance is 1 GB with a 50 MB per-file limit, so a full bucket only stops uploads and a full database is far worse.
+Both artifact kinds live in an S3-compatible object store; Postgres holds only metadata. The free Supabase database is capped at 500 MB and goes read-only on overflow, so bytes stay out of it. The store is **Cloudflare R2**: 10 GB-month of storage, 1 million Class A (write, list) and 10 million Class B (read, head) operations per month, free egress, in the account that already hosts the frontend and Browser Run. Unlike a capped bucket, **R2 bills past the free tier**, so the application enforces its own caps below the allowance (decision D24, [chapter 23](chapters/23-free-tier-guards.md)).
 
-- **Provider:** Supabase Storage through its S3 API (endpoint `https://<project_ref>.storage.supabase.co/storage/v1/s3`, path-style, project region). Presigned URLs, HeadObject and DeleteObject are supported. Cloudflare R2 remains a configuration swap.
-- **Port and adapters:** `ObjectStore` protocol with `InMemoryObjectStore` (tests) and `S3ObjectStore` (boto3). Adapter tests use `moto`, so CI needs no Docker. Checksum behaviour of recent boto3 against Supabase is settled by a live probe workflow.
+- **Provider:** Cloudflare R2 through its S3 API (endpoint `https://<account_id>.r2.cloudflarestorage.com`, region `auto`, path-style). Presigned URLs work on that endpoint (not on a custom domain). Supabase Storage or any other S3 service remains a configuration swap.
+- **Port and adapters:** `ObjectStore` protocol with `InMemoryObjectStore` (tests) and `S3ObjectStore` (boto3). Adapter tests use `moto`, so CI needs no Docker. Checksum behaviour of recent boto3 against R2 (the default CRC headers are known to trouble non-AWS stores) is settled by a live probe workflow, with `when_required` as the starting default. The port has no `list`, and deduplication uses the database's sha256 unique key, never a HEAD request, so Class A and Class B operations stay small and countable.
 - **Optional at boot:** if no object-store settings exist the API still starts; artifact routes answer 503.
+- **Capped:** `OBJECT_STORE_MAX_BYTES` (default 8 GiB) is checked against `SUM(discovery_artifact.byte_size)` on every upload; over the cap the route answers 507 and writes nothing, and workers release their tasks and stop with `storage_unavailable`.
 - **Uploads are proxied** through the API; storage credentials live only in Render. Reads use a short-lived (five-minute) presigned GET minted per request.
 - **Keys are content-addressed:** `discovery/{catalogue_service_id}/{kind}/{sha256}.{ext}`.
 - **HTML snapshots are never rendered inline** in the admin UI; they are offered as download or source view. The screenshot is the visual.
@@ -128,11 +129,33 @@ Both artifact kinds live in an S3-compatible object store; Postgres holds only m
 
 ## 8. Worker runtime and scheduling
 
-- The HTTP workers stay in `apps/discovery-ingest` and never receive `DATABASE_URL`.
+- The HTTP workers stay in `apps/discovery-ingest` and never receive `DATABASE_URL`. A Cloudflare-native consumer of the machine API is an open seam, not part of this suite.
 - There is **no browser in this repository**: no Playwright, no optional extra, no Chromium install, no `apps/crawler` package. Rendering and screenshots are HTTP calls to Cloudflare Browser Run quick actions (the account already hosts the frontend), made by the worker through a `BrowserClient` port with a Cloudflare adapter (chapter 15).
 - `discovery-drain.yml` drains the HTTP kinds with multiple batches and a time budget (chapters 2 and 5); its daily schedule is gated by the repository variable `DISCOVERY_DRAIN_SCHEDULE` so the backlog is not consumed as bare liveness probes before `fetch_url` can enqueue `render_page` (chapter 15 deployed). A separate `discovery-render.yml` (variable `DISCOVERY_RENDER_SCHEDULE`) drains the two browser kinds with a run time budget and a browser-seconds budget; it shares the `discovery-drain` concurrency group. `platform-maintenance.yml` keeps the six-day catalogue ingest.
 - Manual probe and fixture workflows (`discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml`) exist so live verification needs only `gh workflow run`.
 - Politeness: robots.txt per host (checked by our code before every Cloudflare call, because the browser service does not check it for us), an identifying User-Agent with a contact URL (also sent as the quick action's `userAgent`), a per-host minimum interval, redirect following (maximum five) with the final URL recorded, a body size cap, a content-type allowlist, scheme and private-address blocking, and no attempt to get past login walls.
+
+### Providers
+
+| Provider | Used for | Free allowance that matters |
+| --- | --- | --- |
+| Cloudflare | Frontend, R2 artifacts, Browser Run (render, screenshot), Workers AI (extraction suite) | R2 10 GB; browser 10 min a day; Workers AI 10,000 neurons a day |
+| Supabase | Postgres and auth only | 500 MB database |
+| Render | API | Spin-down after idle |
+| GitHub | CI and the worker workflows | 2,000 Actions minutes a month shared across repositories; this repository is capped at 1,000 |
+
+### Free-allocation guards
+
+Every free allocation has a **server-side cap below the allowance**, kept in a budget ledger in the API so GitHub runs, local runs and concurrent runs share one count (decisions D23 and D24, [chapter 23](chapters/23-free-tier-guards.md)). The resources that **bill** past the free tier (R2 storage and operations, Workers AI on a paid plan) get the strictest guards.
+
+| Resource | Cap (default) | Behaviour at the cap |
+| --- | --- | --- |
+| R2 storage | 8 GiB | Upload route answers 507; workers release and stop `storage_unavailable` |
+| R2 operations | 400k Class A, 4M Class B a month | Counted by a metered store; over the cap behaves like 507 |
+| Browser Run | 480 browser seconds a day, all runs together | The worker's budget is the smaller of the run budget and what is left today; `429` marks the day exhausted |
+| Workers AI | 8,000 neurons a day, reserved before every call | Used by the [extraction](../extraction/00-architecture.md) suite; quota errors mark the day exhausted |
+| Supabase database | 400 MB soft limit | Machine write routes answer 507; workers stop `db_limit` |
+| GitHub Actions | 1,000 minutes a month for this repository, of which a CI reserve (default 600) is not ours to spend | Drain workflows report their minutes and skip themselves when the allowance is gone; schedules stay off by default and local runs are the default for the backlog |
 
 ### Cloudflare free-plan budget
 
@@ -157,4 +180,4 @@ Allowlisted, read-only, behind the existing server admin probe.
 
 ## 10. Out of scope
 
-Link-following frontier crawling, freshness crawling, LLM extraction, PDF parsing, CAPTCHA or login-wall handling, resolving mentions to canonical documents, emitting `new_requirement` suggestions, a web voting UI, attaching artifacts to suggestions as `evidence` rows (the [evidence-storage](../evidence-storage/00-architecture.md) suite owns that bridge).
+Link-following frontier crawling, freshness crawling, LLM extraction (planned separately in the [extraction](../extraction/00-architecture.md) suite), PDF parsing, CAPTCHA or login-wall handling, resolving mentions to canonical documents, emitting `new_requirement` suggestions, a web voting UI, attaching artifacts to suggestions as `evidence` rows (the [evidence-storage](../evidence-storage/00-architecture.md) suite owns that bridge).

@@ -20,7 +20,7 @@ Update this ledger after every chapter implementation or documented operator ver
 | 10 | [Admin Documents list](chapters/10-admin-documents-list.md) | planned | | | | |
 | 11 | [Candidate emit](chapters/11-candidate-emit.md) | planned | | | | |
 | 12 | [FIM key fix](chapters/12-fim-key-fix.md) | planned | | | | |
-| 13 | [Object store port and Supabase adapter](chapters/13-object-store-port-and-supabase-adapter.md) | planned | | | | |
+| 13 | [Object store port and R2 adapter](chapters/13-object-store-port-and-r2-adapter.md) | planned | | | | |
 | 14 | [Artifact model and API (with browser-task groundwork)](chapters/14-artifact-model-and-api.md) | planned | | | | |
 | 15 | [Cloudflare render and snapshot](chapters/15-cloudflare-render-and-snapshot.md) | planned | | | | |
 | 16 | [Admin Artifacts panel (and render_page kind)](chapters/16-admin-artifacts-panel.md) | planned | | | | |
@@ -30,6 +30,7 @@ Update this ledger after every chapter implementation or documented operator ver
 | 20 | [Admin document detail and evidence](chapters/20-admin-document-detail-and-evidence.md) | planned | | | | |
 | 21 | [Docs sync](chapters/21-docs-sync.md) | planned | | | | |
 | 22 | [Operator manual steps](chapters/22-operator-manual-steps.md) | planned | | | | |
+| 23 | [Free-tier guards](chapters/23-free-tier-guards.md) (executes between 14 and 15) | planned | | | | |
 
 ## Release checklist
 
@@ -40,7 +41,8 @@ Update this ledger after every chapter implementation or documented operator ver
 - [ ] The navigation icons render in one unbroken row (chapter 9).
 - [ ] One operator-driven candidate emit created pending `new_document` suggestions (chapter 11).
 - [ ] FIM enrichment fires for GovData rows and produces claims (chapter 12).
-- [ ] Object-store probe is green and rendered snapshots appear as artifacts (chapters 13–16).
+- [ ] Object-store probe is green against R2 and rendered snapshots appear as artifacts (chapters 13–16).
+- [ ] The budget ledger answers `GET /machine/budgets`, the R2 byte cap answers 507 in a test, and the operator recorded the Cloudflare plan and billing notifications (chapter 23, chapter 22 S19–S21).
 - [ ] The Cloudflare browser probe is recorded and a render run on the free plan ended inside its budgets, with tasks released rather than failed on any limit (chapter 15).
 - [ ] At least one extractor produced candidates from live snapshots (chapters 17–18).
 - [ ] A screenshot was captured through Cloudflare and is visible in the admin (chapters 19–20).
@@ -63,12 +65,14 @@ First actions once the quota resets (about 2026-11-01):
 4. The deferred live gates of chapters 2, 3, 4 and 5 can run now, because `discovery-drain.yml` is on `main`. Keep them short (`max_batches=3 time_budget_seconds=600`), and run chapter 22 step S11 (re-pend the 3xx tasks) first.
 5. Keep the repository variable `DISCOVERY_DRAIN_SCHEDULE` unset until chapter 22 step S13.
 
-Budget guard: this repo's share is roughly 960 min/month (the other repos use the rest). Chapters 7–22 are about 16 PRs at roughly 5–10 billed minutes each (web CI only when `apps/web` changes), so run the local gate before every push and check the usage report before dispatching a live gate. The Cloudflare plan revision removes the Playwright capture workflow, the Chromium install and the `capture-integration` CI job, but chapter 15's render backlog (roughly 18 fifteen-minute runs, about 4.5 hours of runner time for the 1,423 known pages) is a deliberate spend: prefer local runs (operator step S18) and keep `DISCOVERY_RENDER_SCHEDULE` unset until there is budget.
+Budget guard: GitHub's free 2,000 minutes a month are shared by every repository on the account; **this repository is capped at 1,000 min/month** (revised 2026-10-26, replacing the earlier estimate of about 960; October's actual use was 960 and is history), of which a CI reserve (default 600) is not for drains. Chapters 7–23 are about 17 PRs at roughly 5–10 billed minutes each (web CI only when `apps/web` changes), so run the local gate before every push and check the usage report before dispatching a live gate. The Cloudflare plan revision removes the Playwright capture workflow, the Chromium install and the `capture-integration` CI job, but chapter 15's render backlog (roughly 18 fifteen-minute runs, about 4.5 hours of runner time for the 1,423 known pages) is a deliberate spend: prefer local runs (operator step S18) and keep `DISCOVERY_RENDER_SCHEDULE` unset until there is budget.
 
-Before chapter 15 starts, the operator does S15–S17 of chapter 22 (Cloudflare token and secrets, browser probe, storage check); chapter 15's Step 0 is the probe.
+Before chapter 15 starts, the operator does S15–S17, S19 and S21 of chapter 22 (Cloudflare token and secrets, browser probe, storage check, plan and billing notifications, ledger caps); chapter 15's Step 0 is the probe.
 
 Launch: `/chief-of-staff` on `.plans/crawlers/`, loop branch `feat/crawlers`, resume.
 
 **Last orchestration:** 2026-10-23 — chapters 1–6 merged into `feat/crawlers` and staged-released to `main` without remote CI (Actions quota exhausted); resume at chapter 7 after the quota resets.
 
 **Plan revision:** 2026-10-23 — chapters 14–22 were re-planned around Cloudflare Browser Run quick actions on the free plan. Chapter 14 gained the `render_page` label, `result_note`, the release route and a storage status route; chapter 15 became the Cloudflare render chapter (probe, throttled client, `render_page`, `discovery-render.yml`); chapter 16 widens the web kind union; chapter 17 lost its API work; chapter 19 lost Playwright, the `[capture]` extra, its workflow and its CI job. Decisions D14 (replaced) and D19–D22 record why. Chapters 1–13 are unaffected.
+
+**Plan revision:** 2026-10-26 — storage moved from Supabase Storage to Cloudflare R2 (chapter 13 renamed, chapter 14 gained the byte cap and 507; decisions D10, D24); chapter 23 (free-tier guards: budget ledger, metered store, database soft limit, Actions-minutes cap of 1,000 a month) was added and executes between 14 and 15 (decision D23); chapters 15, 16, 19 consume the ledger; chapter 18 became optional and chapter 11 gained optional domain and situation codes in the emit payload; chapter 22 gained S12b (census F4) and S19–S21. LLM extraction became its own suite, [`.plans/extraction/`](../extraction/01-rollout.md). Cloudflare Queues were rejected and Workflows deferred as an open seam. No chapter changed status.

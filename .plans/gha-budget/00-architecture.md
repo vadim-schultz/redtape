@@ -26,7 +26,7 @@ Billing is per job, rounded up to a whole minute, so short jobs are expensive re
 
 ## Target
 
-This repository's share is the account quota minus the other repositories (assume about 960 minutes). Steady state per month:
+GitHub's free 2,000 minutes a month are shared by every repository on the account. **This repository is capped at 1,000 minutes a month** (revised 2026-10-26; this suite was planned against an estimate of about 960, which is also what October actually used, so the table below sums to 960 and leaves about 40 minutes of slack under the cap). Steady state per month:
 
 | Item | Min |
 | --- | --- |

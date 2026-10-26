@@ -1,6 +1,6 @@
 ---
 name: "Chapter 22 — Operator manual steps"
-overview: "Everything the operator must do by hand: create the Supabase bucket and keys, create the Cloudflare browser token, set secrets, variables and environment, run repairs, probes and census queries, enable schedules, and monitor limits."
+overview: "Everything the operator must do by hand: create the R2 bucket and keys, create the Cloudflare browser token, set secrets, variables, caps and environment, run repairs, probes and census queries, enable schedules, and monitor free-tier limits."
 todos:
   - id: checklist
     content: "Publish the numbered checklist with commands and SQL"
@@ -37,15 +37,17 @@ Merging a chapter never waits for a step: code is tested against fakes in CI. St
 | S14 re-pend, then S13 drain schedule | chapter 15 live gate; the scheduled drain must not run before chapter 15 is deployed and S14 is done |
 | S13 render schedule | after the chapter 15 and chapter 19 live gates |
 | S10 emit routine | after chapter 11 |
+| S19 (Cloudflare plan and billing notifications), S21 (ledger caps) | before the first R2 upload (S1–S4) and before chapter 15's live gate |
+| S20 (monthly Actions comparison) | monthly, from the first month after chapters 7+ start |
 | S5, S7, S8, S9, S18 | ongoing |
 
 ## Steps
 
-**S1 — Create the Storage bucket.** Supabase dashboard → Storage → New bucket. Name it `discovery-artifacts`. Keep it **private** (not public). Leave the per-bucket file size limit at or below the global limit (the free plan allows 50 MB per file; the application caps at 8 MB).
+**S1 — Create the R2 bucket.** Cloudflare dashboard (the account that hosts the frontend) → R2 Object Storage → Create bucket. Name it `discovery-artifacts`, location hint **Eastern Europe (EEUR)** or the nearest to the Render region (Frankfurt), storage class **Standard** (the free allowance does not cover Infrequent Access). Keep it **private**: do not enable the public `r2.dev` URL or a custom domain. The application caps files at 8 MB and the whole bucket at `OBJECT_STORE_MAX_BYTES` (S21).
 
-**S2 — Create S3 access keys.** Dashboard → Project Settings → Storage → S3 Connection. Note the endpoint (form `https://<project_ref>.storage.supabase.co/storage/v1/s3`) and the region of the project. Create a new access key; copy the Access Key ID and Secret Access Key immediately. These keys are server-only and bypass row-level security. Never put them in the web app.
+**S2 — Create an R2 API token.** R2 → Manage API tokens → Create API token, permission **Object Read & Write**, scoped to the bucket `discovery-artifacts` only (not account-wide). Copy the Access Key ID and Secret Access Key immediately (the secret is shown once). Note the account ID: the S3 endpoint is `https://<account_id>.r2.cloudflarestorage.com` and the region is `auto`. These keys are server-only. Never put them in the web app, and do not reuse the Browser Run token (S15).
 
-**S3 — Render environment.** Render → `redtape-api` → Environment. Add `OBJECT_STORE_ENDPOINT_URL`, `OBJECT_STORE_REGION`, `OBJECT_STORE_BUCKET` (`discovery-artifacts`), `OBJECT_STORE_ACCESS_KEY_ID`, `OBJECT_STORE_SECRET_ACCESS_KEY`. Redeploy and check `/health`. Do not put these in `render.yaml` (it is committed). Without them the API still boots and artifact routes return 503.
+**S3 — Render environment.** Render → `redtape-api` → Environment. Add `OBJECT_STORE_ENDPOINT_URL` (the R2 endpoint from S2), `OBJECT_STORE_REGION` (`auto`), `OBJECT_STORE_BUCKET` (`discovery-artifacts`), `OBJECT_STORE_ACCESS_KEY_ID`, `OBJECT_STORE_SECRET_ACCESS_KEY`, plus the caps from S21. Redeploy and check `/health`. Do not put these in `render.yaml` (it is committed). Without them the API still boots and artifact routes return 503.
 
 **S4 — GitHub secrets for the probe only.** Repository → Settings → Secrets and variables → Actions → add the same five names for `discovery-storage-probe.yml`. No other workflow receives them. Existing discovery secrets stay as they are.
 
@@ -69,7 +71,7 @@ gh run list --workflow=discovery-drain.yml --limit 5
 gh run view <run-id> --log
 ```
 
-**S8 — Monitor limits (monthly, or when alerted).** Supabase free plan: 500 MB database, 1 GB file storage, 5 GB egress, 50 MB per file. Cloudflare free plan: 10 browser minutes a day (Dashboard → Browser Run usage). Supabase puts a project into read-only mode when the database limit is exceeded, so check the database as well as storage.
+**S8 — Monitor limits (monthly, or when alerted).** Supabase free plan: 500 MB database (the project goes read-only when it is exceeded; the API soft limit is 400 MB). Cloudflare free plan: R2 10 GB-month, 1 million Class A and 10 million Class B operations a month, 10 browser minutes a day (Dashboard → Browser Run usage). **R2 bills past its free tier**, so the ledger caps (S21) and the billing notification (S19) matter more than the dashboard. The admin Coverage screen shows the same numbers against the caps.
 
 ```sql
 select pg_size_pretty(pg_database_size(current_database())) as db_size;
@@ -79,13 +81,13 @@ select kind, count(*) as artifacts, pg_size_pretty(sum(byte_size)) as bytes
 from discovery_artifact group by 1;
 ```
 
-The admin Coverage screen shows the same artifact totals. Act at 80 percent: prune screenshots, or move to R2 (S9).
+The admin Coverage screen shows the same artifact totals. Act at 80 percent: prune screenshots, lower the snapshot retention, or raise a cap only after checking Cloudflare's usage page (S19).
 
 **S9 — Rotation, rollback and provider swap.**
 
 - Rotate: create a new access key, update Render and the GitHub secrets, redeploy, run S6, then delete the old key. For the Cloudflare token, create a new one (S15), replace the `CLOUDFLARE_BROWSER_API_TOKEN` secret, run the browser probe (S16), then delete the old token.
 - Roll back: unset the Render `OBJECT_STORE_*` variables and redeploy. Artifact routes answer 503, browser drains refuse to start (S17), any run already in flight releases its tasks and stops with `storage_unavailable`, and nothing else breaks. To stop rendering without touching storage, delete `DISCOVERY_RENDER_SCHEDULE` and the Cloudflare secrets.
-- Swap to Cloudflare R2: create the bucket and an S3 API token, change the five variables (endpoint `https://<account>.r2.cloudflarestorage.com`, region `auto`), run S6. Existing keys are content-addressed; copy the bucket contents with `rclone` if history matters.
+- Swap provider (for example back to Supabase Storage or another S3 service): create the bucket and keys there, change the five variables (endpoint, region, bucket, keys), run S6. Existing keys are content-addressed; copy the bucket contents with `rclone` if history matters.
 
 **S10 — Review and emit candidates (after chapter 11).**
 
@@ -154,7 +156,17 @@ union all
    from catalogue_service where source = 'pvog' order by random() limit 5);
 ```
 
-**S13 — Enable schedules (variables).** Repository → Settings → Secrets and variables → Actions → Variables. Set `DISCOVERY_DRAIN_SCHEDULE=enabled` only after chapter 15 is deployed and S14 is done (otherwise the backlog is fetched without enqueuing any render). Set `DISCOVERY_RENDER_SCHEDULE=enabled` after the chapter 15 live gate; the same schedule drains screenshots once chapter 19 ships. The render schedule spends about 15 runner minutes a day (budget: this repository's share is roughly 960 Actions minutes a month), so consider leaving it off and running the drain locally (S18) or dispatching it by hand. To pause, delete the variable; manual dispatch keeps working.
+**S12b — Census F4 (for the extraction suite).** Do PVOG and GovData payloads already carry Lebenslagen or LeiKa categories that map to our 18 life-situation codes? If yes, the extraction suite applies a static mapping for free and the model only fills gaps. Run it with S12 and paste the output into the ledger.
+
+```sql
+-- F4: which keys in the payloads could carry a life situation
+select c.source, k as payload_key, count(*) as rows
+from catalogue_service c, jsonb_object_keys(c.raw_payload) k
+where k ilike any (array['%lebenslage%', '%leika%', '%categor%', '%thema%', '%tag%'])
+group by 1, 2 order by rows desc limit 40;
+```
+
+**S13 — Enable schedules (variables).** Repository → Settings → Secrets and variables → Actions → Variables. Set `DISCOVERY_DRAIN_SCHEDULE=enabled` only after chapter 15 is deployed and S14 is done (otherwise the backlog is fetched without enqueuing any render). Set `DISCOVERY_RENDER_SCHEDULE=enabled` after the chapter 15 live gate; the same schedule drains screenshots once chapter 19 ships. The render schedule spends about 15 runner minutes a day (budget: GitHub's free 2,000 minutes a month are shared by every repository on the account, and this repository is capped at **1,000**, of which the CI reserve of S21 is not for drains), so consider leaving it off and running the drain locally (S18) or dispatching it by hand. To pause, delete the variable; manual dispatch keeps working.
 
 **S14 — Re-pend completed fetches so each gets a render task (after chapter 15 deploys).** About a hundred pages; the plain fetcher is polite (per-host interval) and cheap; the render tasks it enqueues are throttled separately. Dry run, then update.
 
@@ -194,9 +206,15 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
 
 At most one run a day: Cloudflare's free allowance is 10 browser minutes a day and the budget leaves a two-minute margin. The report shows `browser_seconds_used`, `released` and why the run stopped. The Cloudflare dashboard shows the account's total usage.
 
+**S19 — Keep Cloudflare on free plans and set billing notifications (before S1 is used).** R2 and Workers AI only stay free while the account stays on the Workers **Free** plan: do not upgrade to Workers Paid (Workers AI would then bill $0.011 per 1,000 neurons, and R2 bills regardless). Dashboard → Notifications → add a usage-based billing alert (and, if offered, R2 storage and operation alerts at 80 percent of the free allowance). Record the plan name and the alert ids in the ledger. This is the only guard that sees what the application cannot, so do not skip it.
+
+**S20 — Compare Actions usage monthly.** GitHub → Settings → Billing and plans → Usage for Actions. Compare the repository's minutes with the ledger resource `actions_minutes` (`python -m discovery_ingest budget show`). The cap is 1,000 minutes a month for this repository; if CI alone approaches the CI reserve, lower the drain allowance, not the other way round. Record the month, the GitHub figure and the ledger figure.
+
+**S21 — Set the budget caps (Render, chapter 23).** Variables on `redtape-api`: `OBJECT_STORE_MAX_BYTES` (default 8 GiB), `BUDGET_R2_CLASS_A_MONTHLY` (400000), `BUDGET_R2_CLASS_B_MONTHLY` (4000000), `BUDGET_BROWSER_SECONDS_DAILY` (480), `BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600), `DB_SOFT_LIMIT_BYTES` (400 MB). The defaults are already below the allowances, so set a variable only to tighten or to tune after the first month. Check with `GET /machine/budgets`. The extraction suite adds `BUDGET_NEURONS_DAILY`.
+
 ## Verification
 
-The operator ticks each step in the checklist document and the ledger. The suite's release checklist in [../run-ledger.md](../run-ledger.md) is complete only when S1–S6, S10 and S12–S17 are recorded with dates and run IDs (S18 is optional).
+The operator ticks each step in the checklist document and the ledger. The suite's release checklist in [../run-ledger.md](../run-ledger.md) is complete only when S1–S6, S10, S12–S17 and S19–S21 are recorded with dates and run IDs (S18 is optional).
 
 ## Out of scope
 

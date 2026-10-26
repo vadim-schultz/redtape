@@ -24,7 +24,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`, `.github/workflows`) · **Branch:** `feat/crawlers-cloudflare-render` · **Status:** planned
 
-**Depends on:** [02](02-fetcher-hardening.md), [14](14-artifact-model-and-api.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [02](02-fetcher-hardening.md), [14](14-artifact-model-and-api.md), [23](23-free-tier-guards.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -84,6 +84,8 @@ class BrowserClient(Protocol):
 
 **Run budget.** `BrowserBudget(browser_seconds)` accumulates `ms_used`. `DrainPolicy` gains `browser_budget_seconds: float | None` (default `None`, which is only valid when no browser kind is drained; the CLI flag is `--browser-budget-seconds`, default 480 so a manual probe or a second run the same day still fits in the 600-second allowance). `StopReason` gains `browser_budget`, `browser_quota` and `storage_unavailable`; `DrainReport` gains `browser_seconds_used` and `released`.
 
+**Shared daily ledger (chapter 23, decision D23).** The run budget alone cannot stop a second run, a local run or a probe from overspending the same UTC day. At start the worker reads `GET /machine/budgets` and uses `min(browser_budget_seconds, remaining browser seconds today)` (the ledger cap defaults to 480); a day already marked exhausted stops the run before claiming anything (`browser_budget`). Before every call it **reserves** an estimate (the 30 s navigation timeout, `POST /machine/budgets/browser_seconds/reserve`; a denial stops the run with `browser_budget`) and after the call it **adjusts** by `ms_used - estimate` (`/adjust`), so two concurrent runs cannot both take the last seconds. A `429` also calls `/exhaust`, so later runs that day stop at once. The ledger is a guard, not a dependency of correctness: if the budgets route is unreachable the worker falls back to its own run budget and reports `ledger_unavailable` in the drain report.
+
 **`render_page` kind** (label added in chapter 14). Input: `target_url` is the final URL of the plain fetch. Handler order:
 
 1. robots.txt for the URL, using the chapter 2 cache; denied is a permanent failure.
@@ -94,7 +96,7 @@ class BrowserClient(Protocol):
 6. Call `after_snapshot(task, artifact)`; chapter 17 plugs the extractor enqueue into it and here it does nothing. The hook keeps this handler free of extractor knowledge.
 7. Complete.
 
-An upload `503` (storage unset) releases the task and stops the run with `storage_unavailable`. A `413` or `415` is a programming error: fail permanently.
+An upload `503` (storage unset) or `507` (the R2 byte cap of chapter 14 is reached) releases the task and stops the run with `storage_unavailable`. A `413` or `415` is a programming error: fail permanently.
 
 **Release, not fail.** Quota and storage problems say nothing about the page. `DiscoveryMachineClient.release_task(task_id, reason, not_before=None)` calls `POST /machine/tasks/{id}/release` (chapter 14), which re-pends the task without consuming an attempt. On `browser_budget`, `browser_quota` or `storage_unavailable`, the drain releases the in-flight task **and every task claimed but not yet started in the batch**, then stops. Browser drains therefore claim small batches (workflow default `max_tasks=5`), so at most four tasks are released per stop.
 
@@ -102,9 +104,9 @@ An upload `503` (storage unset) releases the task and stops the run with `storag
 
 **Kind safety.** `render_page` and `capture_screenshot` are **never** in the default kinds. `worker drain --kinds` containing either requires both Cloudflare settings and `GET /machine/artifacts/status` (chapter 14) reporting storage enabled; otherwise it exits non-zero with a clear message **before claiming anything**. This keeps the daily HTTP drain from sleeping 11 seconds per task.
 
-**Workflow `.github/workflows/discovery-render.yml`.** `workflow_dispatch` with inputs `max_tasks` (default 5), `max_batches` (default 40), `time_budget_seconds` (default 900), `browser_budget_seconds` (default 480) and `kinds` (default `render_page,capture_screenshot`); a daily schedule (05:00 UTC) gated by the repository variable `DISCOVERY_RENDER_SCHEDULE == 'enabled'`, off by default. Secrets: `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN`. Same shape as `discovery-drain.yml` (health wait, report to the job summary, fail the job when `succeeded` is false) and the **same `concurrency` group** `discovery-drain`, so the two never overlap. A run that stops on `browser_budget`, `browser_quota`, `time_budget` or `queue_empty` succeeds; only infrastructure errors fail the job.
+**Workflow `.github/workflows/discovery-render.yml`.** `workflow_dispatch` with inputs `max_tasks` (default 5), `max_batches` (default 40), `time_budget_seconds` (default 900), `browser_budget_seconds` (default 480) and `kinds` (default `render_page,capture_screenshot`); a daily schedule (05:00 UTC) gated by the repository variable `DISCOVERY_RENDER_SCHEDULE == 'enabled'`, off by default. Secrets: `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN`. Same shape as `discovery-drain.yml` (health wait, report to the job summary, fail the job when `succeeded` is false), with `timeout-minutes` set, a first step that runs `python -m discovery_ingest budget show --require-remaining actions_minutes=<timeout-minutes> --require-remaining browser_seconds=30` and skips the drain when it exits 3 (an allowance is gone), and a final `if: always()` step that reports the job's minutes to the ledger (chapter 23); it uses the **same `concurrency` group** `discovery-drain`, so the two never overlap. A run that stops on `browser_budget`, `browser_quota`, `time_budget` or `queue_empty` succeeds; only infrastructure errors fail the job.
 
-**Cost.** The rate limit, not the 10 browser minutes, is normally the binding constraint: a 900-second run renders about 80 pages. The 1,423 known pages need roughly 18 such runs, about 4.5 hours of runner time in total (one-off, the plan's share of the Actions budget). The same command run locally costs no Actions minutes:
+**Cost.** The rate limit, not the 10 browser minutes, is normally the binding constraint: a 900-second run renders about 80 pages. The 1,423 known pages need roughly 18 such runs, about 4.5 hours of runner time in total (one-off). This repository's GitHub Actions share is capped at **1,000 minutes a month**, of which a CI reserve (default 600) is not ours to spend, so the backlog should mostly run **locally** and the workflow serves as the occasional manual or scheduled top-up (chapter 23 skips it when the allowance is gone). The same command run locally costs no Actions minutes:
 
 ```bash
 python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
@@ -141,6 +143,9 @@ All browser tests use a fake `BrowserClient` and an injected clock; no test touc
 7. `render_page releases and stops with storage_unavailable on an upload 503`.
 8. `render_page fails retryably on a 5xx from the browser and permanently on a 4xx`.
 9. `after_snapshot receives the created artifact exactly once and is not called when nothing was stored`.
+10. `render_page uses the smaller of the run budget and the ledger's remaining seconds, reserves an estimate before each call and adjusts to ms_used after it, and stops before claiming when the day is exhausted` — fake ledger client.
+11. `a 429 marks the day exhausted in the ledger; an unreachable ledger falls back to the run budget and reports ledger_unavailable` (negative pair).
+12. `an upload 507 releases the task and stops with storage_unavailable`.
 
 **Green:** a pipeline of named steps (robots, render, classify, upload, hook, complete). **Refactor:** about five lines per step; the stop signal is one small exception handled in `_run_batch`.
 
