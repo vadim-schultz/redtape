@@ -99,6 +99,7 @@ class TaskEnqueueRequest(BaseModel):
     target_url: str = Field(min_length=1, max_length=500)
     priority: int = Field(default=100, ge=0)
     input_key: str | None = Field(default=None, min_length=1, max_length=128)
+    artifact_id: UUID | None = None
 
 
 class TaskEnqueueResponse(BaseModel):
@@ -126,6 +127,27 @@ class TaskClaimResponse(BaseModel):
     """Tasks claimed in one request."""
 
     items: list[ClaimedTaskRead]
+
+
+class TaskCompleteRequest(BaseModel):
+    """Optional note on why a task completed without producing anything (for example ``no_mentions``)."""
+
+    note: str | None = Field(default=None, max_length=200)
+
+
+class TaskReleaseRequest(BaseModel):
+    """Hand a claimed task back because a limit, not the page, stopped the work."""
+
+    reason: str = Field(min_length=1, max_length=1000)
+    not_before: datetime | None = None
+
+
+class TaskReleaseResponse(BaseModel):
+    """Task returned to the pending queue."""
+
+    id: UUID
+    status: DiscoveryTaskStatus
+    last_error: str
 
 
 class TaskCompleteResponse(BaseModel):

@@ -35,6 +35,7 @@ class DiscoveryTaskRead(BaseModel):
     attempt_count: int
     not_before: datetime | None
     input_key: str | None
+    result_note: str | None
     lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -52,6 +53,7 @@ class DiscoveryTaskRead(BaseModel):
             attempt_count=task.attempt_count,
             not_before=task.not_before,
             input_key=task.input_key,
+            result_note=task.result_note,
             lease_expires_at=task.lease_expires_at,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -134,6 +136,21 @@ class CandidateCountsRead(BaseModel):
     mentions: int
 
 
+class ArtifactTotalsRead(BaseModel):
+    """Artifact count and stored bytes of one kind."""
+
+    count: int
+    bytes: int
+
+
+class ArtifactCoverageRead(BaseModel):
+    """Stored artifacts per kind against the storage cap."""
+
+    by_kind: dict[str, ArtifactTotalsRead]
+    total_bytes: int
+    bytes_cap: int
+
+
 class DiscoveryRunRead(BaseModel):
     """Operational run record as shown to operators."""
 
@@ -163,6 +180,7 @@ class DiscoveryCoverageResponse(BaseModel):
     task_counts: TaskCountsRead
     task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
     candidates: CandidateCountsRead
+    artifacts: ArtifactCoverageRead
     fetch_attempts_total: int
     stale_claims: int
     stale_runs: int

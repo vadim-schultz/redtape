@@ -11,7 +11,7 @@ from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
-from app.features.discovery.lookups import require_catalogue, require_task
+from app.features.discovery.lookups import require_artifact, require_catalogue, require_task
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_queue import TaskQueue
@@ -38,11 +38,14 @@ from app.schema.discovery.machine import (
     FetchLogAppendResponse,
     TaskClaimRequest,
     TaskClaimResponse,
+    TaskCompleteRequest,
     TaskCompleteResponse,
     TaskEnqueueRequest,
     TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskReleaseRequest,
+    TaskReleaseResponse,
     TaskSummaryResponse,
     resolve_task_kinds,
 )
@@ -66,6 +69,7 @@ def _enqueue_target(body: TaskEnqueueRequest) -> TaskTarget:
         kind=body.kind,
         target_url=body.target_url,
         input_key=body.input_key,
+        artifact_id=body.artifact_id,
     )
 
 
@@ -124,13 +128,19 @@ class DiscoveryMachineService:
     def enqueue_task(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
         """Enqueue a follow-up task idempotently for an existing catalogue row."""
         require_catalogue(self._repo, body.catalogue_service_id)
+        self._require_own_artifact(body)
         outcome = self._queue.enqueue(_enqueue_target(body), priority=body.priority)
         return TaskEnqueueResponse(id=outcome.task.id, created=outcome.created)
 
-    def complete_task(self, task_id: UUID) -> TaskCompleteResponse:
-        """Mark a task completed."""
-        task = self._queue.complete(task_id)
+    def complete_task(self, task_id: UUID, body: TaskCompleteRequest | None = None) -> TaskCompleteResponse:
+        """Mark a task completed, keeping the optional note."""
+        task = self._queue.complete(task_id, note=body.note if body is not None else None)
         return TaskCompleteResponse(id=task.id, status=task.status)
+
+    def release_task(self, task_id: UUID, body: TaskReleaseRequest) -> TaskReleaseResponse:
+        """Return a claimed task to the queue without consuming an attempt."""
+        task = self._queue.release(task_id, body.reason, not_before=body.not_before)
+        return TaskReleaseResponse(id=task.id, status=task.status, last_error=body.reason)
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
         """Mark a task failed with the crawler's error."""
@@ -163,6 +173,12 @@ class DiscoveryMachineService:
         self._repo.record_event(_fetch_logged(task, str(row.id)))
         self._advance_task_catalogue(task.catalogue_service_id)
         return FetchLogAppendResponse(id=row.id, discovery_task_id=task.id, task_status=task.status)
+
+    def _require_own_artifact(self, body: TaskEnqueueRequest) -> None:
+        if body.artifact_id is None:
+            return
+        if require_artifact(self._repo, body.artifact_id).catalogue_service_id != body.catalogue_service_id:
+            raise InvalidDiscoveryInputError("Artifact belongs to another catalogue row")
 
     def _upsert_item(self, item: CatalogueBatchItem) -> CatalogueBatchItemResult:
         row, _created = self._catalogue_upserts.upsert(item)

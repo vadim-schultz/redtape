@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from uuid import UUID
 
+from app.config import settings
 from app.features.discovery.emit_preview import build_emit_preview_items
 from app.features.discovery.lookups import require_catalogue
 from app.features.discovery.pipeline_rows import (
@@ -15,8 +16,11 @@ from app.features.discovery.pipeline_rows import (
     stage_of,
 )
 from app.features.discovery.repository import DiscoveryRepository, Page, TaskFilter, TaskStatusCounts
+from app.features.discovery.repository.coverage import DiscoveryCoverageCounts
 from app.models.discovery import DiscoverySource
 from app.schema.discovery.read import (
+    ArtifactCoverageRead,
+    ArtifactTotalsRead,
     CandidateCountsRead,
     CatalogueListResponse,
     CataloguePipelineResponse,
@@ -34,6 +38,14 @@ from app.schema.discovery.read import (
 
 def _task_counts_read(counts: TaskStatusCounts) -> TaskCountsRead:
     return TaskCountsRead(**asdict(counts))
+
+
+def _artifact_coverage(counts: DiscoveryCoverageCounts) -> ArtifactCoverageRead:
+    return ArtifactCoverageRead(
+        by_kind={kind.value: ArtifactTotalsRead(**asdict(totals)) for kind, totals in counts.artifacts.items()},
+        total_bytes=sum(totals.bytes for totals in counts.artifacts.values()),
+        bytes_cap=settings.object_store_max_bytes,
+    )
 
 
 class DiscoveryAdminService:
@@ -77,6 +89,7 @@ class DiscoveryAdminService:
             task_counts=_task_counts_read(counts.task_counts),
             task_counts_by_kind={kind.value: _task_counts_read(c) for kind, c in counts.task_counts_by_kind.items()},
             candidates=CandidateCountsRead(**asdict(counts.candidates)),
+            artifacts=_artifact_coverage(counts),
             fetch_attempts_total=counts.fetch_attempts_total,
             stale_claims=counts.stale_claims,
             stale_runs=counts.stale_runs,

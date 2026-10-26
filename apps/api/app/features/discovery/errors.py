@@ -53,6 +53,14 @@ class DiscoveryEntityNotFoundError(DiscoveryNotFoundError):
         super().__init__("Discovery entity not found")
 
 
+class ArtifactNotFoundError(DiscoveryNotFoundError):
+    """The discovery artifact does not exist."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Discovery artifact not found")
+
+
 class InvalidDiscoveryInputError(DiscoveryError):
     """Submitted data is well-formed but unacceptable."""
 
@@ -71,3 +79,23 @@ class RunAlreadyFinishedError(InvalidDiscoveryInputError):
     def __init__(self) -> None:
         """Build the error with its fixed message."""
         super().__init__("Discovery run already finished")
+
+
+class UnsupportedArtifactTypeError(DiscoveryError):
+    """The artifact's content type is not allowed for its kind."""
+
+
+class ArtifactTooLargeError(DiscoveryError):
+    """The artifact is larger than its kind allows."""
+
+
+class StorageCapExceededError(DiscoveryError):
+    """Storing the artifact would take the stored bytes past ``object_store_max_bytes``."""
+
+
+class TaskNotClaimedError(DiscoveryError):
+    """Only a claimed task can be released."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Only a claimed task can be released")

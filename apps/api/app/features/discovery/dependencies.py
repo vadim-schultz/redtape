@@ -5,9 +5,12 @@ from __future__ import annotations
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.features.auth.dependencies import provide_machine_principal
 from app.features.auth.dependencies import router_dependencies as auth_dependencies
 from app.features.discovery.admin_service import DiscoveryAdminService
+from app.features.discovery.artifact_read import ArtifactReadService
+from app.features.discovery.artifact_upload import ArtifactUploadService
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
@@ -22,6 +25,7 @@ from app.features.suggestions.dependencies import (
     provide_suggestion_service,
 )
 from app.features.suggestions.service import SuggestionService
+from app.shared.object_store.http import InjectedObjectStore
 
 
 def provide_discovery_repository(session: Session) -> DiscoveryRepository:
@@ -51,6 +55,18 @@ def provide_discovery_candidate_emit_service(
     return DiscoveryCandidateEmitService(discovery_repository, suggestion_service)
 
 
+def provide_discovery_artifact_upload_service(
+    discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
+) -> ArtifactUploadService:
+    return ArtifactUploadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
+
+
+def provide_discovery_artifact_read_service(
+    discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
+) -> ArtifactReadService:
+    return ArtifactReadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
+
+
 def provide_discovery_run_service(discovery_repository: DiscoveryRepository) -> DiscoveryRunService:
     return DiscoveryRunService(discovery_repository)
 
@@ -72,6 +88,8 @@ router_dependencies = {
     "discovery_candidate_service": Provide(provide_discovery_candidate_service, sync_to_thread=False),
     "discovery_candidate_admin_service": Provide(provide_discovery_candidate_admin_service, sync_to_thread=False),
     "discovery_candidate_emit_service": Provide(provide_discovery_candidate_emit_service, sync_to_thread=False),
+    "discovery_artifact_upload_service": Provide(provide_discovery_artifact_upload_service, sync_to_thread=False),
+    "discovery_artifact_read_service": Provide(provide_discovery_artifact_read_service, sync_to_thread=False),
     "discovery_run_service": Provide(provide_discovery_run_service, sync_to_thread=False),
     "discovery_emit_service": Provide(provide_discovery_emit_service, sync_to_thread=False),
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),

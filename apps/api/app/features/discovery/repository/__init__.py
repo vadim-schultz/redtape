@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from app.features.discovery.repository.activity import ActivityRepository, FetchLogEntry, NewEvent
+from app.features.discovery.repository.artifact_listing import ArtifactFilter, ArtifactListingRepository
+from app.features.discovery.repository.artifacts import ArtifactRepository, ArtifactTotals, NewArtifact
 from app.features.discovery.repository.candidate_filter import CandidateFilter, CandidateSort
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.features.discovery.repository.candidates import CandidateRepository
@@ -18,6 +20,10 @@ from app.features.discovery.repository.tasks import TaskRepository, TaskTarget
 
 __all__ = [
     "ActivityRepository",
+    "ArtifactFilter",
+    "ArtifactListingRepository",
+    "ArtifactRepository",
+    "ArtifactTotals",
     "CandidateFilter",
     "CandidateListingRepository",
     "CandidateRepository",
@@ -29,6 +35,7 @@ __all__ = [
     "DiscoveryRepository",
     "EntityRepository",
     "FetchLogEntry",
+    "NewArtifact",
     "NewEvent",
     "Page",
     "QueueMetricsRepository",

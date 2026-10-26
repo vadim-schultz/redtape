@@ -29,11 +29,14 @@ from app.schema.discovery.machine import (
     RunStartRequest,
     TaskClaimRequest,
     TaskClaimResponse,
+    TaskCompleteRequest,
     TaskCompleteResponse,
     TaskEnqueueRequest,
     TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskReleaseRequest,
+    TaskReleaseResponse,
     TaskSummaryResponse,
 )
 
@@ -91,8 +94,18 @@ class DiscoveryMachineController(Controller):
         self,
         discovery_machine_service: DiscoveryMachineService,
         task_id: UUID,
+        data: TaskCompleteRequest | None = None,
     ) -> TaskCompleteResponse:
-        return discovery_machine_service.complete_task(task_id)
+        return discovery_machine_service.complete_task(task_id, data)
+
+    @post("/tasks/{task_id:uuid}/release", sync_to_thread=True, status_code=HTTP_200_OK)
+    def release_task(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        task_id: UUID,
+        data: TaskReleaseRequest,
+    ) -> TaskReleaseResponse:
+        return discovery_machine_service.release_task(task_id, data)
 
     @post("/tasks/{task_id:uuid}/fail", sync_to_thread=True)
     def fail_task(

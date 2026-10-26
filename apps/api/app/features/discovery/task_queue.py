@@ -6,10 +6,12 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from app.features.discovery.errors import TaskNotClaimedError
 from app.features.discovery.lookups import require_task
 from app.features.discovery.repository import DiscoveryRepository, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
+from app.features.discovery.task_lease import clear_lease, hand_back
 from app.features.discovery.task_retry import MAX_ATTEMPTS, settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
@@ -62,11 +64,25 @@ class TaskQueue:
         pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds, now=now)
         return [self._lease(task, api_key, now) for task in pending]
 
-    def complete(self, task_id: UUID) -> DiscoveryTask:
-        """Mark a task completed and release its lease."""
+    def complete(self, task_id: UUID, note: str | None = None) -> DiscoveryTask:
+        """Mark a task completed, release its lease and keep the optional ``note`` explaining an empty result."""
         task = require_task(self._repo, task_id)
         task.status = DiscoveryTaskStatus.COMPLETED
-        task.lease_expires_at = None
+        task.result_note = note
+        clear_lease(task)
+        return task
+
+    def release(self, task_id: UUID, reason: str, *, not_before: datetime | None = None) -> DiscoveryTask:
+        """Hand a claimed task back to ``pending`` and give back the attempt its claim consumed.
+
+        A limit (quota, storage) stopped the work, not the page, so the claim must not count towards
+        ``MAX_ATTEMPTS``. ``reason`` becomes ``last_error``; ``not_before`` holds the task back when given.
+        """
+        task = require_task(self._repo, task_id)
+        if task.status is not DiscoveryTaskStatus.CLAIMED:
+            raise TaskNotClaimedError()
+        hand_back(task, reason, not_before)
+        self._repo.record_event(_released_event(task, reason))
         return task
 
     def fail(self, task_id: UUID, error: str, *, retryable: bool = False, now: datetime) -> DiscoveryTask:
@@ -91,4 +107,13 @@ def _claimed_event(task: DiscoveryTask, api_key: ApiKey) -> NewEvent:
         catalogue_service_id=task.catalogue_service_id,
         discovery_task_id=task.id,
         payload={"api_key_id": str(api_key.id)},
+    )
+
+
+def _released_event(task: DiscoveryTask, reason: str) -> NewEvent:
+    return NewEvent(
+        event_type=DiscoveryEventType.TASK_RELEASED,
+        catalogue_service_id=task.catalogue_service_id,
+        discovery_task_id=task.id,
+        payload={"reason": reason},
     )

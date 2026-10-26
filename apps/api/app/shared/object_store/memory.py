@@ -31,6 +31,10 @@ class InMemoryObjectStore:
             raise ObjectNotFoundError(key)
         return self._objects[key][1]
 
+    def stored_keys(self) -> list[str]:
+        """Return every stored key in insertion order (test helper outside the port)."""
+        return list(self._objects)
+
     def exists(self, key: str) -> bool:
         """Return whether ``key`` is stored."""
         return key in self._objects

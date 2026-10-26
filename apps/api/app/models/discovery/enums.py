@@ -38,6 +38,7 @@ class DiscoveryTaskKind(enum.StrEnum):
     HARVEST_PAYLOAD = "harvest_payload"
     EXTRACT_PAGE = "extract_page"
     CAPTURE_SCREENSHOT = "capture_screenshot"
+    RENDER_PAGE = "render_page"
 
 
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (
@@ -64,6 +65,7 @@ class DiscoveryEventType(enum.StrEnum):
     FETCH_LOGGED = "fetch_logged"
     CLAIM_RECORDED = "claim_recorded"
     EMIT_ATTEMPTED = "emit_attempted"
+    TASK_RELEASED = "task_released"
 
 
 class DiscoveryRunKind(enum.StrEnum):
@@ -92,3 +94,10 @@ class DiscoveryMentionRole(enum.StrEnum):
 
     REQUIRED = "required"
     FORM = "form"
+
+
+class DiscoveryArtifactKind(enum.StrEnum):
+    """What an object-store artifact holds."""
+
+    HTML_SNAPSHOT = "html_snapshot"
+    SCREENSHOT = "screenshot"
