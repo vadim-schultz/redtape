@@ -172,7 +172,7 @@ The rate limit, not the browser minutes, normally binds: a 15-minute run renders
 
 Allowlisted, read-only, behind the existing server admin probe.
 
-- **Menu:** one unbroken row of `react-icons` buttons inside a single `HStack`; every new link is added to the config array, never as a new row or a text link (chapter 9).
+- **Menu:** one unbroken row of `react-icons` buttons inside a single `HStack`. Every new navigation link is a `react-icons` `IconButton asChild` wrapping a `RouterLink` (the shared `MenuIconLink`), with a translated `aria-label` and `title`, added to the config array and rendered in that row; never a new row, never a text link. The panel is `minW="22rem"` so the value column (at least about 227 px) holds six `size="sm"` icons (about 212 px) (chapter 9).
 - **Documents** (`/admin/discovery/documents`): candidate list with filters, mention counts and status.
 - **Document detail** (`/admin/discovery/documents/:id`): mentions with role, excerpt and procedure link, artifacts, emit and suggestion status.
 - **Pipeline detail:** an Artifacts panel with snapshot download and screenshot thumbnails.
