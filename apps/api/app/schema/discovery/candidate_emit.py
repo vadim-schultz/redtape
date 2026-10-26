@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.schema.discovery.emit import EmitCounts, EmitOutcome
 from app.schema.suggestion.create import SuggestionCreate
 
 MAX_EMIT_CANDIDATES = 50
@@ -24,23 +25,17 @@ class CandidateEmitRequest(BaseModel):
     candidate_ids: list[UUID] = Field(min_length=1, max_length=MAX_EMIT_CANDIDATES)
 
 
-class CandidateEmitItemResult(BaseModel):
+class CandidateEmitItemResult(EmitOutcome):
     """Outcome of emitting one candidate."""
 
     candidate_id: UUID
-    suggestion_id: UUID | None = None
-    skip_reason: str | None = None
-    replayed: bool = False
     conflicts: list[EmitConflictRead] = Field(default_factory=list)
 
 
-class CandidateEmitResponse(BaseModel):
+class CandidateEmitResponse(EmitCounts):
     """Per-candidate outcomes of one emit call with their totals."""
 
     items: list[CandidateEmitItemResult]
-    created_count: int
-    skipped_count: int
-    replayed_count: int
 
 
 class CandidateEmitPreview(BaseModel):

@@ -17,6 +17,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.discovery.emit import EmitCounts, EmitOutcome
 
 
 class CatalogueBatchItem(BaseModel):
@@ -200,22 +201,16 @@ class ClaimAppendResponse(BaseModel):
     kind: DiscoveryClaimKind
 
 
-class CatalogueEmitItemResult(BaseModel):
+class CatalogueEmitItemResult(EmitOutcome):
     """Outcome of emitting one staging claim."""
 
     claim_id: UUID
-    suggestion_id: UUID | None = None
-    skip_reason: str | None = None
-    replayed: bool = False
 
 
-class CatalogueEmitResponse(BaseModel):
+class CatalogueEmitResponse(EmitCounts):
     """Summary of a catalogue emit run."""
 
     items: list[CatalogueEmitItemResult]
-    created_count: int
-    skipped_count: int
-    replayed_count: int
 
 
 class RunStartRequest(BaseModel):
