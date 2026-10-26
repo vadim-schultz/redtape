@@ -1,0 +1,63 @@
+name: Discovery storage probe
+
+# Manual only. Proves the object store (Cloudflare R2) works end to end: put, head, get, presigned GET,
+# download disposition, delete, and that nothing is left behind. These are the only repository secrets
+# that carry storage credentials (crawlers invariant 5); no other workflow receives them.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-storage-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe object store
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OBJECT_STORE_ENDPOINT_URL: ${{ secrets.OBJECT_STORE_ENDPOINT_URL }}
+      OBJECT_STORE_REGION: ${{ secrets.OBJECT_STORE_REGION }}
+      OBJECT_STORE_BUCKET: ${{ secrets.OBJECT_STORE_BUCKET }}
+      OBJECT_STORE_ACCESS_KEY_ID: ${{ secrets.OBJECT_STORE_ACCESS_KEY_ID }}
+      OBJECT_STORE_SECRET_ACCESS_KEY: ${{ secrets.OBJECT_STORE_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Install API
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Probe the object store
+        working-directory: apps/api
+        run: |
+          set +e
+          python -m scripts.object_store_probe | tee ../../object-store-probe.txt
+          echo "probe_exit=${PIPESTATUS[0]}" >> "${GITHUB_ENV}"
+
+      - name: Write probe output to job summary
+        if: always()
+        run: |
+          {
+            echo "### Object store probe"
+            echo
+            echo '```text'
+            cat object-store-probe.txt 2>/dev/null || echo "No output was produced; see the probe step log."
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail the job when the probe failed
+        run: test "${probe_exit:-1}" = "0"
