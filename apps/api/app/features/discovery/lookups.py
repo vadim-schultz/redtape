@@ -5,13 +5,20 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.features.discovery.errors import (
+    ArtifactNotFoundError,
     CandidateNotFoundError,
     CatalogueNotFoundError,
     DiscoveryRunNotFoundError,
     DiscoveryTaskNotFoundError,
 )
 from app.features.discovery.repository import DiscoveryRepository
-from app.models.discovery import CatalogueService, DiscoveryDocumentCandidate, DiscoveryRun, DiscoveryTask
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryDocumentCandidate,
+    DiscoveryRun,
+    DiscoveryTask,
+)
 
 
 def require_catalogue(repo: DiscoveryRepository, catalogue_id: UUID) -> CatalogueService:
@@ -44,3 +51,11 @@ def require_candidate(repo: DiscoveryRepository, candidate_id: UUID) -> Discover
     if candidate is None:
         raise CandidateNotFoundError()
     return candidate
+
+
+def require_artifact(repo: DiscoveryRepository, artifact_id: UUID) -> DiscoveryArtifact:
+    """Return the artifact row or raise ``ArtifactNotFoundError``."""
+    artifact = repo.get_artifact(artifact_id)
+    if artifact is None:
+        raise ArtifactNotFoundError()
+    return artifact

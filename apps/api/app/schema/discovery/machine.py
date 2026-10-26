@@ -99,6 +99,7 @@ class TaskEnqueueRequest(BaseModel):
     target_url: str = Field(min_length=1, max_length=500)
     priority: int = Field(default=100, ge=0)
     input_key: str | None = Field(default=None, min_length=1, max_length=128)
+    artifact_id: UUID | None = None
 
 
 class TaskEnqueueResponse(BaseModel):

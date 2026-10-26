@@ -393,7 +393,7 @@ def test_machine_list_filters_by_kind_and_host_and_caps_the_limit(
     assert [i["source_url"] for i in listed(host="OTHER.example.org")] == ["https://other.example.org/a?x=1"]
     assert len(listed(host="example.gov")) == 2
     assert len(listed(limit=1)) == 1
-    assert client.get(f"{MACHINE}/artifacts", params={"limit": 101}, headers=headers).status_code == 400
+    assert client.get(f"{MACHINE}/artifacts", params={"limit": 101}, headers=headers).status_code == 422
 
 
 def test_artifact_read_routes_require_the_machine_key_or_an_admin(

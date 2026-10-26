@@ -43,3 +43,27 @@ class ArtifactRead(BaseModel):
     def from_row(cls, row: DiscoveryArtifact) -> ArtifactRead:
         """Build the metadata view of ``row``."""
         return cls.model_validate(row, from_attributes=True)
+
+
+class AdminArtifactRead(ArtifactRead):
+    """Artifact metadata with a short-lived download URL (``None`` while storage is unset)."""
+
+    url: str | None
+
+
+class ArtifactListResponse(BaseModel):
+    """One page of artifact metadata."""
+
+    items: list[ArtifactRead]
+    total: int
+    offset: int
+    limit: int
+
+
+class AdminArtifactListResponse(BaseModel):
+    """One page of artifacts with download URLs."""
+
+    items: list[AdminArtifactRead]
+    total: int
+    offset: int
+    limit: int
