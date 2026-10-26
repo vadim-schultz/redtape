@@ -4,6 +4,7 @@ import NotFoundView from "../../components/feedback/NotFoundView";
 import DiscoveryAdminLayout from "./components/DiscoveryAdminLayout";
 import DiscoveryCataloguePage from "./containers/DiscoveryCataloguePage";
 import DiscoveryCoveragePage from "./containers/DiscoveryCoveragePage";
+import DiscoveryDocumentsPage from "./containers/DiscoveryDocumentsPage";
 import DiscoveryPipelinePage from "./containers/DiscoveryPipelinePage";
 import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
 import RequireDiscoveryAdmin from "./components/RequireDiscoveryAdmin";
@@ -23,6 +24,7 @@ export default function DiscoveryAdminRoutes() {
         <Route path="catalogue" element={<DiscoveryCataloguePage />} />
         <Route path="coverage" element={<DiscoveryCoveragePage />} />
         <Route path="tasks" element={<DiscoveryTasksPage />} />
+        <Route path="documents" element={<DiscoveryDocumentsPage />} />
         <Route path="pipeline/:id" element={<DiscoveryPipelinePage />} />
         <Route path="*" element={<NotFoundView />} />
       </Route>

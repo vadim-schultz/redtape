@@ -54,9 +54,19 @@ it("documents menu row renders browse suggest and discovery links in one contain
   await screen.findByRole("link", { name: "Tasks" });
 
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(5);
+  expect(links).toHaveLength(6);
   expect(new Set(links.map(rowOf)).size).toBe(1);
-  expect(rowOf(links[0]).children).toHaveLength(5);
+  expect(rowOf(links[0]).children).toHaveLength(6);
+});
+
+it("documents menu row links the admin documents list as the sixth icon in the same row", async () => {
+  renderRow(200);
+
+  const link = await screen.findByRole("link", { name: "Documents" });
+
+  expect(link).toHaveAttribute("href", "/admin/discovery/documents");
+  expect(rowOf(link)).toBe(rowOf(screen.getByRole("link", { name: "Tasks" })));
+  expect(link.textContent).toBe("");
 });
 
 it("documents menu row renders only browse and suggest when the discovery probe is hidden", async () => {
@@ -92,6 +102,7 @@ it("every link keeps its aria-label and title", async () => {
     "Catalogue",
     "Coverage",
     "Tasks",
+    "Documents",
   ];
   for (const name of names) {
     expect(screen.getByRole("link", { name })).toHaveAttribute("title", name);

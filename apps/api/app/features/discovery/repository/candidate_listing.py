@@ -2,51 +2,73 @@
 
 from __future__ import annotations
 
+from typing import NamedTuple
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import ColumnElement, Select, String, cast, distinct, func, select
+from sqlalchemy.sql.expression import Subquery
 
 from app.features.discovery.repository.base import SessionRepository
+from app.features.discovery.repository.candidate_filter import CandidateFilter
 from app.features.discovery.repository.task_listing import Page
 from app.models.discovery import (
     CatalogueService,
     DiscoveryCandidateMention,
-    DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
 )
-
-CANDIDATE_ORDER = (DiscoveryDocumentCandidate.created_at.desc(), DiscoveryDocumentCandidate.key.asc())
-
-
-def _filtered(stmt: Select, status: DiscoveryCandidateStatus | None) -> Select:
-    if status is None:
-        return stmt
-    return stmt.where(DiscoveryDocumentCandidate.status == status)
+from app.models.jurisdiction import Jurisdiction
 
 
-def _with_mention_counts() -> Select:
+class CandidateListRow(NamedTuple):
+    """One listed candidate with its mention statistics and jurisdiction names."""
+
+    candidate: DiscoveryDocumentCandidate
+    mention_count: int
+    roles: list[str]
+    jurisdiction_name_i18n: dict[str, str]
+
+
+def _mention_stats() -> Subquery:
+    role = cast(DiscoveryCandidateMention.role, String)
     return (
-        select(DiscoveryDocumentCandidate, func.count(DiscoveryCandidateMention.id))
-        .outerjoin(DiscoveryCandidateMention, DiscoveryCandidateMention.candidate_id == DiscoveryDocumentCandidate.id)
-        .group_by(DiscoveryDocumentCandidate.id)
-        .order_by(*CANDIDATE_ORDER)
+        select(
+            DiscoveryCandidateMention.candidate_id,
+            func.count(DiscoveryCandidateMention.id).label("mention_count"),
+            func.array_agg(distinct(role)).label("roles"),
+        )
+        .group_by(DiscoveryCandidateMention.candidate_id)
+        .subquery()
     )
+
+
+def _count_of(stats: Subquery) -> ColumnElement[int]:
+    return func.coalesce(stats.c.mention_count, 0)
+
+
+def _with_stats(stmt: Select, stats: Subquery) -> Select:
+    return stmt.outerjoin(stats, stats.c.candidate_id == DiscoveryDocumentCandidate.id)
 
 
 class CandidateListingRepository(SessionRepository):
     """List candidates with their mention counts and mentions with their procedures."""
 
-    def count_candidates(self, *, status: DiscoveryCandidateStatus | None = None) -> int:
-        """Count candidates, optionally filtered by ``status``."""
-        stmt = _filtered(select(func.count()).select_from(DiscoveryDocumentCandidate), status)
-        return int(self._session.scalar(stmt) or 0)
+    def count_candidates(self, candidate_filter: CandidateFilter) -> int:
+        """Count the candidates that match ``candidate_filter``."""
+        stats = _mention_stats()
+        stmt = _with_stats(select(func.count()).select_from(DiscoveryDocumentCandidate), stats)
+        return int(self._session.scalar(stmt.where(*candidate_filter.conditions(_count_of(stats)))) or 0)
 
-    def list_candidates_page(
-        self, page: Page, *, status: DiscoveryCandidateStatus | None = None
-    ) -> list[tuple[DiscoveryDocumentCandidate, int]]:
-        """Return one page of candidates with their mention counts, newest first."""
-        stmt = _filtered(_with_mention_counts(), status).offset(page.offset).limit(page.limit)
-        return list(self._session.execute(stmt).tuples().all())
+    def list_candidates_page(self, page: Page, candidate_filter: CandidateFilter) -> list[CandidateListRow]:
+        """Return one page of matching candidates in the filter's order."""
+        stats = _mention_stats()
+        count = _count_of(stats)
+        columns = select(DiscoveryDocumentCandidate, count, stats.c.roles, Jurisdiction.name_i18n)
+        stmt = _with_stats(columns, stats).join(
+            Jurisdiction, Jurisdiction.id == DiscoveryDocumentCandidate.jurisdiction_id
+        )
+        stmt = stmt.where(*candidate_filter.conditions(count)).order_by(*candidate_filter.ordering(count))
+        rows = self._session.execute(stmt.offset(page.offset).limit(page.limit)).all()
+        return [CandidateListRow(row[0], row[1], sorted(row[2] or []), row[3]) for row in rows]
 
     def get_candidate(self, candidate_id: UUID) -> DiscoveryDocumentCandidate | None:
         """Return the candidate with ``candidate_id``, if any."""

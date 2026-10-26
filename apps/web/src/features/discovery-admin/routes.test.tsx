@@ -111,3 +111,85 @@ it("DiscoveryCoveragePage · shows an error and retry action when coverage fails
     ).toBeInTheDocument(),
   );
 });
+
+function stubGuardedDocumentsFetch(adminStatus: number) {
+  const paths: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input?: unknown) => {
+      const pathname = new URL(String(input)).pathname;
+      paths.push(pathname);
+      if (pathname.endsWith("/api/v1/me")) {
+        return new Response(
+          JSON.stringify({
+            id: "user-1",
+            email: session.email,
+            display_name: null,
+            role: "user",
+          }),
+        );
+      }
+      if (adminStatus !== 200) return new Response("", { status: adminStatus });
+      return new Response(
+        JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }),
+      );
+    }),
+  );
+  return paths;
+}
+
+const candidatesPath = "/api/v1/discovery/admin/candidates";
+
+it("documents route is guarded: a non-admin sees the forbidden view and no candidate request is made", async () => {
+  const paths = stubGuardedDocumentsFetch(403);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByRole("heading", { name: "Access denied" }),
+  ).toBeInTheDocument();
+  expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(false);
+});
+
+it("documents route is guarded: a deployment without discovery shows the disabled view and no candidate request is made", async () => {
+  const paths = stubGuardedDocumentsFetch(503);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByRole("heading", { name: "Discovery admin is disabled" }),
+  ).toBeInTheDocument();
+  expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(false);
+});
+
+it("documents route renders the list for an allowlisted admin and leaves the detail path to the not-found view", async () => {
+  const paths = stubGuardedDocumentsFetch(200);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents/cand-1"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByRole("heading", { name: "Page not found" }),
+  ).toBeInTheDocument();
+  expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(false);
+});
+
+it("documents route renders the list for an allowlisted admin", async () => {
+  const paths = stubGuardedDocumentsFetch(200);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(await screen.findByText("No documents found")).toBeInTheDocument();
+  expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(true);
+});

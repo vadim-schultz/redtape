@@ -112,6 +112,37 @@
       "count_one": "{count} Aufgabe",
       "count_other": "{count} Aufgaben"
     },
+    "documents": {
+      "filter_search": "Titel durchsuchen",
+      "filter_min_mentions": "Mindestanzahl Erwähnungen",
+      "min_mentions_any": "Beliebig viele Erwähnungen",
+      "min_mentions_option": "Mindestens {count}",
+      "filter_role": "Rolle",
+      "role_all": "Alle Rollen",
+      "role_required": "Erforderlich",
+      "role_form": "Formular",
+      "filter_source": "Quelle",
+      "source_all": "Alle Quellen",
+      "filter_sort": "Sortieren nach",
+      "sort_mentions_desc": "Meiste Erwähnungen",
+      "sort_title_asc": "Titel A–Z",
+      "sort_newest": "Neueste",
+      "col_title": "Titel",
+      "col_jurisdiction": "Zuständigkeitsbereich",
+      "col_roles": "Rollen",
+      "col_mentions": "Erwähnungen",
+      "col_status": "Status",
+      "col_first_seen": "Erstmals gesehen",
+      "empty_title": "Keine Dokumente gefunden",
+      "empty_description": "Andere Suche oder anderen Filter versuchen.",
+      "count_one": "{count} Dokument",
+      "count_other": "{count} Dokumente"
+    },
+    "pagination": {
+      "range": "{from}–{to} von {total}",
+      "previous": "Vorherige Seite",
+      "next": "Nächste Seite"
+    },
     "pipeline": {
       "stage_label": "Pipeline-Stufe",
       "not_found": "Katalogeintrag nicht gefunden",

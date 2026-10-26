@@ -229,10 +229,17 @@ class CandidateRead(BaseModel):
         )
 
 
+class CandidateListItemRead(CandidateRead):
+    """A listed candidate with the roles it was mentioned in and its jurisdiction name."""
+
+    roles: list[DiscoveryMentionRole]
+    jurisdiction_name_i18n: dict[str, str]
+
+
 class CandidateListResponse(BaseModel):
     """Paginated document candidates."""
 
-    items: list[CandidateRead]
+    items: list[CandidateListItemRead]
     total: int
     offset: int
     limit: int

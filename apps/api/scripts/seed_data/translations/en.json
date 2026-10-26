@@ -112,6 +112,37 @@
       "count_one": "{count} task",
       "count_other": "{count} tasks"
     },
+    "documents": {
+      "filter_search": "Search titles",
+      "filter_min_mentions": "Minimum mentions",
+      "min_mentions_any": "Any mentions",
+      "min_mentions_option": "At least {count}",
+      "filter_role": "Role",
+      "role_all": "All roles",
+      "role_required": "Required",
+      "role_form": "Form",
+      "filter_source": "Source",
+      "source_all": "All sources",
+      "filter_sort": "Sort by",
+      "sort_mentions_desc": "Most mentioned",
+      "sort_title_asc": "Title A–Z",
+      "sort_newest": "Newest",
+      "col_title": "Title",
+      "col_jurisdiction": "Jurisdiction",
+      "col_roles": "Roles",
+      "col_mentions": "Mentions",
+      "col_status": "Status",
+      "col_first_seen": "First seen",
+      "empty_title": "No documents found",
+      "empty_description": "Try another search or filter.",
+      "count_one": "{count} document",
+      "count_other": "{count} documents"
+    },
+    "pagination": {
+      "range": "{from}–{to} of {total}",
+      "previous": "Previous page",
+      "next": "Next page"
+    },
     "pipeline": {
       "stage_label": "Pipeline stage",
       "not_found": "Catalogue service not found",

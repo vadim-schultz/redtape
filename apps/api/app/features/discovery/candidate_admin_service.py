@@ -5,14 +5,25 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.features.discovery.lookups import require_candidate
-from app.features.discovery.repository import DiscoveryRepository, Page
-from app.models.discovery import DiscoveryCandidateStatus
+from app.features.discovery.repository import CandidateFilter, DiscoveryRepository, Page
+from app.features.discovery.repository.candidate_listing import CandidateListRow
+from app.models.discovery import DiscoveryMentionRole
 from app.schema.discovery.read import (
     CandidateDetailResponse,
+    CandidateListItemRead,
     CandidateListResponse,
     CandidateMentionRead,
     CandidateRead,
 )
+
+
+def _list_item(row: CandidateListRow) -> CandidateListItemRead:
+    base = CandidateRead.from_row(row.candidate, mention_count=row.mention_count)
+    return CandidateListItemRead(
+        **base.model_dump(),
+        roles=[DiscoveryMentionRole(role) for role in row.roles],
+        jurisdiction_name_i18n=row.jurisdiction_name_i18n,
+    )
 
 
 class CandidateAdminService:
@@ -22,14 +33,12 @@ class CandidateAdminService:
         """Bind the service to ``repository``."""
         self._repo = repository
 
-    def list_candidates(
-        self, *, status: DiscoveryCandidateStatus | None, offset: int, limit: int
-    ) -> CandidateListResponse:
-        """Return one page of candidates with mention counts and the total."""
-        total = self._repo.count_candidates(status=status)
-        rows = self._repo.list_candidates_page(Page(offset=offset, limit=limit), status=status)
-        items = [CandidateRead.from_row(row, mention_count=count) for row, count in rows]
-        return CandidateListResponse(items=items, total=total, offset=offset, limit=limit)
+    def list_candidates(self, candidate_filter: CandidateFilter, page: Page) -> CandidateListResponse:
+        """Return one page of matching candidates with mention counts and the total."""
+        total = self._repo.count_candidates(candidate_filter)
+        rows = self._repo.list_candidates_page(page, candidate_filter)
+        items = [_list_item(row) for row in rows]
+        return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def candidate_detail(self, candidate_id: UUID) -> CandidateDetailResponse:
         """Return one candidate with its mentions and their procedures."""
