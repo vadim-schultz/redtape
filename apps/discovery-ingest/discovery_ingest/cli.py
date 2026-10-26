@@ -11,6 +11,7 @@ from typing import Any
 from uuid import UUID
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
+from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
 from discovery_ingest.catalogue_export import load_catalogue_row
 from discovery_ingest.config import IngestSettings, load_ingest_settings
 from discovery_ingest.enrich import (
@@ -63,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
         return _leika_enrich(args)
     if args.command == "worker" and args.worker_command == "drain":
         return _worker_drain(args)
+    if args.command == "candidates" and args.candidates_command == "emit":
+        return _candidates_emit(args)
     parser.print_help()
     return 2
 
@@ -232,6 +235,25 @@ def _worker_drain(args: argparse.Namespace) -> int:
     return 0
 
 
+def _candidates_emit(args: argparse.Namespace) -> int:
+    selection = EmitSelection(tuple(args.id or ()), args.min_mentions, args.limit)
+    try:
+        selection.validate()
+    except ValueError as err:
+        print(f"invalid selection: {err}", file=sys.stderr)
+        return 2
+    settings = load_ingest_settings()
+    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
+    report = preview_report if args.dry_run else emit_report
+    try:
+        lines = report(client, selection)
+    except DiscoveryMachineApiError as err:
+        print(f"emit failed: {err}", file=sys.stderr)
+        return 1
+    print("\n".join(lines))
+    return 0
+
+
 def _leika_enrich(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     catalogue = load_catalogue_row(Path(args.catalogue_export), args.catalogue_service_id)
@@ -392,4 +414,19 @@ def _build_parser() -> argparse.ArgumentParser:
         default=WORKER_DEFAULT_TASK_KINDS,
         help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload)",
     )
+
+    candidates = sub.add_parser("candidates", help="Document candidates")
+    candidates_sub = candidates.add_subparsers(dest="candidates_command")
+    emit = candidates_sub.add_parser("emit", help="Emit staged candidates as pending suggestions")
+    chosen = emit.add_mutually_exclusive_group(required=True)
+    chosen.add_argument("--id", type=UUID, action="append", help="Candidate to emit (repeatable)")
+    chosen.add_argument("--all-staged", action="store_true", help="Emit the most mentioned staged candidates")
+    emit.add_argument("--min-mentions", type=int, default=0, help="With --all-staged: minimum mentions (default 0)")
+    emit.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_EMIT_LIMIT,
+        help=f"Maximum candidates to emit (1-50, default {DEFAULT_EMIT_LIMIT})",
+    )
+    emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
     return parser
