@@ -8,7 +8,7 @@ import uuid
 import app.features.discovery.db_headroom as headroom_module
 import pytest
 from app.config import Settings, settings
-from app.features.discovery.db_headroom import DatabaseHeadroom, DatabaseSoftLimitError
+from app.features.discovery.db_headroom import DatabaseHeadroom, DatabaseSoftLimitError, read_database_size
 from app.models.discovery import DiscoveryTaskKind
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -177,10 +177,14 @@ def test_complete_fail_release_claim_and_the_read_routes_still_work_above_the_li
         client.get(f"{MACHINE}/{path}", headers=headers) for path in ("budgets", "tasks/summary", "artifacts/status")
     ]
 
-    assert [r.status_code for r in (released, completed, failed, reclaimed)] == [200, 200, 200, 200]
+    assert [r.status_code for r in (released, completed, failed, reclaimed)] == [200, 201, 201, 200]
     assert [r.status_code for r in reads] == [200, 200, 200]
 
 
 def test_the_default_headroom_follows_the_configured_soft_limit() -> None:
     assert Settings(_env_file=None).db_soft_limit_bytes == 400_000_000
     assert DatabaseHeadroom().limit() == settings.db_soft_limit_bytes
+
+
+def test_the_real_size_query_reports_the_current_database_in_bytes(db_session: Session) -> None:
+    assert read_database_size() > 0
