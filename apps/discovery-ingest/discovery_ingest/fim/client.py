@@ -8,6 +8,8 @@ from typing import Any
 
 import httpx
 
+from discovery_ingest.fim.keys import steckbrief_url
+
 
 class FimClientError(Exception):
     """FIM response could not be loaded or parsed."""
@@ -35,7 +37,7 @@ class FimSteckbriefClient:
             if key != leistungsschluessel:
                 raise FimClientError(f"fixture key {key!r} does not match {leistungsschluessel!r}")
             return self._fixture
-        url = f"{self._base_url}/api/v1/leistung-steckbriefe/{leistungsschluessel}"
+        url = steckbrief_url(self._base_url, leistungsschluessel)
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.get(url)
         if response.status_code >= 400:

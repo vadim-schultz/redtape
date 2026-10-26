@@ -1,0 +1,62 @@
+name: Discovery FIM probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      keys:
+        description: "Comma separated 14-digit steckbrief keys (a GovData leika_key and a PVOG leikakeys entry)"
+        required: false
+        default: "99154021000000,99070016261000"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-fim-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe FIM steckbriefe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROBE_KEYS: ${{ inputs.keys || '99154021000000,99070016261000' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Probe steckbrief keys
+        working-directory: apps/discovery-ingest
+        run: |
+          set +e
+          python -m discovery_ingest fim probe --keys "${PROBE_KEYS}" | tee ../../fim-probe.txt
+          echo "probe_exit=${PIPESTATUS[0]}" >> "${GITHUB_ENV}"
+
+      - name: Write probe output to job summary
+        if: always()
+        run: |
+          {
+            echo "### FIM steckbrief probe"
+            echo
+            echo '```text'
+            cat fim-probe.txt 2>/dev/null || echo "No output was produced; see the probe step log."
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail the job when the decision gate failed
+        run: test "${probe_exit:-1}" = "0"

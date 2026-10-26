@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - "apps/discovery-ingest/**"
+      - "apps/api/tests/fixtures/steckbrief_key_cases.json"
       - ".github/workflows/discovery-ingest-ci.yml"
   pull_request:
     paths:
       - "apps/discovery-ingest/**"
+      - "apps/api/tests/fixtures/steckbrief_key_cases.json"
       - ".github/workflows/discovery-ingest-ci.yml"
 
 concurrency:

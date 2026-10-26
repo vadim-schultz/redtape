@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -13,7 +14,7 @@ from uuid import UUID
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
 from discovery_ingest.catalogue_export import load_catalogue_row
-from discovery_ingest.config import IngestSettings, load_ingest_settings
+from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
 from discovery_ingest.enrich import (
     fim_id_from_catalogue,
     fim_steckbrief_claim_requests,
@@ -23,6 +24,8 @@ from discovery_ingest.enrich import (
     leika_stammtext_entity_request,
 )
 from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
+from discovery_ingest.fim.keys import STECKBRIEF_KEY_PATTERN
+from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
@@ -162,7 +165,9 @@ def _fim_enrich(args: argparse.Namespace) -> int:
         return 1
     fim_id = fim_id_from_catalogue(catalogue)
     if fim_id is None:
-        print("catalogue row has no fim_id or leistungsschluessel", file=sys.stderr)
+        print(
+            "catalogue row has no steckbrief key (fim_id, leistungsschluessel, leika_key or leikakeys)", file=sys.stderr
+        )
         return 1
     fim = FimSteckbriefClient.from_json_file(Path(args.input), base_url=settings.fim_portal_base_url)
     try:
@@ -184,6 +189,21 @@ def _fim_enrich(args: argparse.Namespace) -> int:
     except DiscoveryMachineApiError:
         return 1
     return 0
+
+
+def _fim_probe(args: argparse.Namespace) -> int:
+    fetcher = PoliteUrlFetcher(user_agent=build_user_agent(os.environ.get("BOT_CONTACT_URL", DEFAULT_BOT_CONTACT_URL)))
+    results = probe_keys(fetcher, args.base_url, args.keys)
+    print("\n".join(probe_lines(results)))
+    return 0 if gate_passed(results) else 1
+
+
+def _steckbrief_keys_arg(raw: str) -> tuple[str, ...]:
+    """Parse a comma separated ``--keys`` value into 14-digit steckbrief keys."""
+    keys = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if not keys or not all(STECKBRIEF_KEY_PATTERN.fullmatch(key) for key in keys):
+        raise argparse.ArgumentTypeError(f"expected comma separated 14-digit steckbrief keys; got {raw!r}")
+    return keys
 
 
 def _task_kinds_arg(raw: str) -> tuple[DiscoveryTaskKind, ...]:
@@ -308,6 +328,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("govdata", "fetch"): _govdata_fetch,
     ("pvog", "run"): _pvog_run,
     ("fim", "enrich"): _fim_enrich,
+    ("fim", "probe"): _fim_probe,
     ("leika", "enrich"): _leika_enrich,
     ("worker", "drain"): _worker_drain,
     ("candidates", "emit"): _candidates_emit,
@@ -376,6 +397,10 @@ def _build_parser() -> argparse.ArgumentParser:
     fim_enrich.add_argument("--catalogue-service-id", type=UUID, required=True)
     fim_enrich.add_argument("--catalogue-export", required=True, help="Admin catalogue export JSON")
     fim_enrich.add_argument("--input", required=True, help="Steckbrief JSON fixture or snapshot")
+
+    fim_probe = fim_sub.add_parser("probe", help="Report status and top-level keys of live steckbriefe")
+    fim_probe.add_argument("--keys", type=_steckbrief_keys_arg, required=True, help="Comma separated 14-digit keys")
+    fim_probe.add_argument("--base-url", default="https://fimportal.de", help="FIM Portal base URL")
 
     leika = sub.add_parser("leika", help="LeiKa stammtext enrich")
     leika_sub = leika.add_subparsers(dest="leika_command")

@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 from discovery_ingest.catalogue_export import CatalogueExportItem
+from discovery_ingest.fim.keys import STECKBRIEF_PATH, steckbrief_key, steckbrief_url
 from discovery_ingest.schemas import CatalogueMachineRead, ClaimAppendRequest, EntityUpsertRequest
 
 
@@ -35,7 +36,7 @@ def fim_steckbrief_entity_request(
     key = steckbrief.get("leistungsschluessel")
     if not isinstance(key, str) or not key.strip():
         raise ValueError("steckbrief missing leistungsschluessel")
-    canonical_url = f"{fim_base_url.rstrip('/')}/api/v1/leistung-steckbriefe/{key.strip()}"
+    canonical_url = steckbrief_url(fim_base_url, key.strip())
     titel = steckbrief.get("titel")
     label = titel.strip() if isinstance(titel, str) and titel.strip() else None
     return EntityUpsertRequest(
@@ -154,7 +155,7 @@ def catalogue_export_item_from_machine(read: CatalogueMachineRead) -> CatalogueE
 def fim_id_from_steckbrief_url(target_url: str) -> str | None:
     """Extract steckbrief key from a FIM Portal steckbrief URL."""
     path = urlparse(target_url).path
-    marker = "/leistung-steckbriefe/"
+    marker = f"{STECKBRIEF_PATH}/"
     if marker not in path:
         return None
     suffix = path.split(marker, 1)[-1].strip("/")
@@ -164,13 +165,8 @@ def fim_id_from_steckbrief_url(target_url: str) -> str | None:
 
 
 def fim_id_from_catalogue(catalogue: CatalogueExportItem) -> str | None:
-    """Resolve steckbrief key from catalogue ``raw_payload``."""
-    payload = catalogue.raw_payload
-    for key in ("fim_id", "leistungsschluessel"):
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return None
+    """Resolve the steckbrief key from catalogue ``raw_payload`` exactly as the API fanout does."""
+    return steckbrief_key(catalogue.raw_payload)
 
 
 def leika_segments_from_catalogue(catalogue: CatalogueExportItem) -> tuple[str, str] | None:

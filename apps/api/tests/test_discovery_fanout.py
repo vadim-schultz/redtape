@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 
 import app.features.auth.guard_session as guard_session_module
 import app.features.discovery.fanout as fanout_module
@@ -14,6 +16,7 @@ from app.features.auth.repository import ApiKeyRepository
 from app.features.auth.service import ApiKeyService
 from app.features.discovery.fanout import apply_fanout_for_service, fanout_specs_for_service
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.steckbrief_key import steckbrief_key
 from app.main import create_app
 from app.models.discovery import (
     CatalogueService,
@@ -32,6 +35,10 @@ from sqlalchemy.orm import Session
 
 BATCH_URL = "/api/v1/discovery/machine/catalogue/batch"
 FIM_STECKBRIEF_KEY = "01234567890123"
+STECKBRIEF_URL = "https://fimportal.de/api/v1/leistung-steckbriefe/{key}"
+KEY_CASES: list[dict[str, object]] = json.loads(
+    (Path(__file__).parent / "fixtures" / "steckbrief_key_cases.json").read_text(encoding="utf-8")
+)["cases"]
 
 
 @contextmanager
@@ -327,3 +334,80 @@ def test_batch_upsert_of_a_pvog_row_creates_fetch_and_harvest_tasks(
     assert {t.kind for t in tasks} == {DiscoveryTaskKind.FETCH_URL, DiscoveryTaskKind.HARVEST_PAYLOAD}
     harvest = next(t for t in tasks if t.kind == DiscoveryTaskKind.HARVEST_PAYLOAD)
     assert (harvest.priority, harvest.target_url) == (50, PVOG_PORTAL_URL)
+
+
+@pytest.mark.parametrize("case", KEY_CASES, ids=[str(case["name"]) for case in KEY_CASES])
+def test_steckbrief_key_follows_the_shared_case_table(case: dict[str, object]) -> None:
+    """steckbrief key · follows the shared case table (also run by the ingest resolver)."""
+    assert steckbrief_key(case["raw_payload"]) == case["key"]  # type: ignore[arg-type]
+
+
+def test_govdata_row_with_a_leika_key_enqueues_an_enrich_task_for_that_steckbrief_url(
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    """govdata row with leika_key · enqueues an enrich task for that steckbrief url."""
+    service = _govdata_service(db_session, country, raw_payload={"leika_key": "99096049001001"})
+
+    specs = fanout_specs_for_service(service)
+
+    assert [(s.kind, s.target_url, s.priority) for s in specs] == [
+        (DiscoveryTaskKind.ENRICH_METADATA, STECKBRIEF_URL.format(key="99096049001001"), 200)
+    ]
+    tasks = apply_fanout_for_service(DiscoveryRepository(db_session), service)
+    assert [(t.kind, t.target_url) for t in tasks] == [(DiscoveryTaskKind.ENRICH_METADATA, specs[0].target_url)]
+
+
+def test_pvog_row_with_leikakeys_enqueues_an_enrich_task_for_the_first_key(
+    db_session: Session,
+    country: Jurisdiction,
+) -> None:
+    """pvog row with leikakeys · enqueues an enrich task for the first key."""
+    payload = {"details": PVOG_DETAILS, "leikakeys": ["99155004000000", "99111011017000"]}
+    service = _pvog_service(db_session, country, raw_payload=payload)
+
+    specs = fanout_specs_for_service(service)
+
+    enrich = [s for s in specs if s.kind == DiscoveryTaskKind.ENRICH_METADATA]
+    assert [(s.target_url, s.priority, s.input_key) for s in enrich] == [
+        (STECKBRIEF_URL.format(key="99155004000000"), 200, None)
+    ]
+    assert {s.kind for s in specs} == {DiscoveryTaskKind.ENRICH_METADATA, DiscoveryTaskKind.HARVEST_PAYLOAD}
+
+
+def test_fim_id_takes_precedence_over_leika_key_in_the_enrich_task(db_session: Session, country: Jurisdiction) -> None:
+    """fim_id · takes precedence over leika_key in the enrich task."""
+    payload = {"fim_id": FIM_STECKBRIEF_KEY, "leika_key": "99096049001001"}
+    service = _govdata_service(db_session, country, raw_payload=payload)
+
+    assert [s.target_url for s in fanout_specs_for_service(service)] == [STECKBRIEF_URL.format(key=FIM_STECKBRIEF_KEY)]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"leika_key": "12345"}, {"leika_key": None}, {"leikakeys": []}, {"leikakeys": ["bad"]}, {"fim_id": 7}],
+)
+def test_malformed_or_missing_keys_enqueue_nothing(
+    db_session: Session,
+    country: Jurisdiction,
+    payload: dict[str, object],
+) -> None:
+    """malformed or missing keys · enqueue nothing for govdata and pvog rows."""
+    repo = DiscoveryRepository(db_session)
+    govdata = _govdata_service(db_session, country, raw_payload=payload)
+    pvog = _pvog_service(db_session, country, raw_payload=payload)
+
+    for service in (govdata, pvog):
+        assert fanout_specs_for_service(service) == []
+        assert apply_fanout_for_service(repo, service) == []
+
+
+def test_re_fanout_of_a_leika_key_row_is_idempotent(db_session: Session, country: Jurisdiction) -> None:
+    """re-fanout · of a leika key row is idempotent."""
+    service = _govdata_service(db_session, country, raw_payload={"leika_key": "99096049001001"})
+    repo = DiscoveryRepository(db_session)
+
+    first = apply_fanout_for_service(repo, service)
+    again = apply_fanout_for_service(repo, service)
+
+    assert (len(first), again) == (1, [])
