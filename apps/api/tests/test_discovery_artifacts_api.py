@@ -448,3 +448,38 @@ def test_enqueue_with_an_artifact_from_another_catalogue_row_is_rejected(
         )
         == 0
     )
+
+
+STATUS_URL = f"{MACHINE}/artifacts/status"
+
+
+def test_artifacts_status_reports_a_store_and_the_bytes_against_the_cap(
+    client: TestClient[Litestar], db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    monkeypatch.setattr(settings, "object_store_max_bytes", 1000)
+    _stored(client, key, task)
+
+    response = client.get(STATUS_URL, headers={"X-API-Key": key})
+
+    assert response.status_code == 200
+    assert response.json() == {"storage_enabled": True, "bytes_used": len(HTML), "bytes_cap": 1000}
+
+
+def test_artifacts_status_is_disabled_without_a_store_or_when_the_cap_is_reached(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    monkeypatch.setattr(settings, "object_store_max_bytes", len(HTML))
+    _stored(client, key, task)
+
+    full = client.get(STATUS_URL, headers={"X-API-Key": key}).json()
+    slot.store = None
+    unset = client.get(STATUS_URL, headers={"X-API-Key": key}).json()
+
+    assert (full["storage_enabled"], full["bytes_used"], full["bytes_cap"]) == (False, len(HTML), len(HTML))
+    assert unset["storage_enabled"] is False
+
+
+def test_artifacts_status_requires_the_machine_key(client: TestClient[Litestar]) -> None:
+    assert client.get(STATUS_URL).status_code == 401

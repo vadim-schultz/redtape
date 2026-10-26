@@ -287,3 +287,13 @@ def test_admin_tasks_filters_by_kind_and_rejects_an_invalid_kind(
     assert filtered.json()["total"] == 1
     assert [item["kind"] for item in filtered.json()["items"]] == ["harvest_payload"]
     assert invalid.status_code == 422
+
+
+def test_admin_tasks_expose_the_result_note(client: TestClient[Litestar], db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    _kind_task(db_session, catalogue, DiscoveryTaskKind.EXTRACT_PAGE, result_note="no_extractor")
+    _kind_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL)
+
+    items = client.get(TASKS_URL, headers=_admin_headers()).json()["items"]
+
+    assert {item["kind"]: item["result_note"] for item in items} == {"extract_page": "no_extractor", "fetch_url": None}

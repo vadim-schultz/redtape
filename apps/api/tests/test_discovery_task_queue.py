@@ -6,12 +6,20 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.features.discovery.errors import DiscoveryTaskNotFoundError
+from app.features.discovery.errors import DiscoveryTaskNotFoundError, TaskNotClaimedError
 from app.features.discovery.repository import DiscoveryRepository, TaskTarget
 from app.features.discovery.task_queue import TaskQueue
 from app.features.discovery.task_retry import BACKOFF, MAX_ATTEMPTS
 from app.models.api_key import ApiKey
-from app.models.discovery import CatalogueService, DiscoveryTask, DiscoveryTaskKind, DiscoveryTaskStatus
+from app.models.discovery import (
+    CatalogueService,
+    DiscoveryEvent,
+    DiscoveryEventType,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+    DiscoveryTaskStatus,
+)
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_discovery_admin_api import _catalogue
@@ -225,3 +233,82 @@ def test_reclaim_of_an_expired_lease_at_the_cap_marks_the_task_failed(queue: Tas
     assert task.status == DiscoveryTaskStatus.FAILED
     assert task.last_error == f"lease expired after {MAX_ATTEMPTS} attempts"
     assert task.lease_expires_at is None
+
+
+def test_render_page_is_claimed_only_with_an_explicit_kinds_filter(queue: TaskQueue, db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    render = _seed_task(db_session, catalogue, DiscoveryTaskKind.RENDER_PAGE, path="render")
+    key = _key(db_session)
+
+    by_default = queue.claim_pending(api_key=key, limit=5, now=NOW)
+    explicit = queue.claim_pending(api_key=key, limit=5, now=NOW, kinds=(DiscoveryTaskKind.RENDER_PAGE,))
+
+    assert by_default == []
+    assert [t.id for t in explicit] == [render.id]
+
+
+def test_release_returns_a_claimed_task_to_pending_without_consuming_an_attempt(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    task = _leased(queue, db_session, attempts=1)
+    assert (task.attempt_count, task.status) == (1, DiscoveryTaskStatus.CLAIMED)
+
+    released = queue.release(task.id, "browser_quota")
+    reclaimed = queue.claim_pending(api_key=_key(db_session), limit=1, now=NOW)
+
+    assert released.status == DiscoveryTaskStatus.PENDING
+    assert (released.lease_expires_at, released.claimed_at, released.claimed_by_api_key_id) == (None, None, None)
+    assert released.last_error == "browser_quota"
+    assert [t.id for t in reclaimed] == [task.id]
+    assert task.attempt_count == 1
+
+
+def test_release_never_takes_attempt_count_below_zero_and_records_an_event(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    task = _leased(queue, db_session, attempts=1)
+    task.attempt_count = 0
+
+    queue.release(task.id, "storage_unavailable")
+
+    assert task.attempt_count == 0
+    events = db_session.scalars(select(DiscoveryEvent).where(DiscoveryEvent.discovery_task_id == task.id)).all()
+    released = [e for e in events if e.event_type == DiscoveryEventType.TASK_RELEASED]
+    assert [e.payload for e in released] == [{"reason": "storage_unavailable"}]
+
+
+def test_release_rejects_a_task_that_is_not_claimed_and_an_unknown_task(queue: TaskQueue, db_session: Session) -> None:
+    pending = _seed_task(db_session, _catalogue(db_session), DiscoveryTaskKind.FETCH_URL, path="pending")
+
+    with pytest.raises(TaskNotClaimedError):
+        queue.release(pending.id, "nope")
+    with pytest.raises(DiscoveryTaskNotFoundError):
+        queue.release(uuid.uuid4(), "nope")
+    assert pending.last_error is None
+
+
+def test_a_released_task_is_claimable_again_once_not_before_has_passed_and_not_before(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    task = _leased(queue, db_session, attempts=1)
+    later = NOW + timedelta(minutes=30)
+    queue.release(task.id, "browser_quota", not_before=later)
+    key = _key(db_session)
+
+    too_early = queue.claim_pending(api_key=key, limit=1, now=NOW + timedelta(minutes=29))
+    in_time = queue.claim_pending(api_key=key, limit=1, now=later)
+
+    assert too_early == []
+    assert [t.id for t in in_time] == [task.id]
+
+
+def test_complete_stores_an_optional_note_and_clears_the_lease(queue: TaskQueue, db_session: Session) -> None:
+    task = _leased(queue, db_session, attempts=1)
+
+    queue.complete(task.id, note="no_mentions")
+
+    assert (task.status, task.result_note, task.lease_expires_at) == (
+        DiscoveryTaskStatus.COMPLETED,
+        "no_mentions",
+        None,
+    )
