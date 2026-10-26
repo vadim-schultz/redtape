@@ -168,6 +168,7 @@ class DrainReport(BaseModel):
     stop_reason: StopReason
     run_id: UUID | None = None
     succeeded: bool = True
+    ledger_unavailable: bool = False
 
 
 class RunStartResponse(BaseModel):

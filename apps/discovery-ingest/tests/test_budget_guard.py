@@ -100,7 +100,7 @@ def test_a_client_error_other_than_a_denial_is_still_raised_by_the_client(monkey
     client = _client(monkeypatch, lambda request: httpx.Response(404, json={"detail": "Unknown budget resource"}))
 
     with pytest.raises(DiscoveryMachineApiError) as raised:
-        client.reserve_budget("bananas", 1)
+        client.reserve_budget("bananas", 1)  # type: ignore[arg-type]
 
     assert raised.value.status_code == 404
 
@@ -115,10 +115,10 @@ def test_adjust_and_exhaust_are_best_effort_and_report_whether_the_ledger_took_t
         return httpx.Response(200, json=_row("browser_seconds", used=5))
 
     working = BudgetGuard(_client(monkeypatch, handler))
-    broken = BudgetGuard(_client(monkeypatch, _unreachable))
 
     assert working.adjust("browser_seconds", -2.5) is True
     assert working.exhaust("browser_seconds") is True
+    broken = BudgetGuard(_client(monkeypatch, _unreachable))
     assert broken.adjust("browser_seconds", 1) is False
     assert broken.exhaust("browser_seconds") is False
     assert seen == ['adjust:{"delta":-2.5}', "exhaust:"]
@@ -127,7 +127,11 @@ def test_adjust_and_exhaust_are_best_effort_and_report_whether_the_ledger_took_t
 
 @pytest.mark.parametrize(
     ("status", "detail", "expected"),
-    [(507, "database_soft_limit", True), (507, "Artifact storage cap reached", False), (503, "database_soft_limit", False)],
+    [
+        (507, "database_soft_limit", True),
+        (507, "Artifact storage cap reached", False),
+        (503, "database_soft_limit", False),
+    ],
 )
 def test_a_507_with_the_soft_limit_detail_is_recognised_as_the_database_limit(
     status: int, detail: str, expected: bool
@@ -154,7 +158,10 @@ def _drain_handler(ledger: httpx.Response | None) -> Handler:
     [(httpx.Response(200, json={"items": [_row("neurons")]}), False), (None, True), (httpx.Response(503), True)],
 )
 def test_the_drain_report_carries_ledger_unavailable_when_the_ledger_could_not_be_read(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], ledger: httpx.Response | None, unavailable: bool
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    ledger: httpx.Response | None,
+    unavailable: bool,
 ) -> None:
     monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")

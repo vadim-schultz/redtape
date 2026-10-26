@@ -391,6 +391,8 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
             return stub
         if request.url.path.endswith("/tasks/summary"):
             return httpx.Response(500, text="no summary")
+        if request.url.path.endswith("/budgets"):
+            return httpx.Response(404, text="no ledger")
         bodies.append(json.loads(request.content.decode()))
         return httpx.Response(200, json={"items": []})
 

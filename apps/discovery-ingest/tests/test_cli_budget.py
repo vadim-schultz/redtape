@@ -84,7 +84,10 @@ def test_show_exits_0_when_the_required_remaining_is_there(serve: Callable[[Hand
     serve(_ledger)
 
     assert main(["budget", "show", "--require-remaining", "actions_minutes=100"]) == 0
-    assert main(["budget", "show", "--require-remaining", "actions_minutes=45", "--require-remaining", "r2_class_a=1"]) == 0
+    assert (
+        main(["budget", "show", "--require-remaining", "actions_minutes=45", "--require-remaining", "r2_class_a=1"])
+        == 0
+    )
 
 
 def test_show_exits_3_when_a_required_resource_is_short_or_exhausted(
