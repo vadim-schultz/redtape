@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.features.discovery.repository import DiscoveryRepository, TaskTarget
+from app.features.discovery.steckbrief_key import steckbrief_key
 from app.features.discovery.task_enqueue import enqueue_task_with_outcome
 from app.models.discovery import (
     CatalogueService,
@@ -17,6 +18,7 @@ from app.models.discovery import (
 FIM_PORTAL_BASE_URL = "https://fimportal.de"
 ENRICH_METADATA_PRIORITY = 200
 HARVEST_PAYLOAD_PRIORITY = 50
+FIM_ENRICH_SOURCES = frozenset({DiscoverySource.GOVDATA, DiscoverySource.PVOG})
 # Keep equal to EXTRACTOR_VERSION in apps/discovery-ingest/discovery_ingest/harvest/pvog.py; a bump re-harvests.
 PVOG_HARVESTER_VERSION = "1"
 
@@ -31,23 +33,15 @@ class FanoutTaskSpec:
     input_key: str | None = None
 
 
-def _fim_id_from_payload(raw_payload: dict) -> str | None:
-    value = raw_payload.get("fim_id")
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
-
-
 def _fim_enrich_spec(service: CatalogueService) -> FanoutTaskSpec | None:
-    if service.source != DiscoverySource.GOVDATA:
+    if service.source not in FIM_ENRICH_SOURCES:
         return None
-    fim_id = _fim_id_from_payload(service.raw_payload)
-    if fim_id is None:
+    key = steckbrief_key(service.raw_payload)
+    if key is None:
         return None
-    target_url = f"{FIM_PORTAL_BASE_URL}/api/v1/leistung-steckbriefe/{fim_id}"
     return FanoutTaskSpec(
         kind=DiscoveryTaskKind.ENRICH_METADATA,
-        target_url=target_url,
+        target_url=f"{FIM_PORTAL_BASE_URL}/api/v1/leistung-steckbriefe/{key}",
         priority=ENRICH_METADATA_PRIORITY,
     )
 
