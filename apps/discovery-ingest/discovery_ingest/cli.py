@@ -165,7 +165,9 @@ def _fim_enrich(args: argparse.Namespace) -> int:
         return 1
     fim_id = fim_id_from_catalogue(catalogue)
     if fim_id is None:
-        print("catalogue row has no fim_id or leistungsschluessel", file=sys.stderr)
+        print(
+            "catalogue row has no steckbrief key (fim_id, leistungsschluessel, leika_key or leikakeys)", file=sys.stderr
+        )
         return 1
     fim = FimSteckbriefClient.from_json_file(Path(args.input), base_url=settings.fim_portal_base_url)
     try:
