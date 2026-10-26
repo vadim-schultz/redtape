@@ -127,9 +127,13 @@ def test_only_availability_errors_are_mapped_to_503() -> None:
     assert not issubclass(ObjectNotFoundError, ObjectStoreUnavailableError)
 
 
+def _no_database() -> None:
+    raise RuntimeError("the boot test needs no database; the lifespan falls back to default locales")
+
+
 def test_the_app_boots_without_object_store_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.shared.object_store.provider.settings", Settings(_env_file=None))
-
+    monkeypatch.setattr("app.lifespan.SessionLocal", _no_database)
     app = create_app()
 
     assert ObjectStoreUnavailableError in app.exception_handlers

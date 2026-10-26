@@ -18,7 +18,7 @@ def _shared_s3_store(config: S3Config) -> S3ObjectStore:
     return S3ObjectStore.from_config(config)
 
 
-def _s3_config(app_settings: Settings) -> S3Config:
+def s3_config_from_settings(app_settings: Settings) -> S3Config:
     return S3Config(
         endpoint_url=app_settings.object_store_endpoint_url,
         region=app_settings.object_store_region or "auto",
@@ -33,7 +33,7 @@ def build_object_store(app_settings: Settings, meter: ObjectStoreMeter = noop_me
     """Return the metered S3 store for ``app_settings`` or ``None`` when storage is not configured."""
     if not app_settings.object_store_enabled:
         return None
-    return MeteredObjectStore(_shared_s3_store(_s3_config(app_settings)), meter)
+    return MeteredObjectStore(_shared_s3_store(s3_config_from_settings(app_settings)), meter)
 
 
 def get_object_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore | None:

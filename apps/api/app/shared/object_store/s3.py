@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Self
 
 from botocore.client import BaseClient
 from botocore.exceptions import BotoCoreError, ClientError
@@ -41,7 +42,7 @@ class S3ObjectStore:
         self._bucket = bucket
 
     @classmethod
-    def from_config(cls, config: S3Config) -> S3ObjectStore:
+    def from_config(cls, config: S3Config) -> Self:
         """Build the client from ``config`` and wrap it."""
         return cls(create_s3_client(config), config.bucket)
 
@@ -79,3 +80,9 @@ class S3ObjectStore:
             params["ResponseContentDisposition"] = content_disposition(download_name)
         url: str = self._client.generate_presigned_url("get_object", Params=params, ExpiresIn=expires_in)
         return url
+
+    def count_prefix(self, prefix: str) -> int:
+        """Count objects under ``prefix`` with one LIST call (Class A); a diagnostic for the probe, not part of the port."""
+        with _translated_errors(prefix):
+            listing = self._client.list_objects_v2(Bucket=self._bucket, Prefix=prefix, MaxKeys=1000)
+        return int(listing.get("KeyCount", 0))
