@@ -1,0 +1,59 @@
+{
+  "erlaubnis": {
+    "code": "08",
+    "title": "Erforderliche Unterlagen",
+    "text": "<p>Je nach beantragter Erlaubnis müssen Sie unterschiedliche Unterlagen und Nachweise einreichen.</p><p>Bei jedem Antrag auf Erlaubnis müssen Sie grundsätzlich folgende Angaben machen:</p><ul><li>Ihren Namen, Vornamen oder Ihre Firma sowie die Anschrift</li><li>bei juristischen Personen: in der Regel ein aktueller Handelsregisterauszugs sowie die Benennung der Verantwortlichen</li></ul><ul><li>Nachweise über die erforderliche Sachkenntnis der Verantwortlichen</li><li>Erklärung, dass die Verantwortlichen ihre Verpflichtungen ständig erfüllen können</li><li>Beschreibung der Lage der Betriebsstätten mit:<ul><li>Ort und gegebenenfalls Flurbezeichnung</li><li>Straße und Hausnummer</li></ul></li></ul>",
+    "links": [],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  },
+  "eid": {
+    "code": "08",
+    "title": "Erforderliche Unterlagen",
+    "text": "<ul><li>eID-Mittel zur Identifizierung<ul><li>Personalausweis mit Online-Ausweisfunktion oder</li><li>elektronischer Aufenthaltstitel oder</li><li>eID-Karte für Bürgerinnen und Bürger der Europäischen Union und des Europäischen Wirtschaftsraums</li></ul></li></ul>",
+    "links": [],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  },
+  "keine": {
+    "code": "08",
+    "title": "Erforderliche Unterlagen",
+    "text": "<p>Sie müssen keine Unterlagen einreichen.</p>",
+    "links": [],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  },
+  "lieferengpass": {
+    "code": "08",
+    "title": "Erforderliche Unterlagen",
+    "text": "<ul><li>Lieferengpassmeldung</li></ul>",
+    "links": [],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  },
+  "vorschlag": {
+    "code": "08",
+    "title": "Erforderliche Unterlagen",
+    "text": "<p>Wenn Sie einen Vorschlag einreichen, wird folgende Unterlagen benötigt:&#xa0;</p><ul><li>Vorschlagsformular zur Einreichung der Vorschläge.</li><li>mit den zuständigen Fachverbänden abgestimmte Vorschläge mit deren schriftlichen Stellungnahmen.</li></ul><p>Darüber hinaus sind keine weiteren Unterlagen notwendig.&#xa0;<br>&#xa0;</p>",
+    "links": [],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  },
+  "formulare": {
+    "code": "14",
+    "title": "Formulare",
+    "text": "<p>Das Formular erhalten Sie online.</p>",
+    "links": [
+      {
+        "title": "Antrag auf Erlaubnis (PDF)",
+        "uri": "https://forms.example.de/antrag.pdf"
+      },
+      {
+        "title": "Anlage Sachkunde",
+        "uri": "https://forms.example.de/sachkunde.pdf"
+      }
+    ],
+    "filled": true,
+    "xZufiCategory": "TEXT_MODUL"
+  }
+}
