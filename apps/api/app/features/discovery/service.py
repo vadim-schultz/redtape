@@ -38,11 +38,14 @@ from app.schema.discovery.machine import (
     FetchLogAppendResponse,
     TaskClaimRequest,
     TaskClaimResponse,
+    TaskCompleteRequest,
     TaskCompleteResponse,
     TaskEnqueueRequest,
     TaskEnqueueResponse,
     TaskFailRequest,
     TaskFailResponse,
+    TaskReleaseRequest,
+    TaskReleaseResponse,
     TaskSummaryResponse,
     resolve_task_kinds,
 )
@@ -129,10 +132,15 @@ class DiscoveryMachineService:
         outcome = self._queue.enqueue(_enqueue_target(body), priority=body.priority)
         return TaskEnqueueResponse(id=outcome.task.id, created=outcome.created)
 
-    def complete_task(self, task_id: UUID) -> TaskCompleteResponse:
-        """Mark a task completed."""
-        task = self._queue.complete(task_id)
+    def complete_task(self, task_id: UUID, body: TaskCompleteRequest | None = None) -> TaskCompleteResponse:
+        """Mark a task completed, keeping the optional note."""
+        task = self._queue.complete(task_id, note=body.note if body is not None else None)
         return TaskCompleteResponse(id=task.id, status=task.status)
+
+    def release_task(self, task_id: UUID, body: TaskReleaseRequest) -> TaskReleaseResponse:
+        """Return a claimed task to the queue without consuming an attempt."""
+        task = self._queue.release(task_id, body.reason, not_before=body.not_before)
+        return TaskReleaseResponse(id=task.id, status=task.status, last_error=body.reason)
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
         """Mark a task failed with the crawler's error."""

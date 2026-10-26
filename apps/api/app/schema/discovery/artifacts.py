@@ -67,3 +67,11 @@ class AdminArtifactListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+class ArtifactStatusResponse(BaseModel):
+    """Whether an upload would be accepted right now, with the byte accounting behind the answer."""
+
+    storage_enabled: bool
+    bytes_used: int
+    bytes_cap: int

@@ -64,7 +64,7 @@ def provide_discovery_artifact_upload_service(
 def provide_discovery_artifact_read_service(
     discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
 ) -> ArtifactReadService:
-    return ArtifactReadService(discovery_repository, object_store)
+    return ArtifactReadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
 
 
 def provide_discovery_run_service(discovery_repository: DiscoveryRepository) -> DiscoveryRunService:

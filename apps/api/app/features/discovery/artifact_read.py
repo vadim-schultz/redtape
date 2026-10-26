@@ -14,6 +14,7 @@ from app.schema.discovery.artifacts import (
     AdminArtifactRead,
     ArtifactListResponse,
     ArtifactRead,
+    ArtifactStatusResponse,
 )
 from app.shared.object_store import ObjectNotFoundError, ObjectStore
 from app.shared.object_store.provider import require_store
@@ -30,10 +31,11 @@ class ArtifactContent:
 class ArtifactReadService:
     """Serve artifact bytes and metadata."""
 
-    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None) -> None:
-        """Bind the service to ``repository`` and an optional ``store``."""
+    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, *, max_bytes: int) -> None:
+        """Bind the service to ``repository``, an optional ``store`` and the byte cap ``max_bytes``."""
         self._repo = repository
         self._store = store
+        self._max_bytes = max_bytes
 
     def content(self, artifact_id: UUID) -> ArtifactContent:
         """Return the bytes of one artifact; raise a 404 when the row or its object is missing, 503 without a store."""
@@ -56,6 +58,12 @@ class ArtifactReadService:
         rows, total = self._page_of(ArtifactFilter(catalogue_service_id=catalogue_id), page)
         items = [self._with_url(row) for row in rows]
         return AdminArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
+
+    def status(self) -> ArtifactStatusResponse:
+        """Report whether uploads would be accepted: a store is set and the byte cap is not reached."""
+        used = self._repo.total_artifact_bytes()
+        enabled = self._store is not None and used < self._max_bytes
+        return ArtifactStatusResponse(storage_enabled=enabled, bytes_used=used, bytes_cap=self._max_bytes)
 
     def _page_of(self, artifact_filter: ArtifactFilter, page: Page) -> tuple[list[DiscoveryArtifact], int]:
         rows = self._repo.list_artifacts_page(artifact_filter, page)

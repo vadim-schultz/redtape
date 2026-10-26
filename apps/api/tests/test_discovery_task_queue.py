@@ -254,11 +254,11 @@ def test_release_returns_a_claimed_task_to_pending_without_consuming_an_attempt(
     assert (task.attempt_count, task.status) == (1, DiscoveryTaskStatus.CLAIMED)
 
     released = queue.release(task.id, "browser_quota")
-    reclaimed = queue.claim_pending(api_key=_key(db_session), limit=1, now=NOW)
 
     assert released.status == DiscoveryTaskStatus.PENDING
     assert (released.lease_expires_at, released.claimed_at, released.claimed_by_api_key_id) == (None, None, None)
-    assert released.last_error == "browser_quota"
+    assert (released.attempt_count, released.last_error) == (0, "browser_quota")
+    reclaimed = queue.claim_pending(api_key=_key(db_session), limit=1, now=NOW)
     assert [t.id for t in reclaimed] == [task.id]
     assert task.attempt_count == 1
 

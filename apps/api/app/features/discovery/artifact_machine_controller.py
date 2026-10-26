@@ -17,7 +17,12 @@ from app.features.discovery.artifact_upload import ArtifactUpload, ArtifactUploa
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.repository import ArtifactFilter, Page
 from app.models.discovery import DiscoveryArtifactKind
-from app.schema.discovery.artifacts import ArtifactListResponse, ArtifactRead, ArtifactUploadForm
+from app.schema.discovery.artifacts import (
+    ArtifactListResponse,
+    ArtifactRead,
+    ArtifactStatusResponse,
+    ArtifactUploadForm,
+)
 from app.shared.paging import PageParams
 
 
@@ -48,6 +53,10 @@ class DiscoveryArtifactMachineController(Controller):
         outcome = discovery_artifact_upload_service.upload(task_id, _upload_from_form(data))
         status = HTTP_201_CREATED if outcome.created else HTTP_200_OK
         return Response(ArtifactRead.from_row(outcome.artifact), status_code=status)
+
+    @get("/artifacts/status", sync_to_thread=True)
+    def artifact_status(self, discovery_artifact_read_service: ArtifactReadService) -> ArtifactStatusResponse:
+        return discovery_artifact_read_service.status()
 
     @get("/artifacts/{artifact_id:uuid}/content", sync_to_thread=True)
     def artifact_content(

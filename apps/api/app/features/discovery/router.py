@@ -7,6 +7,7 @@ from litestar.exceptions import HTTPException, ValidationException
 from litestar.exceptions.responses import create_exception_response
 from litestar.status_codes import (
     HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
     HTTP_413_REQUEST_ENTITY_TOO_LARGE,
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     HTTP_422_UNPROCESSABLE_ENTITY,
@@ -26,6 +27,7 @@ from app.features.discovery.errors import (
     DiscoveryNotFoundError,
     InvalidDiscoveryInputError,
     StorageCapExceededError,
+    TaskNotClaimedError,
     UnsupportedArtifactTypeError,
 )
 from app.features.discovery.machine_controller import DiscoveryMachineController
@@ -59,6 +61,7 @@ _DOMAIN_ERROR_HANDLERS: ExceptionHandlersMap = {
     ArtifactTooLargeError: _answers_with(HTTP_413_REQUEST_ENTITY_TOO_LARGE),
     UnsupportedArtifactTypeError: _answers_with(HTTP_415_UNSUPPORTED_MEDIA_TYPE),
     StorageCapExceededError: _answers_with(HTTP_507_INSUFFICIENT_STORAGE),
+    TaskNotClaimedError: _answers_with(HTTP_409_CONFLICT),
     DiscoveryNotFoundError: _not_found_is_404,
     InvalidDiscoveryInputError: _invalid_input_is_422,
     ValidationException: _invalid_payload_is_422,

@@ -35,6 +35,7 @@ class DiscoveryTaskRead(BaseModel):
     attempt_count: int
     not_before: datetime | None
     input_key: str | None
+    result_note: str | None
     lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -52,6 +53,7 @@ class DiscoveryTaskRead(BaseModel):
             attempt_count=task.attempt_count,
             not_before=task.not_before,
             input_key=task.input_key,
+            result_note=task.result_note,
             lease_expires_at=task.lease_expires_at,
             created_at=task.created_at,
             updated_at=task.updated_at,

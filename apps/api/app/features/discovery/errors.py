@@ -91,3 +91,11 @@ class ArtifactTooLargeError(DiscoveryError):
 
 class StorageCapExceededError(DiscoveryError):
     """Storing the artifact would take the stored bytes past ``object_store_max_bytes``."""
+
+
+class TaskNotClaimedError(DiscoveryError):
+    """Only a claimed task can be released."""
+
+    def __init__(self) -> None:
+        """Build the error with its fixed message."""
+        super().__init__("Only a claimed task can be released")
