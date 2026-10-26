@@ -54,6 +54,16 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
             completed: 0,
             failed: 0,
           },
+          task_counts_by_kind: {
+            harvest_payload: {
+              total: 4,
+              pending: 4,
+              claimed: 0,
+              completed: 0,
+              failed: 0,
+            },
+          },
+          candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
           fetch_attempts_total: 0,
           stale_claims: 0,
           stale_runs: 0,
@@ -71,6 +81,10 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
     await screen.findByText("No successful run recorded yet."),
   ).toBeInTheDocument();
   expect(screen.getByText("No failed tasks.")).toBeInTheDocument();
+  expect(
+    screen.getByText("harvest_payload: 4 pending, 0 claimed, 0 done, 0 failed"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Candidates: 0")).toBeInTheDocument();
 });
 
 it("Coverage page · shows unavailable state instead of zero-success language", async () => {

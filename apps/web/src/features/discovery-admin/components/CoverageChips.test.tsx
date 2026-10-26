@@ -11,6 +11,17 @@ const baseCoverage: DiscoveryCoverageResponse = {
   tasks_failed: 1,
   emit_ready_count: 4,
   task_counts: { total: 9, pending: 3, claimed: 2, completed: 3, failed: 1 },
+  task_counts_by_kind: {
+    fetch_url: { total: 6, pending: 2, claimed: 1, completed: 3, failed: 0 },
+    harvest_payload: {
+      total: 3,
+      pending: 1,
+      claimed: 1,
+      completed: 0,
+      failed: 1,
+    },
+  },
+  candidates: { total: 5, staged: 3, emitted: 2, mentions: 9 },
   fetch_attempts_total: 12,
   stale_claims: 2,
   stale_runs: 1,
@@ -73,4 +84,28 @@ it("CoverageChips · states that no successful run exists without success wordin
     screen.getByText("No successful run recorded yet."),
   ).toBeInTheDocument();
   expect(screen.queryByText(/Last successful run:/)).not.toBeInTheDocument();
+});
+
+it("CoverageChips · renders per-kind task chips and candidate totals", () => {
+  renderWithProviders(<CoverageChips coverage={baseCoverage} />);
+
+  expect(
+    screen.getByText("harvest_payload: 1 pending, 1 claimed, 0 done, 1 failed"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("fetch_url: 2 pending, 1 claimed, 3 done, 0 failed"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Candidates: 5")).toBeInTheDocument();
+  expect(screen.getByText("Staged candidates: 3")).toBeInTheDocument();
+  expect(screen.getByText("Emitted candidates: 2")).toBeInTheDocument();
+  expect(screen.getByText("Candidate mentions: 9")).toBeInTheDocument();
+});
+
+it("CoverageChips · renders no kind chip when the API reports no kinds", () => {
+  renderWithProviders(
+    <CoverageChips coverage={{ ...baseCoverage, task_counts_by_kind: {} }} />,
+  );
+
+  expect(screen.queryByText(/ pending, .* claimed, /)).not.toBeInTheDocument();
+  expect(screen.getByText("Candidates: 5")).toBeInTheDocument();
 });
