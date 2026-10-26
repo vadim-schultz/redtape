@@ -21,7 +21,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-screenshot-capture` · **Status:** planned
 
-**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md), [17](17-extractor-framework.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md), [17](17-extractor-framework.md), [23](23-free-tier-guards.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -31,13 +31,13 @@ Capture visual evidence for pages that produced documents. Screenshots are evide
 
 ## Contract
 
-**Enqueue.** The `extract_page` handler (chapter 17), after posting at least one mention, enqueues `capture_screenshot` through `POST /machine/tasks` with `target_url = final_url`, `input_key = "shot@1"`, priority 300 (claimed after renders, because the queue takes lower numbers first). Identity dedupes it, so one page produces one capture however many extractor versions run. No mentions, no task. An enqueue error is logged and counted; it never fails the extraction.
+**Enqueue.** Any extractor handler that posts at least one mention (the `extract_page` handler of chapter 17, and the `llm_extract` handler of the [extraction](../../extraction/00-architecture.md) suite) calls one shared helper, `enqueue_screenshot_for_mentions(...)`, which enqueues `capture_screenshot` through `POST /machine/tasks` with `target_url = final_url`, `input_key = "shot@1"`, priority 300 (claimed after renders, because the queue takes lower numbers first). Identity dedupes it, so one page produces one capture however many extractor versions run. No mentions, no task. An enqueue error is logged and counted; it never fails the extraction.
 
 **Handler** `handle_capture_screenshot`, registered in the task-kind table beside `render_page`. Steps, each a named function:
 
 1. robots.txt for the URL (chapter 2 cache); denied is a permanent failure.
 2. URL login-wall rule (the same function as chapter 15): complete with `result_note = "login_wall"`.
-3. `client.screenshot(url)` (chapter 15 port). Quota exceeded, an exhausted run budget, or a storage `503` follow the chapter 15 rules exactly: **release** this task and every unstarted task of the batch, then stop with `browser_quota`, `browser_budget` or `storage_unavailable`. Nothing is failed because of a limit.
+3. `client.screenshot(url)` (chapter 15 port). Quota exceeded, an exhausted run budget or daily ledger, or a storage `503` or `507` follow the chapter 15 rules exactly (the same ledger, the same `browser_seconds` resource): **release** this task and every unstarted task of the batch, then stop with `browser_quota`, `browser_budget` or `storage_unavailable`. Nothing is failed because of a limit.
 4. **Login wall by content:** when the client returned the DOM (`html` set) and it has an `input[type=password]`: complete with `result_note = "login_wall"`, upload nothing.
 5. Over 8 MB: complete with `result_note = "oversize"`, upload nothing (a viewport-only retry is an open seam, not built).
 6. Upload as a `screenshot` artifact (`image/jpeg`) with `source_url = task.target_url`, `final_url = task.target_url`, `fetched_at` captured when the call returned.
@@ -49,7 +49,7 @@ Errors follow the chapter 15 table: `5xx`, timeout and connection errors are ret
 
 **No new runtime.** Capture runs in `discovery-render.yml` (chapter 15, default kinds `render_page,capture_screenshot`), under the same two budgets (run wall clock and browser seconds) and the same `discovery-drain` concurrency group. `DISCOVERY_RENDER_SCHEDULE` gates the daily schedule. There is no `[capture]` extra, no `PageDriver`, no `discovery-capture.yml` and no `capture-integration` CI job.
 
-**Volume.** Screenshots are taken only for pages with mentions, so the count is a fraction of the rendered pages and stays well under the 1 GB storage budget (JPEG, typically a few hundred kilobytes); each also costs one browser call in the same 11-second cadence.
+**Volume.** Screenshots are taken only for pages with mentions, so the count is a fraction of the rendered pages and stays well under the R2 byte cap of chapter 14 (JPEG, typically a few hundred kilobytes); each also costs one browser call in the same 11-second cadence.
 
 ## TDD loops
 
@@ -59,7 +59,7 @@ All tests use the fake `BrowserClient` and injected clock from chapter 15.
 
 **Red** (`test_extract_worker.py`)
 
-1. `extract_page enqueues one capture task when mentions exist`.
+1. `extract_page enqueues one capture task when mentions exist, through the shared helper that the llm_extract handler also uses`.
 2. `extract_page enqueues none when there are no mentions`.
 3. `re-extraction with a new extractor version does not create a second capture task`.
 4. `a failed capture enqueue is counted and does not fail the extraction`.

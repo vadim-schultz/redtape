@@ -24,7 +24,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/api`) · **Branch:** `feat/crawlers-artifact-api` · **Status:** planned
 
-**Depends on:** [13](13-object-store-port-and-supabase-adapter.md), [03](03-kind-filtered-claim.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [13](13-object-store-port-and-r2-adapter.md), [03](03-kind-filtered-claim.md) · **Followed by:** [23](23-free-tier-guards.md) (ledger and operation caps) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -48,6 +48,8 @@ The same migration adds `discovery_task.result_note String(200) NULL` (moved her
 - An identical artifact returns the existing row with 200; a new one returns 201.
 - After inserting an `html_snapshot`, prune to the latest two per catalogue row (rows first, objects best-effort; an orphaned object is accepted and noted in the gaps). Screenshots are never pruned.
 - If the object store is not configured the route returns 503 and writes nothing.
+- **Size cap (decision D24).** R2 bills past its free tier, so before writing the route compares `SUM(discovery_artifact.byte_size) + incoming size` with `object_store_max_bytes` (chapter 13, default 8 GiB). Over the cap it answers **507** and writes nothing (no object, no row). The sum is one indexed aggregate, not an object-store call. Identical re-uploads do not grow the sum and stay 200.
+- **No existence probe.** The route finds an existing artifact through the unique key `(catalogue_service_id, kind, sha256)` and calls `put` only for a new one, so re-uploads cost no Class A or Class B operation.
 
 **Machine read routes.** `GET /api/v1/discovery/machine/artifacts/{id}/content` streams the bytes with the stored content type (extractors need it; 4 MB maximum). `GET /api/v1/discovery/machine/artifacts?kind=&host=&limit=` lists metadata (limit at most 100) so the fixture-capture workflow in chapter 17 can find snapshots.
 
@@ -55,13 +57,13 @@ The same migration adds `discovery_task.result_note String(200) NULL` (moved her
 
 **Admin routes.** `GET /api/v1/discovery/admin/catalogue/{id}/artifacts` returns metadata and a presigned `url` per artifact (five-minute expiry; HTML snapshots get an attachment disposition so they download). Presigning is local computation, so listing is cheap. If storage is unset the list still returns metadata with `url: null`.
 
-**Coverage.** The coverage response gains `artifacts` with count and total bytes per kind, used by chapter 16.
+**Coverage.** The coverage response gains `artifacts` with count and total bytes per kind plus `bytes_cap`, used by chapter 16.
 
 **Queue groundwork for browser tasks** (used by chapters 15, 17 and 19).
 
 - `POST /machine/tasks/{id}/complete` accepts an optional `{note}` (at most 200 characters, else 422) stored in `result_note`; the admin task DTO exposes it. Existing callers send no body and behave as before.
 - `POST /machine/tasks/{id}/release` with `{reason, not_before?}`: only a `claimed` task can be released (409 otherwise, 404 unknown). It returns the task to `pending`, clears the lease and claim, **decrements `attempt_count` (never below zero)** so the claim that is being undone does not count towards `MAX_ATTEMPTS`, sets `last_error = reason`, and sets `not_before` when given. This is how a worker hands back work it could not start because the Cloudflare quota or the object store was unavailable (decision D21). It records a `task_released` event.
-- `GET /machine/artifacts/status` returns `{storage_enabled: bool}` with no side effects, so a worker can refuse to spend browser time while uploads would answer 503.
+- `GET /machine/artifacts/status` returns `{storage_enabled: bool, bytes_used: int, bytes_cap: int}` with no side effects, so a worker can refuse to spend browser time while uploads would answer 503 or 507 (`storage_enabled` is false when the store is unset **or** `bytes_used` has reached the cap).
 
 ## TDD loops
 
@@ -89,6 +91,8 @@ All route tests override the store dependency with `InMemoryObjectStore`.
 5. `upload for an unknown task is 404`.
 6. `upload returns 503 and writes no row when the store is unset`.
 7. `third snapshot prunes the oldest; screenshots are never pruned`.
+8. `upload over the byte cap returns 507 and writes no object and no row; an identical re-upload under a full cap still returns 200` (negative and happy pair for D24).
+9. `a re-upload of an existing sha256 makes no store call` — asserted with a store that fails on any operation.
 
 **Green:** service method per step (validate, hash, put, insert, prune).
 
@@ -123,7 +127,7 @@ All route tests override the store dependency with `InMemoryObjectStore`.
 3. `release returns a claimed task to pending without consuming an attempt` — claim twice with a release in between and assert `attempt_count`.
 4. `release of a task that is not claimed is 409 and an unknown task is 404`.
 5. `a released task is claimable again once not_before has passed and not before` — reuses the chapter 4 `claimable` predicate.
-6. `artifacts status reports storage_enabled true with a store and false without, and requires the machine key`.
+6. `artifacts status reports storage_enabled true with a store and false without or when the cap is reached, includes bytes_used and bytes_cap, and requires the machine key`.
 
 **Green:** one `TaskQueue.release` method beside `complete` and `fail`; the status route reads `get_object_store()`. **Refactor:** `release`, `fail` and `complete` share the lease-clearing lines.
 

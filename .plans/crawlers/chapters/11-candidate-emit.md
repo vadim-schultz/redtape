@@ -44,7 +44,7 @@ This relaxes the public submit path too (a human may omit the URL). The web subm
 
 **Emit service.** `DiscoveryCandidateEmitService.emit(candidate_id, api_key)` in `apps/api/app/features/discovery/`:
 
-- build `{kind: new_document, jurisdiction_id, source_url, payload: {title_i18n, official_url?}}`; `source_url` is the `portal_url` of the candidate's first mention's procedure;
+- build `{kind: new_document, jurisdiction_id, source_url, payload: {title_i18n, official_url?, domain_codes?, situation_codes?}}`; `source_url` is the `portal_url` of the candidate's first mention's procedure. The two code lists are optional and **empty in this chapter**: the payload builder accepts them from a `suggested_tags(candidate)` hook that returns `([], [])` here. The [extraction](../../extraction/00-architecture.md) suite (its chapter E1) replaces the hook with the aggregate of the domain and life-situation codes carried by the candidate's mentions, above a support threshold, so documents reach the front-page chips tagged. `NewDocumentPayload` already accepts both lists and rejects unknown codes;
 - call `SuggestionService.create` with `SubmitterRef("crawler", api_key.id)` and idempotency key `discovery-candidate-emit:{candidate_id}`, the same pattern as [emit.py](../../../apps/api/app/features/discovery/emit.py);
 - on success set `status = emitted` and `suggestion_id`; a replay returns the existing suggestion with `replayed = true`;
 - on `DuplicateSuggestionError` return a per-candidate result `skip_reason = "duplicate"` with the conflicts; the candidate stays `staged`; this is a reported outcome, not an error;
@@ -83,6 +83,7 @@ This relaxes the public submit path too (a human may omit the URL). The web subm
 4. `emit of an unknown candidate is reported per item`.
 5. `emit preview never writes` — no suggestion, no status change.
 6. `emit requires the machine key; preview requires an admin`.
+7. `the payload carries domain and situation codes when the tag hook returns some, and omits them when it returns none; the preview prints them` (the hook is faked here).
 
 **Green:** one small service plus controller methods.
 

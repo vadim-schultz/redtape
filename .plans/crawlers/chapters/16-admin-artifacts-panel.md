@@ -21,7 +21,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/web`) · **Branch:** `feat/crawlers-admin-artifacts-panel` · **Status:** planned
 
-**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [14](14-artifact-model-and-api.md), [15](15-cloudflare-render-and-snapshot.md), [23](23-free-tier-guards.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -39,7 +39,7 @@ Under `apps/web/src/features/discovery-admin/`:
 - `components/ArtifactsPanel.tsx` (presentational): groups by kind. Screenshots render as a lazy `<img>` thumbnail with a translated alt text that includes the capture date, linking to the full image in a new tab (`rel="noopener noreferrer"`). HTML snapshots render as a row with size, fetch date, final host and a **Download** link; the panel never renders snapshot HTML inline (no `iframe`, no `dangerouslySetInnerHTML`).
 - States: loading skeleton, empty ("no artifacts yet"), error, and "storage not configured" when the API returns `url: null` for every item.
 - `PipelineDetail.tsx` receives the panel through a slot prop like `preview`; `DiscoveryPipelinePage.tsx` wires the query, so components stay presentational and the architecture test's layering holds.
-- Coverage view: chips for artifact counts and total bytes per kind, with a warning style when bytes pass 80 percent of a configured display budget (constant 1 GB for the free plan, defined once).
+- Coverage view: chips for artifact counts and total bytes per kind, with a warning style when bytes pass 80 percent of `bytes_cap` from the coverage response (chapter 14; default 8 GiB, so the front end holds no constant), and read-only meters for the daily and monthly budgets from the admin budgets route added in [chapter 23](23-free-tier-guards.md) (browser seconds, R2 operations, Actions minutes; neurons arrive with the extraction suite).
 - Strings in `apps/web/src/i18n/fallback/{de,en}.json` under `discovery_admin.artifacts.*`.
 - **Browser kinds.** `DiscoveryTaskKind` gains `render_page` (the label ships in chapter 14 and the kind is first used in chapter 15; chapter 8 widened the union before it existed, which the unknown-kind tolerance test covers). `DiscoveryTask` gains `result_note` and the Tasks table shows it as a small chip beside the status (`login_wall`, `oversize`, `no_mentions`, ...), with German and English labels and the raw value as the fallback for unknown notes. The kind select and Coverage chips list `render_page` and `capture_screenshot` like the others.
 
@@ -52,7 +52,7 @@ Under `apps/web/src/features/discovery-admin/`:
 3. `artifacts panel shows the empty state and the error state`.
 4. `artifacts panel shows the storage-not-configured message when urls are null`.
 5. `artifacts query refetches after the stale window` — fake timers.
-6. `coverage view shows artifact bytes and highlights the budget warning`.
+6. `coverage view shows artifact bytes against the cap and highlights the warning at 80 percent, and shows the budget meters with used and remaining`.
 7. `all strings resolve in German and English` — the existing i18n fallback test pattern.
 8. `tasks table shows the render_page kind and a result_note chip, and falls back to the raw value for an unknown note`.
 
