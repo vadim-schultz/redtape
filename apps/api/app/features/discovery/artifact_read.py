@@ -16,7 +16,7 @@ from app.schema.discovery.artifacts import (
     ArtifactRead,
     ArtifactStatusResponse,
 )
-from app.shared.object_store import ObjectNotFoundError, ObjectStore
+from app.shared.object_store import ObjectNotFoundError, ObjectStore, ObjectStoreMeter, noop_meter
 from app.shared.object_store.provider import require_store
 
 
@@ -31,11 +31,23 @@ class ArtifactContent:
 class ArtifactReadService:
     """Serve artifact bytes and metadata."""
 
-    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, *, max_bytes: int) -> None:
-        """Bind the service to ``repository``, an optional ``store`` and the byte cap ``max_bytes``."""
+    def __init__(
+        self,
+        repository: DiscoveryRepository,
+        store: ObjectStore | None,
+        *,
+        max_bytes: int,
+        presign_meter: ObjectStoreMeter = noop_meter,
+    ) -> None:
+        """Bind the service to ``repository``, an optional ``store``, the byte cap and the ``presign_meter``.
+
+        Presigned URLs are served by the object store itself, so the store never sees them; ``presign_meter``
+        counts each URL as one read.
+        """
         self._repo = repository
         self._store = store
         self._max_bytes = max_bytes
+        self._presign_meter = presign_meter
 
     def content(self, artifact_id: UUID) -> ArtifactContent:
         """Return the bytes of one artifact; raise a 404 when the row or its object is missing, 503 without a store."""
@@ -56,6 +68,7 @@ class ArtifactReadService:
         """Return one page of a catalogue row's artifacts, each with a presigned download URL."""
         require_catalogue(self._repo, catalogue_id)
         rows, total = self._page_of(ArtifactFilter(catalogue_service_id=catalogue_id), page)
+        self._count_presigned_reads(len(rows))
         items = [self._with_url(row) for row in rows]
         return AdminArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
@@ -68,6 +81,11 @@ class ArtifactReadService:
     def _page_of(self, artifact_filter: ArtifactFilter, page: Page) -> tuple[list[DiscoveryArtifact], int]:
         rows = self._repo.list_artifacts_page(artifact_filter, page)
         return rows, self._repo.count_artifacts(artifact_filter)
+
+    def _count_presigned_reads(self, urls: int) -> None:
+        """Reserve one Class B operation per URL about to be minted; a denial raises before any URL exists."""
+        if self._store is not None and urls:
+            self._presign_meter("class_b", urls)
 
     def _with_url(self, row: DiscoveryArtifact) -> AdminArtifactRead:
         return AdminArtifactRead(**ArtifactRead.from_row(row).model_dump(), url=self._presign(row))

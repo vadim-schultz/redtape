@@ -11,6 +11,7 @@ import httpx
 from pydantic import ValidationError
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.schemas import ClaimedTask, DrainReport, FetchLogAppendRequest, StopReason
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
@@ -40,6 +41,7 @@ class _Tally:
     completed: int = 0
     failed: int = 0
     skipped: int = 0
+    ledger_unavailable: bool = False
 
     def record(self, outcome: str) -> None:
         """Count one task outcome label."""
@@ -72,14 +74,22 @@ def run_worker_drain(
     policy: DrainPolicy,
     *,
     clock: Callable[[], float] = time.monotonic,
+    budget: BudgetGuard | None = None,
 ) -> DrainReport:
-    """Claim and settle batches until ``policy`` says to stop."""
+    """Claim and settle batches until ``policy`` says to stop.
+
+    ``budget`` is probed once so the report says whether the shared ledger was reachable;
+    handlers that spend a free allocation reserve against the same guard.
+    """
+    guard = budget or BudgetGuard(client)
+    guard.snapshot()
     started = clock()
     tally = _Tally()
     while True:
         last_claimed = _run_batch(client, fetcher, policy, tally)
         reason = policy.stop_reason(batches=tally.batches, last_claimed=last_claimed, elapsed=clock() - started)
         if reason is not None:
+            tally.ledger_unavailable = guard.ledger_unavailable
             return _report(client, policy, tally, reason)
 
 

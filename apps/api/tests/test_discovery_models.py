@@ -10,6 +10,7 @@ from app.models.discovery import (
     CatalogueService,
     DiscoveryArtifact,
     DiscoveryArtifactKind,
+    DiscoveryBudgetLedger,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -364,3 +365,31 @@ def test_task_result_note_defaults_to_none_and_render_page_is_a_task_kind(db_ses
     assert task.kind is DiscoveryTaskKind.RENDER_PAGE
     assert task.result_note is None
     assert task.artifact_id is None
+
+
+def _ledger_row(period: str, resource: str) -> DiscoveryBudgetLedger:
+    return DiscoveryBudgetLedger(period=period, resource=resource, used=0)
+
+
+def test_budget_ledger_allows_each_period_and_resource_once(db_session: Session) -> None:
+    rows = [
+        _ledger_row("2026-10-26", "browser_seconds"),
+        _ledger_row("2026-10-27", "browser_seconds"),
+        _ledger_row("2026-10-26", "neurons"),
+    ]
+    db_session.add_all(rows)
+    db_session.flush()
+    db_session.refresh(rows[0])
+
+    assert rows[0].exhausted is False
+    assert rows[0].used == 0
+    assert rows[0].updated_at is not None
+
+
+def test_budget_ledger_is_unique_per_period_and_resource(db_session: Session) -> None:
+    db_session.add(_ledger_row("2026-10", "r2_class_a"))
+    db_session.flush()
+    db_session.add(_ledger_row("2026-10", "r2_class_a"))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()

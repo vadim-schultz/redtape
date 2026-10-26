@@ -8,6 +8,7 @@ from litestar import Controller, Response, get, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
+from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.run_service import DiscoveryRunService
@@ -63,7 +64,7 @@ class DiscoveryMachineController(Controller):
     ) -> CatalogueBatchResponse:
         return discovery_machine_service.batch_upsert(data)
 
-    @post("/tasks", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    @post("/tasks", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def enqueue_task(
         self,
         discovery_machine_service: DiscoveryMachineService,
@@ -116,7 +117,7 @@ class DiscoveryMachineController(Controller):
     ) -> TaskFailResponse:
         return discovery_machine_service.fail_task(task_id, data)
 
-    @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def append_fetch_log(
         self,
         discovery_machine_service: DiscoveryMachineService,
@@ -142,7 +143,7 @@ class DiscoveryMachineController(Controller):
     ) -> RunRead:
         return discovery_run_service.finish(run_id, data)
 
-    @post("/entities", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    @post("/entities", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def upsert_entity(
         self,
         discovery_machine_service: DiscoveryMachineService,
@@ -150,7 +151,7 @@ class DiscoveryMachineController(Controller):
     ) -> EntityUpsertResponse:
         return discovery_machine_service.upsert_entity(data)
 
-    @post("/claims", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    @post("/claims", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def append_claim(
         self,
         discovery_machine_service: DiscoveryMachineService,

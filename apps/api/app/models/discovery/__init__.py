@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from app.models.discovery.catalogue_service import CatalogueService
 from app.models.discovery.discovery_artifact import DiscoveryArtifact
+from app.models.discovery.discovery_budget_ledger import DiscoveryBudgetLedger
 from app.models.discovery.discovery_candidate_mention import DiscoveryCandidateMention
 from app.models.discovery.discovery_claim import DiscoveryClaim
 from app.models.discovery.discovery_document_candidate import DiscoveryDocumentCandidate
@@ -31,6 +32,7 @@ __all__ = [
     "CatalogueService",
     "DiscoveryArtifact",
     "DiscoveryArtifactKind",
+    "DiscoveryBudgetLedger",
     "DiscoveryCandidateMention",
     "DiscoveryCandidateStatus",
     "DiscoveryClaim",

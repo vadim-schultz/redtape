@@ -14,6 +14,7 @@ from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from app.features.discovery.artifact_policy import media_type, read_capped
 from app.features.discovery.artifact_read import ArtifactReadService
 from app.features.discovery.artifact_upload import ArtifactUpload, ArtifactUploadService
+from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.repository import ArtifactFilter, Page
 from app.models.discovery import DiscoveryArtifactKind
@@ -43,7 +44,7 @@ class DiscoveryArtifactMachineController(Controller):
     path = "/"
     guards = [require_discovery_machine]
 
-    @post("/tasks/{task_id:uuid}/artifacts", sync_to_thread=True, status_code=HTTP_201_CREATED)
+    @post("/tasks/{task_id:uuid}/artifacts", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def upload_artifact(
         self,
         discovery_artifact_upload_service: ArtifactUploadService,

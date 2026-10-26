@@ -8,6 +8,7 @@ from uuid import UUID
 import httpx
 
 from discovery_ingest.batch_dedup import dedupe_batch_items
+from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
 from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
 from discovery_ingest.schemas import (
@@ -29,6 +30,10 @@ from discovery_ingest.schemas import (
     TaskSummary,
 )
 
+HTTP_INSUFFICIENT_STORAGE = 507
+DATABASE_LIMIT_DETAIL = "database_soft_limit"
+HTTP_CONFLICT = 409
+
 
 class DiscoveryMachineApiError(Exception):
     """Machine API returned a non-success status."""
@@ -37,6 +42,11 @@ class DiscoveryMachineApiError(Exception):
         self.status_code = status_code
         self.detail = detail
         super().__init__(f"discovery machine API {status_code}: {detail}")
+
+    @property
+    def is_database_limit(self) -> bool:
+        """Whether the API refused a write because the database is above its soft limit (stop, do not fail)."""
+        return self.status_code == HTTP_INSUFFICIENT_STORAGE and DATABASE_LIMIT_DETAIL in self.detail
 
 
 class DiscoveryMachineClient:
@@ -231,6 +241,33 @@ class DiscoveryMachineClient:
             )
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def get_budgets(self) -> BudgetSnapshot:
+        """Return every budget resource in its current period."""
+        return BudgetSnapshot.model_validate(self._budget_call("GET", "").json())
+
+    def reserve_budget(self, resource: BudgetResource, amount: float) -> BudgetReservation:
+        """Reserve ``amount`` of ``resource``; a denial (409) is an answer, not an error."""
+        response = self._budget_call("POST", f"/{resource}/reserve", {"amount": amount}, allow=(HTTP_CONFLICT,))
+        return BudgetReservation.model_validate(response.json())
+
+    def adjust_budget(self, resource: BudgetResource, delta: float) -> BudgetRow:
+        """Apply a signed correction to ``resource`` once its real cost is known."""
+        return BudgetRow.model_validate(self._budget_call("POST", f"/{resource}/adjust", {"delta": delta}).json())
+
+    def exhaust_budget(self, resource: BudgetResource) -> BudgetRow:
+        """Mark ``resource`` exhausted for the rest of its period."""
+        return BudgetRow.model_validate(self._budget_call("POST", f"/{resource}/exhaust").json())
+
+    def _budget_call(
+        self, method: str, suffix: str, body: dict[str, float] | None = None, *, allow: tuple[int, ...] = ()
+    ) -> httpx.Response:
+        url = f"{self._base_url}/api/v1/discovery/machine/budgets{suffix}"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.request(method, url, json=body, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400 and response.status_code not in allow:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return response
 
 
 def _post_catalogue_batches(

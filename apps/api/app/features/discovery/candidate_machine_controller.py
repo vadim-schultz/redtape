@@ -12,6 +12,7 @@ from app.features.auth.principal import MachinePrincipal
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
+from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.repository import CandidateFilter, Page
 from app.models.discovery import DiscoveryCandidateStatus
@@ -27,7 +28,7 @@ class DiscoveryCandidateMachineController(Controller):
     path = "/candidates"
     guards = [require_discovery_machine]
 
-    @post("/mentions", sync_to_thread=True, status_code=HTTP_200_OK)
+    @post("/mentions", sync_to_thread=True, status_code=HTTP_200_OK, guards=DB_WRITE_GUARDS)
     def record_mentions(
         self,
         discovery_candidate_service: CandidateService,
