@@ -50,9 +50,13 @@ def provide_object_store() -> ObjectStore | None:
     return get_object_store()
 
 
-def require_object_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore:
-    """Return the application's store or raise :class:`ObjectStoreUnavailableError` (HTTP 503)."""
-    store = get_object_store(meter)
+def require_store(store: ObjectStore | None) -> ObjectStore:
+    """Return ``store`` or raise :class:`ObjectStoreUnavailableError` (HTTP 503) when it is ``None``."""
     if store is None:
         raise ObjectStoreUnavailableError("Object storage is not configured")
     return store
+
+
+def require_object_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore:
+    """Return the application's store or raise :class:`ObjectStoreUnavailableError` (HTTP 503)."""
+    return require_store(get_object_store(meter))
