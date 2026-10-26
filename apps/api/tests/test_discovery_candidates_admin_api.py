@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 
 from app.models.discovery import (
     CatalogueService,
@@ -10,6 +11,7 @@ from app.models.discovery import (
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
     DiscoveryMentionRole,
+    DiscoverySource,
 )
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -31,9 +33,13 @@ def _candidate(
     *,
     key: str,
     status: DiscoveryCandidateStatus = DiscoveryCandidateStatus.STAGED,
+    title_i18n: dict[str, str] | None = None,
 ) -> DiscoveryDocumentCandidate:
     row = DiscoveryDocumentCandidate(
-        jurisdiction_id=catalogue.jurisdiction_id, key=key, title_i18n={"de": key.title()}, status=status
+        jurisdiction_id=catalogue.jurisdiction_id,
+        key=key,
+        title_i18n=title_i18n or {"de": key.title()},
+        status=status,
     )
     db_session.add(row)
     db_session.flush()
@@ -41,12 +47,16 @@ def _candidate(
 
 
 def _mention(
-    db_session: Session, candidate: DiscoveryDocumentCandidate, catalogue: CatalogueService, field: str = "details[0]"
+    db_session: Session,
+    candidate: DiscoveryDocumentCandidate,
+    catalogue: CatalogueService,
+    field: str = "details[0]",
+    role: DiscoveryMentionRole = DiscoveryMentionRole.REQUIRED,
 ) -> DiscoveryCandidateMention:
     row = DiscoveryCandidateMention(
         candidate_id=candidate.id,
         catalogue_service_id=catalogue.id,
-        role=DiscoveryMentionRole.REQUIRED,
+        role=role,
         excerpt="Bitte mitbringen",
         source_field=field,
         extractor="pvog_payload",
@@ -124,3 +134,115 @@ def test_unknown_candidate_is_404(client: TestClient[Litestar]) -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Document candidate not found"
+
+
+def _keys(client: TestClient[Litestar], **params: object) -> list[str]:
+    body = client.get(CANDIDATES_URL, params=params, headers=_auth()).json()
+    return [item["key"] for item in body["items"]]
+
+
+def test_candidate_list_filters_by_q_across_locales(client: TestClient[Litestar], db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    _candidate(db_session, catalogue, key="personalausweis", title_i18n={"de": "Personalausweis"})
+    _candidate(
+        db_session, catalogue, key="birth-certificate", title_i18n={"de": "Geburtsurkunde", "en": "Birth certificate"}
+    )
+    _candidate(db_session, catalogue, key="passport", title_i18n={"en": "Passport"})
+
+    assert _keys(client, q="PERSONAL") == ["personalausweis"]
+    assert _keys(client, q="certificate") == ["birth-certificate"]
+    assert _keys(client, q="pass") == ["passport"]
+
+
+def test_candidate_list_q_matches_titles_literally_and_total_follows(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    _candidate(db_session, catalogue, key="personalausweis", title_i18n={"de": "Personalausweis"})
+    _candidate(db_session, catalogue, key="reisepass", title_i18n={"de": "Pass"})
+
+    nothing = client.get(CANDIDATES_URL, params={"q": "%"}, headers=_auth()).json()
+    some = client.get(CANDIDATES_URL, params={"q": "ausweis"}, headers=_auth()).json()
+    by_key = _keys(client, q="reisepass")
+
+    assert (nothing["items"], nothing["total"]) == ([], 0)
+    assert some["total"] == 1
+    assert by_key == []
+
+
+def test_candidate_list_filters_by_min_mentions_role_and_source(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    govdata = _catalogue(db_session)
+    pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="svc-2")
+    busy = _candidate(db_session, govdata, key="busy")
+    form = _candidate(db_session, govdata, key="form-only")
+    _candidate(db_session, govdata, key="unmentioned")
+    _mention(db_session, busy, govdata, "a")
+    _mention(db_session, busy, pvog, "b")
+    _mention(db_session, form, pvog, "c", DiscoveryMentionRole.FORM)
+
+    assert sorted(_keys(client, min_mentions=1)) == ["busy", "form-only"]
+    assert _keys(client, min_mentions=2) == ["busy"]
+    assert _keys(client, role="form") == ["form-only"]
+    assert _keys(client, role="required") == ["busy"]
+    assert sorted(_keys(client, source="pvog")) == ["busy", "form-only"]
+    assert _keys(client, source="govdata") == ["busy"]
+    assert _keys(client, source="pvog", role="form", min_mentions=1) == ["form-only"]
+
+
+def test_candidate_list_filters_keep_total_and_counts_consistent(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    govdata = _catalogue(db_session)
+    pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="svc-2")
+    busy = _candidate(db_session, govdata, key="busy")
+    _mention(db_session, busy, govdata, "a")
+    _mention(db_session, busy, pvog, "b", DiscoveryMentionRole.FORM)
+
+    body = client.get(CANDIDATES_URL, params={"source": "pvog", "min_mentions": 3}, headers=_auth()).json()
+    kept = client.get(CANDIDATES_URL, params={"source": "pvog", "min_mentions": 2}, headers=_auth()).json()
+
+    assert (body["items"], body["total"]) == ([], 0)
+    [item] = kept["items"]
+    assert (kept["total"], item["mention_count"], item["roles"]) == (1, 2, ["form", "required"])
+    assert item["jurisdiction_name_i18n"] == {"en": "Testland"}
+
+
+def test_candidate_list_sorts_by_mention_count_then_title(client: TestClient[Litestar], db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    zebra = _candidate(db_session, catalogue, key="zebra", title_i18n={"de": "Zebra"})
+    apple = _candidate(db_session, catalogue, key="apple", title_i18n={"de": "apfel"})
+    popular = _candidate(db_session, catalogue, key="popular", title_i18n={"de": "Beliebt"})
+    _mention(db_session, popular, catalogue, "a")
+    _mention(db_session, popular, catalogue, "b")
+    _mention(db_session, zebra, catalogue, "c")
+    _mention(db_session, apple, catalogue, "d")
+
+    assert _keys(client) == ["popular", "apple", "zebra"]
+    assert _keys(client, sort="mentions_desc") == ["popular", "apple", "zebra"]
+    assert _keys(client, sort="title_asc") == ["apple", "popular", "zebra"]
+
+
+def test_candidate_list_sorts_newest_first_and_falls_back_to_english_titles(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    older = _candidate(db_session, catalogue, key="older", title_i18n={"en": "Alpha"})
+    newer = _candidate(db_session, catalogue, key="newer", title_i18n={"de": "Zeta"})
+    older.created_at = newer.created_at - timedelta(days=1)
+    db_session.flush()
+
+    assert _keys(client, sort="newest") == ["newer", "older"]
+    assert _keys(client, sort="title_asc") == ["older", "newer"]
+
+
+def test_candidate_list_rejects_an_unknown_sort_or_role(client: TestClient[Litestar], db_session: Session) -> None:
+    _candidate(db_session, _catalogue(db_session), key="personalausweis")
+
+    bad_sort = client.get(CANDIDATES_URL, params={"sort": "random"}, headers=_auth())
+    bad_role = client.get(CANDIDATES_URL, params={"role": "optional"}, headers=_auth())
+    bad_source = client.get(CANDIDATES_URL, params={"source": "nowhere"}, headers=_auth())
+    bad_minimum = client.get(CANDIDATES_URL, params={"min_mentions": -1}, headers=_auth())
+
+    assert [r.status_code for r in (bad_sort, bad_role, bad_source, bad_minimum)] == [422, 422, 422, 422]
