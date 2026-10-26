@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 from discovery_ingest.catalogue_export import CatalogueExportItem
+from discovery_ingest.fim.keys import steckbrief_url
 from discovery_ingest.schemas import CatalogueMachineRead, ClaimAppendRequest, EntityUpsertRequest
 
 
@@ -35,7 +36,7 @@ def fim_steckbrief_entity_request(
     key = steckbrief.get("leistungsschluessel")
     if not isinstance(key, str) or not key.strip():
         raise ValueError("steckbrief missing leistungsschluessel")
-    canonical_url = f"{fim_base_url.rstrip('/')}/api/v1/leistung-steckbriefe/{key.strip()}"
+    canonical_url = steckbrief_url(fim_base_url, key.strip())
     titel = steckbrief.get("titel")
     label = titel.strip() if isinstance(titel, str) and titel.strip() else None
     return EntityUpsertRequest(
