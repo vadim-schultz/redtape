@@ -32,6 +32,16 @@ Update this ledger after every chapter implementation or documented operator ver
 | 22 | [Operator manual steps](chapters/22-operator-manual-steps.md) | planned | | | | |
 | 23 | [Free-tier guards](chapters/23-free-tier-guards.md) (executes between 14 and 15) | planned | | | | |
 
+
+## Census results (S12, recorded 2026-10-26)
+
+Operator ran F1-F4 on the production catalogue (520 PVOG rows, 893 GovData rows). Anonymised F2 excerpts are in the chapter 7 fixtures.
+
+- **F1 (PVOG modules, all `TEXT_MODUL` unless noted; total / filled / with links):** `08` Erforderliche Unterlagen 520 / 459 / 3; `14` Formulare 178 / 178 / 34; `09` Voraussetzungen 520 / 461 / 0; `11` Verfahrensablauf 466 / 466 / 4; `06` Beschreibung 518 / 518 / 26; `15` weiterführende Informationen 506 / 506 / 492; `07` Rechtsgrundlage(n) 520 / 484 / 481; `98` Kosten & Gebühren (`KOSTEN`) 520 / 470 / 4; `97` Fristen (`FRIST`) 520 / 464 / 0; `95` Bearbeitungsdauer 457 / 457 / 0; `25` Rechtsbehelf 432 / 432 / 0; `16` Hinweise 235 / 235 / 0; `24` Kurzinfo 506 / 506 / 0; `02`/`03` names 520 / 520 / 0; `18` Urheber 520 / 383 / 0; `23` Ansprechpunkt 520 / 30 / 11; `22` Zuständige Stelle 520 / 28 / 3. Relevant modules are well filled: `08` (required) and `14` (form) are the harvest sources.
+- **F2:** `08` text is HTML with `<ul><li>` lists (nested lists occur), intro `<p>` sentences ending in a colon or full stop, `&#xa0;` entities, and "Sie müssen keine Unterlagen einreichen." placeholder-style statements. Links are almost always empty in `08`; form links come from `14`.
+- **F3:** GovData `raw_payload.leika_key` is a bare 14-digit key; PVOG `raw_payload.leikakeys` is an array of bare keys; external ids are `govdata:leika:<key>` / `pvog:leika:<key>`.
+- **F4:** only `leika_bezeichnung`, `leika_name`, `leika_key` (GovData, 893 rows) and `leikakeys` (PVOG, 520 rows) exist. No Lebenslage or category keys, so no free static life-situation mapping for the extraction suite.
+
 ## Release checklist
 
 - [ ] The ingest package has its own CI workflow and it is green (chapter 1).
