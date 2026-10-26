@@ -400,7 +400,7 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
 @pytest.mark.parametrize(
     ("flags", "expected"),
     [
-        ([], ["fetch_url", "enrich_metadata"]),
+        ([], ["fetch_url", "enrich_metadata", "harvest_payload"]),
         (["--kinds", "extract_page,capture_screenshot"], ["extract_page", "capture_screenshot"]),
     ],
 )
@@ -585,3 +585,52 @@ def test_worker_drain_keeps_remaining_unknown_when_the_summary_fails(
     assert (report["remaining"], report["remaining_unknown"]) == (None, True)
     assert (report["succeeded"], report["stop_reason"]) == (True, "batch_limit")
     assert (finishes[0]["status"], finishes[0]["remaining_count"]) == ("succeeded", None)
+
+
+def test_worker_drain_dispatches_harvest_payload_and_counts_it_completed(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], _env: None
+) -> None:
+    """worker drain · dispatches harvest_payload and counts it completed."""
+    mentions: list[dict[str, Any]] = []
+    claimed = {
+        "id": str(TASK_ID),
+        "catalogue_service_id": str(CATALOGUE_ID),
+        "kind": "harvest_payload",
+        "target_url": TARGET_URL,
+        "status": "claimed",
+        "priority": 50,
+        "lease_expires_at": datetime.now(UTC).isoformat(),
+    }
+    payload = {
+        "details": [{"code": "14", "links": [{"title": "Antrag", "uri": "https://f.example/a"}], "filled": True}]
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        path = request.url.path
+        if stub is not None:
+            return stub
+        if path.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [claimed]})
+        if path.endswith("/tasks/summary"):
+            return httpx.Response(
+                200, json=dict(pending_ready=0, pending_delayed=0, claimed=0, claimed_stale=0, completed=1, failed=0)
+            )
+        if path.endswith(f"/catalogue/{CATALOGUE_ID}"):
+            row = {"id": str(CATALOGUE_ID), "source": "pvog", "title_i18n": {"de": "L"}, "raw_payload": payload}
+            return httpx.Response(200, json=row)
+        if path.endswith("/candidates/mentions"):
+            mentions.extend(json.loads(request.content.decode())["items"])
+            return httpx.Response(200, json={"candidates_created": 1, "mentions_created": 1, "mentions_updated": 0})
+        if path.endswith("/complete"):
+            return httpx.Response(200, json={"id": str(TASK_ID), "status": "completed"})
+        return httpx.Response(404, text=f"unexpected {path}")
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["worker", "drain", "--kinds", "harvest_payload"])
+
+    report = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert (report["claimed"], report["completed"], report["failed"]) == (1, 1, 0)
+    assert [(m["role"], m["official_url"]) for m in mentions] == [("form", "https://f.example/a")]
