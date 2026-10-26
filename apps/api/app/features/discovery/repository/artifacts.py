@@ -28,6 +28,14 @@ class NewArtifact:
     fetched_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class ArtifactTotals:
+    """How many artifacts of one kind exist and the bytes they hold."""
+
+    count: int
+    bytes: int
+
+
 class ArtifactRepository(SessionRepository):
     """Read and write ``discovery_artifact`` rows."""
 
@@ -54,6 +62,14 @@ class ArtifactRepository(SessionRepository):
     def total_artifact_bytes(self) -> int:
         """Return the summed ``byte_size`` of every artifact (the figure the storage cap is checked against)."""
         return int(self._session.scalar(select(func.coalesce(func.sum(DiscoveryArtifact.byte_size), 0))) or 0)
+
+    def artifact_totals(self) -> dict[DiscoveryArtifactKind, ArtifactTotals]:
+        """Return count and bytes per artifact kind; kinds without rows report zero."""
+        stmt = select(
+            DiscoveryArtifact.kind, func.count(), func.coalesce(func.sum(DiscoveryArtifact.byte_size), 0)
+        ).group_by(DiscoveryArtifact.kind)
+        found = {kind: ArtifactTotals(int(count), int(size)) for kind, count, size in self._session.execute(stmt)}
+        return {kind: found.get(kind, ArtifactTotals(0, 0)) for kind in DiscoveryArtifactKind}
 
     def delete_old_snapshots(self, catalogue_id: UUID, *, keep: int) -> list[str]:
         """Delete all but the ``keep`` latest HTML snapshots of a catalogue row; return the deleted storage keys."""

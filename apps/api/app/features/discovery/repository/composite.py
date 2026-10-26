@@ -25,9 +25,9 @@ class DiscoveryRepository(
     CandidateRepository,
     CandidateListingRepository,
     ActivityRepository,
-    ArtifactRepository,
     ArtifactListingRepository,
     CoverageRepository,
     RunRepository,
+    ArtifactRepository,
 ):
     """One session-bound handle exposing every discovery aggregate repository."""

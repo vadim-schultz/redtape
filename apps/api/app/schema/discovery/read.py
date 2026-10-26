@@ -134,6 +134,21 @@ class CandidateCountsRead(BaseModel):
     mentions: int
 
 
+class ArtifactTotalsRead(BaseModel):
+    """Artifact count and stored bytes of one kind."""
+
+    count: int
+    bytes: int
+
+
+class ArtifactCoverageRead(BaseModel):
+    """Stored artifacts per kind against the storage cap."""
+
+    by_kind: dict[str, ArtifactTotalsRead]
+    total_bytes: int
+    bytes_cap: int
+
+
 class DiscoveryRunRead(BaseModel):
     """Operational run record as shown to operators."""
 
@@ -163,6 +178,7 @@ class DiscoveryCoverageResponse(BaseModel):
     task_counts: TaskCountsRead
     task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
     candidates: CandidateCountsRead
+    artifacts: ArtifactCoverageRead
     fetch_attempts_total: int
     stale_claims: int
     stale_runs: int
