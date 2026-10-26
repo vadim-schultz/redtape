@@ -1,9 +1,8 @@
-import { IconButton } from "@chakra-ui/react";
 import type { ComponentType } from "react";
 import { FaClipboard, FaList, FaTasks } from "react-icons/fa";
 import type { IconType } from "react-icons";
-import { Link as RouterLink } from "react-router-dom";
 
+import MenuIconLink from "../../../components/ui/MenuIconLink";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { isDiscoveryAdminUnavailable } from "../utils/discoveryAdminProbeErrors";
 import DiscoveryAdminMenuUnavailable from "./DiscoveryAdminMenuUnavailable";
@@ -48,16 +47,14 @@ function DiscoveryLinks() {
 
   return (
     <>
-      {DISCOVERY_MENU_LINKS.map(({ Icon, label, to }) => {
-        const text = label[locale] ?? label.en;
-        return (
-          <IconButton variant="ghost" size="sm" asChild key={to}>
-            <RouterLink to={to} aria-label={text} title={text}>
-              <Icon aria-hidden="true" />
-            </RouterLink>
-          </IconButton>
-        );
-      })}
+      {DISCOVERY_MENU_LINKS.map(({ Icon, label, to }) => (
+        <MenuIconLink
+          Icon={Icon}
+          key={to}
+          label={label[locale] ?? label.en}
+          to={to}
+        />
+      ))}
     </>
   );
 }
