@@ -1,7 +1,7 @@
 export type SuggestionPayload = {
   title_i18n: Record<string, string>;
   description_i18n?: Record<string, string>;
-  official_url: string;
+  official_url?: string | null;
   domain_codes: string[];
   situation_codes: string[];
 };
