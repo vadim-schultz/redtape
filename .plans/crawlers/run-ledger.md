@@ -81,7 +81,9 @@ Before chapter 15 starts, the operator does S15–S17, S19 and S21 of chapter 22
 
 Launch: `/chief-of-staff` on `.plans/crawlers/`, loop branch `feat/crawlers`, resume.
 
-**Last orchestration:** 2026-10-23 — chapters 1–6 merged into `feat/crawlers` and staged-released to `main` without remote CI (Actions quota exhausted); resume at chapter 7 after the quota resets.
+**Last orchestration:** 2026-10-26 — chapters 7–14 and 23 merged into `feat/crawlers` on local CI only (Actions quota exhausted); stopped before chapter 15: its blocking Step 0 (Cloudflare browser probe) needs the operator's S15–S17 (Cloudflare account id and browser token, probe, storage check). Resume at chapter 15.
+
+**Earlier orchestration:** 2026-10-23 — chapters 1–6 merged into `feat/crawlers` and staged-released to `main` without remote CI (Actions quota exhausted); resume at chapter 7 after the quota resets.
 
 **Plan revision:** 2026-10-23 — chapters 14–22 were re-planned around Cloudflare Browser Run quick actions on the free plan. Chapter 14 gained the `render_page` label, `result_note`, the release route and a storage status route; chapter 15 became the Cloudflare render chapter (probe, throttled client, `render_page`, `discovery-render.yml`); chapter 16 widens the web kind union; chapter 17 lost its API work; chapter 19 lost Playwright, the `[capture]` extra, its workflow and its CI job. Decisions D14 (replaced) and D19–D22 record why. Chapters 1–13 are unaffected.
 
