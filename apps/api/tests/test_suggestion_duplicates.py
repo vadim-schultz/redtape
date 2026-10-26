@@ -278,8 +278,6 @@ def test_same_slug_still_conflicts_without_a_url(
     document = _document(db_session, country, slug="residency-permit", official_url=None)
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(
-            submitter=SubmitterRef("user", user.id), request=_url_less_request(country, "Residency Permit")
-        )
+        service.create(submitter=SubmitterRef("user", user.id), request=_url_less_request(country, "Residency Permit"))
 
     assert exc_info.value.conflicts == [Conflict("document", document.id)]

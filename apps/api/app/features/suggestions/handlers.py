@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, NamedTuple, Protocol
 from uuid import UUID
 
 from app.features.documents.service import DocumentService
@@ -55,6 +55,18 @@ class KindHandler(Protocol):
     def promote(self, suggestion: Suggestion) -> UUID: ...
 
 
+class DocumentIdentity(NamedTuple):
+    """What makes a `new_document` payload a duplicate: its promotion slug and, if it has one, its URL."""
+
+    slug: str
+    normalized_url: str | None
+
+
+def _document_identity(payload: NewDocumentPayload) -> DocumentIdentity:
+    url = None if payload.official_url is None else normalize_url(payload.official_url)
+    return DocumentIdentity(slugify(pick_title(payload.title_i18n)), url)
+
+
 class NewDocumentHandler:
     """Behaviour for `new_document` suggestions (chapters 3-4)."""
 
@@ -73,28 +85,34 @@ class NewDocumentHandler:
             raise UnknownTaxonomyCodeError(str(exc)) from exc
 
     def normalized_url(self, payload: NewDocumentPayload) -> str | None:
-        return normalize_url(payload.official_url)
+        return _document_identity(payload).normalized_url
 
     def conflicts(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
-        slug = slugify(pick_title(payload.title_i18n))
-        normalized = normalize_url(payload.official_url)
-        document_ids = self._documents.find_conflicts(
-            jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized
-        )
-        pending_ids = self._suggestions.find_pending_by_url(jurisdiction_id=jurisdiction_id, normalized_url=normalized)
+        identity = _document_identity(payload)
+        document_ids = self._conflicting_documents(identity, jurisdiction_id)
+        pending_ids = self._pending_with_url(jurisdiction_id, identity.normalized_url)
         return [Conflict("document", i) for i in document_ids] + [Conflict("suggestion", i) for i in pending_ids]
 
     def promote(self, suggestion: Suggestion) -> UUID:
         payload = NewDocumentPayload.model_validate(suggestion.payload)
-        slug = slugify(pick_title(payload.title_i18n))
-        self._check_still_free(payload, jurisdiction_id=suggestion.jurisdiction_id, slug=slug)
-        document = self._documents.create_from_suggestion(payload, suggestion.jurisdiction_id, slug)
+        identity = _document_identity(payload)
+        self._check_still_free(identity, jurisdiction_id=suggestion.jurisdiction_id)
+        document = self._documents.create_from_suggestion(payload, suggestion.jurisdiction_id, identity.slug)
         return document.id
 
-    def _check_still_free(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID, slug: str) -> None:
-        normalized = normalize_url(payload.official_url)
-        if self._documents.find_conflicts(jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized):
-            raise PromotionConflictError(f"slug {slug!r} was already taken in jurisdiction {jurisdiction_id}")
+    def _check_still_free(self, identity: DocumentIdentity, *, jurisdiction_id: UUID) -> None:
+        if self._conflicting_documents(identity, jurisdiction_id):
+            raise PromotionConflictError(f"slug {identity.slug!r} was already taken in jurisdiction {jurisdiction_id}")
+
+    def _conflicting_documents(self, identity: DocumentIdentity, jurisdiction_id: UUID) -> list[UUID]:
+        return self._documents.find_conflicts(
+            jurisdiction_id=jurisdiction_id, slug=identity.slug, normalized_url=identity.normalized_url
+        )
+
+    def _pending_with_url(self, jurisdiction_id: UUID, normalized_url: str | None) -> list[UUID]:
+        if normalized_url is None:
+            return []
+        return self._suggestions.find_pending_by_url(jurisdiction_id=jurisdiction_id, normalized_url=normalized_url)
 
 
 class NewRequirementHandler:
