@@ -6,13 +6,15 @@ import hashlib
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import app.features.discovery.dependencies as discovery_dependencies
 import pytest
 from app.config import settings
+from app.features.discovery.budget_resources import BudgetResource
+from app.features.discovery.budgets import BudgetService
+from app.features.discovery.repository import DiscoveryRepository
 from app.models.discovery import DiscoveryArtifact, DiscoveryTask, DiscoveryTaskKind
-from app.shared.dependencies import shared_dependencies
-from app.shared.object_store import InMemoryObjectStore, ObjectStore
+from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
 from litestar import Litestar
-from litestar.di import Provide
 from litestar.testing import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -59,8 +61,13 @@ class ExplodingStore:
 
 @pytest.fixture
 def slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
+    """Put the slot's store under the ledger meter the discovery routes pass to ``get_object_store``."""
     holder = StoreSlot()
-    monkeypatch.setitem(shared_dependencies, "object_store", Provide(lambda: holder.store, sync_to_thread=False))
+
+    def metered_slot_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore | None:
+        return None if holder.store is None else MeteredObjectStore(holder.store, meter)
+
+    monkeypatch.setattr(discovery_dependencies, "get_object_store", metered_slot_store)
     return holder
 
 
@@ -68,6 +75,11 @@ def slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
 def client(slot: StoreSlot, client: TestClient[Litestar]) -> TestClient[Litestar]:  # noqa: F811
     """The shared admin and machine test client, built after the store override is in place."""
     return client
+
+
+def _used(db_session: Session, resource: BudgetResource) -> float:
+    """How much of ``resource`` the ledger has counted in the current period."""
+    return float(BudgetService(DiscoveryRepository(db_session)).status(resource, datetime.now(UTC)).used)
 
 
 def _upload_url(task_id: uuid.UUID) -> str:
@@ -483,3 +495,64 @@ def test_artifacts_status_is_disabled_without_a_store_or_when_the_cap_is_reached
 
 def test_artifacts_status_requires_the_machine_key(client: TestClient[Litestar]) -> None:
     assert client.get(STATUS_URL).status_code == 401
+
+
+def test_a_denied_class_a_reservation_answers_503_and_writes_no_row_or_object(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    monkeypatch.setattr(settings, "budget_r2_class_a_monthly", 0)
+
+    response = _upload(client, key, task.id)
+
+    assert response.status_code == 503
+    assert _artifacts(db_session, task.catalogue_service_id) == []
+    assert slot.memory.stored_keys() == []
+    assert _used(db_session, BudgetResource.R2_CLASS_A) == 0
+
+
+def test_an_upload_within_the_budget_counts_one_class_a_operation(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+
+    assert _upload(client, key, task.id).status_code == 201
+
+    assert _used(db_session, BudgetResource.R2_CLASS_A) == 1
+
+
+def test_the_admin_artifact_list_counts_one_class_b_operation_per_presigned_url(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    _stored(client, key, task)
+    _stored(client, key, task, content=PNG, kind="screenshot", content_type="image/png")
+
+    response = client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
+
+    assert len(response.json()["items"]) == 2
+    assert _used(db_session, BudgetResource.R2_CLASS_B) == 2
+
+
+def test_the_admin_artifact_list_answers_503_without_minting_urls_when_class_b_is_exhausted(
+    client: TestClient[Litestar], db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    _stored(client, key, task)
+    monkeypatch.setattr(settings, "budget_r2_class_b_monthly", 0)
+
+    response = client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
+
+    assert response.status_code == 503
+
+
+def test_the_admin_artifact_list_counts_nothing_when_storage_is_unset(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    _stored(client, key, task)
+    slot.store = None
+
+    client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
+
+    assert _used(db_session, BudgetResource.R2_CLASS_B) == 0
