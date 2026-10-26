@@ -40,3 +40,8 @@ services:
       # GHA scheduled ingest uses DISCOVERY_API_URL + DISCOVERY_API_KEY (GitHub Secrets),
       # not these Render vars — see docs/operations/deployment-checklist.md and
       # docs/operations/scheduled-jobs.md.
+
+      # Object store (optional — set in Render dashboard, never here): OBJECT_STORE_ENDPOINT_URL,
+      # OBJECT_STORE_REGION (auto for Cloudflare R2), OBJECT_STORE_BUCKET, OBJECT_STORE_ACCESS_KEY_ID,
+      # OBJECT_STORE_SECRET_ACCESS_KEY; optional OBJECT_STORE_FORCE_PATH_STYLE and OBJECT_STORE_MAX_BYTES.
+      # Without all five the API still boots and artifact routes answer 503.
