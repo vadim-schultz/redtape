@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.features.discovery.repository.activity import ActivityRepository, FetchLogEntry, NewEvent
 from app.features.discovery.repository.artifact_listing import ArtifactFilter, ArtifactListingRepository
 from app.features.discovery.repository.artifacts import ArtifactRepository, ArtifactTotals, NewArtifact
+from app.features.discovery.repository.budgets import BudgetRepository, LedgerKey, LedgerState
 from app.features.discovery.repository.candidate_filter import CandidateFilter, CandidateSort
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.features.discovery.repository.candidates import CandidateRepository
@@ -24,6 +25,7 @@ __all__ = [
     "ArtifactListingRepository",
     "ArtifactRepository",
     "ArtifactTotals",
+    "BudgetRepository",
     "CandidateFilter",
     "CandidateListingRepository",
     "CandidateRepository",
@@ -35,6 +37,8 @@ __all__ = [
     "DiscoveryRepository",
     "EntityRepository",
     "FetchLogEntry",
+    "LedgerKey",
+    "LedgerState",
     "NewArtifact",
     "NewEvent",
     "Page",

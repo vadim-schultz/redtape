@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.features.discovery.repository.activity import ActivityRepository
 from app.features.discovery.repository.artifact_listing import ArtifactListingRepository
 from app.features.discovery.repository.artifacts import ArtifactRepository
+from app.features.discovery.repository.budgets import BudgetRepository
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
@@ -29,5 +30,6 @@ class DiscoveryRepository(
     CoverageRepository,
     RunRepository,
     ArtifactRepository,
+    BudgetRepository,
 ):
     """One session-bound handle exposing every discovery aggregate repository."""
