@@ -9,6 +9,7 @@ from app.features.auth.dependencies import provide_machine_principal
 from app.features.auth.dependencies import router_dependencies as auth_dependencies
 from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.candidate_admin_service import CandidateAdminService
+from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.repository import DiscoveryRepository
@@ -43,6 +44,13 @@ def provide_discovery_candidate_admin_service(discovery_repository: DiscoveryRep
     return CandidateAdminService(discovery_repository)
 
 
+def provide_discovery_candidate_emit_service(
+    discovery_repository: DiscoveryRepository,
+    suggestion_service: SuggestionService,
+) -> DiscoveryCandidateEmitService:
+    return DiscoveryCandidateEmitService(discovery_repository, suggestion_service)
+
+
 def provide_discovery_run_service(discovery_repository: DiscoveryRepository) -> DiscoveryRunService:
     return DiscoveryRunService(discovery_repository)
 
@@ -63,6 +71,7 @@ router_dependencies = {
     "discovery_machine_service": Provide(provide_discovery_machine_service, sync_to_thread=False),
     "discovery_candidate_service": Provide(provide_discovery_candidate_service, sync_to_thread=False),
     "discovery_candidate_admin_service": Provide(provide_discovery_candidate_admin_service, sync_to_thread=False),
+    "discovery_candidate_emit_service": Provide(provide_discovery_candidate_emit_service, sync_to_thread=False),
     "discovery_run_service": Provide(provide_discovery_run_service, sync_to_thread=False),
     "discovery_emit_service": Provide(provide_discovery_emit_service, sync_to_thread=False),
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),

@@ -23,6 +23,17 @@ def test_accepts_a_minimal_valid_payload() -> None:
     assert payload.official_url == "https://example.com/form"
 
 
+def test_accepts_a_new_document_payload_without_official_url() -> None:
+    payload = NewDocumentPayload.model_validate({"title_i18n": {"de": "Personalausweis"}})
+    assert payload.official_url is None
+
+
+@pytest.mark.parametrize("url", ["", "   ", "example.com/form", "https://"])
+def test_rejects_a_blank_or_malformed_official_url(url: str) -> None:
+    with pytest.raises(ValidationError):
+        NewDocumentPayload.model_validate(_payload(official_url=url))
+
+
 def test_rejects_a_blank_title() -> None:
     with pytest.raises(ValidationError):
         NewDocumentPayload.model_validate(_payload(title_i18n={"en": "   "}))

@@ -44,6 +44,21 @@ it("SuggestionPayloadSection · new_document links the official URL", async () =
   expect(screen.getByText("Register your address")).toBeInTheDocument();
 });
 
+it("SuggestionPayloadSection · new_document without an official URL shows no link card", async () => {
+  const crawlerSuggestion: SuggestionRead = {
+    ...newDocumentSuggestion,
+    payload: { ...newDocumentSuggestion.payload, official_url: null },
+  };
+
+  const { container } = renderWithProviders(
+    <SuggestionPayloadSection suggestion={crawlerSuggestion} />,
+  );
+
+  expect(await screen.findByText("Register your address")).toBeInTheDocument();
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(container.querySelector(".chakra-card__root")).toBeNull();
+});
+
 it("SuggestionPayloadSection · new_requirement links both documents", async () => {
   renderWithProviders(
     <SuggestionPayloadSection suggestion={newRequirementSuggestion} />,

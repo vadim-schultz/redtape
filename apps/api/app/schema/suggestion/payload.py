@@ -63,7 +63,7 @@ class NewDocumentPayload(BaseModel):
 
     title_i18n: dict[str, str]
     description_i18n: dict[str, str] | None = None
-    official_url: str
+    official_url: str | None = None
     domain_codes: list[str] = Field(default_factory=list)
     situation_codes: list[str] = Field(default_factory=list)
 
@@ -82,8 +82,8 @@ class NewDocumentPayload(BaseModel):
 
     @field_validator("official_url")
     @classmethod
-    def _check_official_url(cls, value: str) -> str:
-        return validate_url(value)
+    def _check_official_url(cls, value: str | None) -> str | None:
+        return None if value is None else validate_url(value)
 
     @field_validator("domain_codes", "situation_codes")
     @classmethod

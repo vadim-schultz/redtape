@@ -69,11 +69,13 @@ def _suggestion(
     status: SuggestionStatus = SuggestionStatus.PENDING,
     title: str = "Residency permit",
     description: str | None = "How to register your residency.",
-    official_url: str = "https://example.gov/residency",
+    official_url: str | None = "https://example.gov/residency",
     domain_codes: list[str] | None = None,
     situation_codes: list[str] | None = None,
 ) -> Suggestion:
-    payload: dict[str, object] = {"title_i18n": {"en": title}, "official_url": official_url}
+    payload: dict[str, object] = {"title_i18n": {"en": title}}
+    if official_url is not None:
+        payload["official_url"] = official_url
     if description is not None:
         payload["description_i18n"] = {"en": description}
     if domain_codes is not None:
@@ -109,6 +111,31 @@ def test_approving_a_new_document_suggestion_creates_a_document_with_its_fields(
     assert document.title_i18n == {"en": "Residency permit"}
     assert document.description_i18n == {"en": "How to register."}
     assert document.official_url == "https://example.gov/residency"
+
+
+def test_a_url_less_document_promotes_with_a_null_official_url(
+    service: SuggestionService, db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    suggestion = _suggestion(db_session, jurisdiction, title="Personalausweis", official_url=None)
+
+    service.transition_to(suggestion.id, SuggestionStatus.APPROVED, actor=None)
+
+    document = _document_by_slug(db_session, jurisdiction, "personalausweis")
+    assert document is not None
+    assert document.official_url is None
+
+
+def test_a_url_less_suggestion_racing_for_a_taken_slug_fails_on_the_slug_alone(
+    service: SuggestionService, db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    first = _suggestion(db_session, jurisdiction, title="Personalausweis", official_url=None)
+    second = _suggestion(db_session, jurisdiction, title="Personalausweis", official_url=None)
+    service.transition_to(first.id, SuggestionStatus.APPROVED, actor=None)
+
+    with pytest.raises(PromotionConflictError):
+        service.transition_to(second.id, SuggestionStatus.APPROVED, actor=None)
+
+    assert second.status == SuggestionStatus.PENDING
 
 
 def test_promoting_a_new_document_suggestion_logs_a_promoted_event_with_the_created_document_id(

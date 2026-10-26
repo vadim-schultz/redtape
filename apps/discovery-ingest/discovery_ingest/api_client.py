@@ -8,6 +8,7 @@ from uuid import UUID
 import httpx
 
 from discovery_ingest.batch_dedup import dedupe_batch_items
+from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
 from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
@@ -116,6 +117,35 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return MentionsResponse.model_validate(response.json())
+
+    def list_staged_candidates(self, *, min_mentions: int, limit: int) -> CandidatePage:
+        """Return up to ``limit`` staged candidates with at least ``min_mentions`` mentions, most mentioned first."""
+        url = f"{self._base_url}/api/v1/discovery/machine/candidates/"
+        params: dict[str, str | int] = {"status": "staged", "min_mentions": min_mentions, "limit": limit}
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, params=params, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return CandidatePage.model_validate(response.json())
+
+    def preview_candidate_emit(self, candidate_id: UUID) -> EmitPreview:
+        """Return what emitting ``candidate_id`` would create; the route never writes."""
+        url = f"{self._base_url}/api/v1/discovery/machine/candidates/{candidate_id}/emit-preview"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.get(url, headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return EmitPreview.model_validate(response.json())
+
+    def emit_candidates(self, candidate_ids: Sequence[UUID]) -> EmitResponse:
+        """Emit up to 50 candidates as pending suggestions; replays and duplicates are reported, not raised."""
+        body = EmitRequest(candidate_ids=list(candidate_ids))
+        url = f"{self._base_url}/api/v1/discovery/machine/candidates/emit"
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            response = client.post(url, json=body.model_dump(mode="json"), headers={"X-API-Key": self._api_key})
+        if response.status_code >= 400:
+            raise DiscoveryMachineApiError(response.status_code, response.text)
+        return EmitResponse.model_validate(response.json())
 
     def claim_tasks(self, *, limit: int, kinds: Sequence[DiscoveryTaskKind]) -> TaskClaimResponse:
         """Claim pending discovery tasks of ``kinds`` for this API key."""
