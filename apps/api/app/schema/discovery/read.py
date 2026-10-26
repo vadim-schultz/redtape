@@ -32,6 +32,9 @@ class DiscoveryTaskRead(BaseModel):
     target_url: str
     status: DiscoveryTaskStatus
     priority: int
+    attempt_count: int
+    not_before: datetime | None
+    input_key: str | None
     lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -46,6 +49,9 @@ class DiscoveryTaskRead(BaseModel):
             target_url=task.target_url,
             status=task.status,
             priority=task.priority,
+            attempt_count=task.attempt_count,
+            not_before=task.not_before,
+            input_key=task.input_key,
             lease_expires_at=task.lease_expires_at,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -119,6 +125,15 @@ class TaskCountsRead(BaseModel):
     failed: int
 
 
+class CandidateCountsRead(BaseModel):
+    """Document candidate totals by lifecycle status, plus their mentions."""
+
+    total: int
+    staged: int
+    emitted: int
+    mentions: int
+
+
 class DiscoveryRunRead(BaseModel):
     """Operational run record as shown to operators."""
 
@@ -146,6 +161,8 @@ class DiscoveryCoverageResponse(BaseModel):
     tasks_failed: int
     emit_ready_count: int
     task_counts: TaskCountsRead
+    task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
+    candidates: CandidateCountsRead
     fetch_attempts_total: int
     stale_claims: int
     stale_runs: int

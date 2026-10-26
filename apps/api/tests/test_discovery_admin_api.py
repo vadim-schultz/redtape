@@ -6,6 +6,7 @@ import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 
 import app.features.auth.dependencies as auth_dependencies
 import app.features.auth.guard_session as guard_session_module
@@ -222,3 +223,67 @@ def test_get_discovery_admin_catalogue_lists_catalogue_services_with_source_filt
     assert len(body["items"]) == 1
     assert body["items"][0]["source"] == "govdata"
     assert body["summary"]["total"] == 1
+
+
+def _kind_task(
+    session: Session,
+    catalogue: CatalogueService,
+    kind: DiscoveryTaskKind,
+    **fields: object,
+) -> DiscoveryTask:
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id,
+        kind=kind,
+        target_url="https://example.gov/service",
+        status=DiscoveryTaskStatus.PENDING,
+        **fields,
+    )
+    session.add(task)
+    session.flush()
+    return task
+
+
+ADMIN_SUB = uuid.uuid4()
+
+
+def _admin_headers() -> dict[str, str]:
+    """Return bearer headers for one stable admin user, so repeated calls reuse the same app_user row."""
+    return {"Authorization": f"Bearer {_token(sub=ADMIN_SUB, email=ADMIN_EMAIL)}"}
+
+
+def test_admin_tasks_lists_kind_attempts_and_not_before(client: TestClient[Litestar], db_session: Session) -> None:
+    catalogue = _catalogue(db_session)
+    retry_at = datetime.now(UTC) + timedelta(hours=2)
+    _kind_task(
+        db_session,
+        catalogue,
+        DiscoveryTaskKind.HARVEST_PAYLOAD,
+        attempt_count=2,
+        not_before=retry_at,
+        input_key="pvog-payload@1",
+    )
+    _kind_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL)
+
+    items = client.get(TASKS_URL, headers=_admin_headers()).json()["items"]
+
+    by_kind = {item["kind"]: item for item in items}
+    harvest, fetch = by_kind["harvest_payload"], by_kind["fetch_url"]
+    assert (harvest["attempt_count"], harvest["input_key"]) == (2, "pvog-payload@1")
+    assert datetime.fromisoformat(harvest["not_before"]) == retry_at
+    assert (fetch["attempt_count"], fetch["not_before"], fetch["input_key"]) == (0, None, None)
+
+
+def test_admin_tasks_filters_by_kind_and_rejects_an_invalid_kind(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    _kind_task(db_session, catalogue, DiscoveryTaskKind.HARVEST_PAYLOAD)
+    _kind_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL)
+
+    filtered = client.get(TASKS_URL, params={"kind": "harvest_payload"}, headers=_admin_headers())
+    invalid = client.get(TASKS_URL, params={"kind": "bogus_kind"}, headers=_admin_headers())
+
+    assert filtered.status_code == 200
+    assert filtered.json()["total"] == 1
+    assert [item["kind"] for item in filtered.json()["items"]] == ["harvest_payload"]
+    assert invalid.status_code == 422

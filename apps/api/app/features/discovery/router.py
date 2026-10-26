@@ -33,6 +33,7 @@ def _invalid_input_is_422(request: Request, exc: InvalidDiscoveryInputError) -> 
 _DOMAIN_ERROR_HANDLERS: ExceptionHandlersMap = {
     DiscoveryNotFoundError: _not_found_is_404,
     InvalidDiscoveryInputError: _invalid_input_is_422,
+    ValidationException: _invalid_payload_is_422,
 }
 
 discovery_admin_router = Router(
@@ -47,6 +48,6 @@ discovery_machine_router = Router(
     path="/api/v1/discovery/machine",
     route_handlers=[DiscoveryMachineController, DiscoveryCandidateMachineController],
     dependencies=router_dependencies,
-    exception_handlers={**_DOMAIN_ERROR_HANDLERS, ValidationException: _invalid_payload_is_422},
+    exception_handlers=_DOMAIN_ERROR_HANDLERS,
     tags=["discovery-machine"],
 )

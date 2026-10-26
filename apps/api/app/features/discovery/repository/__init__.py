@@ -12,7 +12,7 @@ from app.features.discovery.repository.coverage import CoverageRepository, Disco
 from app.features.discovery.repository.entities import EntityRepository
 from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts, TaskSummary
 from app.features.discovery.repository.runs import RunReport, RunRepository
-from app.features.discovery.repository.task_listing import Page, TaskListingRepository
+from app.features.discovery.repository.task_listing import Page, TaskFilter, TaskListingRepository
 from app.features.discovery.repository.tasks import TaskRepository, TaskTarget
 
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     "QueueMetricsRepository",
     "RunReport",
     "RunRepository",
+    "TaskFilter",
     "TaskListingRepository",
     "TaskRepository",
     "TaskStatusCounts",

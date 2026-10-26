@@ -9,7 +9,8 @@ from litestar.params import Parameter
 
 from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
-from app.models.discovery import DiscoverySource, DiscoveryTaskStatus
+from app.features.discovery.repository import Page, TaskFilter
+from app.models.discovery import DiscoverySource, DiscoveryTaskKind, DiscoveryTaskStatus
 from app.schema.discovery.read import (
     CatalogueListResponse,
     CataloguePipelineResponse,
@@ -33,8 +34,10 @@ class DiscoveryAdminController(Controller):
         page: PageParams,
         status: DiscoveryTaskStatus | None = Parameter(query="status", default=None),
         source: DiscoverySource | None = Parameter(query="source", default=None),
+        kind: DiscoveryTaskKind | None = Parameter(query="kind", default=None),
     ) -> DiscoveryTaskListResponse:
-        return discovery_admin_service.list_tasks(status=status, source=source, offset=page.offset, limit=page.limit)
+        task_filter = TaskFilter(status=status, source=source, kind=kind)
+        return discovery_admin_service.list_tasks(task_filter, Page(offset=page.offset, limit=page.limit))
 
     @get("/catalogue", sync_to_thread=True)
     def list_catalogue(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -42,6 +43,16 @@ class TaskSummary:
     failed: int
 
 
+def _status_counts(tally: Counter[DiscoveryTaskStatus]) -> TaskStatusCounts:
+    return TaskStatusCounts(
+        total=tally.total(),
+        pending=tally[DiscoveryTaskStatus.PENDING],
+        claimed=tally[DiscoveryTaskStatus.CLAIMED],
+        completed=tally[DiscoveryTaskStatus.COMPLETED],
+        failed=tally[DiscoveryTaskStatus.FAILED],
+    )
+
+
 def _status(status: DiscoveryTaskStatus) -> tuple[ColumnElement[bool], ...]:
     return (DiscoveryTask.status == status,)
 
@@ -50,20 +61,24 @@ class QueueMetricsRepository(SessionRepository):
     """Aggregate the durable queue state for operators."""
 
     def task_status_counts(self) -> TaskStatusCounts:
-        """Return the total task count and the count per status."""
-        stmt = select(DiscoveryTask.status, func.count()).group_by(DiscoveryTask.status)
-        by_status = {row[0]: int(row[1]) for row in self._session.execute(stmt).all()}
+        """Return the total task count and the count per status, across every kind."""
+        overall: Counter[DiscoveryTaskStatus] = Counter()
+        for tally in self._status_tallies().values():
+            overall.update(tally)
+        return _status_counts(overall)
 
-        def count(status: DiscoveryTaskStatus) -> int:
-            return by_status.get(status, 0)
+    def task_counts_by_kind(self) -> dict[DiscoveryTaskKind, TaskStatusCounts]:
+        """Return the total and per-status task counts of every kind, including kinds without tasks."""
+        return {kind: _status_counts(tally) for kind, tally in self._status_tallies().items()}
 
-        return TaskStatusCounts(
-            total=sum(by_status.values()),
-            pending=count(DiscoveryTaskStatus.PENDING),
-            claimed=count(DiscoveryTaskStatus.CLAIMED),
-            completed=count(DiscoveryTaskStatus.COMPLETED),
-            failed=count(DiscoveryTaskStatus.FAILED),
+    def _status_tallies(self) -> dict[DiscoveryTaskKind, Counter[DiscoveryTaskStatus]]:
+        stmt = select(DiscoveryTask.kind, DiscoveryTask.status, func.count()).group_by(
+            DiscoveryTask.kind, DiscoveryTask.status
         )
+        tallies = {kind: Counter[DiscoveryTaskStatus]() for kind in DiscoveryTaskKind}
+        for kind, status, count in self._session.execute(stmt).all():
+            tallies[kind][status] = int(count)
+        return tallies
 
     def task_summary(self, *, kinds: Sequence[DiscoveryTaskKind], now: datetime) -> TaskSummary:
         """Return one grouped count of ``kinds`` tasks at ``now`` without leasing or mutating anything."""

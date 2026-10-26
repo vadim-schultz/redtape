@@ -42,6 +42,8 @@ const coverageResponse = {
   tasks_failed: 1,
   emit_ready_count: 3,
   task_counts: { total: 3, pending: 2, claimed: 0, completed: 0, failed: 1 },
+  task_counts_by_kind: {},
+  candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
   fetch_attempts_total: 0,
   stale_claims: 0,
   stale_runs: 0,
