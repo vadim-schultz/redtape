@@ -253,3 +253,33 @@ def test_a_non_duplicate_creates_the_suggestion_as_before(
     suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
+
+
+def _url_less_request(jurisdiction: Jurisdiction, title: str) -> SuggestionCreate:
+    return _request(jurisdiction, payload=NewDocumentPayload(title_i18n={"en": title}))
+
+
+def test_two_url_less_documents_with_different_slugs_do_not_conflict(
+    service: SuggestionService, db_session: Session, country: Jurisdiction, user: AppUser
+) -> None:
+    _document(db_session, country, slug="birth-certificate", official_url=None)
+    submitter = SubmitterRef("user", user.id)
+    first = service.create(submitter=submitter, request=_url_less_request(country, "Residency permit")).suggestion
+
+    second = service.create(submitter=submitter, request=_url_less_request(country, "Passport")).suggestion
+
+    assert (first.status, second.status) == (SuggestionStatus.PENDING, SuggestionStatus.PENDING)
+    assert (first.normalized_url, second.normalized_url) == (None, None)
+
+
+def test_same_slug_still_conflicts_without_a_url(
+    service: SuggestionService, db_session: Session, country: Jurisdiction, user: AppUser
+) -> None:
+    document = _document(db_session, country, slug="residency-permit", official_url=None)
+
+    with pytest.raises(DuplicateSuggestionError) as exc_info:
+        service.create(
+            submitter=SubmitterRef("user", user.id), request=_url_less_request(country, "Residency Permit")
+        )
+
+    assert exc_info.value.conflicts == [Conflict("document", document.id)]
