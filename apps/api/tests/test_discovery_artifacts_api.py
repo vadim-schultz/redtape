@@ -17,7 +17,7 @@ from litestar.testing import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from test_discovery_admin_api import _catalogue, _kind_task
+from test_discovery_admin_api import _admin_headers, _catalogue, _kind_task
 from test_discovery_machine_api import _issue_key
 
 MACHINE = "/api/v1/discovery/machine"
@@ -277,3 +277,174 @@ def test_a_reupload_of_an_existing_sha256_makes_no_store_call(
     assert again.status_code == 200
     stored = db_session.scalar(select(func.count()).select_from(DiscoveryArtifact))
     assert stored == 1
+
+
+def _stored(
+    client: TestClient[Litestar],
+    key: str,
+    task: DiscoveryTask,
+    *,
+    content: bytes = HTML,
+    kind: str = "html_snapshot",
+    content_type: str = "text/html",
+    **fields: str,
+) -> dict[str, str]:
+    response = _upload(client, key, task.id, content=content, content_type=content_type, kind=kind, **fields)
+    assert response.status_code == 201
+    return response.json()
+
+
+def _admin_list_url(catalogue_id: uuid.UUID) -> str:
+    return f"/api/v1/discovery/admin/catalogue/{catalogue_id}/artifacts"
+
+
+def test_content_route_returns_the_exact_bytes_and_content_type(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task, content=PNG, kind="screenshot", content_type="image/png")
+
+    response = client.get(f"{MACHINE}/artifacts/{artifact['id']}/content", headers={"X-API-Key": key})
+
+    assert response.status_code == 200
+    assert response.content == PNG
+    assert response.headers["content-type"] == "image/png"
+
+
+def test_content_route_is_404_for_an_unknown_artifact_and_503_when_the_store_is_unset(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+    slot.store = None
+
+    unknown = client.get(f"{MACHINE}/artifacts/{uuid.uuid4()}/content", headers={"X-API-Key": key})
+    unset = client.get(f"{MACHINE}/artifacts/{artifact['id']}/content", headers={"X-API-Key": key})
+
+    assert (unknown.status_code, unset.status_code) == (404, 503)
+    assert unknown.json()["detail"] == "Discovery artifact not found"
+
+
+def test_content_route_is_404_when_the_object_is_missing_from_the_store(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+    slot.memory.delete(artifact["storage_key"])
+
+    response = client.get(f"{MACHINE}/artifacts/{artifact['id']}/content", headers={"X-API-Key": key})
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Discovery artifact not found"
+
+
+def test_admin_list_returns_presigned_urls_and_html_urls_carry_an_attachment_disposition(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    html = _stored(client, key, task)
+    shot = _stored(client, key, task, content=PNG, kind="screenshot", content_type="image/png")
+
+    response = client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
+
+    assert response.status_code == 200
+    urls = {item["id"]: item["url"] for item in response.json()["items"]}
+    assert urls[html["id"]].startswith("memory://") and "expires_in=300" in urls[html["id"]]
+    assert "attachment" in urls[html["id"]]
+    assert "attachment" not in urls[shot["id"]]
+
+
+def test_admin_list_returns_metadata_with_a_null_url_when_storage_is_unset(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+    slot.store = None
+
+    response = client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
+
+    assert response.status_code == 200
+    [item] = response.json()["items"]
+    assert (item["id"], item["url"], item["byte_size"]) == (artifact["id"], None, len(HTML))
+
+
+def test_admin_list_is_404_for_an_unknown_catalogue_row(client: TestClient[Litestar]) -> None:
+    response = client.get(_admin_list_url(uuid.uuid4()), headers=_admin_headers())
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Catalogue service not found"
+
+
+def test_machine_list_filters_by_kind_and_host_and_caps_the_limit(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    other = _kind_task(db_session, _catalogue(db_session, external_id="svc-2"), DiscoveryTaskKind.FETCH_URL)
+    _stored(client, key, task)
+    _stored(client, key, task, content=PNG, kind="screenshot", content_type="image/png")
+    _stored(client, key, other, source_url="https://other.example.org/a?x=1")
+    headers = {"X-API-Key": key}
+
+    def listed(**params: str | int) -> list[dict[str, str]]:
+        return client.get(f"{MACHINE}/artifacts", params=params, headers=headers).json()["items"]
+
+    assert len(listed()) == 3
+    assert [i["kind"] for i in listed(kind="screenshot")] == ["screenshot"]
+    assert [i["source_url"] for i in listed(host="OTHER.example.org")] == ["https://other.example.org/a?x=1"]
+    assert len(listed(host="example.gov")) == 2
+    assert len(listed(limit=1)) == 1
+    assert client.get(f"{MACHINE}/artifacts", params={"limit": 101}, headers=headers).status_code == 400
+
+
+def test_artifact_read_routes_require_the_machine_key_or_an_admin(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+
+    assert client.get(f"{MACHINE}/artifacts").status_code == 401
+    assert client.get(f"{MACHINE}/artifacts/{artifact['id']}/content").status_code == 401
+    assert client.get(_admin_list_url(task.catalogue_service_id)).status_code == 401
+    assert client.get(_admin_list_url(task.catalogue_service_id), headers={"X-API-Key": key}).status_code == 401
+
+
+def _enqueue_with(client: TestClient[Litestar], key: str, catalogue_id: uuid.UUID, artifact_id: object):
+    body = {
+        "catalogue_service_id": str(catalogue_id),
+        "kind": "extract_page",
+        "target_url": "https://example.gov/page",
+        "artifact_id": str(artifact_id),
+    }
+    return client.post(MACHINE + "/tasks", json=body, headers={"X-API-Key": key})
+
+
+def test_enqueue_accepts_an_artifact_of_the_same_catalogue_row_and_stores_it(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+
+    response = _enqueue_with(client, key, task.catalogue_service_id, artifact["id"])
+
+    assert response.status_code == 201
+    created = db_session.get(DiscoveryTask, uuid.UUID(response.json()["id"]))
+    assert created is not None and str(created.artifact_id) == artifact["id"]
+
+
+def test_enqueue_with_an_artifact_from_another_catalogue_row_is_rejected(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    other = _catalogue(db_session, external_id="svc-other")
+    artifact = _stored(client, key, task)
+
+    mismatched = _enqueue_with(client, key, other.id, artifact["id"])
+    unknown = _enqueue_with(client, key, other.id, uuid.uuid4())
+
+    assert (mismatched.status_code, unknown.status_code) == (422, 404)
+    assert (
+        db_session.scalar(
+            select(func.count()).select_from(DiscoveryTask).where(DiscoveryTask.catalogue_service_id == other.id)
+        )
+        == 0
+    )
