@@ -1,4 +1,4 @@
-import { HStack, IconButton } from "@chakra-ui/react";
+import { IconButton } from "@chakra-ui/react";
 import type { ComponentType } from "react";
 import { FaClipboard, FaList, FaTasks } from "react-icons/fa";
 import type { IconType } from "react-icons";
@@ -47,7 +47,7 @@ function DiscoveryLinks() {
   const { locale } = useLocale();
 
   return (
-    <HStack gap="1">
+    <>
       {DISCOVERY_MENU_LINKS.map(({ Icon, label, to }) => {
         const text = label[locale] ?? label.en;
         return (
@@ -58,7 +58,7 @@ function DiscoveryLinks() {
           </IconButton>
         );
       })}
-    </HStack>
+    </>
   );
 }
 
