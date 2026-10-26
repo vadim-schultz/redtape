@@ -8,9 +8,11 @@ from litestar import Controller, get
 from litestar.params import Parameter
 
 from app.features.discovery.candidate_admin_service import CandidateAdminService
+from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
 from app.features.discovery.repository import CandidateFilter, CandidateSort, Page
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryMentionRole, DiscoverySource
+from app.schema.discovery.candidate_emit import CandidateEmitPreview
 from app.schema.discovery.read import CandidateDetailResponse, CandidateListResponse
 from app.shared.paging import PageParams
 
@@ -47,3 +49,11 @@ class DiscoveryCandidateAdminController(Controller):
         candidate_id: UUID,
     ) -> CandidateDetailResponse:
         return discovery_candidate_admin_service.candidate_detail(candidate_id)
+
+    @get("/{candidate_id:uuid}/emit-preview", sync_to_thread=True)
+    def emit_preview(
+        self,
+        discovery_candidate_emit_service: DiscoveryCandidateEmitService,
+        candidate_id: UUID,
+    ) -> CandidateEmitPreview:
+        return discovery_candidate_emit_service.preview(candidate_id)

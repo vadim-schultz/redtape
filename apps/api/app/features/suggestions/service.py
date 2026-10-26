@@ -139,6 +139,13 @@ class SuggestionService:
         row = self._build_row(submitter, request, jurisdiction_id, idempotency_key, handler)
         return self._insert(row, submitter, idempotency_key)
 
+    def preview_conflicts(self, request: SuggestionCreate) -> list[Conflict]:
+        """Validate ``request`` and return what creating it would duplicate; never writes."""
+        handler = self._handlers[request.kind]
+        jurisdiction_id = self._resolve_jurisdiction(request)
+        handler.validate(request.payload, jurisdiction_id=jurisdiction_id)
+        return handler.conflicts(request.payload, jurisdiction_id=jurisdiction_id)
+
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._repo.get(suggestion_id)
 
