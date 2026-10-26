@@ -125,6 +125,15 @@ class TaskCountsRead(BaseModel):
     failed: int
 
 
+class CandidateCountsRead(BaseModel):
+    """Document candidate totals by lifecycle status, plus their mentions."""
+
+    total: int
+    staged: int
+    emitted: int
+    mentions: int
+
+
 class DiscoveryRunRead(BaseModel):
     """Operational run record as shown to operators."""
 
@@ -152,6 +161,8 @@ class DiscoveryCoverageResponse(BaseModel):
     tasks_failed: int
     emit_ready_count: int
     task_counts: TaskCountsRead
+    task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
+    candidates: CandidateCountsRead
     fetch_attempts_total: int
     stale_claims: int
     stale_runs: int

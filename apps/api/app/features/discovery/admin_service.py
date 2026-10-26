@@ -14,9 +14,10 @@ from app.features.discovery.pipeline_rows import (
     fetch_log_dict,
     stage_of,
 )
-from app.features.discovery.repository import DiscoveryRepository, Page, TaskFilter
+from app.features.discovery.repository import DiscoveryRepository, Page, TaskFilter, TaskStatusCounts
 from app.models.discovery import DiscoverySource
 from app.schema.discovery.read import (
+    CandidateCountsRead,
     CatalogueListResponse,
     CataloguePipelineResponse,
     CatalogueServiceRead,
@@ -29,6 +30,10 @@ from app.schema.discovery.read import (
     EmitPreviewResponse,
     TaskCountsRead,
 )
+
+
+def _task_counts_read(counts: TaskStatusCounts) -> TaskCountsRead:
+    return TaskCountsRead(**asdict(counts))
 
 
 class DiscoveryAdminService:
@@ -69,7 +74,9 @@ class DiscoveryAdminService:
             tasks_pending=counts.task_counts.pending,
             tasks_failed=counts.task_counts.failed,
             emit_ready_count=counts.emit_ready_count,
-            task_counts=TaskCountsRead(**asdict(counts.task_counts)),
+            task_counts=_task_counts_read(counts.task_counts),
+            task_counts_by_kind={kind.value: _task_counts_read(c) for kind, c in counts.task_counts_by_kind.items()},
+            candidates=CandidateCountsRead(**asdict(counts.candidates)),
             fetch_attempts_total=counts.fetch_attempts_total,
             stale_claims=counts.stale_claims,
             stale_runs=counts.stale_runs,
