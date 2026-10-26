@@ -18,7 +18,7 @@ API_ROOT = Path(__file__).resolve().parent.parent
 REAL_ALEMBIC_DIR = API_ROOT / "alembic"
 SCRIPT = API_ROOT / "scripts" / "check_migrations.sh"
 
-CURRENT_HEAD = "20261027_artifacts"
+CURRENT_HEAD = "20261028_budget_ledger"
 
 TWO_HEADS_REVISION = '''"""Temp revision that forks the chain (test fixture only)."""
 
