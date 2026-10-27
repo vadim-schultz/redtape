@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,6 +15,8 @@ from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.browser.errors import BrowserError
 from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+
+from run_stub import run_response
 
 API_BASE = "https://redtape.test"
 CATALOGUE_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -63,6 +66,12 @@ class FakeApi:
         self.ledger_exhausted = False
         self.upload_status = 201
         self.upload_detail = ""
+        self.storage_enabled = True
+        self.status_http = 200
+        self.enqueue_status = 200
+        self.pages: dict[str, httpx.Response] = {}
+        self.cloudflare: Callable[[httpx.Request], httpx.Response] | None = None
+        self.finishes: list[dict[str, object]] = []
         self.calls: list[tuple[str, str, Any]] = []
         self.uploads: list[httpx.Request] = []
 
@@ -71,7 +80,13 @@ class FakeApi:
         return [(task, body) for call, task, body in self.calls if call == name]
 
     def handler(self, request: httpx.Request) -> httpx.Response:
-        """Answer one request."""
+        """Answer one request: the machine API, Cloudflare, or a target page."""
+        if request.url.host == "api.cloudflare.com" and self.cloudflare is not None:
+            return self.cloudflare(request)
+        if request.url.host != "redtape.test":
+            return self.pages.get(str(request.url), httpx.Response(404))
+        if (stub := run_response(request, self.finishes)) is not None:
+            return stub
         path = request.url.path
         if (match := re.search(r"/tasks/([0-9a-f-]{36})/(\w+)$", path)) is not None:
             return self._task_route(request, match.group(1), match.group(2))
@@ -80,8 +95,17 @@ class FakeApi:
         if path.endswith("/tasks/claim"):
             return httpx.Response(200, json={"items": self.batches.pop(0) if self.batches else []})
         if path.endswith("/artifacts/status"):
-            return httpx.Response(200, json={"storage_enabled": True, "bytes_used": 0, "bytes_cap": 100})
+            status = {"storage_enabled": self.storage_enabled, "bytes_used": 0, "bytes_cap": 100}
+            return httpx.Response(self.status_http, json=status)
+        if path.endswith("/machine/tasks") and request.method == "POST":
+            return self._enqueue(request)
         return httpx.Response(500, text="no stub")
+
+    def _enqueue(self, request: httpx.Request) -> httpx.Response:
+        self.calls.append(("enqueue", "", json.loads(request.content)))
+        if self.enqueue_status >= 400:
+            return httpx.Response(self.enqueue_status, text="enqueue refused")
+        return httpx.Response(self.enqueue_status, json={"id": str(uuid.uuid4()), "created": True})
 
     def _task_route(self, request: httpx.Request, task_id: str, action: str) -> httpx.Response:
         body = json.loads(request.content) if request.content and action != "artifacts" else None
