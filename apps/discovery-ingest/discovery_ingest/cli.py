@@ -12,6 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
+from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
 from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
 from discovery_ingest.catalogue_export import load_catalogue_row
@@ -44,6 +45,7 @@ from discovery_ingest.schemas import (
     DiscoveryTaskKind,
     is_task_kind,
 )
+from discovery_ingest.worker.browser_setup import BrowserSetupError, prepare_browser
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
@@ -222,6 +224,7 @@ def _drain_policy(args: argparse.Namespace) -> DrainPolicy:
         max_batches=args.max_batches,
         time_budget_seconds=args.time_budget_seconds,
         kinds=args.kinds,
+        browser_budget_seconds=args.browser_budget_seconds,
     )
 
 
@@ -234,12 +237,21 @@ def _worker_drain(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy)
+        return _drain_and_print(policy, settings, client)
+    except BrowserSetupError as err:
+        print(err, file=sys.stderr)
+        return err.exit_code
     except DiscoveryMachineApiError as err:
         print(f"drain failed: {err}", file=sys.stderr)
         return 1
+
+
+def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
+    """Prepare the browser when a browser kind is drained, run the recorded drain and print its report."""
+    browser = prepare_browser(settings, settings.user_agent, client) if policy.drains_browser_kinds else None
+    report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy, browser=browser)
     print(json.dumps(report.model_dump(mode="json")))
-    return 0
+    return 0 if report.succeeded else 1
 
 
 def _candidates_emit(args: argparse.Namespace) -> int:
@@ -335,6 +347,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("candidates", "emit"): _candidates_emit,
     ("budget", "show"): budget_show,
     ("budget", "report-minutes"): budget_report_minutes,
+    ("browser", "probe"): browser_probe,
 }
 
 
@@ -434,10 +447,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional positive wall-clock budget for the whole drain",
     )
     worker_drain.add_argument(
+        "--browser-budget-seconds",
+        type=float,
+        default=480.0,
+        help="Browser seconds this run may spend on render_page and capture_screenshot (positive, default 480)",
+    )
+    worker_drain.add_argument(
         "--kinds",
         type=_task_kinds_arg,
         default=WORKER_DEFAULT_TASK_KINDS,
-        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload)",
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload; render_page and capture_screenshot need Cloudflare settings and artifact storage)",
     )
 
     candidates = sub.add_parser("candidates", help="Document candidates")
@@ -455,4 +474,5 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
     register_budget_parser(sub)
+    register_browser_parser(sub)
     return parser

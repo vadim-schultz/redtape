@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
@@ -23,7 +24,7 @@ def _succeeded(report: DrainReport) -> RunFinishRequest:
     )
 
 
-def _failed(err: DiscoveryMachineApiError) -> RunFinishRequest:
+def _failed(detail: str) -> RunFinishRequest:
     return RunFinishRequest(
         status="failed",
         claimed_count=0,
@@ -31,24 +32,32 @@ def _failed(err: DiscoveryMachineApiError) -> RunFinishRequest:
         failed_count=0,
         skipped_count=0,
         stop_reason="error",
-        error_detail=str(err)[:_MAX_ERROR_DETAIL],
+        error_detail=detail[:_MAX_ERROR_DETAIL],
     )
+
+
+def _finish_request(report: DrainReport) -> RunFinishRequest:
+    """A drain that ended on an infrastructure error (``error``) is a failed run; every other stop succeeded."""
+    return _succeeded(report) if report.succeeded else _failed(report.error or "the drain stopped on an error")
 
 
 def run_recorded_drain(
     client: DiscoveryMachineClient,
     fetcher: PoliteUrlFetcher,
     policy: DrainPolicy,
+    *,
+    browser: BrowserClient | None = None,
 ) -> DrainReport:
     """Drain bounded batches between a run start and a run finish.
 
-    Individual task failures stay in the report; only an API failure marks the run failed.
+    Individual task failures stay in the report; an API failure or an infrastructure stop (``error``) marks the run
+    failed. Limits (browser budget or quota, storage, database) are stops, not failures.
     """
     run_id = client.start_run()
     try:
-        report = run_worker_drain(client, fetcher, policy)
+        report = run_worker_drain(client, fetcher, policy, browser=browser)
     except DiscoveryMachineApiError as err:
-        client.finish_run(run_id, _failed(err))
+        client.finish_run(run_id, _failed(str(err)))
         raise
-    client.finish_run(run_id, _succeeded(report))
+    client.finish_run(run_id, _finish_request(report))
     return report.model_copy(update={"run_id": run_id})

@@ -54,7 +54,9 @@ Invalid bounds exit with code 2. An API failure exits with code 1. The scheduled
 defaults (`--max-tasks 50`, one batch), so each scheduled run is one batch.
 
 Each drain prints one JSON report with `batches`, `claimed`, `completed`, `failed`, `skipped`,
-`stop_reason` (`queue_empty`, `batch_limit`, `time_budget`, or `error`), `run_id`, and `succeeded`.
+`stop_reason` (`queue_empty`, `batch_limit`, `time_budget`, `error`, or a limit that ends the run successfully:
+`browser_budget`, `browser_quota`, `storage_unavailable`, `db_limit`), `run_id`, `succeeded`, `released` (tasks handed
+back without consuming an attempt), `browser_seconds_used`, `render_enqueue_failed` and `ledger_unavailable`.
 The worker records the run through the machine API (`POST …/runs`, then `POST …/runs/{id}/finish`)
 into the `discovery_run` table. The worker never touches the database directly.
 

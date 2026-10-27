@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_BOT_CONTACT_URL = "https://github.com/vadim-schultz/redtape"
@@ -14,8 +14,41 @@ def build_user_agent(contact_url: str) -> str:
     return f"{BOT_PRODUCT_TOKEN}/1.0 (+{contact_url})"
 
 
-class IngestSettings(BaseSettings):
-    """Discovery machine API and optional GovData CKAN overrides."""
+class BrowserSettings(BaseSettings):
+    """Cloudflare Browser Run credentials and pacing; nothing is required unless a browser kind is drained.
+
+    Read from the process environment only (no dotenv file), so ``browser probe`` never touches other secrets.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    cloudflare_account_id: str | None = Field(default=None, validation_alias="CLOUDFLARE_ACCOUNT_ID")
+    cloudflare_browser_api_token: SecretStr | None = Field(
+        default=None, validation_alias="CLOUDFLARE_BROWSER_API_TOKEN"
+    )
+    browser_min_interval_seconds: float = Field(default=11.0, gt=0, validation_alias="BROWSER_MIN_INTERVAL_SECONDS")
+    browser_request_timeout_seconds: float = Field(
+        default=60.0, gt=0, validation_alias="BROWSER_REQUEST_TIMEOUT_SECONDS"
+    )
+
+    def credentials(self) -> tuple[str, str]:
+        """Return the account id and the API token, or raise :class:`ValueError` naming what is missing."""
+        token = self.cloudflare_browser_api_token
+        if not self.cloudflare_account_id or token is None:
+            raise ValueError(f"missing {', '.join(self.missing_credentials())}")
+        return self.cloudflare_account_id, token.get_secret_value()
+
+    def missing_credentials(self) -> list[str]:
+        """Return the names (never the values) of the Cloudflare variables that are not set."""
+        names = {
+            "CLOUDFLARE_ACCOUNT_ID": self.cloudflare_account_id,
+            "CLOUDFLARE_BROWSER_API_TOKEN": self.cloudflare_browser_api_token,
+        }
+        return [name for name, value in names.items() if not value]
+
+
+class IngestSettings(BrowserSettings):
+    """Discovery machine API, optional GovData CKAN overrides and the optional browser settings."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -55,3 +88,8 @@ class IngestSettings(BaseSettings):
 def load_ingest_settings() -> IngestSettings:
     """Load settings from environment variables."""
     return IngestSettings()  # type: ignore[call-arg]
+
+
+def load_browser_settings() -> BrowserSettings:
+    """Load only the Cloudflare browser settings from the environment."""
+    return BrowserSettings()

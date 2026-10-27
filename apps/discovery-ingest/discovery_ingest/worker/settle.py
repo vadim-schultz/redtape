@@ -14,10 +14,15 @@ def fail_from_outcome(client: DiscoveryMachineClient, task_id: UUID, outcome: Fe
     return "failed"
 
 
+def fail_with(client: DiscoveryMachineClient, task_id: UUID, error: str, *, retryable: bool) -> str:
+    """Fail ``task_id`` with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
+    client.fail_task(task_id, error=error, retryable=retryable)
+    return "failed"
+
+
 def fail_permanently(client: DiscoveryMachineClient, task_id: UUID, error: str) -> str:
     """Fail ``task_id`` with ``error`` and no retry: the cause is not transient."""
-    client.fail_task(task_id, error=error, retryable=False)
-    return "failed"
+    return fail_with(client, task_id, error, retryable=False)
 
 
 def fail_from_api_error(client: DiscoveryMachineClient, task_id: UUID, err: DiscoveryMachineApiError) -> str:

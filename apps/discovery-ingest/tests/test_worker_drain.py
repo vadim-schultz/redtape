@@ -403,7 +403,7 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
     ("flags", "expected"),
     [
         ([], ["fetch_url", "enrich_metadata", "harvest_payload"]),
-        (["--kinds", "extract_page,capture_screenshot"], ["extract_page", "capture_screenshot"]),
+        (["--kinds", "extract_page,harvest_payload"], ["extract_page", "harvest_payload"]),
     ],
 )
 def test_worker_drain_sends_the_configured_kinds_when_claiming(
