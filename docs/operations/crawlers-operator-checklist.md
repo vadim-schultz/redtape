@@ -8,6 +8,8 @@ the same row and in [`run-ledger.md`](../../.plans/crawlers/run-ledger.md). Neve
 key into this file, a commit or a chat. The suite and its known gaps: [loops/crawlers.md](loops/crawlers.md).
 Drain and probe behaviour: [discovery-online.md](discovery-online.md) and [scheduled-jobs.md](scheduled-jobs.md).
 
+**Short path after the release deploys:** [crawlers-post-deploy-human-steps.md](crawlers-post-deploy-human-steps.md) lists only the steps a person must do.
+
 ## Checklist
 
 | Step | Tick | Date and run ID | What | Needed before |

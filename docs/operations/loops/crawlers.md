@@ -32,7 +32,7 @@ The ones that gate live verification are the census queries (S12), the fetch rep
 access key, Render variables and GitHub probe secrets (S1–S4), the Cloudflare browser token, its GitHub
 secrets and the browser probe (S15–S17), Cloudflare billing notifications and the ledger caps (S19, S21), and the
 schedule variables (S13). The operator ticks them in
-[`docs/operations/crawlers-operator-checklist.md`](../crawlers-operator-checklist.md). Ask for them early; do not wait
+[`docs/operations/crawlers-operator-checklist.md`](../crawlers-operator-checklist.md). The short list of what a person does after the release deploys is [`crawlers-post-deploy-human-steps.md`](../crawlers-post-deploy-human-steps.md). Ask for them early; do not wait
 for the last chapter. `gh workflow run` answers 404 for a workflow file that is not on `main`, so several live gates
 run only after the release.
 
