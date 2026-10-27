@@ -19,6 +19,7 @@ function task(overrides: Partial<DiscoveryTask>): DiscoveryTask {
     attempt_count: 0,
     not_before: null,
     input_key: null,
+    result_note: null,
     lease_expires_at: null,
     created_at: "2026-01-01T12:00:00Z",
     updated_at: "2026-01-01T12:00:00Z",

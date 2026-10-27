@@ -10,6 +10,7 @@ export type DiscoveryTaskKind =
   | "enrich_metadata"
   | "harvest_payload"
   | "extract_page"
+  | "render_page"
   | "capture_screenshot";
 
 export type DiscoveryTask = {
@@ -23,6 +24,8 @@ export type DiscoveryTask = {
   attempt_count: number;
   not_before: string | null;
   input_key: string | null;
+  /** Why a completed task produced nothing (`login_wall`, `oversize`, ...); open set. */
+  result_note: string | null;
   lease_expires_at: string | null;
   created_at: string;
   updated_at: string;
@@ -114,6 +117,19 @@ export type DiscoveryRun = {
   error_detail: string | null;
 };
 
+export type DiscoveryArtifactKind = "html_snapshot" | "screenshot";
+
+/** Artifact count and stored bytes of one kind. */
+export type DiscoveryArtifactTotals = { count: number; bytes: number };
+
+/** Stored artifacts per kind against the storage cap the API reports. */
+export type DiscoveryArtifactCoverage = {
+  /** Keyed by artifact kind; a kind this client does not know yet still counts. */
+  by_kind: Record<string, DiscoveryArtifactTotals>;
+  total_bytes: number;
+  bytes_cap: number;
+};
+
 export type DiscoveryCoverageResponse = {
   by_source: Partial<Record<DiscoverySource, number>>;
   tasks_pending: number;
@@ -123,6 +139,7 @@ export type DiscoveryCoverageResponse = {
   /** Keyed by task kind; a kind this client does not know yet still renders. */
   task_counts_by_kind: Record<string, DiscoveryTaskCounts>;
   candidates: DiscoveryCandidateCounts;
+  artifacts: DiscoveryArtifactCoverage;
   fetch_attempts_total: number;
   stale_claims: number;
   stale_runs: number;
@@ -157,4 +174,42 @@ export type DiscoveryCandidateListResponse = {
   total: number;
   offset: number;
   limit: number;
+};
+
+/** One stored artifact; `url` is an opaque, short-lived link (null when storage is unset or denied). */
+export type DiscoveryArtifact = {
+  id: string;
+  catalogue_service_id: string;
+  discovery_task_id: string | null;
+  kind: DiscoveryArtifactKind;
+  content_type: string;
+  byte_size: number;
+  source_url: string;
+  final_url: string | null;
+  fetched_at: string;
+  created_at: string;
+  url: string | null;
+};
+
+export type DiscoveryArtifactListResponse = {
+  items: DiscoveryArtifact[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+/** One free-tier resource in its current period. */
+export type DiscoveryBudget = {
+  resource: string;
+  period: string;
+  cap: number;
+  used: number;
+  remaining: number;
+  exhausted: boolean;
+};
+
+export type DiscoveryBudgetsResponse = {
+  items: DiscoveryBudget[];
+  stored_bytes: number;
+  stored_bytes_cap: number;
 };

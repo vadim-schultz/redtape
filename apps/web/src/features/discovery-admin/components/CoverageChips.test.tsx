@@ -22,6 +22,7 @@ const baseCoverage: DiscoveryCoverageResponse = {
     },
   },
   candidates: { total: 5, staged: 3, emitted: 2, mentions: 9 },
+  artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8_589_934_592 },
   fetch_attempts_total: 12,
   stale_claims: 2,
   stale_runs: 1,

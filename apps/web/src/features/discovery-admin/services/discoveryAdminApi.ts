@@ -2,6 +2,8 @@ import { apiRequest } from "../../../services/api";
 import type {
   CatalogueListResponse,
   CataloguePipelineResponse,
+  DiscoveryArtifactListResponse,
+  DiscoveryBudgetsResponse,
   DiscoveryCandidateListResponse,
   DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
@@ -17,6 +19,8 @@ const TASKS_PATH = "/api/v1/discovery/admin/tasks";
 const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
 const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
+const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
+const ARTIFACT_PAGE_SIZE = 50;
 
 /** Probe allowlist by listing tasks (server enforces admin emails). */
 export async function probeDiscoveryAdminAccess(params: {
@@ -134,5 +138,30 @@ export async function listDiscoveryCandidates(params: {
     locale,
     accessToken,
     query: { ...filters, min_mentions: minMentions, offset, limit },
+  });
+}
+
+/** Artifacts of one catalogue row, each with a short-lived presigned URL. */
+export async function listCatalogueArtifacts(params: {
+  locale: string;
+  accessToken: string;
+  catalogueId: string;
+}): Promise<DiscoveryArtifactListResponse> {
+  const { locale, accessToken, catalogueId } = params;
+  return apiRequest<DiscoveryArtifactListResponse>(
+    `${CATALOGUE_PATH}/${catalogueId}/artifacts`,
+    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+  );
+}
+
+/** Free-tier budgets of the current periods plus the stored-bytes figure. */
+export async function fetchDiscoveryBudgets(params: {
+  locale: string;
+  accessToken: string;
+}): Promise<DiscoveryBudgetsResponse> {
+  const { locale, accessToken } = params;
+  return apiRequest<DiscoveryBudgetsResponse>(BUDGETS_PATH, {
+    locale,
+    accessToken,
   });
 }

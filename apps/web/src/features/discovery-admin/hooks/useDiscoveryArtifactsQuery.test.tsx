@@ -31,7 +31,7 @@ function stubArtifacts() {
 }
 
 function focusWindow() {
-  document.dispatchEvent(new Event("visibilitychange"));
+  window.dispatchEvent(new Event("visibilitychange"));
 }
 
 async function renderFirstLoad() {
