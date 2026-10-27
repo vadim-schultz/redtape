@@ -13,6 +13,11 @@ on:
         required: false
         default: ""
         type: string
+      variants:
+        description: "Comma separated variants to run (empty runs all): ua-echo, content, content-lean, snapshot-md, screenshot-jpeg, screenshot-png, snapshot-shot"
+        required: false
+        default: ""
+        type: string
       max_browser_seconds:
         description: "Stop the probe once this many browser seconds are spent (the free plan allows 600 a day)"
         required: false
@@ -36,6 +41,7 @@ jobs:
       CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
       PROBE_URLS: ${{ inputs.urls || 'https://example.com,https://fimportal.de' }}
       PROBE_ERROR_URLS: ${{ inputs.error_urls }}
+      PROBE_VARIANTS: ${{ inputs.variants }}
       PROBE_MAX_BROWSER_SECONDS: ${{ inputs.max_browser_seconds || '240' }}
     steps:
       - name: Check out repository
@@ -64,6 +70,8 @@ jobs:
           for url in "${urls[@]}"; do args+=(--url "${url// /}"); done
           IFS=',' read -ra errors <<< "${PROBE_ERROR_URLS}"
           for url in "${errors[@]}"; do [ -n "${url// /}" ] && args+=(--error-url "${url// /}"); done
+          IFS=',' read -ra variants <<< "${PROBE_VARIANTS}"
+          for variant in "${variants[@]}"; do [ -n "${variant// /}" ] && args+=(--variant "${variant// /}"); done
           python -m discovery_ingest browser probe "${args[@]}" | tee ../../browser-probe.txt
           echo "probe_exit=${PIPESTATUS[0]}" >> "${GITHUB_ENV}"
 

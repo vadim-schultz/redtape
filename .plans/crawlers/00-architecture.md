@@ -162,11 +162,11 @@ Every free allocation has a **server-side cap below the allowance**, kept in a b
 | Limit (free plan) | Worker behaviour |
 | --- | --- |
 | 10 browser minutes a day | `--browser-budget-seconds` (default 480) sums `X-Browser-Ms-Used`; the run stops with `browser_budget` |
-| 1 quick-action request every 10 s | A throttle keeps at least 11 s between calls; about 5 pages a minute |
+| 1 quick-action request every 10 s | A throttle keeps at least 11 s between the end of one call and the start of the next; about 4 pages a minute (chapter 15 probe) |
 | 3 concurrent browsers, 60 s timeout | One call at a time; navigation timeout 30 s |
-| `429` | Release the task and the unstarted batch, stop with `browser_quota`; the run still succeeds |
+| `429` | A rate-limit `429` (`Retry-After` within the interval) is retried once; any other `429` releases the task and the unstarted batch and stops with `browser_quota`; the run still succeeds |
 
-The rate limit, not the browser minutes, normally binds: a 15-minute run renders about 80 pages, so the 1,423 known pages take roughly 18 runs, about 4.5 hours of runner time in total. The same drain run on the operator's machine costs no Actions minutes. Quota and storage problems **release** tasks (no attempt consumed); only page-level problems fail them. The browser kinds are never in the default kind list. A paid plan removes the throttle without a code change (lower `BROWSER_MIN_INTERVAL_SECONDS`).
+The rate limit, not the browser minutes, normally binds: a 15-minute run renders about 60 pages, so the 1,423 known pages take roughly 22 runs, about 5.5 hours of runner time in total. The same drain run on the operator's machine costs no Actions minutes. Quota and storage problems **release** tasks (no attempt consumed); only page-level problems fail them. The browser kinds are never in the default kind list. A paid plan removes the throttle without a code change (lower `BROWSER_MIN_INTERVAL_SECONDS`).
 
 ## 9. Admin surface
 
