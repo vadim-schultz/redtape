@@ -66,6 +66,7 @@ def test_decode_prefers_the_header_charset_over_the_meta_charset() -> None:
         (b"B\xfcrger", "text/html; charset=no-such-charset"),
         (b'<meta charset="no-such-charset">B\xfcrger', "text/html"),
         (b"B\xfcrger", "text/html; charset=utf-8"),
+        (b"B\xfcrger", "text/html; charset=hex"),
     ],
 )
 def test_decode_falls_back_to_utf8_with_replacement(body: bytes, content_type: str | None) -> None:
