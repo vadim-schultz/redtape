@@ -6,12 +6,14 @@ import type { DiscoveryCandidateDetailResponse } from "../types";
 import DocumentHeader from "./DocumentHeader";
 import DocumentMentionsTable from "./DocumentMentionsTable";
 
-/** Candidate detail body: header, mentions and the evidence slot. */
+/** Candidate detail body: header, mentions and the emit and evidence slots. */
 export default function DocumentDetail({
   data,
+  emit,
   evidence,
 }: {
   data: DiscoveryCandidateDetailResponse;
+  emit: ReactNode;
   evidence: ReactNode;
 }) {
   const { t } = useLocale();
@@ -29,6 +31,7 @@ export default function DocumentDetail({
         <DocumentMentionsTable mentions={data.mentions} />
       </Stack>
       {evidence}
+      {emit}
     </Stack>
   );
 }

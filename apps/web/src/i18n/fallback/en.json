@@ -152,7 +152,21 @@
       "col_field": "Source field",
       "col_extractor": "Extractor",
       "col_host": "Source host",
-      "col_procedure": "Procedure"
+      "col_procedure": "Procedure",
+      "emit_title": "Emit preview",
+      "emit_would_create": "Would create a new document suggestion.",
+      "emit_title_label": "Title",
+      "emit_source_url": "Source URL",
+      "emit_official_url": "Official URL",
+      "emit_skipped": "Would be skipped: {reason}.",
+      "skip_reason_duplicate": "a document or suggestion like this already exists",
+      "skip_reason_no_mentions": "no procedure mentions this document",
+      "skip_reason_no_source_url": "the first procedure has no portal URL to cite",
+      "skip_reason_invalid_payload": "the suggestion would be invalid",
+      "emit_conflicts": "Conflicts",
+      "emit_emitted": "Emitted as suggestion",
+      "emit_pending": "Pending review",
+      "emit_cli_hint": "Emitting is done from the command line, not here."
     },
     "pagination": {
       "range": "{from}–{to} of {total}",

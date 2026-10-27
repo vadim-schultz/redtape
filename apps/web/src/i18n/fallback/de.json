@@ -152,7 +152,21 @@
       "col_field": "Quellfeld",
       "col_extractor": "Extraktor",
       "col_host": "Quell-Host",
-      "col_procedure": "Verfahren"
+      "col_procedure": "Verfahren",
+      "emit_title": "Emit-Vorschau",
+      "emit_would_create": "Würde einen neuen Dokumentvorschlag erzeugen.",
+      "emit_title_label": "Titel",
+      "emit_source_url": "Quell-URL",
+      "emit_official_url": "Offizielle URL",
+      "emit_skipped": "Würde übersprungen: {reason}.",
+      "skip_reason_duplicate": "ein solches Dokument oder ein solcher Vorschlag existiert bereits",
+      "skip_reason_no_mentions": "kein Verfahren erwähnt dieses Dokument",
+      "skip_reason_no_source_url": "das erste Verfahren hat keine Portal-URL, die sich angeben ließe",
+      "skip_reason_invalid_payload": "der Vorschlag wäre ungültig",
+      "emit_conflicts": "Konflikte",
+      "emit_emitted": "Als Vorschlag übernommen",
+      "emit_pending": "Wartet auf Prüfung",
+      "emit_cli_hint": "Das Übernehmen erfolgt über die Kommandozeile, nicht hier."
     },
     "pagination": {
       "range": "{from}–{to} von {total}",

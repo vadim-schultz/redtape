@@ -105,6 +105,13 @@ export const queryKeys = {
         candidateId,
         locale,
       ] as const,
+    candidateEmitPreview: (candidateId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "candidate-emit-preview",
+        candidateId,
+        locale,
+      ] as const,
     pipeline: (catalogueId: string | undefined, locale: string) =>
       [
         ...queryKeys.discoveryAdmin.all,

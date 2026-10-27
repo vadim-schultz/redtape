@@ -1,5 +1,6 @@
 import { apiRequest } from "../../../services/api";
 import type {
+  CandidateEmitPreview,
   CatalogueListResponse,
   CataloguePipelineResponse,
   DiscoveryArtifactListResponse,
@@ -151,6 +152,19 @@ export async function fetchDiscoveryCandidate(params: {
   const { locale, accessToken, candidateId } = params;
   return apiRequest<DiscoveryCandidateDetailResponse>(
     `${CANDIDATES_PATH}/${candidateId}`,
+    { locale, accessToken },
+  );
+}
+
+/** Read-only preview of the suggestion emitting one candidate would create. */
+export async function fetchCandidateEmitPreview(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<CandidateEmitPreview> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<CandidateEmitPreview>(
+    `${CANDIDATES_PATH}/${candidateId}/emit-preview`,
     { locale, accessToken },
   );
 }
