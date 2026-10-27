@@ -206,9 +206,7 @@ def test_a_200_without_a_result_is_a_permanent_error() -> None:
     assert caught.value.retryable is False
 
 
-def _snapshot(
-    image: bytes, html: str | None = "<p>shot</p>", meta: dict[str, object] | None = None
-) -> httpx.Response:
+def _snapshot(image: bytes, html: str | None = "<p>shot</p>", meta: dict[str, object] | None = None) -> httpx.Response:
     result = {"screenshot": base64.b64encode(image).decode(), **({"content": html} if html is not None else {})}
     body = {"success": True, "result": result, **({"meta": meta} if meta is not None else {})}
     return httpx.Response(200, json=body, headers={"X-Browser-Ms-Used": "4100"})

@@ -32,7 +32,8 @@ class BrowserRequestError(BrowserError):
 class ScreenshotOversize(BrowserError):
     """The image is larger than the screenshot cap; the caller completes the task with ``oversize``."""
 
-    def __init__(self, byte_size: int) -> None:
-        """Keep the size that broke the cap."""
+    def __init__(self, byte_size: int, ms_used: int = 0) -> None:
+        """Keep the size that broke the cap and the browser milliseconds the call cost."""
         super().__init__(f"screenshot is {byte_size} bytes")
         self.byte_size = byte_size
+        self.ms_used = ms_used

@@ -18,12 +18,14 @@ class RenderedPage:
 
 @dataclass(frozen=True, slots=True)
 class ScreenshotImage:
-    """A full-page image; ``html`` is the DOM of the same session when the service returned it."""
+    """A full-page image; ``html``, ``http_status`` and ``final_url`` describe the same session when the service said."""
 
     data: bytes
     content_type: str
     ms_used: int
     html: str | None = None
+    http_status: int | None = None
+    final_url: str | None = None
 
 
 class BrowserClient(Protocol):
