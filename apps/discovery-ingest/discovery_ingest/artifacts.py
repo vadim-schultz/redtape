@@ -27,6 +27,15 @@ class ArtifactRead(BaseModel):
     fetched_at: datetime
 
 
+class ArtifactPage(BaseModel):
+    """One page of artifact metadata from the machine list route."""
+
+    items: list[ArtifactRead]
+    total: int
+    offset: int
+    limit: int
+
+
 class ArtifactStatus(BaseModel):
     """Whether an upload would be accepted right now."""
 

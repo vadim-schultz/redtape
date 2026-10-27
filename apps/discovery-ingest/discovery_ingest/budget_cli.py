@@ -5,11 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections.abc import Callable
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.budget_models import BUDGET_RESOURCES, BudgetResource, BudgetRow, is_budget_resource
+from discovery_ingest.cli_errors import failing_with_api_error
 from discovery_ingest.config import load_ingest_settings
 
 EXIT_SHORT = 3
@@ -94,18 +94,5 @@ def _report_minutes(args: argparse.Namespace) -> int:
     return 0
 
 
-def _failing_with_api_error(command: Callable[[argparse.Namespace], int]) -> Callable[[argparse.Namespace], int]:
-    """Turn an API refusal (a bad key, say) into exit 1 with its message."""
-
-    def run(args: argparse.Namespace) -> int:
-        try:
-            return command(args)
-        except DiscoveryMachineApiError as err:
-            print(f"budget command failed: {err}", file=sys.stderr)
-            return 1
-
-    return run
-
-
-budget_show = _failing_with_api_error(_show)
-budget_report_minutes = _failing_with_api_error(_report_minutes)
+budget_show = failing_with_api_error("budget", _show)
+budget_report_minutes = failing_with_api_error("budget", _report_minutes)

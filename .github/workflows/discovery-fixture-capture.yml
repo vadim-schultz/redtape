@@ -1,0 +1,75 @@
+name: Discovery fixture capture
+
+# Manual and read-only: lists stored page snapshots of one host, downloads them and uploads them as one Actions
+# artifact. `gh run download <run-id>` brings the files to a developer, who commits the ones an extractor test needs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "Source host of the snapshots, for example verwaltung.bund.de"
+        required: true
+        type: string
+      limit:
+        description: "Maximum snapshots to download (newest first)"
+        required: false
+        default: "5"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-fixture-capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Capture snapshot fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      CAPTURE_HOST: ${{ inputs.host }}
+      CAPTURE_LIMIT: ${{ inputs.limit || '5' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Wait for Render API health
+        working-directory: apps/discovery-ingest
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Download the snapshots
+        working-directory: apps/discovery-ingest
+        run: |
+          set -euo pipefail
+          mkdir -p fixtures
+          python -m discovery_ingest artifacts list --host "${CAPTURE_HOST}" --limit "${CAPTURE_LIMIT}" > fixtures/index.tsv
+          test -s fixtures/index.tsv || { echo "No stored snapshots for ${CAPTURE_HOST}" >&2; exit 1; }
+          while IFS=$'\t' read -r id _kind _size _url; do
+            python -m discovery_ingest artifacts download --id "${id}" --out "fixtures/${id}.html" < /dev/null
+          done < fixtures/index.tsv
+
+      - name: Upload the snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-fixtures
+          path: apps/discovery-ingest/fixtures
+          if-no-files-found: error
+          retention-days: 7
