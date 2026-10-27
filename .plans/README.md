@@ -151,7 +151,7 @@ recording what was fetched and when, and upload/read endpoints. Nine chapters.
 | [gaps-and-decisions.md](evidence-storage/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](evidence-storage/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-object-store-port-and-settings.md](evidence-storage/chapters/01-object-store-port-and-settings.md).
+Status: planned. Chapters 1–2 (the port and the adapter) are absorbed by crawlers chapter 13; the first chapter to build is [chapters/03-evidence-model-migration.md](evidence-storage/chapters/03-evidence-model-migration.md).
 
 ### [voting-moderation/](voting-moderation/) — Votes, thresholds and promotion
 
@@ -184,10 +184,10 @@ standalone `apps/crawler` design. Twenty-three chapters; loop branch `feat/crawl
 | [01-rollout.md](crawlers/01-rollout.md) | Twenty-three chapters, dependency graph, invariants, per-chapter gate (GitHub Actions) |
 | [gaps-and-decisions.md](crawlers/gaps-and-decisions.md) | Settled decisions, open seams, risks |
 | [run-ledger.md](crawlers/run-ledger.md) | Chapter outcomes and live-gate run IDs |
-| [chapters/](crawlers/chapters/) | One executable plan per chapter; the last is the operator checklist |
+| [chapters/](crawlers/chapters/) | One executable plan per chapter; chapter 22 is the operator checklist, chapter 23 the free-tier guards |
 
-Status: chapters 1–6 merged (staged release); 7–23 planned. Next: [chapters/07-pvog-payload-harvester.md](crawlers/chapters/07-pvog-payload-harvester.md); see [run-ledger.md](crawlers/run-ledger.md).
-CoS orchestration: [`docs/operations/loops/crawlers.md`](../docs/operations/loops/crawlers.md).
+Status: built on the loop branch `feat/crawlers` (chapters 1–6 already reached `main` in a staged release): chapters 1–17, 19, 20 and 23 merged, chapter 18 (a hand-written page extractor) deferred and optional, because the [extraction](extraction/) suite is the main path, chapter 21 (docs sync) done, chapter 22 published as the [operator checklist](../docs/operations/crawlers-operator-checklist.md) for the operator to tick. The release PR to `main` is pending and the live gates wait for it; see [run-ledger.md](crawlers/run-ledger.md).
+CoS orchestration and known gaps: [`docs/operations/loops/crawlers.md`](../docs/operations/loops/crawlers.md).
 
 ### [extraction/](extraction/) — LLM information extraction
 
