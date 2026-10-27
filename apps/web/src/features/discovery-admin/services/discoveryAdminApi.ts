@@ -1,9 +1,11 @@
 import { apiRequest } from "../../../services/api";
 import type {
+  CandidateEmitPreview,
   CatalogueListResponse,
   CataloguePipelineResponse,
   DiscoveryArtifactListResponse,
   DiscoveryBudgetsResponse,
+  DiscoveryCandidateDetailResponse,
   DiscoveryCandidateListResponse,
   DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
@@ -141,6 +143,32 @@ export async function listDiscoveryCandidates(params: {
   });
 }
 
+/** One candidate with its jurisdiction name, mentions and their artifact summaries. */
+export async function fetchDiscoveryCandidate(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryCandidateDetailResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryCandidateDetailResponse>(
+    `${CANDIDATES_PATH}/${candidateId}`,
+    { locale, accessToken },
+  );
+}
+
+/** Read-only preview of the suggestion emitting one candidate would create. */
+export async function fetchCandidateEmitPreview(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<CandidateEmitPreview> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<CandidateEmitPreview>(
+    `${CANDIDATES_PATH}/${candidateId}/emit-preview`,
+    { locale, accessToken },
+  );
+}
+
 /** Artifacts of one catalogue row, each with a short-lived presigned URL. */
 export async function listCatalogueArtifacts(params: {
   locale: string;
@@ -150,6 +178,19 @@ export async function listCatalogueArtifacts(params: {
   const { locale, accessToken, catalogueId } = params;
   return apiRequest<DiscoveryArtifactListResponse>(
     `${CATALOGUE_PATH}/${catalogueId}/artifacts`,
+    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+  );
+}
+
+/** The evidence behind one candidate (cited artifacts and procedure screenshots), each with a presigned URL. */
+export async function listCandidateArtifacts(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryArtifactListResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryArtifactListResponse>(
+    `${CANDIDATES_PATH}/${candidateId}/artifacts`,
     { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
   );
 }

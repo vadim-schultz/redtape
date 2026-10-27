@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -52,15 +54,40 @@ def _mention(
     catalogue: CatalogueService,
     field: str = "details[0]",
     role: DiscoveryMentionRole = DiscoveryMentionRole.REQUIRED,
+    artifact: DiscoveryArtifact | None = None,
 ) -> DiscoveryCandidateMention:
     row = DiscoveryCandidateMention(
         candidate_id=candidate.id,
+        artifact_id=artifact.id if artifact else None,
         catalogue_service_id=catalogue.id,
         role=role,
         excerpt="Bitte mitbringen",
         source_field=field,
         extractor="pvog_payload",
         extractor_version="1",
+    )
+    db_session.add(row)
+    db_session.flush()
+    return row
+
+
+def _artifact(
+    db_session: Session,
+    catalogue: CatalogueService,
+    kind: DiscoveryArtifactKind = DiscoveryArtifactKind.HTML_SNAPSHOT,
+    *,
+    fetched_at: datetime | None = None,
+) -> DiscoveryArtifact:
+    sha = uuid.uuid4().hex + uuid.uuid4().hex
+    row = DiscoveryArtifact(
+        catalogue_service_id=catalogue.id,
+        kind=kind,
+        storage_key=f"discovery/{catalogue.id}/{kind.value}/{sha}",
+        sha256=sha,
+        content_type="text/html" if kind is DiscoveryArtifactKind.HTML_SNAPSHOT else "image/png",
+        byte_size=10,
+        source_url="https://example.gov/page",
+        fetched_at=fetched_at or datetime(2026, 10, 26, 12, 0, tzinfo=UTC),
     )
     db_session.add(row)
     db_session.flush()
@@ -246,3 +273,35 @@ def test_candidate_list_rejects_an_unknown_sort_or_role(client: TestClient[Lites
     bad_minimum = client.get(CANDIDATES_URL, params={"min_mentions": -1}, headers=_auth())
 
     assert [r.status_code for r in (bad_sort, bad_role, bad_source, bad_minimum)] == [422, 422, 422, 422]
+
+
+def test_admin_candidate_detail_includes_an_artifact_summary_on_mentions_that_have_one(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    snapshot = _artifact(db_session, catalogue)
+    _mention(db_session, candidate, catalogue, "with-artifact", artifact=snapshot)
+    _mention(db_session, candidate, catalogue, "without-artifact")
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    by_field = {row["source_field"]: row for row in body["mentions"]}
+    assert by_field["with-artifact"]["artifact"] == {
+        "id": str(snapshot.id),
+        "kind": "html_snapshot",
+        "fetched_at": "2026-10-26T12:00:00Z",
+    }
+    assert by_field["with-artifact"]["artifact_id"] == str(snapshot.id)
+    assert by_field["without-artifact"]["artifact"] is None
+
+
+def test_admin_candidate_detail_includes_the_jurisdiction_name(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert body["jurisdiction_name_i18n"] == {"en": "Testland"}

@@ -45,6 +45,19 @@ class ArtifactRead(BaseModel):
         return cls.model_validate(row, from_attributes=True)
 
 
+class ArtifactSummaryRead(BaseModel):
+    """The few artifact fields a mention shows next to its excerpt."""
+
+    id: UUID
+    kind: DiscoveryArtifactKind
+    fetched_at: datetime
+
+    @classmethod
+    def from_row(cls, row: DiscoveryArtifact) -> ArtifactSummaryRead:
+        """Build the summary of ``row``."""
+        return cls(id=row.id, kind=row.kind, fetched_at=row.fetched_at)
+
+
 class AdminArtifactRead(ArtifactRead):
     """Artifact metadata with a short-lived download URL (``None`` while storage is unset)."""
 

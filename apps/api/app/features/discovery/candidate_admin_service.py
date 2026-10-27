@@ -41,10 +41,12 @@ class CandidateAdminService:
         return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def candidate_detail(self, candidate_id: UUID) -> CandidateDetailResponse:
-        """Return one candidate with its mentions and their procedures."""
+        """Return one candidate with its jurisdiction name, mentions, procedures and artifact summaries."""
         candidate = require_candidate(self._repo, candidate_id)
         rows = self._repo.list_candidate_mentions(candidate_id)
-        mentions = [CandidateMentionRead.from_row(mention, procedure) for mention, procedure in rows]
+        mentions = [CandidateMentionRead.from_row(*row) for row in rows]
         return CandidateDetailResponse(
-            candidate=CandidateRead.from_row(candidate, mention_count=len(mentions)), mentions=mentions
+            candidate=CandidateRead.from_row(candidate, mention_count=len(mentions)),
+            jurisdiction_name_i18n=self._repo.get_jurisdiction_name_i18n(candidate.jurisdiction_id),
+            mentions=mentions,
         )

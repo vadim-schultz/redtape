@@ -153,8 +153,8 @@ export type DiscoveryCandidateStatus = "staged" | "emitted";
 
 export type DiscoveryCandidateSort = "mentions_desc" | "title_asc" | "newest";
 
-/** One listed document candidate with its mention statistics. */
-export type DiscoveryCandidate = {
+/** A document candidate as the detail route returns it. */
+export type DiscoveryCandidateRecord = {
   id: string;
   jurisdiction_id: string;
   key: string;
@@ -163,10 +163,14 @@ export type DiscoveryCandidate = {
   status: DiscoveryCandidateStatus;
   suggestion_id: string | null;
   mention_count: number;
-  roles: DiscoveryMentionRole[];
-  jurisdiction_name_i18n: Record<string, string>;
   created_at: string;
   updated_at: string;
+};
+
+/** One listed document candidate with its mention statistics. */
+export type DiscoveryCandidate = DiscoveryCandidateRecord & {
+  roles: DiscoveryMentionRole[];
+  jurisdiction_name_i18n: Record<string, string>;
 };
 
 export type DiscoveryCandidateListResponse = {
@@ -212,4 +216,58 @@ export type DiscoveryBudgetsResponse = {
   items: DiscoveryBudget[];
   stored_bytes: number;
   stored_bytes_cap: number;
+};
+
+/** The artifact a mention cites, without its storage details. */
+export type DiscoveryMentionArtifact = {
+  id: string;
+  kind: DiscoveryArtifactKind;
+  fetched_at: string;
+};
+
+/** One occurrence of a candidate in a procedure. */
+export type DiscoveryCandidateMention = {
+  id: string;
+  catalogue_service_id: string;
+  procedure_title_i18n: Record<string, string>;
+  procedure_source: DiscoverySource;
+  portal_url: string | null;
+  role: DiscoveryMentionRole;
+  excerpt: string;
+  source_field: string;
+  artifact_id: string | null;
+  artifact: DiscoveryMentionArtifact | null;
+  extractor: string;
+  extractor_version: string;
+  created_at: string;
+};
+
+export type DiscoveryCandidateDetailResponse = {
+  candidate: DiscoveryCandidateRecord;
+  jurisdiction_name_i18n: Record<string, string>;
+  mentions: DiscoveryCandidateMention[];
+};
+
+/** A catalogue entity or pending suggestion an emit would duplicate. */
+export type DiscoveryEmitConflict = { type: string; id: string };
+
+/** The `new_document` suggestion an emit would create. */
+export type CandidateEmitSuggestion = {
+  kind: string;
+  jurisdiction_id: string;
+  source_url: string;
+  payload: {
+    title_i18n?: Record<string, string>;
+    official_url?: string | null;
+  };
+};
+
+/** What emitting a candidate would do; nothing is written. */
+export type CandidateEmitPreview = {
+  candidate_id: string;
+  suggestion: CandidateEmitSuggestion | null;
+  suggestion_id: string | null;
+  /** Open set: `duplicate`, `no_mentions`, `no_source_url`, `invalid_payload`, `already_emitted`. */
+  skip_reason: string | null;
+  conflicts: DiscoveryEmitConflict[];
 };

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -18,6 +19,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.discovery.artifacts import ArtifactSummaryRead
 
 
 class DiscoveryTaskRead(BaseModel):
@@ -277,12 +279,15 @@ class CandidateMentionRead(BaseModel):
     excerpt: str
     source_field: str
     artifact_id: UUID | None
+    artifact: ArtifactSummaryRead | None
     extractor: str
     extractor_version: str
     created_at: datetime
 
     @classmethod
-    def from_row(cls, mention: DiscoveryCandidateMention, procedure: CatalogueService) -> CandidateMentionRead:
+    def from_row(
+        cls, mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
+    ) -> CandidateMentionRead:
         return cls(
             id=mention.id,
             catalogue_service_id=procedure.id,
@@ -293,6 +298,7 @@ class CandidateMentionRead(BaseModel):
             excerpt=mention.excerpt,
             source_field=mention.source_field,
             artifact_id=mention.artifact_id,
+            artifact=ArtifactSummaryRead.from_row(artifact) if artifact else None,
             extractor=mention.extractor,
             extractor_version=mention.extractor_version,
             created_at=mention.created_at,
@@ -300,7 +306,8 @@ class CandidateMentionRead(BaseModel):
 
 
 class CandidateDetailResponse(BaseModel):
-    """A candidate with every mention."""
+    """A candidate with its jurisdiction name and every mention."""
 
     candidate: CandidateRead
+    jurisdiction_name_i18n: dict[str, str]
     mentions: list[CandidateMentionRead]
