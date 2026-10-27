@@ -9,12 +9,9 @@ import json
 import httpx
 from pydantic import JsonValue
 
-_MAGIC = ((b"\xff\xd8\xff", "jpeg"), (b"\x89PNG", "png"), (b"RIFF", "webp"))
+from discovery_ingest.browser.images import image_kind
+
 _META_FIELDS = ("status", "finalUrl", "title")
-
-
-def _image_kind(data: bytes) -> str:
-    return next((name for magic, name in _MAGIC if data.startswith(magic)), "bytes")
 
 
 def _size(value: str) -> int:
@@ -36,7 +33,7 @@ def _image_detail(path: str, encoded: str) -> str:
         data = base64.b64decode(encoded, validate=True)
     except (binascii.Error, ValueError):
         return f"{path}=str[{_size(encoded)} B] (not base64)"
-    return f"{path}={_image_kind(data)} {len(data)} B"
+    return f"{path}={image_kind(data)} {len(data)} B"
 
 
 def _result_details(result: JsonValue) -> list[str]:
@@ -97,4 +94,4 @@ def describe(response: httpx.Response, expect: str | None) -> tuple[str, list[st
     if payload is not None:
         return _enveloped(payload, expect)
     kind = response.headers.get("content-type", "unknown")
-    return f"raw {kind.split(';')[0]} {len(response.content)} B", [f"first bytes are {_image_kind(response.content)}"]
+    return f"raw {kind.split(';')[0]} {len(response.content)} B", [f"first bytes are {image_kind(response.content)}"]

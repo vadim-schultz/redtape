@@ -31,6 +31,13 @@ class BrowserSettings(BaseSettings):
         default=60.0, gt=0, validation_alias="BROWSER_REQUEST_TIMEOUT_SECONDS"
     )
 
+    def credentials(self) -> tuple[str, str]:
+        """Return the account id and the API token, or raise :class:`ValueError` naming what is missing."""
+        token = self.cloudflare_browser_api_token
+        if not self.cloudflare_account_id or token is None:
+            raise ValueError(f"missing {', '.join(self.missing_credentials())}")
+        return self.cloudflare_account_id, token.get_secret_value()
+
     def missing_credentials(self) -> list[str]:
         """Return the names (never the values) of the Cloudflare variables that are not set."""
         names = {

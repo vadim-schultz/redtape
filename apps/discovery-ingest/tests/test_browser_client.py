@@ -239,3 +239,14 @@ def test_an_over_limit_screenshot_is_rejected_and_a_broken_image_is_an_error() -
     broken = httpx.Response(200, json={"success": True, "result": {"screenshot": "***", "content": "x"}})
     with pytest.raises(BrowserRequestError):
         _client(lambda request: broken).screenshot(PAGE)
+
+
+def test_a_reported_zero_is_kept_and_not_replaced_by_the_measured_duration() -> None:
+    """render · X-Browser-Ms-Used: 0 (a cached answer) costs nothing."""
+    clock = Clock()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        clock.now += 2.0
+        return _page(ms="0")
+
+    assert _client(handler, clock).render(PAGE).ms_used == 0

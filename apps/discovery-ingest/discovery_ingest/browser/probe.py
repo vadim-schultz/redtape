@@ -43,15 +43,8 @@ def _unanswered(call: ProbeCall, err: httpx.HTTPError, measured_ms: int) -> Prob
     )
 
 
-def _credentials(settings: BrowserSettings) -> tuple[str, str]:
-    token = settings.cloudflare_browser_api_token
-    if not settings.cloudflare_account_id or token is None:
-        raise ValueError(f"missing {', '.join(settings.missing_credentials())}")
-    return settings.cloudflare_account_id, token.get_secret_value()
-
-
 def _send(call: ProbeCall, settings: BrowserSettings, http: httpx.Client) -> httpx.Response:
-    account_id, token = _credentials(settings)
+    account_id, token = settings.credentials()
     return http.post(
         endpoint_url(account_id, call.endpoint),
         json=call.body,
