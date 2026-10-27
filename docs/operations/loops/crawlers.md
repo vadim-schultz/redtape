@@ -80,8 +80,9 @@ Each is also in the ledger or in
 - **Live gates are open.** Every chapter merged with tests against fakes. The live gates need the release on `main` and
   the operator steps; remote CI did not run for chapters 6 to 21 because the Actions quota was exhausted. The release
   PR is the first remote run of that code.
-- **FIM enrichment mismatch.** The real steckbrief has `title` and no `kurztext`; the enrich helpers read `titel` and
-  `kurztext`. Entities get no label and no `metadata` claim. Stammtext references are not fetched.
+- **FIM enrichment has a label but no `metadata` claim.** The enrich helpers label entities from `title` (falling back
+  to `titel`, then `leistungsbezeichnung`). The real steckbrief has no `kurztext`, so no `metadata` claim is written;
+  that is how the data is, not a defect. Stammtext references are not fetched.
 - **Inherited rollback gap.** `SuggestionService._insert` rolls back the whole session on an `IntegrityError`, which
   could undo earlier uncommitted updates in one emit batch. Only a concurrent same-key race triggers it.
 - **Byte cap counts rows.** `OBJECT_STORE_MAX_BYTES` sums `discovery_artifact.byte_size`, not objects. An orphaned

@@ -108,8 +108,10 @@ On R&S laptops, export `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` before `curl`, 
 document, form or evidence field. `leistung_stammtexte` lists `{redaktion_id, id, title, leistungsschluessel}`
 references to text modules (a separate fetch, not built).
 
-**Known mismatch:** the enrich helpers still read `titel` and `kurztext`, which the real response does not have, so
-entities get no label and no `metadata` claim. The fragment below is an illustration from the early fixtures, not the
+**Label and claims.** The enrich helpers take the entity label from the first non-blank of `title`, `titel` (the legacy
+early-fixture shape) and `leistungsbezeichnung`. They write the `metadata` claim only when a real `kurztext` exists;
+the real response has none, so enriched entities get a label and the `new_document` claim but no `metadata` claim, and
+no other field stands in for `kurztext`. The fragment below is an illustration from the early fixtures, not the
 real shape. Run `python -m discovery_ingest fim probe --keys <14-digit keys>` to see live keys.
 
 ## Example steckbrief fragment (truncated, illustrative)
@@ -149,8 +151,8 @@ FIM enrich **does not** call `POST /catalogue/batch`. It reads existing `catalog
 | --- | --- | --- |
 | (constant) | enrich provenance | Treat API host as FIM; `discovery_source` for enrich snapshots is `fim` |
 | see § `external_id` | entity / claim stable keys | max 200 chars where stored as string ids |
-| `titel` / title fields | claim or entity display metadata | map to i18n shape expected by machine API |
-| `kurztext`, long text fields | claim `metadata` / description stubs | chapter 17 maps to suggestion-oriented stubs |
+| `title`, then legacy `titel`, then `leistungsbezeichnung` | entity label (claim shapes unchanged) | map to i18n shape expected by machine API |
+| `kurztext` (absent in the real steckbrief), long text fields | claim `metadata` / description stubs, only when present | chapter 17 maps to suggestion-oriented stubs |
 | entire steckbrief or stammtext object | enrich `raw_payload` | include keys below for fanout and audit |
 
 **`raw_payload` keys for fanout** (canon § Cross-source identifiers — copy source-native names):
