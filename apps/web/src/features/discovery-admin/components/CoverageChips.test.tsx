@@ -110,3 +110,60 @@ it("CoverageChips · renders no kind chip when the API reports no kinds", () => 
   expect(screen.queryByText(/ pending, .* claimed, /)).not.toBeInTheDocument();
   expect(screen.getByText("Candidates: 5")).toBeInTheDocument();
 });
+
+const GIB = 1024 ** 3;
+const EIGHTY_PERCENT = Math.ceil(8 * GIB * 0.8);
+
+function withStoredBytes(totalBytes: number): DiscoveryCoverageResponse {
+  return {
+    ...baseCoverage,
+    artifacts: {
+      by_kind: {
+        html_snapshot: { count: 3, bytes: totalBytes - 1024 },
+        screenshot: { count: 2, bytes: 1024 },
+      },
+      total_bytes: totalBytes,
+      bytes_cap: 8 * GIB,
+    },
+  };
+}
+
+it("coverage view shows artifact bytes against the cap and highlights the warning at 80 percent", () => {
+  renderWithProviders(<CoverageChips coverage={withStoredBytes(3 * GIB)} />);
+
+  expect(screen.getByText("HTML snapshots: 3 (3 GB)")).toBeInTheDocument();
+  expect(screen.getByText("Screenshots: 2 (1 KB)")).toBeInTheDocument();
+  expect(screen.getByText("Stored: 3 GB of 8 GB")).toBeInTheDocument();
+  expect(screen.queryByText(/Storage nearly full/)).not.toBeInTheDocument();
+});
+
+it("coverage view warns once the stored bytes reach 80 percent of the cap", () => {
+  const { rerender } = renderWithProviders(
+    <CoverageChips coverage={withStoredBytes(EIGHTY_PERCENT - 1)} />,
+  );
+  expect(screen.queryByText(/Storage nearly full/)).not.toBeInTheDocument();
+
+  rerender(<CoverageChips coverage={withStoredBytes(EIGHTY_PERCENT)} />);
+
+  expect(screen.getByText("Storage nearly full: 6.4 GB of 8 GB")).toHaveClass(
+    "chakra-badge",
+  );
+});
+
+it("coverage view shows an unknown artifact kind by its raw name and tolerates a zero cap", () => {
+  renderWithProviders(
+    <CoverageChips
+      coverage={{
+        ...baseCoverage,
+        artifacts: {
+          by_kind: { pdf_copy: { count: 1, bytes: 10 } },
+          total_bytes: 10,
+          bytes_cap: 0,
+        },
+      }}
+    />,
+  );
+
+  expect(screen.getByText("pdf_copy: 1 (10 B)")).toBeInTheDocument();
+  expect(screen.queryByText(/Storage nearly full/)).not.toBeInTheDocument();
+});
