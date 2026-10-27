@@ -1,10 +1,11 @@
-import { Table } from "@chakra-ui/react";
+import { Table, Wrap } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import { formatRelativeTime } from "../../suggestions/utils/formatRelativeTime";
 import type { DiscoveryCandidate } from "../types";
 import { localizedTitle } from "../utils/localizedTitle";
+import MentionRoleChip from "./MentionRoleChip";
 
 const COLUMNS = [
   "title",
@@ -24,9 +25,6 @@ export default function DiscoveryDocumentsTable({
   candidates: DiscoveryCandidate[];
 }) {
   const { locale, t } = useLocale();
-  const roles = (candidate: DiscoveryCandidate) =>
-    candidate.roles.map((role) => t(`${NAMESPACE}.role_${role}`)).join(", ");
-
   return (
     <Table.Root size="sm" variant="line">
       <Table.Header>
@@ -49,7 +47,13 @@ export default function DiscoveryDocumentsTable({
             <Table.Cell>
               {localizedTitle(candidate.jurisdiction_name_i18n, locale) || "—"}
             </Table.Cell>
-            <Table.Cell>{roles(candidate)}</Table.Cell>
+            <Table.Cell>
+              <Wrap gap={1}>
+                {candidate.roles.map((role) => (
+                  <MentionRoleChip key={role} role={role} />
+                ))}
+              </Wrap>
+            </Table.Cell>
             <Table.Cell>{candidate.mention_count}</Table.Cell>
             <Table.Cell>{candidate.status}</Table.Cell>
             <Table.Cell>

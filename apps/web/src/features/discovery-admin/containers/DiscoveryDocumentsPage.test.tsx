@@ -86,7 +86,11 @@ it("documents page lists candidates with mention counts", async () => {
   expect(rows).toHaveLength(3);
   expect(rows[1]).toHaveTextContent("Personalausweis");
   expect(rows[1]).toHaveTextContent("Germany");
-  expect(rows[1]).toHaveTextContent("Form, Required");
+  expect(
+    within(rows[1])
+      .getAllByText(/^(Form|Required)$/)
+      .map((chip) => chip.textContent),
+  ).toEqual(["Form", "Required"]);
   expect(rows[1]).toHaveTextContent("7");
   expect(rows[1]).toHaveTextContent("staged");
   expect(rows[2]).toHaveTextContent("Passport");

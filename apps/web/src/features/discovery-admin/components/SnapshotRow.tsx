@@ -4,14 +4,7 @@ import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryArtifact } from "../types";
 import { formatBytes } from "../utils/formatBytes";
 import { formatDate } from "../utils/formatDate";
-
-function hostOf(artifact: DiscoveryArtifact): string {
-  try {
-    return new URL(artifact.final_url ?? artifact.source_url).host;
-  } catch {
-    return "";
-  }
-}
+import { hostOf } from "../utils/hostOf";
 
 /** One stored page: size, fetch date, final host and a download link; the content is never rendered. */
 export default function SnapshotRow({
@@ -23,7 +16,7 @@ export default function SnapshotRow({
   const meta = t("discovery_admin.artifacts.html_meta", {
     size: formatBytes(artifact.byte_size, locale),
     date: formatDate(artifact.fetched_at, locale),
-    host: hostOf(artifact),
+    host: hostOf(artifact.final_url ?? artifact.source_url),
   });
 
   return (
