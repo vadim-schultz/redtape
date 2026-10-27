@@ -40,7 +40,7 @@ class CandidateRequestBuilder:
         mentions = self._repo.list_candidate_mentions(candidate.id)
         if not mentions:
             raise EmitSkip("no_mentions")
-        portal_url = mentions[0][1].portal_url
+        portal_url = mentions[0].procedure.portal_url
         if portal_url is None:
             raise EmitSkip("no_source_url")
         return portal_url

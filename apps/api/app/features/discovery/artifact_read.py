@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from app.features.discovery.errors import ArtifactNotFoundError
-from app.features.discovery.lookups import require_artifact, require_catalogue
+from app.features.discovery.lookups import require_artifact, require_candidate, require_catalogue
 from app.features.discovery.repository import ArtifactFilter, DiscoveryRepository, Page
 from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind
 from app.schema.discovery.artifacts import (
@@ -68,9 +68,16 @@ class ArtifactReadService:
         """Return one page of a catalogue row's artifacts, each with a presigned download URL."""
         require_catalogue(self._repo, catalogue_id)
         rows, total = self._page_of(ArtifactFilter(catalogue_service_id=catalogue_id), page)
-        self._count_presigned_reads(len(rows))
-        items = [self._with_url(row) for row in rows]
-        return AdminArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
+        return self._with_urls(rows, total, page)
+
+    def list_for_candidate(self, candidate_id: UUID, page: Page) -> AdminArtifactListResponse:
+        """Return one page of the evidence behind a candidate, each artifact with a presigned download URL.
+
+        Evidence is every artifact a mention cites plus the latest screenshot of each procedure that mentions it.
+        """
+        require_candidate(self._repo, candidate_id)
+        rows = self._repo.list_candidate_artifacts_page(candidate_id, page)
+        return self._with_urls(rows, self._repo.count_candidate_artifacts(candidate_id), page)
 
     def status(self) -> ArtifactStatusResponse:
         """Report whether uploads would be accepted: a store is set and the byte cap is not reached."""
@@ -81,6 +88,11 @@ class ArtifactReadService:
     def _page_of(self, artifact_filter: ArtifactFilter, page: Page) -> tuple[list[DiscoveryArtifact], int]:
         rows = self._repo.list_artifacts_page(artifact_filter, page)
         return rows, self._repo.count_artifacts(artifact_filter)
+
+    def _with_urls(self, rows: list[DiscoveryArtifact], total: int, page: Page) -> AdminArtifactListResponse:
+        self._count_presigned_reads(len(rows))
+        items = [self._with_url(row) for row in rows]
+        return AdminArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def _count_presigned_reads(self, urls: int) -> None:
         """Reserve one Class B operation per URL about to be minted; a denial raises before any URL exists."""

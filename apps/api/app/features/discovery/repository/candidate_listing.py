@@ -13,6 +13,7 @@ from app.features.discovery.repository.candidate_filter import CandidateFilter
 from app.features.discovery.repository.task_listing import Page
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
     DiscoveryCandidateMention,
     DiscoveryDocumentCandidate,
 )
@@ -26,6 +27,14 @@ class CandidateListRow(NamedTuple):
     mention_count: int
     roles: list[str]
     jurisdiction_name_i18n: dict[str, str]
+
+
+class CandidateMentionRow(NamedTuple):
+    """One mention with the procedure it was found in and the artifact it cites, if any."""
+
+    mention: DiscoveryCandidateMention
+    procedure: CatalogueService
+    artifact: DiscoveryArtifact | None
 
 
 def _mention_stats() -> Subquery:
@@ -74,12 +83,13 @@ class CandidateListingRepository(SessionRepository):
         """Return the candidate with ``candidate_id``, if any."""
         return self._session.get(DiscoveryDocumentCandidate, candidate_id)
 
-    def list_candidate_mentions(self, candidate_id: UUID) -> list[tuple[DiscoveryCandidateMention, CatalogueService]]:
-        """Return the mentions of one candidate with their procedures, oldest first."""
+    def list_candidate_mentions(self, candidate_id: UUID) -> list[CandidateMentionRow]:
+        """Return the mentions of one candidate with their procedures and artifacts, oldest first."""
         stmt = (
-            select(DiscoveryCandidateMention, CatalogueService)
+            select(DiscoveryCandidateMention, CatalogueService, DiscoveryArtifact)
             .join(CatalogueService, DiscoveryCandidateMention.catalogue_service_id == CatalogueService.id)
+            .outerjoin(DiscoveryArtifact, DiscoveryCandidateMention.artifact_id == DiscoveryArtifact.id)
             .where(DiscoveryCandidateMention.candidate_id == candidate_id)
             .order_by(DiscoveryCandidateMention.created_at.asc(), DiscoveryCandidateMention.id.asc())
         )
-        return list(self._session.execute(stmt).tuples().all())
+        return [CandidateMentionRow(*row) for row in self._session.execute(stmt).all()]
