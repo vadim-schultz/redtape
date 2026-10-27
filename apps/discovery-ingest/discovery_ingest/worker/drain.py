@@ -17,6 +17,7 @@ from discovery_ingest.extract.registry import EXTRACTORS
 from discovery_ingest.schemas import DrainReport, StopReason
 from discovery_ingest.worker.batch import BatchResult, DrainContext, TaskHandler, run_batch
 from discovery_ingest.worker.browser_spend import BrowserSpend, open_browser_spend
+from discovery_ingest.worker.capture import CaptureScreenshotHandler
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.extract import ExtractPageHandler
 from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
@@ -39,7 +40,10 @@ def _browser_handlers(
 ) -> Mapping[str, TaskHandler]:
     if browser is None or spend is None:
         return {}
-    return {"render_page": RenderPageHandler(browser, spend, hook)}
+    return {
+        "render_page": RenderPageHandler(browser, spend, hook),
+        "capture_screenshot": CaptureScreenshotHandler(browser, spend),
+    }
 
 
 def _handlers(
