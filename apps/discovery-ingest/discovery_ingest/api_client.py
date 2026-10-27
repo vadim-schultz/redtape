@@ -189,7 +189,7 @@ class DiscoveryMachineClient:
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
                 url,
-                json=body.model_dump(mode="json"),
+                json=body.model_dump(mode="json", exclude_none=True),
                 headers={"X-API-Key": self._api_key},
             )
         if response.status_code >= 400:

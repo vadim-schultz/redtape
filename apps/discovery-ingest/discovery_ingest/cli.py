@@ -456,7 +456,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--kinds",
         type=_task_kinds_arg,
         default=WORKER_DEFAULT_TASK_KINDS,
-        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload; render_page and capture_screenshot need Cloudflare settings and artifact storage)",
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload,extract_page; render_page and capture_screenshot need Cloudflare settings and artifact storage)",
     )
 
     candidates = sub.add_parser("candidates", help="Document candidates")

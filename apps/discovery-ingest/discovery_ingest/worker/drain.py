@@ -19,11 +19,12 @@ from discovery_ingest.worker.batch import BatchResult, DrainContext, TaskHandler
 from discovery_ingest.worker.browser_spend import BrowserSpend, open_browser_spend
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
 from discovery_ingest.worker.extract import ExtractPageHandler
+from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
 from discovery_ingest.worker.fetch_url import handle_fetch_url
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.harvest import handle_harvest_payload
 from discovery_ingest.worker.policy import DrainPolicy
-from discovery_ingest.worker.render import AfterSnapshot, RenderPageHandler, ignore_snapshot
+from discovery_ingest.worker.render import AfterSnapshot, RenderPageHandler
 from discovery_ingest.worker.tally import Tally
 
 _BASE_HANDLERS: dict[str, TaskHandler] = {
@@ -39,6 +40,13 @@ def _browser_handlers(
     if browser is None or spend is None:
         return {}
     return {"render_page": RenderPageHandler(browser, spend, hook)}
+
+
+def _handlers(
+    extractors: Sequence[Extractor], browser_handlers: Mapping[str, TaskHandler]
+) -> Mapping[str, TaskHandler]:
+    """The kind-to-handler table of one drain: the plain kinds, ``extract_page`` over ``extractors``, browser kinds."""
+    return {**_BASE_HANDLERS, "extract_page": ExtractPageHandler(extractors), **browser_handlers}
 
 
 def _open_spend(policy: DrainPolicy, guard: BudgetGuard, browser: BrowserClient | None) -> BrowserSpend | None:
@@ -80,19 +88,16 @@ def run_worker_drain(
 
     ``budget`` is probed once so the report says whether the shared ledger was reachable; handlers that spend a free
     allocation reserve against the same guard. A browser kind needs ``browser``; with no browser time left today the
-    drain stops ``browser_budget`` before it claims anything.
+    drain stops ``browser_budget`` before it claims anything. ``extractors`` serve both ``extract_page`` and the default
+    after-snapshot action (queue ``extract_page``); passing ``after_snapshot`` replaces that action.
     """
     guard = budget or BudgetGuard(client)
     guard.snapshot()
     spend, tally = _open_spend(policy, guard, browser), Tally()
     if policy.drains_browser_kinds and spend is None:
         return _report(client, policy, tally, "browser_budget")
-    handlers = {
-        **_BASE_HANDLERS,
-        "extract_page": ExtractPageHandler(extractors),
-        **_browser_handlers(browser, spend, after_snapshot or ignore_snapshot),
-    }
-    ctx = DrainContext(client, fetcher, policy, handlers)
+    hook = after_snapshot or ExtractEnqueuer(client, extractors)
+    ctx = DrainContext(client, fetcher, policy, _handlers(extractors, _browser_handlers(browser, spend, hook)))
     reason, error = _drain_batches(ctx, tally, clock)
     tally.ledger_unavailable = guard.ledger_unavailable
     tally.browser_seconds_used = spend.used_seconds if spend else 0.0

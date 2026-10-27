@@ -25,7 +25,7 @@ on:
       kinds:
         description: "Comma separated task kinds to claim"
         required: false
-        default: "fetch_url,enrich_metadata,harvest_payload"
+        default: "fetch_url,enrich_metadata,harvest_payload,extract_page"
         type: string
 
 permissions:
@@ -47,7 +47,7 @@ jobs:
       MAX_TASKS: ${{ inputs.max_tasks || '50' }}
       MAX_BATCHES: ${{ inputs.max_batches || '20' }}
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || vars.DISCOVERY_DRAIN_BUDGET_SECONDS || '900' }}
-      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata,harvest_payload' }}
+      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata,harvest_payload,extract_page' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"

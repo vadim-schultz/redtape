@@ -22,10 +22,6 @@ STORAGE_UNAVAILABLE_STATUSES = frozenset({503, 507})
 AfterSnapshot = Callable[[ClaimedTask, ArtifactRead], None]
 
 
-def ignore_snapshot(task: ClaimedTask, artifact: ArtifactRead) -> None:
-    """Default hook: nothing follows a snapshot until an extractor is registered (chapter 17)."""
-
-
 class _Settled(Exception):
     """A step decided the task's outcome (``completed`` or ``failed``); the later steps are skipped."""
 

@@ -41,7 +41,6 @@ def test_fetch_url_enqueues_render_page_with_the_final_url_after_a_200_html_resp
         "kind": "render_page",
         "target_url": "https://portal.example/final",
         "priority": 100,
-        "input_key": None,
     }
     assert (report.completed, report.render_enqueue_failed) == (1, 0)
 
