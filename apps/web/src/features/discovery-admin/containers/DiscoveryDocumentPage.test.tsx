@@ -6,6 +6,7 @@ import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../../auth/services/authGateway";
 import type {
+  CandidateEmitPreview,
   DiscoveryArtifact,
   DiscoveryCandidateDetailResponse,
   DiscoveryCandidateMention,
@@ -68,7 +69,10 @@ function detail(
   };
 }
 
-type Extras = { artifacts?: DiscoveryArtifact[] };
+type Extras = {
+  artifacts?: DiscoveryArtifact[];
+  preview?: CandidateEmitPreview;
+};
 
 function artifact(
   overrides: Partial<DiscoveryArtifact> = {},
@@ -93,15 +97,29 @@ function artifactsBody(items: DiscoveryArtifact[]): string {
   return JSON.stringify({ items, total: items.length, offset: 0, limit: 20 });
 }
 
+function skippedPreview(
+  overrides: Partial<CandidateEmitPreview> = {},
+): CandidateEmitPreview {
+  return {
+    candidate_id: candidateId,
+    suggestion: null,
+    suggestion_id: null,
+    skip_reason: "no_mentions",
+    conflicts: [],
+    ...overrides,
+  };
+}
+
 function stubDocumentFetch(
   body: DiscoveryCandidateDetailResponse,
-  { artifacts = [] }: Extras = {},
+  { artifacts = [], preview = skippedPreview() }: Extras = {},
 ) {
-  const paths: string[] = [];
+  const calls: { path: string; method: string }[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input?: unknown) => {
+    vi.fn(async (input?: unknown, init?: RequestInit) => {
       const pathname = new URL(String(input)).pathname;
+      calls.push({ path: pathname, method: init?.method ?? "GET" });
       if (pathname.endsWith("/api/v1/me")) {
         return new Response(
           JSON.stringify({
@@ -112,15 +130,17 @@ function stubDocumentFetch(
           }),
         );
       }
-      paths.push(pathname);
       if (pathname.endsWith(base)) return new Response(JSON.stringify(body));
       if (pathname.endsWith(`${base}/artifacts`)) {
         return new Response(artifactsBody(artifacts));
       }
+      if (pathname.endsWith(`${base}/emit-preview`)) {
+        return new Response(JSON.stringify(preview));
+      }
       return new Response("", { status: 503 });
     }),
   );
-  return paths;
+  return calls;
 }
 
 function renderDocumentPage() {
@@ -190,7 +210,7 @@ it("external url is left out when absent or not http", async () => {
 });
 
 it("document page shows evidence from the artifacts panel", async () => {
-  const paths = stubDocumentFetch(detail(), {
+  const calls = stubDocumentFetch(detail(), {
     artifacts: [
       artifact(),
       artifact({
@@ -212,7 +232,7 @@ it("document page shows evidence from the artifacts panel", async () => {
     "src",
     "https://store.example/shot.png?sig=abc",
   );
-  expect(paths.some((path) => path.includes("/catalogue/"))).toBe(false);
+  expect(calls.some(({ path }) => path.includes("/catalogue/"))).toBe(false);
 });
 
 it("document page shows the empty evidence state", async () => {
@@ -221,4 +241,67 @@ it("document page shows the empty evidence state", async () => {
 
   expect(await screen.findByText("No artifacts yet.")).toBeInTheDocument();
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
+});
+
+const newDocument = {
+  kind: "new_document" as const,
+  jurisdiction_id: "jur-1",
+  source_url: "https://example.gov/service/1",
+  payload: { title_i18n: { de: "Geburtsurkunde" } },
+};
+
+it("document page shows the emit preview skip reason with its conflicts", async () => {
+  stubDocumentFetch(detail(), {
+    preview: skippedPreview({
+      skip_reason: "duplicate",
+      conflicts: [{ type: "document", id: "doc-9" }],
+    }),
+  });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByText(
+      "Would be skipped: a document or suggestion like this already exists.",
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByText("document doc-9")).toBeInTheDocument();
+});
+
+it("document page shows the suggestion an emit would create", async () => {
+  stubDocumentFetch(detail(), {
+    preview: skippedPreview({ suggestion: newDocument, skip_reason: null }),
+  });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByText("Would create a new document suggestion."),
+  ).toBeInTheDocument();
+  expect(screen.getByText("https://example.gov/service/1")).toBeInTheDocument();
+  expect(screen.queryByText(/Would be skipped/)).not.toBeInTheDocument();
+});
+
+it("document page shows the suggestion state after emit", async () => {
+  stubDocumentFetch(detail({ status: "emitted", suggestion_id: "sug-1" }), {
+    preview: skippedPreview({
+      suggestion_id: "sug-1",
+      skip_reason: "already_emitted",
+    }),
+  });
+  renderDocumentPage();
+
+  const link = await screen.findByRole("link", { name: "sug-1" });
+  expect(link).toHaveAttribute("href", "/suggestions/sug-1");
+  expect(screen.getByText("Pending review")).toHaveClass("chakra-badge");
+  expect(screen.queryByText(/Would be skipped/)).not.toBeInTheDocument();
+});
+
+it("document page has no emit control", async () => {
+  const calls = stubDocumentFetch(detail(), {
+    preview: skippedPreview({ suggestion: newDocument, skip_reason: null }),
+  });
+  renderDocumentPage();
+
+  await screen.findByText("Would create a new document suggestion.");
+  expect(screen.queryAllByRole("button")).toHaveLength(0);
+  expect(calls.filter(({ method }) => method !== "GET")).toEqual([]);
 });
