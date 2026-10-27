@@ -462,6 +462,48 @@ def test_enqueue_with_an_artifact_from_another_catalogue_row_is_rejected(
     )
 
 
+def _claim_extract(client: TestClient[Litestar], key: str) -> list[dict[str, object]]:
+    response = client.post(
+        MACHINE + "/tasks/claim", json={"limit": 5, "kinds": ["extract_page"]}, headers={"X-API-Key": key}
+    )
+    return response.json()["items"]
+
+
+def test_claim_shows_the_artifact_and_input_key_an_enqueued_task_carries(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    artifact = _stored(client, key, task)
+    body = {
+        "catalogue_service_id": str(task.catalogue_service_id),
+        "kind": "extract_page",
+        "target_url": "https://example.gov/page",
+        "artifact_id": artifact["id"],
+        "input_key": "verwaltung-bund@1",
+    }
+    assert client.post(MACHINE + "/tasks", json=body, headers={"X-API-Key": key}).status_code == 201
+
+    items = _claim_extract(client, key)
+
+    assert [(item["artifact_id"], item["input_key"]) for item in items] == [(artifact["id"], "verwaltung-bund@1")]
+
+
+def test_claim_shows_nulls_for_a_task_enqueued_without_an_artifact_or_input_key(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key, task = _issue_key(db_session), _task(db_session)
+    body = {
+        "catalogue_service_id": str(task.catalogue_service_id),
+        "kind": "extract_page",
+        "target_url": "https://example.gov/page",
+    }
+    assert client.post(MACHINE + "/tasks", json=body, headers={"X-API-Key": key}).status_code == 201
+
+    items = _claim_extract(client, key)
+
+    assert [(item["artifact_id"], item["input_key"]) for item in items] == [(None, None)]
+
+
 STATUS_URL = f"{MACHINE}/artifacts/status"
 
 
