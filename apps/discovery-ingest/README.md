@@ -63,3 +63,22 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
 A browser limit (`browser_budget`, `browser_quota`), unavailable storage (`storage_unavailable`) or the database soft
 limit (`db_limit`) releases the in-flight and unstarted tasks and ends the run successfully; only a rejected token or an
 API failure fails it. The manual workflows are `discovery-browser-probe.yml` and `discovery-render.yml`.
+
+## Extract mentions from stored snapshots
+
+After a snapshot is stored, the render worker queues an `extract_page` task, but only when a registered extractor
+matches the page (`discovery_ingest/extract/registry.py`; empty until the first host extractor ships). `extract_page`
+needs no network and is in the default kinds. An extractor implements `matches(url, content_type)` and
+`extract(html, ctx)`; the task's `input_key` is `<id>@<version>`, so a version bump queues a new task for the same
+snapshot. A task whose extractor is gone completes with the note `no_extractor`; a page without mentions completes with
+`no_mentions`.
+
+Real markup for extractor tests comes from the stored snapshots:
+
+```bash
+python -m discovery_ingest artifacts list --host verwaltung.bund.de --limit 5
+python -m discovery_ingest artifacts download --id <artifact-id> --out tests/fixtures/verwaltung/page.html
+# Or without credentials on a laptop: run the manual workflow, then fetch its files.
+gh workflow run discovery-fixture-capture.yml -f host=verwaltung.bund.de -f limit=5
+gh run download <run-id> --name snapshot-fixtures
+```

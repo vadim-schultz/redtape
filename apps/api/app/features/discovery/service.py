@@ -60,6 +60,8 @@ def _claimed_task_read(task: DiscoveryTask, now: datetime) -> ClaimedTaskRead:
         status=task.status,
         priority=task.priority,
         lease_expires_at=task.lease_expires_at or now,
+        artifact_id=task.artifact_id,
+        input_key=task.input_key,
     )
 
 

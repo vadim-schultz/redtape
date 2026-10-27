@@ -150,3 +150,32 @@ def test_artifact_status_reads_the_storage_flag(monkeypatch: pytest.MonkeyPatch)
     status = client.get_artifact_status()
 
     assert (status.storage_enabled, status.bytes_used, status.bytes_cap) == (True, 10, 100)
+
+
+def test_get_artifact_content_returns_the_bytes_and_the_content_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_artifact_content · GETs the machine content route with the key and returns bytes and content type."""
+    artifact_id = uuid.uuid4()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, content=b"<p>x</p>", headers={"content-type": "text/html; charset=utf-8"})
+
+    content = _client(monkeypatch, handler).get_artifact_content(artifact_id)
+
+    assert (content.data, content.content_type) == (b"<p>x</p>", "text/html; charset=utf-8")
+    assert seen[0].url == httpx.URL(f"{API_BASE}/api/v1/discovery/machine/artifacts/{artifact_id}/content")
+    assert seen[0].headers["x-api-key"] == "test-machine-key"
+
+
+@pytest.mark.parametrize("status", [404, 503])
+def test_get_artifact_content_raises_when_the_artifact_or_the_store_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    """get_artifact_content · 404 (unknown or missing object) and 503 (store unset) raise the API error."""
+    client = _client(monkeypatch, lambda request: httpx.Response(status, text="no"))
+
+    with pytest.raises(DiscoveryMachineApiError) as error:
+        client.get_artifact_content(uuid.uuid4())
+
+    assert error.value.status_code == status

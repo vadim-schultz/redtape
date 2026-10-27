@@ -27,6 +27,15 @@ class ArtifactRead(BaseModel):
     fetched_at: datetime
 
 
+class ArtifactPage(BaseModel):
+    """One page of artifact metadata from the machine list route."""
+
+    items: list[ArtifactRead]
+    total: int
+    offset: int
+    limit: int
+
+
 class ArtifactStatus(BaseModel):
     """Whether an upload would be accepted right now."""
 
@@ -53,3 +62,11 @@ class StoredArtifact:
 
     artifact: ArtifactRead
     created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactContent:
+    """The stored bytes of an artifact with the ``Content-Type`` the content route answered with."""
+
+    data: bytes
+    content_type: str | None

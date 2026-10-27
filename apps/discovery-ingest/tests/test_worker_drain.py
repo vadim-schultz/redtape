@@ -402,7 +402,7 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
 @pytest.mark.parametrize(
     ("flags", "expected"),
     [
-        ([], ["fetch_url", "enrich_metadata", "harvest_payload"]),
+        ([], ["fetch_url", "enrich_metadata", "harvest_payload", "extract_page"]),
         (["--kinds", "extract_page,harvest_payload"], ["extract_page", "harvest_payload"]),
     ],
 )
@@ -533,7 +533,7 @@ def test_fetch_url_reports_a_404_as_permanent(monkeypatch: pytest.MonkeyPatch, _
 
 def test_unknown_kind_is_failed_as_non_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
     """A claimed kind without a handler is failed permanently."""
-    bodies = _drain_fail_bodies(monkeypatch, "extract_page", _answer_404)
+    bodies = _drain_fail_bodies(monkeypatch, "render_page", _answer_404)
 
     assert [body["retryable"] for body in bodies] == [False]
     assert str(bodies[0]["error"]).startswith("unsupported task kind")

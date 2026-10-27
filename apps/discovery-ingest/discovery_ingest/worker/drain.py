@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict
 
 import httpx
@@ -12,15 +12,19 @@ from pydantic import ValidationError
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.extract.base import Extractor
+from discovery_ingest.extract.registry import EXTRACTORS
 from discovery_ingest.schemas import DrainReport, StopReason
 from discovery_ingest.worker.batch import BatchResult, DrainContext, TaskHandler, run_batch
 from discovery_ingest.worker.browser_spend import BrowserSpend, open_browser_spend
 from discovery_ingest.worker.enrich_metadata import handle_enrich_metadata
+from discovery_ingest.worker.extract import ExtractPageHandler
+from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
 from discovery_ingest.worker.fetch_url import handle_fetch_url
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.harvest import handle_harvest_payload
 from discovery_ingest.worker.policy import DrainPolicy
-from discovery_ingest.worker.render import AfterSnapshot, RenderPageHandler, ignore_snapshot
+from discovery_ingest.worker.render import AfterSnapshot, RenderPageHandler
 from discovery_ingest.worker.tally import Tally
 
 _BASE_HANDLERS: dict[str, TaskHandler] = {
@@ -30,12 +34,19 @@ _BASE_HANDLERS: dict[str, TaskHandler] = {
 }
 
 
-def _handlers(
+def _browser_handlers(
     browser: BrowserClient | None, spend: BrowserSpend | None, hook: AfterSnapshot
 ) -> Mapping[str, TaskHandler]:
     if browser is None or spend is None:
-        return _BASE_HANDLERS
-    return {**_BASE_HANDLERS, "render_page": RenderPageHandler(browser, spend, hook)}
+        return {}
+    return {"render_page": RenderPageHandler(browser, spend, hook)}
+
+
+def _handlers(
+    extractors: Sequence[Extractor], browser_handlers: Mapping[str, TaskHandler]
+) -> Mapping[str, TaskHandler]:
+    """The kind-to-handler table of one drain: the plain kinds, ``extract_page`` over ``extractors``, browser kinds."""
+    return {**_BASE_HANDLERS, "extract_page": ExtractPageHandler(extractors), **browser_handlers}
 
 
 def _open_spend(policy: DrainPolicy, guard: BudgetGuard, browser: BrowserClient | None) -> BrowserSpend | None:
@@ -71,19 +82,22 @@ def run_worker_drain(
     budget: BudgetGuard | None = None,
     browser: BrowserClient | None = None,
     after_snapshot: AfterSnapshot | None = None,
+    extractors: Sequence[Extractor] = EXTRACTORS,
 ) -> DrainReport:
     """Claim and settle batches until ``policy`` says to stop.
 
     ``budget`` is probed once so the report says whether the shared ledger was reachable; handlers that spend a free
     allocation reserve against the same guard. A browser kind needs ``browser``; with no browser time left today the
-    drain stops ``browser_budget`` before it claims anything.
+    drain stops ``browser_budget`` before it claims anything. ``extractors`` serve both ``extract_page`` and the default
+    after-snapshot action (queue ``extract_page``); passing ``after_snapshot`` replaces that action.
     """
     guard = budget or BudgetGuard(client)
     guard.snapshot()
     spend, tally = _open_spend(policy, guard, browser), Tally()
     if policy.drains_browser_kinds and spend is None:
         return _report(client, policy, tally, "browser_budget")
-    ctx = DrainContext(client, fetcher, policy, _handlers(browser, spend, after_snapshot or ignore_snapshot))
+    hook = after_snapshot or ExtractEnqueuer(client, extractors)
+    ctx = DrainContext(client, fetcher, policy, _handlers(extractors, _browser_handlers(browser, spend, hook)))
     reason, error = _drain_batches(ctx, tally, clock)
     tally.ledger_unavailable = guard.ledger_unavailable
     tally.browser_seconds_used = spend.used_seconds if spend else 0.0

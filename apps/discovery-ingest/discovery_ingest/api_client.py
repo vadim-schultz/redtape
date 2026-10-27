@@ -8,7 +8,15 @@ from uuid import UUID
 
 import httpx
 
-from discovery_ingest.artifacts import ArtifactRead, ArtifactStatus, ArtifactUpload, StoredArtifact
+from discovery_ingest.artifacts import (
+    ArtifactContent,
+    ArtifactKind,
+    ArtifactPage,
+    ArtifactRead,
+    ArtifactStatus,
+    ArtifactUpload,
+    StoredArtifact,
+)
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
@@ -189,7 +197,7 @@ class DiscoveryMachineClient:
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.post(
                 url,
-                json=body.model_dump(mode="json"),
+                json=body.model_dump(mode="json", exclude_none=True),
                 headers={"X-API-Key": self._api_key},
             )
         if response.status_code >= 400:
@@ -248,6 +256,16 @@ class DiscoveryMachineClient:
         """Report whether storage is configured, with bytes used against the cap."""
         return ArtifactStatus.model_validate(self._call("GET", "/artifacts/status").json())
 
+    def get_artifact_content(self, artifact_id: UUID) -> ArtifactContent:
+        """Download the stored bytes of ``artifact_id``; 404 means unknown or missing object, 503 an unset store."""
+        response = self._call("GET", f"/artifacts/{artifact_id}/content")
+        return ArtifactContent(response.content, response.headers.get("content-type"))
+
+    def list_artifacts(self, *, host: str, kind: ArtifactKind, offset: int, limit: int) -> ArtifactPage:
+        """List stored artifacts of ``kind`` whose source host is ``host``, newest first; ``limit`` is at most 100."""
+        params: dict[str, str | int] = {"host": host, "kind": kind, "offset": offset, "limit": limit}
+        return ArtifactPage.model_validate(self._call("GET", "/artifacts", params=params).json())
+
     def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
         """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
@@ -288,6 +306,7 @@ class DiscoveryMachineClient:
         path: str,
         *,
         json: Mapping[str, str | float] | None = None,
+        params: Mapping[str, str | int] | None = None,
         data: dict[str, str] | None = None,
         files: dict[str, tuple[str, bytes, str]] | None = None,
         allow: tuple[int, ...] = (),
@@ -295,7 +314,7 @@ class DiscoveryMachineClient:
         url = f"{self._base_url}/api/v1/discovery/machine{path}"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
             response = client.request(
-                method, url, json=json, data=data, files=files, headers={"X-API-Key": self._api_key}
+                method, url, json=json, params=params, data=data, files=files, headers={"X-API-Key": self._api_key}
             )
         if response.status_code >= 400 and response.status_code not in allow:
             raise DiscoveryMachineApiError(response.status_code, response.text)

@@ -83,7 +83,7 @@ TASK_KINDS: tuple[DiscoveryTaskKind, ...] = get_args(DiscoveryTaskKind)
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("fetch_url", "enrich_metadata")
 BROWSER_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("render_page", "capture_screenshot")
 """Kinds that spend Cloudflare browser time; never in the default kinds."""
-WORKER_DEFAULT_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (*LEGACY_TASK_KINDS, "harvest_payload")
+WORKER_DEFAULT_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (*LEGACY_TASK_KINDS, "harvest_payload", "extract_page")
 
 
 def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:
@@ -109,6 +109,7 @@ class TaskEnqueueRequest(BaseModel):
     target_url: str = Field(min_length=1, max_length=500)
     priority: int = Field(default=100, ge=0)
     input_key: str | None = Field(default=None, min_length=1, max_length=128)
+    artifact_id: UUID | None = None
 
 
 class TaskEnqueueResponse(BaseModel):
@@ -128,6 +129,8 @@ class ClaimedTask(BaseModel):
     status: DiscoveryTaskStatus
     priority: int
     lease_expires_at: datetime
+    artifact_id: UUID | None = None
+    input_key: str | None = None
 
 
 class TaskClaimResponse(BaseModel):

@@ -74,6 +74,8 @@ class FakeApi:
         self.finishes: list[dict[str, object]] = []
         self.calls: list[tuple[str, str, Any]] = []
         self.uploads: list[httpx.Request] = []
+        self.stored: list[dict[str, object]] = []
+        self.enqueued: set[tuple[str, str, str | None]] = set()
 
     def named(self, name: str) -> list[tuple[str, Any]]:
         """Return ``(task_id, body)`` of every recorded call of kind ``name``."""
@@ -105,7 +107,11 @@ class FakeApi:
         self.calls.append(("enqueue", "", json.loads(request.content)))
         if self.enqueue_status >= 400:
             return httpx.Response(self.enqueue_status, text="enqueue refused")
-        return httpx.Response(self.enqueue_status, json={"id": str(uuid.uuid4()), "created": True})
+        body = self.calls[-1][2]
+        key = (body["kind"], body["target_url"], body.get("input_key"))
+        created = key not in self.enqueued
+        self.enqueued.add(key)
+        return httpx.Response(self.enqueue_status, json={"id": str(uuid.uuid4()), "created": created})
 
     def _task_route(self, request: httpx.Request, task_id: str, action: str) -> httpx.Response:
         body = json.loads(request.content) if request.content and action != "artifacts" else None
@@ -114,7 +120,8 @@ class FakeApi:
             self.uploads.append(request)
             if self.upload_status >= 400:
                 return httpx.Response(self.upload_status, text=self.upload_detail)
-            return httpx.Response(self.upload_status, json=artifact_json())
+            self.stored.append(artifact_json())
+            return httpx.Response(self.upload_status, json=self.stored[-1])
         return httpx.Response(200, json={"id": task_id, "status": "x", "last_error": "x"})
 
     def _budget_route(self, request: httpx.Request) -> httpx.Response:
