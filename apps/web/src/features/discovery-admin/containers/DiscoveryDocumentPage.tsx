@@ -1,8 +1,10 @@
 import { Text } from "@chakra-ui/react";
 import { useParams } from "react-router-dom";
 
+import NotFoundView from "../../../components/feedback/NotFoundView";
 import QueryError from "../../../components/feedback/QueryError";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
+import { ApiRequestError } from "../../../services/api";
 import { useLocale } from "../../../contexts/LocaleContext";
 import ArtifactsPanel from "../components/ArtifactsPanel";
 import DocumentDetail from "../components/DocumentDetail";
@@ -10,6 +12,10 @@ import DocumentEmitPanel from "../components/DocumentEmitPanel";
 import { useDiscoveryCandidateArtifactsQuery } from "../hooks/useDiscoveryCandidateArtifactsQuery";
 import { useDiscoveryCandidateEmitPreviewQuery } from "../hooks/useDiscoveryCandidateEmitPreviewQuery";
 import { useDiscoveryCandidateQuery } from "../hooks/useDiscoveryCandidateQuery";
+
+function isNotFound(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.status === 404;
+}
 
 /** Candidate drill-down at ``/admin/discovery/documents/:id``. */
 export default function DiscoveryDocumentPage() {
@@ -19,6 +25,7 @@ export default function DiscoveryDocumentPage() {
   const artifactsQuery = useDiscoveryCandidateArtifactsQuery(id);
   const previewQuery = useDiscoveryCandidateEmitPreviewQuery(id);
 
+  if (isNotFound(query.error)) return <NotFoundView />;
   if (query.isError) return <QueryError onRetry={() => void query.refetch()} />;
   if (!query.data) return <Text>{t("common.loading")}</Text>;
   return (
