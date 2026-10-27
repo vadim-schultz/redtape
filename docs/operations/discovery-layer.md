@@ -1,8 +1,10 @@
 # Discovery layer operations runbook
 
-GovData and PVOG catalogue ingest, FIM/LeiKa enrich, admin review, and machine emit to `pending`
+GovData and PVOG catalogue ingest, FIM/LeiKa enrich, the queue-based crawl layer (payload harvest, Cloudflare
+rendered snapshots, screenshots, document candidates), admin review, and machine emit to `pending`
 suggestions. Canon URLs, ingest vs enrich roles, and staging contract pointers:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
+Manual operator steps that unlock the live gates: [crawlers-operator-checklist.md](crawlers-operator-checklist.md).
 
 ## Production — scheduled ingest (primary)
 
@@ -13,10 +15,12 @@ against production Render.
 | --- | --- |
 | Discovery online runbook (dispatch, secrets, triage, idempotency) | [discovery-online.md](discovery-online.md) |
 | Monthly OpenPLZ / discovery schedule and secrets | [scheduled-jobs.md](scheduled-jobs.md) |
+| Drains (HTTP kinds, browser kinds), kind filter, retry, browser budgets | [discovery-online.md](discovery-online.md) § Bounded drain |
+| Drain workflows, ledger caps, schedule variables | [scheduled-jobs.md](scheduled-jobs.md) |
 | Workflow | [platform-maintenance.yml](../../.github/workflows/platform-maintenance.yml) |
 
 Scheduled runs update **staging only** — no automatic emit to suggestions. Emit stays manual (§
-Machine emit below).
+Machine emit and § Manual candidate emit below).
 
 ## Laptop debugging (secondary)
 
@@ -81,8 +85,10 @@ authorization boundary; the browser does not contain an email allowlist.
 | `/admin/discovery` | Redirects to the catalogue page. |
 | `/admin/discovery/catalogue` | Shows catalogue rows and the coverage summary. |
 | `/admin/discovery/coverage` | Shows the dedicated coverage summary. |
-| `/admin/discovery/tasks` | Shows the crawler task queue. |
-| `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages and row details. |
+| `/admin/discovery/tasks` | Shows the crawler task queue: kind, status and source filters; columns for attempts, retry time and result note. |
+| `/admin/discovery/documents` | Lists document candidates (search, role, source, minimum mentions, sort, paging). |
+| `/admin/discovery/documents/<candidate-id>` | Shows one candidate: mentions, evidence artifacts, emit preview and suggestion state. |
+| `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
 
 The emit preview is a subview of the pipeline page, not a top-level route. Every discovery page has
@@ -95,7 +101,8 @@ fails, the menu shows a muted **Discovery unavailable** hint instead of the link
 shows no hint, because that case looks the same as a non-admin session.
 
 Under **Documents**, an allowlisted user sees icon controls for **Catalogue** (`FaList`), **Coverage**
-(`FaTasks`), and **Tasks** (`FaClipboard`) after the admin probe returns `200`. Each control keeps a
+(`FaTasks`), **Tasks** (`FaClipboard`) and **Documents** (`FaFileAlt`) after the admin probe returns `200`. All of
+them sit in one row; a new link is a config entry rendered through `MenuIconLink`, never a second row. Each control keeps a
 translated `aria-label` and a title, and the routes are unchanged. Non-admin and anonymous sessions do not see those links,
 and direct navigation remains guarded. The menu also keeps these application links:
 
@@ -133,7 +140,8 @@ suggestion:
 T4 -> inspect emit preview -> manual machine emit -> pending suggestion
 ```
 
-This process does not vote, promote, attach evidence, capture screenshots, or emit automatically.
+This process does not vote, promote, attach evidence to suggestions, or emit automatically. Snapshots and
+screenshots stay staging artifacts (§ Artifacts and evidence).
 
 ### Representative smoke status
 
@@ -143,6 +151,109 @@ against a running API: the fixture row has no `fim_id`, and no authorized API se
 Treat the full row-to-pending-suggestion path as unverified until an operator runs it with a row
 that has a `fim_id`. Evidence and gaps:
 [`.plans/discovery-operations/chapters/01-representative-row-smoke.md`](../../.plans/discovery-operations/chapters/01-representative-row-smoke.md).
+
+## Task kinds and the crawl flow
+
+`discovery_task.kind` selects the worker handler. The worker sends a **kind filter** (`kinds`) with each claim.
+Without one the API serves only the two legacy kinds, `fetch_url` and `enrich_metadata`.
+
+| Kind | Input | Output |
+| --- | --- | --- |
+| `fetch_url` | catalogue `portal_url` | fetch log; a follow-up `render_page` for a 200 HTML page that is not a login URL |
+| `enrich_metadata` | FIM steckbrief URL | entity and claims |
+| `harvest_payload` | PVOG `raw_payload` (no network) | document mentions |
+| `extract_page` | stored HTML snapshot (no network) | document mentions |
+| `render_page` | page URL, Cloudflare Browser Run | `html_snapshot` artifact |
+| `capture_screenshot` | page URL, Cloudflare Browser Run | `screenshot` artifact |
+
+```text
+catalogue row -> fetch_url -> render_page -> snapshot -> extract_page -> mentions -> candidates
+catalogue row -> harvest_payload ----------------------------------> mentions -> candidates
+extract_page (at least one mention) -> capture_screenshot -> screenshot
+candidates -> admin review -> manual emit -> pending new_document suggestion
+```
+
+The default drain handles `fetch_url`, `enrich_metadata`, `harvest_payload` and `extract_page`. The browser kinds are
+drained only by `discovery-render.yml` or an explicit `--kinds`, with a browser budget. Flags, retry rules, stop
+reasons and limits: [discovery-online.md](discovery-online.md) § Bounded drain and § Browser kinds.
+
+## Document candidates and mentions
+
+The crawl layer is **document-first**: it builds document nodes before any edge between documents.
+
+| Term | Meaning |
+| --- | --- |
+| Procedure | A catalogue service (a Leistung, for example "Anmeldung einer Wohnung"). Staging context, never a document node |
+| Candidate | A deduplicated document name harvested from one or more sources, not yet emitted. Status `staged`, then `emitted` |
+| Mention | One occurrence of a candidate in a procedure: role (`required` or `form`), excerpt, source field, extractor and version, optional artifact |
+| Key | `slugify(pick_title(title_i18n))`, the same rule promotion uses, so two candidates never collide at promotion without colliding as candidates |
+
+**A procedure is not a document.** Service-level `new_document` claims that FIM enrichment writes for a procedure's
+own title stay staged and are excluded from the document-first path. Only what a procedure requires or provides
+(forms, documents to bring) becomes a candidate.
+
+Sources today: `harvest_payload` reads PVOG modules `08` (required documents) and `14` (forms) from the stored
+payload. Page extractors are a framework (`discovery_ingest/extract`); none is registered yet. Mentions keep their role so
+a later suite can build `requires` edges without a new crawl.
+
+## Manual candidate emit
+
+Emit turns reviewed candidates into **pending** `new_document` suggestions. It is a deliberate operator action: no
+schedule calls it.
+
+```bash
+python -m discovery_ingest candidates emit --all-staged --min-mentions 3 --limit 5 --dry-run
+python -m discovery_ingest candidates emit --all-staged --min-mentions 3 --limit 5
+python -m discovery_ingest candidates emit --id <candidate-uuid> --id <candidate-uuid>
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--id` | none | Candidate to emit; repeatable. Mutually exclusive with `--all-staged` |
+| `--all-staged` | off | The most mentioned staged candidates |
+| `--min-mentions` | 0 | With `--all-staged`: minimum mention count |
+| `--limit` | 10 | Maximum candidates, 1–50 |
+| `--dry-run` | off | Preview only; nothing is written |
+
+The command prints `created <candidate> <suggestion>`, `replayed …` or `skipped <candidate> <reason>`. Skip reasons:
+`not_found`, `no_mentions`, `no_source_url`, `invalid_payload`, `duplicate`, `already_emitted` (preview only). The
+suggestion's `source_url` is the `portal_url` of the first mention's procedure. Emit is idempotent per candidate and
+records the suggestion on the candidate. `official_url` is optional on `new_document`, so a candidate without a URL
+conflicts on its slug only ([suggestion-api.md](suggestion-api.md)). Review five, then widen; never bulk-emit before the
+first five are checked.
+
+## Artifacts and evidence
+
+Snapshots and screenshots are stored in an S3-compatible object store (Cloudflare R2 in production); Postgres holds only
+metadata rows in `discovery_artifact`. The API proxies uploads and mints five-minute presigned URLs for reads, so
+storage credentials live only in Render ([deployment-checklist.md](deployment-checklist.md)). HTML is never rendered
+inline in the admin: it is a download. The screenshot is the visual.
+
+Each artifacts refetch in the admin costs one R2 Class B read per link, up to 50 links. The admin pages cache for four
+minutes.
+
+## Machine and admin routes added by the crawl layer
+
+All machine routes take `X-API-Key` and live under `/api/v1/discovery/machine`. Admin routes take a session token for
+an allowlisted email and live under `/api/v1/discovery/admin`.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /machine/tasks/summary` (repeated `kinds`) | Queue counts for the drained kinds: `pending_ready`, `pending_delayed`, `claimed`, `claimed_stale`, `completed`, `failed` |
+| `POST /machine/tasks` | Enqueue a follow-up task (`kind`, `target_url`, `priority`, `input_key`, `artifact_id`) |
+| `POST /machine/tasks/{id}/release` | Return a claimed task to `pending`, give the attempt back; 409 if not claimed |
+| `POST /machine/tasks/{id}/fail` | Fail with `retryable`; a retryable failure re-pends with backoff |
+| `POST /machine/tasks/{id}/complete` | Complete, with an optional result `note` |
+| `POST /machine/tasks/{id}/artifacts` | Upload a snapshot or screenshot (multipart): 415, 413, 503, 507 |
+| `GET /machine/artifacts`, `…/{id}/content`, `…/status` | List (`kind`, `host`), read bytes, and check `storage_enabled` and the byte accounting |
+| `POST /machine/candidates/mentions` | Post mentions for a candidate |
+| `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
+| `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
+| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (`q`, `status`, `role`, `source`, `min_mentions`, `sort`), detail and preview |
+| `GET /admin/catalogue/{id}/artifacts`, `GET /admin/candidates/{id}/artifacts` | Artifacts with presigned `url` (`null` when storage is unset) |
+| `GET /admin/budgets` | The ledger plus `stored_bytes` and `stored_bytes_cap` |
+
+The admin task list accepts `kind`, `status` and `source`; an invalid value answers 422.
 
 ## Corporate network (ingest only)
 
@@ -218,6 +329,24 @@ python -m discovery_ingest leika enrich \
   --input path/to/stammtext.json
 ```
 
+To check live keys without saving a snapshot, probe the public FIM portal through the hardened fetcher:
+
+```bash
+python -m discovery_ingest fim probe --keys 99154021000000,99070016261000
+```
+
+It prints each status and the top-level keys, and exits 1 when the decision gate fails (a key did not return
+`leistungsschluessel`). The manual workflow is [`discovery-fim-probe.yml`](../../.github/workflows/discovery-fim-probe.yml).
+
+**Steckbrief key.** Fanout enqueues `enrich_metadata` for GovData and PVOG rows. The key is the first 14-digit value of
+`fim_id`, `leistungsschluessel`, `leika_key`, `leikakeys[0]`. The probe of ten live keys passed on 2026-10-26.
+
+**Known gap.** The real steckbrief has top-level `title`, `title_en`, `leistungsbezeichnung`, `leistungsschluessel`,
+`rechtsgrundlagen`, `klassifizierung`, `leistung_stammtexte` and others, but no `kurztext` and no document or form
+field. The enrich helpers still read `titel` and `kurztext`. Enriched entities therefore get no label and no `metadata`
+claim; only the staged service-level `new_document` claim is written. Stammtext references
+(`leistung_stammtexte`) are not fetched.
+
 ### 5. Admin review (smoke)
 
 Unit tests are not a live smoke. They show that the route tree and the guard outcomes work in a test
@@ -228,7 +357,7 @@ sequence below against the target environment and record each result.
    to the web origin. Expect `200` for an allowlisted user. Compare with the direct API origin if the
    status differs (see section 7). Do not paste or commit the token.
 2. **Sign-in check.** Sign in with an email that is on `DISCOVERY_ADMIN_EMAILS`. Open the menu and
-   confirm that **Catalogue**, **Coverage**, and **Tasks** appear under **Documents**. A muted
+   confirm that **Catalogue**, **Coverage**, **Tasks** and **Documents** appear under **Documents** in one row. A muted
    **Discovery unavailable** hint means the probe failed with 503, 5xx, or a network error.
 3. **Page checks.** Open each page and confirm content or a deliberate loading, empty, or error state.
    The browser console must show no `No routes matched location` warning.
@@ -239,7 +368,9 @@ sequence below against the target environment and record each result.
 | Crawler queue | Web: [`/admin/discovery/tasks`](http://localhost:5173/admin/discovery/tasks) |
 | Catalogue index and coverage chips | [`/admin/discovery/catalogue`](http://localhost:5173/admin/discovery/catalogue) |
 | Dedicated coverage summary | [`/admin/discovery/coverage`](http://localhost:5173/admin/discovery/coverage) |
-| Pipeline + emit preview | `/admin/discovery/pipeline/<catalogue-service-id>` |
+| Document candidates | `/admin/discovery/documents` |
+| Document detail and evidence | `/admin/discovery/documents/<candidate-id>` |
+| Pipeline + emit preview + artifacts | `/admin/discovery/pipeline/<catalogue-service-id>` |
 
 Also confirm that an unknown discovery route shows **Page not found**, that a non-allowlisted user sees
 no discovery links and the forbidden view on direct navigation, and that Home, Browse Documents, and
@@ -249,6 +380,8 @@ Admin JSON API (session JWT, allowlisted email): prefix
 `http://localhost:8000/api/v1/discovery/admin` — e.g. `GET …/catalogue`, `GET …/coverage`.
 
 ### 6. Machine emit to suggestions
+
+This section emits **catalogue claims**. To emit reviewed **document candidates**, see § Manual candidate emit.
 
 Emit is a machine API operation. It creates **`pending`** suggestions only (no voting or promotion):
 
@@ -349,6 +482,11 @@ mode by default. Until that is changed (follow-up), reproduce locally to see the
 | Machine routes 401 | Valid `DISCOVERY_API_KEY`; or `DISCOVERY_MACHINE_OPT_IN=1` for local dev |
 | Ingest TLS timeout / reset | Corporate `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` includes `localhost` |
 | GovData/PVOG CLI exits 1 | API logs; machine batch errors; jurisdiction UUID exists |
+| Drain of a browser kind exits 2 | `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_BROWSER_API_TOKEN` are exported ([discovery-online.md](discovery-online.md) § Browser kinds) |
+| Drain of a browser kind exits 1 before claiming | `GET …/machine/artifacts/status` shows `storage_enabled: false`; set the Render `OBJECT_STORE_*` variables |
+| Artifact routes answer 503 or 507 | 503: storage unset or an operation cap reached; 507: the byte cap ([deployment-checklist.md](deployment-checklist.md)) |
+| Machine writes answer 507 `database_soft_limit` | Database above 400 MB; free space or raise `DB_SOFT_LIMIT_BYTES` knowingly |
+| Admin tasks filter answers 422 | `kind`, `status` or `source` is not a known value |
 
 Scheduled GitHub Actions ingest uses the same host-root `DISCOVERY_API_URL` and repository secrets
 documented in [`scheduled-jobs.md`](scheduled-jobs.md).
