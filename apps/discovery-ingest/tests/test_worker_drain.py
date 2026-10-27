@@ -402,7 +402,7 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
 @pytest.mark.parametrize(
     ("flags", "expected"),
     [
-        ([], ["fetch_url", "enrich_metadata", "harvest_payload"]),
+        ([], ["fetch_url", "enrich_metadata", "harvest_payload", "extract_page"]),
         (["--kinds", "extract_page,harvest_payload"], ["extract_page", "harvest_payload"]),
     ],
 )

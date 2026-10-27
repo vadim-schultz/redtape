@@ -69,4 +69,4 @@ def test_the_existing_inputs_and_drain_arguments_are_unchanged() -> None:
     inputs = document[True]["workflow_dispatch"]["inputs"]
 
     assert set(inputs) == {"max_tasks", "max_batches", "time_budget_seconds", "kinds"}
-    assert inputs["kinds"]["default"] == "fetch_url,enrich_metadata,harvest_payload"
+    assert inputs["kinds"]["default"] == "fetch_url,enrich_metadata,harvest_payload,extract_page"
