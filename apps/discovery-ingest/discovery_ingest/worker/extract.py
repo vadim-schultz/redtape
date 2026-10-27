@@ -14,9 +14,11 @@ from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.registry import EXTRACTORS, find_extractor
 from discovery_ingest.mentions import MentionItem
 from discovery_ingest.schemas import ClaimedTask
+from discovery_ingest.worker.capture_enqueue import enqueue_screenshot_for_mentions
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.mention_post import post_mention_chunks
 from discovery_ingest.worker.settle import fail_from_api_error, fail_permanently
+from discovery_ingest.worker.tally import COMPLETED, COMPLETED_CAPTURE_ENQUEUE_FAILED
 
 
 class _ExtractorFailed(Exception):
@@ -50,7 +52,7 @@ class ExtractPageHandler:
         if not items:
             return _complete(client, task, "no_mentions")
         post_mention_chunks(client, items)
-        return _complete(client, task, None)
+        return _complete_after_capture_enqueue(client, task)
 
 
 def _api_refused(client: DiscoveryMachineClient, task: ClaimedTask, err: DiscoveryMachineApiError) -> str:
@@ -63,6 +65,13 @@ def _api_refused(client: DiscoveryMachineClient, task: ClaimedTask, err: Discove
 def _complete(client: DiscoveryMachineClient, task: ClaimedTask, note: str | None) -> str:
     client.complete_task(task.id, note=note)
     return "completed"
+
+
+def _complete_after_capture_enqueue(client: DiscoveryMachineClient, task: ClaimedTask) -> str:
+    """Queue the page's screenshot (D13), then complete; a failed enqueue is counted and never fails the task."""
+    enqueued = enqueue_screenshot_for_mentions(client, task)
+    _complete(client, task, None)
+    return COMPLETED if enqueued else COMPLETED_CAPTURE_ENQUEUE_FAILED
 
 
 def _extract(extractor: Extractor, task: ClaimedTask, artifact_id: UUID, content: ArtifactContent) -> list[MentionItem]:
