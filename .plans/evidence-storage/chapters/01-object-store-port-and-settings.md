@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 1 — Object-store port and settings
 
-**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/evidence-object-store-port` · **Status:** planned
+**Repo:** `redtape` (`apps/api`) · **Branch:** `feat/evidence-object-store-port` · **Status:** absorbed by [crawlers chapter 13](../../crawlers/chapters/13-object-store-port-and-r2-adapter.md) (`app/shared/object_store`)
 
 **Depends on:** none · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

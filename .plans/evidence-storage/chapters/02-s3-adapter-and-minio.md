@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 2 — S3 adapter and MinIO
 
-**Repo:** `redtape` (`apps/api`, `docker-compose.yml`, CI) · **Branch:** `feat/evidence-s3-adapter` · **Status:** planned
+**Repo:** `redtape` (`apps/api`, `docker-compose.yml`, CI) · **Branch:** `feat/evidence-s3-adapter` · **Status:** absorbed by [crawlers chapter 13](../../crawlers/chapters/13-object-store-port-and-r2-adapter.md) (`app/shared/object_store`)
 
 **Depends on:** [1](01-object-store-port-and-settings.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) §3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 

@@ -13,11 +13,12 @@ Plan suite folder: `.plans/crawlers/` (architecture, rollout, decisions, chapter
 2. Run one chapter-implementer per chapter, in the order of
    [`01-rollout.md`](../../../.plans/crawlers/01-rollout.md): ingest CI, fetcher hardening, kind-filtered
    claim, retry, drain throughput, candidate model, PVOG harvester, admin queue kinds, menu icon row, admin
-   Documents list, candidate emit, FIM key fix, object store, artifact API, Cloudflare render and snapshot,
-   admin Artifacts panel, extractor framework, first extractor, Cloudflare screenshot capture, admin document
-   detail, docs sync, operator steps.
-3. Each chapter PR targets the loop branch only. Local checks are best-effort; the PR's GitHub Actions
-   checks are the authoritative gate (`gh pr checks --watch`).
+   Documents list, candidate emit, FIM key fix, object store, artifact API, free-tier guards (chapter 23, executed
+   between 14 and 15), Cloudflare render and snapshot, admin Artifacts panel, extractor framework, first extractor
+   (chapter 18, optional), Cloudflare screenshot capture, admin document detail, docs sync, operator steps.
+3. Each chapter PR targets the loop branch only. The PR's GitHub Actions checks are the authoritative gate
+   (`gh pr checks --watch`). When the shared Actions quota is exhausted, remote CI fails in seconds with no steps; the
+   chapter then merges on the local gate (ruff, mypy, the full test run) and says so in its PR and in the ledger.
 4. Chapters with a live gate dispatch the named workflow with `gh workflow run` and record the run ID in
    [`run-ledger.md`](../../../.plans/crawlers/run-ledger.md). A missing live gate (for example storage not yet
    provisioned) never blocks a merge; record it as deferred with the operator step it needs.
@@ -27,10 +28,13 @@ Plan suite folder: `.plans/crawlers/` (architecture, rollout, decisions, chapter
 
 Manual steps are listed in order in
 [`chapters/22-operator-manual-steps.md`](../../../.plans/crawlers/chapters/22-operator-manual-steps.md).
-The ones that gate live verification are the census queries (S12), the fetch repair (S11), the Supabase
-bucket, access key, Render variables and GitHub probe secrets (S1–S4), the Cloudflare browser token, its GitHub
-secrets and the browser probe (S15–S17), and the schedule variables (S13). Ask the operator for them early;
-do not wait for the last chapter.
+The ones that gate live verification are the census queries (S12), the fetch repair (S11), the R2 bucket,
+access key, Render variables and GitHub probe secrets (S1–S4), the Cloudflare browser token, its GitHub
+secrets and the browser probe (S15–S17), Cloudflare billing notifications and the ledger caps (S19, S21), and the
+schedule variables (S13). The operator ticks them in
+[`docs/operations/crawlers-operator-checklist.md`](../crawlers-operator-checklist.md). Ask for them early; do not wait
+for the last chapter. `gh workflow run` answers 404 for a workflow file that is not on `main`, so several live gates
+run only after the release.
 
 ## Rules for implementers
 
@@ -50,15 +54,59 @@ do not wait for the last chapter.
 
 ## What the suite delivers
 
-To be filled in by chapter 21 when the suite ships: kind-filtered claim and retry, multi-batch drain with a
-known `remaining`, document candidates with provenance and an admin Documents screen, PVOG payload harvest,
-manual candidate emit, FIM enrichment that fires, an object-store port with a Supabase adapter, rendered
-snapshot and screenshot artifacts (Cloudflare Browser Run, free plan) visible in the admin, an extractor
-framework and the first page extractor.
+Built on `feat/crawlers`; the release PR to `main` is pending, so none of it runs in production yet.
+
+| Area | Delivered (chapters) |
+| --- | --- |
+| Queue | Kind-filtered claim, safe legacy default (3); retry with backoff, release route (4, 14); multi-batch bounded drain, queue summary and `remaining` (5); hardened polite fetcher with redirects, robots.txt and address guard (2) |
+| Documents | Candidates and mentions with provenance (6); PVOG payload harvest (7); admin Documents list and detail (10, 20); manual candidate emit CLI and routes, `official_url` optional on `new_document` (11) |
+| Enrichment | FIM steckbrief key fix and `fim probe` (12) |
+| Storage | Object-store port with an R2 adapter (S3 API, Cloudflare R2) (13); artifact model, upload, read and status routes, byte cap (14); admin Artifacts panel (16) |
+| Free-tier guards | Budget ledger, metered store, database soft limit, Actions minutes (23) |
+| Browser | Cloudflare render and `render_page`, `discovery-render.yml`, browser probe (15); extractor framework and `extract_page` (17); `capture_screenshot` (19) |
+| Admin | Task kinds, attempts, retry time and result note on the Tasks screen, candidate and artifact counts on Coverage (8, 16); one-row menu with a Documents icon (9) |
+| Docs and ops | Runbooks, this loop document and the operator checklist (21, 22); ingest CI (1) |
+
+Not built: Chapter 18 (first page extractor, optional; hand-written extractors wait for the
+[extraction](../../../.plans/extraction/01-rollout.md) suite). No extractor is registered, so every `extract_page` task
+completes with `no_extractor` and no `capture_screenshot` task is queued yet. Document candidates come from the PVOG
+payload harvest only.
 
 ## Known gaps
 
-To be filled in by chapter 21 from the ledger.
+Each is also in the ledger or in
+[`gaps-and-decisions.md`](../../../.plans/crawlers/gaps-and-decisions.md). Nothing here is a reason to hold the release.
+
+- **Live gates are open.** Every chapter merged with tests against fakes. The live gates need the release on `main` and
+  the operator steps; remote CI did not run for chapters 6 to 21 because the Actions quota was exhausted. The release
+  PR is the first remote run of that code.
+- **FIM enrichment mismatch.** The real steckbrief has `title` and no `kurztext`; the enrich helpers read `titel` and
+  `kurztext`. Entities get no label and no `metadata` claim. Stammtext references are not fetched.
+- **Inherited rollback gap.** `SuggestionService._insert` rolls back the whole session on an `IntegrityError`, which
+  could undo earlier uncommitted updates in one emit batch. Only a concurrent same-key race triggers it.
+- **Byte cap counts rows.** `OBJECT_STORE_MAX_BYTES` sums `discovery_artifact.byte_size`, not objects. An orphaned
+  object (a failed insert after the put, or a pruned snapshot whose delete failed) is not counted. The 2 GiB margin
+  below R2's 10 GB absorbs it. Two concurrent identical uploads race on the unique key (one answers 500).
+- **Browser probe is partial.** Not probed: the body of the daily-limit 429, a real login page, the pixel size of a
+  full-page JPEG. Diff a plain fimportal body against its rendered DOM before the roughly 22-run backlog starts.
+- **Counting is approximate.** The R2 meter shares the request session, so a reservation can roll back with a failed
+  request, and S3 retries can exceed the counted operations. The 20 percent margin covers it. The `neurons`
+  resource exists but nothing reserves it yet.
+- **Candidate race.** Two concurrent batches that create the same new candidate could answer 500 on the unique
+  constraint. One drain worker at a time avoids it.
+- **Fetcher.** A DNS-rebinding race in the address guard, and `httpx.InvalidURL` is not caught.
+- **Harvest.** PVOG module `14` text lists are not harvested (links only). Bump `PVOG_HARVESTER_VERSION` in the API
+  `fanout.py` together with `EXTRACTOR_VERSION` in `harvest/pvog.py`.
+- **Web.** The admin fetches artifacts with `limit=50` and has no paging, so evidence beyond 50 items is cut off. The
+  menu panel is content-sized and extends past a 360 px viewport. The "Pending review" chip on a document is an
+  assumption: the API cannot tell whether the suggestion was reviewed since.
+- **German strings.** The German copy of chapters 8, 10, 16 and 20 was machine-written and needs native review. The key
+  list is in the operator checklist.
+- **Admin `kind` filter.** The query parameter is typed to the enum, so the API must change when the enum gains a value.
+- **Code size.** `cli.py`, `api_client.py` and older drain code remain over 100 lines; older `httpx.Client` blocks in
+  the API client are a follow-up to fold into `_call`.
+- **Another suite's status.** `.plans/README.md` and parts of the voting-moderation rollout still say "planned" while
+  the API implements votes, tally, transitions and both promote handlers. This suite does not edit another suite's status.
 
 ## Out of scope (named future suites)
 

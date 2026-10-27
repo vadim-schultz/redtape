@@ -1,6 +1,53 @@
 # discovery-ingest
 
-CLI workers that upsert discovery catalogue rows via the RedTape machine API (`X-API-Key`).
+CLI workers that upsert discovery catalogue rows, drain the crawl task queue and emit reviewed document candidates via
+the RedTape machine API (`X-API-Key`). The workers use HTTP only: they never receive `DATABASE_URL`.
+There is no browser in this package. Rendering and screenshots are HTTP calls to Cloudflare Browser Run.
+
+## Commands
+
+Run `python -m discovery_ingest <command> --help` for every flag.
+
+| Command | Purpose |
+| --- | --- |
+| `govdata run`, `govdata fetch`, `pvog run` | Catalogue ingest into staging |
+| `fim enrich`, `leika enrich` | Upsert entity and claims from a saved steckbrief or stammtext |
+| `fim probe --keys K1,K2` | Report status and top-level keys of live steckbriefe; exit 1 when the gate fails, 2 for a malformed key |
+| `worker drain` | Claim, process and settle tasks; see below |
+| `candidates emit` | Emit staged document candidates as pending suggestions; see below |
+| `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
+| `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
+| `budget show`, `budget report-minutes` | Show the budget ledger; add Actions minutes to it |
+
+### Drain tasks
+
+```bash
+python -m discovery_ingest worker drain --kinds fetch_url,harvest_payload --max-tasks 50 --max-batches 5 \
+  --time-budget-seconds 300
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--kinds` | `fetch_url,enrich_metadata,harvest_payload,extract_page` | Task kinds to claim; an unknown kind exits 2 before any claim |
+| `--max-tasks` | 50 | Tasks per claim request (1–50) |
+| `--max-batches` | 1 | Maximum batches |
+| `--time-budget-seconds` | none | Wall-clock budget for the whole drain |
+| `--browser-budget-seconds` | 480 | Browser seconds for `render_page` and `capture_screenshot` |
+
+The command prints one JSON report with `stop_reason`, `remaining`, `released` and `browser_seconds_used`. Kinds,
+retry rules, stop reasons and the free-plan limits are in
+[`docs/operations/discovery-online.md`](../../docs/operations/discovery-online.md).
+
+### Emit document candidates
+
+```bash
+python -m discovery_ingest candidates emit --all-staged --min-mentions 3 --limit 5 --dry-run
+python -m discovery_ingest candidates emit --id <candidate-uuid>
+```
+
+`--dry-run` calls the read-only preview and writes nothing. `--limit` is 1–50 (default 10). Emit is manual and
+idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/operations/discovery-layer.md)
+§ Manual candidate emit.
 
 ## Environment
 
@@ -15,7 +62,7 @@ CLI workers that upsert discovery catalogue rows via the RedTape machine API (`X
 | `PVOG_API_BASE_URL` | no | Default in `config.py` |
 | `FIM_PORTAL_BASE_URL` | no | Default in `config.py` |
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit" |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
 Copy [`.env.example`](.env.example) to `.env` for local runs.
@@ -47,9 +94,9 @@ Operations runbook: [`docs/operations/discovery-layer.md`](../../docs/operations
 
 ## Render pages through Cloudflare Browser Run
 
-`render_page` (and later `capture_screenshot`) tasks spend Cloudflare browser time, so they are never in the default
-kinds. The free plan allows 10 browser minutes a day and one request every 10 seconds; every run also shares one daily
-budget ledger (`GET /machine/budgets`) with every other run.
+`render_page` and `capture_screenshot` tasks spend Cloudflare browser time, so they are never in the default kinds. The
+free plan allows 10 browser minutes a day and one request every 10 seconds. Every run also shares one daily budget
+ledger (`GET /machine/budgets`) with every other run, so a laptop run and a GitHub run never overspend together.
 
 ```bash
 # Check the quick actions and the credentials (prints a table, never the token; needs only the two Cloudflare variables):
@@ -60,15 +107,31 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
   --time-budget-seconds 900 --browser-budget-seconds 480
 ```
 
+`browser probe` takes `--url` (repeatable), `--error-url`, `--variant` (repeatable) and `--max-browser-seconds`
+(default 240). It exits 2 when a Cloudflare variable is missing and 1 when Cloudflare refused.
+
+### Run a browser drain on your machine
+
+This costs no GitHub Actions minutes. Export `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_BROWSER_API_TOKEN`, then run the drain above. The worker needs artifact storage on the API: it exits 1
+before claiming when `GET /machine/artifacts/status` shows `storage_enabled: false`, and 2 when a Cloudflare variable is
+missing. Run it at most once a day. The pace is about 4 pages a minute, because the worker leaves 11 seconds between
+calls (`BROWSER_MIN_INTERVAL_SECONDS`).
+
 A browser limit (`browser_budget`, `browser_quota`), unavailable storage (`storage_unavailable`) or the database soft
-limit (`db_limit`) releases the in-flight and unstarted tasks and ends the run successfully; only a rejected token or an
-API failure fails it. The manual workflows are `discovery-browser-probe.yml` and `discovery-render.yml`.
+limit (`db_limit`) releases the in-flight and unstarted tasks and ends the run successfully. Only a rejected token or
+an API failure fails it. The manual workflows are `discovery-browser-probe.yml` and `discovery-render.yml`.
+
+A stored snapshot queues `extract_page` when an extractor matches it. An extraction that posts at least one mention
+queues `capture_screenshot` (see the next section). No extractor is registered yet.
 
 ## Extract mentions from stored snapshots
 
 After a snapshot is stored, the render worker queues an `extract_page` task, but only when a registered extractor
 matches the page (`discovery_ingest/extract/registry.py`; empty until the first host extractor ships). `extract_page`
-needs no network and is in the default kinds. An extractor implements `matches(url, content_type)` and
+needs no network and is in the default kinds. When it posts at least one mention, the worker also queues a
+`capture_screenshot` task for the page (priority 300, `input_key` `shot@1`, so a later re-extraction never queues a
+second capture). An extractor implements `matches(url, content_type)` and
 `extract(html, ctx)`; the task's `input_key` is `<id>@<version>`, so a version bump queues a new task for the same
 snapshot. A task whose extractor is gone completes with the note `no_extractor`; a page without mentions completes with
 `no_mentions`.

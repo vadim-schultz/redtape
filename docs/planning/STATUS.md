@@ -2,7 +2,7 @@
 
 **This file is the source of truth for "what's done" and "what's next."** When a wave or milestone changes state, update this file rather than editing status markers scattered across [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) or the `directions/` docs (those keep their per-step detail; this page tracks the current, top-level picture).
 
-Last updated: **2026-10-15**.
+Last updated: **2026-10-27**.
 
 ## Wave-by-wave state
 
@@ -16,7 +16,7 @@ Last updated: **2026-10-15**.
 | Wave 4 — mobile (Flutter) | Read-only Flutter client | **Not started.** `apps/mobile` has only a README and one `.draft` provider file — no `pubspec.yaml`, no real Dart source. | [`apps/mobile/`](../../apps/mobile/) |
 | Wave 5 — jurisdiction fallback resolution | Deferred by design (seed MVP edges to one municipality) | **Unverified.** A full jurisdiction hierarchy and document→jurisdiction breadcrumb already exist and are tested, but it hasn't been directly confirmed whether real municipality→region→country precedence resolution (per [directions/data-model-migrations/03-graph-resolution-and-views.md](directions/data-model-migrations/03-graph-resolution-and-views.md)) is implemented, or whether the deferred-MVP shortcut is still all there is. | [`apps/api/tests/test_document_jurisdiction_path.py`](../../apps/api/tests/test_document_jurisdiction_path.py) |
 | Wave 6 — Supabase Auth | Auth after MVP, prep for social layer | **Done.** Supabase JWT verification, `app_user` roles (`user`/`moderator`/`admin`), hashed machine API keys, and the web login UI, account menu and route guard are all shipped across twelve chapters. | [`apps/api/app/features/auth/`](../../apps/api/app/features/auth/), [`apps/web/src/features/auth/`](../../apps/web/src/features/auth/), [`.plans/auth/`](../../.plans/auth/00-architecture.md) |
-| Wave 7+ — social/moderation/crawlers/GDPR | Later waves | **Started.** The suggestion interface is **shipped** ([`docs/operations/suggestion-api.md`](../operations/suggestion-api.md)). The **discovery layer** — staging ingest (`apps/discovery-ingest`), machine and admin discovery APIs, `/admin/discovery/*` review UI, and machine emit to **`pending`** suggestions — is **shipped** on loop branch `feat/plans-discovery-layer` (release PR to `main` pending). Chapters 16 (claim evidence), 20 (crawler frontier), and 21 (LLM extract) stay **deferred**. Suggestions still never write canonical `document`/`document_requirement` rows. Voting/promotion (`voting-moderation`), evidence storage, the crawlers suite, and consent/privacy code are still **not started**. | Suggestions: [`apps/api/app/features/suggestions/`](../../apps/api/app/features/suggestions/), [`.plans/suggestion-interface/`](../../.plans/suggestion-interface/00-architecture.md). Discovery: [`apps/api/app/features/discovery/`](../../apps/api/app/features/discovery/), [`apps/discovery-ingest/`](../../apps/discovery-ingest/), [`apps/web/src/features/discovery-admin/`](../../apps/web/src/features/discovery-admin/), runbook [`docs/operations/discovery-layer.md`](../operations/discovery-layer.md), [`.plans/discovery-layer/`](../../.plans/discovery-layer/00-architecture.md) |
+| Wave 7+ — social/moderation/crawlers/GDPR | Later waves | **Started.** The suggestion interface is **shipped** ([`docs/operations/suggestion-api.md`](../operations/suggestion-api.md)). The **discovery layer** — staging ingest (`apps/discovery-ingest`), machine and admin discovery APIs, `/admin/discovery/*` review UI, and machine emit to **`pending`** suggestions — is **shipped** on loop branch `feat/plans-discovery-layer` (release PR to `main` pending). Chapters 16 (claim evidence), 20 (crawler frontier), and 21 (LLM extract) stay **deferred**. Suggestions still never write canonical `document`/`document_requirement` rows. Voting/promotion (`voting-moderation`), evidence storage and consent/privacy code are listed as **not started** here (the API side of voting already exists; its owner updates that suite). The crawlers suite is built on its loop branch (see the 2026-10-27 update below). | Suggestions: [`apps/api/app/features/suggestions/`](../../apps/api/app/features/suggestions/), [`.plans/suggestion-interface/`](../../.plans/suggestion-interface/00-architecture.md). Discovery: [`apps/api/app/features/discovery/`](../../apps/api/app/features/discovery/), [`apps/discovery-ingest/`](../../apps/discovery-ingest/), [`apps/web/src/features/discovery-admin/`](../../apps/web/src/features/discovery-admin/), runbook [`docs/operations/discovery-layer.md`](../operations/discovery-layer.md), [`.plans/discovery-layer/`](../../.plans/discovery-layer/00-architecture.md) |
 
 ## Verified deployment status
 
@@ -79,6 +79,20 @@ Operator steps: [`docs/operations/discovery-layer.md`](../operations/discovery-l
 chapters are **shipped**; evidence-backed claims (16), crawler frontier adapter (20), and LLM extract (21)
 remain deferred for `evidence-storage` and `crawlers`. Details:
 [`.plans/discovery-layer/`](../../.plans/discovery-layer/00-architecture.md).
+
+**Update, 2026-10-27 — crawlers suite built on its loop branch.** The queue-based crawl layer is on `feat/crawlers`; the
+release PR to `main` is pending, and chapters 1–6 already reached `main` in a staged release. It adds the kind-filtered
+claim, retry and release, the bounded multi-batch drain with `remaining`, document candidates with provenance and manual
+emit (`candidates emit`, `official_url` optional on `new_document`), PVOG payload harvest, a Cloudflare R2 object store
+with artifact routes, Cloudflare Browser Run rendering and screenshots on the free plan, a budget ledger that caps every
+free allocation (including 1,000 Actions minutes a month for this repository), and admin Documents, Artifacts and
+evidence screens. Chapter 18 (a hand-written extractor) is deferred, so no extractor is registered yet. Remote CI could not
+run for most chapters (Actions quota), and every live gate waits for the release and the operator. Runbooks:
+[`discovery-online.md`](../operations/discovery-online.md),
+[`discovery-layer.md`](../operations/discovery-layer.md),
+[`scheduled-jobs.md`](../operations/scheduled-jobs.md); operator steps:
+[`crawlers-operator-checklist.md`](../operations/crawlers-operator-checklist.md); known gaps:
+[`loops/crawlers.md`](../operations/loops/crawlers.md); plan: [`.plans/crawlers/`](../../.plans/crawlers/00-architecture.md).
 
 ## Next step
 

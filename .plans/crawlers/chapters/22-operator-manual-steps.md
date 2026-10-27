@@ -21,7 +21,7 @@ isProject: false
 
 ## Goal
 
-Collect every manual action in one place, in the order it is needed, so no chapter is blocked by a forgotten console step. The checklist is copied into `docs/operations/` (a new `crawlers-operator-checklist.md` linked from the runbooks) and each step is ticked with a date and, where relevant, a GitHub Actions run ID.
+Collect every manual action in one place, in the order it is needed, so no chapter is blocked by a forgotten console step. The checklist is copied into `docs/operations/` ([`crawlers-operator-checklist.md`](../../../docs/operations/crawlers-operator-checklist.md), published by chapter 21 and linked from the runbooks) and each step is ticked with a date and, where relevant, a GitHub Actions run ID.
 
 Merging a chapter never waits for a step: code is tested against fakes in CI. Steps unlock **live gates**.
 
@@ -60,7 +60,13 @@ gh workflow run discovery-storage-probe.yml
 gh run watch && gh run view --log
 ```
 
-Every step must pass, including the unauthenticated GET of the presigned URL. Record the run ID and the recommended checksum variant in the ledger.
+`gh workflow run <file>` answers 404 for a workflow that is not yet on `main` (a workflow can be dispatched only from the default branch, so this holds for `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-render.yml` and `discovery-fixture-capture.yml` until the release). Until then run the same probe on a laptop, with the Render values exported and never committed:
+
+```bash
+cd apps/api && set -a; source <env file>; set +a; .venv/bin/python -m scripts.object_store_probe
+```
+
+Every step must pass, including the unauthenticated GET of the presigned URL. Record the run ID (or the laptop run) and the recommended checksum variant in the ledger.
 
 **S7 — Verify live gates with `gh`.** For each chapter's live gate: dispatch the named workflow, read the report, record the run ID.
 
@@ -194,7 +200,7 @@ python -m discovery_ingest browser probe --url https://example.com --url https:/
 
 Record the run ID and the findings (response shape, `X-Browser-Ms-Used`, error behaviour, browser milliseconds per page) in the ledger; chapter 15 turns them into its error table.
 
-**S17 — Confirm storage is ready for snapshots.** Browser drains refuse to start while `GET /machine/artifacts/status` reports `storage_enabled: false`, so S1–S4 must be done before the first render run. The check is `curl -H "Authorization: Bearer $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"`.
+**S17 — Confirm storage is ready for snapshots.** Browser drains refuse to start while `GET /machine/artifacts/status` reports `storage_enabled: false`, so S1–S4 must be done before the first render run. The machine API takes the key in the `X-API-Key` header (not `Authorization: Bearer`, which is for user sessions). The check is `curl -s -w "\nHTTP %{http_code}\n" -H "X-API-Key: $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"`; expect `HTTP 200` and `"storage_enabled": true`.
 
 **S18 — Run the browser drain locally (optional, costs no Actions minutes).** With the two Cloudflare variables and `DISCOVERY_API_URL`/`DISCOVERY_API_KEY` exported:
 

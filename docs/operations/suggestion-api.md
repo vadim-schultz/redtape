@@ -54,7 +54,7 @@ Errors below); send neither and you get a plain 401.
 | --- | --- | --- |
 | `title_i18n` | yes | At least one non-blank value; keys are 2–5 letter locale codes; ≤300 chars/value |
 | `description_i18n` | no | Same i18n rules; ≤4000 chars/value |
-| `official_url` | yes | `http`/`https` only, must have a host, ≤500 chars |
+| `official_url` | no | `http`/`https` only, must have a host, ≤500 chars. Omit it for a document with no URL of its own (decision D8 of the [crawlers suite](../../.plans/crawlers/gaps-and-decisions.md)); a blank or malformed value is still a 422 |
 | `domain_codes` | no | ≤20, unique, must exist in the taxonomy |
 | `situation_codes` | no | ≤20, unique, must exist in the taxonomy |
 
@@ -130,6 +130,14 @@ A duplicate is an existing document (same jurisdiction and derived slug, or same
 `official_url`) or an existing **pending** suggestion with the same normalized URL — approved or rejected
 suggestions never block a resubmission (D4 in
 [gaps-and-decisions.md](../../.plans/suggestion-interface/gaps-and-decisions.md)).
+
+**Without `official_url`** the URL checks are skipped: a payload with no URL conflicts only with an existing document
+of the same jurisdiction and derived slug, and the lookup for a pending suggestion with the same URL does not run.
+Two pending suggestions with the same title and no URL are therefore not rejected against each other at submission;
+promotion still checks the slug against existing documents. The discovery candidate emit
+([discovery-layer.md](discovery-layer.md) § Manual candidate emit) uses this, because a document named on a
+procedure page usually has no URL of its own and the procedure page URL would reject every second document of the
+same page. Provenance travels in `source_url`.
 
 ## `Idempotency-Key`
 

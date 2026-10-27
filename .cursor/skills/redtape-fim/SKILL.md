@@ -97,7 +97,22 @@ On R&S laptops, export `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` before `curl`, 
 | `DISCOVERY_API_URL` | (required for enrich) | Redtape discovery machine API base |
 | `DISCOVERY_API_KEY` | (required for enrich) | `X-API-Key` for entity/claim upserts |
 
-## Example steckbrief fragment (truncated)
+## Real steckbrief shape (probed 2026-10-26)
+
+`fim probe` read ten live steckbriefe (five GovData `leika_key`, five PVOG `leikakeys[0]`); all answered 200 with
+`leistungsschluessel`. The real top-level keys are `redaktion_id`, `leistung_id`, `title`, `title_en`,
+`leistungsbezeichnung`, `leistungsbezeichnung_en`, `leistungsbezeichnung_2`, `leistungsbezeichnung_2_en`,
+`rechtsgrundlagen`, `rechtsgrundlagen_en`, `freigabe_status`, `erstellt_datum_zeit`, `geaendert_datum_zeit`,
+`leistungsadressat`, `leistungsschluessel`, `typisierung`, `leistungstyp`, `sdg_informationsbereiche`,
+`klassifizierung`, `leistung_stammtexte`, `prozessklasse`, `ozg`, `replacements`. There is **no `kurztext`** and no
+document, form or evidence field. `leistung_stammtexte` lists `{redaktion_id, id, title, leistungsschluessel}`
+references to text modules (a separate fetch, not built).
+
+**Known mismatch:** the enrich helpers still read `titel` and `kurztext`, which the real response does not have, so
+entities get no label and no `metadata` claim. The fragment below is an illustration from the early fixtures, not the
+real shape. Run `python -m discovery_ingest fim probe --keys <14-digit keys>` to see live keys.
+
+## Example steckbrief fragment (truncated, illustrative)
 
 ```json
 {

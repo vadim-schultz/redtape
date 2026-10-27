@@ -80,6 +80,23 @@ cd apps/api && python -m pytest tests/test_crawlers_docs.py tests/test_discovery
 gh pr checks --watch
 ```
 
+## As built (2026-10-27)
+
+- Tests: `apps/api/tests/test_crawlers_docs.py` (content contracts), `test_crawlers_docs_structure.py` (links, indexes,
+  neighbours, checklist) and the helper module `crawlers_docs_support.py`. Several contracts read the code instead of
+  repeating it: every API stop reason, every `discovery_task_kind` value and every `object_store_*` setting must appear in
+  the runbooks, and every German key in the checklist must exist in the seed.
+- Runbooks: `discovery-online.md` was rewritten around the drain (kinds, retry, run report, stop reasons, browser
+  budgets, storage limits, triage). It no longer says `remaining` is unknown or that a scheduled run is one batch.
+  `discovery-layer.md` gained the crawl flow, candidates, manual emit, routes and the FIM known gap.
+- New: `docs/operations/crawlers-operator-checklist.md` (chapter 22's steps with a tick column, what was reported done, what
+  is open, the German review list). Chapter 22's text got the same two fixes: the machine header is `X-API-Key`, and the
+  probes run on a laptop while `gh workflow run` answers 404 for workflows not yet on `main`.
+- Throughput: the stale "about 80 pages per run" in decision D20 and chapter 18 became about 4 pages a minute (55 to 65
+  per 900 s run, about 22 runs for the backlog).
+- Not changed: the run ledger, other suites' statuses beyond the prescribed notes (evidence-storage chapters 1 and 2 are
+  marked absorbed), and any code.
+
 ## Out of scope
 
 Rewriting source-canon documents (government endpoint facts stay in `docs/discovery/government-data-sources.md`), editing other suites' statuses, new features.
