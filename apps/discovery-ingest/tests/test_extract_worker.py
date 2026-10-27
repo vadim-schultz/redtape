@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-
 import pytest
 from discovery_ingest.extract.base import PageContext
 from discovery_ingest.mentions import MentionItem

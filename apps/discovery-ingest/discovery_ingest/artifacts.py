@@ -53,3 +53,11 @@ class StoredArtifact:
 
     artifact: ArtifactRead
     created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactContent:
+    """The stored bytes of an artifact with the ``Content-Type`` the content route answered with."""
+
+    data: bytes
+    content_type: str | None

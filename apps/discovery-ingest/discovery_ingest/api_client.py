@@ -8,7 +8,7 @@ from uuid import UUID
 
 import httpx
 
-from discovery_ingest.artifacts import ArtifactRead, ArtifactStatus, ArtifactUpload, StoredArtifact
+from discovery_ingest.artifacts import ArtifactContent, ArtifactRead, ArtifactStatus, ArtifactUpload, StoredArtifact
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
@@ -247,6 +247,11 @@ class DiscoveryMachineClient:
     def get_artifact_status(self) -> ArtifactStatus:
         """Report whether storage is configured, with bytes used against the cap."""
         return ArtifactStatus.model_validate(self._call("GET", "/artifacts/status").json())
+
+    def get_artifact_content(self, artifact_id: UUID) -> ArtifactContent:
+        """Download the stored bytes of ``artifact_id``; 404 means unknown or missing object, 503 an unset store."""
+        response = self._call("GET", f"/artifacts/{artifact_id}/content")
+        return ArtifactContent(response.content, response.headers.get("content-type"))
 
     def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
         """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
