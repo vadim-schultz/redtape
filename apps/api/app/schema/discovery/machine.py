@@ -241,6 +241,19 @@ class RunStartRequest(BaseModel):
     kind: DiscoveryRunKind = DiscoveryRunKind.WORKER_DRAIN
 
 
+StopReason = Literal[
+    "queue_empty",
+    "batch_limit",
+    "time_budget",
+    "error",
+    "browser_budget",
+    "browser_quota",
+    "storage_unavailable",
+    "db_limit",
+]
+"""Why a worker drain ended; mirrors the ingest worker's ``StopReason``."""
+
+
 class RunFinishRequest(BaseModel):
     """Close a run with its report."""
 
@@ -250,7 +263,7 @@ class RunFinishRequest(BaseModel):
     failed_count: int = Field(ge=0)
     skipped_count: int = Field(ge=0)
     remaining_count: int | None = Field(default=None, ge=0)
-    stop_reason: Literal["queue_empty", "batch_limit", "time_budget", "error"] | None = None
+    stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
 
 
