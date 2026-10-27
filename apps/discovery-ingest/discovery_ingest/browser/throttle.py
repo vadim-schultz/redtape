@@ -1,13 +1,18 @@
-"""Minimum interval between any two Cloudflare calls in one process."""
+"""Minimum interval between any two Cloudflare calls in one process, counted from the end of the previous call."""
 
 from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from types import TracebackType
 
 
 class Throttle:
-    """Sleep as needed so calls start at least ``min_interval_seconds`` apart; clock and sleep are injectable."""
+    """Context manager: entering waits until the interval since the last call ended has passed.
+
+    The probe saw a ``429`` (``Rate limit exceeded``, ``Retry-After: 10``) for a call that started 11 s after the
+    start of a slow one, so the interval runs from the end of a call, not from its start.
+    """
 
     def __init__(
         self,
@@ -20,12 +25,16 @@ class Throttle:
         self._interval = min_interval_seconds
         self._clock = clock or time.monotonic
         self._sleep = sleep or time.sleep
-        self._last: float | None = None
+        self._ready_at: float | None = None
 
-    def wait(self) -> None:
-        """Block until a call may start, then record its start time."""
-        if self._last is not None:
-            remaining = self._last + self._interval - self._clock()
-            if remaining > 0:
-                self._sleep(remaining)
-        self._last = self._clock()
+    def __enter__(self) -> Throttle:
+        """Block until a call may start."""
+        if self._ready_at is not None and (remaining := self._ready_at - self._clock()) > 0:
+            self._sleep(remaining)
+        return self
+
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: TracebackType | None
+    ) -> None:
+        """Start the interval; an error inside the call does not skip it."""
+        self._ready_at = self._clock() + self._interval
