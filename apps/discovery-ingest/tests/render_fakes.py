@@ -146,7 +146,7 @@ def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> Po
             return httpx.Response(200, text=robots) if robots is not None else httpx.Response(robots_status)
         return httpx.Response(500, text="the render worker must not fetch pages itself")
 
-    http = httpx.Client(transport=httpx.MockTransport(handler))
+    http = _REAL_HTTPX_CLIENT(transport=httpx.MockTransport(handler))
     return PoliteUrlFetcher(min_interval_per_host_s=0, http_client=http)
 
 

@@ -7,6 +7,7 @@ import uuid
 import pytest
 from discovery_ingest.artifacts import ArtifactRead
 from discovery_ingest.browser.errors import BrowserAuthError, BrowserError, BrowserQuotaExceeded, BrowserRequestError
+from discovery_ingest.browser.port import RenderedPage
 from discovery_ingest.schemas import ClaimedTask, DrainReport
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
@@ -98,9 +99,7 @@ def test_render_page_treats_a_rendered_final_url_that_looks_like_login_as_a_logi
 ) -> None:
     """render_page · the page redirected to a sign-in url: login_wall, nothing uploaded."""
     api = FakeApi([_tasks(1)])
-    redirected = page().__class__(
-        html="<p>sign in</p>", ms=1000, http_status=200, final_url="https://idp.example/signin?x=1"
-    )
+    redirected = RenderedPage("<p>sign in</p>", 1000, 200, "https://idp.example/signin?x=1")
 
     _drain(monkeypatch, api, FakeBrowser(redirected))
 

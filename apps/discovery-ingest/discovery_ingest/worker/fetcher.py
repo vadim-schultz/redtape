@@ -63,6 +63,14 @@ class PoliteUrlFetcher:
         """Perform a polite GET on ``url`` and return status and body metadata."""
         return self._settle(url, self._check_page)
 
+    def check_robots(self, url: str) -> FetchOutcome | None:
+        """Return the failure outcome when robots.txt forbids ``url`` or cannot be read; ``None`` when it is allowed."""
+        try:
+            self._require_robots(url)
+        except FetchAbort as abort:
+            return classified(abort.outcome())
+        return None
+
     def _settle(self, url: str, guard: Guard) -> FetchOutcome:
         return classified(self._attempt(url, guard))
 
