@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactUpload, StoredArtifact
+from discovery_ingest.browser.errors import BrowserRequestError
 from discovery_ingest.schemas import ClaimedTask
+from discovery_ingest.worker.browser_spend import BrowserSpend
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.login_wall import has_password_input, url_looks_like_login
 from discovery_ingest.worker.settle import fail_from_api_error, fail_from_outcome, fail_with
 from discovery_ingest.worker.stop import StopDrain
 
 STORAGE_UNAVAILABLE_STATUSES = frozenset({503, 507})
+T = TypeVar("T")
 
 
 class Settled(Exception):
@@ -50,6 +55,14 @@ def skip_login_url(job: Job) -> None:
     """Complete with ``login_wall`` when the task URL already looks like a login URL, before any browser time."""
     if url_looks_like_login(job.task.target_url):
         raise Settled(complete(job, "login_wall"))
+
+
+def call_browser(job: Job, spend: BrowserSpend, action: Callable[[], T], cost_ms: Callable[[T], int]) -> T:
+    """Run a browser call under the budgets; a request error settles the task as failed (retryable per the error)."""
+    try:
+        return spend.call(action, cost_ms)
+    except BrowserRequestError as err:
+        raise Settled(fail_with(job.client, job.task.id, str(err), retryable=err.retryable)) from err
 
 
 def refuse_error_status(job: Job, status: int | None, what: str) -> None:

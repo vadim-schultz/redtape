@@ -8,13 +8,13 @@ from datetime import UTC, datetime
 
 from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactRead, ArtifactUpload, StoredArtifact
-from discovery_ingest.browser.errors import BrowserRequestError
 from discovery_ingest.browser.port import BrowserClient, RenderedPage
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.browser_spend import BrowserSpend
 from discovery_ingest.worker.browser_steps import (
     Job,
     Settled,
+    call_browser,
     check_robots,
     complete,
     is_login_wall,
@@ -23,7 +23,6 @@ from discovery_ingest.worker.browser_steps import (
     store,
 )
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
-from discovery_ingest.worker.settle import fail_with
 
 MAX_SNAPSHOT_BYTES = 4 * 1024 * 1024
 AfterSnapshot = Callable[[ClaimedTask, ArtifactRead], None]
@@ -62,10 +61,7 @@ class RenderPageHandler:
         self._after_snapshot(job.task, stored.artifact)
 
     def _render(self, job: Job) -> _Fetched:
-        try:
-            page = self._spend.call(lambda: self._browser.render(job.task.target_url), lambda page: page.ms_used)
-        except BrowserRequestError as err:
-            raise Settled(fail_with(job.client, job.task.id, str(err), retryable=err.retryable)) from err
+        page = call_browser(job, self._spend, lambda: self._browser.render(job.task.target_url), lambda p: p.ms_used)
         return _Fetched(page, datetime.now(UTC))
 
 
