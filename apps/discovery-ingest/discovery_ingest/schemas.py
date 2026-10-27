@@ -188,6 +188,7 @@ class DrainReport(BaseModel):
     released: int = 0
     browser_seconds_used: float = 0.0
     render_enqueue_failed: int = 0
+    capture_enqueue_failed: int = 0
     error: str | None = None
 
 

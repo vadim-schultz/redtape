@@ -80,25 +80,31 @@ class CloudflareBrowserClient:
         return text.replace(self._token, "<redacted>").replace(self._account_id, "<redacted>")
 
 
-def _rendered(payload: dict[str, JsonValue], ms_used: int) -> RenderedPage:
-    html, meta = payload.get("result"), payload.get("meta")
-    if not isinstance(html, str):
-        raise BrowserRequestError("Cloudflare returned no HTML", retryable=False)
+def _target(payload: dict[str, JsonValue]) -> tuple[int | None, str | None]:
+    """Return the target's HTTP status and final URL from ``meta`` (``None`` for what the envelope left out)."""
+    meta = payload.get("meta")
     fields = meta if isinstance(meta, dict) else {}
     status, final = fields.get("status"), fields.get("finalUrl")
-    return RenderedPage(
-        html, ms_used, status if isinstance(status, int) else None, final if isinstance(final, str) else None
-    )
+    return status if isinstance(status, int) else None, final if isinstance(final, str) else None
+
+
+def _rendered(payload: dict[str, JsonValue], ms_used: int) -> RenderedPage:
+    html = payload.get("result")
+    if not isinstance(html, str):
+        raise BrowserRequestError("Cloudflare returned no HTML", retryable=False)
+    return RenderedPage(html, ms_used, *_target(payload))
 
 
 def _screenshot_image(payload: dict[str, JsonValue], ms_used: int) -> ScreenshotImage:
     result = payload.get("result")
     fields = result if isinstance(result, dict) else {}
-    data, html = _decode_image(fields.get("screenshot")), fields.get("content")
-    return ScreenshotImage(data, CONTENT_TYPES[image_kind(data)], ms_used, html if isinstance(html, str) else None)
+    data, html = _decode_image(fields.get("screenshot"), ms_used), fields.get("content")
+    return ScreenshotImage(
+        data, CONTENT_TYPES[image_kind(data)], ms_used, html if isinstance(html, str) else None, *_target(payload)
+    )
 
 
-def _decode_image(encoded: JsonValue) -> bytes:
+def _decode_image(encoded: JsonValue, ms_used: int) -> bytes:
     try:
         data = base64.b64decode(encoded, validate=True) if isinstance(encoded, str) else b""
     except binascii.Error:
@@ -106,5 +112,5 @@ def _decode_image(encoded: JsonValue) -> bytes:
     if image_kind(data) not in CONTENT_TYPES:
         raise BrowserRequestError("Cloudflare returned no readable image", retryable=False)
     if len(data) > MAX_SCREENSHOT_BYTES:
-        raise ScreenshotOversize(len(data))
+        raise ScreenshotOversize(len(data), ms_used)
     return data

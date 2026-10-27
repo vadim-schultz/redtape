@@ -206,9 +206,10 @@ def test_a_200_without_a_result_is_a_permanent_error() -> None:
     assert caught.value.retryable is False
 
 
-def _snapshot(image: bytes, html: str | None = "<p>shot</p>") -> httpx.Response:
+def _snapshot(image: bytes, html: str | None = "<p>shot</p>", meta: dict[str, object] | None = None) -> httpx.Response:
     result = {"screenshot": base64.b64encode(image).decode(), **({"content": html} if html is not None else {})}
-    return httpx.Response(200, json={"success": True, "result": result}, headers={"X-Browser-Ms-Used": "4100"})
+    body = {"success": True, "result": result, **({"meta": meta} if meta is not None else {})}
+    return httpx.Response(200, json=body, headers={"X-Browser-Ms-Used": "4100"})
 
 
 def test_screenshot_returns_bytes_content_type_and_the_dom_from_one_snapshot_call() -> None:
@@ -227,6 +228,27 @@ def test_screenshot_returns_bytes_content_type_and_the_dom_from_one_snapshot_cal
     assert body["screenshotOptions"] == {"fullPage": True, "type": "jpeg", "quality": 80}
     assert body["viewport"] == {"width": 1280, "height": 800}
     assert (image.data, image.content_type, image.ms_used, image.html) == (JPEG, "image/jpeg", 4100, "<p>shot</p>")
+
+
+def test_screenshot_returns_the_target_status_and_final_url_from_the_snapshot_meta() -> None:
+    """screenshot · /snapshot meta carries the target's status and final url; without meta both are None."""
+    meta = {"status": 404, "finalUrl": PAGE + "/final", "title": "T"}
+
+    judged = _client(lambda request: _snapshot(JPEG, meta=meta)).screenshot(PAGE)
+    bare = _client(lambda request: _snapshot(JPEG)).screenshot(PAGE)
+
+    assert (judged.http_status, judged.final_url) == (404, PAGE + "/final")
+    assert (bare.http_status, bare.final_url) == (None, None)
+
+
+def test_an_over_limit_screenshot_reports_the_browser_time_it_cost() -> None:
+    """screenshot · ScreenshotOversize carries the milliseconds the call used so the caller can book them."""
+    big = b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES
+
+    with pytest.raises(ScreenshotOversize) as caught:
+        _client(lambda request: _snapshot(big)).screenshot(PAGE)
+
+    assert caught.value.ms_used == 4100
 
 
 def test_an_over_limit_screenshot_is_rejected_and_a_broken_image_is_an_error() -> None:

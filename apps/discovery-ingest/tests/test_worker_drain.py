@@ -13,8 +13,12 @@ import httpx
 import pytest
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
-from discovery_ingest.schemas import TaskEnqueueRequest
+from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS, TaskEnqueueRequest
+from discovery_ingest.worker.drain import run_worker_drain
+from discovery_ingest.worker.policy import DrainPolicy
 
+from capture_fakes import FakeCamera, shot
+from render_fakes import FakeApi, robots_fetcher, task_json
 from run_stub import run_response
 
 API_BASE = "https://redtape.test"
@@ -636,3 +640,34 @@ def test_worker_drain_dispatches_harvest_payload_and_counts_it_completed(
     assert exit_code == 0
     assert (report["claimed"], report["completed"], report["failed"]) == (1, 1, 0)
     assert [(m["role"], m["official_url"]) for m in mentions] == [("form", "https://f.example/a")]
+
+
+def _capture_api() -> FakeApi:
+    return FakeApi([[task_json(uuid.uuid4(), TARGET_URL, "capture_screenshot")]])
+
+
+def test_capture_screenshot_is_dispatched_to_its_handler_and_absent_from_the_default_kinds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """worker drain · capture_screenshot reaches the capture handler; the default kinds never include it."""
+    api, camera = _capture_api(), FakeCamera(shot())
+    policy = DrainPolicy(max_tasks=5, kinds=("capture_screenshot",), browser_budget_seconds=480)
+
+    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, browser=camera)
+
+    assert camera.calls == [TARGET_URL] and len(api.uploads) == 1
+    assert (report.completed, report.failed, report.browser_seconds_used) == (1, 0, 2.0)
+    assert "capture_screenshot" not in WORKER_DEFAULT_TASK_KINDS and "capture_screenshot" not in DrainPolicy().kinds
+
+
+def test_a_capture_screenshot_task_claimed_by_a_default_drain_is_failed_without_a_browser_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """worker drain · without a browser there is no capture handler: the task fails permanently, nothing is captured."""
+    api = _capture_api()
+
+    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), DrainPolicy(max_tasks=5))
+
+    ((_, body),) = api.named("fail")
+    assert body["retryable"] is False and str(body["error"]).startswith("unsupported task kind")
+    assert (report.failed, api.uploads) == (1, [])

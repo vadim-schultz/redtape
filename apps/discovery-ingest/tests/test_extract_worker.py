@@ -5,12 +5,13 @@ from __future__ import annotations
 import pytest
 from discovery_ingest.extract.base import PageContext
 from discovery_ingest.mentions import MentionItem
-from discovery_ingest.schemas import DrainReport
+from discovery_ingest.schemas import ClaimedTask, DrainReport
+from discovery_ingest.worker.capture_enqueue import enqueue_screenshot_for_mentions
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 
 from extract_fakes import ARTIFACT_ID, PAGE_URL, ExtractApi, FakeExtractor, extract_task, mention
-from render_fakes import robots_fetcher
+from render_fakes import CATALOGUE_ID, robots_fetcher
 
 
 def _drain(monkeypatch: pytest.MonkeyPatch, api: ExtractApi, *extractors: FakeExtractor) -> DrainReport:
@@ -121,3 +122,58 @@ def test_extract_page_fails_permanently_when_the_task_has_no_artifact(monkeypatc
     ((_, failure),) = api.named("fail")
     assert failure["retryable"] is False and "artifact" in failure["error"]
     assert api.mention_posts == []
+
+
+def _captures(api: ExtractApi) -> list[dict[str, object]]:
+    return [body for name, _, body in api.calls if name == "enqueue" and body["kind"] == "capture_screenshot"]
+
+
+def test_extract_page_enqueues_one_capture_task_when_mentions_exist_through_the_shared_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """extract_page · mentions earn one capture_screenshot task (priority 300, input_key shot@1) via the helper."""
+    api = ExtractApi([extract_task()])
+
+    report = _drain(monkeypatch, api, FakeExtractor(produce=_two_mentions))
+
+    (body,) = _captures(api)
+    assert (body["target_url"], body["input_key"], body["priority"]) == (PAGE_URL, "shot@1", 300)
+    assert (body["catalogue_service_id"], report.completed, report.capture_enqueue_failed) == (str(CATALOGUE_ID), 1, 0)
+    task = ClaimedTask.model_validate(extract_task(url="https://portal.example/other"))
+    assert enqueue_screenshot_for_mentions(api.client(monkeypatch), task) is True
+    assert _captures(api)[-1]["target_url"] == "https://portal.example/other"
+
+
+@pytest.mark.parametrize("extractors", [(), (FakeExtractor(),)], ids=["no_extractor", "no_mentions"])
+def test_extract_page_enqueues_no_capture_task_when_there_are_no_mentions(
+    monkeypatch: pytest.MonkeyPatch, extractors: tuple[FakeExtractor, ...]
+) -> None:
+    """extract_page · no extractor or no mentions: nothing is enqueued."""
+    api = ExtractApi([extract_task()])
+
+    _drain(monkeypatch, api, *extractors)
+
+    assert [call for call, _, _ in api.calls if call == "enqueue"] == []
+
+
+def test_re_extraction_with_a_new_extractor_version_does_not_create_a_second_capture_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """extract_page · the capture identity ignores the extractor version, so the queue keeps one capture."""
+    api = ExtractApi([extract_task(input_key="fake@1"), extract_task(input_key="fake@2")])
+
+    _drain(monkeypatch, api, FakeExtractor(version="2", produce=_two_mentions))
+
+    assert len(_captures(api)) == 2 and len({str(body["input_key"]) for body in _captures(api)}) == 1
+    assert len(api.enqueued) == 1
+
+
+def test_a_failed_capture_enqueue_is_counted_and_does_not_fail_the_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
+    """extract_page · a refused enqueue still posts the mentions and completes; the report counts the failure."""
+    api = ExtractApi([extract_task()])
+    api.enqueue_status = 500
+
+    report = _drain(monkeypatch, api, FakeExtractor(produce=_two_mentions))
+
+    assert len(api.mention_posts) == 1 and [body for _, body in api.named("complete")] == [None]
+    assert (report.completed, report.failed, report.capture_enqueue_failed) == (1, 0, 1)
