@@ -110,7 +110,11 @@
       "empty_title": "Keine Aufgaben in der Warteschlange",
       "empty_description": "Anderen Status-, Quellen- oder Artfilter wählen.",
       "count_one": "{count} Aufgabe",
-      "count_other": "{count} Aufgaben"
+      "count_other": "{count} Aufgaben",
+      "note_login_wall": "Login erforderlich",
+      "note_oversize": "Zu groß",
+      "note_no_mentions": "Keine Erwähnungen",
+      "note_no_extractor": "Kein Extraktor"
     },
     "documents": {
       "filter_search": "Titel durchsuchen",
@@ -182,6 +186,30 @@
       "col_external_id": "Externe ID",
       "col_source": "Quelle",
       "col_stage": "Stufe"
+    },
+    "artifacts": {
+      "title": "Artefakte",
+      "empty": "Noch keine Artefakte.",
+      "storage_unconfigured": "Der Artefaktspeicher ist in dieser Umgebung nicht eingerichtet, daher sind keine Downloads verfügbar.",
+      "link_unavailable": "Link nicht verfügbar",
+      "kind_html_snapshot": "HTML-Schnappschüsse",
+      "kind_screenshot": "Screenshots",
+      "download": "Herunterladen",
+      "screenshot_alt": "Screenshot vom {date}",
+      "html_meta": "{size}, abgerufen am {date}, {host}",
+      "chip_kind": "{kind}: {count} ({size})",
+      "chip_total": "Gespeichert: {size} von {cap}",
+      "chip_total_warning": "Speicher fast voll: {size} von {cap}",
+      "budgets_title": "Kontingente der kostenlosen Tarife",
+      "budgets_error": "Die Kontingente konnten nicht geladen werden.",
+      "budget_usage": "{used} von {cap} verbraucht, {remaining} übrig",
+      "budget_exhausted": "Aufgebraucht",
+      "budget_r2_class_a": "R2-Schreibzugriffe (Klasse A)",
+      "budget_r2_class_b": "R2-Lesezugriffe (Klasse B)",
+      "budget_browser_seconds": "Browser-Sekunden",
+      "budget_neurons": "KI-Neuronen",
+      "budget_actions_minutes": "Actions-Minuten",
+      "budget_stored_bytes": "Gespeicherte Artefakte"
     }
   },
   "suggest": {
