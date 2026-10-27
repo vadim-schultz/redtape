@@ -56,6 +56,48 @@ Checks (no laptop ingest required):
 - [ ] **Platform maintenance** discovery job succeeds (Actions → **Platform maintenance**, or `gh workflow run platform-maintenance.yml -f job=discovery`).
 - [ ] After a scheduled or manual discovery run, the admin catalogue view shows recent ingest activity (tasks or pipeline events).
 
+### Object store, budget caps and Cloudflare (Render environment)
+
+The crawl layer stores rendered snapshots and screenshots in Cloudflare R2 through its S3 API. Set the variables in the
+Render dashboard for `redtape-api`, never in `render.yaml` (it is committed; the file only has a comment).
+Step by step: [crawlers-operator-checklist.md](crawlers-operator-checklist.md) S1 to S4 and S21.
+
+| Variable | Value |
+| --- | --- |
+| `OBJECT_STORE_ENDPOINT_URL` | `https://<account_id>.r2.cloudflarestorage.com` (the S3 endpoint, not a custom domain) |
+| `OBJECT_STORE_REGION` | `auto` |
+| `OBJECT_STORE_BUCKET` | The private bucket, for example `discovery-artifacts` |
+| `OBJECT_STORE_ACCESS_KEY_ID`, `OBJECT_STORE_SECRET_ACCESS_KEY` | An R2 token with Object Read & Write on that bucket only |
+| `OBJECT_STORE_FORCE_PATH_STYLE` | Optional, default `true` |
+| `OBJECT_STORE_MAX_BYTES` | Optional, default 8589934592 (8 GiB, below R2's free 10 GB) |
+
+All five required values must be set. If one is missing, the API still boots, the artifact routes answer **503**, and
+a browser drain refuses to start. An upload that would pass `OBJECT_STORE_MAX_BYTES` answers **507** and writes
+nothing. The cap sums the `discovery_artifact` rows, not the objects in the bucket.
+
+The budget ledger caps every free allocation below its allowance. The defaults are already safe, so set a variable only
+to tighten it.
+
+| Variable | Default | Guards |
+| --- | --- | --- |
+| `BUDGET_R2_CLASS_A_MONTHLY` | 400000 | R2 writes a month (free tier 1 million) |
+| `BUDGET_R2_CLASS_B_MONTHLY` | 4000000 | R2 reads a month (free tier 10 million); each presigned link reserves one |
+| `BUDGET_BROWSER_SECONDS_DAILY` | 480 | Cloudflare browser seconds a day, all runs together (free plan 600) |
+| `BUDGET_NEURONS_DAILY` | 8000 | Workers AI neurons a day (extraction suite; free plan 10,000) |
+| `BUDGET_ACTIONS_MINUTES_MONTHLY` | 1000 | This repository's GitHub Actions minutes a month |
+| `ACTIONS_CI_RESERVE_MINUTES` | 600 | The part of those minutes that CI keeps; drains may use 400 |
+| `DB_SOFT_LIMIT_BYTES` | 400000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
+
+The Cloudflare Browser Run token (`CLOUDFLARE_BROWSER_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`) is deliberately
+**not a Render variable**. The API never calls Cloudflare Browser Run. The token lives in GitHub Actions secrets and
+in the operator's local environment, and has only the "Browser Run - Edit" permission.
+
+Checks:
+
+- [ ] `curl -s -w "\nHTTP %{http_code}\n" -H "X-API-Key: $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"` returns 200 with `"storage_enabled": true`.
+- [ ] The same call to `…/machine/budgets` returns five resources (`r2_class_a`, `r2_class_b`, `browser_seconds`, `neurons`, `actions_minutes`) with their caps.
+- [ ] The storage probe passes (S6). It runs on a laptop with the Render values exported: `cd apps/api && set -a; source <env file>; set +a; .venv/bin/python -m scripts.object_store_probe`. Do not commit the env file.
+
 ### Worker-origin discovery probe sequence
 
 Run the direct Render health check before browser checks. Production browser traffic is same-origin
@@ -132,6 +174,8 @@ Prereqs:
 Checks:
 - [ ] Repository secrets for OpenPLZ and discovery jobs match [`scheduled-jobs.md`](scheduled-jobs.md) (`DATABASE_URL`, `DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID` set from live DE country row per [discovery-online-production-setup.md](discovery-online-production-setup.md) §3.1).
 - [ ] `DISCOVERY_API_KEY` was issued with `python -m scripts.issue_api_key --name discovery-scheduled-gha` and stored only in GitHub Secrets (not in git).
+- [ ] The drain workflows [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml) and [`discovery-render.yml`](../../.github/workflows/discovery-render.yml) exist on `main` (`gh workflow run` answers 404 for a workflow file that is not on `main` yet; `discovery-render.yml` and the probe workflows arrive with the release). Their schedule variables `DISCOVERY_DRAIN_SCHEDULE` and `DISCOVERY_RENDER_SCHEDULE` stay unset until [crawlers-operator-checklist.md](crawlers-operator-checklist.md) S13.
+- [ ] Probe secrets: the five `OBJECT_STORE_*` secrets are used only by `discovery-storage-probe.yml`; `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_BROWSER_API_TOKEN` only by `discovery-render.yml` and `discovery-browser-probe.yml`.
 
 ---
 
