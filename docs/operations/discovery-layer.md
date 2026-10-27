@@ -341,11 +341,14 @@ It prints each status and the top-level keys, and exits 1 when the decision gate
 **Steckbrief key.** Fanout enqueues `enrich_metadata` for GovData and PVOG rows. The key is the first 14-digit value of
 `fim_id`, `leistungsschluessel`, `leika_key`, `leikakeys[0]`. The probe of ten live keys passed on 2026-10-26.
 
-**Known gap.** The real steckbrief has top-level `title`, `title_en`, `leistungsbezeichnung`, `leistungsschluessel`,
-`rechtsgrundlagen`, `klassifizierung`, `leistung_stammtexte` and others, but no `kurztext` and no document or form
-field. The enrich helpers still read `titel` and `kurztext`. Enriched entities therefore get no label and no `metadata`
-claim; only the staged service-level `new_document` claim is written. Stammtext references
-(`leistung_stammtexte`) are not fetched.
+**Label and claims.** The real steckbrief has top-level `title`, `title_en`, `leistungsbezeichnung`,
+`leistungsschluessel`, `rechtsgrundlagen`, `klassifizierung`, `leistung_stammtexte` and others, but no `titel`, no
+`kurztext` and no document or form field. The entity label is the first non-blank of `title`, `titel` (the legacy
+shape of the early fixtures) and `leistungsbezeichnung`; with none of them the entity is still created without a label.
+The `metadata` claim (`kurztext`) is written only when a response carries a real `kurztext`, which the steckbrief does
+not, so enriched entities get a label and the staged service-level `new_document` claim, and no `metadata` claim. No
+other field stands in for `kurztext`, and the `new_document` title still comes from the catalogue row. Stammtext
+references (`leistung_stammtexte`) are not fetched.
 
 ### 5. Admin review (smoke)
 
