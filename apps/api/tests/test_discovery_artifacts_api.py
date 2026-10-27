@@ -12,7 +12,7 @@ from app.config import settings
 from app.features.discovery.budget_resources import BudgetResource
 from app.features.discovery.budgets import BudgetService
 from app.features.discovery.repository import DiscoveryRepository
-from app.models.discovery import DiscoveryArtifact, DiscoveryTask, DiscoveryTaskKind
+from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind, DiscoveryTask, DiscoveryTaskKind
 from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -20,6 +20,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from test_discovery_admin_api import _admin_headers, _catalogue, _kind_task
+from test_discovery_candidates_admin_api import _artifact, _auth, _candidate, _mention
 from test_discovery_machine_api import _issue_key
 
 MACHINE = "/api/v1/discovery/machine"
@@ -598,3 +599,87 @@ def test_the_admin_artifact_list_counts_nothing_when_storage_is_unset(
     client.get(_admin_list_url(task.catalogue_service_id), headers=_admin_headers())
 
     assert _used(db_session, BudgetResource.R2_CLASS_B) == 0
+
+
+def _candidate_artifacts_url(candidate_id: uuid.UUID) -> str:
+    return f"/api/v1/discovery/admin/candidates/{candidate_id}/artifacts"
+
+
+def test_candidate_artifacts_returns_referenced_artifacts_and_latest_procedure_screenshots_without_duplicates(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    first, second = _catalogue(db_session), _catalogue(db_session, external_id="svc-2")
+    candidate = _candidate(db_session, first, key="personalausweis")
+    snapshot = _artifact(db_session, first)
+    old_shot = _artifact(db_session, first, DiscoveryArtifactKind.SCREENSHOT, fetched_at=FETCHED_AT)
+    new_shot = _artifact(db_session, first, DiscoveryArtifactKind.SCREENSHOT, fetched_at=FETCHED_AT + timedelta(days=1))
+    other_shot = _artifact(db_session, second, DiscoveryArtifactKind.SCREENSHOT)
+    _artifact(db_session, second)
+    _mention(db_session, candidate, first, "a", artifact=snapshot)
+    _mention(db_session, candidate, first, "b", artifact=snapshot)
+    _mention(db_session, candidate, second, "c")
+
+    body = client.get(_candidate_artifacts_url(candidate.id), headers=_admin_headers()).json()
+
+    ids = [item["id"] for item in body["items"]]
+    assert sorted(ids) == sorted(str(row.id) for row in (snapshot, new_shot, other_shot))
+    assert str(old_shot.id) not in ids
+    assert body["total"] == 3
+    assert all(item["url"].startswith("memory://") for item in body["items"])
+
+
+def test_candidate_artifacts_pages_and_counts_one_class_b_operation_per_minted_url(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    _mention(db_session, candidate, catalogue, "a", artifact=_artifact(db_session, catalogue))
+    _artifact(db_session, catalogue, DiscoveryArtifactKind.SCREENSHOT)
+
+    body = client.get(_candidate_artifacts_url(candidate.id), params={"limit": 1}, headers=_admin_headers()).json()
+
+    assert (body["total"], len(body["items"]), body["limit"]) == (2, 1, 1)
+    assert _used(db_session, BudgetResource.R2_CLASS_B) == 1
+
+
+def test_candidate_artifacts_answers_503_without_minting_urls_when_class_b_is_exhausted(
+    client: TestClient[Litestar], db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    _mention(db_session, candidate, catalogue, "a", artifact=_artifact(db_session, catalogue))
+    monkeypatch.setattr(settings, "budget_r2_class_b_monthly", 0)
+
+    response = client.get(_candidate_artifacts_url(candidate.id), headers=_admin_headers())
+
+    assert response.status_code == 503
+
+
+def test_candidate_artifacts_degrades_to_null_urls_when_storage_is_unset(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    snapshot = _artifact(db_session, catalogue)
+    _mention(db_session, candidate, catalogue, "a", artifact=snapshot)
+    slot.store = None
+
+    response = client.get(_candidate_artifacts_url(candidate.id), headers=_admin_headers())
+
+    assert response.status_code == 200
+    [item] = response.json()["items"]
+    assert (item["id"], item["url"]) == (str(snapshot.id), None)
+    assert _used(db_session, BudgetResource.R2_CLASS_B) == 0
+
+
+def test_candidate_artifacts_rejects_non_admins_and_returns_404_for_an_unknown_candidate(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    candidate = _candidate(db_session, _catalogue(db_session), key="personalausweis")
+
+    forbidden = client.get(_candidate_artifacts_url(candidate.id), headers=_auth("stranger@example.com"))
+    anonymous = client.get(_candidate_artifacts_url(candidate.id))
+    unknown = client.get(_candidate_artifacts_url(uuid.uuid4()), headers=_admin_headers())
+
+    assert (forbidden.status_code, anonymous.status_code, unknown.status_code) == (403, 401, 404)
+    assert unknown.json()["detail"] == "Document candidate not found"
