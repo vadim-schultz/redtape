@@ -97,7 +97,7 @@ it("artifacts panel shows a download link for an html snapshot and never renders
   );
   expect(link).toHaveAttribute("rel", "noopener noreferrer");
   expect(container.querySelector("iframe")).toBeNull();
-  expect(container.querySelector("script")).toBeNull();
+  expect(container.innerHTML).not.toContain("alert(1)");
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });
 
