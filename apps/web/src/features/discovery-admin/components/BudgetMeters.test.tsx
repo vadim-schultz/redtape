@@ -45,7 +45,7 @@ it("budget meters show used and remaining per resource with the period", () => {
   expect(screen.getByText("Browser seconds · 2026-10-27")).toBeInTheDocument();
   expect(screen.getByText("120.5 of 480 used, 359.5 left")).toBeInTheDocument();
   expect(
-    screen.getByRole("progressbar", { name: "Browser seconds" }),
+    screen.getByRole("progressbar", { name: "Browser seconds · 2026-10-27" }),
   ).toHaveAttribute("aria-valuenow", "120.5");
   expect(screen.getByText("Stored artifacts")).toBeInTheDocument();
   expect(screen.getByText("2 GB of 8 GB used, 6 GB left")).toBeInTheDocument();

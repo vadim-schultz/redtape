@@ -2,6 +2,7 @@ import { Badge, HStack, Stack, Text, Wrap, WrapItem } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCoverageResponse } from "../types";
+import ArtifactChips from "./ArtifactChips";
 import CandidateChips from "./CandidateChips";
 import FailuresBySource from "./FailuresBySource";
 import KindStatusChips from "./KindStatusChips";
@@ -32,6 +33,7 @@ export default function CoverageChips({ coverage }: CoverageChipsProps) {
         <QueueStatusChips coverage={coverage} />
         <KindStatusChips coverage={coverage} />
         <CandidateChips candidates={coverage.candidates} />
+        <ArtifactChips artifacts={coverage.artifacts} />
         {sourceEntries.length === 0 ? (
           <HStack>
             <Text color="fg.muted" textStyle="bodySm">

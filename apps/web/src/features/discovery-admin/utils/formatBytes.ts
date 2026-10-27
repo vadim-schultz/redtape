@@ -1,3 +1,5 @@
+import { formatNumber } from "./formatNumber";
+
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 const STEP = 1024;
 
@@ -13,6 +15,5 @@ function unitIndex(bytes: number): number {
 export function formatBytes(bytes: number, locale: string): string {
   const size = Number.isFinite(bytes) ? Math.max(bytes, 0) : 0;
   const index = unitIndex(size);
-  const digits = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  return `${digits.format(size / STEP ** index)} ${UNITS[index]}`;
+  return `${formatNumber(size / STEP ** index, locale)} ${UNITS[index]}`;
 }
