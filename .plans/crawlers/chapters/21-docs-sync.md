@@ -92,7 +92,7 @@ gh pr checks --watch
 - New: `docs/operations/crawlers-operator-checklist.md` (chapter 22's steps with a tick column, what was reported done, what
   is open, the German review list). Chapter 22's text got the same two fixes: the machine header is `X-API-Key`, and the
   probes run on a laptop while `gh workflow run` answers 404 for workflows not yet on `main`.
-- Throughput: the stale "about 80 pages per run" in decision D20 and chapter 18 became about 4 pages a minute (55 to 65
+- Throughput: the stale eighty-pages-per-run figure in decision D20 and chapter 18 became about 4 pages a minute (55 to 65
   per 900 s run, about 22 runs for the backlog).
 - Not changed: the run ledger, other suites' statuses beyond the prescribed notes (evidence-storage chapters 1 and 2 are
   marked absorbed), and any code.
