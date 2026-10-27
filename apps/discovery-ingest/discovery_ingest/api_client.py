@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from uuid import UUID
 
 import httpx
 
+from discovery_ingest.artifacts import ArtifactRead, ArtifactStatus, ArtifactUpload, StoredArtifact
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
@@ -33,6 +35,7 @@ from discovery_ingest.schemas import (
 HTTP_INSUFFICIENT_STORAGE = 507
 DATABASE_LIMIT_DETAIL = "database_soft_limit"
 HTTP_CONFLICT = 409
+HTTP_CREATED = 201
 
 
 class DiscoveryMachineApiError(Exception):
@@ -222,13 +225,28 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
 
-    def complete_task(self, task_id: UUID) -> None:
-        """Mark a claimed task completed."""
-        url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/complete"
-        with httpx.Client(trust_env=True, timeout=60.0) as client:
-            response = client.post(url, headers={"X-API-Key": self._api_key})
-        if response.status_code >= 400:
-            raise DiscoveryMachineApiError(response.status_code, response.text)
+    def complete_task(self, task_id: UUID, *, note: str | None = None) -> None:
+        """Mark a claimed task completed; ``note`` says why nothing was produced (for example ``login_wall``)."""
+        body = {"note": note} if note is not None else None
+        self._call("POST", f"/tasks/{task_id}/complete", json=body)
+
+    def release_task(self, task_id: UUID, reason: str, *, not_before: datetime | None = None) -> None:
+        """Hand a claimed task back to ``pending`` without consuming an attempt (a limit stopped the work)."""
+        body = {"reason": reason, **({"not_before": not_before.isoformat()} if not_before else {})}
+        self._call("POST", f"/tasks/{task_id}/release", json=body)
+
+    def upload_artifact(self, task_id: UUID, upload: ArtifactUpload) -> StoredArtifact:
+        """Store a snapshot or screenshot for a claimed task; 201 created it, 200 matched identical stored bytes."""
+        fields = {"kind": upload.kind, "source_url": upload.source_url, "fetched_at": upload.fetched_at.isoformat()}
+        if upload.final_url:
+            fields["final_url"] = upload.final_url
+        files = {"file": (f"{upload.kind}", upload.data, upload.content_type)}
+        response = self._call("POST", f"/tasks/{task_id}/artifacts", data=fields, files=files)
+        return StoredArtifact(ArtifactRead.model_validate(response.json()), response.status_code == HTTP_CREATED)
+
+    def get_artifact_status(self) -> ArtifactStatus:
+        """Report whether storage is configured, with bytes used against the cap."""
+        return ArtifactStatus.model_validate(self._call("GET", "/artifacts/status").json())
 
     def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
         """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
@@ -262,9 +280,23 @@ class DiscoveryMachineClient:
     def _budget_call(
         self, method: str, suffix: str, body: dict[str, float] | None = None, *, allow: tuple[int, ...] = ()
     ) -> httpx.Response:
-        url = f"{self._base_url}/api/v1/discovery/machine/budgets{suffix}"
+        return self._call(method, f"/budgets{suffix}", json=body, allow=allow)
+
+    def _call(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Mapping[str, str | float] | None = None,
+        data: dict[str, str] | None = None,
+        files: dict[str, tuple[str, bytes, str]] | None = None,
+        allow: tuple[int, ...] = (),
+    ) -> httpx.Response:
+        url = f"{self._base_url}/api/v1/discovery/machine{path}"
         with httpx.Client(trust_env=True, timeout=60.0) as client:
-            response = client.request(method, url, json=body, headers={"X-API-Key": self._api_key})
+            response = client.request(
+                method, url, json=json, data=data, files=files, headers={"X-API-Key": self._api_key}
+            )
         if response.status_code >= 400 and response.status_code not in allow:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return response
