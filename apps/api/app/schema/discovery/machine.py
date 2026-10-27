@@ -121,6 +121,8 @@ class ClaimedTaskRead(BaseModel):
     status: DiscoveryTaskStatus
     priority: int
     lease_expires_at: datetime
+    artifact_id: UUID | None = None
+    input_key: str | None = None
 
 
 class TaskClaimResponse(BaseModel):
