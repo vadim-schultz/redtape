@@ -84,4 +84,61 @@ describe("fallback translation bundles", () => {
     expect(enKeys.length).toBeGreaterThan(0);
     expect(suggestionsKeys("de")).toEqual(enKeys);
   });
+
+  it("has every discovery_admin.* key in both fallback bundles", () => {
+    const adminKeys = (locale: string) =>
+      Object.keys(fallbackBundle(locale))
+        .filter((key) => key.startsWith("discovery_admin."))
+        .sort();
+
+    expect(adminKeys("de")).toEqual(adminKeys("en"));
+  });
+});
+
+const ARTIFACT_KEYS = [
+  "title",
+  "empty",
+  "storage_unconfigured",
+  "link_unavailable",
+  "kind_html_snapshot",
+  "kind_screenshot",
+  "download",
+  "screenshot_alt",
+  "html_meta",
+  "chip_kind",
+  "chip_total",
+  "chip_total_warning",
+  "budgets_title",
+  "budgets_error",
+  "budget_usage",
+  "budget_exhausted",
+  "budget_r2_class_a",
+  "budget_r2_class_b",
+  "budget_browser_seconds",
+  "budget_neurons",
+  "budget_actions_minutes",
+  "budget_stored_bytes",
+].map((key) => `discovery_admin.artifacts.${key}`);
+
+const NOTE_KEYS = ["login_wall", "oversize", "no_mentions", "no_extractor"].map(
+  (note) => `discovery_admin.tasks.note_${note}`,
+);
+
+describe("discovery admin artifact strings", () => {
+  it.each(["en", "de"])("all strings resolve in %s", (locale) => {
+    const bundle = fallbackBundle(locale);
+
+    for (const key of [...ARTIFACT_KEYS, ...NOTE_KEYS]) {
+      expect(bundle[key], key).toBeTruthy();
+    }
+  });
+
+  it("translates the artifact strings instead of copying English", () => {
+    const en = fallbackBundle("en");
+    const de = fallbackBundle("de");
+
+    expect(de["discovery_admin.artifacts.empty"]).not.toBe(
+      en["discovery_admin.artifacts.empty"],
+    );
+  });
 });
