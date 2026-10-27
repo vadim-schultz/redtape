@@ -168,6 +168,19 @@ export async function listCatalogueArtifacts(params: {
   );
 }
 
+/** The evidence behind one candidate (cited artifacts and procedure screenshots), each with a presigned URL. */
+export async function listCandidateArtifacts(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryArtifactListResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryArtifactListResponse>(
+    `${CANDIDATES_PATH}/${candidateId}/artifacts`,
+    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+  );
+}
+
 /** Free-tier budgets of the current periods plus the stored-bytes figure. */
 export async function fetchDiscoveryBudgets(params: {
   locale: string;

@@ -98,6 +98,13 @@ export const queryKeys = {
         candidateId,
         locale,
       ] as const,
+    candidateArtifacts: (candidateId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "candidate-artifacts",
+        candidateId,
+        locale,
+      ] as const,
     pipeline: (catalogueId: string | undefined, locale: string) =>
       [
         ...queryKeys.discoveryAdmin.all,

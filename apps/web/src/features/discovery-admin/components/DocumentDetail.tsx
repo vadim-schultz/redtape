@@ -1,15 +1,18 @@
 import { Heading, Stack } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCandidateDetailResponse } from "../types";
 import DocumentHeader from "./DocumentHeader";
 import DocumentMentionsTable from "./DocumentMentionsTable";
 
-/** Candidate detail body: header and mentions. */
+/** Candidate detail body: header, mentions and the evidence slot. */
 export default function DocumentDetail({
   data,
+  evidence,
 }: {
   data: DiscoveryCandidateDetailResponse;
+  evidence: ReactNode;
 }) {
   const { t } = useLocale();
 
@@ -25,6 +28,7 @@ export default function DocumentDetail({
         </Heading>
         <DocumentMentionsTable mentions={data.mentions} />
       </Stack>
+      {evidence}
     </Stack>
   );
 }
