@@ -6,6 +6,7 @@ import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../../auth/services/authGateway";
 import type {
+  DiscoveryArtifact,
   DiscoveryCandidateDetailResponse,
   DiscoveryCandidateMention,
 } from "../types";
@@ -67,7 +68,36 @@ function detail(
   };
 }
 
-function stubDocumentFetch(body: DiscoveryCandidateDetailResponse) {
+type Extras = { artifacts?: DiscoveryArtifact[] };
+
+function artifact(
+  overrides: Partial<DiscoveryArtifact> = {},
+): DiscoveryArtifact {
+  return {
+    id: "art-1",
+    catalogue_service_id: "cat-1",
+    discovery_task_id: null,
+    kind: "html_snapshot",
+    content_type: "text/html",
+    byte_size: 2048,
+    source_url: "https://example.gov/service/1",
+    final_url: null,
+    fetched_at: "2026-10-26T12:00:00Z",
+    created_at: "2026-10-26T12:00:00Z",
+    url: "https://store.example/page.html?sig=abc",
+    ...overrides,
+  };
+}
+
+function artifactsBody(items: DiscoveryArtifact[]): string {
+  return JSON.stringify({ items, total: items.length, offset: 0, limit: 20 });
+}
+
+function stubDocumentFetch(
+  body: DiscoveryCandidateDetailResponse,
+  { artifacts = [] }: Extras = {},
+) {
+  const paths: string[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
@@ -82,10 +112,15 @@ function stubDocumentFetch(body: DiscoveryCandidateDetailResponse) {
           }),
         );
       }
+      paths.push(pathname);
       if (pathname.endsWith(base)) return new Response(JSON.stringify(body));
+      if (pathname.endsWith(`${base}/artifacts`)) {
+        return new Response(artifactsBody(artifacts));
+      }
       return new Response("", { status: 503 });
     }),
   );
+  return paths;
 }
 
 function renderDocumentPage() {
@@ -152,4 +187,38 @@ it("external url is left out when absent or not http", async () => {
     screen.queryByRole("link", { name: /javascript/ }),
   ).not.toBeInTheDocument();
   expect(screen.queryByText("Official URL")).not.toBeInTheDocument();
+});
+
+it("document page shows evidence from the artifacts panel", async () => {
+  const paths = stubDocumentFetch(detail(), {
+    artifacts: [
+      artifact(),
+      artifact({
+        id: "art-2",
+        kind: "screenshot",
+        content_type: "image/png",
+        url: "https://store.example/shot.png?sig=abc",
+      }),
+    ],
+  });
+  renderDocumentPage();
+
+  expect(await screen.findByText("Artifacts")).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Download" })).toHaveAttribute(
+    "href",
+    "https://store.example/page.html?sig=abc",
+  );
+  expect(screen.getByRole("img")).toHaveAttribute(
+    "src",
+    "https://store.example/shot.png?sig=abc",
+  );
+  expect(paths.some((path) => path.includes("/catalogue/"))).toBe(false);
+});
+
+it("document page shows the empty evidence state", async () => {
+  stubDocumentFetch(detail(), { artifacts: [] });
+  renderDocumentPage();
+
+  expect(await screen.findByText("No artifacts yet.")).toBeInTheDocument();
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });
