@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/crawlers`
 **Release branch:** `main`
-**Release PR:** staged release of chapters 1–6 to `main`: [PR #191](https://github.com/vadim-schultz/redtape/pull/191). The final release (a second PR `feat/crawlers` → `main`) is still pending.
+**Release PR:** staged release of chapters 1–6 to `main`: [PR #191](https://github.com/vadim-schultz/redtape/pull/191). The final release PR `feat/crawlers` → `main` is [PR #217](https://github.com/vadim-schultz/redtape/pull/217), opened 2026-10-27 and not yet merged (waiting for the owner's go-ahead; no remote CI).
 
 Update this ledger after every chapter implementation or documented operator verification. A chapter is not complete until its gate, its live gate (or the reason it is deferred), and its refactor outcome are recorded. Record GitHub Actions run IDs for every live gate.
 
@@ -81,7 +81,9 @@ Before chapter 15 starts, the operator does S15–S17, S19 and S21 of chapter 22
 
 Launch: `/chief-of-staff` on `.plans/crawlers/`, loop branch `feat/crawlers`, resume.
 
-**Last orchestration:** 2026-10-26 — chapters 7–14 and 23 merged into `feat/crawlers` on local CI only (Actions quota exhausted); stopped before chapter 15: its blocking Step 0 (Cloudflare browser probe) needs the operator's S15–S17 (Cloudflare account id and browser token, probe, storage check). Resume at chapter 15.
+**Last orchestration:** 2026-10-27 — chapters 7–17, 19–21 and 23 merged into `feat/crawlers` on local CI only; chapter 18 deferred (optional), chapter 22 operator-owned; final local gate green (API 903 passed + docs fix, ingest 423, web 458); release PR #217 opened, merge pending the owner's decision.
+
+**Earlier orchestration:** 2026-10-26 — chapters 7–14 and 23 merged into `feat/crawlers` on local CI only (Actions quota exhausted); stopped before chapter 15: its blocking Step 0 (Cloudflare browser probe) needs the operator's S15–S17 (Cloudflare account id and browser token, probe, storage check). Resume at chapter 15.
 
 **Earlier orchestration:** 2026-10-23 — chapters 1–6 merged into `feat/crawlers` and staged-released to `main` without remote CI (Actions quota exhausted); resume at chapter 7 after the quota resets.
 
