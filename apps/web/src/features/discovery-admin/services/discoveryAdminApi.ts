@@ -4,6 +4,7 @@ import type {
   CataloguePipelineResponse,
   DiscoveryArtifactListResponse,
   DiscoveryBudgetsResponse,
+  DiscoveryCandidateDetailResponse,
   DiscoveryCandidateListResponse,
   DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
@@ -139,6 +140,19 @@ export async function listDiscoveryCandidates(params: {
     accessToken,
     query: { ...filters, min_mentions: minMentions, offset, limit },
   });
+}
+
+/** One candidate with its jurisdiction name, mentions and their artifact summaries. */
+export async function fetchDiscoveryCandidate(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryCandidateDetailResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryCandidateDetailResponse>(
+    `${CANDIDATES_PATH}/${candidateId}`,
+    { locale, accessToken },
+  );
 }
 
 /** Artifacts of one catalogue row, each with a short-lived presigned URL. */
