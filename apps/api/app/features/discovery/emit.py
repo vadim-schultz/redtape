@@ -12,6 +12,7 @@ from app.features.suggestions.service import SubmitterRef, SuggestionService
 from app.models.api_key import ApiKey
 from app.models.discovery import DiscoveryClaim, DiscoveryEntity, DiscoveryEventType
 from app.models.suggestion import SuggestionKind
+from app.schema.discovery.emit import tally_outcomes
 from app.schema.discovery.machine import CatalogueEmitItemResult, CatalogueEmitResponse
 from app.schema.suggestion.create import SuggestionCreate
 
@@ -46,14 +47,7 @@ def _skipped(claim: DiscoveryClaim, reason: str | None) -> CatalogueEmitItemResu
 
 
 def _tally(items: list[CatalogueEmitItemResult]) -> CatalogueEmitResponse:
-    skipped = sum(i.skip_reason is not None for i in items)
-    replayed = sum(i.skip_reason is None and i.replayed for i in items)
-    return CatalogueEmitResponse(
-        items=items,
-        created_count=len(items) - skipped - replayed,
-        skipped_count=skipped,
-        replayed_count=replayed,
-    )
+    return CatalogueEmitResponse(items=items, **tally_outcomes(items).model_dump())
 
 
 def _attempt_event(catalogue_id: UUID, response: CatalogueEmitResponse, claim_count: int) -> NewEvent:

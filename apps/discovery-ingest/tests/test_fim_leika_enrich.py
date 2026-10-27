@@ -81,6 +81,60 @@ def test_fim_enrich_cli_posts_entity_and_claim_from_fixture(monkeypatch: pytest.
     assert posts[0][1]["catalogue_service_id"] == str(CATALOGUE_ID)
 
 
+def _export_with_payload(tmp_path: Path, raw_payload: dict[str, object]) -> Path:
+    row = {"id": str(CATALOGUE_ID), "source": "pvog", "title_i18n": {"de": "Leistung"}, "raw_payload": raw_payload}
+    path = tmp_path / "export.json"
+    path.write_text(json.dumps({"items": [row]}), encoding="utf-8")
+    return path
+
+
+def _run_fim_enrich(export: Path) -> int:
+    args = ["--catalogue-service-id", str(CATALOGUE_ID), "--catalogue-export", str(export)]
+    return main(["fim", "enrich", *args, "--input", str(FIM_STECKBRIEF)])
+
+
+@pytest.mark.parametrize("raw_payload", [{"leika_key": "99096049001001"}, {"leikakeys": ["99096049001001"]}])
+def test_fim_enrich_cli_resolves_the_key_from_leika_key_and_leikakeys(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    raw_payload: dict[str, object],
+) -> None:
+    """fim enrich CLI · resolves the key from leika_key and leikakeys."""
+    monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    posted: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        posted.append(request.url.path)
+        body = json.loads(request.content.decode())
+        reply = {"id": str(uuid.uuid4()), "catalogue_service_id": str(CATALOGUE_ID), "created": True}
+        reply |= {
+            "discovery_entity_id": str(uuid.uuid4()),
+            "canonical_url": body.get("canonical_url"),
+            "kind": "metadata",
+        }
+        return httpx.Response(201, json=reply)
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    assert _run_fim_enrich(_export_with_payload(tmp_path, raw_payload)) == 0
+    assert any(path.endswith("/entities") for path in posted)
+
+
+def test_fim_enrich_cli_exits_1_without_a_well_formed_steckbrief_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """fim enrich CLI · exits 1 without a well-formed steckbrief key and posts nothing."""
+    monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(lambda _request: httpx.Response(500)))
+
+    assert _run_fim_enrich(_export_with_payload(tmp_path, {"fim_id": "LB-EXAMPLE-STECK"})) == 1
+    assert "no steckbrief key" in capsys.readouterr().err
+
+
 def test_leika_enrich_cli_exits_1_when_catalogue_id_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
     """leika enrich CLI · exits 1 when catalogue id unknown."""
     monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)

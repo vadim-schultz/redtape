@@ -13,7 +13,7 @@ interface AppMenuPanelProps {
 /** Key–value rows for profile, documents, colour mode, and language. */
 export default function AppMenuPanel({ onCloseMenu }: AppMenuPanelProps) {
   return (
-    <VStack align="stretch" gap="3" p="3" minW="18rem">
+    <VStack align="stretch" gap="3" p="3" minW="22rem">
       <HomeMenuButton />
       <ProfileMenuRow />
       <DocumentsMenuRow />

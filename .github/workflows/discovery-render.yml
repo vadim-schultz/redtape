@@ -1,0 +1,144 @@
+name: Discovery render
+
+on:
+  schedule:
+    # Daily 05:00 UTC. Runs only when the repository variable
+    # DISCOVERY_RENDER_SCHEDULE equals "enabled" (see the job condition).
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      max_tasks:
+        description: "Maximum tasks per claim request (small: a limit releases every task of the batch)"
+        required: false
+        default: "5"
+        type: string
+      max_batches:
+        description: "Maximum claim/process batches"
+        required: false
+        default: "40"
+        type: string
+      time_budget_seconds:
+        description: "Wall-clock budget in seconds"
+        required: false
+        default: "900"
+        type: string
+      browser_budget_seconds:
+        description: "Browser seconds this run may spend (the free plan allows 600 a day, shared with every other run)"
+        required: false
+        default: "480"
+        type: string
+      kinds:
+        description: "Comma separated browser task kinds to claim"
+        required: false
+        default: "render_page,capture_screenshot"
+        type: string
+
+permissions:
+  contents: read
+
+# The same group as discovery-drain.yml: the two workflows never overlap.
+concurrency:
+  group: discovery-drain
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    name: Drain browser tasks
+    if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_RENDER_SCHEDULE == 'enabled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
+      MAX_TASKS: ${{ inputs.max_tasks || '5' }}
+      MAX_BATCHES: ${{ inputs.max_batches || '40' }}
+      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '900' }}
+      BROWSER_BUDGET_SECONDS: ${{ inputs.browser_budget_seconds || '480' }}
+      TASK_KINDS: ${{ inputs.kinds || 'render_page,capture_screenshot' }}
+    steps:
+      - name: Record the job start time
+        run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Check the Actions minutes and browser seconds budgets
+        id: budget
+        run: |
+          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or fewer than
+          # 30 browser seconds left today (one call reserves 30); skip the drain without failing the run. An
+          # unreachable ledger lets the drain run.
+          code=0
+          python -m discovery_ingest budget show --resource actions_minutes --resource browser_seconds --require-remaining actions_minutes=30 --require-remaining browser_seconds=30 || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Discovery render skipped: the Actions minutes or the browser seconds are used up" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
+      - name: Wait for Render API health
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Drain browser tasks
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          args=(
+            --max-tasks "${MAX_TASKS}"
+            --max-batches "${MAX_BATCHES}"
+            --time-budget-seconds "${TIME_BUDGET_SECONDS}"
+            --browser-budget-seconds "${BROWSER_BUDGET_SECONDS}"
+            --kinds "${TASK_KINDS}"
+          )
+          python -m discovery_ingest worker drain "${args[@]}" | tee drain-report.json
+
+      - name: Write drain report to job summary
+        if: always() && steps.budget.outputs.skip != 'true'
+        run: |
+          if [ -s drain-report.json ]; then
+            {
+              echo "### Discovery render report"
+              echo
+              echo '```json'
+              cat drain-report.json
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "### Discovery render report" >> "${GITHUB_STEP_SUMMARY}"
+            echo "No report was produced; see the drain step log." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Fail the job when the drain did not succeed
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          # browser_budget, browser_quota, storage_unavailable, db_limit, time_budget and queue_empty all succeed;
+          # only an infrastructure error (a rejected token, an API failure) sets succeeded to false.
+          python -c "import json,sys; sys.exit(0 if json.load(open('drain-report.json')).get('succeeded') else 1)"
+
+      - name: Report Actions minutes to the budget ledger
+        if: always()
+        continue-on-error: true
+        run: |
+          # Whole minutes since the first step, rounded up, plus one for runner setup and rounding.
+          started="${DRAIN_STARTED_AT:-$(date +%s)}"
+          elapsed=$(( $(date +%s) - started ))
+          minutes=$(( (elapsed + 59) / 60 + 1 ))
+          python -m discovery_ingest budget report-minutes --minutes "${minutes}"

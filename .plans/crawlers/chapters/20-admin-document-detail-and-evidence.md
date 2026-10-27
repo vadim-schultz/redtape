@@ -18,7 +18,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/api`, `apps/web`) · **Branch:** `feat/crawlers-admin-document-detail` · **Status:** planned
 
-**Depends on:** [11](11-candidate-emit.md), [16](16-admin-artifacts-panel.md), [18](18-first-page-extractor.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [11](11-candidate-emit.md), [16](16-admin-artifacts-panel.md), [18](18-first-page-extractor.md) (optional; the live data can equally come from the [extraction](../../extraction/00-architecture.md) suite's `llm_extract`) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -78,7 +78,7 @@ cd apps/web && npm run test -- src/features/discovery-admin && npm run lint && n
 gh pr checks --watch
 ```
 
-Live gate: as an allowlisted admin open a candidate that came from a chapter 18 extraction; its mentions link to procedures, its screenshot (chapter 19) and snapshot appear, and the preview matches what the CLI dry-run prints. Check the layout at phone width. Record the candidate id.
+Live gate: as an allowlisted admin open a candidate that came from an LLM extraction or a chapter 18 extraction; its mentions link to procedures, its screenshot (chapter 19) and snapshot appear, and the preview matches what the CLI dry-run prints. Check the layout at phone width. Record the candidate id.
 
 ## Out of scope
 

@@ -134,3 +134,28 @@ def test_finish_with_running_status_is_rejected_and_run_requires_api_key(
 
     assert bad_status.status_code == 422
     assert anonymous.status_code == 401
+
+
+@pytest.mark.parametrize("reason", ["browser_budget", "browser_quota", "storage_unavailable", "db_limit"])
+def test_finish_records_the_stop_reasons_of_a_run_that_hit_a_free_allocation(
+    client: TestClient[Litestar], db_session: Session, headers: dict[str, str], reason: str
+) -> None:
+    run_id = _start(client, headers)
+
+    response = client.post(f"{RUNS_URL}/{run_id}/finish", json=_finish_body(stop_reason=reason), headers=headers)
+
+    assert response.status_code == 200
+    latest = DiscoveryRepository(db_session).latest_successful_run()
+    assert latest is not None and latest.stop_reason == reason
+
+
+def test_finish_rejects_a_stop_reason_the_worker_does_not_define(
+    client: TestClient[Litestar], headers: dict[str, str]
+) -> None:
+    run_id = _start(client, headers)
+
+    response = client.post(
+        f"{RUNS_URL}/{run_id}/finish", json=_finish_body(stop_reason="coffee_break"), headers=headers
+    )
+
+    assert response.status_code == 422

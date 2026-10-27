@@ -8,25 +8,27 @@ export interface NewDocumentPayloadViewProps {
   payload: SuggestionPayload;
 }
 
+function OfficialUrlCard({ url }: { url: string }) {
+  return (
+    <AppCard>
+      <Link href={url} target="_blank" rel="noreferrer" color="text.link">
+        {url}
+      </Link>
+    </AppCard>
+  );
+}
+
 export default function NewDocumentPayloadView({
   payload,
 }: NewDocumentPayloadViewProps) {
   const { locale } = useLocale();
   const description = payload.description_i18n?.[locale];
+  const officialUrl = payload.official_url;
 
   return (
     <VStack align="stretch" gap={3}>
       {description ? <Text>{description}</Text> : null}
-      <AppCard>
-        <Link
-          href={payload.official_url}
-          target="_blank"
-          rel="noreferrer"
-          color="text.link"
-        >
-          {payload.official_url}
-        </Link>
-      </AppCard>
+      {officialUrl ? <OfficialUrlCard url={officialUrl} /> : null}
     </VStack>
   );
 }

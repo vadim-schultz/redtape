@@ -4,15 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
+from discovery_ingest.artifacts_cli import artifacts_download, artifacts_list, register_artifacts_parser
+from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
+from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
+from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
 from discovery_ingest.catalogue_export import load_catalogue_row
-from discovery_ingest.config import IngestSettings, load_ingest_settings
+from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
 from discovery_ingest.enrich import (
     fim_id_from_catalogue,
     fim_steckbrief_claim_requests,
@@ -22,6 +27,8 @@ from discovery_ingest.enrich import (
     leika_stammtext_entity_request,
 )
 from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
+from discovery_ingest.fim.keys import STECKBRIEF_KEY_PATTERN
+from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
@@ -33,12 +40,13 @@ from discovery_ingest.pvog.client import (
     map_pvog_record,
 )
 from discovery_ingest.schemas import (
-    LEGACY_TASK_KINDS,
     TASK_KINDS,
+    WORKER_DEFAULT_TASK_KINDS,
     CatalogueBatchItem,
     DiscoveryTaskKind,
     is_task_kind,
 )
+from discovery_ingest.worker.browser_setup import BrowserSetupError, prepare_browser
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
@@ -48,23 +56,11 @@ def main(argv: list[str] | None = None) -> int:
     """Run a discovery ingest subcommand."""
     parser = _build_parser()
     args = parser.parse_args(argv)
-    if args.command is None:
+    handler = _COMMANDS.get((args.command, getattr(args, f"{args.command}_command", None)))
+    if handler is None:
         parser.print_help()
         return 2
-    if args.command == "govdata" and args.govdata_command == "run":
-        return _govdata_run(args)
-    if args.command == "govdata" and args.govdata_command == "fetch":
-        return _govdata_fetch(args)
-    if args.command == "pvog" and args.pvog_command == "run":
-        return _pvog_run(args)
-    if args.command == "fim" and args.fim_command == "enrich":
-        return _fim_enrich(args)
-    if args.command == "leika" and args.leika_command == "enrich":
-        return _leika_enrich(args)
-    if args.command == "worker" and args.worker_command == "drain":
-        return _worker_drain(args)
-    parser.print_help()
-    return 2
+    return handler(args)
 
 
 def _govdata_run(args: argparse.Namespace) -> int:
@@ -173,7 +169,9 @@ def _fim_enrich(args: argparse.Namespace) -> int:
         return 1
     fim_id = fim_id_from_catalogue(catalogue)
     if fim_id is None:
-        print("catalogue row has no fim_id or leistungsschluessel", file=sys.stderr)
+        print(
+            "catalogue row has no steckbrief key (fim_id, leistungsschluessel, leika_key or leikakeys)", file=sys.stderr
+        )
         return 1
     fim = FimSteckbriefClient.from_json_file(Path(args.input), base_url=settings.fim_portal_base_url)
     try:
@@ -197,6 +195,21 @@ def _fim_enrich(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fim_probe(args: argparse.Namespace) -> int:
+    fetcher = PoliteUrlFetcher(user_agent=build_user_agent(os.environ.get("BOT_CONTACT_URL", DEFAULT_BOT_CONTACT_URL)))
+    results = probe_keys(fetcher, args.base_url, args.keys)
+    print("\n".join(probe_lines(results)))
+    return 0 if gate_passed(results) else 1
+
+
+def _steckbrief_keys_arg(raw: str) -> tuple[str, ...]:
+    """Parse a comma separated ``--keys`` value into 14-digit steckbrief keys."""
+    keys = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if not keys or not all(STECKBRIEF_KEY_PATTERN.fullmatch(key) for key in keys):
+        raise argparse.ArgumentTypeError(f"expected comma separated 14-digit steckbrief keys; got {raw!r}")
+    return keys
+
+
 def _task_kinds_arg(raw: str) -> tuple[DiscoveryTaskKind, ...]:
     """Parse a comma separated ``--kinds`` value into known task kinds."""
     names = [name.strip() for name in raw.split(",")]
@@ -212,6 +225,7 @@ def _drain_policy(args: argparse.Namespace) -> DrainPolicy:
         max_batches=args.max_batches,
         time_budget_seconds=args.time_budget_seconds,
         kinds=args.kinds,
+        browser_budget_seconds=args.browser_budget_seconds,
     )
 
 
@@ -224,11 +238,39 @@ def _worker_drain(args: argparse.Namespace) -> int:
     settings = load_ingest_settings()
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy)
+        return _drain_and_print(policy, settings, client)
+    except BrowserSetupError as err:
+        print(err, file=sys.stderr)
+        return err.exit_code
     except DiscoveryMachineApiError as err:
         print(f"drain failed: {err}", file=sys.stderr)
         return 1
+
+
+def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
+    """Prepare the browser when a browser kind is drained, run the recorded drain and print its report."""
+    browser = prepare_browser(settings, settings.user_agent, client) if policy.drains_browser_kinds else None
+    report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy, browser=browser)
     print(json.dumps(report.model_dump(mode="json")))
+    return 0 if report.succeeded else 1
+
+
+def _candidates_emit(args: argparse.Namespace) -> int:
+    selection = EmitSelection(tuple(args.id or ()), args.min_mentions, args.limit)
+    try:
+        selection.validate()
+    except ValueError as err:
+        print(f"invalid selection: {err}", file=sys.stderr)
+        return 2
+    settings = load_ingest_settings()
+    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
+    report = preview_report if args.dry_run else emit_report
+    try:
+        lines = report(client, selection)
+    except DiscoveryMachineApiError as err:
+        print(f"emit failed: {err}", file=sys.stderr)
+        return 1
+    print("\n".join(lines))
     return 0
 
 
@@ -295,6 +337,23 @@ def _map_pvog_records(
     return items
 
 
+_COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
+    ("govdata", "run"): _govdata_run,
+    ("govdata", "fetch"): _govdata_fetch,
+    ("pvog", "run"): _pvog_run,
+    ("fim", "enrich"): _fim_enrich,
+    ("fim", "probe"): _fim_probe,
+    ("leika", "enrich"): _leika_enrich,
+    ("worker", "drain"): _worker_drain,
+    ("candidates", "emit"): _candidates_emit,
+    ("budget", "show"): budget_show,
+    ("budget", "report-minutes"): budget_report_minutes,
+    ("browser", "probe"): browser_probe,
+    ("artifacts", "list"): artifacts_list,
+    ("artifacts", "download"): artifacts_download,
+}
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="discovery_ingest")
     sub = parser.add_subparsers(dest="command")
@@ -358,6 +417,10 @@ def _build_parser() -> argparse.ArgumentParser:
     fim_enrich.add_argument("--catalogue-export", required=True, help="Admin catalogue export JSON")
     fim_enrich.add_argument("--input", required=True, help="Steckbrief JSON fixture or snapshot")
 
+    fim_probe = fim_sub.add_parser("probe", help="Report status and top-level keys of live steckbriefe")
+    fim_probe.add_argument("--keys", type=_steckbrief_keys_arg, required=True, help="Comma separated 14-digit keys")
+    fim_probe.add_argument("--base-url", default="https://fimportal.de", help="FIM Portal base URL")
+
     leika = sub.add_parser("leika", help="LeiKa stammtext enrich")
     leika_sub = leika.add_subparsers(dest="leika_command")
     leika_enrich = leika_sub.add_parser("enrich", help="Upsert entity and claims from LeiKa stammtext")
@@ -387,9 +450,33 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional positive wall-clock budget for the whole drain",
     )
     worker_drain.add_argument(
+        "--browser-budget-seconds",
+        type=float,
+        default=480.0,
+        help="Browser seconds this run may spend on render_page and capture_screenshot (positive, default 480)",
+    )
+    worker_drain.add_argument(
         "--kinds",
         type=_task_kinds_arg,
-        default=LEGACY_TASK_KINDS,
-        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata)",
+        default=WORKER_DEFAULT_TASK_KINDS,
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload,extract_page; render_page and capture_screenshot need Cloudflare settings and artifact storage)",
     )
+
+    candidates = sub.add_parser("candidates", help="Document candidates")
+    candidates_sub = candidates.add_subparsers(dest="candidates_command")
+    emit = candidates_sub.add_parser("emit", help="Emit staged candidates as pending suggestions")
+    chosen = emit.add_mutually_exclusive_group(required=True)
+    chosen.add_argument("--id", type=UUID, action="append", help="Candidate to emit (repeatable)")
+    chosen.add_argument("--all-staged", action="store_true", help="Emit the most mentioned staged candidates")
+    emit.add_argument("--min-mentions", type=int, default=0, help="With --all-staged: minimum mentions (default 0)")
+    emit.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_EMIT_LIMIT,
+        help=f"Maximum candidates to emit (1-50, default {DEFAULT_EMIT_LIMIT})",
+    )
+    emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
+    register_budget_parser(sub)
+    register_browser_parser(sub)
+    register_artifacts_parser(sub)
     return parser

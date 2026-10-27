@@ -1,8 +1,13 @@
-import { HStack, NativeSelect } from "@chakra-ui/react";
+import { HStack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryTaskFilters } from "../hooks/useDiscoveryTaskFilters";
-import type { DiscoverySource, DiscoveryTaskStatus } from "../types";
+import type {
+  DiscoverySource,
+  DiscoveryTaskKind,
+  DiscoveryTaskStatus,
+} from "../types";
+import FilterSelect, { type FilterOption } from "./FilterSelect";
 
 const STATUSES: DiscoveryTaskStatus[] = [
   "pending",
@@ -19,52 +24,60 @@ const SOURCES: DiscoverySource[] = [
   "manual",
 ];
 
+const KINDS: DiscoveryTaskKind[] = [
+  "fetch_url",
+  "enrich_metadata",
+  "harvest_payload",
+  "extract_page",
+  "render_page",
+  "capture_screenshot",
+];
+
+function plain(values: string[]): FilterOption[] {
+  return values.map((value) => ({ value, label: value }));
+}
+
 export default function DiscoveryTaskFilters({
   filters,
 }: {
   filters: DiscoveryTaskFilters;
 }) {
   const { t } = useLocale();
+  const allOption = (key: string): FilterOption => ({
+    value: "",
+    label: t(key),
+  });
 
   return (
     <HStack gap={4} flexWrap="wrap">
-      <NativeSelect.Root size="sm" width="auto" minW="10rem">
-        <NativeSelect.Field
-          aria-label={t("discovery_admin.tasks.filter_status")}
-          value={filters.status}
-          onChange={(event) =>
-            filters.setStatus(event.currentTarget.value as DiscoveryTaskStatus)
-          }
-        >
-          {STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </NativeSelect.Field>
-        <NativeSelect.Indicator />
-      </NativeSelect.Root>
-
-      <NativeSelect.Root size="sm" width="auto" minW="10rem">
-        <NativeSelect.Field
-          aria-label={t("discovery_admin.tasks.filter_source")}
-          value={filters.source ?? ""}
-          onChange={(event) => {
-            const value = event.currentTarget.value;
-            filters.setSource(value === "" ? null : (value as DiscoverySource));
-          }}
-        >
-          <option value="">
-            {t("discovery_admin.tasks.filter_source_all")}
-          </option>
-          {SOURCES.map((source) => (
-            <option key={source} value={source}>
-              {source}
-            </option>
-          ))}
-        </NativeSelect.Field>
-        <NativeSelect.Indicator />
-      </NativeSelect.Root>
+      <FilterSelect
+        label={t("discovery_admin.tasks.filter_status")}
+        value={filters.status}
+        options={plain(STATUSES)}
+        onChange={(value) => filters.setStatus(value as DiscoveryTaskStatus)}
+      />
+      <FilterSelect
+        label={t("discovery_admin.tasks.filter_source")}
+        value={filters.source ?? ""}
+        options={[
+          allOption("discovery_admin.tasks.filter_source_all"),
+          ...plain(SOURCES),
+        ]}
+        onChange={(value) =>
+          filters.setSource(value === "" ? null : (value as DiscoverySource))
+        }
+      />
+      <FilterSelect
+        label={t("discovery_admin.tasks.filter_kind")}
+        value={filters.kind ?? ""}
+        options={[
+          allOption("discovery_admin.tasks.filter_kind_all"),
+          ...plain(KINDS),
+        ]}
+        onChange={(value) =>
+          filters.setKind(value === "" ? null : (value as DiscoveryTaskKind))
+        }
+      />
     </HStack>
   );
 }

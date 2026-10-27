@@ -12,6 +12,7 @@ from app.models.discovery import (
     DiscoveryDocumentCandidate,
     DiscoveryMentionRole,
 )
+from app.models.jurisdiction import Jurisdiction
 
 
 class CandidateRepository(SessionRepository):
@@ -24,6 +25,11 @@ class CandidateRepository(SessionRepository):
             DiscoveryDocumentCandidate.key == key,
         )
         return self._session.scalar(stmt)
+
+    def get_jurisdiction_name_i18n(self, jurisdiction_id: UUID) -> dict[str, str]:
+        """Return the localized names of ``jurisdiction_id``, empty when it is gone."""
+        stmt = select(Jurisdiction.name_i18n).where(Jurisdiction.id == jurisdiction_id)
+        return self._session.scalar(stmt) or {}
 
     def add_candidate(self, candidate: DiscoveryDocumentCandidate) -> DiscoveryDocumentCandidate:
         """Add ``candidate`` to the session and flush it."""

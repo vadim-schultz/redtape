@@ -15,7 +15,10 @@ const session: AuthSession = {
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
 
-function stubCoverageFetch(handler: () => Response) {
+function stubCoverageFetch(
+  handler: () => Response,
+  budgets: () => Response = () => new Response("", { status: 503 }),
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
@@ -32,6 +35,9 @@ function stubCoverageFetch(handler: () => Response) {
       }
       if (url.pathname.endsWith("/api/v1/discovery/admin/coverage")) {
         return handler();
+      }
+      if (url.pathname.endsWith("/api/v1/discovery/admin/budgets")) {
+        return budgets();
       }
       return new Response("", { status: 503 });
     }),
@@ -54,6 +60,17 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
             completed: 0,
             failed: 0,
           },
+          task_counts_by_kind: {
+            harvest_payload: {
+              total: 4,
+              pending: 4,
+              claimed: 0,
+              completed: 0,
+              failed: 0,
+            },
+          },
+          candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+          artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
           fetch_attempts_total: 0,
           stale_claims: 0,
           stale_runs: 0,
@@ -71,6 +88,10 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
     await screen.findByText("No successful run recorded yet."),
   ).toBeInTheDocument();
   expect(screen.getByText("No failed tasks.")).toBeInTheDocument();
+  expect(
+    screen.getByText("harvest_payload: 4 pending, 0 claimed, 0 done, 0 failed"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Candidates: 0")).toBeInTheDocument();
 });
 
 it("Coverage page · shows unavailable state instead of zero-success language", async () => {
@@ -89,4 +110,77 @@ it("Coverage page · shows unavailable state instead of zero-success language", 
     screen.queryByText("No successful run recorded yet."),
   ).not.toBeInTheDocument();
   expect(screen.queryByText("Total tasks: 0")).not.toBeInTheDocument();
+});
+
+function emptyCoverage(): Response {
+  return new Response(
+    JSON.stringify({
+      by_source: {},
+      tasks_pending: 0,
+      tasks_failed: 0,
+      emit_ready_count: 0,
+      task_counts: {
+        total: 0,
+        pending: 0,
+        claimed: 0,
+        completed: 0,
+        failed: 0,
+      },
+      task_counts_by_kind: {},
+      candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+      artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
+      fetch_attempts_total: 0,
+      stale_claims: 0,
+      stale_runs: 0,
+      failures_by_source: {},
+      last_successful_run: null,
+    }),
+  );
+}
+
+it("Coverage page · shows the budget meters from the admin budgets route", async () => {
+  stubCoverageFetch(
+    emptyCoverage,
+    () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              resource: "actions_minutes",
+              period: "2026-10",
+              cap: 400,
+              used: 30,
+              remaining: 370,
+              exhausted: false,
+            },
+          ],
+          stored_bytes: 0,
+          stored_bytes_cap: 8589934592,
+        }),
+      ),
+  );
+
+  renderWithProviders(<DiscoveryCoveragePage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByText("Actions minutes · 2026-10"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("30 of 400 used, 370 left")).toBeInTheDocument();
+});
+
+it("Coverage page · keeps the coverage chips when only the budgets fail to load", async () => {
+  stubCoverageFetch(emptyCoverage);
+
+  renderWithProviders(<DiscoveryCoveragePage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByText("Could not load the budgets."),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("No successful run recorded yet."),
+  ).toBeInTheDocument();
 });

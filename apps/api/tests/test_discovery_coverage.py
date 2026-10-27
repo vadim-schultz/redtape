@@ -17,7 +17,13 @@ from app.features.auth.jwt import JwtVerifier
 from app.main import create_app
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
+    DiscoveryCandidateMention,
+    DiscoveryCandidateStatus,
+    DiscoveryDocumentCandidate,
     DiscoveryFetchLog,
+    DiscoveryMentionRole,
     DiscoveryRun,
     DiscoverySource,
     DiscoveryTask,
@@ -106,10 +112,11 @@ def _task(
     catalogue: CatalogueService,
     status: DiscoveryTaskStatus,
     lease_expires_at: datetime | None = None,
+    kind: DiscoveryTaskKind = DiscoveryTaskKind.FETCH_URL,
 ) -> DiscoveryTask:
     task = DiscoveryTask(
         catalogue_service_id=catalogue.id,
-        kind=DiscoveryTaskKind.FETCH_URL,
+        kind=kind,
         target_url="https://example.gov/service",
         status=status,
         lease_expires_at=lease_expires_at,
@@ -249,3 +256,113 @@ def test_coverage_returns_latest_successful_run_and_ignores_failed_and_running_r
     assert isinstance(last_run, dict)
     assert last_run["claimed_count"] == 7
     assert body["stale_runs"] == 1
+
+
+def _candidate(
+    session: Session, catalogue: CatalogueService, key: str, status: DiscoveryCandidateStatus
+) -> DiscoveryDocumentCandidate:
+    row = DiscoveryDocumentCandidate(jurisdiction_id=catalogue.jurisdiction_id, key=key, status=status)
+    session.add(row)
+    session.flush()
+    return row
+
+
+def _mention(session: Session, candidate: DiscoveryDocumentCandidate, catalogue: CatalogueService, field: str) -> None:
+    session.add(
+        DiscoveryCandidateMention(
+            candidate_id=candidate.id,
+            catalogue_service_id=catalogue.id,
+            role=DiscoveryMentionRole.REQUIRED,
+            excerpt="Bitte mitbringen",
+            source_field=field,
+            extractor="pvog-payload",
+            extractor_version="1",
+        )
+    )
+    session.flush()
+
+
+ZERO_COUNTS = {"total": 0, "pending": 0, "claimed": 0, "completed": 0, "failed": 0}
+ALL_KINDS = {
+    "fetch_url",
+    "enrich_metadata",
+    "harvest_payload",
+    "extract_page",
+    "capture_screenshot",
+    "render_page",
+}
+
+
+def test_coverage_returns_per_kind_status_counts_and_candidate_totals(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    row = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="pvog-kinds")
+    _task(db_session, catalogue=row, status=DiscoveryTaskStatus.PENDING)
+    _task(db_session, catalogue=row, status=DiscoveryTaskStatus.COMPLETED)
+    _task(db_session, catalogue=row, status=DiscoveryTaskStatus.FAILED, kind=DiscoveryTaskKind.HARVEST_PAYLOAD)
+    staged = _candidate(db_session, row, "geburtsurkunde", DiscoveryCandidateStatus.STAGED)
+    emitted = _candidate(db_session, row, "reisepass", DiscoveryCandidateStatus.EMITTED)
+    _mention(db_session, staged, row, "details[0]")
+    _mention(db_session, staged, row, "details[1]")
+    _mention(db_session, emitted, row, "details[0]")
+
+    body = _get_coverage(client)
+
+    by_kind = body["task_counts_by_kind"]
+    assert isinstance(by_kind, dict)
+    assert set(by_kind) == ALL_KINDS
+    assert by_kind["fetch_url"] == {"total": 2, "pending": 1, "claimed": 0, "completed": 1, "failed": 0}
+    assert by_kind["harvest_payload"] == {"total": 1, "pending": 0, "claimed": 0, "completed": 0, "failed": 1}
+    assert by_kind["capture_screenshot"] == ZERO_COUNTS
+    assert body["task_counts"] == {"total": 3, "pending": 1, "claimed": 0, "completed": 1, "failed": 1}
+    assert body["candidates"] == {"total": 2, "staged": 1, "emitted": 1, "mentions": 3}
+
+
+def test_coverage_without_tasks_or_candidates_reports_every_kind_and_zero_candidates(
+    client: TestClient[Litestar],
+) -> None:
+    body = _get_coverage(client)
+
+    assert body["task_counts_by_kind"] == {kind: ZERO_COUNTS for kind in ALL_KINDS}
+    assert body["candidates"] == {"total": 0, "staged": 0, "emitted": 0, "mentions": 0}
+
+
+def _artifact(session: Session, catalogue: CatalogueService, kind: DiscoveryArtifactKind, sha: str, size: int) -> None:
+    session.add(
+        DiscoveryArtifact(
+            catalogue_service_id=catalogue.id,
+            kind=kind,
+            storage_key=f"discovery/{catalogue.id}/{kind.value}/{sha}",
+            sha256=sha,
+            content_type="text/html",
+            byte_size=size,
+            source_url="https://example.gov/page",
+            fetched_at=datetime.now(UTC),
+        )
+    )
+    session.flush()
+
+
+def test_coverage_reports_artifact_counts_and_bytes_per_kind(client: TestClient[Litestar], db_session: Session) -> None:
+    row = _catalogue(db_session, external_id="gov-artifacts")
+    _artifact(db_session, row, DiscoveryArtifactKind.HTML_SNAPSHOT, "a" * 64, 100)
+    _artifact(db_session, row, DiscoveryArtifactKind.HTML_SNAPSHOT, "b" * 64, 250)
+    _artifact(db_session, row, DiscoveryArtifactKind.SCREENSHOT, "c" * 64, 4000)
+
+    artifacts = _get_coverage(client)["artifacts"]
+
+    assert artifacts == {
+        "by_kind": {"html_snapshot": {"count": 2, "bytes": 350}, "screenshot": {"count": 1, "bytes": 4000}},
+        "total_bytes": 4350,
+        "bytes_cap": settings.object_store_max_bytes,
+    }
+
+
+def test_coverage_artifacts_are_zero_when_there_are_none(client: TestClient[Litestar]) -> None:
+    artifacts = _get_coverage(client)["artifacts"]
+
+    assert artifacts == {
+        "by_kind": {"html_snapshot": {"count": 0, "bytes": 0}, "screenshot": {"count": 0, "bytes": 0}},
+        "total_bytes": 0,
+        "bytes_cap": settings.object_store_max_bytes,
+    }

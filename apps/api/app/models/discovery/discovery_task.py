@@ -50,6 +50,12 @@ class DiscoveryTask(TimestampMixin, Base):
     input_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
     not_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    artifact_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("discovery_artifact.id", ondelete="SET NULL", name="fk_discovery_task_artifact_id", use_alter=True),
+        nullable=True,
+    )
+    result_note: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     catalogue_service: Mapped[CatalogueService] = relationship(
         "CatalogueService", back_populates="tasks", single_parent=True

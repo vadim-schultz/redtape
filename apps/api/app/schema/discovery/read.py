@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -18,6 +19,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.discovery.artifacts import ArtifactSummaryRead
 
 
 class DiscoveryTaskRead(BaseModel):
@@ -32,6 +34,10 @@ class DiscoveryTaskRead(BaseModel):
     target_url: str
     status: DiscoveryTaskStatus
     priority: int
+    attempt_count: int
+    not_before: datetime | None
+    input_key: str | None
+    result_note: str | None
     lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -46,6 +52,10 @@ class DiscoveryTaskRead(BaseModel):
             target_url=task.target_url,
             status=task.status,
             priority=task.priority,
+            attempt_count=task.attempt_count,
+            not_before=task.not_before,
+            input_key=task.input_key,
+            result_note=task.result_note,
             lease_expires_at=task.lease_expires_at,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -119,6 +129,30 @@ class TaskCountsRead(BaseModel):
     failed: int
 
 
+class CandidateCountsRead(BaseModel):
+    """Document candidate totals by lifecycle status, plus their mentions."""
+
+    total: int
+    staged: int
+    emitted: int
+    mentions: int
+
+
+class ArtifactTotalsRead(BaseModel):
+    """Artifact count and stored bytes of one kind."""
+
+    count: int
+    bytes: int
+
+
+class ArtifactCoverageRead(BaseModel):
+    """Stored artifacts per kind against the storage cap."""
+
+    by_kind: dict[str, ArtifactTotalsRead]
+    total_bytes: int
+    bytes_cap: int
+
+
 class DiscoveryRunRead(BaseModel):
     """Operational run record as shown to operators."""
 
@@ -146,6 +180,9 @@ class DiscoveryCoverageResponse(BaseModel):
     tasks_failed: int
     emit_ready_count: int
     task_counts: TaskCountsRead
+    task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
+    candidates: CandidateCountsRead
+    artifacts: ArtifactCoverageRead
     fetch_attempts_total: int
     stale_claims: int
     stale_runs: int
@@ -212,10 +249,17 @@ class CandidateRead(BaseModel):
         )
 
 
+class CandidateListItemRead(CandidateRead):
+    """A listed candidate with the roles it was mentioned in and its jurisdiction name."""
+
+    roles: list[DiscoveryMentionRole]
+    jurisdiction_name_i18n: dict[str, str]
+
+
 class CandidateListResponse(BaseModel):
     """Paginated document candidates."""
 
-    items: list[CandidateRead]
+    items: list[CandidateListItemRead]
     total: int
     offset: int
     limit: int
@@ -235,12 +279,15 @@ class CandidateMentionRead(BaseModel):
     excerpt: str
     source_field: str
     artifact_id: UUID | None
+    artifact: ArtifactSummaryRead | None
     extractor: str
     extractor_version: str
     created_at: datetime
 
     @classmethod
-    def from_row(cls, mention: DiscoveryCandidateMention, procedure: CatalogueService) -> CandidateMentionRead:
+    def from_row(
+        cls, mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
+    ) -> CandidateMentionRead:
         return cls(
             id=mention.id,
             catalogue_service_id=procedure.id,
@@ -251,6 +298,7 @@ class CandidateMentionRead(BaseModel):
             excerpt=mention.excerpt,
             source_field=mention.source_field,
             artifact_id=mention.artifact_id,
+            artifact=ArtifactSummaryRead.from_row(artifact) if artifact else None,
             extractor=mention.extractor,
             extractor_version=mention.extractor_version,
             created_at=mention.created_at,
@@ -258,7 +306,8 @@ class CandidateMentionRead(BaseModel):
 
 
 class CandidateDetailResponse(BaseModel):
-    """A candidate with every mention."""
+    """A candidate with its jurisdiction name and every mention."""
 
     candidate: CandidateRead
+    jurisdiction_name_i18n: dict[str, str]
     mentions: list[CandidateMentionRead]

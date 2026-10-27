@@ -493,3 +493,73 @@ def test_post_tasks_enqueue_returns_422_for_invalid_bodies_and_creates_nothing(
 
     assert response.status_code == 422
     assert _tasks_for(db_session, catalogue.id) == []
+
+
+def _complete_url(task_id: uuid.UUID) -> str:
+    return f"{ENQUEUE_URL}/{task_id}/complete"
+
+
+def _release_url(task_id: uuid.UUID) -> str:
+    return f"{ENQUEUE_URL}/{task_id}/release"
+
+
+def test_post_task_complete_stores_an_optional_note(client: TestClient[Litestar], db_session: Session) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(_complete_url(task_id), json={"note": "no_mentions"}, headers={"X-API-Key": key})
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "completed"
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.result_note == "no_mentions"
+
+
+def test_post_task_complete_without_a_body_still_works_and_a_long_note_is_rejected(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    too_long = client.post(_complete_url(task_id), json={"note": "x" * 201}, headers={"X-API-Key": key})
+    bare = client.post(_complete_url(task_id), headers={"X-API-Key": key})
+
+    assert too_long.status_code == 422
+    assert bare.status_code == 201 and bare.json()["status"] == "completed"
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.result_note is None
+
+
+def test_post_task_release_returns_the_task_to_pending_without_consuming_an_attempt(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+    not_before = datetime.now(UTC) + timedelta(hours=1)
+
+    response = client.post(
+        _release_url(task_id),
+        json={"reason": "browser_quota", "not_before": not_before.isoformat()},
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"id": str(task_id), "status": "pending", "last_error": "browser_quota"}
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None
+    assert (task.attempt_count, task.not_before, task.claimed_by_api_key_id) == (0, not_before, None)
+
+
+def test_post_task_release_rejects_a_task_that_is_not_claimed_and_an_unknown_task(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    key = _issue_key(db_session)
+    pending = _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+    body = {"reason": "storage_unavailable"}
+
+    not_claimed = client.post(_release_url(pending.id), json=body, headers={"X-API-Key": key})
+    unknown = client.post(_release_url(uuid.uuid4()), json=body, headers={"X-API-Key": key})
+    missing_reason = client.post(_release_url(pending.id), json={}, headers={"X-API-Key": key})
+
+    assert (not_claimed.status_code, unknown.status_code, missing_reason.status_code) == (409, 404, 422)
+    assert pending.status == DiscoveryTaskStatus.PENDING

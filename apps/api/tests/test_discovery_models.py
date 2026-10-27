@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
+    DiscoveryBudgetLedger,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
@@ -248,3 +252,144 @@ def test_deleting_a_candidate_cascades_its_mentions(db_session: Session) -> None
     db_session.expire_all()
 
     assert db_session.get(DiscoveryCandidateMention, mention_id) is None
+
+
+def _artifact(
+    session: Session,
+    catalogue: CatalogueService,
+    *,
+    kind: DiscoveryArtifactKind = DiscoveryArtifactKind.HTML_SNAPSHOT,
+    sha256: str = "a" * 64,
+    task: DiscoveryTask | None = None,
+) -> DiscoveryArtifact:
+    artifact = DiscoveryArtifact(
+        catalogue_service_id=catalogue.id,
+        discovery_task_id=task.id if task is not None else None,
+        kind=kind,
+        storage_key=f"discovery/{catalogue.id}/{kind.value}/{sha256}.html",
+        sha256=sha256,
+        content_type="text/html",
+        byte_size=12,
+        source_url="https://example.gov/page",
+        fetched_at=datetime.now(UTC),
+    )
+    session.add(artifact)
+    session.flush()
+    return artifact
+
+
+def _task(session: Session, catalogue: CatalogueService) -> DiscoveryTask:
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id, kind=DiscoveryTaskKind.FETCH_URL, target_url="https://example.gov/page"
+    )
+    session.add(task)
+    session.flush()
+    return task
+
+
+def test_artifact_unique_per_catalogue_kind_and_sha256(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    other = _catalogue_service(db_session, external_id="svc-2")
+    _artifact(db_session, catalogue)
+
+    _artifact(db_session, catalogue, kind=DiscoveryArtifactKind.SCREENSHOT)
+    _artifact(db_session, other)
+    with pytest.raises(IntegrityError):
+        _artifact(db_session, catalogue)
+
+
+def test_deleting_a_catalogue_row_cascades_its_artifacts(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    artifact_id = _artifact(db_session, catalogue).id
+
+    db_session.delete(catalogue)
+    db_session.flush()
+    db_session.expire_all()
+
+    assert db_session.get(DiscoveryArtifact, artifact_id) is None
+
+
+def test_deleting_a_task_nulls_the_artifact_reference_and_keeps_the_artifact(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    task = _task(db_session, catalogue)
+    artifact = _artifact(db_session, catalogue, task=task)
+
+    db_session.delete(task)
+    db_session.flush()
+    db_session.refresh(artifact)
+
+    assert artifact.discovery_task_id is None
+
+
+def test_deleting_an_artifact_nulls_the_task_and_mention_references(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    task = _task(db_session, catalogue)
+    artifact = _artifact(db_session, catalogue)
+    task.artifact_id = artifact.id
+    candidate = DiscoveryDocumentCandidate(
+        jurisdiction_id=catalogue.jurisdiction_id, key="pass", title_i18n={"de": "Pass"}
+    )
+    db_session.add(candidate)
+    db_session.flush()
+    mention = DiscoveryCandidateMention(
+        candidate_id=candidate.id,
+        catalogue_service_id=catalogue.id,
+        role=DiscoveryMentionRole.REQUIRED,
+        excerpt="Pass",
+        source_field="html",
+        artifact_id=artifact.id,
+        extractor="x",
+        extractor_version="1",
+    )
+    db_session.add(mention)
+    db_session.flush()
+
+    db_session.delete(artifact)
+    db_session.flush()
+    db_session.refresh(task)
+    db_session.refresh(mention)
+
+    assert task.artifact_id is None
+    assert mention.artifact_id is None
+
+
+def test_task_result_note_defaults_to_none_and_render_page_is_a_task_kind(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id, kind=DiscoveryTaskKind.RENDER_PAGE, target_url="https://example.gov/page"
+    )
+    db_session.add(task)
+    db_session.flush()
+    db_session.refresh(task)
+
+    assert task.kind is DiscoveryTaskKind.RENDER_PAGE
+    assert task.result_note is None
+    assert task.artifact_id is None
+
+
+def _ledger_row(period: str, resource: str) -> DiscoveryBudgetLedger:
+    return DiscoveryBudgetLedger(period=period, resource=resource, used=0)
+
+
+def test_budget_ledger_allows_each_period_and_resource_once(db_session: Session) -> None:
+    rows = [
+        _ledger_row("2026-10-26", "browser_seconds"),
+        _ledger_row("2026-10-27", "browser_seconds"),
+        _ledger_row("2026-10-26", "neurons"),
+    ]
+    db_session.add_all(rows)
+    db_session.flush()
+    db_session.refresh(rows[0])
+
+    assert rows[0].exhausted is False
+    assert rows[0].used == 0
+    assert rows[0].updated_at is not None
+
+
+def test_budget_ledger_is_unique_per_period_and_resource(db_session: Session) -> None:
+    db_session.add(_ledger_row("2026-10", "r2_class_a"))
+    db_session.flush()
+    db_session.add(_ledger_row("2026-10", "r2_class_a"))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()

@@ -76,9 +76,14 @@ class ClaimAppendResponse(BaseModel):
     kind: DiscoveryClaimKind
 
 
-DiscoveryTaskKind = Literal["fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "capture_screenshot"]
+DiscoveryTaskKind = Literal[
+    "fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "render_page", "capture_screenshot"
+]
 TASK_KINDS: tuple[DiscoveryTaskKind, ...] = get_args(DiscoveryTaskKind)
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("fetch_url", "enrich_metadata")
+BROWSER_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("render_page", "capture_screenshot")
+"""Kinds that spend Cloudflare browser time; never in the default kinds."""
+WORKER_DEFAULT_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (*LEGACY_TASK_KINDS, "harvest_payload", "extract_page")
 
 
 def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:
@@ -104,6 +109,7 @@ class TaskEnqueueRequest(BaseModel):
     target_url: str = Field(min_length=1, max_length=500)
     priority: int = Field(default=100, ge=0)
     input_key: str | None = Field(default=None, min_length=1, max_length=128)
+    artifact_id: UUID | None = None
 
 
 class TaskEnqueueResponse(BaseModel):
@@ -123,6 +129,8 @@ class ClaimedTask(BaseModel):
     status: DiscoveryTaskStatus
     priority: int
     lease_expires_at: datetime
+    artifact_id: UUID | None = None
+    input_key: str | None = None
 
 
 class TaskClaimResponse(BaseModel):
@@ -151,7 +159,16 @@ class FetchLogAppendRequest(BaseModel):
     error_message: str | None = None
 
 
-StopReason = Literal["queue_empty", "batch_limit", "time_budget", "error"]
+StopReason = Literal[
+    "queue_empty",
+    "batch_limit",
+    "time_budget",
+    "error",
+    "browser_budget",
+    "browser_quota",
+    "storage_unavailable",
+    "db_limit",
+]
 
 
 class DrainReport(BaseModel):
@@ -167,6 +184,12 @@ class DrainReport(BaseModel):
     stop_reason: StopReason
     run_id: UUID | None = None
     succeeded: bool = True
+    ledger_unavailable: bool = False
+    released: int = 0
+    browser_seconds_used: float = 0.0
+    render_enqueue_failed: int = 0
+    capture_enqueue_failed: int = 0
+    error: str | None = None
 
 
 class RunStartResponse(BaseModel):

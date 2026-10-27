@@ -240,9 +240,11 @@ Re-running `job=discovery` the same day should be **idempotent** for staging (no
 
 ### 4.5 Schedule (after smoke test)
 
-Monthly cron **02:00 UTC on day 28** runs OpenPLZ, then discovery. The worker drain runs daily in
-[`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml). See
-[scheduled-jobs.md](scheduled-jobs.md).
+Monthly cron **02:00 UTC on day 28** runs OpenPLZ, then discovery. The worker drains are in
+[`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml) and
+[`discovery-render.yml`](../../.github/workflows/discovery-render.yml). Their daily schedules are **off** until the
+repository variables `DISCOVERY_DRAIN_SCHEDULE` and `DISCOVERY_RENDER_SCHEDULE` are `enabled`; dispatch them by hand
+first. See [scheduled-jobs.md](scheduled-jobs.md) and [crawlers-operator-checklist.md](crawlers-operator-checklist.md).
 
 ---
 

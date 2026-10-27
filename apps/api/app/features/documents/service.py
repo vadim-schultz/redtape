@@ -17,14 +17,19 @@ from app.url_normalization import normalize_url
 
 
 def _conflicting_document_ids(
-    rows: Sequence[tuple[UUID, str, str | None]], *, slug: str, normalized_url: str
+    rows: Sequence[tuple[UUID, str, str | None]], *, slug: str, normalized_url: str | None
 ) -> list[UUID]:
-    """Ids of rows whose slug or normalized `official_url` matches; pure, no session needed."""
+    """Ids of rows whose slug or normalized `official_url` matches; pure, no session needed.
+
+    A ``None`` ``normalized_url`` (a URL-less document) matches on the slug alone.
+    """
     return [
-        doc_id
-        for doc_id, doc_slug, official_url in rows
-        if doc_slug == slug or (official_url is not None and normalize_url(official_url) == normalized_url)
+        doc_id for doc_id, doc_slug, official_url in rows if doc_slug == slug or _same_url(official_url, normalized_url)
     ]
+
+
+def _same_url(official_url: str | None, normalized_url: str | None) -> bool:
+    return official_url is not None and normalized_url is not None and normalize_url(official_url) == normalized_url
 
 
 @dataclass(frozen=True)
@@ -108,8 +113,8 @@ class DocumentService:
         )
         return self._repo.add_requirement(requirement)
 
-    def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str) -> list[UUID]:
-        """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches."""
+    def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str | None) -> list[UUID]:
+        """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches (slug only if no URL)."""
         rows = self._repo.list_slugs_and_urls(jurisdiction_id)
         return _conflicting_document_ids(rows, slug=slug, normalized_url=normalized_url)
 

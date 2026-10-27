@@ -1,8 +1,11 @@
 # Discovery online (scheduled production ingest)
 
-Production catalogue refetch (monthly, platform maintenance) and the worker drain (daily, `discovery-drain.yml`)
-run on **GitHub Actions** against the live Render machine API. Staging rows are updated on a fixed schedule; **machine emit to suggestions stays manual**
-(see [discovery-layer.md](discovery-layer.md) § Machine emit).
+Production catalogue refetch (monthly, platform maintenance) and the worker drains (`discovery-drain.yml` for
+HTTP kinds, `discovery-render.yml` for browser kinds) run on **GitHub Actions** against the live Render machine API.
+Both drain schedules ship switched off; dispatch them by hand or run the same command on a laptop.
+**Machine emit to suggestions stays manual** (see [discovery-layer.md](discovery-layer.md) § Machine emit).
+Manual steps that unlock live verification are in
+[crawlers-operator-checklist.md](crawlers-operator-checklist.md).
 
 Chief-of-staff orchestration (loop branch, release PR): [loops/discovery-online.md](loops/discovery-online.md),
 [loops/pvog-v7-ingest.md](loops/pvog-v7-ingest.md).
@@ -25,16 +28,18 @@ Workflow: [`.github/workflows/platform-maintenance.yml`](../../.github/workflows
    `POST /api/v1/discovery/machine/catalogue/batch`.
 3. **PVOG Suchdienst** — `python -m discovery_ingest pvog run` → same machine batch endpoint.
 
-The worker drain is not part of this job. [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml)
-runs it daily: it claims `fetch_url` tasks, fetches portal pages, logs events, completes or fails tasks.
+The worker drains are not part of this job. [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml)
+claims the HTTP kinds (`fetch_url`, `enrich_metadata`, `harvest_payload`, `extract_page`) and
+[`discovery-render.yml`](../../.github/workflows/discovery-render.yml) claims the browser kinds
+(`render_page`, `capture_screenshot`). See § Bounded drain and § Browser kinds below.
 
 Discovery jobs use **`DISCOVERY_API_URL`** (Render **host root**), **`DISCOVERY_API_KEY`**, and
 **`FEDERAL_JURISDICTION_ID`** only — never `DATABASE_URL`. OpenPLZ (the `openplz` job, run before discovery) uses the database path.
 
 ## Bounded drain, run reports, and queue metrics
 
-`worker drain` is always bounded. It stops on the first of: an empty queue, the batch limit, or the
-time budget.
+`worker drain` is always bounded. It stops on the first of: an empty queue, the batch limit, the
+time budget, or a limit that ends the run on purpose (see [Stop reasons](#stop-reasons)).
 
 ```bash
 python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-budget-seconds 300
@@ -42,44 +47,179 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--max-tasks` | 50 | Tasks per claim request (1–50) |
+| `--max-tasks` | 50 | Tasks per claim request (1–50). Browser drains use 5: a limit releases the whole batch |
 | `--max-batches` | 1 | Maximum claim and process batches (positive) |
 | `--time-budget-seconds` | none | Optional positive wall-clock budget for the whole drain |
-| `--kinds` | `fetch_url,enrich_metadata` | Comma separated task kinds to claim; an unknown kind stops the drain before any claim |
+| `--browser-budget-seconds` | 480 | Browser seconds this run may spend; read only when a browser kind is drained (positive) |
+| `--kinds` | `fetch_url,enrich_metadata,harvest_payload,extract_page` | Comma separated task kinds to claim; an unknown kind exits 2 before any claim |
 
-The claim route serves only `fetch_url` and `enrich_metadata` when a request names no `kinds`, so a drain
-never leases a kind it cannot handle.
+Invalid bounds exit with code 2. An API failure exits with code 1. A drain that ends on a limit exits 0.
 
-Invalid bounds exit with code 2. An API failure exits with code 1. The scheduled workflow uses the
-defaults (`--max-tasks 50`, one batch), so each scheduled run is one batch.
+`discovery-drain.yml` passes its inputs to the same flags. `max_tasks` defaults to 50, `max_batches` to 20 and `kinds`
+to the default kinds. The time budget is the `time_budget_seconds` input, else the repository variable
+`DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900 seconds. The daily 04:00 UTC schedule runs only when the variable
+`DISCOVERY_DRAIN_SCHEDULE` is `enabled`. See [scheduled-jobs.md](scheduled-jobs.md).
 
-Each drain prints one JSON report with `batches`, `claimed`, `completed`, `failed`, `skipped`,
-`stop_reason` (`queue_empty`, `batch_limit`, `time_budget`, or `error`), `run_id`, and `succeeded`.
-The worker records the run through the machine API (`POST …/runs`, then `POST …/runs/{id}/finish`)
-into the `discovery_run` table. The worker never touches the database directly.
+### Task kinds and the kind filter
 
-**`remaining` is unknown.** No queue-summary route is available to the worker, and the worker must not
-claim an extra task to estimate backlog. The report therefore sets `remaining_unknown` to true. Read
-the backlog on the admin Coverage page instead.
+Every kind is a row in `discovery_task`. A worker sends its `kinds` with each claim, so it only leases work it can do.
+A claim that names no `kinds` gets only `fetch_url` and `enrich_metadata`, so an old worker never leases a kind it
+cannot handle.
+
+| Kind | Network | What the worker does | In the default kinds |
+| --- | --- | --- | --- |
+| `fetch_url` | yes | Polite GET of the portal URL: robots.txt, 1 s per-host interval, up to five redirects, 5 MiB cap, no private addresses. Logs the attempt. A 200 `text/html` page whose final URL is not a login URL enqueues `render_page` | yes |
+| `enrich_metadata` | yes | Reads the FIM steckbrief for a GovData or PVOG row that carries a LeiKa key | yes |
+| `harvest_payload` | no | Reads the stored PVOG payload and posts document mentions (roles `required` and `form`) | yes |
+| `extract_page` | no | Reads a stored snapshot, runs the matching extractor and posts mentions. Completes with the note `no_extractor` when none matches, `no_mentions` when the page has none | yes |
+| `render_page` | Cloudflare | Renders the page and stores the DOM as an `html_snapshot` artifact | no |
+| `capture_screenshot` | Cloudflare | Stores a full-page JPEG as a `screenshot` artifact | no |
+
+No extractor is registered yet (`discovery_ingest/extract/registry.py` is empty; the first one is chapter 18, which is
+optional), so every `extract_page` task completes with `no_extractor` and no `capture_screenshot` task is queued.
+Document candidates come from `harvest_payload` for now.
+
+### Retry and backoff
+
+A claim consumes one attempt. A task may use three attempts. A failure the worker marks retryable puts the task back to
+`pending` with `not_before` set 5 minutes, then 30 minutes, then 3 hours ahead; claims skip tasks that are not yet
+due. Other failures stay `failed`.
+
+| Retryable | Permanent |
+| --- | --- |
+| timeout, connection reset, robots.txt unreachable, HTTP 429 and 5xx, and API 5xx while a handler writes | other 4xx, robots.txt disallow, blocked address, body too large, too many redirects, unknown kind, extractor exception |
+
+A **release** is not a failure. It puts a claimed task back to `pending` and returns the attempt the claim consumed.
+Workers release when a limit, not the page, stopped the work.
+
+### Run report
+
+Each drain prints one JSON report and records the run through the machine API (`POST …/runs`, then
+`POST …/runs/{id}/finish`) into `discovery_run`. The worker never touches the database directly.
+
+| Field | Meaning |
+| --- | --- |
+| `batches`, `claimed`, `completed`, `failed`, `skipped` | Counts for the run |
+| `remaining` | Tasks of the drained kinds that are ready to claim now (`pending_ready` from `GET /api/v1/discovery/machine/tasks/summary`). Delayed retries are not counted |
+| `remaining_unknown` | `true` only when the summary call failed; `remaining` is then `null` |
+| `stop_reason` | Why the run ended |
+| `succeeded` | `false` only for `error` |
+| `released` | Tasks handed back without consuming an attempt |
+| `browser_seconds_used` | Browser seconds this run spent |
+| `render_enqueue_failed`, `capture_enqueue_failed` | Follow-up tasks a fetch or an extraction could not enqueue; the page itself still completed |
+| `ledger_unavailable` | The budget ledger could not be read; the run used its own budget |
+| `run_id`, `error` | The recorded run, and the failure text if any |
+
+The summary route accepts repeated `?kinds=` and returns `pending_ready`, `pending_delayed`, `claimed`,
+`claimed_stale`, `completed` and `failed`.
+
+### Stop reasons
+
+| `stop_reason` | Meaning | Run succeeds |
+| --- | --- | --- |
+| `queue_empty` | A claim returned no task | yes |
+| `batch_limit` | `--max-batches` reached | yes |
+| `time_budget` | `--time-budget-seconds` reached after a batch | yes |
+| `browser_budget` | Fewer than 30 browser seconds are left in the run budget or in today's ledger | yes |
+| `browser_quota` | Cloudflare answered 429 other than its rate limit; the day is marked exhausted | yes |
+| `storage_unavailable` | The artifact routes answered 503 or 507 (store unset, quota denied or byte cap reached) | yes |
+| `db_limit` | A machine write answered 507 `database_soft_limit` | yes |
+| `error` | A rejected Cloudflare token (401 or 403) or an API failure | no, exit 1 |
+
+On every stop except `queue_empty`, `batch_limit`, `time_budget` and `error`, the worker releases the in-flight task
+and the tasks it did not start, then ends the run.
 
 The admin Coverage surface (`GET /api/v1/discovery/admin/coverage`) reports task counts (pending,
-claimed, completed, failed), `fetch_attempts_total`, `failures_by_source`, `stale_claims` (claimed tasks
-with an expired 15-minute lease), `stale_runs` (runs still `running` after one hour), and
-`last_successful_run`. That last value comes from `discovery_run` rows with status `succeeded`, not
-from fetch timestamps. A failed or interrupted run is never reported as the last successful run.
+claimed, completed, failed) in total and by kind, candidate counts, artifact counts and bytes, `fetch_attempts_total`,
+`failures_by_source`, `stale_claims` (claimed tasks with an expired 15-minute lease), `stale_runs` (runs still
+`running` after one hour), and `last_successful_run`. That last value comes from `discovery_run` rows with status
+`succeeded`. A failed or interrupted run is never reported as the last successful run.
 
-**Not verified:** a manual multi-batch drain and an interrupted-claim lease-reclaim check were not
-performed during the discovery-operations suite. Run both against a non-production stack before relying
-on them.
+**Not verified live:** the multi-batch drain, retry and release paths are covered by tests against fakes. Their
+live gates wait for the release to reach `main`, because `workflow_dispatch` needs the workflow file on the default
+branch. Run them with step S7 of [crawlers-operator-checklist.md](crawlers-operator-checklist.md).
 
-### Triage for queue state
+### Browser kinds (Cloudflare Browser Run)
 
-| Symptom | Check |
+`render_page` and `capture_screenshot` call Cloudflare Browser Run quick actions over HTTP (`browser-run/content` and
+`browser-run/snapshot`). The repository has no browser, no Playwright and no Chromium install. The free plan sets the
+rules the worker follows.
+
+| Free-plan limit | Worker behaviour |
 | --- | --- |
-| `stale_claims` above zero | A worker died mid-batch. The next claim reclaims expired leases; re-run a bounded drain. |
-| `stale_runs` above zero | A run never finished. It stays visible as stale and is not counted as successful. |
-| `last_successful_run` old or empty | Check recent `discovery_run` failures and the drain `stop_reason`. |
-| `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source. |
+| 10 browser minutes a day | Run budget is the smaller of `--browser-budget-seconds` (default 480) and what the ledger still has today. Each call reserves 30 seconds, then settles to `X-Browser-Ms-Used`. Under 30 seconds left, the run stops `browser_budget` before it claims |
+| One request every 10 seconds | At least 11 seconds between the end of one call and the start of the next, so about 4 pages a minute |
+| Three concurrent browsers, 60 s timeout | One call at a time, 60 s request timeout (`BROWSER_REQUEST_TIMEOUT_SECONDS`) |
+| `429` | A rate-limit 429 (code 2001) is retried once. Any other 429 marks `browser_seconds` exhausted, releases the batch and stops `browser_quota` |
+
+A 15-minute run (900 s) renders about 55–65 pages, and the 1,423 known pages take about 22 runs. The same run on a
+laptop costs no Actions minutes. Older plan text that quotes a higher figure per run predates the
+probe; do not use it.
+
+Handler rules, from the live probe (decisions D26 and D27 in [gaps-and-decisions.md](../../.plans/crawlers/gaps-and-decisions.md)):
+
+- The worker checks robots.txt itself before every Cloudflare call and sends the identifying User-Agent.
+- Cloudflare answers 200 when the target answered 404. The handler reads `meta.status` and refuses 400 and above (5xx
+  retryable, 4xx permanent). It stores `meta.finalUrl` as the artifact's `final_url`.
+- A login wall completes the task with the note `login_wall` and no upload. A login-looking task URL or final URL, or a
+  password field in the DOM, counts.
+- A snapshot above 4 MB or a screenshot above 8 MB completes with `oversize` and stores nothing. Its browser time is
+  still settled.
+- A rejected token (401 or 403) releases the batch, stops with `error` and exits 1.
+
+A drain of a browser kind exits **2** before claiming when `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_BROWSER_API_TOKEN` is
+missing, and exits **1** when `GET /api/v1/discovery/machine/artifacts/status` shows `storage_enabled: false`.
+The token needs only "Browser Run - Edit". It is a GitHub Actions secret and a local variable. It is not a Render
+variable, and the API never reads it.
+
+### Snapshots, screenshots and the storage limits
+
+- **Snapshot:** the rendered DOM as `text/html`, up to 4 MB, the latest two per catalogue row, deduplicated by sha256.
+- **Screenshot:** a full-page JPEG at quality 80 (PNG was 3.4 times slower), up to 8 MB, kept. A screenshot costs about
+  1–2.5 seconds of browser time plus the 11 second gap, and 60–300 KB of storage.
+- **Follow-ups:** a stored snapshot enqueues `extract_page` (priority 100, `input_key` `<extractor id>@<version>`) only
+  when an extractor matches. An extraction that posted a mention enqueues `capture_screenshot` (priority 300,
+  `input_key` `shot@1`). A version bump re-extracts but never re-captures.
+- **Storage unset:** artifact routes answer **503**; a browser drain refuses to start; a run in flight stops
+  `storage_unavailable`.
+- **Byte cap:** an upload answers **507** when the stored bytes plus the new file would pass `OBJECT_STORE_MAX_BYTES`
+  (default 8 GiB). The cap sums `discovery_artifact` rows, not objects in the bucket.
+- **Database soft limit:** machine writes that create rows answer **507** `database_soft_limit` above
+  `DB_SOFT_LIMIT_BYTES` (400 MB). Workers stop `db_limit`.
+
+The budget ledger (`GET /api/v1/discovery/machine/budgets`, admin `GET …/admin/budgets`) keeps R2 operations, browser
+seconds, neurons and Actions minutes, so GitHub runs and laptop runs share one count. Caps and settings:
+[deployment-checklist.md](deployment-checklist.md) and [scheduled-jobs.md](scheduled-jobs.md).
+
+### Run a browser drain on a laptop
+
+This costs no Actions minutes. Export `DISCOVERY_API_URL`, `DISCOVERY_API_KEY` and the two Cloudflare variables, then:
+
+```bash
+cd apps/discovery-ingest && pip install -e .
+python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
+  --time-budget-seconds 900 --browser-budget-seconds 480
+```
+
+Run it at most once a day. The check of the Cloudflare credentials needs only the two Cloudflare variables:
+`python -m discovery_ingest browser probe --url https://example.com`.
+
+### Triage by task kind
+
+| Kind | Symptom | Check |
+| --- | --- | --- |
+| any | `stale_claims` above zero | A worker died mid-batch. The next claim reclaims expired leases; re-run a bounded drain |
+| any | `stale_runs` above zero | A run never finished. It stays visible as stale and is not counted as successful |
+| any | `last_successful_run` old or empty | Check recent `discovery_run` failures and the drain `stop_reason` |
+| `fetch_url` | Many `failed` with 4xx | Permanent by design. Open the task on `/admin/discovery/tasks` and check the URL |
+| `fetch_url` | Tasks pending with a future retry time | Backoff in progress (5 minutes, 30 minutes, 3 hours). `remaining` does not count them |
+| `harvest_payload` | Few candidates | Check `/admin/discovery/documents`; only PVOG modules `08` (required) and `14` (form) are read |
+| `render_page` | Run ends `browser_budget` or `browser_quota` | Expected. Tasks were released. Try again tomorrow |
+| `render_page` | Notes `login_wall` or `oversize` | The page is skipped on purpose; nothing is stored |
+| `render_page`, `capture_screenshot` | Run ends `storage_unavailable` | Check `GET …/artifacts/status` and the Render `OBJECT_STORE_*` variables |
+| any | Run ends `db_limit` | Check the database size against 400 MB (checklist S8) |
+| `extract_page` | All tasks completed with `no_extractor` | No extractor is registered yet. Expected today |
+| any | `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source |
 
 ### Manual dispatch (debugging)
 
@@ -101,6 +241,8 @@ gh workflow run platform-maintenance.yml -f job=all
 | `DISCOVERY_API_KEY` | yes | `rt_…` from `python -m scripts.issue_api_key --name discovery-scheduled-gha` in `apps/api` |
 | `FEDERAL_JURISDICTION_ID` | yes | Must equal live `jurisdiction.id` for `kind=COUNTRY`, `code=DE` (see triage below) — not always the seed UUID after OpenPLZ. Resolve: production SQL below, or `python -m scripts.print_federal_jurisdiction_id` in `apps/api` against the same DB |
 | `DATABASE_URL` | **no** | OpenPLZ job only |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | no | `discovery-render.yml` and `discovery-browser-probe.yml` only; never Render |
+| `OBJECT_STORE_*` (five names) | no | `discovery-storage-probe.yml` only; the application reads them from Render |
 
 Issue and rotate keys: [auth-setup.md](auth-setup.md#7-issue-and-revoke-crawler-keys). Render admin
 allowlist (`DISCOVERY_ADMIN_EMAILS`) is for the web UI — not used by the GHA discovery job.
@@ -210,8 +352,10 @@ Scheduled runs re-fetch the same government APIs. Behavior matches **OpenPLZ par
 ([openplz-import.md](openplz-import.md) § Idempotency & cache refresh):
 
 - Catalogue rows upsert by unique keys; batch payloads collapse duplicate `(source, external_id)`.
-- `fetch_url` tasks are not duplicated for the same `(catalogue_service_id, kind, target_url)` while
-  `pending` or `claimed`; failed tasks or changed `portal_url` may enqueue again.
+- A task is not duplicated for the same `(catalogue_service_id, kind, target_url, input_key)` while it is `pending`,
+  `claimed` or `completed`. A failed task, a changed `portal_url` or a new `input_key` (an extractor or harvester
+  version bump) may enqueue again. A completed `fetch_url` task is therefore not fetched again, and no `render_page`
+  follows it, until the operator re-pends it (checklist S14).
 - `discovery_claim` rows dedupe by entity, kind, and payload fingerprint.
 - Races on unique constraints recover via re-select after `IntegrityError` (same pattern as OpenPLZ).
 
@@ -226,6 +370,9 @@ from a laptop is documented there.
 
 ## Related
 
-- Maintenance schedule and secrets: [scheduled-jobs.md](scheduled-jobs.md)
+- Maintenance schedule, drain workflows and secrets: [scheduled-jobs.md](scheduled-jobs.md)
+- Manual steps that unlock live gates: [crawlers-operator-checklist.md](crawlers-operator-checklist.md)
+- Actions minutes: [gha-budget.md](gha-budget.md)
+- Suite orchestration and known gaps: [loops/crawlers.md](loops/crawlers.md)
 - OpenPLZ import (database path): [openplz-import.md](openplz-import.md)
 - Architecture and decisions: [`.plans/discovery-online/`](../../.plans/discovery-online/00-architecture.md)

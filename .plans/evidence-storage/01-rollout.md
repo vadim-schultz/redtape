@@ -6,7 +6,7 @@ isProject: false
 
 # Evidence Storage — Rollout
 
-> **Planned amendment (crawlers suite, 2026-10-23).** The [crawlers suite](../crawlers/00-architecture.md) builds the object-store port and S3 adapter itself (its chapter 13, under `apps/api/app/shared/object_store`), with **Supabase Storage first** and Cloudflare R2 as a configuration swap, and stores crawler snapshots and screenshots as staging `discovery_artifact` rows. Chapters 1–2 of this suite are therefore absorbed; the suggestion-keyed `evidence` model, routes and viewer (chapters 3–7) remain here, and bridging `discovery_artifact` objects to `evidence` rows at emit time is an open seam of this suite. Statements below that name R2 as the only provider are superseded by that amendment.
+> **Amendment (crawlers suite, built on `feat/crawlers`, 2026-10-27).** The [crawlers suite](../crawlers/00-architecture.md) built the object-store port and the S3 adapter itself, in `app/shared/object_store` ([its chapter 13](../crawlers/chapters/13-object-store-port-and-r2-adapter.md)), with **Cloudflare R2** as the provider, configured through `OBJECT_STORE_*` settings (another S3-compatible service is a configuration change), plus a metered store and a byte cap (its chapters 14 and 23). It stores crawler snapshots and screenshots as staging `discovery_artifact` rows. Chapters 1–2 of this suite are therefore **absorbed** by that work and need no build here. The suggestion-keyed `evidence` model, routes and viewer (chapters 3–7) remain here and keep their meaning. Bridging `discovery_artifact` objects to `evidence` rows at emit time is an open seam of this suite: keys are content-addressed, so the bridge is a copy or a shared key. Statements below about building the port and adapter are superseded.
 
 **Architecture:** [00-architecture.md](00-architecture.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Chapters:** [chapters/](chapters/)
 
@@ -51,8 +51,8 @@ proceed in parallel with 1–2. Chapter 8 can be written any time after chapter 
 
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Object-store port and settings | backend | pytest + `./ci.sh` | [01-object-store-port-and-settings.md](chapters/01-object-store-port-and-settings.md) | planned |
-| 2 | S3 adapter and MinIO | backend + compose | pytest + `./ci.sh` | [02-s3-adapter-and-minio.md](chapters/02-s3-adapter-and-minio.md) | planned |
+| 1 | Object-store port and settings | backend | pytest + `./ci.sh` | [01-object-store-port-and-settings.md](chapters/01-object-store-port-and-settings.md) | absorbed by crawlers chapter 13 |
+| 2 | S3 adapter and MinIO | backend + compose | pytest + `./ci.sh` | [02-s3-adapter-and-minio.md](chapters/02-s3-adapter-and-minio.md) | absorbed by crawlers chapter 13 |
 | 3 | Evidence model and migration | model + migration | pytest + round-trip + `./ci.sh` | [03-evidence-model-migration.md](chapters/03-evidence-model-migration.md) | planned |
 | 4 | Evidence service | backend | pytest + `./ci.sh` | [04-evidence-service.md](chapters/04-evidence-service.md) | planned |
 | 5 | Evidence upload endpoint | backend | pytest + `./ci.sh` | [05-evidence-upload-endpoint.md](chapters/05-evidence-upload-endpoint.md) | planned |

@@ -20,7 +20,7 @@ API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 CATALOGUE_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 ENTITY_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
-FIM_ID = "LB-EXAMPLE-STECK"
+FIM_ID = "99096049001001"
 STECKBRIEF_URL = f"https://fimportal.de/api/v1/leistung-steckbriefe/{FIM_ID}"
 STECKBRIEF_JSON = {
     "leistungsschluessel": FIM_ID,

@@ -1,0 +1,28 @@
+{
+  "note": "Shared with apps/discovery-ingest/tests/test_fim_keys.py; both resolvers must agree on every row. Edit the two files together.",
+  "cases": [
+    {"name": "fim_id", "raw_payload": {"fim_id": "01234567890123"}, "key": "01234567890123"},
+    {"name": "leistungsschluessel", "raw_payload": {"leistungsschluessel": "11111111111111"}, "key": "11111111111111"},
+    {"name": "leika_key", "raw_payload": {"leika_key": "99096049001001"}, "key": "99096049001001"},
+    {"name": "first leikakeys element", "raw_payload": {"leikakeys": ["99155004000000", "99111011017000"]}, "key": "99155004000000"},
+    {"name": "fim_id beats leistungsschluessel", "raw_payload": {"fim_id": "11111111111111", "leistungsschluessel": "22222222222222"}, "key": "11111111111111"},
+    {"name": "leistungsschluessel beats leika_key", "raw_payload": {"leistungsschluessel": "11111111111111", "leika_key": "22222222222222"}, "key": "11111111111111"},
+    {"name": "fim_id beats leika_key", "raw_payload": {"fim_id": "11111111111111", "leika_key": "22222222222222"}, "key": "11111111111111"},
+    {"name": "leika_key beats leikakeys", "raw_payload": {"leika_key": "11111111111111", "leikakeys": ["22222222222222"]}, "key": "11111111111111"},
+    {"name": "malformed fim_id falls through to leika_key", "raw_payload": {"fim_id": "LB-EXAMPLE-STECK", "leika_key": "22222222222222"}, "key": "22222222222222"},
+    {"name": "surrounding whitespace is trimmed", "raw_payload": {"leika_key": " 22222222222222 "}, "key": "22222222222222"},
+    {"name": "empty payload", "raw_payload": {}, "key": null},
+    {"name": "blank key", "raw_payload": {"leika_key": "   "}, "key": null},
+    {"name": "letters", "raw_payload": {"leika_key": "abcdefghijklmn"}, "key": null},
+    {"name": "thirteen digits", "raw_payload": {"leika_key": "1234567890123"}, "key": null},
+    {"name": "fifteen digits", "raw_payload": {"leika_key": "123456789012345"}, "key": null},
+    {"name": "inner space", "raw_payload": {"leika_key": "1234567 8901234"}, "key": null},
+    {"name": "non ascii digits", "raw_payload": {"leika_key": "١٢٣٤٥٦٧٨٩٠١٢٣٤"}, "key": null},
+    {"name": "number instead of string", "raw_payload": {"leika_key": 12345678901234}, "key": null},
+    {"name": "null key", "raw_payload": {"fim_id": null, "leika_key": null}, "key": null},
+    {"name": "empty leikakeys", "raw_payload": {"leikakeys": []}, "key": null},
+    {"name": "leikakeys is a string", "raw_payload": {"leikakeys": "99155004000000"}, "key": null},
+    {"name": "leikakeys element is not a string", "raw_payload": {"leikakeys": [99155004000000]}, "key": null},
+    {"name": "only the first leikakeys element counts", "raw_payload": {"leikakeys": ["bad", "99155004000000"]}, "key": null}
+  ]
+}

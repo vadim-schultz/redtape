@@ -1,40 +1,26 @@
-import { HStack, IconButton, VStack } from "@chakra-ui/react";
+import { HStack } from "@chakra-ui/react";
 import { FaArrowUp, FaSearch } from "react-icons/fa";
-import { Link as RouterLink } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import DiscoveryAdminMenuLinks from "../../../features/discovery-admin/components/DiscoveryAdminMenuLinks";
 import KeyValueRow from "../../ui/KeyValueRow";
+import MenuIconLink from "../../ui/MenuIconLink";
 
-/** Links to the documents list and suggest flow. */
+/** Links to the documents list and suggest flow, then any discovery links, in one row. */
 export default function DocumentsMenuRow() {
   const { t } = useLocale();
 
   return (
     <KeyValueRow label={t("menu.documents")}>
-      <VStack align="stretch" gap="2">
-        <HStack gap="1">
-          <IconButton variant="ghost" size="sm" asChild>
-            <RouterLink
-              to="/documents"
-              aria-label={t("nav.browse_documents")}
-              title={t("nav.browse_documents")}
-            >
-              <FaSearch aria-hidden="true" />
-            </RouterLink>
-          </IconButton>
-          <IconButton variant="ghost" size="sm" asChild>
-            <RouterLink
-              to="/suggest"
-              aria-label={t("nav.suggest")}
-              title={t("nav.suggest")}
-            >
-              <FaArrowUp aria-hidden="true" />
-            </RouterLink>
-          </IconButton>
-        </HStack>
+      <HStack gap="1" flexWrap="nowrap">
+        <MenuIconLink
+          Icon={FaSearch}
+          label={t("nav.browse_documents")}
+          to="/documents"
+        />
+        <MenuIconLink Icon={FaArrowUp} label={t("nav.suggest")} to="/suggest" />
         <DiscoveryAdminMenuLinks />
-      </VStack>
+      </HStack>
     </KeyValueRow>
   );
 }

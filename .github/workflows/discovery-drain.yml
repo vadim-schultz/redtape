@@ -25,7 +25,7 @@ on:
       kinds:
         description: "Comma separated task kinds to claim"
         required: false
-        default: "fetch_url,enrich_metadata"
+        default: "fetch_url,enrich_metadata,harvest_payload,extract_page"
         type: string
 
 permissions:
@@ -47,8 +47,11 @@ jobs:
       MAX_TASKS: ${{ inputs.max_tasks || '50' }}
       MAX_BATCHES: ${{ inputs.max_batches || '20' }}
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || vars.DISCOVERY_DRAIN_BUDGET_SECONDS || '900' }}
-      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata' }}
+      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata,harvest_payload,extract_page' }}
     steps:
+      - name: Record the job start time
+        run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
+
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -65,11 +68,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
+      - name: Check the Actions minutes budget
+        id: budget
+        run: |
+          # Exit 3 means the ledger has fewer minutes left than this job may use (timeout-minutes);
+          # skip the drain without failing the run. An unreachable ledger lets the drain run.
+          code=0
+          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=45 || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Discovery drain skipped: the Actions minutes budget is used up" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
       - name: Wait for Render API health
+        if: steps.budget.outputs.skip != 'true'
         run: |
           python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
 
       - name: Drain worker tasks
+        if: steps.budget.outputs.skip != 'true'
         run: |
           set -euo pipefail
           args=(
@@ -81,7 +100,7 @@ jobs:
           python -m discovery_ingest worker drain "${args[@]}" | tee drain-report.json
 
       - name: Write drain report to job summary
-        if: always()
+        if: always() && steps.budget.outputs.skip != 'true'
         run: |
           if [ -s drain-report.json ]; then
             {
@@ -97,5 +116,16 @@ jobs:
           fi
 
       - name: Fail the job when the drain did not succeed
+        if: steps.budget.outputs.skip != 'true'
         run: |
           python -c "import json,sys; sys.exit(0 if json.load(open('drain-report.json')).get('succeeded') else 1)"
+
+      - name: Report Actions minutes to the budget ledger
+        if: always()
+        continue-on-error: true
+        run: |
+          # Whole minutes since the first step, rounded up, plus one for runner setup and rounding.
+          started="${DRAIN_STARTED_AT:-$(date +%s)}"
+          elapsed=$(( $(date +%s) - started ))
+          minutes=$(( (elapsed + 59) / 60 + 1 ))
+          python -m discovery_ingest budget report-minutes --minutes "${minutes}"

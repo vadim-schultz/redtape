@@ -19,11 +19,15 @@ isProject: false
 
 # Chapter 18 — First page extractor
 
-**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-first-extractor` · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/crawlers-first-extractor` · **Status:** planned, **optional** (revised 2026-10-26)
 
 **Depends on:** [17](17-extractor-framework.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
+
+## Status: optional
+
+The [extraction](../../extraction/00-architecture.md) suite is now the primary page extractor: one Cloudflare Workers AI call per rendered snapshot, validated and grounded, covers all 123 hosts without per-host selectors. This chapter is kept for hosts where its eval (extraction chapter E5) shows the LLM is weak, or where a deterministic extractor is wanted for precision and zero neurons. Chapter 20's live gate then uses a candidate from the LLM path. If this chapter is skipped, nothing downstream breaks: chapter 17's registry stays empty.
 
 ## Goal
 
@@ -31,7 +35,7 @@ Prove the whole page path on one real host. The choice is made from data, not as
 
 ## Step 0 — Choose the host (blocking)
 
-1. After chapter 15's live gate and the S14 re-pend, drain fetch tasks, then run `discovery-render.yml` two or three times. The render queue is throttled by Cloudflare's free plan (about 80 pages per run, chapter 15), but the top hosts make up roughly 30, 10 and 9 percent of the tasks, so about 240 rendered pages are enough to hold five snapshots for each of them.
+1. After chapter 15's live gate and the S14 re-pend, drain fetch tasks, then run `discovery-render.yml` about four times. The render queue is throttled by Cloudflare's free plan (about 4 pages a minute, so 55 to 65 pages in a 900-second run, chapter 15), but the top hosts make up roughly 30, 10 and 9 percent of the tasks, so about 240 rendered pages are enough to hold five snapshots for each of them.
 2. Run `discovery-fixture-capture.yml` for the three most frequent hosts (five snapshots each) and download them.
 3. Inspect: does the page list required documents, forms or evidence in stable markup? Landing pages and login pages do not qualify. A JavaScript shell (likely for `fimportal.de/detail/...`) is **not** disqualified any more, because the snapshot is the rendered DOM: judge the markup the snapshot contains, not the raw response.
 4. Record the decision and its evidence in the ledger. If no top host qualifies, record the negative finding in [gaps-and-decisions.md](../gaps-and-decisions.md), pick the best candidate from the next hosts, and keep PVOG payload harvest (chapter 7) as the primary source. A negative result is a valid outcome of this chapter.

@@ -1,9 +1,17 @@
 import { apiRequest } from "../../../services/api";
 import type {
+  CandidateEmitPreview,
   CatalogueListResponse,
   CataloguePipelineResponse,
+  DiscoveryArtifactListResponse,
+  DiscoveryBudgetsResponse,
+  DiscoveryCandidateDetailResponse,
+  DiscoveryCandidateListResponse,
+  DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
+  DiscoveryMentionRole,
   DiscoverySource,
+  DiscoveryTaskKind,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
   EmitPreviewResponse,
@@ -11,7 +19,10 @@ import type {
 
 const TASKS_PATH = "/api/v1/discovery/admin/tasks";
 const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
+const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
+const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
+const ARTIFACT_PAGE_SIZE = 50;
 
 /** Probe allowlist by listing tasks (server enforces admin emails). */
 export async function probeDiscoveryAdminAccess(params: {
@@ -26,12 +37,13 @@ export async function probeDiscoveryAdminAccess(params: {
   });
 }
 
-/** Paginated crawler queue with optional status and source filters. */
+/** Paginated crawler queue with optional status, source and kind filters. */
 export async function listDiscoveryTasks(params: {
   locale: string;
   accessToken: string;
   status?: DiscoveryTaskStatus;
   source?: DiscoverySource;
+  kind?: DiscoveryTaskKind;
   offset?: number;
   limit?: number;
 }): Promise<DiscoveryTaskListResponse> {
@@ -40,13 +52,14 @@ export async function listDiscoveryTasks(params: {
     accessToken,
     status,
     source,
+    kind,
     offset = 0,
     limit = 20,
   } = params;
   return apiRequest<DiscoveryTaskListResponse>(TASKS_PATH, {
     locale,
     accessToken,
-    query: { status, source, offset, limit },
+    query: { status, source, kind, offset, limit },
   });
 }
 
@@ -102,4 +115,94 @@ export async function fetchEmitPreview(params: {
     `/api/v1/discovery/admin/catalogue/${catalogueId}/emit-preview`,
     { locale, accessToken },
   );
+}
+
+/** Query of the document candidate list; unset filters are left out of the request. */
+export type DiscoveryCandidateQuery = {
+  q?: string;
+  minMentions?: number;
+  role?: DiscoveryMentionRole;
+  source?: DiscoverySource;
+  sort?: DiscoveryCandidateSort;
+  offset?: number;
+  limit?: number;
+};
+
+/** Paginated document candidates with search, filters and sort. */
+export async function listDiscoveryCandidates(params: {
+  locale: string;
+  accessToken: string;
+  query: DiscoveryCandidateQuery;
+}): Promise<DiscoveryCandidateListResponse> {
+  const { locale, accessToken, query } = params;
+  const { minMentions, offset = 0, limit = 20, ...filters } = query;
+  return apiRequest<DiscoveryCandidateListResponse>(CANDIDATES_PATH, {
+    locale,
+    accessToken,
+    query: { ...filters, min_mentions: minMentions, offset, limit },
+  });
+}
+
+/** One candidate with its jurisdiction name, mentions and their artifact summaries. */
+export async function fetchDiscoveryCandidate(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryCandidateDetailResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryCandidateDetailResponse>(
+    `${CANDIDATES_PATH}/${candidateId}`,
+    { locale, accessToken },
+  );
+}
+
+/** Read-only preview of the suggestion emitting one candidate would create. */
+export async function fetchCandidateEmitPreview(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<CandidateEmitPreview> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<CandidateEmitPreview>(
+    `${CANDIDATES_PATH}/${candidateId}/emit-preview`,
+    { locale, accessToken },
+  );
+}
+
+/** Artifacts of one catalogue row, each with a short-lived presigned URL. */
+export async function listCatalogueArtifacts(params: {
+  locale: string;
+  accessToken: string;
+  catalogueId: string;
+}): Promise<DiscoveryArtifactListResponse> {
+  const { locale, accessToken, catalogueId } = params;
+  return apiRequest<DiscoveryArtifactListResponse>(
+    `${CATALOGUE_PATH}/${catalogueId}/artifacts`,
+    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+  );
+}
+
+/** The evidence behind one candidate (cited artifacts and procedure screenshots), each with a presigned URL. */
+export async function listCandidateArtifacts(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryArtifactListResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryArtifactListResponse>(
+    `${CANDIDATES_PATH}/${candidateId}/artifacts`,
+    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+  );
+}
+
+/** Free-tier budgets of the current periods plus the stored-bytes figure. */
+export async function fetchDiscoveryBudgets(params: {
+  locale: string;
+  accessToken: string;
+}): Promise<DiscoveryBudgetsResponse> {
+  const { locale, accessToken } = params;
+  return apiRequest<DiscoveryBudgetsResponse>(BUDGETS_PATH, {
+    locale,
+    accessToken,
+  });
 }

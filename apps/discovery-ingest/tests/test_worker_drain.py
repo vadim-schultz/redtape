@@ -13,8 +13,12 @@ import httpx
 import pytest
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
-from discovery_ingest.schemas import TaskEnqueueRequest
+from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS, TaskEnqueueRequest
+from discovery_ingest.worker.drain import run_worker_drain
+from discovery_ingest.worker.policy import DrainPolicy
 
+from capture_fakes import FakeCamera, shot
+from render_fakes import FakeApi, robots_fetcher, task_json
 from run_stub import run_response
 
 API_BASE = "https://redtape.test"
@@ -391,6 +395,8 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
             return stub
         if request.url.path.endswith("/tasks/summary"):
             return httpx.Response(500, text="no summary")
+        if request.url.path.endswith("/budgets"):
+            return httpx.Response(404, text="no ledger")
         bodies.append(json.loads(request.content.decode()))
         return httpx.Response(200, json={"items": []})
 
@@ -400,8 +406,8 @@ def _claim_bodies_handler(bodies: list[dict[str, object]]) -> Any:
 @pytest.mark.parametrize(
     ("flags", "expected"),
     [
-        ([], ["fetch_url", "enrich_metadata"]),
-        (["--kinds", "extract_page,capture_screenshot"], ["extract_page", "capture_screenshot"]),
+        ([], ["fetch_url", "enrich_metadata", "harvest_payload", "extract_page"]),
+        (["--kinds", "extract_page,harvest_payload"], ["extract_page", "harvest_payload"]),
     ],
 )
 def test_worker_drain_sends_the_configured_kinds_when_claiming(
@@ -531,7 +537,7 @@ def test_fetch_url_reports_a_404_as_permanent(monkeypatch: pytest.MonkeyPatch, _
 
 def test_unknown_kind_is_failed_as_non_retryable(monkeypatch: pytest.MonkeyPatch, _env: None) -> None:
     """A claimed kind without a handler is failed permanently."""
-    bodies = _drain_fail_bodies(monkeypatch, "extract_page", _answer_404)
+    bodies = _drain_fail_bodies(monkeypatch, "render_page", _answer_404)
 
     assert [body["retryable"] for body in bodies] == [False]
     assert str(bodies[0]["error"]).startswith("unsupported task kind")
@@ -585,3 +591,83 @@ def test_worker_drain_keeps_remaining_unknown_when_the_summary_fails(
     assert (report["remaining"], report["remaining_unknown"]) == (None, True)
     assert (report["succeeded"], report["stop_reason"]) == (True, "batch_limit")
     assert (finishes[0]["status"], finishes[0]["remaining_count"]) == ("succeeded", None)
+
+
+def test_worker_drain_dispatches_harvest_payload_and_counts_it_completed(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], _env: None
+) -> None:
+    """worker drain · dispatches harvest_payload and counts it completed."""
+    mentions: list[dict[str, Any]] = []
+    claimed = {
+        "id": str(TASK_ID),
+        "catalogue_service_id": str(CATALOGUE_ID),
+        "kind": "harvest_payload",
+        "target_url": TARGET_URL,
+        "status": "claimed",
+        "priority": 50,
+        "lease_expires_at": datetime.now(UTC).isoformat(),
+    }
+    payload = {
+        "details": [{"code": "14", "links": [{"title": "Antrag", "uri": "https://f.example/a"}], "filled": True}]
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stub = run_response(request)
+        path = request.url.path
+        if stub is not None:
+            return stub
+        if path.endswith("/tasks/claim"):
+            return httpx.Response(200, json={"items": [claimed]})
+        if path.endswith("/tasks/summary"):
+            return httpx.Response(
+                200, json=dict(pending_ready=0, pending_delayed=0, claimed=0, claimed_stale=0, completed=1, failed=0)
+            )
+        if path.endswith(f"/catalogue/{CATALOGUE_ID}"):
+            row = {"id": str(CATALOGUE_ID), "source": "pvog", "title_i18n": {"de": "L"}, "raw_payload": payload}
+            return httpx.Response(200, json=row)
+        if path.endswith("/candidates/mentions"):
+            mentions.extend(json.loads(request.content.decode())["items"])
+            return httpx.Response(200, json={"candidates_created": 1, "mentions_created": 1, "mentions_updated": 0})
+        if path.endswith("/complete"):
+            return httpx.Response(200, json={"id": str(TASK_ID), "status": "completed"})
+        return httpx.Response(404, text=f"unexpected {path}")
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["worker", "drain", "--kinds", "harvest_payload"])
+
+    report = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert (report["claimed"], report["completed"], report["failed"]) == (1, 1, 0)
+    assert [(m["role"], m["official_url"]) for m in mentions] == [("form", "https://f.example/a")]
+
+
+def _capture_api() -> FakeApi:
+    return FakeApi([[task_json(uuid.uuid4(), TARGET_URL, "capture_screenshot")]])
+
+
+def test_capture_screenshot_is_dispatched_to_its_handler_and_absent_from_the_default_kinds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """worker drain · capture_screenshot reaches the capture handler; the default kinds never include it."""
+    api, camera = _capture_api(), FakeCamera(shot())
+    policy = DrainPolicy(max_tasks=5, kinds=("capture_screenshot",), browser_budget_seconds=480)
+
+    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, browser=camera)
+
+    assert camera.calls == [TARGET_URL] and len(api.uploads) == 1
+    assert (report.completed, report.failed, report.browser_seconds_used) == (1, 0, 2.0)
+    assert "capture_screenshot" not in WORKER_DEFAULT_TASK_KINDS and "capture_screenshot" not in DrainPolicy().kinds
+
+
+def test_a_capture_screenshot_task_claimed_by_a_default_drain_is_failed_without_a_browser_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """worker drain · without a browser there is no capture handler: the task fails permanently, nothing is captured."""
+    api = _capture_api()
+
+    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), DrainPolicy(max_tasks=5))
+
+    ((_, body),) = api.named("fail")
+    assert body["retryable"] is False and str(body["error"]).startswith("unsupported task kind")
+    assert (report.failed, api.uploads) == (1, [])

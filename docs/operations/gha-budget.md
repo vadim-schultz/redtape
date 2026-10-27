@@ -1,6 +1,6 @@
 # GitHub Actions budget and operator checklist
 
-This repository runs on the GitHub Free plan: 2,000 Linux minutes a month, shared by every repository on the account. This page records where the minutes went, the target budget, and the steps that only the account owner can do. Workflow behaviour is in [scheduled-jobs.md](scheduled-jobs.md).
+This repository runs on the GitHub Free plan: 2,000 Linux minutes a month, shared by every repository on the account. **This repository is capped at 1,000 minutes a month**, and a CI reserve inside that cap is not for drains. This page records where the minutes went, the budget, and the steps that only the account owner can do. Workflow behaviour and the budget ledger are in [scheduled-jobs.md](scheduled-jobs.md).
 
 ## What happened in October
 
@@ -20,17 +20,27 @@ GitHub bills per job and rounds up to a whole minute, so short jobs cost much mo
 
 ## Target budget
 
-Assume about 960 minutes a month belong to this repository.
+The cap is **1,000 minutes a month** for this repository (revised 2026-10-26). The budget ledger in the API enforces the
+split below, so a drain workflow skips itself when its share is gone. The first estimate for this page was lower and is superseded; the 960 minutes of October are history.
 
-| Item | Min per month |
-| --- | --- |
-| CI (API, web, ingest) | ~330 |
-| Platform maintenance (monthly OpenPLZ import and catalogue ingest) | ~65 |
-| Keep-alive | 0 (external pinger) |
-| Headroom | ~100 |
-| **Crawl (`discovery-drain.yml`)** | **~465** |
+| Item | Min per month | Notes |
+| --- | --- | --- |
+| **Repository cap** | **1,000** | `BUDGET_ACTIONS_MINUTES_MONTHLY` |
+| CI reserve | 600 | `ACTIONS_CI_RESERVE_MINUTES`: API, web and ingest CI, monthly platform maintenance and headroom. Drains do not spend it |
+| **Drain allowance** | **400** | Cap minus reserve: `discovery-drain.yml` and `discovery-render.yml` together |
 
-The crawl figure is 15 minutes a day over 31 days. Days with an empty queue stop early on `queue_empty`. The cap is the repository variable `DISCOVERY_DRAIN_BUDGET_SECONDS`; see [Crawl budget](scheduled-jobs.md#crawl-budget).
+The trimming targets were about 330 minutes for CI and about 65 for platform maintenance in a normal month. The crawlers suite adds about 17 pull
+requests at 5 to 10 billed minutes each (web CI runs only when `apps/web` changes), which is why the reserve is 600.
+
+A fifteen-minute drain bills about 16 minutes. The render backlog is about 22 such runs (about 5.5 hours) for the 1,423
+known pages, which would use most of the allowance. Run the backlog on a laptop (checklist S18) and keep
+`DISCOVERY_RENDER_SCHEDULE` unset. A drain skips itself when fewer than 45 minutes (render: 30) are left in the ledger.
+Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs report nothing and cost nothing.
+
+Compare the ledger with GitHub's usage report once a month (checklist S20): `python -m discovery_ingest budget show`
+prints `actions_minutes`; GitHub shows the repository's real minutes. If CI alone approaches the reserve, lower the
+drain allowance (raise `ACTIONS_CI_RESERVE_MINUTES`), not the other way round. Raise `DISCOVERY_DRAIN_BUDGET_SECONDS`
+only when the usage report shows headroom.
 
 ## Workflow inventory
 
@@ -38,7 +48,9 @@ The crawl figure is 15 minutes a day over 31 days. Days with an empty queue stop
 | --- | --- |
 | `api-lint-test.yml`, `web-ci.yml`, `discovery-ingest-ci.yml` | `pull_request` and `push` to `main`, path filtered. A new push cancels the superseded PR run. |
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
-| `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. |
+| `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 45 ledger minutes. |
+| `discovery-render.yml` | Daily 05:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-drain`. |
+| `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
 `keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to `main` is what saves minutes.
 
@@ -62,7 +74,8 @@ Create a free UptimeRobot (5 minute interval) or cron-job.org monitor on `https:
 Set under **Settings -> Secrets and variables -> Actions -> Variables**:
 
 - `DISCOVERY_DRAIN_BUDGET_SECONDS`: seconds per scheduled drain. When unset, the drain uses 900.
-- `DISCOVERY_DRAIN_SCHEDULE`: leave unset until crawlers chapter 22 step S13. Setting it to `enabled` turns on the daily drain.
+- `DISCOVERY_DRAIN_SCHEDULE`: leave unset until [crawlers-operator-checklist.md](crawlers-operator-checklist.md) step S13. Setting it to `enabled` turns on the daily drain.
+- `DISCOVERY_RENDER_SCHEDULE`: leave unset until there is budget (S13); the render backlog is cheaper on a laptop.
 
 ### O4 First live verification
 
@@ -75,10 +88,10 @@ Do this once, early in the month. It costs minutes.
 
 ### O5 Monthly check
 
-Compare the usage report with the targets: keep-alive 0, maintenance at most ~70, CI at most ~330, and the drain using the rest. Raise `DISCOVERY_DRAIN_BUDGET_SECONDS` when other repositories leave headroom.
+Compare the usage report with the targets: keep-alive 0, maintenance at most ~70, CI inside the 600 minute reserve, and the drains inside 400. Also compare the ledger's `actions_minutes` with GitHub's figure for the repository (S20). Raise `DISCOVERY_DRAIN_BUDGET_SECONDS` when other repositories leave headroom.
 
 ## Notes
 
-- Free Supabase pauses a project after 7 idle days. The daily drain reaches the database through the API and keeps it active.
+- Free Supabase pauses a project after 7 idle days. A drain that runs at least weekly (scheduled or dispatched) reaches the database through the API and keeps it active.
 - Free Render cold-starts after 15 idle minutes. The external pinger avoids most cold starts.
 - `GITHUB_TOKEN` cannot read the remaining minutes. The heavy monthly job runs on day 28 to use leftover minutes; when the quota is gone it fails to start, which is harmless.

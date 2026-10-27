@@ -22,12 +22,13 @@ QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), Dis
 
 @dataclass(frozen=True, slots=True)
 class TaskTarget:
-    """Identify a task by catalogue row, kind, target URL and optional input key."""
+    """Identify a task by catalogue row, kind, target URL and optional input key; ``artifact_id`` is its input."""
 
     catalogue_service_id: UUID
     kind: DiscoveryTaskKind
     target_url: str
     input_key: str | None = None
+    artifact_id: UUID | None = None
 
 
 class TaskRepository(SessionRepository):
@@ -57,6 +58,7 @@ class TaskRepository(SessionRepository):
             kind=target.kind,
             target_url=target.target_url,
             input_key=target.input_key,
+            artifact_id=target.artifact_id,
             status=DiscoveryTaskStatus.PENDING,
             priority=priority,
         )

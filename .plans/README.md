@@ -102,10 +102,11 @@ flowchart LR
   AU --> CR
   VM -.optional order.-> CR
   ES -.later bridge.-> CR
+  CR --> EX[extraction]
 ```
 
 `evidence-storage` chapters 1–2 (the object-store port and the S3 adapter) have no suggestion
-dependency; the `crawlers` suite now builds that port itself (its chapter 13, Supabase Storage first) and
+dependency; the `crawlers` suite now builds that port itself (its chapter 13, Cloudflare R2 first) and
 stores its snapshots and screenshots as staging `discovery_artifact` rows, so it no longer waits for
 `evidence-storage`. Attaching those artifacts to suggestions as `evidence` rows is a later bridge owned by
 `evidence-storage`. `voting-moderation` (API side largely implemented) and `crawlers` proceed in parallel.
@@ -150,7 +151,7 @@ recording what was fetched and when, and upload/read endpoints. Nine chapters.
 | [gaps-and-decisions.md](evidence-storage/gaps-and-decisions.md) | Settled decisions and open seams |
 | [chapters/](evidence-storage/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-object-store-port-and-settings.md](evidence-storage/chapters/01-object-store-port-and-settings.md).
+Status: planned. Chapters 1–2 (the port and the adapter) are absorbed by crawlers chapter 13; the first chapter to build is [chapters/03-evidence-model-migration.md](evidence-storage/chapters/03-evidence-model-migration.md).
 
 ### [voting-moderation/](voting-moderation/) — Votes, thresholds and promotion
 
@@ -173,20 +174,38 @@ A queue-based, document-first crawl layer on the discovery staging path: new tas
 `discovery_task` table (payload harvest, page extraction, screenshot capture), a kind-filtered claim, retry and
 multi-batch draining, deduplicated document candidates with provenance, rendered HTML snapshots and screenshots
 (Cloudflare Browser Run quick actions on the free plan, throttled and budgeted; no browser in the repository)
-stored in an object store (Supabase Storage first), manual candidate emit to pending `new_document`
+stored in an object store (Cloudflare R2, capped by the application), a budget ledger that guards every free allocation (chapter 23), manual candidate emit to pending `new_document`
 suggestions, and admin screens for documents and their evidence. Workers stay HTTP-only. Replaces the earlier
-standalone `apps/crawler` design. Twenty-two chapters; loop branch `feat/crawlers`.
+standalone `apps/crawler` design. Twenty-three chapters; loop branch `feat/crawlers`. LLM extraction is the next suite, [extraction/](extraction/).
 
 | Doc | What it is |
 | --- | --- |
 | [00-architecture.md](crawlers/00-architecture.md) | Vocabulary, task kinds, document-first strategy, storage, tables, admin surface |
-| [01-rollout.md](crawlers/01-rollout.md) | Twenty-two chapters, dependency graph, invariants, per-chapter gate (GitHub Actions) |
+| [01-rollout.md](crawlers/01-rollout.md) | Twenty-three chapters, dependency graph, invariants, per-chapter gate (GitHub Actions) |
 | [gaps-and-decisions.md](crawlers/gaps-and-decisions.md) | Settled decisions, open seams, risks |
 | [run-ledger.md](crawlers/run-ledger.md) | Chapter outcomes and live-gate run IDs |
-| [chapters/](crawlers/chapters/) | One executable plan per chapter; the last is the operator checklist |
+| [chapters/](crawlers/chapters/) | One executable plan per chapter; chapter 22 is the operator checklist, chapter 23 the free-tier guards |
 
-Status: planned — no chapter started. First: [chapters/01-ingest-ci.md](crawlers/chapters/01-ingest-ci.md).
-CoS orchestration: [`docs/operations/loops/crawlers.md`](../docs/operations/loops/crawlers.md).
+Status: built on the loop branch `feat/crawlers` (chapters 1–6 already reached `main` in a staged release): chapters 1–17, 19, 20 and 23 merged, chapter 18 (a hand-written page extractor) deferred and optional, because the [extraction](extraction/) suite is the main path, chapter 21 (docs sync) done, chapter 22 published as the [operator checklist](../docs/operations/crawlers-operator-checklist.md) for the operator to tick. The release PR to `main` is pending and the live gates wait for it; see [run-ledger.md](crawlers/run-ledger.md).
+CoS orchestration and known gaps: [`docs/operations/loops/crawlers.md`](../docs/operations/loops/crawlers.md).
+
+### [extraction/](extraction/) — LLM information extraction
+
+Turns the rendered snapshots of `crawlers` into grounded document candidates, requirement edges and
+domain/life-situation tags: an in-house page cleaner, a Cloudflare Workers AI JSON-mode call behind an `LlmClient`
+port (free plan, neuron budget kept in the crawlers budget ledger), deterministic grounding of every quote, and
+staged candidates, mentions and edges in the existing discovery tables. A new budgeted task kind `llm_extract`
+in the same queue; nothing is ever emitted automatically. Nine chapters; loop branch `feat/extraction`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](extraction/00-architecture.md) | Flow, cleaner, extraction model, tagging, edges, budget |
+| [01-rollout.md](extraction/01-rollout.md) | Nine chapters, dependency graph, invariants, gates |
+| [gaps-and-decisions.md](extraction/gaps-and-decisions.md) | Settled decisions, open seams, risks |
+| [run-ledger.md](extraction/run-ledger.md) | Chapter outcomes and live-gate run IDs |
+| [chapters/](extraction/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started; depends on crawlers chapters 14, 15 and 23. First: [chapters/01-staging-groundwork.md](extraction/chapters/01-staging-groundwork.md).
 
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 

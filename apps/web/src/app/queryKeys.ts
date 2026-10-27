@@ -75,12 +75,41 @@ export const queryKeys = {
       [...queryKeys.discoveryAdmin.all, "catalogue", locale] as const,
     coverage: (locale: string) =>
       [...queryKeys.discoveryAdmin.all, "coverage", locale] as const,
-    tasks: (status: string, source: string | null, locale: string) =>
+    tasks: (
+      status: string,
+      source: string | null,
+      kind: string | null,
+      locale: string,
+    ) =>
       [
         ...queryKeys.discoveryAdmin.all,
         "tasks",
         status,
         source,
+        kind,
+        locale,
+      ] as const,
+    candidates: (query: object, locale: string) =>
+      [...queryKeys.discoveryAdmin.all, "candidates", query, locale] as const,
+    candidate: (candidateId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "candidate",
+        candidateId,
+        locale,
+      ] as const,
+    candidateArtifacts: (candidateId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "candidate-artifacts",
+        candidateId,
+        locale,
+      ] as const,
+    candidateEmitPreview: (candidateId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "candidate-emit-preview",
+        candidateId,
         locale,
       ] as const,
     pipeline: (catalogueId: string | undefined, locale: string) =>
@@ -97,5 +126,14 @@ export const queryKeys = {
         catalogueId,
         locale,
       ] as const,
+    artifacts: (catalogueId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "artifacts",
+        catalogueId,
+        locale,
+      ] as const,
+    budgets: (locale: string) =>
+      [...queryKeys.discoveryAdmin.all, "budgets", locale] as const,
   },
 };

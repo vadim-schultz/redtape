@@ -1,7 +1,112 @@
 {
-  "leistungsschluessel": "LB-EXAMPLE-STECK",
-  "titel": "Beispiel-Leistung",
-  "kurztext": "Kurzbeschreibung aus FIM",
-  "redaktion_id": "RED-EXAMPLE",
-  "leistung_id": "LB-EXAMPLE-001"
+  "redaktion_id": "B100019",
+  "leistung_id": "105905204",
+  "title": "Short Range Certificate (SRC) Erteilung nach Prüfung",
+  "title_en": "No title",
+  "leistungsbezeichnung": "Short Range Certificate (SRC) Erteilung nach Prüfung",
+  "leistungsbezeichnung_en": null,
+  "leistungsbezeichnung_2": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+  "leistungsbezeichnung_2_en": null,
+  "rechtsgrundlagen": "§ 13 Absatz 4a Schiffssicherheitsverordnung (SchSV)",
+  "rechtsgrundlagen_en": null,
+  "freigabe_status": 6,
+  "erstellt_datum_zeit": "2023-01-02T13:10:09Z",
+  "geaendert_datum_zeit": "2025-12-01T13:44:03.335000Z",
+  "leistungsadressat": [
+    "001"
+  ],
+  "leistungsschluessel": "99096049001001",
+  "typisierung": [
+    "1"
+  ],
+  "leistungstyp": "lovd",
+  "sdg_informationsbereiche": [
+    "0000000"
+  ],
+  "klassifizierung": [
+    {
+      "list_uri": "urn:xoev-de:fim:codeliste:pvlagen",
+      "value": "1070200"
+    },
+    {
+      "list_uri": "urn:xoev-de:fim:codeliste:pvlagen",
+      "value": "1090100"
+    }
+  ],
+  "leistung_stammtexte": [
+    {
+      "redaktion_id": "B100019",
+      "id": "105905204",
+      "title": "Short Range Certificate (SRC) Erteilung nach Prüfung",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100002",
+      "id": "121183544",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100008",
+      "id": "407320109",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100010",
+      "id": "114071555",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100012",
+      "id": "315875820",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100038",
+      "id": "221949223",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100039",
+      "id": "288053445",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    },
+    {
+      "redaktion_id": "L100041",
+      "id": "120940029",
+      "title": "Zulassung zur Prüfung sowie Ausstellung eines beschränkt gültigen Funkbetriebszeugnisses (SRC) beantragen",
+      "leistungsschluessel": [
+        "99096049001001"
+      ]
+    }
+  ],
+  "prozessklasse": null,
+  "ozg": {
+    "leistungsschluessel": "99096049001001",
+    "id": "10165",
+    "leistung": "Erlaubnis zum Führen von Booten und Schiffen",
+    "themenfeld": "engagement_hobby",
+    "themenfeld_label": "Engagement & Hobby",
+    "vollzugsbehoerden": []
+  },
+  "replacements": []
 }

@@ -24,7 +24,7 @@ isProject: false
 
 **Repo:** `redtape` (`apps/discovery-ingest`, `.github/workflows`) · **Branch:** `feat/crawlers-cloudflare-render` · **Status:** planned
 
-**Depends on:** [02](02-fetcher-hardening.md), [14](14-artifact-model-and-api.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [02](02-fetcher-hardening.md), [14](14-artifact-model-and-api.md), [23](23-free-tier-guards.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/crawlers`
 
@@ -37,9 +37,9 @@ The account already exists (the frontend runs on Cloudflare) and the **free plan
 | Free-plan limit | Consequence |
 | --- | --- |
 | 10 browser minutes per day | A run has a browser-time budget; the worker sums `X-Browser-Ms-Used` |
-| 1 quick-action request every 10 seconds | One call at a time, at least 11 seconds apart (about 5 pages a minute) |
+| 1 quick-action request every 10 seconds | One call at a time, at least 11 seconds after the **end** of the previous call (about 4 pages a minute; probe finding F6) |
 | 3 concurrent browsers, 60 s browser timeout | Single-threaded worker; navigation timeout 30 s |
-| `429` with `Retry-After` when exceeded | Stop the run and **release** tasks; never fail them |
+| `429` with `Retry-After` when exceeded | A rate-limit `429` is retried once through the throttle; any other `429` stops the run and **releases** tasks; never fail them (finding F6) |
 
 ## Step 0 — Probe (blocking, manual)
 
@@ -53,48 +53,82 @@ Several response details are not in the public docs excerpts the plan was writte
 6. The rendered size of two or three real pages (a server-rendered one, and a single-page shell such as a `fimportal.de/detail/L/...` URL), compared with the plain-fetch body, to confirm the rendered DOM is richer and to check the 4 MB snapshot cap.
 7. `Retry-After` and the body of a `429` if one occurs; the probe does not try to provoke one.
 
-The probe is the first commit of this chapter. `workflow_dispatch` workflows only register once their file is on the default branch (the same limit that deferred the chapter 2 live gate), so run the probe from a local shell with the two variables exported (`python -m discovery_ingest browser probe ...`); the workflow serves later re-checks. The probe output and run ID or date go into the ledger. Anything that contradicts the contract below changes the contract before the client is written.
+The probe is the first commit of this chapter. `workflow_dispatch` workflows only register once their file is on the default branch (the same limit that deferred the chapter 2 live gate), so run the probe from a local shell with the two variables exported (`python -m discovery_ingest browser probe ...`); the workflow serves later re-checks. The probe output and run ID or date go into the ledger. Anything that contradicts the contract below changes the contract before the client is written; the first run's findings and the contract changes they caused follow.
+
+### Probe findings (run 2026-10-27, local shell; 9 of 21 planned calls, stopped by a `429`)
+
+The probe ran once with the operator's credentials (`browser probe --url example.com --url fimportal.de --url fimportal.de/detail/L/99155004000000 --error-url example.com/redtape-probe-not-found --error-url no-such-host.redtape-probe.invalid`). No secret is recorded here. Wall times are measured by the probe; `X-Browser-Ms-Used` is the header value (see F5).
+
+| # | Variant (endpoint) | Target | HTTP | `X-Browser-Ms-Used` | Wall ms | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `ua-echo` (`/content`, inline `html` that writes `navigator.userAgent`) | none | 200 | not readable | 1354 | envelope; the user agent we sent was echoed |
+| 2 | `content` (`/content`, networkidle2, `userAgent`) | `https://example.com` | 200 | not readable | 2302 | `result` 2,373 B; `meta.status` 200; plain fetch 577 B |
+| 3 | `content` | `https://fimportal.de` | 200 | not readable | 1407 | `result` 62,684 B; `meta.status` 200; plain fetch 71,044 B |
+| 4 | `content` | `https://fimportal.de/detail/L/99155004000000` | 200 | not readable | 1814 | `result` 63,533 B; `meta.finalUrl` `https://fimportal.de/leistung-steckbriefe/99155004000000`, one redirect in `meta.redirectChain`; plain fetch 70,324 B (same final URL) |
+| 5 | `content` | `https://example.com/redtape-probe-not-found` | **200** | not readable | 2018 | envelope with `meta.status` **404** and the 404 page's DOM (2,373 B); Cloudflare does not fail the call |
+| 6 | `content` | `https://no-such-host.redtape-probe.invalid` | **422** | `336` | 336 | `{"success": false, "errors": [{"code": 5006, "message": "Network connection closed."}]}`, no `result` |
+| 7 | `content-lean` (adds `rejectResourceTypes` image, font, media) | `https://example.com` | 200 | not readable | 1827 | same `result` size as row 2 |
+| 8 | `content-lean` | `https://fimportal.de` | 200 | not readable | 6287 | same `result` size as row 3, slower than row 3 (one sample each) |
+| 9 | `content-lean` | the detail page | **429** | `0` | 0 | `{"success": false, "errors": [{"code": 2001, "message": "Rate limit exceeded"}]}`, `Retry-After: 10` |
+
+Response header names seen: `api-version`, `cache-control`, `cf-auditlog-id`, `cf-ray`, `connection`, `content-encoding`, `content-length`, `content-type`, `date`, `retry-after`, `server`, `set-cookie`, `transfer-encoding`, `x-browser-ms-used`. Browser time the headers reported: 336 ms (row 6) plus 0 (row 9). The probe's measured wall time over the nine calls was about 17.3 s, which is the best estimate of the day's usage (of 600 s). **Not probed** because the `429` stopped the run (and no second run was authorised): the `/snapshot` shape and cost, `/screenshot` raw or JSON, JPEG against PNG sizes, the lean options on the detail page. They stay open for chapter 19's first run; the command is in the live gate below.
+
+Findings, and what each changed:
+
+- **F1: path.** The quick actions answer at `/accounts/<id>/browser-run/<endpoint>` (the current docs name; the older `browser-rendering` path in some docs examples was not used). The path lives in one table, `browser/endpoints.py`.
+- **F2: `/content` returns a JSON envelope**, `{"success": true, "result": "<html>", "meta": {"status", "finalUrl", "title", "headers", "redirectChain"?}}`. Item 1 is settled: the client reads `result`.
+- **F3: the target's HTTP status and final URL ARE exposed** (`meta.status`, `meta.finalUrl`), which contradicts "the design does not depend on either". Cloudflare answers `200` even when the target answered `404`. **Contract change:** `RenderedPage` carries `http_status` and `final_url`; the handler does not store a page whose `meta.status` is 400 or higher (a block page or error page is not a snapshot): 5xx fails retryably, 4xx fails permanently; the artifact's `final_url` is `meta.finalUrl`, and the login-wall URL rule also looks at it.
+- **F4: errors.** An unresolvable host gave `422` with code `5006` (no `result`, 336 ms). The default table holds (other `4xx` is permanent); the table below records the facts.
+- **F5: `X-Browser-Ms-Used`.** It is present on the `422` and the `429`, but the probe could not read an integer from it on any `200` (absent, or fractional; the probe did not print the raw value). **Contract change:** the client parses fractions (rounded up) and falls back to the measured duration, as the contract already says; the probe now prints an unreadable value as `ms_header='...'` so the next run settles it. Browser time per page was 1.4 to 6.3 s measured, so the 30 s reservation is conservative.
+- **F6: rate limit.** The `429` (`Rate limit exceeded`, code 2001, `Retry-After: 10`) came for a call that started 11 s after the start of a slow (6.3 s) call, so spacing calls by their **start** times is not enough. **Contract change:** the throttle waits the interval after the **end** of the previous call, and a `429` with `Retry-After` no longer than the interval is retried once through the throttle before the client raises `BrowserQuotaExceeded`. A pages-a-minute figure is therefore about 4, not 5. The daily limit (`Browser time limit exceeded for today`, per the docs) was not provoked.
+- **F7: `userAgent` is honoured** (row 1). **`rejectResourceTypes` is not used:** it did not save browser time (row 7 against 2: 1.8 s against 2.3 s; row 8 against 3: 6.3 s against 1.4 s), so `render` sends only `gotoOptions` and `userAgent`.
+- **F8: sizes.** Rendered DOMs were 2.4 KB (example.com) to 63.5 KB (fimportal.de), far below the 4 MB cap. The plain fetch of fimportal pages is already 70 KB of server-rendered HTML and the rendered DOM is smaller (62 to 64 KB); whether the rendered DOM holds content the plain body lacks was not diffed. The plain-first open seam gets a stronger case (see gaps-and-decisions, D26).
 
 ## Contract
 
-**Settings** (`IngestSettings`, all optional): `cloudflare_account_id` (`CLOUDFLARE_ACCOUNT_ID`), `cloudflare_browser_api_token` (`CLOUDFLARE_BROWSER_API_TOKEN`, a custom token with only the "Browser Run - Edit" permission), `browser_min_interval_seconds` (default 11), `browser_request_timeout_seconds` (default 60). Nothing is required unless a browser kind is drained.
+**Settings** (`BrowserSettings`, all optional; `IngestSettings` inherits them, and `browser probe` loads `BrowserSettings` alone so it needs neither `DISCOVERY_API_URL` nor a dotenv file): `cloudflare_account_id` (`CLOUDFLARE_ACCOUNT_ID`), `cloudflare_browser_api_token` (`CLOUDFLARE_BROWSER_API_TOKEN`, a custom token with only the "Browser Run - Edit" permission), `browser_min_interval_seconds` (default 11), `browser_request_timeout_seconds` (default 60). Nothing is required unless a browser kind is drained.
 
 **Port** (`discovery_ingest/browser/`):
 
 ```text
 class BrowserClient(Protocol):
-    def render(self, url: str) -> RenderedPage: ...        # html: str, ms_used: int | None
+    def render(self, url: str) -> RenderedPage: ...        # html, ms_used, http_status, final_url (from meta)
     def screenshot(self, url: str) -> ScreenshotImage: ... # data, content_type, ms_used, html: str | None
 ```
 
 `CloudflareBrowserClient` is the only module that knows endpoint paths, the bearer token, or the JSON envelope. Behaviour:
 
-- `render` calls `/content` with `gotoOptions {waitUntil: "networkidle2", timeout: 30000}`, `userAgent` set to the identifying string from [config.py](../../../apps/discovery-ingest/discovery_ingest/config.py) (invariant 8), and `rejectResourceTypes` for images, fonts and media when the probe confirms it saves browser time.
+- `render` calls `/content` with `gotoOptions {waitUntil: "networkidle2", timeout: 30000}` and `userAgent` set to the identifying string from [config.py](../../../apps/discovery-ingest/discovery_ingest/config.py) (invariant 8). It reads the JSON envelope (`result`, `meta.status`, `meta.finalUrl`). It does **not** send `rejectResourceTypes`: the probe did not show a saving (F7).
 - `screenshot` (used by chapter 19) calls `/snapshot` with `formats: ["content", "screenshot"]`, viewport 1280×800, `fullPage: true`, JPEG quality 80: one browser session yields the image **and** the DOM, so the login-wall guard can look at the page that was actually captured (`html` is set). If the probe shows `/snapshot` costs clearly more browser time than `/screenshot`, call `/screenshot` instead and leave `html` as `None` (the guard then uses the URL rule only). One call only; the free budget does not allow a PNG-then-JPEG retry. Over 8 MB is reported by the caller as oversize.
-- An injected `Throttle` (clock and sleep are parameters, so tests never wait) enforces the minimum interval between **any** two Cloudflare calls in the process.
-- `ms_used` comes from `X-Browser-Ms-Used`; when the header is absent the client measures the call duration instead, so the budget is never silently unbounded.
-- **Error classification** (table finalised from probe item 3, defaults below):
+- An injected `Throttle` (clock and sleep are parameters, so tests never wait) enforces the minimum interval between **any** two Cloudflare calls in the process, counted from the **end** of the previous call (F6).
+- `ms_used` comes from `X-Browser-Ms-Used` (fractions round up); when the header is absent or unreadable, which the probe saw on every `200`, the client measures the call duration instead, so the budget is never silently unbounded (F5).
+- **Error classification** (filled from the probe, F3, F4 and F6):
 
   | Response | Meaning |
   | --- | --- |
-  | `429` | `BrowserQuotaExceeded(retry_after)` |
+  | `200` envelope with `meta.status` 400 or higher | the target answered with an error: `meta.status` 5xx is a retryable task failure, 4xx a permanent one; nothing is stored |
+  | `429` with `Retry-After` no longer than the interval (code 2001, `Rate limit exceeded`) | retried **once** through the throttle; a second `429` raises `BrowserQuotaExceeded` |
+  | any other `429` (the daily limit, a long `Retry-After`) | `BrowserQuotaExceeded(retry_after)` |
   | `401`, `403` | `BrowserAuthError`: infrastructure; the run fails, tasks are released |
-  | other `4xx` | permanent task failure (bad request) |
+  | other `4xx`, including `422` code 5006 for an unresolvable host or a closed connection | permanent task failure |
   | `5xx`, timeout, connection error | retryable task failure |
 
-**Run budget.** `BrowserBudget(browser_seconds)` accumulates `ms_used`. `DrainPolicy` gains `browser_budget_seconds: float | None` (default `None`, which is only valid when no browser kind is drained; the CLI flag is `--browser-budget-seconds`, default 480 so a manual probe or a second run the same day still fits in the 600-second allowance). `StopReason` gains `browser_budget`, `browser_quota` and `storage_unavailable`; `DrainReport` gains `browser_seconds_used` and `released`.
+**Run budget.** `BrowserBudget(browser_seconds)` accumulates `ms_used`. `DrainPolicy` gains `browser_budget_seconds: float | None` (default `None`, which is only valid when no browser kind is drained; the CLI flag is `--browser-budget-seconds`, default 480 so a manual probe or a second run the same day still fits in the 600-second allowance). `StopReason` gains `browser_budget`, `browser_quota`, `storage_unavailable` and `db_limit` (the API's `RunFinishRequest.stop_reason` accepts the same four); `DrainReport` gains `browser_seconds_used`, `released`, `render_enqueue_failed` and `error`. An infrastructure error (`BrowserAuthError`) ends the drain with `stop_reason = "error"`, `succeeded = false` and the error text, releases the in-flight and unstarted tasks, records the run as failed and makes the command exit 1. A `database_soft_limit` 507 from any machine write in any handler releases the batch and stops with `db_limit`.
 
-**`render_page` kind** (label added in chapter 14). Input: `target_url` is the final URL of the plain fetch. Handler order:
+**Shared daily ledger (chapter 23, decision D23).** The run budget alone cannot stop a second run, a local run or a probe from overspending the same UTC day. At start the worker reads `GET /machine/budgets` and uses `min(browser_budget_seconds, remaining browser seconds today)` (the ledger cap defaults to 480); a day already marked exhausted stops the run before claiming anything (`browser_budget`). Before every call it **reserves** an estimate (the 30 s navigation timeout, `POST /machine/budgets/browser_seconds/reserve`; a denial stops the run with `browser_budget`) and after the call it **adjusts** by `ms_used - estimate` (`/adjust`), so two concurrent runs cannot both take the last seconds. A `429` also calls `/exhaust`, so later runs that day stop at once. The ledger is a guard, not a dependency of correctness: if the budgets route is unreachable the worker falls back to its own run budget and reports `ledger_unavailable` in the drain report.
 
-1. robots.txt for the URL, using the chapter 2 cache; denied is a permanent failure.
+**`render_page` kind** (label added in chapter 14; implemented in `worker/render.py` with the shared budget wrapper in `worker/browser_spend.py`, which chapter 19's `capture_screenshot` handler reuses). Input: `target_url` is the final URL of the plain fetch. Handler order:
+
+1. robots.txt for the URL, using the chapter 2 cache; denied is a permanent failure, unreadable is a retryable one. A task URL that already looks like a login URL completes with `login_wall` here, before any browser time is spent (the rule of step 3, applied early).
 2. `client.render(url)`. `BrowserQuotaExceeded` releases this task (see below) and stops the run with `browser_quota`; an exhausted budget before the call stops with `browser_budget`.
-3. **Login wall:** the rendered HTML has an `input[type=password]`, or the URL host or path contains `login`, `signin`, `auth` or `openid-connect`: complete with `result_note = "login_wall"` and upload nothing.
+3. **Page status:** `meta.status` of 400 or higher is a failure (5xx retryable, 4xx permanent) and uploads nothing (F3).
+   **Login wall:** the rendered HTML has an `input[type=password]`, or the task URL or the rendered `meta.finalUrl` has a host or path containing `login`, `signin`, `auth` or `openid-connect`: complete with `result_note = "login_wall"` and upload nothing.
 4. Over the 4 MB cap: complete with `result_note = "oversize"`, upload nothing.
-5. Upload the UTF-8 bytes as an `html_snapshot` (`POST /machine/tasks/{id}/artifacts`) with `source_url = task.target_url`, `final_url = task.target_url`, `fetched_at` captured immediately after the render returns.
+5. Upload the UTF-8 bytes as an `html_snapshot` (`POST /machine/tasks/{id}/artifacts`) with `source_url = task.target_url`, `final_url = meta.finalUrl` (else `task.target_url`), `fetched_at` captured immediately after the render returns.
 6. Call `after_snapshot(task, artifact)`; chapter 17 plugs the extractor enqueue into it and here it does nothing. The hook keeps this handler free of extractor knowledge.
 7. Complete.
 
-An upload `503` (storage unset) releases the task and stops the run with `storage_unavailable`. A `413` or `415` is a programming error: fail permanently.
+An upload `503` (storage unset) or `507` (the R2 byte cap of chapter 14 is reached) releases the task and stops the run with `storage_unavailable`. A `413` or `415` is a programming error: fail permanently.
 
 **Release, not fail.** Quota and storage problems say nothing about the page. `DiscoveryMachineClient.release_task(task_id, reason, not_before=None)` calls `POST /machine/tasks/{id}/release` (chapter 14), which re-pends the task without consuming an attempt. On `browser_budget`, `browser_quota` or `storage_unavailable`, the drain releases the in-flight task **and every task claimed but not yet started in the batch**, then stops. Browser drains therefore claim small batches (workflow default `max_tasks=5`), so at most four tasks are released per stop.
 
@@ -102,9 +136,9 @@ An upload `503` (storage unset) releases the task and stops the run with `storag
 
 **Kind safety.** `render_page` and `capture_screenshot` are **never** in the default kinds. `worker drain --kinds` containing either requires both Cloudflare settings and `GET /machine/artifacts/status` (chapter 14) reporting storage enabled; otherwise it exits non-zero with a clear message **before claiming anything**. This keeps the daily HTTP drain from sleeping 11 seconds per task.
 
-**Workflow `.github/workflows/discovery-render.yml`.** `workflow_dispatch` with inputs `max_tasks` (default 5), `max_batches` (default 40), `time_budget_seconds` (default 900), `browser_budget_seconds` (default 480) and `kinds` (default `render_page,capture_screenshot`); a daily schedule (05:00 UTC) gated by the repository variable `DISCOVERY_RENDER_SCHEDULE == 'enabled'`, off by default. Secrets: `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN`. Same shape as `discovery-drain.yml` (health wait, report to the job summary, fail the job when `succeeded` is false) and the **same `concurrency` group** `discovery-drain`, so the two never overlap. A run that stops on `browser_budget`, `browser_quota`, `time_budget` or `queue_empty` succeeds; only infrastructure errors fail the job.
+**Workflow `.github/workflows/discovery-render.yml`.** `workflow_dispatch` with inputs `max_tasks` (default 5), `max_batches` (default 40), `time_budget_seconds` (default 900), `browser_budget_seconds` (default 480) and `kinds` (default `render_page,capture_screenshot`); a daily schedule (05:00 UTC) gated by the repository variable `DISCOVERY_RENDER_SCHEDULE == 'enabled'`, off by default. Secrets: `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN`. Same shape as `discovery-drain.yml` (health wait, report to the job summary, fail the job when `succeeded` is false), with `timeout-minutes` set, a first step that runs `python -m discovery_ingest budget show --require-remaining actions_minutes=<timeout-minutes> --require-remaining browser_seconds=30` and skips the drain when it exits 3 (an allowance is gone), and a final `if: always()` step that reports the job's minutes to the ledger (chapter 23); it uses the **same `concurrency` group** `discovery-drain`, so the two never overlap. A run that stops on `browser_budget`, `browser_quota`, `time_budget` or `queue_empty` succeeds; only infrastructure errors fail the job.
 
-**Cost.** The rate limit, not the 10 browser minutes, is normally the binding constraint: a 900-second run renders about 80 pages. The 1,423 known pages need roughly 18 such runs, about 4.5 hours of runner time in total (one-off, the plan's share of the Actions budget). The same command run locally costs no Actions minutes:
+**Cost.** The rate limit, not the 10 browser minutes, is normally the binding constraint: pages took 1.4 to 6.3 s of browser time, and the throttle adds 11 s after each call, so a 900-second run renders about 55 to 65 pages. The 1,423 known pages need roughly 22 such runs, about 5.5 hours of runner time in total (one-off). This repository's GitHub Actions share is capped at **1,000 minutes a month**, of which a CI reserve (default 600) is not ours to spend, so the backlog should mostly run **locally** and the workflow serves as the occasional manual or scheduled top-up (chapter 23 skips it when the allowance is gone). The same command run locally costs no Actions minutes:
 
 ```bash
 python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
@@ -141,6 +175,9 @@ All browser tests use a fake `BrowserClient` and an injected clock; no test touc
 7. `render_page releases and stops with storage_unavailable on an upload 503`.
 8. `render_page fails retryably on a 5xx from the browser and permanently on a 4xx`.
 9. `after_snapshot receives the created artifact exactly once and is not called when nothing was stored`.
+10. `render_page uses the smaller of the run budget and the ledger's remaining seconds, reserves an estimate before each call and adjusts to ms_used after it, and stops before claiming when the day is exhausted` — fake ledger client.
+11. `a 429 marks the day exhausted in the ledger; an unreachable ledger falls back to the run budget and reports ledger_unavailable` (negative pair).
+12. `an upload 507 releases the task and stops with storage_unavailable`.
 
 **Green:** a pipeline of named steps (robots, render, classify, upload, hook, complete). **Refactor:** about five lines per step; the stop signal is one small exception handled in `_run_batch`.
 
@@ -171,7 +208,10 @@ gh pr checks --watch
 Live gate (needs S1–S4 and S15–S17; S14 for old fetches):
 
 ```bash
-gh workflow run discovery-browser-probe.yml -f urls="https://example.com,https://fimportal.de"   # Step 0, before writing the client
+gh workflow run discovery-browser-probe.yml -f urls="https://example.com,https://fimportal.de"   # Step 0 re-check (every variant per page; keep the url list short)
+# The calls the 2026-10-27 run did not reach (needs the two Cloudflare variables; wait a day if the 600 s are spent):
+python -m discovery_ingest browser probe --url https://fimportal.de/detail/L/99155004000000 \
+  --variant content-lean --variant snapshot-md --variant screenshot-jpeg --variant screenshot-png --variant snapshot-shot
 gh workflow run discovery-drain.yml -f kinds=fetch_url -f max_tasks=10 -f max_batches=1          # enqueues render_page
 gh workflow run discovery-render.yml -f max_tasks=5 -f max_batches=2 -f time_budget_seconds=300
 gh run view --log                      # report: completed N, released 0, browser_seconds_used, stop_reason

@@ -17,6 +17,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.discovery.emit import EmitCounts, EmitOutcome
 
 
 class CatalogueBatchItem(BaseModel):
@@ -98,6 +99,7 @@ class TaskEnqueueRequest(BaseModel):
     target_url: str = Field(min_length=1, max_length=500)
     priority: int = Field(default=100, ge=0)
     input_key: str | None = Field(default=None, min_length=1, max_length=128)
+    artifact_id: UUID | None = None
 
 
 class TaskEnqueueResponse(BaseModel):
@@ -119,12 +121,35 @@ class ClaimedTaskRead(BaseModel):
     status: DiscoveryTaskStatus
     priority: int
     lease_expires_at: datetime
+    artifact_id: UUID | None = None
+    input_key: str | None = None
 
 
 class TaskClaimResponse(BaseModel):
     """Tasks claimed in one request."""
 
     items: list[ClaimedTaskRead]
+
+
+class TaskCompleteRequest(BaseModel):
+    """Optional note on why a task completed without producing anything (for example ``no_mentions``)."""
+
+    note: str | None = Field(default=None, max_length=200)
+
+
+class TaskReleaseRequest(BaseModel):
+    """Hand a claimed task back because a limit, not the page, stopped the work."""
+
+    reason: str = Field(min_length=1, max_length=1000)
+    not_before: datetime | None = None
+
+
+class TaskReleaseResponse(BaseModel):
+    """Task returned to the pending queue."""
+
+    id: UUID
+    status: DiscoveryTaskStatus
+    last_error: str
 
 
 class TaskCompleteResponse(BaseModel):
@@ -200,28 +225,35 @@ class ClaimAppendResponse(BaseModel):
     kind: DiscoveryClaimKind
 
 
-class CatalogueEmitItemResult(BaseModel):
+class CatalogueEmitItemResult(EmitOutcome):
     """Outcome of emitting one staging claim."""
 
     claim_id: UUID
-    suggestion_id: UUID | None = None
-    skip_reason: str | None = None
-    replayed: bool = False
 
 
-class CatalogueEmitResponse(BaseModel):
+class CatalogueEmitResponse(EmitCounts):
     """Summary of a catalogue emit run."""
 
     items: list[CatalogueEmitItemResult]
-    created_count: int
-    skipped_count: int
-    replayed_count: int
 
 
 class RunStartRequest(BaseModel):
     """Open a run record before the worker starts draining."""
 
     kind: DiscoveryRunKind = DiscoveryRunKind.WORKER_DRAIN
+
+
+StopReason = Literal[
+    "queue_empty",
+    "batch_limit",
+    "time_budget",
+    "error",
+    "browser_budget",
+    "browser_quota",
+    "storage_unavailable",
+    "db_limit",
+]
+"""Why a worker drain ended; mirrors the ingest worker's ``StopReason``."""
 
 
 class RunFinishRequest(BaseModel):
@@ -233,7 +265,7 @@ class RunFinishRequest(BaseModel):
     failed_count: int = Field(ge=0)
     skipped_count: int = Field(ge=0)
     remaining_count: int | None = Field(default=None, ge=0)
-    stop_reason: Literal["queue_empty", "batch_limit", "time_budget", "error"] | None = None
+    stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
 
 

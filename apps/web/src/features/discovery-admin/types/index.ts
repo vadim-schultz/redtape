@@ -5,7 +5,13 @@ export type DiscoveryTaskStatus =
 
 export type DiscoverySource = "govdata" | "pvog" | "fim" | "leika" | "manual";
 
-export type DiscoveryTaskKind = "fetch_url" | "enrich_metadata";
+export type DiscoveryTaskKind =
+  | "fetch_url"
+  | "enrich_metadata"
+  | "harvest_payload"
+  | "extract_page"
+  | "render_page"
+  | "capture_screenshot";
 
 export type DiscoveryTask = {
   id: string;
@@ -15,6 +21,11 @@ export type DiscoveryTask = {
   target_url: string;
   status: DiscoveryTaskStatus;
   priority: number;
+  attempt_count: number;
+  not_before: string | null;
+  input_key: string | null;
+  /** Why a completed task produced nothing (`login_wall`, `oversize`, ...); open set. */
+  result_note: string | null;
   lease_expires_at: string | null;
   created_at: string;
   updated_at: string;
@@ -84,6 +95,13 @@ export type DiscoveryTaskCounts = {
   failed: number;
 };
 
+export type DiscoveryCandidateCounts = {
+  total: number;
+  staged: number;
+  emitted: number;
+  mentions: number;
+};
+
 export type DiscoveryRun = {
   id: string;
   kind: string;
@@ -99,15 +117,157 @@ export type DiscoveryRun = {
   error_detail: string | null;
 };
 
+export type DiscoveryArtifactKind = "html_snapshot" | "screenshot";
+
+/** Artifact count and stored bytes of one kind. */
+export type DiscoveryArtifactTotals = { count: number; bytes: number };
+
+/** Stored artifacts per kind against the storage cap the API reports. */
+export type DiscoveryArtifactCoverage = {
+  /** Keyed by artifact kind; a kind this client does not know yet still counts. */
+  by_kind: Record<string, DiscoveryArtifactTotals>;
+  total_bytes: number;
+  bytes_cap: number;
+};
+
 export type DiscoveryCoverageResponse = {
   by_source: Partial<Record<DiscoverySource, number>>;
   tasks_pending: number;
   tasks_failed: number;
   emit_ready_count: number;
   task_counts: DiscoveryTaskCounts;
+  /** Keyed by task kind; a kind this client does not know yet still renders. */
+  task_counts_by_kind: Record<string, DiscoveryTaskCounts>;
+  candidates: DiscoveryCandidateCounts;
+  artifacts: DiscoveryArtifactCoverage;
   fetch_attempts_total: number;
   stale_claims: number;
   stale_runs: number;
   failures_by_source: Partial<Record<DiscoverySource, number>>;
   last_successful_run: DiscoveryRun | null;
+};
+
+export type DiscoveryMentionRole = "required" | "form";
+
+export type DiscoveryCandidateStatus = "staged" | "emitted";
+
+export type DiscoveryCandidateSort = "mentions_desc" | "title_asc" | "newest";
+
+/** A document candidate as the detail route returns it. */
+export type DiscoveryCandidateRecord = {
+  id: string;
+  jurisdiction_id: string;
+  key: string;
+  title_i18n: Record<string, string>;
+  official_url: string | null;
+  status: DiscoveryCandidateStatus;
+  suggestion_id: string | null;
+  mention_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/** One listed document candidate with its mention statistics. */
+export type DiscoveryCandidate = DiscoveryCandidateRecord & {
+  roles: DiscoveryMentionRole[];
+  jurisdiction_name_i18n: Record<string, string>;
+};
+
+export type DiscoveryCandidateListResponse = {
+  items: DiscoveryCandidate[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+/** One stored artifact; `url` is an opaque, short-lived link (null when storage is unset or denied). */
+export type DiscoveryArtifact = {
+  id: string;
+  catalogue_service_id: string;
+  discovery_task_id: string | null;
+  kind: DiscoveryArtifactKind;
+  content_type: string;
+  byte_size: number;
+  source_url: string;
+  final_url: string | null;
+  fetched_at: string;
+  created_at: string;
+  url: string | null;
+};
+
+export type DiscoveryArtifactListResponse = {
+  items: DiscoveryArtifact[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+/** One free-tier resource in its current period. */
+export type DiscoveryBudget = {
+  resource: string;
+  period: string;
+  cap: number;
+  used: number;
+  remaining: number;
+  exhausted: boolean;
+};
+
+export type DiscoveryBudgetsResponse = {
+  items: DiscoveryBudget[];
+  stored_bytes: number;
+  stored_bytes_cap: number;
+};
+
+/** The artifact a mention cites, without its storage details. */
+export type DiscoveryMentionArtifact = {
+  id: string;
+  kind: DiscoveryArtifactKind;
+  fetched_at: string;
+};
+
+/** One occurrence of a candidate in a procedure. */
+export type DiscoveryCandidateMention = {
+  id: string;
+  catalogue_service_id: string;
+  procedure_title_i18n: Record<string, string>;
+  procedure_source: DiscoverySource;
+  portal_url: string | null;
+  role: DiscoveryMentionRole;
+  excerpt: string;
+  source_field: string;
+  artifact_id: string | null;
+  artifact: DiscoveryMentionArtifact | null;
+  extractor: string;
+  extractor_version: string;
+  created_at: string;
+};
+
+export type DiscoveryCandidateDetailResponse = {
+  candidate: DiscoveryCandidateRecord;
+  jurisdiction_name_i18n: Record<string, string>;
+  mentions: DiscoveryCandidateMention[];
+};
+
+/** A catalogue entity or pending suggestion an emit would duplicate. */
+export type DiscoveryEmitConflict = { type: string; id: string };
+
+/** The `new_document` suggestion an emit would create. */
+export type CandidateEmitSuggestion = {
+  kind: string;
+  jurisdiction_id: string;
+  source_url: string;
+  payload: {
+    title_i18n?: Record<string, string>;
+    official_url?: string | null;
+  };
+};
+
+/** What emitting a candidate would do; nothing is written. */
+export type CandidateEmitPreview = {
+  candidate_id: string;
+  suggestion: CandidateEmitSuggestion | null;
+  suggestion_id: string | null;
+  /** Open set: `duplicate`, `no_mentions`, `no_source_url`, `invalid_payload`, `already_emitted`. */
+  skip_reason: string | null;
+  conflicts: DiscoveryEmitConflict[];
 };
