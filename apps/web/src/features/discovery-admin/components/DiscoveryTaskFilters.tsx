@@ -29,6 +29,7 @@ const KINDS: DiscoveryTaskKind[] = [
   "enrich_metadata",
   "harvest_payload",
   "extract_page",
+  "render_page",
   "capture_screenshot",
 ];
 

@@ -127,6 +127,25 @@ it("DiscoveryTasksPage · sends the selected kind as a query parameter", async (
   );
 });
 
+it("DiscoveryTasksPage · lists the browser kinds in the kind select and filters by render_page", async () => {
+  const urls = stubEmptyTasks();
+
+  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
+  const select = screen.getByLabelText("Task kind");
+
+  expect(
+    within(select).getByRole("option", { name: "capture_screenshot" }),
+  ).toBeInTheDocument();
+  await user.selectOptions(select, "render_page");
+
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.get("kind")).toBe("render_page"),
+  );
+});
+
 it("DiscoveryTasksPage · tolerates an unknown future kind label", async () => {
   stubTasksFetch(
     () =>

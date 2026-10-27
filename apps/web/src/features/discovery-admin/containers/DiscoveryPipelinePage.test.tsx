@@ -18,48 +18,62 @@ const catalogueId = "cat-1";
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
 
-it("DiscoveryPipelinePage · shows stage label from API", async () => {
+function pipelineResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      derived_stage: "T2",
+      service: {
+        id: catalogueId,
+        source: "govdata",
+        external_id: "svc-1",
+        jurisdiction_id: "jur-1",
+        title_i18n: { en: "Service" },
+        pipeline_stage: "T2",
+        portal_url: null,
+        created_at: "2026-01-01T12:00:00Z",
+        updated_at: "2026-01-01T12:00:00Z",
+      },
+      tasks: [],
+      entities: [],
+      fetch_logs: [],
+      claims: [],
+      events: [],
+    }),
+  );
+}
+
+function meResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      id: "user-1",
+      email: session.email,
+      display_name: null,
+      role: "user",
+    }),
+  );
+}
+
+function stubPipelineFetch(artifacts: () => Response) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
       const url = String(input);
-      if (url.includes("/api/v1/me")) {
-        return new Response(
-          JSON.stringify({
-            id: "user-1",
-            email: session.email,
-            display_name: null,
-            role: "user",
-          }),
-        );
-      }
+      if (url.includes("/api/v1/me")) return meResponse();
       if (url.includes(`/catalogue/${catalogueId}/pipeline`)) {
-        return new Response(
-          JSON.stringify({
-            derived_stage: "T2",
-            service: {
-              id: catalogueId,
-              source: "govdata",
-              external_id: "svc-1",
-              jurisdiction_id: "jur-1",
-              title_i18n: { en: "Service" },
-              pipeline_stage: "T2",
-              portal_url: null,
-              created_at: "2026-01-01T12:00:00Z",
-              updated_at: "2026-01-01T12:00:00Z",
-            },
-            tasks: [],
-            entities: [],
-            fetch_logs: [],
-            claims: [],
-            events: [],
-          }),
-        );
+        return pipelineResponse();
+      }
+      if (url.includes(`/catalogue/${catalogueId}/emit-preview`)) {
+        return new Response(JSON.stringify({ items: [] }));
+      }
+      if (url.includes(`/catalogue/${catalogueId}/artifacts`)) {
+        return artifacts();
       }
       return new Response("", { status: 503 });
     }),
   );
+}
 
+function renderPipelinePage() {
   renderWithProviders(
     <Routes>
       <Route
@@ -72,7 +86,61 @@ it("DiscoveryPipelinePage · shows stage label from API", async () => {
       authGateway: createFakeAuthGateway({ session }),
     },
   );
+}
+
+const noArtifacts = () =>
+  new Response(JSON.stringify({ items: [], total: 0, offset: 0, limit: 50 }));
+
+it("DiscoveryPipelinePage · shows stage label from API", async () => {
+  stubPipelineFetch(noArtifacts);
+  renderPipelinePage();
 
   expect(await screen.findByText("Pipeline stage")).toBeInTheDocument();
   expect(screen.getByText("T2")).toHaveClass("chakra-badge");
+});
+
+it("DiscoveryPipelinePage · shows the artifacts of the catalogue row in its panel", async () => {
+  stubPipelineFetch(
+    () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "art-1",
+              catalogue_service_id: catalogueId,
+              discovery_task_id: null,
+              kind: "html_snapshot",
+              content_type: "text/html",
+              byte_size: 2048,
+              source_url: "https://example.gov/service",
+              final_url: null,
+              fetched_at: "2026-10-26T12:00:00Z",
+              created_at: "2026-10-26T12:00:00Z",
+              url: "https://store.example/page.html?sig=abc",
+            },
+          ],
+          total: 1,
+          offset: 0,
+          limit: 50,
+        }),
+      ),
+  );
+  renderPipelinePage();
+
+  expect(await screen.findByText("Artifacts")).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Download" })).toHaveAttribute(
+    "href",
+    "https://store.example/page.html?sig=abc",
+  );
+});
+
+it("DiscoveryPipelinePage · keeps the pipeline visible when only the artifacts fail to load", async () => {
+  stubPipelineFetch(() => new Response("", { status: 500 }));
+  renderPipelinePage();
+
+  expect(await screen.findByText("Pipeline stage")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("No claims to preview yet.")).toBeInTheDocument();
 });

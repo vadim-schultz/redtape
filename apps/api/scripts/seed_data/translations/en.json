@@ -110,7 +110,11 @@
       "empty_title": "No tasks in queue",
       "empty_description": "Try another status, source or kind filter.",
       "count_one": "{count} task",
-      "count_other": "{count} tasks"
+      "count_other": "{count} tasks",
+      "note_login_wall": "Login wall",
+      "note_oversize": "Too large",
+      "note_no_mentions": "No mentions",
+      "note_no_extractor": "No extractor"
     },
     "documents": {
       "filter_search": "Search titles",
@@ -182,6 +186,30 @@
       "col_external_id": "External ID",
       "col_source": "Source",
       "col_stage": "Stage"
+    },
+    "artifacts": {
+      "title": "Artifacts",
+      "empty": "No artifacts yet.",
+      "storage_unconfigured": "Artifact storage is not configured on this deployment, so downloads are unavailable.",
+      "link_unavailable": "Link unavailable",
+      "kind_html_snapshot": "HTML snapshots",
+      "kind_screenshot": "Screenshots",
+      "download": "Download",
+      "screenshot_alt": "Screenshot captured on {date}",
+      "html_meta": "{size}, fetched {date}, {host}",
+      "chip_kind": "{kind}: {count} ({size})",
+      "chip_total": "Stored: {size} of {cap}",
+      "chip_total_warning": "Storage nearly full: {size} of {cap}",
+      "budgets_title": "Free-tier budgets",
+      "budgets_error": "Could not load the budgets.",
+      "budget_usage": "{used} of {cap} used, {remaining} left",
+      "budget_exhausted": "Exhausted",
+      "budget_r2_class_a": "R2 writes (class A)",
+      "budget_r2_class_b": "R2 reads (class B)",
+      "budget_browser_seconds": "Browser seconds",
+      "budget_neurons": "AI neurons",
+      "budget_actions_minutes": "Actions minutes",
+      "budget_stored_bytes": "Stored artifacts"
     }
   },
   "suggest": {

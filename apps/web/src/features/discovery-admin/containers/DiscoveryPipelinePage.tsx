@@ -5,8 +5,10 @@ import { useParams } from "react-router-dom";
 import QueryError from "../../../components/feedback/QueryError";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
+import ArtifactsPanel from "../components/ArtifactsPanel";
 import EmitPreviewPanel from "../components/EmitPreviewPanel";
 import PipelineDetail from "../components/PipelineDetail";
+import { useDiscoveryArtifactsQuery } from "../hooks/useDiscoveryArtifactsQuery";
 import { useDiscoveryEmitPreviewQuery } from "../hooks/useDiscoveryEmitPreviewQuery";
 import { useDiscoveryPipelineQuery } from "../hooks/useDiscoveryPipelineQuery";
 import type { CataloguePipelineResponse } from "../types";
@@ -46,11 +48,25 @@ function previewPanel(
   );
 }
 
+function artifactsPanel(
+  id: string | undefined,
+  query: ReturnType<typeof useDiscoveryArtifactsQuery>,
+): ReactNode {
+  if (!id) return null;
+  return (
+    <ArtifactsPanel
+      status={toQueryStatus(query)}
+      artifacts={query.data?.items}
+    />
+  );
+}
+
 /** Pipeline drill-down at ``/admin/discovery/pipeline/:id``. */
 export default function DiscoveryPipelinePage() {
   const { id } = useParams();
   const query = useDiscoveryPipelineQuery(id);
   const previewQuery = useDiscoveryEmitPreviewQuery(id);
+  const artifactsQuery = useDiscoveryArtifactsQuery(id);
   const view = pipelineView(query);
 
   switch (view.kind) {
@@ -65,6 +81,7 @@ export default function DiscoveryPipelinePage() {
         <PipelineDetail
           data={view.data}
           preview={previewPanel(id, previewQuery)}
+          artifacts={artifactsPanel(id, artifactsQuery)}
         />
       );
   }

@@ -19,6 +19,7 @@ function task(overrides: Partial<DiscoveryTask>): DiscoveryTask {
     attempt_count: 0,
     not_before: null,
     input_key: null,
+    result_note: null,
     lease_expires_at: null,
     created_at: "2026-01-01T12:00:00Z",
     updated_at: "2026-01-01T12:00:00Z",
@@ -78,4 +79,62 @@ it("DiscoveryTasksTable · leaves the retry-after cell empty unless not_before i
     expect(texts.filter((text) => text?.startsWith("in "))).toEqual([]);
     expect(texts.at(-1)).toBe("—");
   }
+});
+
+function statusCellOf(url: string): HTMLElement {
+  return within(rowOf(url)).getAllByRole("cell")[2];
+}
+
+it("tasks table shows the render_page kind and a result_note chip, and falls back to the raw value for an unknown note", () => {
+  renderWithProviders(
+    <DiscoveryTasksTable
+      tasks={[
+        task({
+          id: "a",
+          target_url: "https://example.gov/walled",
+          kind: "render_page",
+          status: "completed",
+          result_note: "login_wall",
+        }),
+        task({
+          id: "b",
+          target_url: "https://example.gov/odd",
+          status: "completed",
+          result_note: "brand_new_note",
+        }),
+      ]}
+    />,
+  );
+
+  const walled = within(rowOf("https://example.gov/walled"));
+  expect(walled.getByText("render_page")).toBeInTheDocument();
+  expect(
+    within(statusCellOf("https://example.gov/walled")).getByText("Login wall"),
+  ).toHaveClass("chakra-badge");
+  expect(
+    within(statusCellOf("https://example.gov/odd")).getByText("brand_new_note"),
+  ).toHaveClass("chakra-badge");
+});
+
+it("tasks table shows no note chip for a task without a result_note", () => {
+  renderWithProviders(
+    <DiscoveryTasksTable
+      tasks={[task({ target_url: "https://example.gov/plain" })]}
+    />,
+  );
+
+  expect(
+    statusCellOf("https://example.gov/plain").querySelector(".chakra-badge"),
+  ).toBeNull();
+});
+
+it("tasks table labels result notes in German", () => {
+  window.localStorage.setItem("locale", "de");
+  renderWithProviders(
+    <DiscoveryTasksTable
+      tasks={[task({ status: "completed", result_note: "oversize" })]}
+    />,
+  );
+
+  expect(screen.getByText("Zu groß")).toBeInTheDocument();
 });

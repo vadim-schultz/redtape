@@ -105,5 +105,14 @@ export const queryKeys = {
         catalogueId,
         locale,
       ] as const,
+    artifacts: (catalogueId: string | undefined, locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "artifacts",
+        catalogueId,
+        locale,
+      ] as const,
+    budgets: (locale: string) =>
+      [...queryKeys.discoveryAdmin.all, "budgets", locale] as const,
   },
 };
