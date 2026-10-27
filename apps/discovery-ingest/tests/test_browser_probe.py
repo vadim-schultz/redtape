@@ -164,7 +164,7 @@ def test_probe_stops_when_the_browser_time_cap_is_reached() -> None:
 
 
 def test_probe_spaces_every_call_by_the_minimum_interval() -> None:
-    """probe · calls are at least the minimum interval apart on the injected clock."""
+    """probe · each call starts the minimum interval after the previous one ended (3 s call + 11 s)."""
     clock = FakeClock()
     starts: list[float] = []
 
@@ -175,7 +175,7 @@ def test_probe_spaces_every_call_by_the_minimum_interval() -> None:
 
     _probe(handler, _calls(PAGE, "https://example.org/", "https://example.net/"), clock=clock)
 
-    assert [b - a for a, b in zip(starts, starts[1:], strict=False)] == [11.0, 11.0]
+    assert [b - a for a, b in zip(starts, starts[1:], strict=False)] == [14.0, 14.0]
 
 
 def test_probe_describes_raw_and_enveloped_images_and_the_userAgent_echo() -> None:  # noqa: N802
@@ -236,3 +236,17 @@ def test_browser_settings_report_the_missing_variables_without_values(monkeypatc
 
     monkeypatch.delenv("CLOUDFLARE_ACCOUNT_ID")
     assert load_browser_settings().missing_credentials() == ["CLOUDFLARE_ACCOUNT_ID"]
+
+
+def test_probe_reads_a_fractional_ms_header_and_shows_one_it_cannot_read() -> None:
+    """probe · X-Browser-Ms-Used may be fractional (rounded up); an unreadable value is shown, not dropped."""
+    values = iter(["1354.2", "n/a"])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"success": True, "result": "<p>"}, headers={"X-Browser-Ms-Used": next(values)})
+
+    report = _probe(handler, _calls(PAGE, "https://example.org/"))
+    text = "\n".join(report_lines(report, load_browser_settings()))
+
+    assert [row.ms_used for row in report.rows] == [1355, None]
+    assert "ms=1355" in text and "ms_header='n/a'" in text
