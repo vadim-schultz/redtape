@@ -116,6 +116,13 @@ gh run watch && gh run view --log
 
 Live gate (needs S15–S17 and at least one chapter 18 extraction): the run completes at least one capture; the screenshot is visible in the admin Artifacts panel; a known login URL completes with `login_wall` and no upload. Record the run ID, artifact id, the browser seconds reported and the storage bytes shown in Coverage.
 
+## As built (2026-10-27)
+
+- `worker/capture_enqueue.py` holds `enqueue_screenshot_for_mentions(client, task) -> bool` (priority 300, `input_key` `shot@1`, `target_url = task.target_url`); `ExtractPageHandler` calls it after posting mentions and a failure completes the task with the outcome label `completed_capture_enqueue_failed`, counted in the new `DrainReport.capture_enqueue_failed`. The `llm_extract` handler of the extraction suite calls the same helper with its claimed task.
+- `worker/capture.py` holds `CaptureScreenshotHandler`; the steps it shares with `render_page` (robots, login url, error status, login wall, upload mapping, `call_browser`) moved to `worker/browser_steps.py`.
+- `capture_screenshot` is one more entry in `_browser_handlers` (`worker/drain.py`), so it exists only when a browser client is passed; the default kinds are unchanged.
+- No workflow file changed: `discovery-render.yml` already drains `render_page,capture_screenshot`.
+
 ## Out of scope
 
 Capturing arbitrary catalogue pages, interaction scripts (clicks, form filling), cookie-banner dismissal, video, PDF capture, a viewport-only retry for oversize pages, attaching screenshots to suggestions.
