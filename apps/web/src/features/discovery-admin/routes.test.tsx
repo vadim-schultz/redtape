@@ -113,7 +113,10 @@ it("DiscoveryCoveragePage · shows an error and retry action when coverage fails
   );
 });
 
-function stubGuardedDocumentsFetch(adminStatus: number) {
+function stubGuardedDocumentsFetch(
+  adminStatus: number,
+  candidateStatus?: number,
+) {
   const paths: string[] = [];
   vi.stubGlobal(
     "fetch",
@@ -131,6 +134,9 @@ function stubGuardedDocumentsFetch(adminStatus: number) {
         );
       }
       if (adminStatus !== 200) return new Response("", { status: adminStatus });
+      if (candidateStatus && pathname.includes("/candidates/")) {
+        return new Response("", { status: candidateStatus });
+      }
       return new Response(
         JSON.stringify({ items: [], total: 0, offset: 0, limit: 20 }),
       );
@@ -169,8 +175,8 @@ it("documents route is guarded: a deployment without discovery shows the disable
   expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(false);
 });
 
-it("documents route renders the list for an allowlisted admin and leaves the detail path to the not-found view", async () => {
-  const paths = stubGuardedDocumentsFetch(200);
+it("document route is guarded: a non-admin sees the forbidden view and no candidate request is made", async () => {
+  const paths = stubGuardedDocumentsFetch(403);
 
   renderWithProviders(<Mounted />, {
     initialEntries: ["/admin/discovery/documents/cand-1"],
@@ -178,9 +184,43 @@ it("documents route renders the list for an allowlisted admin and leaves the det
   });
 
   expect(
+    await screen.findByRole("heading", { name: "Access denied" }),
+  ).toBeInTheDocument();
+  expect(paths.some((path) => path.includes("/candidates/"))).toBe(false);
+});
+
+it("document route shows not-found for an unknown id", async () => {
+  const paths = stubGuardedDocumentsFetch(200, 404);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents/missing-id"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
     await screen.findByRole("heading", { name: "Page not found" }),
   ).toBeInTheDocument();
-  expect(paths.some((path) => path.endsWith(candidatesPath))).toBe(false);
+  expect(
+    paths.some((path) => path.endsWith(`${candidatesPath}/missing-id`)),
+  ).toBe(true);
+});
+
+it("document route loads the candidate for an allowlisted admin", async () => {
+  const paths = stubGuardedDocumentsFetch(200, 500);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/documents/cand-1"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  await waitFor(() =>
+    expect(
+      paths.some((path) => path.endsWith(`${candidatesPath}/cand-1`)),
+    ).toBe(true),
+  );
+  expect(
+    screen.queryByRole("heading", { name: "Page not found" }),
+  ).not.toBeInTheDocument();
 });
 
 it("documents route renders the list for an allowlisted admin", async () => {
