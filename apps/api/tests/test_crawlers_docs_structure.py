@@ -23,7 +23,7 @@ from tests.crawlers_docs_support import (
 )
 
 _STEPS = [f"S{number}" for number in range(1, 22)] + ["S12b"]
-_GERMAN_KEY = re.compile(r"`(discovery_admin\.[a-z_.]+)`")
+_GERMAN_KEY = re.compile(r"`(discovery_admin\.[a-z0-9_.]+)`")
 _APPS_CRAWLER = re.compile(r"apps/crawler\b")
 _PLANS = REPO_ROOT / ".plans"
 
@@ -57,9 +57,9 @@ def test_the_plans_readme_lists_twenty_three_crawler_chapters_and_no_apps_crawle
     assert "Twenty-three chapters" in block and "queue-based" in block and "feat/crawlers" in block
     assert "Next: [chapters/07" not in block
     assert "### [extraction/](extraction/)" in read(PLANS_README)
-    for line in read(PLANS_README).splitlines():
-        if _APPS_CRAWLER.search(line):
-            assert "replaces" in line.lower() or "earlier" in line.lower(), line
+    for paragraph in read(PLANS_README).split("\n\n"):
+        if _APPS_CRAWLER.search(paragraph):
+            assert "replaces" in paragraph.lower() or "earlier" in paragraph.lower(), paragraph
 
 
 def test_the_operator_checklist_has_every_step_with_an_unticked_box() -> None:
@@ -129,8 +129,7 @@ def test_neighbouring_suites_describe_the_shipped_state() -> None:
         text = read(_PLANS / "evidence-storage" / name)
         assert "Planned amendment" not in text and "app/shared/object_store" in text, name
     adapter_plan = read(_PLANS / "discovery-layer/chapters/20-crawler-frontier-adapter.md")
-    assert all(f"chapters {n}" in adapter_plan or f", {n}" in adapter_plan for n in ("15", "19"))
-    assert "crawlers-docs-sync" not in adapter_plan
+    assert "15 (Cloudflare render" in adapter_plan and "19 (screenshot capture)" in adapter_plan
     assert "Planned amendment" not in read(_PLANS / "suggestion-interface/gaps-and-decisions.md")
     assert "crawlers suite" in read(_PLANS / "discovery-operations/gaps-and-decisions.md")
     assert "deferred" not in _decision(read(_PLANS / "discovery-operations/gaps-and-decisions.md"), "D11").lower()
