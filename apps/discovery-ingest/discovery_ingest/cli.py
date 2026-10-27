@@ -12,6 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
+from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
 from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
 from discovery_ingest.catalogue_export import load_catalogue_row
@@ -335,6 +336,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("candidates", "emit"): _candidates_emit,
     ("budget", "show"): budget_show,
     ("budget", "report-minutes"): budget_report_minutes,
+    ("browser", "probe"): browser_probe,
 }
 
 
@@ -455,4 +457,5 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
     register_budget_parser(sub)
+    register_browser_parser(sub)
     return parser

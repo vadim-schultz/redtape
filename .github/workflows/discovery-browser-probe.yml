@@ -1,0 +1,82 @@
+name: Discovery browser probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Comma separated pages to render with every variant (each variant costs browser time; keep it to a few)"
+        required: false
+        default: "https://example.com,https://fimportal.de"
+        type: string
+      error_urls:
+        description: "Comma separated pages expected to fail (contract call only)"
+        required: false
+        default: ""
+        type: string
+      max_browser_seconds:
+        description: "Stop the probe once this many browser seconds are spent (the free plan allows 600 a day)"
+        required: false
+        default: "240"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-browser-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe Cloudflare Browser Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
+      PROBE_URLS: ${{ inputs.urls || 'https://example.com,https://fimportal.de' }}
+      PROBE_ERROR_URLS: ${{ inputs.error_urls }}
+      PROBE_MAX_BROWSER_SECONDS: ${{ inputs.max_browser_seconds || '240' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Probe the quick actions
+        working-directory: apps/discovery-ingest
+        run: |
+          # The probe never prints the credentials. It needs no Discovery API address or key.
+          set +e
+          args=(--max-browser-seconds "${PROBE_MAX_BROWSER_SECONDS}")
+          IFS=',' read -ra urls <<< "${PROBE_URLS}"
+          for url in "${urls[@]}"; do args+=(--url "${url// /}"); done
+          IFS=',' read -ra errors <<< "${PROBE_ERROR_URLS}"
+          for url in "${errors[@]}"; do [ -n "${url// /}" ] && args+=(--error-url "${url// /}"); done
+          python -m discovery_ingest browser probe "${args[@]}" | tee ../../browser-probe.txt
+          echo "probe_exit=${PIPESTATUS[0]}" >> "${GITHUB_ENV}"
+
+      - name: Write probe output to job summary
+        if: always()
+        run: |
+          {
+            echo "### Cloudflare browser probe"
+            echo
+            echo '```text'
+            cat browser-probe.txt 2>/dev/null || echo "No output was produced; see the probe step log."
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail the job when Cloudflare refused or the settings are missing
+        run: test "${probe_exit:-1}" = "0"
