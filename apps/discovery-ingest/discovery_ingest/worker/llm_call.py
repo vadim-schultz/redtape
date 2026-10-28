@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from pydantic import ValidationError
-
 from discovery_ingest.extract.clean import CleanPage
-from discovery_ingest.extract.llm.client import LlmResult
 from discovery_ingest.extract.llm.errors import (
     LlmAuthError,
     LlmError,
@@ -15,39 +10,14 @@ from discovery_ingest.extract.llm.errors import (
     LlmQuotaExceeded,
     LlmRequestError,
 )
-from discovery_ingest.extract.llm.meter import Denied, LedgerUnavailable, NeuronMeter, Reservation
+from discovery_ingest.extract.llm.meter import LedgerUnavailable, NeuronMeter, Reservation
 from discovery_ingest.extract.llm.prompt import build_messages
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
 from discovery_ingest.worker.browser_steps import Job, Settled
+from discovery_ingest.worker.llm_answer import REPAIR_HINT, Invalid, Messages, denial_reason, parse_answer
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.settle import fail_permanently, fail_with
 from discovery_ingest.worker.stop import StopDrain
-
-Messages = list[dict[str, str]]
-REPAIR_HINT = {
-    "role": "user",
-    "content": "Your previous answer was not valid JSON for the schema. Answer again with only the JSON object.",
-}
-
-
-@dataclass(frozen=True, slots=True)
-class _Invalid:
-    """An answer that is no usable extraction; the call may still have been billed."""
-
-    reason: str
-
-
-def _parse(result: LlmResult) -> PageExtraction | _Invalid:
-    try:
-        return PageExtraction.model_validate_json(result.parsed_json)
-    except ValidationError:
-        return _Invalid("the answer does not match the extraction schema")
-
-
-def _denial(answer: Denied | LedgerUnavailable) -> str:
-    if isinstance(answer, Denied):
-        return "the run's neuron budget is spent" if answer.reason == "run_budget" else "the day's neurons are spent"
-    return "the neuron ledger is unavailable"
 
 
 class ModelCaller:
@@ -64,15 +34,15 @@ class ModelCaller:
         """Return the model's extraction; settle the task as failed after a second unusable answer."""
         messages = build_messages(cleaned, self._resources.taxonomy)
         first = self._attempt(job, cleaned, messages)
-        if not isinstance(first, _Invalid):
+        if not isinstance(first, Invalid):
             return first
         second = self._attempt(job, cleaned, [*messages, REPAIR_HINT])
-        if not isinstance(second, _Invalid):
+        if not isinstance(second, Invalid):
             return second
         error = f"model {self._resources.model} returned unusable output twice: {second.reason}"
         raise Settled(fail_permanently(job.client, job.task.id, error))
 
-    def _attempt(self, job: Job, cleaned: CleanPage, messages: Messages) -> PageExtraction | _Invalid:
+    def _attempt(self, job: Job, cleaned: CleanPage, messages: Messages) -> PageExtraction | Invalid:
         reservation = self._reserve(len(cleaned.text))
         self.calls += 1
         try:
@@ -80,7 +50,7 @@ class ModelCaller:
         except LlmError as err:
             return self._refused(job, reservation, err)
         self._meter.settle(reservation, result)
-        return _parse(result)
+        return parse_answer(result)
 
     def _reserve(self, input_chars: int) -> Reservation:
         resources = self._resources
@@ -90,13 +60,13 @@ class ModelCaller:
             answer = self._meter.reserve(resources.model, input_chars, resources.max_tokens)
         if isinstance(answer, Reservation):
             return answer
-        raise StopDrain("llm_budget", _denial(answer))
+        raise StopDrain("llm_budget", denial_reason(answer))
 
-    def _refused(self, job: Job, reservation: Reservation, err: LlmError) -> _Invalid:
+    def _refused(self, job: Job, reservation: Reservation, err: LlmError) -> Invalid:
         """Map a failed call: unusable output may be repaired, a limit stops the drain, a request error fails the task."""
         match err:
             case LlmInvalidOutput():
-                return _Invalid(str(err))
+                return Invalid(str(err))
             case LlmQuotaExceeded():
                 raise self._quota_stop(reservation, err) from err
             case LlmAuthError():
