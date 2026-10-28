@@ -1,0 +1,88 @@
+{
+  "page_kind": "service",
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "job-loss"
+  ],
+  "documents": [
+    {
+      "name": "Name und Betriebsnummer des personenabgebenden Betriebs",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Name und Betriebsnummer des personenabgebenden Betriebs",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Anschrift des personenabgebenden Betriebs",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Anschrift des personenabgebenden Betriebs",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Formular Anzeige über Arbeitsausfall",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Formular Anzeige über Arbeitsausfall",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "weitere Nachweise und Anlagen",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:weitere Nachweise und Anlagen (zum Beispiel Sozialplan / Interessenausgleich, Profiling-Bögen, Zertifizierung Transfergesellschaft, Teilnehmerliste)",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Transferkurzarbeitergeld-Nummer (TKUG-Nummer)",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Transferkurzarbeitergeld-Nummer (TKUG-Nummer, siehe Bescheid zur Anzeige)",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Betriebsnummer der Lohnabrechnungsstelle der Transfergesellschaft",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Betriebsnummer der Lohnabrechnungsstelle der Transfergesellschaft",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Anschrift der Lohnabrechnungsstelle der Transfergesellschaft",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Anschrift der Lohnabrechnungsstelle der Transfergesellschaft",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Formular Antrag Transferkurzarbeitergeld",
+      "role": "form",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Formular Antrag Transferkurzarbeitergeld",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Formular Abrechnungsliste",
+      "role": "form",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Formular Abrechnungsliste",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "weitere Nachweise",
+      "role": "required",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:gegebenenfalls weitere Nachweise",
+      "condition": "",
+      "is_optional": true
+    }
+  ],
+  "dependencies": [
+    {
+      "parent": "Formular Anzeige über Arbeitsausfall",
+      "requires": "Name und Betriebsnummer des personenabgebenden Betriebs",
+      "quote": "Halten Sie bitte folgende Dokumente als Datei bereit: - positiv:Name und Betriebsnummer des personenabgebenden Betriebs"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "page_kind": "service",
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "job-loss",
+    "new-job"
+  ],
+  "documents": [
+    {
+      "name": "Kundennummer der Person",
+      "role": "required",
+      "quote": "Sie benötigen: - positiv:Kundennummer der Person, die Sie für die Probebeschäftigung einstellen",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Information, ob die Person bei der Agentur für Arbeit oder im Jobcenter gemeldet ist",
+      "role": "required",
+      "quote": "Sie benötigen: - positiv:Information, ob die Person bei der Agentur für Arbeit oder im Jobcenter gemeldet ist",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Schwerbehindertenausweis oder Gleichstellungsbescheid",
+      "role": "required",
+      "quote": "Sie benötigen: - positiv:Schwerbehindertenausweis oder Gleichstellungsbescheid (sofern bei der Person eine Schwerbehinderung bzw. Gleichstellung vorliegt)",
+      "condition": "sofern bei der Person eine Schwerbehinderung bzw. Gleichstellung vorliegt",
+      "is_optional": true
+    },
+    {
+      "name": "unterschriebener Probearbeitsvertrag",
+      "role": "required",
+      "quote": "Sie benötigen: - positiv:unterschriebener Probearbeitsvertrag",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Nachweis zur Anmeldung der Sozialversicherung",
+      "role": "required",
+      "quote": "Sie benötigen: - positiv:Nachweis zur Anmeldung der Sozialversicherung (wenn er bereits vorliegt)",
+      "condition": "wenn er bereits vorliegt",
+      "is_optional": true
+    },
+    {
+      "name": "Antrag auf Probebeschäftigung",
+      "role": "form",
+      "quote": "Sie können die Probebeschäftigung online beantragen.",
+      "condition": "",
+      "is_optional": false
+    }
+  ],
+  "dependencies": [
+    {
+      "parent": "Schwerbehindertenausweis oder Gleichstellungsbescheid",
+      "requires": "Kundennummer der Person",
+      "quote": "Sie benötigen: - positiv:Kundennummer der Person, die Sie für die Probebeschäftigung einstellen"
+    },
+    {
+      "parent": "unterschriebener Probearbeitsvertrag",
+      "requires": "Kundennummer der Person",
+      "quote": "Sie benötigen: - positiv:Kundennummer der Person, die Sie für die Probebeschäftigung einstellen"
+    }
+  ]
+}

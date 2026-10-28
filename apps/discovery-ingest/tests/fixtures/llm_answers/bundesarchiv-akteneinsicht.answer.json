@@ -1,0 +1,74 @@
+{
+  "page_kind": "service",
+  "domain_codes": [
+    "identity-civil-status"
+  ],
+  "situation_codes": [
+    "death-of-relative"
+  ],
+  "documents": [
+    {
+      "name": "Personalausweis",
+      "role": "required",
+      "quote": "einen neuen Personalausweis oder einen elektronischen Aufenthaltstitel, jeweils mit freigeschalteter Online-Ausweisfunktion,",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "elektronischer Aufenthaltstitel",
+      "role": "required",
+      "quote": "einen neuen Personalausweis oder einen elektronischen Aufenthaltstitel, jeweils mit freigeschalteter Online-Ausweisfunktion,",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Kartenlesegerät",
+      "role": "required",
+      "quote": "ein Kartenlesegerät (https://www.ausweisapp.bund.de/kompatible-geraete/kartenlesegeraete/) oder ein geeignetes Smartphone (https://www.ausweisapp.bund.de/mobile-geraete/) zum Auslesen des Ausweisdokumentes.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Smartphone",
+      "role": "required",
+      "quote": "ein Kartenlesegerät (https://www.ausweisapp.bund.de/kompatible-geraete/kartenlesegeraete/) oder ein geeignetes Smartphone (https://www.ausweisapp.bund.de/mobile-geraete/) zum Auslesen des Ausweisdokumentes.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "AusweisApp2",
+      "role": "required",
+      "quote": "die seit dem 1. November 2014 verfgbare AusweisApp2 (https://www.ausweisapp.bund.de/download/) (frhere Versionen sind nicht nutzbar) sowie",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "digitales Erfassungsgerät",
+      "role": "required",
+      "quote": "ggf. ein digitales Erfassungsgerät (beispielsweise Scanner oder Digitalkamera), um Nachweise hochzuladen.",
+      "condition": "",
+      "is_optional": true
+    },
+    {
+      "name": "Antragsformular",
+      "role": "form",
+      "quote": "Sie knnen den Antrag zur persnlichen Akteneinsicht auch online ausfllen und auf ihrem PC abspeichern, ausdrucken und unterschreiben.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Identittsbesttigung",
+      "role": "required",
+      "quote": "Um sicherzugehen, dass niemand unberechtigt Einblick in Ihre Unterlagen nimmt, bedarf es neben Ihrer Unterschrift einer Identittsbesttigung.",
+      "condition": "",
+      "is_optional": false
+    }
+  ],
+  "dependencies": [
+    {
+      "parent": "Antragsformular",
+      "requires": "Identittsbesttigung",
+      "quote": "Vergessen Sie bitte nicht, den Antrag zu unterschreiben und eine Besttigung der Angaben zu Ihrer Person durch die zustndige Landesbehrde (Identittsbesttigung) beizufgen."
+    }
+  ]
+}
