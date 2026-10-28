@@ -124,7 +124,9 @@ The summary route accepts repeated `?kinds=` and returns `pending_ready`, `pendi
 | `browser_quota` | Cloudflare answered 429 other than its rate limit; the day is marked exhausted | yes |
 | `storage_unavailable` | The artifact routes answered 503 or 507 (store unset, quota denied or byte cap reached) | yes |
 | `db_limit` | A machine write answered 507 `database_soft_limit` | yes |
-| `error` | A rejected Cloudflare token (401 or 403) or an API failure | no, exit 1 |
+| `llm_budget` | `llm_extract`: the run's neuron budget or today's neuron ledger cannot cover the next call | yes |
+| `llm_quota` | `llm_extract`: Workers AI answered that the daily allocation is used up; the day is marked exhausted | yes |
+| `error` | A rejected Cloudflare token (401 or 403, browser or Workers AI) or an API failure | no, exit 1 |
 
 On every stop except `queue_empty`, `batch_limit`, `time_budget` and `error`, the worker releases the in-flight task
 and the tasks it did not start, then ends the run.
