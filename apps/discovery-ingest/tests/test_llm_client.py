@@ -69,9 +69,9 @@ def test_the_neurons_reported_in_the_usage_block_are_carried_on_the_result() -> 
     assert result.neurons == pytest.approx(160.1465301513672)
 
 
-@pytest.mark.parametrize("reported", [None, -1.0, "160", True, float("inf")])
+@pytest.mark.parametrize("reported", [None, -1.0, "160", True])
 def test_a_missing_or_unbelievable_neuron_figure_is_none(reported: object) -> None:
-    """extract · absent, negative, non-numeric, boolean or infinite neurons give ``None`` so the price table decides."""
+    """extract · absent, negative, non-numeric or boolean neurons give ``None`` so the price table decides."""
     usage: dict[str, object] = {**USAGE}
     if reported is not None:
         usage["neurons"] = reported
@@ -79,6 +79,15 @@ def test_a_missing_or_unbelievable_neuron_figure_is_none(reported: object) -> No
     result = client(lambda _request: success({"page_kind": "other"}, usage)).extract(MESSAGES, SCHEMA, max_tokens=9)  # type: ignore[arg-type]
 
     assert result.neurons is None
+
+
+def test_an_infinite_neuron_figure_in_the_raw_body_is_none() -> None:
+    """extract · ``Infinity`` is not valid JSON but Python reads it, so the figure is checked for being finite."""
+    body = b'{"success": true, "result": {"response": {"a": 1}, "usage": {"prompt_tokens": 5, "completion_tokens": 6, "neurons": Infinity}}}'
+
+    result = client(lambda _request: httpx.Response(200, content=body)).extract(MESSAGES, SCHEMA, max_tokens=9)
+
+    assert (result.input_tokens, result.neurons) == (5, None)
 
 
 @pytest.mark.parametrize(

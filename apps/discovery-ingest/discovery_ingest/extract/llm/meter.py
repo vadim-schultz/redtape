@@ -8,7 +8,7 @@ from typing import Literal
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.budget_models import BudgetResource
 from discovery_ingest.extract.llm.client import LlmResult
-from discovery_ingest.extract.llm.prices import cost, estimate
+from discovery_ingest.extract.llm.prices import actual_neurons, estimate
 
 RESOURCE: BudgetResource = "neurons"
 
@@ -63,10 +63,10 @@ class NeuronMeter:
         return self._grant(model, neurons) if refusal is None else refusal
 
     def settle(self, reservation: Reservation, result: LlmResult) -> None:
-        """Replace the reservation by the real cost when usage is present; keep it when it is not."""
-        if result.input_tokens is None or result.output_tokens is None:
-            return
-        self._correct(reservation, cost(result.model, result.input_tokens, result.output_tokens) - reservation.neurons)
+        """Replace the reservation by the real cost (reported neurons, else priced tokens); keep it when neither exists."""
+        actual = actual_neurons(result)
+        if actual is not None:
+            self._correct(reservation, actual - reservation.neurons)
 
     def refund(self, reservation: Reservation) -> None:
         """Give back a reservation for a call the provider provably refused (quota or token), so nothing was billed."""
