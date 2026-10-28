@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 
-from discovery_ingest.extract.llm.normalise import name_slug
+from discovery_ingest.extract.llm.normalise import fold_slug, name_slug
 
 Mention = tuple[str, str]
 """A document as ``(name, role)``."""
@@ -74,3 +74,19 @@ def _jaccard(predicted: Collection[str], gold: Collection[str]) -> float:
 def tag_agreement(pages: Sequence[tuple[Collection[str], Collection[str]]]) -> float:
     """Return the mean Jaccard overlap of predicted and gold codes per page; empty against empty agrees."""
     return sum(_jaccard(predicted, gold) for predicted, gold in pages) / len(pages) if pages else 1.0
+
+
+def _on_page(name: str, page_slug: str) -> bool:
+    slug = name_slug(name)
+    return bool(slug) and f"-{slug}-" in page_slug
+
+
+def cleaner_recall(pages: Sequence[tuple[Sequence[str], str]]) -> float:
+    """Return the share of gold names whose slug appears as whole words in the cleaned text of their page.
+
+    A miss is a cleaner failure (the name never reached the model), reported apart from the model's recall.
+    """
+    slugged = [(names, f"-{fold_slug(text)}-") for names, text in pages]
+    total = sum(len(names) for names, _ in slugged)
+    found = sum(_on_page(name, page_slug) for names, page_slug in slugged for name in names)
+    return found / total if total else 1.0

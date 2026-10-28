@@ -24,5 +24,10 @@ def name_slug(name: str) -> str:
 
     Mirrors the API's ``slugify(pick_title({"de": name}))``, which is how candidates are keyed.
     """
-    folded = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii").lower()
-    return _NON_ALNUM.sub("-", folded).strip("-")[:MAX_SLUG_LENGTH].strip("-")
+    return fold_slug(name)[:MAX_SLUG_LENGTH].strip("-")
+
+
+def fold_slug(text: str) -> str:
+    """Return ``text`` ASCII-folded and lower-cased with every non-alphanumeric run as one ``-``, never truncated."""
+    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").lower()
+    return _NON_ALNUM.sub("-", folded).strip("-")
