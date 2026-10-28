@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -56,16 +56,24 @@ SERVICE = answer(PASS_DOC, CERT_DOC)
 class ScriptedLlm:
     """Returns or raises the next scripted outcome per call and records the messages of every call."""
 
-    def __init__(self, *outcomes: dict[str, Any] | str | LlmError, usage: tuple[int | None, int | None] = (1000, 200)):
+    def __init__(
+        self,
+        *outcomes: dict[str, Any] | str | LlmError | Exception,
+        usage: tuple[int | None, int | None] = (1000, 200),
+        on_call: Callable[[int], None] | None = None,
+    ):
         self.outcomes = list(outcomes)
         self.usage = usage
+        self.on_call = on_call
         self.messages: list[Sequence[dict[str, str]]] = []
 
     def extract(self, messages: Sequence[dict[str, str]], json_schema: dict[str, Any], *, max_tokens: int) -> LlmResult:
         """Return the next outcome, or raise it when it is an error; the last one repeats when the script ends."""
         self.messages.append(messages)
+        if self.on_call is not None:
+            self.on_call(len(self.messages))
         outcome = self.outcomes.pop(0) if len(self.outcomes) > 1 else self.outcomes[0]
-        if isinstance(outcome, LlmError):
+        if isinstance(outcome, Exception):
             raise outcome
         text = outcome if isinstance(outcome, str) else json.dumps(outcome)
         return LlmResult(text, self.usage[0], self.usage[1], MODEL)
