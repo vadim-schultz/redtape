@@ -6,8 +6,9 @@ from typing import Any
 
 import pytest
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
-from llm_fakes import taxonomy
 from pydantic import ValidationError
+
+from llm_fakes import taxonomy
 
 DOCUMENT = {"name": "Personalausweis", "role": "required", "quote": "Bitte bringen Sie Ihren Personalausweis mit."}
 BASE: dict[str, Any] = {
