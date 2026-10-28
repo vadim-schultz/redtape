@@ -13,6 +13,7 @@ from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.composite import DiscoveryRepository
 from app.features.discovery.repository.coverage import CoverageRepository, DiscoveryCoverageCounts
+from app.features.discovery.repository.edges import EdgeRepository, EdgeRow
 from app.features.discovery.repository.entities import EntityRepository
 from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts, TaskSummary
 from app.features.discovery.repository.runs import RunReport, RunRepository
@@ -35,6 +36,8 @@ __all__ = [
     "CoverageRepository",
     "DiscoveryCoverageCounts",
     "DiscoveryRepository",
+    "EdgeRepository",
+    "EdgeRow",
     "EntityRepository",
     "FetchLogEntry",
     "LedgerKey",
