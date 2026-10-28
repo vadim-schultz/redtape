@@ -6,14 +6,15 @@ import re
 import unicodedata
 
 _LINK_TARGET = re.compile(r"\(\s*https?://[^)\s]*\s*\)")
-_LIST_BULLET = re.compile(r"^\s*[-*+]\s+", re.MULTILINE)
+# A list marker is a bullet glyph that follows whitespace (or starts the text) and is followed by whitespace.
+_LIST_BULLET = re.compile(r"(?<!\S)[-*+•·]\s+")
 _MARKERS = str.maketrans("", "", "*_`#>[]")
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 MAX_SLUG_LENGTH = 200
 
 
 def normalise(text: str) -> str:
-    """Return ``text`` lower-cased with markdown markers, list bullets and link targets removed and whitespace collapsed."""
+    """Return ``text`` lower-cased with markdown markers, list bullets (anywhere after whitespace) and link targets removed and whitespace collapsed."""
     plain = _LINK_TARGET.sub(" ", unicodedata.normalize("NFKC", text))
     unmarked = _LIST_BULLET.sub("", plain).translate(_MARKERS).replace("|", " ")
     return " ".join(unmarked.casefold().split())
