@@ -31,6 +31,8 @@ class Tally:
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
     browser_seconds_used: float = 0.0
+    neurons_used: float = 0.0
+    llm_calls: int = 0
     ledger_unavailable: bool = False
 
     def record(self, outcome: str) -> None:
