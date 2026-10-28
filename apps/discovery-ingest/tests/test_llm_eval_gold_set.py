@@ -137,7 +137,7 @@ def test_the_cleaner_keeps_nearly_every_gold_name_on_the_real_pages() -> None:
 
 
 def test_cleaner_recall_on_the_gold_set_with_the_default_cap_is_47_of_47() -> None:
-    """gold set · clean-3 keeps every gold name: the 30,000-character cap no longer cuts the last document list."""
+    """gold set · clean-4 keeps every gold name: the 30,000-character cap no longer cuts the last document list."""
     pages = [
         ([d.name for d in page.documents], clean_page(page.html, page.source_url).text) for page in load_gold(GOLD_DIR)
     ]
