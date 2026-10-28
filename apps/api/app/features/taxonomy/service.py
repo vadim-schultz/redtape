@@ -6,7 +6,7 @@ from uuid import UUID
 from app.features.taxonomy.repository import TaxonomyRepository, TermModel
 from app.i18n_resolution import pick_i18n
 from app.models.taxonomy import Domain, LifeSituation
-from app.schema.taxonomy.read import AxisCount, MatrixCell, MatrixResponse, TermRead
+from app.schema.taxonomy.read import AxisCount, MatrixCell, MatrixResponse, TermRead, VocabularyResponse, VocabularyTerm
 
 
 class TaxonomyCodeError(ValueError):
@@ -30,6 +30,13 @@ class TaxonomyService:
 
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
         return self._resolve(LifeSituation, codes)
+
+    def vocabulary(self) -> VocabularyResponse:
+        """Return both vocabularies in sort order with every stored translation."""
+        return VocabularyResponse(
+            domains=self._terms(Domain),
+            situations=self._terms(LifeSituation),
+        )
 
     def known_domain_codes(self, codes: Iterable[str]) -> set[str]:
         """Return the subset of ``codes`` that is a domain code."""
@@ -56,6 +63,12 @@ class TaxonomyService:
             description=pick_i18n(term.description_i18n, locale=locale, enabled=enabled),
             icon=term.icon,
         )
+
+    def _terms(self, model: TermModel) -> list[VocabularyTerm]:
+        return [
+            VocabularyTerm(code=t.code, name_i18n=t.name_i18n, description_i18n=t.description_i18n)
+            for t in self._repo.list_terms(model)
+        ]
 
     def _list(self, model: TermModel, locale: str, enabled_locales: Iterable[str]) -> list[TermRead]:
         terms = self._repo.list_terms(model)
