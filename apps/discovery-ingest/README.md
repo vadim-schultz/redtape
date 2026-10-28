@@ -16,6 +16,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `worker drain` | Claim, process and settle tasks; see below |
 | `candidates emit` | Emit staged document candidates as pending suggestions; see below |
 | `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
+| `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger; add Actions minutes to it |
 
@@ -63,6 +64,8 @@ idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/
 | `FIM_PORTAL_BASE_URL` | no | Default in `config.py` |
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
+| `CLOUDFLARE_AI_API_TOKEN` | only for `llm probe` and `llm_extract` | A custom token with only the Workers AI permission, next to `CLOUDFLARE_ACCOUNT_ID`. Never a Render variable; never commit it |
+| `LLM_MODEL`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Model id (chosen by the eval), output cap (1500), page characters sent (12000) and per-call timeout (60) |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
 Copy [`.env.example`](.env.example) to `.env` for local runs.
@@ -109,6 +112,22 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
 
 `browser probe` takes `--url` (repeatable), `--error-url`, `--variant` (repeatable) and `--max-browser-seconds`
 (default 240). It exits 2 when a Cloudflare variable is missing and 1 when Cloudflare refused.
+
+### Probe Workers AI
+
+The free plan allows 10,000 neurons a day. `llm probe` sends one cleaned page to each model and prints a table per
+model: the response envelope, token usage, whether `response_format` is accepted, the cost in neurons by the price
+table, a grounded sample of the answer and the cleaner against `toMarkdown`. It never prints the token and needs only
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN`.
+
+```bash
+python -m discovery_ingest llm probe --model @cf/meta/llama-3.3-70b-instruct-fp8-fast \
+  --model @cf/meta/llama-3.1-8b-instruct --fixture tests/fixtures/pages/table_page.html
+```
+
+`--max-neurons` (default 900) stops the probe before the next model once the computed spend reaches it. It exits 2 when
+a variable, the fixture or a model is missing and 1 when Cloudflare rejected the token or the daily allowance is gone.
+The manual workflow `discovery-llm-probe.yml` runs the same command.
 
 ### Run a browser drain on your machine
 
