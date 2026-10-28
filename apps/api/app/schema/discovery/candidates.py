@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Annotated, Self
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -11,6 +11,10 @@ from app.features.suggestions.slugs import pick_title
 from app.models.discovery import DiscoveryMentionRole
 
 MAX_MENTION_ITEMS = 100
+MAX_CONDITION_LENGTH = 300
+MAX_DOMAIN_CODES = 2
+MAX_SITUATION_CODES = 3
+Code = Annotated[str, Field(min_length=1, max_length=64)]
 
 
 class CandidateMentionItem(BaseModel):
@@ -25,6 +29,10 @@ class CandidateMentionItem(BaseModel):
     extractor_version: str = Field(min_length=1, max_length=32)
     official_url: str | None = Field(default=None, min_length=1, max_length=500)
     artifact_id: UUID | None = None
+    condition: str | None = Field(default=None, min_length=1, max_length=MAX_CONDITION_LENGTH)
+    is_optional: bool | None = None
+    domain_codes: list[Code] | None = Field(default=None, max_length=MAX_DOMAIN_CODES)
+    situation_codes: list[Code] | None = Field(default=None, max_length=MAX_SITUATION_CODES)
 
     @model_validator(mode="after")
     def _title_has_text(self) -> Self:
@@ -45,3 +53,4 @@ class CandidateMentionsResponse(BaseModel):
     candidates_created: int
     mentions_created: int
     mentions_updated: int
+    unknown_codes: int = 0

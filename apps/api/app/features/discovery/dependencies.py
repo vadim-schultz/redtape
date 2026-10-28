@@ -28,6 +28,7 @@ from app.features.suggestions.dependencies import (
     provide_suggestion_service,
 )
 from app.features.suggestions.service import SuggestionService
+from app.features.taxonomy.service import TaxonomyService
 from app.shared.object_store import ObjectStore
 from app.shared.object_store.http import InjectedObjectStore
 from app.shared.object_store.provider import get_object_store
@@ -45,8 +46,10 @@ def provide_discovery_machine_service(discovery_repository: DiscoveryRepository)
     return DiscoveryMachineService(discovery_repository)
 
 
-def provide_discovery_candidate_service(discovery_repository: DiscoveryRepository) -> CandidateService:
-    return CandidateService(discovery_repository)
+def provide_discovery_candidate_service(
+    discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
+) -> CandidateService:
+    return CandidateService(discovery_repository, taxonomy_service)
 
 
 def provide_discovery_candidate_admin_service(discovery_repository: DiscoveryRepository) -> CandidateAdminService:

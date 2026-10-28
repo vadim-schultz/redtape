@@ -31,6 +31,14 @@ class TaxonomyService:
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
         return self._resolve(LifeSituation, codes)
 
+    def known_domain_codes(self, codes: Iterable[str]) -> set[str]:
+        """Return the subset of ``codes`` that is a domain code."""
+        return set(self._repo.ids_for_codes(Domain, codes))
+
+    def known_situation_codes(self, codes: Iterable[str]) -> set[str]:
+        """Return the subset of ``codes`` that is a life-situation code."""
+        return set(self._repo.ids_for_codes(LifeSituation, codes))
+
     def get_matrix(self, document_ids: Sequence[UUID]) -> MatrixResponse:
         """Matrix over the given in-scope documents; `total` is their number, tagged or not."""
         return MatrixResponse(
