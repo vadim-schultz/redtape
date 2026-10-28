@@ -114,7 +114,7 @@ def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_b
     llm = FakeLlm()
     ledger = _wire(monkeypatch, llm)
 
-    code = _eval(tmp_path, "--neuron-budget", "160")
+    code = _eval(tmp_path, "--neuron-budget", "80")
 
     report = _out(tmp_path)
     shown = capsys.readouterr().out
@@ -122,7 +122,7 @@ def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_b
     assert ledger.actions()[:3] == ["budgets", "reserve", "adjust"]
     assert ledger.remaining == pytest.approx(9000 - cost(MODEL, 1000, 200))
     assert [page["name"] for page in report["pages"]] == ["alpha"] and report["stopped"]["reason"] == "budget"
-    assert "neuron budget of 160 is spent" in shown and "pages run 1 of 3" in shown
+    assert "neuron budget of 80 is spent" in shown and "pages run 1 of 3" in shown
 
 
 def test_an_eval_run_with_the_default_budget_processes_at_least_five_long_pages_before_it_stops(
