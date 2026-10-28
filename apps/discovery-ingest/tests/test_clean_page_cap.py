@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from discovery_ingest.extract.clean import clean_page
+from discovery_ingest.extract.clean import DEFAULT_MAX_CHARS, clean_page
+from discovery_ingest.llm_settings import LlmSettings
+from discovery_ingest.worker.llm_runtime import LlmResources
 
 BASE = "https://portal.example/dienst/reisepass"
 GENERAL = "## Allgemeines\nAllgemeine Hinweise"
@@ -152,3 +154,31 @@ def test_a_list_of_downloads_with_file_sizes_is_not_a_menu(monkeypatch: pytest.M
     html = f"<html><body><h2>Anlagen</h2><ul>{items}</ul><h2>Hinweise</h2><p>Bitte bringen Sie den Personalausweis mit.</p></body></html>"
     page = clean_page(html, BASE, max_chars=len(downloads))
     assert page.text == downloads
+
+
+def _long_page(characters: int) -> str:
+    """A page of numbered lines whose cleaned text is a little over ``characters`` long."""
+    lines = (
+        f"Hinweis {number:05d}: Bitte reichen Sie die Unterlagen vollständig ein."
+        for number in range(characters // 60 + 1)
+    )
+    return "<html><body><h2>Verfahren</h2>" + "".join(f"<p>{line}</p>" for line in lines) + "</body></html>"
+
+
+def test_the_cleaner_the_settings_and_the_handler_share_one_cap_of_30000_characters() -> None:
+    """cap · one number: the cleaner's default, the settings default and the handler's resources agree."""
+    settings_default = LlmSettings.model_fields["llm_input_chars"].default
+    handler_default = LlmResources.__dataclass_fields__["max_chars"].default
+
+    assert DEFAULT_MAX_CHARS == 30_000
+    assert settings_default == handler_default == DEFAULT_MAX_CHARS
+
+
+def test_a_25000_character_page_is_not_truncated_and_a_35000_character_page_is() -> None:
+    """cap · under the new default a long page reaches the model whole; one over it is cut by whole lines."""
+    whole = clean_page(_long_page(25_000), BASE)
+    cut = clean_page(_long_page(35_000), BASE)
+
+    assert (whole.truncated, 24_000 < len(whole.text) <= DEFAULT_MAX_CHARS) == (False, True)
+    assert cut.truncated is True and len(cut.text) <= DEFAULT_MAX_CHARS
+    assert cut.text.count("\n") + 1 < 35_000 // 60

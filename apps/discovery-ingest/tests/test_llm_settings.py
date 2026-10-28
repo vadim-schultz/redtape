@@ -27,7 +27,7 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_settings_default_the_limits_and_read_the_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    """settings · limits default to 1500 tokens, 12000 characters and 60 s; the token stays out of the repr."""
+    """settings · limits default to 1500 tokens, 30000 characters and 60 s; the token stays out of the repr."""
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID)
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
 
@@ -35,7 +35,7 @@ def test_settings_default_the_limits_and_read_the_credentials(monkeypatch: pytes
 
     assert settings.ai_credentials() == (ACCOUNT_ID, TOKEN)
     assert settings.missing_ai_credentials() == []
-    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (None, 1500, 12000)
+    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (None, 1500, 30000)
     assert settings.llm_request_timeout_seconds == 60.0
     assert TOKEN not in repr(settings)
 
