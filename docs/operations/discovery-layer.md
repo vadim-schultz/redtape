@@ -165,6 +165,7 @@ Without one the API serves only the two legacy kinds, `fetch_url` and `enrich_me
 | `extract_page` | stored HTML snapshot (no network) | document mentions |
 | `render_page` | page URL, Cloudflare Browser Run | `html_snapshot` artifact |
 | `capture_screenshot` | page URL, Cloudflare Browser Run | `screenshot` artifact |
+| `llm_extract` | stored HTML snapshot, Cloudflare Workers AI (the worker handler is not built yet) | document mentions, staged edges, tag codes |
 
 ```text
 catalogue row -> fetch_url -> render_page -> snapshot -> extract_page -> mentions -> candidates
