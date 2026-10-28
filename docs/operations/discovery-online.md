@@ -50,7 +50,7 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 | `--max-tasks` | 50 | Tasks per claim request (1–50). Browser drains use 5: a limit releases the whole batch |
 | `--max-batches` | 1 | Maximum claim and process batches (positive) |
 | `--time-budget-seconds` | none | Optional positive wall-clock budget for the whole drain |
-| `--browser-budget-seconds` | 480 | Browser seconds this run may spend; read only when a browser kind is drained (positive) |
+| `--browser-budget-seconds` | 570 | Browser seconds this run may spend; read only when a browser kind is drained (positive) |
 | `--kinds` | `fetch_url,enrich_metadata,harvest_payload,extract_page` | Comma separated task kinds to claim; an unknown kind exits 2 before any claim |
 
 Invalid bounds exit with code 2. An API failure exits with code 1. A drain that ends on a limit exits 0.
@@ -147,7 +147,7 @@ rules the worker follows.
 
 | Free-plan limit | Worker behaviour |
 | --- | --- |
-| 10 browser minutes a day | Run budget is the smaller of `--browser-budget-seconds` (default 480) and what the ledger still has today. Each call reserves 30 seconds, then settles to `X-Browser-Ms-Used`. Under 30 seconds left, the run stops `browser_budget` before it claims |
+| 10 browser minutes a day | Run budget is the smaller of `--browser-budget-seconds` (default 570) and what the ledger still has today. Each call reserves 30 seconds, then settles to `X-Browser-Ms-Used`. Under 30 seconds left, the run stops `browser_budget` before it claims |
 | One request every 10 seconds | At least 11 seconds between the end of one call and the start of the next, so about 4 pages a minute |
 | Three concurrent browsers, 60 s timeout | One call at a time, 60 s request timeout (`BROWSER_REQUEST_TIMEOUT_SECONDS`) |
 | `429` | A rate-limit 429 (code 2001) is retried once. Any other 429 marks `browser_seconds` exhausted, releases the batch and stops `browser_quota` |
@@ -183,9 +183,9 @@ variable, and the API never reads it.
 - **Storage unset:** artifact routes answer **503**; a browser drain refuses to start; a run in flight stops
   `storage_unavailable`.
 - **Byte cap:** an upload answers **507** when the stored bytes plus the new file would pass `OBJECT_STORE_MAX_BYTES`
-  (default 8 GiB). The cap sums `discovery_artifact` rows, not objects in the bucket.
+  (default 9.5 GB, 95 percent of the R2 free 10 GB). The cap sums `discovery_artifact` rows, not objects in the bucket.
 - **Database soft limit:** machine writes that create rows answer **507** `database_soft_limit` above
-  `DB_SOFT_LIMIT_BYTES` (400 MB). Workers stop `db_limit`.
+  `DB_SOFT_LIMIT_BYTES` (475 MB). Workers stop `db_limit`.
 
 The budget ledger (`GET /api/v1/discovery/machine/budgets`, admin `GET …/admin/budgets`) keeps R2 operations, browser
 seconds, neurons and Actions minutes, so GitHub runs and laptop runs share one count. Caps and settings:
@@ -198,7 +198,7 @@ This costs no Actions minutes. Export `DISCOVERY_API_URL`, `DISCOVERY_API_KEY` a
 ```bash
 cd apps/discovery-ingest && pip install -e .
 python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
-  --time-budget-seconds 900 --browser-budget-seconds 480
+  --time-budget-seconds 900 --browser-budget-seconds 570
 ```
 
 Run it at most once a day. The check of the Cloudflare credentials needs only the two Cloudflare variables:
@@ -217,7 +217,7 @@ Run it at most once a day. The check of the Cloudflare credentials needs only th
 | `render_page` | Run ends `browser_budget` or `browser_quota` | Expected. Tasks were released. Try again tomorrow |
 | `render_page` | Notes `login_wall` or `oversize` | The page is skipped on purpose; nothing is stored |
 | `render_page`, `capture_screenshot` | Run ends `storage_unavailable` | Check `GET …/artifacts/status` and the Render `OBJECT_STORE_*` variables |
-| any | Run ends `db_limit` | Check the database size against 400 MB (checklist S8) |
+| any | Run ends `db_limit` | Check the database size against 475 MB (checklist S8) |
 | `extract_page` | All tasks completed with `no_extractor` | No extractor is registered yet. Expected today |
 | any | `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source |
 

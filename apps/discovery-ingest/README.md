@@ -32,7 +32,7 @@ python -m discovery_ingest worker drain --kinds fetch_url,harvest_payload --max-
 | `--max-tasks` | 50 | Tasks per claim request (1–50) |
 | `--max-batches` | 1 | Maximum batches |
 | `--time-budget-seconds` | none | Wall-clock budget for the whole drain |
-| `--browser-budget-seconds` | 480 | Browser seconds for `render_page` and `capture_screenshot` |
+| `--browser-budget-seconds` | 570 | Browser seconds for `render_page` and `capture_screenshot` |
 
 The command prints one JSON report with `stop_reason`, `remaining`, `released` and `browser_seconds_used`. Kinds,
 retry rules, stop reasons and the free-plan limits are in
@@ -104,7 +104,7 @@ python -m discovery_ingest browser probe --url https://example.com --variant con
 
 # Drain the render queue; fails before claiming without the Cloudflare variables or artifact storage:
 python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
-  --time-budget-seconds 900 --browser-budget-seconds 480
+  --time-budget-seconds 900 --browser-budget-seconds 570
 ```
 
 `browser probe` takes `--url` (repeatable), `--error-url`, `--variant` (repeatable) and `--max-browser-seconds`

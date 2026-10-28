@@ -139,7 +139,7 @@ gh run view <run-id> --log
 | 23 | `GET …/machine/budgets` lists five resources with caps. `discovery-drain.yml -f max_batches=1 -f max_tasks=5` logs `budget show` first and reports minutes last (about 1 to 3 minutes of `actions_minutes`) |
 
 **S8: Monitor limits (monthly, or when alerted).** Supabase free plan: 500 MB database; the project goes read-only above
-it, and the API soft limit is 400 MB. Cloudflare free plan: R2 10 GB-month, 1 million Class A and 10 million Class B
+it, and the API soft limit is 475 MB (95 percent). Cloudflare free plan: R2 10 GB-month, 1 million Class A and 10 million Class B
 operations a month, 10 browser minutes a day (Dashboard, Browser Run usage). **R2 bills past its free tier**, so the
 ledger caps (S21) and the billing notification (S19) matter more than the dashboard. The admin Coverage screen shows the
 same numbers against the caps.
@@ -313,7 +313,7 @@ Render variables (S3) are missing.
 ```bash
 cd apps/discovery-ingest && pip install -e .
 python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-batches 40 \
-  --time-budget-seconds 900 --browser-budget-seconds 480
+  --time-budget-seconds 900 --browser-budget-seconds 570
 ```
 
 At most one run a day: the free allowance is 10 browser minutes a day and the budget leaves a margin of about two
@@ -332,11 +332,13 @@ repository's minutes with the ledger resource `actions_minutes` (`python -m disc
 1,000 minutes a month for this repository, with a 600 minute CI reserve. If CI alone approaches the reserve, lower the
 drain allowance, not the other way round. Record the month, the GitHub figure and the ledger figure.
 
-**S21: Set the budget caps (Render).** Variables on `redtape-api`: `OBJECT_STORE_MAX_BYTES` (default 8 GiB),
-`BUDGET_R2_CLASS_A_MONTHLY` (400000), `BUDGET_R2_CLASS_B_MONTHLY` (4000000), `BUDGET_BROWSER_SECONDS_DAILY` (480),
-`BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600) and `DB_SOFT_LIMIT_BYTES` (400000000). The
-defaults are already below the allowances, so set a variable only to tighten it or to tune it after the first month.
-Check with `GET /api/v1/discovery/machine/budgets`. The extraction suite adds `BUDGET_NEURONS_DAILY`.
+**S21: Set the budget caps (Render).** Variables on `redtape-api`: `OBJECT_STORE_MAX_BYTES` (default 9500000000),
+`BUDGET_R2_CLASS_A_MONTHLY` (950000), `BUDGET_R2_CLASS_B_MONTHLY` (9500000), `BUDGET_BROWSER_SECONDS_DAILY` (570),
+`BUDGET_NEURONS_DAILY` (9500), `BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600) and
+`DB_SOFT_LIMIT_BYTES` (475000000). The defaults sit at 95 percent of each free allowance (extraction chapter E11); the
+Actions minutes are a repository share of an account-wide pool and stay at 1000. An explicit Render value beats the
+default, so delete an old override or set the new number. Tighten a variable if other workloads share the account.
+Check with `GET /api/v1/discovery/machine/budgets`.
 
 ## German strings that need native review
 
