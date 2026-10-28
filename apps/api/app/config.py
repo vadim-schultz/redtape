@@ -82,6 +82,15 @@ class Settings(BaseSettings):
         default=475_000_000,
         description="Database size above which machine write routes answer 507: 95 percent of the 500 MB read-only limit.",
     )
+    discovery_tag_min_procedures: int = Field(
+        default=2, ge=1, description="Procedures that must tag a candidate with a code before emit offers the code."
+    )
+    discovery_tag_min_share: float = Field(
+        default=0.5,
+        gt=0,
+        le=1,
+        description="Share of a candidate's tagged procedures that must carry a code before emit offers the code.",
+    )
 
     @property
     def auth_enabled(self) -> bool:

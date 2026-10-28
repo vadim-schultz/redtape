@@ -32,6 +32,7 @@ from app.features.discovery.errors import (
     UnsupportedArtifactTypeError,
 )
 from app.features.discovery.machine_controller import DiscoveryMachineController
+from app.features.discovery.taxonomy_machine_controller import DiscoveryTaxonomyMachineController
 
 
 def _invalid_payload_is_422(request: Request, exc: ValidationException) -> Response:
@@ -88,6 +89,7 @@ discovery_machine_router = Router(
         DiscoveryCandidateMachineController,
         DiscoveryArtifactMachineController,
         DiscoveryBudgetMachineController,
+        DiscoveryTaxonomyMachineController,
     ],
     dependencies=router_dependencies,
     exception_handlers=_DOMAIN_ERROR_HANDLERS,

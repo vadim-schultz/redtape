@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from app.config import settings
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_emit_payload import SuggestedTags
 from app.features.discovery.repository import DiscoveryRepository
@@ -340,3 +341,71 @@ def test_an_unknown_code_from_the_tag_hook_skips_the_candidate_as_invalid(db_ses
     assert result.skip_reason == "invalid_payload"
     assert candidate.status == DiscoveryCandidateStatus.STAGED
     assert _count(db_session, Suggestion) == 0
+
+
+def _tagged_mention(
+    db_session: Session,
+    candidate: DiscoveryDocumentCandidate,
+    domains: list[str],
+    situations: list[str],
+    *,
+    external_id: str,
+) -> None:
+    catalogue = _catalogue(db_session, external_id=external_id)
+    catalogue.portal_url = PROCEDURE_URL
+    _mention(db_session, candidate, catalogue)
+    row = db_session.scalars(
+        select(DiscoveryCandidateMention).where(DiscoveryCandidateMention.catalogue_service_id == catalogue.id)
+    ).one()
+    row.domain_codes, row.situation_codes = domains, situations
+    db_session.flush()
+    db_session.expire(candidate)
+
+
+def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
+    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
+    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    events = EventLogService(EventLogRepository(db_session))
+    suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions)
+
+
+def test_emit_payload_carries_the_codes_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
+    seed_taxonomy(db_session, tags={})
+    candidate, _ = _staged(db_session)
+    _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
+    _tagged_mention(db_session, candidate, ["housing"], ["birth-of-child"], external_id="svc-b")
+
+    result = _default_service(db_session).emit(candidate.id, api_key)
+
+    suggestion = db_session.get(Suggestion, result.suggestion_id)
+    assert suggestion is not None
+    assert suggestion.payload["domain_codes"] == ["housing"]
+    assert suggestion.payload["situation_codes"] == []
+
+
+def test_emit_payload_has_no_codes_without_consensus(db_session: Session, api_key: ApiKey) -> None:
+    seed_taxonomy(db_session, tags={})
+    candidate, _ = _staged(db_session)
+    _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
+
+    result = _default_service(db_session).emit(candidate.id, api_key)
+
+    suggestion = db_session.get(Suggestion, result.suggestion_id)
+    assert suggestion is not None
+    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == ([], [])
+
+
+def test_emit_consensus_thresholds_come_from_settings(
+    db_session: Session, api_key: ApiKey, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed_taxonomy(db_session, tags={})
+    candidate, _ = _staged(db_session)
+    _tagged_mention(db_session, candidate, ["housing"], [], external_id="svc-a")
+    monkeypatch.setattr(settings, "discovery_tag_min_procedures", 1)
+
+    result = _default_service(db_session).emit(candidate.id, api_key)
+
+    suggestion = db_session.get(Suggestion, result.suggestion_id)
+    assert suggestion is not None
+    assert suggestion.payload["domain_codes"] == ["housing"]

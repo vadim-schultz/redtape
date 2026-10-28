@@ -290,6 +290,7 @@ ALL_KINDS = {
     "extract_page",
     "capture_screenshot",
     "render_page",
+    "llm_extract",
 }
 
 

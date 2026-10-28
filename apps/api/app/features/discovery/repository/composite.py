@@ -11,6 +11,7 @@ from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
+from app.features.discovery.repository.edges import EdgeRepository
 from app.features.discovery.repository.entities import EntityRepository
 from app.features.discovery.repository.runs import RunRepository
 from app.features.discovery.repository.task_listing import TaskListingRepository
@@ -31,5 +32,6 @@ class DiscoveryRepository(
     RunRepository,
     ArtifactRepository,
     BudgetRepository,
+    EdgeRepository,
 ):
     """One session-bound handle exposing every discovery aggregate repository."""

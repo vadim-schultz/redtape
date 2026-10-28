@@ -12,6 +12,7 @@ from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
 from app.features.discovery.repository import CandidateFilter, CandidateSort, Page
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryMentionRole, DiscoverySource
+from app.schema.discovery.candidate_edges import CandidateEdgeListResponse
 from app.schema.discovery.candidate_emit import CandidateEmitPreview
 from app.schema.discovery.read import CandidateDetailResponse, CandidateListResponse
 from app.shared.paging import PageParams
@@ -49,6 +50,14 @@ class DiscoveryCandidateAdminController(Controller):
         candidate_id: UUID,
     ) -> CandidateDetailResponse:
         return discovery_candidate_admin_service.candidate_detail(candidate_id)
+
+    @get("/{candidate_id:uuid}/edges", sync_to_thread=True)
+    def candidate_edges(
+        self,
+        discovery_candidate_admin_service: CandidateAdminService,
+        candidate_id: UUID,
+    ) -> CandidateEdgeListResponse:
+        return discovery_candidate_admin_service.candidate_edges(candidate_id)
 
     @get("/{candidate_id:uuid}/emit-preview", sync_to_thread=True)
     def emit_preview(

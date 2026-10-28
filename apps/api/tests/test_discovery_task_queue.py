@@ -247,6 +247,20 @@ def test_render_page_is_claimed_only_with_an_explicit_kinds_filter(queue: TaskQu
     assert [t.id for t in explicit] == [render.id]
 
 
+def test_llm_extract_is_never_claimed_by_default_but_is_with_an_explicit_kinds_filter(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    extract = _seed_task(db_session, catalogue, DiscoveryTaskKind.LLM_EXTRACT, path="llm")
+    key = _key(db_session)
+
+    by_default = queue.claim_pending(api_key=key, limit=5, now=NOW)
+    explicit = queue.claim_pending(api_key=key, limit=5, now=NOW, kinds=(DiscoveryTaskKind.LLM_EXTRACT,))
+
+    assert by_default == []
+    assert [t.id for t in explicit] == [extract.id]
+
+
 def test_release_returns_a_claimed_task_to_pending_without_consuming_an_attempt(
     queue: TaskQueue, db_session: Session
 ) -> None:

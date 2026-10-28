@@ -39,6 +39,7 @@ class DiscoveryTaskKind(enum.StrEnum):
     EXTRACT_PAGE = "extract_page"
     CAPTURE_SCREENSHOT = "capture_screenshot"
     RENDER_PAGE = "render_page"
+    LLM_EXTRACT = "llm_extract"
 
 
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (
@@ -94,6 +95,7 @@ class DiscoveryMentionRole(enum.StrEnum):
 
     REQUIRED = "required"
     FORM = "form"
+    ISSUED = "issued"
 
 
 class DiscoveryArtifactKind(enum.StrEnum):
@@ -101,3 +103,10 @@ class DiscoveryArtifactKind(enum.StrEnum):
 
     HTML_SNAPSHOT = "html_snapshot"
     SCREENSHOT = "screenshot"
+
+
+class DiscoveryEdgeBasis(enum.StrEnum):
+    """How a staged requirement edge was found."""
+
+    EXPLICIT = "explicit"
+    DERIVED_SINGLE_ISSUED = "derived_single_issued"
