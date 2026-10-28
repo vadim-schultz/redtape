@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import ARRAY, Boolean, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -53,6 +53,10 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     )
     extractor: Mapped[str] = mapped_column(String(64), nullable=False)
     extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    condition: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_optional: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    domain_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
+    situation_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
 
     candidate: Mapped[DiscoveryDocumentCandidate] = relationship(
         "DiscoveryDocumentCandidate", back_populates="mentions"
