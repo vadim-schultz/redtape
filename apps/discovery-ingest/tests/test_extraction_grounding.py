@@ -65,7 +65,7 @@ def test_a_quote_made_only_of_markdown_markers_is_dropped() -> None:
     "quote",
     [
         "PERSONALAUSWEIS ODER REISEPASS",
-        "Personalausweis   oder\nReisepass",
+        "Personalausweis \u00a0 oder   Reisepass",
         "- Personalausweis oder Reisepass",
         "**Wohnungsgeberbestätigung** (nicht älter als drei Monate)",
         "## Wohnsitz anmelden",
