@@ -36,8 +36,9 @@ def _extraction(name: str) -> PageExtraction:
 
 
 def _page(name: str) -> CleanPage:
+    """Return the page as the model read it: ``sr-only`` renamed, so clean-4 does not drop the helper text it copied."""
     gold = next(item for item in load_gold(GOLD_DIR) if item.name == name)
-    return clean_page(gold.html, gold.source_url)
+    return clean_page(gold.html.replace("sr-only", "sr-label"), gold.source_url)
 
 
 def _ground(name: str, extraction: PageExtraction | None = None) -> Grounded:
