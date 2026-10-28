@@ -13,5 +13,7 @@ One executable plan per chapter. Order, dependencies and gates: [../01-rollout.m
 | E7 | [07-wiring-and-workflow.md](07-wiring-and-workflow.md) | worker + CI workflow |
 | E8 | [08-admin-display.md](08-admin-display.md) | API + frontend |
 | E9 | [09-docs-and-operator-steps.md](09-docs-and-operator-steps.md) | docs + ops |
+| E10 | [10-robots-rules-fix.md](10-robots-rules-fix.md) | worker (executes second) |
+| E11 | [11-free-tier-caps-95.md](11-free-tier-caps-95.md) | config + workflow + docs (executes first) |
 
 Each chapter has: Goal, contract, paired TDD loops (Red, Green, Refactor), Verification (with the `gh` commands or the local drain command), and Out of scope. Local checks are best effort; the chapter PR's GitHub Actions checks are the authoritative gate.

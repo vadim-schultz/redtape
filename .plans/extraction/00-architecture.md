@@ -98,13 +98,13 @@ New staging table `discovery_candidate_edge` (chapter E1): `parent_candidate_id`
 
 ## 9. Budget and guards
 
-Workers AI free is **10,000 neurons a day**; the free plan fails when it is used up, and a paid Workers plan would bill, so the account stays on Workers Free (crawlers operator step S19). The ledger of [crawlers chapter 23](../crawlers/chapters/23-free-tier-guards.md) holds the daily cap (`neurons`, default 8,000).
+Workers AI free is **10,000 neurons a day**; the free plan fails when it is used up, and a paid Workers plan would bill, so the account stays on Workers Free (crawlers operator step S19). The ledger of [crawlers chapter 23](../crawlers/chapters/23-free-tier-guards.md) holds the daily cap (`neurons`, default 9,500 after [E11](chapters/11-free-tier-caps-95.md), 95 percent of the allowance).
 
 - **Reserve, then adjust.** Before each call the worker reserves `ceil(estimated_input_tokens × input_price + max_tokens × output_price)` neurons (input tokens estimated at one per three characters, a conservative figure for German); a denial stops the run (`llm_budget`). After the call it adjusts by `actual − reserved`, using the response's token usage; when usage is missing it keeps the reservation.
 - `max_tokens` is always set (default 1,500); the input is capped at 12,000 characters; at most one repair retry, and only if a second reservation is granted.
 - A provider quota error marks the day exhausted (`/exhaust`) and the run stops with `llm_quota`; tasks are **released**, never failed.
 - Model prices (neurons per million input and output tokens, from Cloudflare's pricing page, kept in one settings table): llama-3.3-70b-instruct-fp8-fast 26,668 and 204,805; llama-3.1-8b-instruct 25,608 and 75,147; llama-3.1-8b-instruct-fp8-fast 4,119 and 34,868; gpt-oss-20b 18,182 and 27,273; gemma-4-26b-a4b 9,091 and 27,273; qwen3-30b-a3b 4,625 and 30,475.
-- At about 3,000 input and 600 output tokens a page costs roughly 200 neurons on the 70b model (about 40 pages a day under an 8,000 cap) and about 120 on llama-3.1-8b-instruct (about 65 a day); the smaller models cost 30 to 70 but are not on Cloudflare's documented JSON-mode list. **The model is chosen by the probe and the eval (chapters E4 and E5), not assumed.** The 1,423 known pages take weeks on the 70b model; queue order makes partial progress useful and the cleaner (fewer input tokens) is the main lever.
+- At about 3,000 input and 600 output tokens a page costs roughly 200 neurons on the 70b model (about 47 pages a day under a 9,500 cap) and about 120 on llama-3.1-8b-instruct (about 79 a day); the smaller models cost 30 to 70 but are not on Cloudflare's documented JSON-mode list. **The model is chosen by the probe and the eval (chapters E4 and E5), not assumed.** The 1,423 known pages take weeks on the 70b model; queue order makes partial progress useful and the cleaner (fewer input tokens) is the main lever.
 
 ## 10. Why not the alternatives
 

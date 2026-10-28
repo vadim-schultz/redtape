@@ -56,7 +56,7 @@ Leave the repository describing what exists, and collect every manual action in 
 4. `extraction docs describe the grounding rule and the tag consensus threshold`.
 5. `docs do not claim translation, per-document tags, edge emit or automatic emit as shipped` — negative scope contract.
 6. `every relative link in the extraction plan folder and the changed runbooks resolves`.
-7. `plans README lists nine extraction chapters`.
+7. `plans README lists eleven extraction chapters`.
 
 **Green:** update the documents until the checks pass. **Refactor:** docs only; report "no code refactor needed".
 
@@ -80,7 +80,7 @@ Copied into `docs/operations/` as `extraction-operator-checklist.md`; each step 
 
 **X3 — Confirm the free plan.** Dashboard → Workers AI usage and Workers plans: the account is on **Workers Free**; the daily neuron meter is visible (10,000 neurons). Do not upgrade to Workers Paid: Workers AI would then bill past the free allowance. Record the date and the plan name (crawlers S19 holds the billing notifications).
 
-**X4 — Optional: set `BUDGET_NEURONS_DAILY` in Render** (default 8,000). Tighten it if other Cloudflare workloads also use Workers AI. Check with `GET /machine/budgets`.
+**X4 — Optional: set `BUDGET_NEURONS_DAILY` in Render** (default 9,500, 95 percent of the allowance, set by [E11](11-free-tier-caps-95.md)). Tighten it if other Cloudflare workloads also use Workers AI, because only 500 neurons a day are left unreserved. Check with `GET /machine/budgets`.
 
 **X5 — Run the probe (chapter E4 Step 0).** Locally with the two variables exported. Note the dashboard's neuron counter before and after. Record the table and the observed neurons.
 
