@@ -71,3 +71,52 @@ def test_forms_are_kept_inside_the_main_region_and_dropped_outside_it() -> None:
 def test_a_form_wrapping_the_whole_page_is_not_dropped() -> None:
     html = _page("<form id='aspnetForm'><p>Personalausweis</p><p>Meldebescheinigung</p></form>")
     assert clean_page(html, BASE).text == "Personalausweis\nMeldebescheinigung"
+
+
+def test_headings_list_items_table_rows_and_links_become_compact_markdown() -> None:
+    html = _page(
+        "<h1> Reisepass  beantragen </h1><p>Intro  text</p><h2>Unterlagen</h2>"
+        "<ul><li>Personalausweis</li><li>Foto <a href='/foto'>Muster</a></li></ul>"
+        "<table><tr><th>Dokument</th><th>Frist</th></tr><tr><td>Meldebescheinigung</td><td>3 Monate</td></tr></table>"
+        "<dl><dt>Gebühr</dt><dd>60 Euro</dd></dl>"
+        "<p>Formular: <a href='antrag.pdf#seite2'>Antrag</a></p>"
+    )
+    assert clean_page(html, BASE).text.splitlines() == [
+        "# Reisepass beantragen",
+        "Intro text",
+        "## Unterlagen",
+        "- Personalausweis",
+        "- Foto Muster (https://portal.example/foto)",
+        "Dokument | Frist",
+        "Meldebescheinigung | 3 Monate",
+        "Gebühr: 60 Euro",
+        "Formular: Antrag (https://portal.example/dienst/antrag.pdf)",
+    ]
+
+
+def test_nested_list_items_get_their_own_lines() -> None:
+    html = _page("<ul><li>Eltern<ul><li>Vater</li><li>Mutter</li></ul></li></ul>")
+    assert clean_page(html, BASE).text.splitlines() == ["- Eltern", "- Vater", "- Mutter"]
+
+
+@pytest.mark.parametrize("href", ["mailto:amt@portal.example", "javascript:void(0)", "#oben", "tel:+4930123"])
+def test_links_that_are_not_http_pages_keep_their_text_only(href: str) -> None:
+    html = _page(f"<p>Kontakt: <a href='{href}'>Amt</a></p>")
+    assert clean_page(html, BASE).text == "Kontakt: Amt"
+
+
+def test_a_link_whose_text_is_its_url_is_not_repeated() -> None:
+    html = _page("<p><a href='https://portal.example/a'>https://portal.example/a</a></p>")
+    assert clean_page(html, BASE).text == "https://portal.example/a"
+
+
+def test_empty_cells_and_empty_rows_leave_no_trace() -> None:
+    html = _page("<table><tr><td></td><td>Frist</td></tr><tr><td> </td><td></td></tr></table>")
+    assert clean_page(html, BASE).text == "Frist"
+
+
+def test_output_is_deterministic_and_collapses_whitespace_and_duplicate_lines() -> None:
+    html = _page("<p>Hinweis</p><p>Hinweis</p><p>A&nbsp;&nbsp;\n B</p><p>Hinweis</p><p>Hinweis</p>")
+    first = clean_page(html, BASE)
+    assert first == clean_page(html, BASE)
+    assert first.text.splitlines() == ["Hinweis", "A B", "Hinweis"]
