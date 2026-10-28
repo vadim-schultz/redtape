@@ -56,7 +56,7 @@ Leave the repository describing what exists, and collect every manual action in 
 4. `extraction docs describe the grounding rule and the tag consensus threshold`.
 5. `docs do not claim translation, per-document tags, edge emit or automatic emit as shipped` — negative scope contract.
 6. `every relative link in the extraction plan folder and the changed runbooks resolves`.
-7. `plans README lists nine extraction chapters`.
+7. `plans README lists ten extraction chapters`.
 
 **Green:** update the documents until the checks pass. **Refactor:** docs only; report "no code refactor needed".
 

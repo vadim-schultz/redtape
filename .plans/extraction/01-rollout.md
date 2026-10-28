@@ -1,6 +1,6 @@
 ---
 name: Extraction — Rollout
-overview: "Nine independently shippable chapters: staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
+overview: "Ten independently shippable chapters: a robots.txt rules fix that executes first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
 isProject: false
 ---
 
@@ -51,12 +51,15 @@ flowchart TD
   K20[crawlers 20 document detail] --> E8
   E7 --> E9[E9 DocsAndOperatorSteps]
   E8 --> E9
+  K2[crawlers 2 fetcher, merged] --> E10[E10 RobotsRulesFix]
+  E10 --> E9
 ```
 
-E1, E2, E3 and E4 are independent of each other. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
+E1, E2, E3 and E4 are independent of each other. E10 is independent of E1 to E9 and executes first, because it decides which pages are fetched and rendered at all. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
 
 ## Execution order
 
+0. [chapters/10-robots-rules-fix.md](chapters/10-robots-rules-fix.md) (E10, numbered last, executes first)
 1. [chapters/01-staging-groundwork.md](chapters/01-staging-groundwork.md)
 2. [chapters/02-page-cleaner.md](chapters/02-page-cleaner.md)
 3. [chapters/03-extraction-schema-and-grounding.md](chapters/03-extraction-schema-and-grounding.md)
@@ -80,6 +83,7 @@ E1, E2, E3 and E4 are independent of each other. E5 is the gate for the model an
 | E7 | Wiring and workflow | worker + CI workflow | paired tests + CI + live drain | [07](chapters/07-wiring-and-workflow.md) | planned |
 | E8 | Admin display | API + frontend | paired tests + web CI + browser check | [08](chapters/08-admin-display.md) | planned |
 | E9 | Docs sync and operator steps | docs + ops | link checks + docs tests + checklist | [09](chapters/09-docs-and-operator-steps.md) | planned |
+| E10 | Robots rules fix (executes first) | worker | paired tests + real-file fixtures + CI + re-pend counts | [10](chapters/10-robots-rules-fix.md) | planned |
 
 ## Per-chapter gate
 

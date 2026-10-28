@@ -25,6 +25,7 @@ isProject: false
 | X11 | **Reserve, then adjust.** A model call needs a granted neuron reservation first; the real cost corrects it afterwards. A provider quota error marks the day exhausted and releases tasks. The account stays on Workers Free. |
 | X12 | **The model is chosen by measurement.** The probe (E4) and the eval (E5) decide the model, mode and prompt version; the plan states prices and expectations, not a choice. |
 | X13 | **Re-extraction is deliberate.** A new schema version or model enqueues new tasks only through `llm requeue`, because it spends neurons. LLM mentions use a fixed `source_field`, so a re-run updates in place instead of duplicating. |
+| X14 | **robots.txt follows RFC 9309, in-house.** Python's `urllib.robotparser` is first-match and ignores `*` and `$`, which blocks pages a site allows and fetches files a site forbids (checked 2026-10-28 against four real files). A small matcher replaces it behind the unchanged `RobotsCache` interface; `Protego` is the pre-approved swap, no new dependency now. Executes first as chapter E10 because it decides which pages are fetched and rendered. A real `Disallow: /` stays blocked (`dipul.de`). |
 
 ## Open seams
 

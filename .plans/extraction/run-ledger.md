@@ -17,12 +17,14 @@ Update this ledger after every chapter implementation or documented operator ver
 | E7 | [Wiring and workflow](chapters/07-wiring-and-workflow.md) | planned | | | | |
 | E8 | [Admin display](chapters/08-admin-display.md) | planned | | | | |
 | E9 | [Docs sync and operator steps](chapters/09-docs-and-operator-steps.md) | planned | | | | |
+| E10 | [Robots rules fix](chapters/10-robots-rules-fix.md) (executes first) | planned | | | | Found 2026-10-28: `urllib.robotparser` is first-match and ignores `*` and `$`. Record the re-pend counts before and after. |
 
 ## Release checklist
 
 - [ ] Staging groundwork is deployed: `issued` role, mention columns, edge table, taxonomy route, tag aggregate (E1).
 - [ ] The cleaner meets its recall gate on the fixtures (E2).
 - [ ] Schema, prompt version and grounding are tested against canned model outputs (E3).
+- [ ] robots.txt verdicts follow RFC 9309 (longest match, `*`, `$`), the real-file fixtures pass, and the robots failures were re-pended once with counts recorded (E10).
 - [ ] The Workers AI probe is recorded: response shape, usage fields, accepted models, neurons per page, reasoning overhead, quota error body (E4).
 - [ ] The eval chose a model and prompt version, with precision, recall, grounded rate and tag agreement recorded (E5).
 - [ ] `llm_extract` completes tasks, releases on quota or budget, and never fails a page because of a limit (E6).
