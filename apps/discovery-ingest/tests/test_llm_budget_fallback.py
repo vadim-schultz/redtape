@@ -18,7 +18,9 @@ def _reserved(meter: NeuronMeter) -> Reservation:
     return reservation
 
 
-def test_refund_returns_a_ledgered_reservation_to_the_ledger_and_the_run_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_refund_returns_a_ledgered_reservation_to_the_ledger_and_the_run_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """refund · the ledger gets -estimate and the run total goes back to what it was."""
     ledger = FakeLedger(remaining=9000)
     meter = NeuronMeter(guard_for(monkeypatch, ledger), 4000)
