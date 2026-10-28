@@ -13,7 +13,7 @@ from discovery_ingest.extract.llm.evaluation import command
 from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
 
-from eval_fakes import ANSWERS, MODEL, FakeLlm, write_gold
+from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold
 from ledger_fakes import FakeLedger, guard_for
 from llm_fakes import taxonomy
 from llm_transport import ACCOUNT_ID, TOKEN
@@ -149,3 +149,51 @@ def test_a_provider_quota_error_marks_the_day_exhausted_and_a_rejected_token_sto
     ledger = _wire(monkeypatch, denied)
     assert _eval(tmp_path) == 1
     assert "exhaust" not in ledger.actions() and _out(tmp_path)["stopped"]["reason"] == "llm_auth"
+
+
+BIG_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+
+def test_a_cached_page_is_not_sent_again_for_the_same_model_prompt_and_cleaner_version(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval · a second run answers every page from the cache: no model call, no reservation, same scores and cost."""
+    write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    llm = FakeLlm()
+    ledger = _wire(monkeypatch, llm)
+    assert _eval(tmp_path) == 0
+    first = _out(tmp_path)
+    reserved = ledger.actions().count("reserve")
+
+    assert _eval(tmp_path) == 0
+
+    second = _out(tmp_path)
+    assert llm.calls == ["Reisepass", "Neuigkeiten"] and ledger.actions().count("reserve") == reserved
+    assert [page["cached"] for page in second["pages"]] == [True, True] and second["neurons_used"] == 0
+    assert second["summary"]["precision"] == first["summary"]["precision"]
+    assert second["summary"]["neurons_per_page"] == pytest.approx(first["summary"]["neurons_per_page"])
+
+
+def test_a_new_model_a_changed_page_or_a_damaged_cache_file_is_sent_again(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval · the cache is keyed by model and page text; an unreadable entry is a miss, never a crash."""
+    gold = write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    llm = FakeLlm()
+    _wire(monkeypatch, llm)
+    assert _eval(tmp_path) == 0
+    llm.calls.clear()
+
+    assert _eval(tmp_path, model=BIG_MODEL) == 0
+    assert llm.calls == ["Reisepass", "Neuigkeiten"]
+
+    llm.calls.clear()
+    (gold / "gamma.html").write_text(PAGES["gamma"].replace("Neuigkeiten", "Neuigkeiten und mehr"), encoding="utf-8")
+    assert _eval(tmp_path) == 0
+    assert llm.calls == ["Neuigkeiten"]
+
+    llm.calls.clear()
+    for entry in (tmp_path / "cache").glob("*.json"):
+        entry.write_text("{not json", encoding="utf-8")
+    assert _eval(tmp_path) == 0
+    assert llm.calls == ["Reisepass", "Neuigkeiten"]
