@@ -29,3 +29,8 @@ def absolutize_links(tree: LexborHTMLParser, base_url: str) -> None:
     """Rewrite every anchor ``href`` in place to its absolute http(s) form, or to ``""`` when it is not a web page."""
     for anchor in tree.css("a[href]"):
         anchor.attrs["href"] = absolute_web_url(anchor.attributes.get("href") or "", base_url)
+
+
+def link_set(tree: LexborHTMLParser) -> frozenset[str]:
+    """Return every absolute http(s) target of the whole document; call after :func:`absolutize_links`."""
+    return frozenset(href for anchor in tree.css("a[href]") if (href := anchor.attributes.get("href")))
