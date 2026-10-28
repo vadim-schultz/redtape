@@ -3,6 +3,7 @@
 **Loop branch:** `feat/extraction`
 **Release branch:** `main`
 **Release PR:** not opened.
+**CI policy (owner, 2026-10-28):** GitHub Actions minutes are exhausted until the end of October. Chapters gate on the full local CI and merge into the loop branch without remote CI. Rerun remote CI on the release PR if minutes are back.
 
 Update this ledger after every chapter implementation or documented operator verification. A chapter is not complete until its gate, its live gate (or the reason it is deferred), and its refactor outcome are recorded. Record GitHub Actions run IDs, or the local command and date, for every live gate, and the `neurons_used` of every model run.
 
@@ -18,7 +19,7 @@ Update this ledger after every chapter implementation or documented operator ver
 | E8 | [Admin display](chapters/08-admin-display.md) | planned | | | | |
 | E9 | [Docs sync and operator steps](chapters/09-docs-and-operator-steps.md) | planned | | | | |
 | E10 | [Robots rules fix](chapters/10-robots-rules-fix.md) (executes second) | planned | | | | Found 2026-10-28: `urllib.robotparser` is first-match and ignores `*` and `$`. Record the re-pend counts before and after. |
-| E11 | [Free-tier caps at 95 percent](chapters/11-free-tier-caps-95.md) (executes first) | planned | | | | Owner decision 2026-10-28. Record the Render overrides removed, the values the budgets route returns, and the database size headroom. |
+| E11 | [Free-tier caps at 95 percent](chapters/11-free-tier-caps-95.md) (executes first) | merged into `feat/extraction` ([PR #221](https://github.com/vadim-schultz/redtape/pull/221)) | Local gate 2026-10-28: api ruff, mypy, 921 tests; ingest ruff, mypy, 437 tests. Remote CI did not run (GitHub Actions minutes exhausted until month end); merged on local CI by owner decision. | Audited, nothing needed. | n/a (config only) | Owner decision 2026-10-28. Record the Render overrides removed, the values the budgets route returns, and the database size headroom. **Operator actions pending:** Render env overrides, budgets route (expect 950000 / 9500000 / 570 / 9500, `actions_minutes` 400), artifacts status `bytes_cap` 9500000000, `pg_database_size` vs 475 MB. |
 
 ## Release checklist
 
