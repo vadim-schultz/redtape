@@ -9,7 +9,7 @@ Update this ledger after every chapter implementation or documented operator ver
 
 | Chapter | Plan | Status | Verification | Refactor outcome | Live gate (run ID) | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| E1 | [Staging groundwork](chapters/01-staging-groundwork.md) | planned | | | | |
+| E1 | [Staging groundwork](chapters/01-staging-groundwork.md) | merged into `feat/extraction` ([PR #223](https://github.com/vadim-schultz/redtape/pull/223)) | Local gate 2026-10-28: api ruff, mypy, 963 tests; migration `20261029_staging_edges` round trip (up, down, up) and `alembic check` clean on a scratch database. Remote Actions did not run (billing). | Row builders moved to `mention_rows.py` and `edge_rows.py`, code filter to `candidate_codes.py`, tag adapter to `candidate_tags.py`. | n/a until deployed | **Operator actions pending:** apply the migration to Supabase/Render; then `GET /machine/taxonomy` returns 13 domains and 18 situations and candidate detail shows empty suggested codes. For E6/E8: mentions response has `unknown_codes`; edge batch response is `{edges_created, edges_updated, edges_skipped, skipped}`; `suggested_*_codes` are `{code, procedures, share, accepted}`; settings `discovery_tag_min_procedures` 2, `discovery_tag_min_share` 0.5. |
 | E2 | [Page cleaner](chapters/02-page-cleaner.md) | planned | | | | |
 | E3 | [Extraction schema, prompt and grounding](chapters/03-extraction-schema-and-grounding.md) | planned | | | | |
 | E4 | [Workers AI client, neuron meter and probe](chapters/04-workers-ai-client-and-probe.md) | planned | | | | |
