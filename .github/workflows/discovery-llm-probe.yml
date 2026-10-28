@@ -1,0 +1,80 @@
+name: Discovery LLM probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "Comma separated Workers AI model ids to probe (each costs neurons; keep it to a few)"
+        required: false
+        default: "@cf/meta/llama-3.3-70b-instruct-fp8-fast,@cf/meta/llama-3.1-8b-instruct,@cf/openai/gpt-oss-20b"
+        type: string
+      fixture:
+        description: "Rendered HTML page to clean and send, relative to apps/discovery-ingest"
+        required: false
+        default: "tests/fixtures/pages/table_page.html"
+        type: string
+      max_neurons:
+        description: "Stop before the next model once this many neurons are computed spent (the free plan allows 10,000 a day)"
+        required: false
+        default: "900"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-llm-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe Cloudflare Workers AI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+      PROBE_MODELS: ${{ inputs.models || '@cf/meta/llama-3.3-70b-instruct-fp8-fast,@cf/meta/llama-3.1-8b-instruct,@cf/openai/gpt-oss-20b' }}
+      PROBE_FIXTURE: ${{ inputs.fixture || 'tests/fixtures/pages/table_page.html' }}
+      PROBE_MAX_NEURONS: ${{ inputs.max_neurons || '900' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Probe the models
+        working-directory: apps/discovery-ingest
+        run: |
+          # The probe never prints the credentials. It needs no Discovery API address or key.
+          set +e
+          args=(--fixture "${PROBE_FIXTURE}" --max-neurons "${PROBE_MAX_NEURONS}")
+          IFS=',' read -ra models <<< "${PROBE_MODELS}"
+          for model in "${models[@]}"; do [ -n "${model// /}" ] && args+=(--model "${model// /}"); done
+          python -m discovery_ingest llm probe "${args[@]}" | tee ../../llm-probe.txt
+          echo "probe_exit=${PIPESTATUS[0]}" >> "${GITHUB_ENV}"
+
+      - name: Write probe output to job summary
+        if: always()
+        run: |
+          {
+            echo "### Cloudflare Workers AI probe"
+            echo
+            echo '```text'
+            cat llm-probe.txt 2>/dev/null || echo "No output was produced; see the probe step log."
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail the job when Cloudflare refused or the settings are missing
+        run: test "${probe_exit:-1}" = "0"

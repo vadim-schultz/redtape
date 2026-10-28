@@ -26,6 +26,7 @@ from discovery_ingest.enrich import (
     leika_stammtext_claim_requests,
     leika_stammtext_entity_request,
 )
+from discovery_ingest.extract.llm.probe_cli import llm_probe, register_llm_parser
 from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
 from discovery_ingest.fim.keys import STECKBRIEF_KEY_PATTERN
 from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
@@ -349,6 +350,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("budget", "show"): budget_show,
     ("budget", "report-minutes"): budget_report_minutes,
     ("browser", "probe"): browser_probe,
+    ("llm", "probe"): llm_probe,
     ("artifacts", "list"): artifacts_list,
     ("artifacts", "download"): artifacts_download,
 }
@@ -478,5 +480,6 @@ def _build_parser() -> argparse.ArgumentParser:
     emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
     register_budget_parser(sub)
     register_browser_parser(sub)
+    register_llm_parser(sub)
     register_artifacts_parser(sub)
     return parser
