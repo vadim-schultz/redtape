@@ -8,9 +8,12 @@ from collections.abc import Iterator
 from selectolax.lexbor import LexborHTMLParser, LexborNode
 
 DROP_TAGS = ["script", "style", "noscript", "template", "svg", "nav", "header", "footer", "aside"]
+HELPER_CLASSES = ("sr-only", "visually-hidden", "visuallyhidden", "screen-reader-text", "show-for-sr", "u-sr-only")
+"""Whole class tokens of visually hidden helper text: spoken by screen readers, never page content."""
 WIDGET_NAME = re.compile(r"(?<![a-z])(?:cookie|consent|search|breadcrumb)")
 ATTRIBUTE_SELECTOR = "[hidden], [aria-hidden], [id], [class]"
 MAIN_SELECTOR = "main, [role=main]"
+MAIN_CONTENT_SELECTOR = f"{MAIN_SELECTOR}, article"
 MAIN_MIN_CHARS = 600
 WIDGET_FORM_SHARE = 0.5
 
@@ -25,11 +28,30 @@ def _is_hidden(node: LexborNode) -> bool:
     return "hidden" in attributes or (attributes.get("aria-hidden") or "").lower() == "true"
 
 
+def _is_page_root(node: LexborNode) -> bool:
+    return node.tag in ("html", "body")
+
+
 def _is_widget(node: LexborNode) -> bool:
-    if node.tag in ("html", "body"):
+    if _is_page_root(node):
         return False
     name = f"{node.attributes.get('id') or ''} {node.attributes.get('class') or ''}"
     return WIDGET_NAME.search(name.lower()) is not None
+
+
+def _holds_main_content(node: LexborNode) -> bool:
+    """Return whether ``node`` is, or wraps, a main or article element."""
+    return node.tag in ("main", "article") or node.css_first(MAIN_CONTENT_SELECTOR) is not None
+
+
+def _is_helper_text(node: LexborNode) -> bool:
+    if _is_page_root(node) or _holds_main_content(node):
+        return False
+    return not set(HELPER_CLASSES).isdisjoint((node.attributes.get("class") or "").lower().split())
+
+
+def _is_doomed(node: LexborNode) -> bool:
+    return any(rule(node) for rule in (_is_hidden, _is_widget, _is_helper_text))
 
 
 def _ancestors(node: LexborNode) -> Iterator[LexborNode]:
@@ -46,9 +68,9 @@ def _outermost(nodes: list[LexborNode]) -> list[LexborNode]:
 
 
 def drop_boilerplate(tree: LexborHTMLParser) -> None:
-    """Remove scripts, page chrome, hidden elements and cookie, consent, search and breadcrumb widgets."""
+    """Remove scripts, page chrome, hidden and screen-reader-only elements and cookie, consent, search and breadcrumb widgets."""
     tree.strip_tags(DROP_TAGS)
-    doomed = [node for node in tree.css(ATTRIBUTE_SELECTOR) if _is_hidden(node) or _is_widget(node)]
+    doomed = [node for node in tree.css(ATTRIBUTE_SELECTOR) if _is_doomed(node)]
     for node in _outermost(doomed):
         node.decompose()
 

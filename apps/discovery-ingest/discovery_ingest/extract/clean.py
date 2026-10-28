@@ -13,7 +13,7 @@ from discovery_ingest.extract.clean_markdown import render_lines
 from discovery_ingest.extract.clean_meta import page_language, page_title
 from discovery_ingest.extract.clean_rank import span_of
 
-CLEAN_VERSION = "clean-3"
+CLEAN_VERSION = "clean-4"
 DEFAULT_MAX_CHARS = 30_000
 """The one cap on cleaned text; the settings and the llm_extract handler import it."""
 

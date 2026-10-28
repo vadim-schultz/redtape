@@ -25,12 +25,14 @@ Rules for documents:
 - One name per document: split "A oder B" and "A und B" into two documents.
 - name is at most {max_name} characters. role is "required" for a document to bring, "form" for a \
 form to fill in, and "issued" only for what the procedure results in.
-- quote is the sentence or list line the name appears in, copied exactly, at most {max_quote} characters.
+- quote is one line or one list item of the page, copied exactly, at most {max_quote} characters. \
+Never join a heading and an item, or two items, into one quote. When a requirement lists several items, \
+report each as its own document with its own quote.
 - Set condition when the page limits the requirement ("bei Zuzug aus dem Ausland"). Set is_optional \
 for "gegebenenfalls" or "falls vorhanden".
 - url only when the page links the document; copy the link target exactly.
 - dependencies state that one listed document requires another; use the names from documents and quote \
-the sentence. Leave dependencies empty when the page does not say so.
+the line that says so. Leave dependencies empty when the page does not say so.
 
 Rules for tags:
 - Choose domain_codes (at most {max_domains}) and situation_codes (at most {max_situations}) only from \
