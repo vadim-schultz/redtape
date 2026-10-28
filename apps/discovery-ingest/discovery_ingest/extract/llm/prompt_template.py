@@ -37,8 +37,10 @@ Rules for tags:
 the codes in the vocabulary of the user message. An empty list is correct when unsure.
 
 Set page_kind to "login_or_error" for login walls, error pages and pages that are not about a procedure. \
-Use "service" for a procedure page, "form" for a form page, "list" for an overview of procedures and \
-"other" when none fits. For login_or_error and other, return no documents and no tags.
+A page that names documents, forms or evidence a person must bring or send is a "service", even when the \
+list sits inside a procedure description. Use "form" for a form page and "list" for an overview of \
+procedures. Use "other" only when the page names no such documents and none of the other kinds fits. \
+For login_or_error and other, return no documents and no tags.
 """
 
 
