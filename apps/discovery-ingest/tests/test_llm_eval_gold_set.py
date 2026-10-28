@@ -48,7 +48,7 @@ def test_the_gold_set_has_about_twenty_pages_on_at_least_eight_hosts_and_every_r
 
     assert 18 <= len(pages) <= 24
     assert len(_hosts(pages)) >= 8
-    assert REQUIRED_KINDS <= kinds
+    assert kinds >= REQUIRED_KINDS
 
 
 def test_the_kind_tags_agree_with_the_labels() -> None:
@@ -78,7 +78,9 @@ def test_a_tampered_page_would_be_caught_by_the_trim_check() -> None:
     """gold set · the same digest differs as soon as one word of the page changes (the check can fail)."""
     page = load_gold(GOLD_DIR, limit=1)[0]
     original = hashlib.sha256(clean_page(page.html, page.source_url).text.encode()).hexdigest()
-    tampered = clean_page(page.html.replace("</body>", "<p>Phantom</p></body>"), page.source_url).text
+    tampered = clean_page(
+        page.html.replace("Arbeitsuchend melden", "Arbeitsuchend melden Phantom"), page.source_url
+    ).text
 
     assert hashlib.sha256(tampered.encode()).hexdigest() != original
 

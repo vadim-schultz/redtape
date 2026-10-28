@@ -1,0 +1,44 @@
+{
+  "source_url": "https://www.bundesarchiv.de/im-archiv-recherchieren/stasi-unterlagen-einsehen/akteneinsicht-fuer-privatpersonen/",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Antrag auf Akteneinsicht für Privatpersonen",
+      "role": "form"
+    },
+    {
+      "name": "Identitätsbestätigung",
+      "role": "required",
+      "condition": "wenn der Antrag per Post geschickt wird"
+    },
+    {
+      "name": "Personalausweis",
+      "role": "required",
+      "condition": "für den Online-Antrag mit Online-Ausweisfunktion"
+    },
+    {
+      "name": "elektronischen Aufenthaltstitel",
+      "role": "required",
+      "condition": "für den Online-Antrag, alternativ zum Personalausweis"
+    },
+    {
+      "name": "Nachweis des Verwandtschaftsverhältnisses",
+      "role": "required",
+      "condition": "bei Akteneinsicht für nahe Angehörige vermisster oder verstorbener Personen"
+    }
+  ],
+  "dependencies": [
+    {
+      "parent": "Antrag auf Akteneinsicht für Privatpersonen",
+      "requires": "Identitätsbestätigung"
+    },
+    {
+      "parent": "Antrag auf Akteneinsicht für Privatpersonen",
+      "requires": "Nachweis des Verwandtschaftsverhältnisses"
+    }
+  ],
+  "domain_codes": [
+    "law-justice"
+  ],
+  "situation_codes": []
+}

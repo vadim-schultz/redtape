@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError
 
 from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.llm.schema import Code, Name, PageKind, Role
+from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
 GOLD_SUFFIX = ".gold.json"
 
@@ -77,3 +78,9 @@ def load_gold(directory: Path, *, limit: int | None = None) -> list[GoldPage]:
         raise GoldError(f"gold set not found: {directory} is not a directory")
     names = sorted(path.name.removesuffix(GOLD_SUFFIX) for path in directory.glob(f"*{GOLD_SUFFIX}"))
     return [_read(directory, name) for name in names[:limit]]
+
+
+def unknown_codes(page: GoldPage, taxonomy: Taxonomy) -> list[str]:
+    """Return the domain and situation codes of ``page`` that the vocabulary does not contain."""
+    unknown_domains = [code for code in page.domain_codes if code not in taxonomy.domain_codes]
+    return unknown_domains + [code for code in page.situation_codes if code not in taxonomy.situation_codes]
