@@ -143,6 +143,44 @@ def test_admin_candidate_detail_returns_mentions_with_procedure_titles(
     assert row["portal_url"] == "https://example.gov/service"
 
 
+def test_admin_candidate_detail_shows_mention_conditions_codes_and_suggested_tags(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    first = _catalogue(db_session, external_id="svc-a")
+    second = _catalogue(db_session, external_id="svc-b")
+    candidate = _candidate(db_session, first, key="personalausweis")
+    for catalogue, situations in ((first, ["moving-house"]), (second, ["moving-house", "birth-of-child"])):
+        row = _mention(db_session, candidate, catalogue)
+        row.condition, row.is_optional = "bei Zuzug", False
+        row.domain_codes, row.situation_codes = ["housing"], situations
+    db_session.flush()
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    mention = body["mentions"][0]
+    assert (mention["condition"], mention["is_optional"]) == ("bei Zuzug", False)
+    assert (mention["domain_codes"], mention["situation_codes"]) == (["housing"], ["moving-house"])
+    assert body["suggested_domain_codes"] == [{"code": "housing", "procedures": 2, "share": 1.0, "accepted": True}]
+    assert body["suggested_situation_codes"] == [
+        {"code": "moving-house", "procedures": 2, "share": 1.0, "accepted": True},
+        {"code": "birth-of-child", "procedures": 1, "share": 0.5, "accepted": False},
+    ]
+
+
+def test_admin_candidate_detail_has_empty_suggestions_and_codes_without_tagged_mentions(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    _mention(db_session, candidate, catalogue)
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert (body["suggested_domain_codes"], body["suggested_situation_codes"]) == ([], [])
+    assert body["mentions"][0]["domain_codes"] == []
+    assert (body["mentions"][0]["condition"], body["mentions"][0]["is_optional"]) == (None, None)
+
+
 def test_admin_candidate_routes_reject_non_admins(client: TestClient[Litestar], db_session: Session) -> None:
     candidate = _candidate(db_session, _catalogue(db_session), key="personalausweis")
 
