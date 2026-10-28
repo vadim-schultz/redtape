@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from app.features.discovery.candidate_tags import accepted_codes, candidate_tag_suggestions
 from app.models.discovery import DiscoveryDocumentCandidate
 
 
@@ -15,8 +16,9 @@ class SuggestedTags(NamedTuple):
 
 
 def suggested_tags(candidate: DiscoveryDocumentCandidate) -> SuggestedTags:
-    """Return the codes to tag ``candidate`` with; none until the extraction suite aggregates its mentions' codes."""
-    return SuggestedTags([], [])
+    """Return the codes its mentions agree on, or none while no code has enough support."""
+    suggestions = candidate_tag_suggestions(candidate.mentions)
+    return SuggestedTags(accepted_codes(suggestions.domains), accepted_codes(suggestions.situations))
 
 
 def new_document_payload(candidate: DiscoveryDocumentCandidate, tags: SuggestedTags) -> dict[str, object]:

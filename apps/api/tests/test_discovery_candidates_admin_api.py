@@ -157,7 +157,7 @@ def test_admin_candidate_detail_shows_mention_conditions_codes_and_suggested_tag
 
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
 
-    mention = body["mentions"][0]
+    mention = next(m for m in body["mentions"] if m["catalogue_service_id"] == str(first.id))
     assert (mention["condition"], mention["is_optional"]) == ("bei Zuzug", False)
     assert (mention["domain_codes"], mention["situation_codes"]) == (["housing"], ["moving-house"])
     assert body["suggested_domain_codes"] == [{"code": "housing", "procedures": 2, "share": 1.0, "accepted": True}]

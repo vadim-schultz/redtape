@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.features.discovery.candidate_tags import candidate_tag_suggestions
 from app.features.discovery.lookups import require_candidate
 from app.features.discovery.repository import CandidateFilter, DiscoveryRepository, EdgeRow, Page
 from app.features.discovery.repository.candidate_listing import CandidateListRow
@@ -15,6 +16,7 @@ from app.schema.discovery.read import (
     CandidateListResponse,
     CandidateMentionRead,
     CandidateRead,
+    TagSupportRead,
 )
 
 
@@ -65,10 +67,13 @@ class CandidateAdminService:
         candidate = require_candidate(self._repo, candidate_id)
         rows = self._repo.list_candidate_mentions(candidate_id)
         mentions = [CandidateMentionRead.from_row(*row) for row in rows]
+        suggestions = candidate_tag_suggestions(row.mention for row in rows)
         return CandidateDetailResponse(
             candidate=CandidateRead.from_row(candidate, mention_count=len(mentions)),
             jurisdiction_name_i18n=self._repo.get_jurisdiction_name_i18n(candidate.jurisdiction_id),
             mentions=mentions,
+            suggested_domain_codes=[TagSupportRead(**s._asdict()) for s in suggestions.domains],
+            suggested_situation_codes=[TagSupportRead(**s._asdict()) for s in suggestions.situations],
         )
 
     def candidate_edges(self, candidate_id: UUID) -> CandidateEdgeListResponse:
