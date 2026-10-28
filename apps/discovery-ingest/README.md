@@ -31,12 +31,14 @@ python -m discovery_ingest worker drain --kinds fetch_url,harvest_payload --max-
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--kinds` | `fetch_url,enrich_metadata,harvest_payload,extract_page` | Task kinds to claim; an unknown kind exits 2 before any claim |
-| `--max-tasks` | 50 | Tasks per claim request (1–50) |
+| `--max-tasks` | 50 (5 for `llm_extract`) | Tasks per claim request (1–50) |
 | `--max-batches` | 1 | Maximum batches |
 | `--time-budget-seconds` | none | Wall-clock budget for the whole drain |
 | `--browser-budget-seconds` | 570 | Browser seconds for `render_page` and `capture_screenshot` |
+| `--neuron-budget` | none | Workers AI neurons for `llm_extract`; required for that kind |
 
-The command prints one JSON report with `stop_reason`, `remaining`, `released` and `browser_seconds_used`. Kinds,
+The command prints one JSON report with `stop_reason`, `remaining`, `released`, `browser_seconds_used`, `neurons_used`
+and `llm_calls`. Kinds,
 retry rules, stop reasons and the free-plan limits are in
 [`docs/operations/discovery-online.md`](../../docs/operations/discovery-online.md).
 
@@ -157,6 +159,31 @@ cannot spend more than the day has left.
 - Answers are cached in `--cache-dir` (default `.llm-eval-cache/`, ignored by git) by model, prompt version, cleaner
   version, vocabulary and page text, so a re-run of an unchanged page costs nothing. The cached cost is still reported.
 - A page whose cleaned text is empty (a client-side shell) is not sent and scores as nothing found.
+
+### Drain `llm_extract`
+
+`llm_extract` reads a stored snapshot, cleans it, asks the model for documents, dependencies and tags, grounds the
+answer against the page and stages mentions, then edges. It is never in the default kinds. Name it explicitly, with a
+neuron budget:
+
+```bash
+python -m discovery_ingest worker drain --kinds llm_extract --max-tasks 5 --max-batches 1 --neuron-budget 800
+```
+
+The drain exits before claiming anything when a requirement is missing: exit 2 for `CLOUDFLARE_ACCOUNT_ID`,
+`CLOUDFLARE_AI_API_TOKEN`, `LLM_MODEL` (a model with a price row), or `--neuron-budget`; exit 1 when the neuron ledger
+(`GET /machine/budgets`), artifact storage or the taxonomy (`GET /machine/taxonomy`) cannot be read. An llm drain claims
+5 tasks per batch unless `--max-tasks` says otherwise.
+
+Every model call reserves its estimated neurons first and settles to the token usage afterwards. A page whose cleaned
+text is under 200 characters (a client-side shell) completes as `no_content` without a reservation or a call. Other
+completion notes are `login_wall`, `no_documents` and the counts of a posted page, for example `docs=7 edges=5
+dropped=2`. An unusable model answer is retried once under a second reservation, then the task fails permanently.
+
+A spent run budget or day (`llm_budget`), a provider quota error (`llm_quota`, the ledger is told), the database soft
+limit (`db_limit`) and unavailable storage release the in-flight and unstarted tasks and end the run successfully. A
+rejected token ends it as `error` (exit 1). A ledger that stops answering falls back to the run budget and the report
+says `ledger_unavailable`.
 
 ### Run a browser drain on your machine
 
