@@ -14,6 +14,7 @@ from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, 
 from discovery_ingest.extract.llm.evaluation import command
 from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
+from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold
 from ledger_fakes import FakeLedger, guard_for
@@ -32,10 +33,13 @@ def _env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
 
 
-def _wire(monkeypatch: pytest.MonkeyPatch, llm: FakeLlm, ledger: FakeLedger | None = None) -> FakeLedger:
+def _wire(
+    monkeypatch: pytest.MonkeyPatch, llm: FakeLlm, ledger: FakeLedger | None = None, vocabulary: Taxonomy | None = None
+) -> FakeLedger:
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
-    monkeypatch.setattr(command, "_runtime", lambda _settings, _model: EvalRuntime(llm, guard, taxonomy()))
+    runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
+    monkeypatch.setattr(command, "_runtime", lambda _settings, _model: runtime)
     return ledger
 
 
@@ -153,6 +157,7 @@ def test_a_provider_quota_error_marks_the_day_exhausted_and_a_rejected_token_sto
     assert "exhaust" not in ledger.actions() and _out(tmp_path)["stopped"]["reason"] == "llm_auth"
 
 
+REAL_TAXONOMY = Path(__file__).parent / "fixtures" / "gold" / "taxonomy.json"
 BIG_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 
@@ -279,3 +284,21 @@ def test_a_credential_inside_an_error_text_is_scrubbed_at_the_command_even_when_
     shown = capsys.readouterr()
     written = (tmp_path / "out.json").read_text(encoding="utf-8")
     assert TOKEN not in shown.out + shown.err + written and "<redacted>" in written
+
+
+def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cleaner_recall(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval · with no --gold-dir the 20 real pages run; the empty shell is not sent; a silent model scores recall 0."""
+    silent = {"page_kind": "other", "domain_codes": [], "situation_codes": [], "documents": [], "dependencies": []}
+    llm = FakeLlm({"<page>": silent})
+    _wire(monkeypatch, llm, vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8")))
+
+    code = main(
+        ["llm", "eval", "--model", MODEL, "--cache-dir", str(tmp_path / "cache"), "--out", str(tmp_path / "out.json")]
+    )
+
+    summary = _out(tmp_path)["summary"]
+    assert code == 0 and summary["pages_run"] == 20 and len(llm.calls) == 19
+    assert (summary["recall"], summary["precision"], summary["failed_pages"]) == (0.0, 1.0, 0)
+    assert summary["cleaner_recall"] == pytest.approx(44 / 47)
