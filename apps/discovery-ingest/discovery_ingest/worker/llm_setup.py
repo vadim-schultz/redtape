@@ -1,0 +1,81 @@
+"""Refuse an llm_extract drain before it claims anything: credentials, model, ledger, storage and vocabulary must be ready."""
+
+from __future__ import annotations
+
+import httpx
+
+from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.browser.throttle import Throttle
+from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.config import IngestSettings
+from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
+from discovery_ingest.extract.llm.meter import RESOURCE
+from discovery_ingest.extract.llm.prices import known_models
+from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.worker.llm_runtime import LlmResources
+from discovery_ingest.worker.storage_guard import storage_problem
+
+EXIT_MISSING_SETTINGS = 2
+EXIT_NOT_READY = 1
+MIN_INTERVAL_SECONDS = 1.0
+
+
+class LlmSetupError(Exception):
+    """The drain must not start; ``exit_code`` is the command's exit status and the message says why."""
+
+    def __init__(self, message: str, exit_code: int) -> None:
+        """Keep the process ``exit_code`` beside the message."""
+        super().__init__(message)
+        self.exit_code = exit_code
+
+
+def _check_settings(settings: IngestSettings) -> str:
+    """Return the model id, or raise when a Workers AI variable, the model or its price is missing."""
+    missing = settings.missing_ai_credentials()
+    if missing:
+        raise LlmSetupError(
+            f"llm_extract needs these environment variables: {', '.join(missing)}", EXIT_MISSING_SETTINGS
+        )
+    if not settings.llm_model:
+        raise LlmSetupError(
+            "llm_extract needs the environment variable LLM_MODEL (a Workers AI model id)", EXIT_MISSING_SETTINGS
+        )
+    if settings.llm_model not in known_models():
+        raise LlmSetupError(
+            f"LLM_MODEL {settings.llm_model} has no neuron price; known: {', '.join(known_models())}",
+            EXIT_MISSING_SETTINGS,
+        )
+    return settings.llm_model
+
+
+def _check_ledger(client: DiscoveryMachineClient) -> None:
+    if BudgetGuard(client).remaining(RESOURCE).ledger_unavailable:
+        raise LlmSetupError(
+            "cannot read the neuron budget ledger (GET /machine/budgets); llm_extract will not spend without it",
+            EXIT_NOT_READY,
+        )
+
+
+def _check_storage(client: DiscoveryMachineClient) -> None:
+    problem = storage_problem(client, "an extraction has no snapshots to read")
+    if problem is not None:
+        raise LlmSetupError(problem, EXIT_NOT_READY)
+
+
+def _taxonomy(client: DiscoveryMachineClient) -> Taxonomy:
+    try:
+        return client.get_taxonomy()
+    except DiscoveryMachineApiError as err:
+        raise LlmSetupError(f"cannot read the taxonomy (GET /machine/taxonomy): {err}", EXIT_NOT_READY) from err
+
+
+def prepare_llm(settings: IngestSettings, client: DiscoveryMachineClient) -> LlmResources:
+    """Return the model resources, or raise :class:`LlmSetupError` when ``llm_extract`` cannot be drained."""
+    model = _check_settings(settings)
+    _check_ledger(client)
+    _check_storage(client)
+    taxonomy = _taxonomy(client)
+    model_client = CloudflareAiClient(
+        settings, model=model, http=httpx.Client(trust_env=True), throttle=Throttle(MIN_INTERVAL_SECONDS)
+    )
+    return LlmResources(model_client, taxonomy, model, settings.llm_max_tokens, settings.llm_input_chars)

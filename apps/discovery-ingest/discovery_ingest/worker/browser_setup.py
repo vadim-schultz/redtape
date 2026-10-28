@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import httpx
-from pydantic import ValidationError
-
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.browser.client import CloudflareBrowserClient
 from discovery_ingest.config import BrowserSettings
+from discovery_ingest.worker.storage_guard import storage_problem
 
 EXIT_MISSING_SETTINGS = 2
 EXIT_STORAGE_NOT_READY = 1
@@ -31,12 +29,7 @@ def prepare_browser(
         raise BrowserSetupError(
             f"browser kinds need these environment variables: {', '.join(missing)}", EXIT_MISSING_SETTINGS
         )
-    try:
-        enabled = client.get_artifact_status().storage_enabled
-    except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError) as err:
-        raise BrowserSetupError(f"cannot read the artifact storage status: {err}", EXIT_STORAGE_NOT_READY) from err
-    if not enabled:
-        raise BrowserSetupError(
-            "artifact storage is not configured on the API; a render has nowhere to go", EXIT_STORAGE_NOT_READY
-        )
+    problem = storage_problem(client, "a render has nowhere to go")
+    if problem is not None:
+        raise BrowserSetupError(problem, EXIT_STORAGE_NOT_READY)
     return CloudflareBrowserClient(settings, user_agent=user_agent)

@@ -130,7 +130,7 @@ def test_the_drain_report_includes_neurons_calls_released_and_the_llm_stop_reaso
     api = _api(monkeypatch)
     assert main(DRAIN) == 0
     done = json.loads(capsys.readouterr().out)
-    assert (done["completed"], done["llm_calls"], done["released"], done["stop_reason"]) == (1, 1, 0, "queue_empty")
+    assert (done["completed"], done["llm_calls"], done["released"], done["stop_reason"]) == (1, 1, 0, "batch_limit")
     assert done["neurons_used"] == pytest.approx(cost(MODEL, 1000, 200), abs=0.1)
     assert api.edge_posts and api.finishes[0]["status"] == "succeeded"
 
