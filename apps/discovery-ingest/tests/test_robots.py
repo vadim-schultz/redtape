@@ -58,6 +58,13 @@ def test_a_4xx_robots_response_allows_everything(status: int) -> None:
     assert cache.allowed(BLOCKED_URL) is True
 
 
+def test_a_4xx_robots_body_is_never_read_as_rules() -> None:
+    """a 4xx answer allows everything even when its error page body looks like rules."""
+    cache, _ = _cache(_answer(404, "User-agent: *\nDisallow: /\n"))
+
+    assert cache.allowed(BLOCKED_URL) is True
+
+
 @pytest.mark.parametrize("failure", [_answer(500), _answer(503), FetchOutcome(None, None, None, "timed out")])
 def test_a_5xx_or_transport_failure_raises_and_is_cached_per_origin(failure: FetchOutcome) -> None:
     """a 5xx or transport failure raises RobotsUnavailableError and is cached per origin."""
