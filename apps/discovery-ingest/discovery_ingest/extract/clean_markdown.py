@@ -39,7 +39,8 @@ _INLINE_PARTS: dict[str, Callable[[LexborNode], str]] = {TEXT_TAG: _text, "a": _
 
 
 def _inline_part(node: LexborNode) -> str:
-    return _INLINE_PARTS.get(node.tag or "", _nested_inline)(node)
+    part = _INLINE_PARTS.get(node.tag or "", _nested_inline)(node)
+    return f" {part} " if _is_block(node) else part
 
 
 def _flush(buffer: list[str]) -> Iterator[str]:

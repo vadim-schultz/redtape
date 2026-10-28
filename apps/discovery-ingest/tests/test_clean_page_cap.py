@@ -141,3 +141,14 @@ def test_a_list_of_ten_links_or_a_long_list_with_sentences_keeps_its_document_or
         max_chars=len("## Wegweiser") + 12 * (len("- Bitte bringen Sie den Personalausweis zum Termin mit.") + 1),
     )
     assert page.text.startswith("## Wegweiser")
+
+
+def test_a_list_of_downloads_with_file_sizes_is_not_a_menu(monkeypatch: pytest.MonkeyPatch) -> None:
+    """cap · twelve links that each name a file with its size are documents, so they keep their place under the cap."""
+    items = "".join(f"<li><a href='/d{index}.pdf'>Anlage {index} (PDF, 10 KB)</a></li>" for index in range(12))
+    downloads = "## Anlagen\n" + "\n".join(
+        f"- Anlage {index} (PDF, 10 KB) (https://portal.example/d{index}.pdf)" for index in range(12)
+    )
+    html = f"<html><body><h2>Anlagen</h2><ul>{items}</ul><h2>Hinweise</h2><p>Bitte bringen Sie den Personalausweis mit.</p></body></html>"
+    page = clean_page(html, BASE, max_chars=len(downloads))
+    assert page.text == downloads

@@ -68,6 +68,14 @@ def main_region(tree: LexborHTMLParser) -> LexborNode | None:
     return tree.body
 
 
+def preferred_region(region: LexborNode) -> LexborNode | None:
+    """Return the main element of ``region``, else its longest article, else ``None``."""
+    for main in region.css(MAIN_SELECTOR)[:1]:
+        return main
+    articles = region.css("article")
+    return max(articles, key=lambda article: len(visible_text(article)), default=None)
+
+
 def drop_widget_forms(region: LexborNode) -> None:
     """Drop the forms of a body-wide region unless one wraps most of the page (an ASP.NET page form)."""
     total = len(visible_text(region))

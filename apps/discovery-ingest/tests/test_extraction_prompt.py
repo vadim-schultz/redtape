@@ -88,7 +88,7 @@ def test_page_text_never_reaches_the_system_message() -> None:
 def test_the_extractor_version_stamps_prompt_cleaner_and_vocabulary() -> None:
     version = extractor_version(page(TEXT), taxonomy())
     assert HEX_STAMP.match(version)
-    assert version.startswith(f"{PROMPT_VERSION}+clean-1+tax:")
+    assert version.startswith(f"{PROMPT_VERSION}+clean-2+tax:")
     assert len(version) <= API_EXTRACTOR_VERSION_LIMIT
 
 

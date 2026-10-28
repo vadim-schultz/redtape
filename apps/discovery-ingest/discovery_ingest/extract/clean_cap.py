@@ -2,22 +2,7 @@
 
 from __future__ import annotations
 
-import re
-
-PRIORITY_WORDS = (
-    "unterlagen",
-    "nachweis",
-    "voraussetzung",
-    "formular",
-    "erforderlich",
-    "mitbring",
-    "antrag",
-    "dokument",
-)
-_PRIORITY_HEADING = re.compile(rf"#{{1,6}} .*(?:{'|'.join(PRIORITY_WORDS)})", re.IGNORECASE)
-_HEADING = re.compile(r"#{1,6} ")
-
-Section = list[str]
+from discovery_ingest.extract.clean_rank import Section, is_heading, section_keys
 
 
 def _length(lines: list[str]) -> int:
@@ -28,19 +13,16 @@ def split_sections(lines: list[str]) -> list[Section]:
     """Group ``lines`` into sections, each starting at a heading line (text before the first heading is one)."""
     sections: list[Section] = []
     for line in lines:
-        if _HEADING.match(line) or not sections:
+        if is_heading(line) or not sections:
             sections.append([])
         sections[-1].append(line)
     return sections
 
 
-def _is_priority(section: Section) -> bool:
-    return _PRIORITY_HEADING.match(section[0]) is not None
-
-
-def _priority_order(sections: list[Section]) -> list[int]:
-    """Section indices with priority sections first; each group keeps document order."""
-    return sorted(range(len(sections)), key=lambda index: not _is_priority(sections[index]))
+def _rank_order(sections: list[Section], preferred: range | None) -> list[int]:
+    """Section indices best first: main content, then prose, then priority headings; each group keeps document order."""
+    keys = section_keys(sections, preferred)
+    return sorted(range(len(sections)), key=keys.__getitem__)
 
 
 def _leading_fit(lines: Section, budget: int) -> Section:
@@ -54,10 +36,10 @@ def _leading_fit(lines: Section, budget: int) -> Section:
     return taken
 
 
-def _budgeted(sections: list[Section], max_chars: int) -> dict[int, Section]:
+def _budgeted(sections: list[Section], max_chars: int, preferred: range | None) -> dict[int, Section]:
     kept: dict[int, Section] = {}
     budget = max_chars + 1
-    for index in _priority_order(sections):
+    for index in _rank_order(sections, preferred):
         taken = _leading_fit(sections[index], budget)
         if taken:
             kept[index] = taken
@@ -67,9 +49,12 @@ def _budgeted(sections: list[Section], max_chars: int) -> dict[int, Section]:
     return kept
 
 
-def cap_lines(lines: list[str], max_chars: int) -> tuple[list[str], bool]:
-    """Return ``lines`` within ``max_chars`` joined by newlines, and whether anything was left out."""
+def cap_lines(lines: list[str], max_chars: int, preferred: range | None = None) -> tuple[list[str], bool]:
+    """Return ``lines`` within ``max_chars`` joined by newlines, and whether anything was left out.
+
+    ``preferred`` is the range of ``lines`` that come from the main region; its sections are kept first.
+    """
     if _length(lines) <= max_chars:
         return lines, False
-    kept = _budgeted(split_sections(lines), max_chars)
+    kept = _budgeted(split_sections(lines), max_chars, preferred)
     return [line for index in sorted(kept) for line in kept[index]], True
