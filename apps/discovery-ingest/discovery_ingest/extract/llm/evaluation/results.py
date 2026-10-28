@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from discovery_ingest.extract.llm.evaluation.metrics import Counts
+from discovery_ingest.extract.llm.ground_state import DroppedItem
 
 PageStatus = Literal["ok", "invalid_output", "request_error", "empty_page"]
 
@@ -22,7 +23,7 @@ class Usage:
 
 @dataclass(frozen=True, slots=True)
 class Scores:
-    """How one page scored: document and edge counts, raw and surviving items, codes and the predicted kind."""
+    """How one page scored: counts, raw and surviving items, codes, the predicted kind and the items lost."""
 
     documents: Counts
     edges: Counts
@@ -31,6 +32,7 @@ class Scores:
     predicted_codes: tuple[str, ...] = ()
     gold_codes: tuple[str, ...] = ()
     page_kind: str | None = None
+    dropped: tuple[DroppedItem, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

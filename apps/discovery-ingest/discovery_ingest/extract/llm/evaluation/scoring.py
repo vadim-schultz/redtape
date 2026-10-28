@@ -5,8 +5,9 @@ from __future__ import annotations
 from discovery_ingest.extract.llm.evaluation.gold import GoldPage
 from discovery_ingest.extract.llm.evaluation.metrics import Counts, document_counts, edge_counts
 from discovery_ingest.extract.llm.evaluation.results import Scores
-from discovery_ingest.extract.llm.ground_state import Grounded
-from discovery_ingest.extract.llm.schema import PageExtraction
+from discovery_ingest.extract.llm.ground import NON_PROCEDURE_KINDS
+from discovery_ingest.extract.llm.ground_state import DroppedItem, Grounded
+from discovery_ingest.extract.llm.schema import DependencyItem, DocumentItem, PageExtraction
 
 
 def gold_codes(gold: GoldPage) -> tuple[str, ...]:
@@ -22,6 +23,14 @@ def nothing_found(gold: GoldPage) -> Scores:
     """Return the scores of a page where the model said nothing usable: every gold item is missed."""
     documents, edges = _gold_counts(gold)
     return Scores(documents, edges, gold_codes=gold_codes(gold))
+
+
+def lost_items(extraction: PageExtraction, grounded: Grounded) -> tuple[DroppedItem, ...]:
+    """Return every item grounding lost; on a login or non-procedure page the whole answer is lost for its kind."""
+    if extraction.page_kind in NON_PROCEDURE_KINDS:
+        items: list[DocumentItem | DependencyItem] = [*extraction.documents, *extraction.dependencies]
+        return tuple(DroppedItem("page_kind", item) for item in items)
+    return grounded.diagnostics.dropped_items
 
 
 def score_page(gold: GoldPage, extraction: PageExtraction, grounded: Grounded) -> Scores:
@@ -40,4 +49,5 @@ def score_page(gold: GoldPage, extraction: PageExtraction, grounded: Grounded) -
         predicted_codes=(*grounded.domain_codes, *grounded.situation_codes),
         gold_codes=gold_codes(gold),
         page_kind=extraction.page_kind,
+        dropped=lost_items(extraction, grounded),
     )

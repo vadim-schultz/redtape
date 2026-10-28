@@ -9,6 +9,8 @@ from discovery_ingest.extract.llm.evaluation.report import pages_per_day
 from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.evaluation.summary import Summary
+from discovery_ingest.extract.llm.ground_state import DroppedItem
+from discovery_ingest.extract.llm.schema import DependencyItem
 
 
 def _counts(counts: Counts) -> dict[str, JsonValue]:
@@ -35,6 +37,11 @@ def _summary(summary: Summary) -> dict[str, JsonValue]:
     }
 
 
+def _dropped(dropped: DroppedItem) -> dict[str, JsonValue]:
+    kind = "dependency" if isinstance(dropped.item, DependencyItem) else "document"
+    return {"reason": dropped.reason, "kind": kind, "item": dropped.item.model_dump(mode="json")}
+
+
 def _page(page: PageResult) -> dict[str, JsonValue]:
     scores, usage = page.scores, page.usage
     return {
@@ -56,6 +63,7 @@ def _page(page: PageResult) -> dict[str, JsonValue]:
         "predicted_codes": list(scores.predicted_codes),
         "gold_codes": list(scores.gold_codes),
         "missing_from_cleaned_text": list(page.missing_names),
+        "dropped": [_dropped(item) for item in scores.dropped],
     }
 
 
