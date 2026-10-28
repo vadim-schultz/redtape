@@ -68,7 +68,7 @@ idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
 | `CLOUDFLARE_AI_API_TOKEN` | only for `llm probe` and `llm_extract` | A custom token with only the Workers AI permission, next to `CLOUDFLARE_ACCOUNT_ID`. Never a Render variable; never commit it |
-| `LLM_MODEL`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Model id (chosen by the eval), output cap (1500), page characters sent (12000) and per-call timeout (60) |
+| `LLM_MODEL`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Model id (chosen by the eval), output cap (4000), page characters sent (30000) and per-call timeout (60) |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
 Copy [`.env.example`](.env.example) to `.env` for local runs.
@@ -148,7 +148,7 @@ It needs `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` (the budget ledger and `GET
 Cloudflare variables, and it never prints the token. Every call reserves neurons from the ledger first, so an eval
 cannot spend more than the day has left.
 
-- `--neuron-budget` (default 4000) ends the run before the page that would pass it. The pages done so far are
+- `--neuron-budget` (default 4000; use 5000 for the 70b model) ends the run before the page that would pass its reservation (up to about 900 neurons for a long page). The pages done so far are
   printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
   token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
 - `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`ext-2`); the option names
@@ -170,7 +170,7 @@ answer against the page and stages mentions, then edges. It is never in the defa
 neuron budget:
 
 ```bash
-python -m discovery_ingest worker drain --kinds llm_extract --max-tasks 5 --max-batches 1 --neuron-budget 800
+python -m discovery_ingest worker drain --kinds llm_extract --max-tasks 5 --max-batches 1 --neuron-budget 2500
 ```
 
 The drain exits before claiming anything when a requirement is missing: exit 2 for `CLOUDFLARE_ACCOUNT_ID`,
@@ -178,7 +178,7 @@ The drain exits before claiming anything when a requirement is missing: exit 2 f
 (`GET /machine/budgets`), artifact storage or the taxonomy (`GET /machine/taxonomy`) cannot be read. An llm drain claims
 5 tasks per batch unless `--max-tasks` says otherwise.
 
-Every model call reserves its estimated neurons first and settles to the neurons the API reported (the priced token usage when it reports none) afterwards. A page whose cleaned
+Every model call reserves its estimated neurons first (the page's tokens at the input price, plus an answer sized to the page: 500 tokens and a quarter of the page, never above `LLM_MAX_TOKENS`; about 890 neurons for a 30,000-character page on the 70b model, about 270 for an average page) and settles to the neurons the API reported (the priced token usage when it reports none) afterwards. A page whose cleaned
 text is under 200 characters (a client-side shell) completes as `no_content` without a reservation or a call. Other
 completion notes are `login_wall`, `no_documents` and the counts of a posted page, for example `docs=7 edges=5
 dropped=2`. An unusable model answer is retried once under a second reservation, then the task fails permanently.

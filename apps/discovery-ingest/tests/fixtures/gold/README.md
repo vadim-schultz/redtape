@@ -42,7 +42,7 @@ The rule is the one in the extraction prompt (`ext-1`).
 ## The pages
 
 Counts are characters of the decoded HTML (raw), of the cleaned text with the
-default 12,000 character cap (cleaned) and without a cap (full). "Docs" and
+default 30,000 character cap (cleaned) and without a cap (full). "Docs" and
 "Edges" count gold labels: 47 documents and 2 edges in total.
 
 | Page | Page kind | Docs | Edges | Raw | Cleaned | Full | Kinds |
@@ -51,10 +51,10 @@ default 12,000 character cap (cleaned) and without a cap (full). "Docs" and
 | `aa-ferienbeschaeftigung` | service | 8 | 0 | 110,684 | 6,924 | 6,924 | service, conditional |
 | `aa-transferkurzarbeitergeld` | service | 9 | 0 | 95,332 | 3,709 | 3,709 | service, conditional |
 | `aa-arbeitslos-schritte` | list | 0 | 0 | 61,110 | 1,388 | 1,388 | list, no-documents |
-| `ble-fleisch-intervention` | service | 8 | 0 | 52,994 | 11,803 | 21,238 | service, conditional, truncated |
-| `ble-wein-neuanpflanzung` | service | 3 | 0 | 56,338 | 11,956 | 20,249 | service, truncated |
+| `ble-fleisch-intervention` | service | 8 | 0 | 52,994 | 21,238 | 21,238 | service, conditional, truncated |
+| `ble-wein-neuanpflanzung` | service | 3 | 0 | 56,338 | 20,249 | 20,249 | service, truncated |
 | `ble-kaese-lagerhaltung` | other | 0 | 0 | 36,674 | 11,677 | 11,677 | no-documents |
-| `bundesarchiv-akteneinsicht` | service | 5 | 2 | 144,830 | 11,865 | 17,716 | service, accordion, conditional, truncated |
+| `bundesarchiv-akteneinsicht` | service | 5 | 2 | 144,830 | 17,716 | 17,716 | service, accordion, conditional, truncated |
 | `bfj-gewerbezentralregister` | list | 0 | 0 | 106,506 | 5,949 | 5,949 | list, no-documents |
 | `bzkj-antrag-indizierung` | form | 1 | 0 | 41,520 | 1,940 | 1,940 | form |
 | `kba-zfer-login` | login_or_error | 0 | 0 | 28,353 | 1,368 | 1,368 | login-wall, no-documents |
@@ -70,7 +70,7 @@ default 12,000 character cap (cleaned) and without a cap (full). "Docs" and
 
 Kinds: `accordion` pages hide their sections behind collapsed toggles (14
 toggles on the Bundesarchiv page, an FAQ accordion on `nebenwirkungen.bund.de`);
-`list` pages only link to procedures; `truncated` pages hit the cleaner cap.
+`list` pages only link to procedures; `truncated` pages hit the 12,000-character cap of `clean-1` and `clean-2`; none hits the 30,000-character cap of `clean-3`, and the manifest keeps the kind as a record.
 
 ## Source URL and fetch date
 
@@ -118,17 +118,20 @@ language and title were compared at trim time).
 ## Offline measurement: cleaner recall
 
 `cleaner_recall` is the share of gold document names whose slug appears, as
-whole words, in the cleaned text. Measured on 2026-10-28 over the 47 gold
-names: **44 of 47 (0.936)** with the default cap, **46 of 47 (0.979)** with no cap.
+whole words, in the cleaned text. Measured over the 47 gold names: **44 of 47
+(0.936)** on 2026-10-28 with `clean-1` and its 12,000-character cap, 46 of 47
+(0.979) with `clean-2`, and **47 of 47 (1.000)** with `clean-3` and the default
+30,000-character cap (chapter E14), which equals the uncapped result because no
+gold page is longer than 21,238 characters.
 
-| Gold name | Page | Cause |
-| --- | --- | --- |
-| Bestandsliste | `ble-fleisch-intervention` | Cut by the 12,000 character cap. The BLE content sits behind thousands of characters of menu links, so the page is 21,238 characters long. |
-| Nachweis des Verwandtschaftsverhältnisses | `bundesarchiv-akteneinsicht` | Cut by the cap: the page text is 17,716 characters long. |
-| Antragsformular Ferienbeschäftigung für ausländische Studierende, Fachschüler/innen | `aa-ferienbeschaeftigung` | A `strong` title is followed by a block `div` inside one link, and the cleaner joins them without a space ("Fachschüler/innenFormular für den Arbeitgeber"), so the name never ends at a word boundary. |
-
-The model sees the same text, so these names cannot be found by any model.
-They count against the cleaner, not against the model.
+The two names that the 12,000-character cap cut (`Bestandsliste` on
+`ble-fleisch-intervention`, `Nachweis des Verwandtschaftsverhältnisses` on
+`bundesarchiv-akteneinsicht`) are inside the text now. The third miss, a link
+title joined to a block description without a space on
+`aa-ferienbeschaeftigung`, was fixed in `clean-2`. Under the new cap the
+`cleaned_sha256` of `ble-fleisch-intervention`, `ble-wein-neuanpflanzung` and
+`bundesarchiv-akteneinsicht` changed in `manifest.json`; their `cleaned_chars`
+and `truncated` fields there still describe the 12,000-character cap.
 
 ## Adding a page
 

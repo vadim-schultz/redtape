@@ -26,6 +26,7 @@ isProject: false
 | X12 | **The model is chosen by measurement.** The probe (E4) and the eval (E5) decide the model, mode and prompt version; the plan states prices and expectations, not a choice. |
 | X13 | **Re-extraction is deliberate.** A new schema version or model enqueues new tasks only through `llm requeue`, because it spends neurons. LLM mentions use a fixed `source_field`, so a re-run updates in place instead of duplicating. |
 | X14 | **robots.txt follows RFC 9309, in-house.** Python's `urllib.robotparser` is first-match and ignores `*` and `$`, which blocks pages a site allows and fetches files a site forbids (checked 2026-10-28 against four real files). A small matcher replaces it behind the unchanged `RobotsCache` interface; `Protego` is the pre-approved swap, no new dependency now. Executes second, right after E11 and before E1, as chapter E10, because it decides which pages are fetched and rendered. A real `Disallow: /` stays blocked (`dipul.de`). |
+| X17 | **One 30,000-character cap, a 4,000-token output limit, reservations sized to the page.** Owner decision 2026-10-28 (chapter E14): the bulk import runs once, so quality beats pages per day. The cleaner defines the cap and the settings and the handler import it; `CLEAN_VERSION` is `clean-3`. A long page costs about 270 input neurons and an answer up to about 800 output neurons, so the day covers roughly 25 to 40 pages. A call reserves the answer tokens from the page's own size (500 plus a quarter of the page tokens, never above the limit; it covers all 19 recorded answers) instead of the full limit, which would reserve about 1,100 neurons for every long page and stop the default budgets after three or four pages. Settlement still corrects to the reported cost. A schema-maximum answer (40 + 40 items, 300-character quotes) does not fit 4,000 tokens; it ends as invalid output and takes the repair path. |
 | X15 | **Free-tier caps sit at 95 percent of each allowance.** Owner decision 2026-10-28, executed first as chapter E11: R2 bytes 9.5 GB, Class A 950,000 and Class B 9,500,000 a month, Browser Run 570 s, neurons 9,500 and the database 475 MB. The GitHub Actions budget is a share of an account-wide pool and stays 1,000 (CI reserve 600); the admin's 80 percent warning chip is an alert and stays. The thinner margin and its mitigations are recorded in E11. |
 
 ## Pending decisions
@@ -51,7 +52,8 @@ first and drop a model that does not accept `response_format`.
 | `@cf/openai/gpt-oss-20b` | about 75 (reasoning tokens may add output) | about 126 | about 1,400 |
 
 The estimate uses the real cleaned text of the gold pages (mean 5,263 characters), one token per three characters, a
-1,500-token prompt overhead and 600 output tokens. The probe replaces these guesses.
+1,500-token prompt overhead and 600 output tokens. The probe replaces these guesses. The measured figures after the cap
+moved to 30,000 characters (E14) are in decision X17: about 230 neurons a page on average on the 70b model.
 
 **Commands** (operator, from `apps/discovery-ingest`, with `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`,
 `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` exported; plan the runs over two days):
@@ -59,12 +61,12 @@ The estimate uses the real cleaned text of the gold pages (mean 5,263 characters
 ```bash
 python -m discovery_ingest llm probe --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --model @cf/meta/llama-3.1-8b-instruct --model @cf/openai/gpt-oss-20b --fixture tests/fixtures/pages/table_page.html
 python -m discovery_ingest llm eval --model @cf/meta/llama-3.1-8b-instruct --neuron-budget 4000 --out /tmp/eval-1.json
-python -m discovery_ingest llm eval --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --neuron-budget 4500 --out /tmp/eval-2.json
+python -m discovery_ingest llm eval --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --neuron-budget 5000 --out /tmp/eval-2.json
 ```
 
-Why 4,500 for the 70b model: the budget is a ceiling on the running total plus the next reservation (about 400
-neurons), so 4,000 would stop at page 18 of 19. A stopped run exits 1 and still writes the finished pages. Answers are
-cached, so a second run with a higher budget only pays for the pages that were not done.
+Why 5,000 for the 70b model: the budget is a ceiling on the running total plus the next reservation (up to about 900
+neurons for a long page since E14), so 4,000 can stop before the last page of 19; the pages of the gold set cost about 3,000 neurons in total. A stopped run exits 1 and still writes the finished
+pages. Answers are cached, so a second run with a higher budget only pays for the pages that were not done.
 
 **Record here after the live eval:** the model and endpoint mode (from the probe), `PROMPT_VERSION`, the cleaner
 version (`clean-1`), precision, recall, grounded rate, tag agreement, cleaner recall and neurons per page of each run,
@@ -75,7 +77,7 @@ back to hand-written extractors for the weak hosts (crawlers chapter 18).
 
 **Offline numbers** (2026-10-28, 20 real pages from 14 hosts, 47 gold documents, 2 gold edges; no model involved):
 
-- `cleaner_recall` is **0.936** (44 of 47 gold names are in the cleaned text with the 12,000-character cap) and 0.979
+- `cleaner_recall` is **0.936** (44 of 47 gold names are in the cleaned text with the 12,000-character cap of clean-1; with the 30,000-character cap of clean-3 it is 47 of 47) and 0.979
   (46 of 47) with no cap.
 - Missing names and causes: `Bestandsliste` (`www.ble.de`) and `Nachweis des Verwandtschaftsverhältnisses`
   (`www.bundesarchiv.de`) are cut by the cap, because the page text is 21,238 and 17,716 characters long and the BLE
