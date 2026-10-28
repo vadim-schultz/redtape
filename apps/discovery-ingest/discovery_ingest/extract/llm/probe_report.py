@@ -5,9 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+from discovery_ingest.extract.llm.redaction import scrub, secrets_of
 from discovery_ingest.llm_settings import LlmSettings
-
-REDACTED = "<redacted>"
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,16 +50,7 @@ def _lines(report: ProbeReport) -> Iterator[str]:
         yield f"stopped: {report.stopped}"
 
 
-def _scrub(text: str, secrets: list[str]) -> str:
-    for secret in secrets:
-        text = text.replace(secret, REDACTED)
-    return text
-
-
 def report_lines(report: ProbeReport, settings: LlmSettings) -> list[str]:
     """Return the tables, with the token and the account id replaced by ``<redacted>``."""
-    token = settings.cloudflare_ai_api_token
-    secrets = [
-        value for value in (settings.cloudflare_account_id, token.get_secret_value() if token else None) if value
-    ]
-    return [_scrub(line, secrets) for line in _lines(report)]
+    secrets = secrets_of(settings)
+    return [scrub(line, secrets) for line in _lines(report)]

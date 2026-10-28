@@ -1,4 +1,4 @@
-"""``llm probe``: send one cleaned fixture to each model and print a table; needs only the two Cloudflare variables."""
+"""The ``llm`` command: ``probe`` (a table per model, two Cloudflare variables) and ``eval`` (the gold set)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import httpx
 
 from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.extract.decode import decode_html
+from discovery_ingest.extract.llm.evaluation.command import register_eval_parser
 from discovery_ingest.extract.llm.probe import run_probe
 from discovery_ingest.extract.llm.probe_report import report_lines
 from discovery_ingest.llm_settings import load_llm_settings
@@ -23,9 +24,9 @@ MIN_INTERVAL_SECONDS = 1.0
 def register_llm_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Add the ``llm`` command with its ``probe`` subcommand."""
     llm = sub.add_parser("llm", help="Cloudflare Workers AI")
-    probe = llm.add_subparsers(dest="llm_command").add_parser(
-        "probe", help="Probe models on one fixture and print a table"
-    )
+    llm_sub = llm.add_subparsers(dest="llm_command")
+    register_eval_parser(llm_sub)
+    probe = llm_sub.add_parser("probe", help="Probe models on one fixture and print a table")
     probe.add_argument("--model", action="append", default=[], help="A Workers AI model id (repeatable)")
     probe.add_argument("--fixture", required=True, help="Path of a rendered HTML page to clean and send")
     probe.add_argument(

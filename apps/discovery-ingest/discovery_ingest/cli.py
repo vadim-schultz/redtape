@@ -26,6 +26,7 @@ from discovery_ingest.enrich import (
     leika_stammtext_claim_requests,
     leika_stammtext_entity_request,
 )
+from discovery_ingest.extract.llm.evaluation.command import llm_eval
 from discovery_ingest.extract.llm.probe_cli import llm_probe, register_llm_parser
 from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
 from discovery_ingest.fim.keys import STECKBRIEF_KEY_PATTERN
@@ -351,6 +352,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("budget", "report-minutes"): budget_report_minutes,
     ("browser", "probe"): browser_probe,
     ("llm", "probe"): llm_probe,
+    ("llm", "eval"): llm_eval,
     ("artifacts", "list"): artifacts_list,
     ("artifacts", "download"): artifacts_download,
 }

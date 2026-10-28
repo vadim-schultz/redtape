@@ -76,6 +76,17 @@ def tag_agreement(pages: Sequence[tuple[Collection[str], Collection[str]]]) -> f
     return sum(_jaccard(predicted, gold) for predicted, gold in pages) / len(pages) if pages else 1.0
 
 
+def share_found(*, total: int, missing: int) -> float:
+    """Return the share of ``total`` names that are not among the ``missing``; no names at all is a full share."""
+    return (total - missing) / total if total else 1.0
+
+
+def absent_names(names: Iterable[str], cleaned_text: str) -> list[str]:
+    """Return the gold ``names`` whose slug is not on the cleaned page as whole words (a cleaner failure)."""
+    page_slug = f"-{fold_slug(cleaned_text)}-"
+    return [name for name in names if not _on_page(name, page_slug)]
+
+
 def _on_page(name: str, page_slug: str) -> bool:
     slug = name_slug(name)
     return bool(slug) and f"-{slug}-" in page_slug
@@ -86,7 +97,5 @@ def cleaner_recall(pages: Sequence[tuple[Sequence[str], str]]) -> float:
 
     A miss is a cleaner failure (the name never reached the model), reported apart from the model's recall.
     """
-    slugged = [(names, f"-{fold_slug(text)}-") for names, text in pages]
-    total = sum(len(names) for names, _ in slugged)
-    found = sum(_on_page(name, page_slug) for names, page_slug in slugged for name in names)
-    return found / total if total else 1.0
+    missing = sum(len(absent_names(names, text)) for names, text in pages)
+    return share_found(total=sum(len(names) for names, _ in pages), missing=missing)
