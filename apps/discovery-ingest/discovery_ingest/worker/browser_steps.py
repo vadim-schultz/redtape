@@ -83,11 +83,11 @@ def store(job: Job, upload: ArtifactUpload) -> StoredArtifact:
     try:
         return job.client.upload_artifact(job.task.id, upload)
     except DiscoveryMachineApiError as err:
-        raise _upload_refused(job, err) from err
+        raise refusal_for(job, err) from err
 
 
-def _upload_refused(job: Job, err: DiscoveryMachineApiError) -> Exception:
-    """Map a refused upload to the exception that ends it: a limit stops the drain, anything else settles the task."""
+def refusal_for(job: Job, err: DiscoveryMachineApiError) -> Exception:
+    """Map a refused machine call to the exception that ends it: a limit stops the drain, anything else settles the task."""
     if err.is_database_limit:
         return err
     if err.status_code in STORAGE_UNAVAILABLE_STATUSES:

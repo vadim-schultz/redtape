@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
+from typing import TypeVar
 
 from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.mentions import MAX_MENTION_ITEMS, MentionItem
 
-
-def _chunks(items: Sequence[MentionItem]) -> Iterator[Sequence[MentionItem]]:
-    for start in range(0, len(items), MAX_MENTION_ITEMS):
-        yield items[start : start + MAX_MENTION_ITEMS]
+T = TypeVar("T")
 
 
-def post_mention_chunks(client: DiscoveryMachineClient, items: Sequence[MentionItem]) -> None:
-    """Post ``items`` in batches of at most ``MAX_MENTION_ITEMS``; the first API error propagates."""
-    for chunk in _chunks(items):
-        client.post_mentions(chunk)
+def chunked(items: Sequence[T], size: int) -> Iterator[Sequence[T]]:
+    """Yield ``items`` in slices of at most ``size``."""
+    for start in range(0, len(items), size):
+        yield items[start : start + size]
+
+
+def post_mention_chunks(client: DiscoveryMachineClient, items: Sequence[MentionItem]) -> int:
+    """Post ``items`` in batches of at most ``MAX_MENTION_ITEMS``; return the codes the API dropped as unknown.
+
+    The first API error propagates.
+    """
+    return sum(client.post_mentions(chunk).unknown_codes for chunk in chunked(items, MAX_MENTION_ITEMS))

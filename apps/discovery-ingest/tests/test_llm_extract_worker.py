@@ -66,7 +66,7 @@ def test_a_snapshot_is_read_called_once_posted_in_order_settled_and_completed_wi
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """llm_extract · mentions then the derived edge, settled at the real cost, note docs=2 edges=1 dropped=0."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm(SERVICE)
+    api, llm = LlmApi([llm_task()]), ScriptedLlm(SERVICE)
 
     outcome, meter = _run(monkeypatch, api, llm)
 
@@ -84,7 +84,7 @@ def test_a_page_with_no_usable_text_completes_with_no_content_and_never_reserves
     monkeypatch: pytest.MonkeyPatch, html: str
 ) -> None:
     """llm_extract · an empty or near-empty cleaned page costs nothing: no reservation, no model call, no post."""
-    api, llm = LlmApi([[llm_task()]], html), ScriptedLlm(SERVICE)
+    api, llm = LlmApi([llm_task()], html), ScriptedLlm(SERVICE)
 
     outcome, meter = _run(monkeypatch, api, llm)
 
@@ -105,7 +105,7 @@ def test_a_login_or_empty_extraction_completes_with_its_note_and_posts_nothing(
     monkeypatch: pytest.MonkeyPatch, reply: dict[str, Any], note: str
 ) -> None:
     """llm_extract · login_or_error, other, no items or nothing grounded complete with a note and post nothing."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm(reply)
+    api, llm = LlmApi([llm_task()]), ScriptedLlm(reply)
 
     outcome, meter = _run(monkeypatch, api, llm)
 
@@ -171,7 +171,7 @@ def test_a_refused_mention_batch_stops_before_any_edge_is_posted(monkeypatch: py
 
 def test_the_unknown_codes_of_the_api_reach_the_completion_note(monkeypatch: pytest.MonkeyPatch) -> None:
     """llm_extract · codes the API dropped are counted into the note next to the grounding drops."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm(SERVICE)
+    api, llm = LlmApi([llm_task()]), ScriptedLlm(SERVICE)
     api.unknown_codes = 2
 
     _run(monkeypatch, api, llm)
@@ -189,13 +189,13 @@ def test_the_screenshot_helper_runs_once_when_a_mention_was_posted_and_not_other
         seen.append(task.id)
         return False
 
-    posted = LlmApi([[llm_task()]])
+    posted = LlmApi([llm_task()])
     outcome, _ = _run(monkeypatch, posted, ScriptedLlm(SERVICE), after)
     assert outcome == "completed_capture_enqueue_failed" and len(seen) == 1
 
     seen.clear()
     for html, reply in ((SHELL_HTML, SERVICE), (PAGE_HTML, answer())):
-        quiet = LlmApi([[llm_task()]], html)
+        quiet = LlmApi([llm_task()], html)
         assert _run(monkeypatch, quiet, ScriptedLlm(reply), after)[0] == "completed"
     assert seen == []
 
@@ -205,7 +205,7 @@ def test_a_missing_artifact_fails_permanently_and_a_5xx_on_the_content_route_fai
     monkeypatch: pytest.MonkeyPatch, status: int, retryable: bool
 ) -> None:
     """llm_extract · 404 on the content route is permanent, 500 is retryable; the model is never called."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm(SERVICE)
+    api, llm = LlmApi([llm_task()]), ScriptedLlm(SERVICE)
     api.content_status = status
 
     outcome, _ = _run(monkeypatch, api, llm)
@@ -216,7 +216,7 @@ def test_a_missing_artifact_fails_permanently_and_a_5xx_on_the_content_route_fai
 
 def test_a_task_without_an_artifact_fails_permanently(monkeypatch: pytest.MonkeyPatch) -> None:
     """llm_extract · no artifact_id is a malformed task: failed, not retried, nothing called."""
-    api, llm = LlmApi([[llm_task(artifact_id=None)]]), ScriptedLlm(SERVICE)
+    api, llm = LlmApi([llm_task(artifact_id=None)]), ScriptedLlm(SERVICE)
 
     outcome, _ = _run(monkeypatch, api, llm)
 
@@ -228,7 +228,7 @@ def test_an_invalid_output_is_retried_once_under_a_second_reservation(
     monkeypatch: pytest.MonkeyPatch, first: str | LlmInvalidOutput
 ) -> None:
     """llm_extract · the first answer is unusable, the repair call (second reservation, with a hint) succeeds."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm(first, SERVICE)
+    api, llm = LlmApi([llm_task()]), ScriptedLlm(first, SERVICE)
 
     outcome, _ = _run(monkeypatch, api, llm)
 
@@ -238,7 +238,7 @@ def test_an_invalid_output_is_retried_once_under_a_second_reservation(
 
 def test_two_invalid_outputs_fail_the_task_permanently_naming_the_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """llm_extract · the repair is not repeated: two bad answers fail the page, keep both reservations, post nothing."""
-    api, llm = LlmApi([[llm_task()]]), ScriptedLlm("not json {")
+    api, llm = LlmApi([llm_task()]), ScriptedLlm("not json {")
 
     outcome, meter = _run(monkeypatch, api, llm)
 
