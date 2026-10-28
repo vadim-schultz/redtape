@@ -1,6 +1,6 @@
 ---
 name: Extraction — Rollout
-overview: "Fourteen independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
+overview: "Fifteen independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
 isProject: false
 ---
 
@@ -59,7 +59,8 @@ flowchart TD
   E5 --> E12[E12 QualityTuning]
   E12 --> E13[E13 GroundingNormalisation]
   E13 --> E14[E14 RaiseInputCap]
-  E14 --> E7
+  E14 --> E15[E15 QuoteShape]
+  E15 --> E7
 ```
 
 E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of E1 to E9 and execute first: E10 decides which pages are fetched and rendered at all, and E11 settles the caps before the first live gate spends neurons. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
@@ -77,6 +78,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 6a. [chapters/12-extraction-quality-tuning.md](chapters/12-extraction-quality-tuning.md) (E12, added 2026-10-28 after the first live eval; executes after E6)
 6b. [chapters/13-grounding-normalisation.md](chapters/13-grounding-normalisation.md) (E13, added 2026-10-28 from E12's findings; executes after E12)
 6c. [chapters/14-raise-the-input-cap.md](chapters/14-raise-the-input-cap.md) (E14, added 2026-10-28, owner decision: quality over throughput; executes after E13)
+6d. [chapters/15-quote-shape.md](chapters/15-quote-shape.md) (E15, added 2026-10-28 from E13's findings; executes after E14)
 7. [chapters/07-wiring-and-workflow.md](chapters/07-wiring-and-workflow.md)
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
@@ -99,6 +101,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 | E12 | Extraction quality tuning (executes after E6) | worker | paired tests + gold-set re-run | [12](chapters/12-extraction-quality-tuning.md) | planned |
 | E13 | Grounding normalisation (executes after E12) | worker | paired tests + recorded answers regress + CI | [13](chapters/13-grounding-normalisation.md) | planned |
 | E14 | Raise the input cap to 30,000 characters (executes after E13) | worker + docs | paired tests + CI | [14](chapters/14-raise-the-input-cap.md) | planned |
+| E15 | Quote shape: one line per quote, drop screen-reader text (executes after E14) | worker | paired tests + CI | [15](chapters/15-quote-shape.md) | planned |
 
 ## Per-chapter gate
 
