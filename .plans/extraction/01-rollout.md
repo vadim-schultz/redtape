@@ -1,6 +1,6 @@
 ---
 name: Extraction — Rollout
-overview: "Twelve independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
+overview: "Thirteen independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
 isProject: false
 ---
 
@@ -57,7 +57,8 @@ flowchart TD
   E11 --> E4
   E11 --> E9
   E5 --> E12[E12 QualityTuning]
-  E12 --> E7
+  E12 --> E13[E13 GroundingNormalisation]
+  E13 --> E7
 ```
 
 E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of E1 to E9 and execute first: E10 decides which pages are fetched and rendered at all, and E11 settles the caps before the first live gate spends neurons. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
@@ -73,6 +74,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 5. [chapters/05-eval-harness-and-model-choice.md](chapters/05-eval-harness-and-model-choice.md)
 6. [chapters/06-llm-extract-handler.md](chapters/06-llm-extract-handler.md)
 6a. [chapters/12-extraction-quality-tuning.md](chapters/12-extraction-quality-tuning.md) (E12, added 2026-10-28 after the first live eval; executes after E6)
+6b. [chapters/13-grounding-normalisation.md](chapters/13-grounding-normalisation.md) (E13, added 2026-10-28 from E12's findings; executes after E12)
 7. [chapters/07-wiring-and-workflow.md](chapters/07-wiring-and-workflow.md)
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
@@ -93,6 +95,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 | E10 | Robots rules fix (executes second, after E11) | worker | paired tests + real-file fixtures + CI + re-pend counts | [10](chapters/10-robots-rules-fix.md) | planned |
 | E11 | Free-tier caps at 95 percent (executes first) | config + workflow + docs | paired tests + ratio guard + CI + budgets route check | [11](chapters/11-free-tier-caps-95.md) | planned |
 | E12 | Extraction quality tuning (executes after E6) | worker | paired tests + gold-set re-run | [12](chapters/12-extraction-quality-tuning.md) | planned |
+| E13 | Grounding normalisation (executes after E12) | worker | paired tests + recorded answers regress + CI | [13](chapters/13-grounding-normalisation.md) | planned |
 
 ## Per-chapter gate
 
