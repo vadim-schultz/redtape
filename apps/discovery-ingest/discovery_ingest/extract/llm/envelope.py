@@ -1,13 +1,15 @@
 """Read the model's answer and token usage out of a successful ``/ai/run`` response.
 
 Probe-dependent (chapter E4, Step 0): the default follows the documented envelope, ``result.response`` (an object in
-JSON mode, a string for some models) and ``result.usage.prompt_tokens`` / ``completion_tokens``. If the probe shows
+JSON mode, a string for some models) and ``result.usage.prompt_tokens`` / ``completion_tokens`` and, when present, ``result.usage.neurons``. If the probe shows
 another shape, change this module only.
 """
 
 from __future__ import annotations
 
 import json
+import math
+from dataclasses import dataclass
 
 import httpx
 from pydantic import JsonValue
@@ -42,16 +44,43 @@ def _require_json(text: str) -> None:
         raise LlmInvalidOutput("the model answer is not valid JSON") from err
 
 
-def _tokens(result: dict[str, JsonValue]) -> tuple[int | None, int | None]:
+@dataclass(frozen=True, slots=True)
+class ReportedUsage:
+    """What the provider said the call used; each part is ``None`` when it was absent or not believable."""
+
+    input_tokens: int | None
+    output_tokens: int | None
+    neurons: float | None
+
+
+def _usage_fields(result: dict[str, JsonValue]) -> dict[str, JsonValue]:
     usage = result.get("usage")
-    fields = usage if isinstance(usage, dict) else {}
-    prompt, completion = fields.get("prompt_tokens"), fields.get("completion_tokens")
-    if isinstance(prompt, int) and isinstance(completion, int):
-        return prompt, completion
-    return None, None
+    return usage if isinstance(usage, dict) else {}
+
+
+def _count(value: JsonValue) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _neurons(value: JsonValue) -> float | None:
+    """Return ``value`` as neurons when it is a finite non-negative number (probe 2026-10-28: ``usage.neurons``)."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value) if math.isfinite(value) and value >= 0 else None
+
+
+def _tokens(fields: dict[str, JsonValue]) -> tuple[int | None, int | None]:
+    prompt, completion = _count(fields.get("prompt_tokens")), _count(fields.get("completion_tokens"))
+    return (prompt, completion) if prompt is not None and completion is not None else (None, None)
+
+
+def read_usage(response: httpx.Response) -> ReportedUsage:
+    """Return the usage of a 2xx ``response``, whether or not its answer is usable; raise when there is no result."""
+    fields = _usage_fields(_result(response))
+    return ReportedUsage(*_tokens(fields), _neurons(fields.get("neurons")))
 
 
 def read_result(response: httpx.Response, model: str) -> LlmResult:
     """Return the :class:`LlmResult` of a 2xx ``response``, or raise :class:`LlmInvalidOutput`."""
-    result = _result(response)
-    return LlmResult(_answer_text(result), *_tokens(result), model)
+    answer, usage = _answer_text(_result(response)), read_usage(response)
+    return LlmResult(answer, usage.input_tokens, usage.output_tokens, model, usage.neurons)

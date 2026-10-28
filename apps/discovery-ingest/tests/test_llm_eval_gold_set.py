@@ -21,6 +21,7 @@ PHONE = re.compile(
 )
 MAX_FIXTURE_BYTES = 80_000
 CLEANER_RECALL_FLOOR = 0.90
+CLEANER_RECALL_TARGET = 46 / 47
 
 
 def _manifest() -> dict[str, dict[str, str]]:
@@ -126,13 +127,22 @@ def test_each_fixture_stays_reviewable_in_size() -> None:
 
 
 def test_the_cleaner_keeps_nearly_every_gold_name_on_the_real_pages() -> None:
-    """gold set · offline cleaner_recall over the real pages stays above the floor (measured 44 of 47 names, 0.936)."""
+    """gold set · offline cleaner_recall over the real pages stays above the floor (44 of 47 names, 0.936, under clean-1)."""
     pages = [
         (page.name, [d.name for d in page.documents], clean_page(page.html, page.source_url).text)
         for page in load_gold(GOLD_DIR)
     ]
 
     assert cleaner_recall([(names, text) for _name, names, text in pages]) >= CLEANER_RECALL_FLOOR
+
+
+def test_the_cleaner_keeps_at_least_46_of_the_47_gold_names_with_the_default_cap() -> None:
+    """gold set · clean-2 rises from 44 of 47 names to 46 or more (the link spacing and the menu ranking)."""
+    pages = [
+        ([d.name for d in page.documents], clean_page(page.html, page.source_url).text) for page in load_gold(GOLD_DIR)
+    ]
+
+    assert cleaner_recall(pages) >= CLEANER_RECALL_TARGET
 
 
 def test_a_missing_gold_name_would_pull_cleaner_recall_below_the_floor() -> None:

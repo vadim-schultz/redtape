@@ -301,4 +301,4 @@ def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cle
     summary = _out(tmp_path)["summary"]
     assert code == 0 and summary["pages_run"] == 20 and len(llm.calls) == 19
     assert (summary["recall"], summary["precision"], summary["failed_pages"]) == (0.0, 1.0, 0)
-    assert summary["cleaner_recall"] == pytest.approx(44 / 47)
+    assert summary["cleaner_recall"] == pytest.approx(46 / 47)

@@ -17,7 +17,7 @@ from discovery_ingest.extract.llm.evaluation.scoring import nothing_found, score
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.ground import ground
 from discovery_ingest.extract.llm.meter import NeuronMeter, Reservation
-from discovery_ingest.extract.llm.prices import cost
+from discovery_ingest.extract.llm.prices import actual_neurons
 from discovery_ingest.extract.llm.prompt import build_messages
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
 
@@ -115,7 +115,7 @@ class EvalRunner:
         raise refusal_stop(answer, self._setup.neuron_budget, self._meter.used_neurons)
 
     def _usage(self, result: LlmResult, reservation: Reservation) -> Usage:
-        if result.input_tokens is None or result.output_tokens is None:
-            return Usage(result.input_tokens, result.output_tokens, float(reservation.neurons))
-        neurons = cost(self._setup.model, result.input_tokens, result.output_tokens)
-        return Usage(result.input_tokens, result.output_tokens, neurons)
+        neurons = actual_neurons(result)
+        return Usage(
+            result.input_tokens, result.output_tokens, float(reservation.neurons) if neurons is None else neurons
+        )

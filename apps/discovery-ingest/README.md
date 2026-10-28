@@ -120,7 +120,7 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
 
 The free plan allows 10,000 neurons a day. `llm probe` sends one cleaned page to each model and prints a table per
 model: the response envelope, token usage, whether `response_format` is accepted, the cost in neurons by the price
-table, a grounded sample of the answer and the cleaner against `toMarkdown`. It never prints the token and needs only
+table and the neurons the API reported, a grounded sample of the answer and the cleaner against `toMarkdown`. It never prints the token and needs only
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN`.
 
 ```bash
@@ -151,7 +151,7 @@ cannot spend more than the day has left.
 - `--neuron-budget` (default 4000) ends the run before the page that would pass it. The pages done so far are
   printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
   token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
-- `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`ext-1`); the option names
+- `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`ext-2`); the option names
   the version a result belongs to, it does not select a wording. Exit 2 means a missing variable, an unpriced model or
   a gold label outside the taxonomy.
 - `--out FILE` writes the per-page results and, for every item grounding dropped, its reason (`quote`, `duplicate`,
@@ -159,6 +159,9 @@ cannot spend more than the day has left.
 - Answers are cached in `--cache-dir` (default `.llm-eval-cache/`, ignored by git) by model, prompt version, cleaner
   version, vocabulary and page text, so a re-run of an unchanged page costs nothing. The cached cost is still reported.
 - A page whose cleaned text is empty (a client-side shell) is not sent and scores as nothing found.
+- Before grounding, a name, quote or condition with two or more percent sequences (`Erkl%C3%A4rung`) is decoded as
+  UTF-8 when the result is valid; the number of repaired items is `repaired` in the grounding diagnostics. URLs are
+  never decoded.
 
 ### Drain `llm_extract`
 
@@ -175,7 +178,7 @@ The drain exits before claiming anything when a requirement is missing: exit 2 f
 (`GET /machine/budgets`), artifact storage or the taxonomy (`GET /machine/taxonomy`) cannot be read. An llm drain claims
 5 tasks per batch unless `--max-tasks` says otherwise.
 
-Every model call reserves its estimated neurons first and settles to the token usage afterwards. A page whose cleaned
+Every model call reserves its estimated neurons first and settles to the neurons the API reported (the priced token usage when it reports none) afterwards. A page whose cleaned
 text is under 200 characters (a client-side shell) completes as `no_content` without a reservation or a call. Other
 completion notes are `login_wall`, `no_documents` and the counts of a posted page, for example `docs=7 edges=5
 dropped=2`. An unusable model answer is retried once under a second reservation, then the task fails permanently.

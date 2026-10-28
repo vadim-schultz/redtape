@@ -188,3 +188,23 @@ def test_line_breaks_split_a_paragraph_into_lines() -> None:
         "12345 Musterstadt",
         "Tel. 115",
     ]
+
+
+def test_a_link_with_a_strong_title_and_a_block_description_keeps_a_space_between_them() -> None:
+    """whitespace · the title and the description of one download link are two words, not one fused word."""
+    link = "<a href='/f.pdf'><strong>Antragsformular Ferienbeschäftigung</strong><div>Formular für den Arbeitgeber</div></a>"
+    text = clean_page(_page(f"<ul><li>{link}</li></ul>"), BASE).text
+    assert "Antragsformular Ferienbeschäftigung Formular für den Arbeitgeber" in text
+
+
+def test_inline_elements_inside_a_link_stay_joined_and_blocks_in_a_table_cell_are_separated() -> None:
+    """whitespace · only block children add a space: ``<strong>Antrag</strong>formular`` is still one word."""
+    html = _page(
+        "<p><a href='/f'><strong>Antrag</strong>formular</a></p><table><tr><td><p>Name</p><p>Ort</p></td></tr></table>"
+    )
+    assert clean_page(html, BASE).text == "Antragformular (https://portal.example/f)\nName Ort"
+
+
+def test_the_cleaner_version_is_clean_2() -> None:
+    """version · the layout rules changed, so cached answers of clean-1 are not reused."""
+    assert clean_page(_page("<p>Text</p>"), BASE).version == "clean-2"

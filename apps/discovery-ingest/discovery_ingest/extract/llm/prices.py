@@ -5,9 +5,11 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from discovery_ingest.extract.llm.client import LlmResult
+
 CHARS_PER_TOKEN = 3
-PROMPT_OVERHEAD_TOKENS = 1500
-"""Input tokens the system prompt and the vocabulary add to every call, on top of the page text."""
+PROMPT_OVERHEAD_TOKENS = 400
+"""Input tokens the prompt and vocabulary add to a page: measured 366 (1,597 prompt tokens for 3,694 characters)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,3 +58,12 @@ def cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Return the neurons that ``input_tokens`` and ``output_tokens`` cost on ``model``."""
     price = _price(model)
     return (input_tokens * price.per_million_input + output_tokens * price.per_million_output) / 1e6
+
+
+def actual_neurons(result: LlmResult) -> float | None:
+    """Return what ``result`` cost: the neurons the provider reported, else its tokens priced, else ``None``."""
+    if result.neurons is not None:
+        return result.neurons
+    if result.input_tokens is None or result.output_tokens is None:
+        return None
+    return cost(result.model, result.input_tokens, result.output_tokens)

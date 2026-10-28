@@ -13,8 +13,8 @@ MODEL = "@cf/meta/llama-3.1-8b-instruct"
 ESTIMATE = estimate(MODEL, 3000, 1000)
 
 
-def _result(input_tokens: int | None, output_tokens: int | None) -> LlmResult:
-    return LlmResult("{}", input_tokens, output_tokens, MODEL)
+def _result(input_tokens: int | None, output_tokens: int | None, neurons: float | None = None) -> LlmResult:
+    return LlmResult("{}", input_tokens, output_tokens, MODEL, neurons)
 
 
 def test_reserve_is_granted_within_the_ledger_and_denied_beyond_it(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -84,6 +84,35 @@ def test_settle_keeps_the_reservation_when_usage_is_missing(monkeypatch: pytest.
     meter.settle(reservation, _result(None, None))
 
     assert "adjust" not in ledger.actions() and meter.used_neurons == ESTIMATE
+
+
+def test_settle_uses_the_reported_neurons_when_present_and_the_price_table_otherwise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """settle · the provider's own figure beats the table, even without token counts; without it the table stands."""
+    ledger = FakeLedger(remaining=9000)
+    meter = NeuronMeter(guard_for(monkeypatch, ledger), 4000)
+    first, second = meter.reserve(MODEL, 3000, 1000), meter.reserve(MODEL, 3000, 1000)
+    assert isinstance(first, Reservation) and isinstance(second, Reservation)
+
+    meter.settle(first, _result(2000, 300, neurons=12.5))
+    assert ledger.calls[-1] == ("adjust", {"delta": pytest.approx(12.5 - ESTIMATE)})
+    meter.settle(second, _result(None, None, neurons=7.0))
+
+    assert ledger.calls[-1] == ("adjust", {"delta": pytest.approx(7.0 - ESTIMATE)})
+    assert meter.used_neurons == pytest.approx(12.5 + 7.0)
+
+
+def test_settle_prices_the_tokens_when_no_neurons_were_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """settle · the table is the fallback: tokens without a reported figure settle at ``cost`` as before."""
+    ledger = FakeLedger(remaining=9000)
+    meter = NeuronMeter(guard_for(monkeypatch, ledger), 4000)
+    reservation = meter.reserve(MODEL, 3000, 1000)
+    assert isinstance(reservation, Reservation)
+
+    meter.settle(reservation, _result(2000, 300, neurons=None))
+
+    assert meter.used_neurons == pytest.approx(cost(MODEL, 2000, 300))
 
 
 def test_a_quota_error_exhausts_the_day_in_the_ledger(monkeypatch: pytest.MonkeyPatch) -> None:
