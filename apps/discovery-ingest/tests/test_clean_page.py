@@ -162,3 +162,21 @@ def test_title_is_collapsed_and_none_when_absent() -> None:
     titled = clean_page(_page("<p>x</p>", "<title> Reisepass\n beantragen </title>"), BASE)
     assert titled.title == "Reisepass beantragen"
     assert clean_page(_page("<p>x</p>"), BASE).title is None
+
+
+@pytest.mark.parametrize(
+    "html",
+    ["", "   \n", "<html><body></body></html>", "<body><script>x = 1</script></body>", "<div><p>", "<a href='"],
+)
+def test_empty_or_malformed_html_returns_empty_text_without_raising(html: str) -> None:
+    page = clean_page(html, BASE)
+    assert (page.text, page.links, page.truncated) == ("", frozenset(), False)
+
+
+def test_unterminated_markup_still_yields_its_text() -> None:
+    assert clean_page("<div><p>Personalausweis <b>mitbringen", BASE).text == "Personalausweis mitbringen"
+
+
+def test_absurdly_deep_nesting_returns_empty_text_without_raising() -> None:
+    html = "<div>" * 5000 + "Text" + "</div>" * 5000
+    assert clean_page(html, BASE).text == ""
