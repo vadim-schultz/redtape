@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from discovery_ingest.extract.clean import CleanPage, clean_page
 from discovery_ingest.extract.llm.client import LlmClient, LlmResult
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmError, LlmInvalidOutput, LlmQuotaExceeded
+from discovery_ingest.extract.llm.evaluation.cache import CacheEntry, CacheKey, ResultCache, text_digest
 from discovery_ingest.extract.llm.evaluation.gold import GoldPage
 from discovery_ingest.extract.llm.evaluation.page import Failure, PageContext, Reply, StopRun, refusal_stop
 from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult, Usage
@@ -34,11 +35,12 @@ def _parse(result: LlmResult) -> PageExtraction | Failure:
 class EvalRunner:
     """Send each gold page to the model once, reserve neurons first and score what grounding keeps."""
 
-    def __init__(self, client: LlmClient, meter: NeuronMeter, setup: EvalSetup) -> None:
-        """Wire the model client, the neuron meter and the run setup."""
+    def __init__(self, client: LlmClient, meter: NeuronMeter, setup: EvalSetup, cache: ResultCache) -> None:
+        """Wire the model client, the neuron meter, the run setup and the cache of earlier answers."""
         self._client = client
         self._meter = meter
         self._setup = setup
+        self._cache = cache
         self._schema = build_json_schema(setup.taxonomy)
 
     def run(self, pages: Sequence[GoldPage]) -> EvalRun:
@@ -59,7 +61,7 @@ class EvalRunner:
         page = PageContext(gold, clean_page(gold.html, gold.source_url, max_chars=self._setup.max_chars))
         if not page.cleaned.text.strip():
             return page.result("empty_page", Usage(), nothing_found(gold))
-        reply = self._ask(page.cleaned)
+        reply = self._cached_or_ask(page)
         if isinstance(reply, Failure):
             return page.failed(reply)
         extraction = _parse(reply.result)
@@ -67,6 +69,24 @@ class EvalRunner:
             return page.failed(extraction, reply.usage)
         grounded = ground(extraction, page.cleaned, self._setup.taxonomy)
         return page.result("ok", reply.usage, score_page(gold, extraction, grounded))
+
+    def _cached_or_ask(self, page: PageContext) -> Reply | Failure:
+        key = self._key(page)
+        entry = self._cache.get(key)
+        if entry is not None:
+            usage = Usage(entry.result.input_tokens, entry.result.output_tokens, entry.neurons, cached=True)
+            return Reply(entry.result, usage)
+        reply = self._ask(page.cleaned)
+        if isinstance(reply, Reply):
+            self._cache.put(key, CacheEntry(reply.result, reply.usage.neurons))
+        return reply
+
+    def _key(self, page: PageContext) -> CacheKey:
+        setup = self._setup
+        digest = text_digest(page.cleaned.text)
+        return CacheKey(
+            setup.model, setup.prompt_version, page.cleaned.version, setup.taxonomy.digest(), page.gold.name, digest
+        )
 
     def _ask(self, cleaned: CleanPage) -> Reply | Failure:
         reservation = self._reserve(len(cleaned.text))

@@ -18,6 +18,7 @@ from discovery_ingest.config import IngestSettings, load_ingest_settings
 from discovery_ingest.extract.llm.client import LlmClient
 from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.evaluation.arguments import register_eval_parser, startup_problem
+from discovery_ingest.extract.llm.evaluation.cache import ResultCache
 from discovery_ingest.extract.llm.evaluation.gold import GoldError, GoldPage, load_gold, unknown_codes
 from discovery_ingest.extract.llm.evaluation.report import table_lines
 from discovery_ingest.extract.llm.evaluation.report_json import json_report
@@ -107,7 +108,8 @@ class EvalCommand:
 
     def _evaluate(self, pages: list[GoldPage], meter: NeuronMeter) -> int:
         setup = self._setup()
-        run = EvalRunner(self._runtime.client, meter, setup).run(pages)
+        cache = ResultCache(Path(self._args.cache_dir))
+        run = EvalRunner(self._runtime.client, meter, setup, cache).run(pages)
         summary = summarise(run.pages)
         self._print(table_lines(run, summary, setup))
         if self._args.out:
