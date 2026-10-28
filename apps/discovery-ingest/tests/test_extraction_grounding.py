@@ -210,3 +210,31 @@ def test_an_instruction_like_name_or_quote_that_is_not_on_the_page_is_dropped() 
     assert names(grounded) == ["Personalausweis"]
     assert grounded.dependencies == ()
     assert grounded.diagnostics.dropped["quote"] == 2
+
+
+def test_every_lost_item_is_recorded_with_its_reason_in_the_order_it_was_lost() -> None:
+    """Diagnostics.dropped_items · documents lost to quote and duplicate, dependencies lost to endpoint and quote."""
+    grounded = run(
+        [
+            doc("Personalausweis"),
+            doc("Reisepass"),
+            doc("Geburtsurkunde", "Bringen Sie Ihre Geburtsurkunde mit."),
+            doc("Personalausweis"),
+        ],
+        [
+            dep("Personalausweis", "Phantom"),
+            dep("Personalausweis", "Reisepass", "ein Satz, den die Seite nicht enthält"),
+        ],
+    )
+
+    lost = grounded.diagnostics.dropped_items
+    assert [item.reason for item in lost] == ["quote", "duplicate", "dependency_endpoint", "dependency_quote"]
+    assert lost[0].item.name == "Geburtsurkunde" and lost[2].item.requires == "Phantom"
+    assert sum(grounded.diagnostics.dropped.values()) == len(lost)
+
+
+def test_an_answer_that_is_fully_grounded_records_no_lost_item() -> None:
+    """Diagnostics.dropped_items · nothing lost, nothing listed."""
+    grounded = run([doc("Personalausweis"), doc("Reisepass")], [dep("Personalausweis", "Reisepass")])
+
+    assert grounded.diagnostics.dropped_items == () and grounded.diagnostics.dropped == {}

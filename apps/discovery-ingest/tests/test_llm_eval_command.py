@@ -197,3 +197,29 @@ def test_a_new_model_a_changed_page_or_a_damaged_cache_file_is_sent_again(
         entry.write_text("{not json", encoding="utf-8")
     assert _eval(tmp_path) == 0
     assert llm.calls == ["Reisepass", "Neuigkeiten"]
+
+
+def test_the_output_file_lists_dropped_items_with_their_reasons(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval --out · a quote that is not on the page and items on a login page are listed with a reason; clean pages list none."""
+    write_gold(tmp_path / "gold", names=["alpha", "beta", "gamma"])
+    login_with_item = {
+        **ANSWERS["BundID"],
+        "documents": [{"name": "BundID-Konto", "role": "required", "quote": "mit BundID an"}],
+    }
+    _wire(monkeypatch, FakeLlm({**ANSWERS, "BundID": login_with_item}))
+
+    assert _eval(tmp_path) == 0
+
+    pages = {page["name"]: page for page in _out(tmp_path)["pages"]}
+    phantom = pages["alpha"]["dropped"]
+    assert [(item["reason"], item["kind"], item["item"]["name"]) for item in phantom] == [
+        ("quote", "document", "Phantom")
+    ]
+    assert phantom[0]["item"]["quote"] == "this sentence is not on the page"
+    assert [(item["reason"], item["item"]["name"]) for item in pages["beta"]["dropped"]] == [
+        ("page_kind", "BundID-Konto")
+    ]
+    assert pages["gamma"]["dropped"] == []
+    assert (pages["beta"]["raw_items"], pages["beta"]["kept_items"]) == (1, 0)
