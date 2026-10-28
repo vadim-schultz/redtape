@@ -72,5 +72,5 @@ def test_llm_limits_must_be_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     """settings · a zero token limit is rejected instead of sent to the model."""
     monkeypatch.setenv("LLM_MAX_TOKENS", "0")
 
-    with pytest.raises(ValueError, match="llm_max_tokens"):
+    with pytest.raises(ValueError, match="LLM_MAX_TOKENS"):
         load_llm_settings()
