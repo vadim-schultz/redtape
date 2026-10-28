@@ -25,7 +25,8 @@ isProject: false
 | X11 | **Reserve, then adjust.** A model call needs a granted neuron reservation first; the real cost corrects it afterwards. A provider quota error marks the day exhausted and releases tasks. The account stays on Workers Free. |
 | X12 | **The model is chosen by measurement.** The probe (E4) and the eval (E5) decide the model, mode and prompt version; the plan states prices and expectations, not a choice. |
 | X13 | **Re-extraction is deliberate.** A new schema version or model enqueues new tasks only through `llm requeue`, because it spends neurons. LLM mentions use a fixed `source_field`, so a re-run updates in place instead of duplicating. |
-| X14 | **robots.txt follows RFC 9309, in-house.** Python's `urllib.robotparser` is first-match and ignores `*` and `$`, which blocks pages a site allows and fetches files a site forbids (checked 2026-10-28 against four real files). A small matcher replaces it behind the unchanged `RobotsCache` interface; `Protego` is the pre-approved swap, no new dependency now. Executes first as chapter E10 because it decides which pages are fetched and rendered. A real `Disallow: /` stays blocked (`dipul.de`). |
+| X14 | **robots.txt follows RFC 9309, in-house.** Python's `urllib.robotparser` is first-match and ignores `*` and `$`, which blocks pages a site allows and fetches files a site forbids (checked 2026-10-28 against four real files). A small matcher replaces it behind the unchanged `RobotsCache` interface; `Protego` is the pre-approved swap, no new dependency now. Executes second, right after E11 and before E1, as chapter E10, because it decides which pages are fetched and rendered. A real `Disallow: /` stays blocked (`dipul.de`). |
+| X15 | **Free-tier caps sit at 95 percent of each allowance.** Owner decision 2026-10-28, executed first as chapter E11: R2 bytes 9.5 GB, Class A 950,000 and Class B 9,500,000 a month, Browser Run 570 s, neurons 9,500 and the database 475 MB. The GitHub Actions budget is a share of an account-wide pool and stays 1,000 (CI reserve 600); the admin's 80 percent warning chip is an alert and stays. The thinner margin and its mitigations are recorded in E11. |
 
 ## Open seams
 
@@ -48,7 +49,7 @@ isProject: false
 
 | Risk | Mitigation |
 | --- | --- |
-| 10,000 neurons a day is about 40 to 65 pages a day on the larger models, so the backlog takes weeks | Cleaner first (fewer input tokens), model chosen by the probe, queue order makes partial progress useful, the daily cap is shared by every run |
+| 10,000 neurons a day (9,500 under the cap) is about 47 to 79 pages a day on the larger models, so the backlog takes weeks | Cleaner first (fewer input tokens), model chosen by the probe, queue order makes partial progress useful, the daily cap is shared by every run |
 | Reasoning models bill reasoning tokens as output | The probe records tokens by kind; `max_tokens` is always set; the reservation uses the output price |
 | JSON mode output is not guaranteed | Validation, one bounded repair retry, grounding; a failed page is a normal result, not an error |
 | The model invents documents or quotes | Quote-substring grounding drops them; the eval reports a grounded rate; a reviewer sees the quote |

@@ -1,6 +1,6 @@
 ---
 name: "Chapter E10 — Robots rules fix"
-overview: "Replace urllib's robots.txt matching with an RFC 9309 matcher (longest match wins, Allow wins ties, * and $ supported) so the crawler neither skips allowed pages nor fetches forbidden ones; executes first because it decides which pages are fetched and rendered."
+overview: "Replace urllib's robots.txt matching with an RFC 9309 matcher (longest match wins, Allow wins ties, * and $ supported) so the crawler neither skips allowed pages nor fetches forbidden ones; executes right after E11 (before E1) because it decides which pages are fetched and rendered."
 todos:
   - id: matcher
     content: "robots_rules.py: group selection, rule parsing, wildcard and end-anchor patterns, longest-match decision"
@@ -25,7 +25,7 @@ isProject: false
 
 **Loop branch:** `feat/extraction`
 
-**Order:** executes **first**, before E1. It is independent of E1 to E9, and every later chapter reads pages that this decision fetches or renders. Numbered E10 only so the chapter numbers already referenced elsewhere in the suite stay stable (the same device as crawlers chapter 23).
+**Order:** executes **second**, after [E11](11-free-tier-caps-95.md) and before E1. It is independent of E1 to E9, and every later chapter reads pages that this decision fetches or renders. Numbered E10 only so the chapter numbers already referenced elsewhere in the suite stay stable (the same device as crawlers chapter 23).
 
 ## Goal
 
