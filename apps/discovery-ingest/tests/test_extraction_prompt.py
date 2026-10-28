@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import replace
@@ -10,6 +11,7 @@ import pytest
 from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm import prompt
 from discovery_ingest.extract.llm.prompt import PROMPT_VERSION, build_messages, extractor_version
+from discovery_ingest.extract.llm.prompt_template import system_text
 
 from llm_fakes import page, taxonomy
 
@@ -102,3 +104,13 @@ def test_the_prompt_never_contains_a_credential_or_a_setting(monkeypatch: pytest
     rendered = json.dumps(build_messages(page(TEXT), taxonomy()))
     assert "SENTINEL" not in rendered
     assert not re.search(r"api[_ -]?key|token|secret|password|authorization|bearer", rendered, re.IGNORECASE)
+
+
+WORDING_DIGESTS = {"ext-1": "33b98a3792bb"}
+
+
+def test_a_wording_change_needs_a_new_prompt_version() -> None:
+    digest = hashlib.sha256(system_text().encode()).hexdigest()[:12]
+    assert WORDING_DIGESTS.get(PROMPT_VERSION) == digest, (
+        f"system message wording changed (digest {digest}); bump PROMPT_VERSION and record the new digest"
+    )
