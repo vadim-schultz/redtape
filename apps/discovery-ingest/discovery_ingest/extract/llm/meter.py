@@ -66,15 +66,25 @@ class NeuronMeter:
         """Replace the reservation by the real cost when usage is present; keep it when it is not."""
         if result.input_tokens is None or result.output_tokens is None:
             return
-        delta = cost(result.model, result.input_tokens, result.output_tokens) - reservation.neurons
-        self._used += delta
-        if reservation.ledgered:
-            self._guard.adjust(RESOURCE, delta)
+        self._correct(reservation, cost(result.model, result.input_tokens, result.output_tokens) - reservation.neurons)
+
+    def refund(self, reservation: Reservation) -> None:
+        """Give back a reservation for a call the provider provably refused (quota or token), so nothing was billed."""
+        self._correct(reservation, -reservation.neurons)
+
+    def stop_using_ledger(self) -> None:
+        """Rely on the run budget alone from now on; call it after :class:`LedgerUnavailable` (the outage stays reported)."""
+        self._use_ledger = False
 
     def exhaust(self) -> None:
         """Tell the ledger the day's neurons are gone (a provider quota error)."""
         if self._use_ledger:
             self._guard.exhaust(RESOURCE)
+
+    def _correct(self, reservation: Reservation, delta: float) -> None:
+        self._used += delta
+        if reservation.ledgered:
+            self._guard.adjust(RESOURCE, delta)
 
     def _ledger_refusal(self, neurons: int) -> Denied | LedgerUnavailable | None:
         if not self._use_ledger:

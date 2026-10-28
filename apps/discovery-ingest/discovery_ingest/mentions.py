@@ -52,3 +52,4 @@ class MentionsResponse(BaseModel):
     candidates_created: int
     mentions_created: int
     mentions_updated: int
+    unknown_codes: int = 0

@@ -42,6 +42,7 @@ from discovery_ingest.pvog.client import (
     map_pvog_record,
 )
 from discovery_ingest.schemas import (
+    LLM_TASK_KINDS,
     TASK_KINDS,
     WORKER_DEFAULT_TASK_KINDS,
     CatalogueBatchItem,
@@ -50,7 +51,8 @@ from discovery_ingest.schemas import (
 )
 from discovery_ingest.worker.browser_setup import BrowserSetupError, prepare_browser
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
-from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.llm_setup import LlmSetupError, prepare_llm
+from discovery_ingest.worker.policy import MAX_TASKS_PER_CLAIM, DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
 
 
@@ -212,6 +214,10 @@ def _steckbrief_keys_arg(raw: str) -> tuple[str, ...]:
     return keys
 
 
+LLM_BATCH_SIZE = 5
+"""Tasks per claim for an llm drain, so a stop releases at most four unstarted tasks."""
+
+
 def _task_kinds_arg(raw: str) -> tuple[DiscoveryTaskKind, ...]:
     """Parse a comma separated ``--kinds`` value into known task kinds."""
     names = [name.strip() for name in raw.split(",")]
@@ -222,12 +228,14 @@ def _task_kinds_arg(raw: str) -> tuple[DiscoveryTaskKind, ...]:
 
 
 def _drain_policy(args: argparse.Namespace) -> DrainPolicy:
+    drains_llm = any(kind in LLM_TASK_KINDS for kind in args.kinds)
     return DrainPolicy(
-        max_tasks=args.max_tasks,
+        max_tasks=args.max_tasks or (LLM_BATCH_SIZE if drains_llm else MAX_TASKS_PER_CLAIM),
         max_batches=args.max_batches,
         time_budget_seconds=args.time_budget_seconds,
         kinds=args.kinds,
         browser_budget_seconds=args.browser_budget_seconds,
+        neuron_budget=args.neuron_budget,
     )
 
 
@@ -241,7 +249,7 @@ def _worker_drain(args: argparse.Namespace) -> int:
     client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
         return _drain_and_print(policy, settings, client)
-    except BrowserSetupError as err:
+    except (BrowserSetupError, LlmSetupError) as err:
         print(err, file=sys.stderr)
         return err.exit_code
     except DiscoveryMachineApiError as err:
@@ -250,9 +258,11 @@ def _worker_drain(args: argparse.Namespace) -> int:
 
 
 def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
-    """Prepare the browser when a browser kind is drained, run the recorded drain and print its report."""
+    """Prepare the browser and the model when their kinds are drained, run the recorded drain and print its report."""
     browser = prepare_browser(settings, settings.user_agent, client) if policy.drains_browser_kinds else None
-    report = run_recorded_drain(client, PoliteUrlFetcher(user_agent=settings.user_agent), policy, browser=browser)
+    llm = prepare_llm(settings, client) if policy.drains_llm_kinds else None
+    fetcher = PoliteUrlFetcher(user_agent=settings.user_agent)
+    report = run_recorded_drain(client, fetcher, policy, browser=browser, llm=llm)
     print(json.dumps(report.model_dump(mode="json")))
     return 0 if report.succeeded else 1
 
@@ -438,8 +448,8 @@ def _build_parser() -> argparse.ArgumentParser:
     worker_drain.add_argument(
         "--max-tasks",
         type=int,
-        default=50,
-        help="Maximum tasks per claim request (1–50, default 50)",
+        default=None,
+        help="Maximum tasks per claim request (1–50; default 50, or 5 when llm_extract is drained)",
     )
     worker_drain.add_argument(
         "--max-batches",
@@ -460,10 +470,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Browser seconds this run may spend on render_page and capture_screenshot (positive, default 570)",
     )
     worker_drain.add_argument(
+        "--neuron-budget",
+        type=float,
+        default=None,
+        help="Workers AI neurons this run may spend on llm_extract (positive; required for that kind, no default)",
+    )
+    worker_drain.add_argument(
         "--kinds",
         type=_task_kinds_arg,
         default=WORKER_DEFAULT_TASK_KINDS,
-        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload,extract_page; render_page and capture_screenshot need Cloudflare settings and artifact storage)",
+        help="Comma separated task kinds to claim (default fetch_url,enrich_metadata,harvest_payload,extract_page; render_page and capture_screenshot need Cloudflare settings and artifact storage; llm_extract also needs the Workers AI token, LLM_MODEL, a readable ledger and --neuron-budget)",
     )
 
     candidates = sub.add_parser("candidates", help="Document candidates")

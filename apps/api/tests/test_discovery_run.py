@@ -136,7 +136,9 @@ def test_finish_with_running_status_is_rejected_and_run_requires_api_key(
     assert anonymous.status_code == 401
 
 
-@pytest.mark.parametrize("reason", ["browser_budget", "browser_quota", "storage_unavailable", "db_limit"])
+@pytest.mark.parametrize(
+    "reason", ["browser_budget", "browser_quota", "storage_unavailable", "db_limit", "llm_budget", "llm_quota"]
+)
 def test_finish_records_the_stop_reasons_of_a_run_that_hit_a_free_allocation(
     client: TestClient[Litestar], db_session: Session, headers: dict[str, str], reason: str
 ) -> None:

@@ -7,8 +7,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from discovery_ingest.mentions import MAX_CONDITION_LENGTH
+from discovery_ingest.mentions import MAX_CONDITION_LENGTH, MAX_MENTION_ITEMS
 
+MAX_EDGE_ITEMS = MAX_MENTION_ITEMS
+
+EdgeSkipReason = Literal["blank_excerpt", "same_endpoints", "unknown_parent", "unknown_required"]
 EdgeBasis = Literal["explicit", "derived_single_issued"]
 
 
@@ -26,3 +29,25 @@ class EdgeItem(BaseModel):
     excerpt: str = Field(min_length=1)
     extractor: str = Field(min_length=1, max_length=64)
     extractor_version: str = Field(min_length=1, max_length=32)
+
+
+class EdgesRequest(BaseModel):
+    """Batch of edges; each item is settled on its own."""
+
+    items: list[EdgeItem] = Field(min_length=1, max_length=MAX_EDGE_ITEMS)
+
+
+class EdgeSkip(BaseModel):
+    """Why the item at ``index`` was not recorded."""
+
+    index: int
+    reason: EdgeSkipReason
+
+
+class EdgesResponse(BaseModel):
+    """What an edge batch created, updated or skipped."""
+
+    edges_created: int
+    edges_updated: int
+    edges_skipped: int
+    skipped: list[EdgeSkip]
