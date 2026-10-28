@@ -55,7 +55,7 @@ Manual dispatch always works once the file is on `main`.
 
 **Drain inputs.** `discovery-drain.yml`: `max_tasks` (50), `max_batches` (20), `time_budget_seconds` (empty: the variable
 `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900), `kinds`. `discovery-render.yml`: `max_tasks` (5), `max_batches` (40),
-`time_budget_seconds` (900), `browser_budget_seconds` (480), `kinds`. Browser drains use small batches because a limit
+`time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds`. Browser drains use small batches because a limit
 releases every task of the batch.
 
 **Concurrency.** Both drains share the group `discovery-drain` with `cancel-in-progress: false`, so they never overlap.
@@ -68,9 +68,9 @@ step (`if: always()`) adds the elapsed minutes, rounded up, plus one.
 | Resource | Period | Default cap | Who spends it |
 | --- | --- | --- | --- |
 | `actions_minutes` | month | 400 (1,000 minus the 600 CI reserve) | Drain workflows, through `budget report-minutes`. The drain skips under 45 minutes left, the render under 30 |
-| `browser_seconds` | day | 480 | Browser drains. The render skips under 30 seconds left |
-| `r2_class_a`, `r2_class_b` | month | 400,000 and 4,000,000 | The metered object store in the API |
-| `neurons` | day | 8,000 | Reserved for the extraction suite |
+| `browser_seconds` | day | 570 | Browser drains. The render skips under 30 seconds left |
+| `r2_class_a`, `r2_class_b` | month | 950,000 and 9,500,000 | The metered object store in the API |
+| `neurons` | day | 9,500 | Reserved for the extraction suite |
 
 Caps are API settings (`BUDGET_*`, `ACTIONS_CI_RESERVE_MINUTES`, `DB_SOFT_LIMIT_BYTES`), listed in
 [deployment-checklist.md](deployment-checklist.md). Show the ledger with `python -m discovery_ingest budget show`

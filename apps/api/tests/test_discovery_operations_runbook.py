@@ -10,6 +10,9 @@ RUNBOOK = REPO_ROOT / "docs/operations/discovery-layer.md"
 DISCOVERY_ONLINE_RUNBOOK = REPO_ROOT / "docs/operations/discovery-online.md"
 SCHEDULED_JOBS = REPO_ROOT / "docs/operations/scheduled-jobs.md"
 DEPLOYMENT_CHECKLIST = REPO_ROOT / "docs/operations/deployment-checklist.md"
+OPERATOR_CHECKLIST = REPO_ROOT / "docs/operations/crawlers-operator-checklist.md"
+POST_DEPLOY_STEPS = REPO_ROOT / "docs/operations/crawlers-post-deploy-human-steps.md"
+INGEST_README = REPO_ROOT / "apps/discovery-ingest/README.md"
 
 _MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
@@ -135,3 +138,77 @@ def test_federal_jurisdiction_docs_mention_de_country_query() -> None:
     assert de_sql in scheduled or "kind=COUNTRY" in scheduled
     assert "FEDERAL_JURISDICTION_ID" in scheduled
     assert "print_federal_jurisdiction_id" in checklist or de_sql in checklist
+
+
+# Free-tier caps at 95 percent of each allowance (extraction chapter E11): setting -> default as printed in a doc.
+_CAP_DEFAULTS = {
+    "OBJECT_STORE_MAX_BYTES": "9500000000",
+    "BUDGET_R2_CLASS_A_MONTHLY": "950000",
+    "BUDGET_R2_CLASS_B_MONTHLY": "9500000",
+    "BUDGET_BROWSER_SECONDS_DAILY": "570",
+    "BUDGET_NEURONS_DAILY": "9500",
+    "DB_SOFT_LIMIT_BYTES": "475000000",
+}
+_OLD_CAP_DEFAULTS = (
+    "8 GiB",
+    "8589934592",
+    "400 MB",
+    "400000000",
+    "400,000",
+    "4,000,000",
+    "400000",
+    "4000000",
+    "| 480",
+    "(480)",
+    "default 480",
+    "seconds 480",
+    "| 8000",
+    "| 8,000",
+    "(8000)",
+)
+_CAP_DOCS = (
+    RUNBOOK,
+    DISCOVERY_ONLINE_RUNBOOK,
+    SCHEDULED_JOBS,
+    DEPLOYMENT_CHECKLIST,
+    OPERATOR_CHECKLIST,
+    POST_DEPLOY_STEPS,
+    INGEST_README,
+)
+
+
+def _prints_default(text: str, variable: str, value: str) -> bool:
+    return re.search(rf"`{variable}`[^\n]*?\b{value}\b", text) is not None
+
+
+def _standalone(old: str) -> re.Pattern[str]:
+    """Match ``old`` only when it is not part of a longer number, such as a URL id."""
+    return re.compile(rf"(?<![\w,.]){re.escape(old)}(?![\w,])")
+
+
+def test_the_operator_checklist_and_the_deployment_checklist_print_the_six_new_caps() -> None:
+    """Both documents name every cap variable with its 95 percent default."""
+    for doc in (OPERATOR_CHECKLIST, DEPLOYMENT_CHECKLIST):
+        text = doc.read_text(encoding="utf-8")
+        for variable, value in _CAP_DEFAULTS.items():
+            assert _prints_default(text, variable, value), f"{doc.name} must print {variable} = {value}"
+
+
+def test_the_runbooks_print_the_new_browser_neuron_and_database_numbers() -> None:
+    """The scheduled-jobs ledger table, discovery-online, post-deploy steps and ingest README agree."""
+    scheduled = SCHEDULED_JOBS.read_text(encoding="utf-8")
+    online = DISCOVERY_ONLINE_RUNBOOK.read_text(encoding="utf-8")
+
+    assert "| 570 |" in scheduled and "950,000 and 9,500,000" in scheduled and "| 9,500 |" in scheduled
+    assert "`--browser-budget-seconds` | 570 |" in online and "(default 570)" in online
+    assert "9.5 GB" in online and "(475 MB)" in online
+    assert "soft limit 475 MB" in POST_DEPLOY_STEPS.read_text(encoding="utf-8")
+    assert "`--browser-budget-seconds` | 570 |" in INGEST_README.read_text(encoding="utf-8")
+
+
+def test_no_runbook_still_prints_the_old_caps_as_defaults() -> None:
+    """No operations document or README keeps 480 s, 8,000 neurons, 400 MB or 8 GiB as a default."""
+    for doc in _CAP_DOCS:
+        text = doc.read_text(encoding="utf-8")
+        stale = [old for old in _OLD_CAP_DEFAULTS if _standalone(old).search(text)]
+        assert not stale, f"{doc.name} still prints the old cap(s) {stale}"
