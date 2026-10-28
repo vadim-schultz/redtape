@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from discovery_ingest.extract.llm.ground import Grounded, ground
 from discovery_ingest.extract.llm.schema import PageExtraction
 
@@ -37,5 +38,23 @@ def test_a_bullet_inside_a_line_of_the_page_text_is_removed_the_same_way() -> No
 def test_a_quote_whose_words_are_not_on_the_page_still_fails_with_bullets() -> None:
     """bullets · a bullet does not make an invented line grounded (negative)."""
     grounded = run("Sie benötigen: - Reisepass der Person")
+    assert grounded.documents == ()
+    assert grounded.diagnostics.dropped == {"quote": 1}
+
+
+def test_a_quote_written_with_a_closing_glyph_where_the_page_has_an_opening_glyph_still_grounds() -> None:
+    """glyphs · the model wrote ” on both sides of a name the page sets in „…“."""
+    assert len(run("Das Formular ”Antrag auf Leistung” liegt bei.").documents) == 1
+
+
+@pytest.mark.parametrize("dash", ["-", "—", "–"])
+def test_a_quote_grounds_whatever_dash_it_uses_where_the_page_has_an_en_dash(dash: str) -> None:
+    """glyphs · dashes of different widths match each other."""
+    assert len(run(f"Die Bundes-Agentur {dash} kurz BA {dash} hilft.").documents) == 1
+
+
+def test_a_quote_with_different_letters_still_fails() -> None:
+    """glyphs · an umlaut the model dropped is not tolerated (negative)."""
+    grounded = run("Das Formular ”Antrag auf Leistng” liegt bei.")
     assert grounded.documents == ()
     assert grounded.diagnostics.dropped == {"quote": 1}

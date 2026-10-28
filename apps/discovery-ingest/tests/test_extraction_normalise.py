@@ -44,3 +44,22 @@ def test_a_hyphen_inside_a_word_or_a_number_is_not_a_bullet() -> None:
         normalise("Bundes-Agentur und Bundes- sowie -5 Grad, E-Mail")
         == "bundes-agentur und bundes- sowie -5 grad, e-mail"
     )
+
+
+@pytest.mark.parametrize(
+    "quote", ["„Antrag“", "”Antrag”", '"Antrag"', "'Antrag'", "‚Antrag‘", "’Antrag’", "«Antrag»", "‹Antrag›"]
+)
+def test_straight_and_curly_quote_marks_fold_away_whichever_glyph_opens_or_closes(quote: str) -> None:
+    """glyphs · the glyph a model writes for „ or “ does not matter."""
+    assert normalise(f"Das Formular {quote} liegt bei") == "das formular antrag liegt bei"
+
+
+def test_dashes_of_different_widths_fold_to_one_hyphen() -> None:
+    """glyphs · a spaced en or em dash is a separator, an unspaced one is a hyphen inside the word."""
+    assert normalise("BA – kurz — Agentur") == normalise("BA - kurz - Agentur") == "ba kurz agentur"
+    assert normalise("2020–2021 und 2022—2023") == "2020-2021 und 2022-2023"
+
+
+def test_letters_are_not_folded_so_a_missing_umlaut_stays_different() -> None:
+    """glyphs · no fuzzy matching: ``ü`` and ``u`` stay distinct (negative)."""
+    assert normalise("verfügbare") != normalise("verfgbare") != normalise("verfugbare")
