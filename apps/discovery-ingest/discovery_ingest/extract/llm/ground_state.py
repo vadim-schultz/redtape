@@ -19,13 +19,14 @@ class DroppedItem:
 
 @dataclass(frozen=True, slots=True)
 class Diagnostics:
-    """Why items were lost: drops per reason, the dropped items, codes outside the vocabulary and nulled URLs."""
+    """Why items were lost: drops per reason, the dropped items, codes outside the vocabulary, nulled URLs, repairs."""
 
     page_kind: str
     dropped: Mapping[str, int]
     unknown_codes: int
     urls_nulled: int
     dropped_items: tuple[DroppedItem, ...] = ()
+    repaired: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +48,7 @@ class Tally:
     dropped_items: list[DroppedItem] = field(default_factory=list)
     unknown_codes: int = 0
     urls_nulled: int = 0
+    repaired: int = 0
 
     def drop(self, reason: str, count: int = 1) -> None:
         """Count ``count`` items lost for ``reason``."""
@@ -60,4 +62,6 @@ class Tally:
     def freeze(self, page_kind: str) -> Diagnostics:
         """Return the diagnostics, leaving out reasons that never occurred."""
         dropped = {reason: count for reason, count in self.dropped.items() if count}
-        return Diagnostics(page_kind, dropped, self.unknown_codes, self.urls_nulled, tuple(self.dropped_items))
+        return Diagnostics(
+            page_kind, dropped, self.unknown_codes, self.urls_nulled, tuple(self.dropped_items), self.repaired
+        )

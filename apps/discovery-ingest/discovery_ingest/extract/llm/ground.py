@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from discovery_ingest.extract.clean import CleanPage
+from discovery_ingest.extract.llm.ground_repair import repair_all
 from discovery_ingest.extract.llm.ground_rules import (
     ground_url,
     keep_codes,
@@ -21,7 +22,7 @@ __all__ = ["Diagnostics", "Grounded", "ground"]
 
 
 def _documents(extraction: PageExtraction, clean_page: CleanPage, haystack: str, tally: Tally) -> list[DocumentItem]:
-    quoted = keep_quoted(extraction.documents, haystack, "quote", tally)
+    quoted = keep_quoted(repair_all(extraction.documents, tally), haystack, "quote", tally)
     return keep_names([ground_url(item, clean_page.links, tally) for item in quoted], tally)
 
 
@@ -32,7 +33,7 @@ def ground(extraction: PageExtraction, clean_page: CleanPage, vocab: Taxonomy) -
         return Grounded((), (), (), (), tally.freeze(extraction.page_kind))
     haystack = normalise(clean_page.text)
     documents = _documents(extraction, clean_page, haystack, tally)
-    dependencies = keep_dependencies(extraction.dependencies, documents, haystack, tally)
+    dependencies = keep_dependencies(repair_all(extraction.dependencies, tally), documents, haystack, tally)
     domains = keep_codes(extraction.domain_codes, vocab.domain_codes, MAX_DOMAIN_CODES, tally)
     situations = keep_codes(extraction.situation_codes, vocab.situation_codes, MAX_SITUATION_CODES, tally)
     return Grounded(tuple(documents), tuple(dependencies), domains, situations, tally.freeze(extraction.page_kind))

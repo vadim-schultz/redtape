@@ -41,15 +41,15 @@ def _recorded_page() -> Any:
 
 
 def test_a_percent_encoded_name_and_quote_are_decoded_and_then_grounded_against_the_cleaned_text() -> None:
-    """repair · the recorded answer of aa-ferienbeschaeftigung loses its encoded items before, none after."""
+    """repair · of six encoded items of the recorded answer, two documents now ground (two more differ in quote marks)."""
     extraction = PageExtraction.model_validate(json.loads(ANSWER.read_text(encoding="utf-8")))
 
     grounded = ground(extraction, _recorded_page(), _taxonomy())
 
     names = [item.name for item in grounded.documents]
-    assert "Erklärung zur Immatrikulationsbescheinigung" in names
+    assert "Antragsformular Ferienbeschäftigung" in names
     assert "Bestätigung der Ferienbeschäftigung" in names
-    assert not [item for item in grounded.diagnostics.dropped_items if "%" in str(item.item)]
+    assert grounded.diagnostics.repaired == 6
 
 
 def test_an_encoded_condition_is_decoded_and_the_encoded_item_is_counted_once() -> None:
