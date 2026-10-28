@@ -1,0 +1,33 @@
+{
+  "source_url": "https://www.arbeitsagentur.de/unternehmen/finanziell/foerderung-menschen-mit-behinderungen/probebeschaeftigung",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Schwerbehindertenausweis",
+      "role": "required",
+      "condition": "sofern bei der Person eine Schwerbehinderung vorliegt"
+    },
+    {
+      "name": "Gleichstellungsbescheid",
+      "role": "required",
+      "condition": "sofern bei der Person eine Gleichstellung vorliegt"
+    },
+    {
+      "name": "unterschriebener Probearbeitsvertrag",
+      "role": "required"
+    },
+    {
+      "name": "Nachweis zur Anmeldung der Sozialversicherung",
+      "role": "required",
+      "condition": "wenn er bereits vorliegt",
+      "is_optional": true
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "new-job"
+  ]
+}

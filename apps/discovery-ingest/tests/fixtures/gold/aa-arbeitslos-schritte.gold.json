@@ -1,0 +1,12 @@
+{
+  "source_url": "https://www.arbeitsagentur.de/arbeitslos-arbeit-finden/arbeitslosengeld/ihre-schritte-wenn-sie-arbeitslos-werden",
+  "page_kind": "list",
+  "documents": [],
+  "dependencies": [],
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "job-loss"
+  ]
+}

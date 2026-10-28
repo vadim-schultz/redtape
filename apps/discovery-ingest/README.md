@@ -17,6 +17,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `candidates emit` | Emit staged document candidates as pending suggestions; see below |
 | `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
+| `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, grounded rate, tag agreement and neurons per page |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger; add Actions minutes to it |
 
@@ -128,6 +129,34 @@ python -m discovery_ingest llm probe --model @cf/meta/llama-3.3-70b-instruct-fp8
 `--max-neurons` (default 900) stops the probe before the next model once the computed spend reaches it. It exits 2 when
 a variable, the fixture or a model is missing and 1 when Cloudflare rejected the token or the daily allowance is gone.
 The manual workflow `discovery-llm-probe.yml` runs the same command.
+
+### Evaluate a model on the gold set
+
+`llm eval` measures one model and prompt version on the 20 real pages of `tests/fixtures/gold/` (see its README: the
+labels are drafted and need a human review). Each page is cleaned, sent to the model and grounded, and the table shows
+the pooled precision and recall of documents, the same for edges, the grounded rate (the share of raw model items that
+quote the page), the tag agreement, the cleaner recall, the neurons per page and the pages per day that follows from
+it. Next to each metric the table prints the starting target of decision X14.
+
+```bash
+python -m discovery_ingest llm eval --model @cf/meta/llama-3.1-8b-instruct --neuron-budget 4000 --out /tmp/eval-1.json
+```
+
+It needs `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` (the budget ledger and `GET /machine/taxonomy`) next to the two
+Cloudflare variables, and it never prints the token. Every call reserves neurons from the ledger first, so an eval
+cannot spend more than the day has left.
+
+- `--neuron-budget` (default 4000) ends the run before the page that would pass it. The pages done so far are
+  printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
+  token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
+- `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`ext-1`); the option names
+  the version a result belongs to, it does not select a wording. Exit 2 means a missing variable, an unpriced model or
+  a gold label outside the taxonomy.
+- `--out FILE` writes the per-page results and, for every item grounding dropped, its reason (`quote`, `duplicate`,
+  `noise`, `dependency_endpoint`, `dependency_quote`, `dependency_duplicate`, or `page_kind` for a login page).
+- Answers are cached in `--cache-dir` (default `.llm-eval-cache/`, ignored by git) by model, prompt version, cleaner
+  version, vocabulary and page text, so a re-run of an unchanged page costs nothing. The cached cost is still reported.
+- A page whose cleaned text is empty (a client-side shell) is not sent and scores as nothing found.
 
 ### Run a browser drain on your machine
 

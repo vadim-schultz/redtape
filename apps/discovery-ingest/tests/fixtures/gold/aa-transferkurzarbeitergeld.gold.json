@@ -1,0 +1,56 @@
+{
+  "source_url": "https://www.arbeitsagentur.de/unternehmen/finanziell/kurzarbeitergeldformen/transfermassnahmen-transferkurzarbeitergeld/transferkurzarbeitergeld-anzeige-antrag-abschlusspruefung",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Formular Anzeige über Arbeitsausfall",
+      "role": "form"
+    },
+    {
+      "name": "Sozialplan",
+      "role": "required",
+      "condition": "als weiterer Nachweis oder Anlage"
+    },
+    {
+      "name": "Interessenausgleich",
+      "role": "required",
+      "condition": "als weiterer Nachweis oder Anlage"
+    },
+    {
+      "name": "Profiling-Bögen",
+      "role": "required",
+      "condition": "als weiterer Nachweis oder Anlage"
+    },
+    {
+      "name": "Zertifizierung Transfergesellschaft",
+      "role": "required",
+      "condition": "als weiterer Nachweis oder Anlage"
+    },
+    {
+      "name": "Teilnehmerliste",
+      "role": "required",
+      "condition": "als weiterer Nachweis oder Anlage"
+    },
+    {
+      "name": "Formular Antrag Transferkurzarbeitergeld",
+      "role": "form"
+    },
+    {
+      "name": "Formular Abrechnungsliste",
+      "role": "form"
+    },
+    {
+      "name": "weitere Nachweise",
+      "role": "required",
+      "condition": "gegebenenfalls",
+      "is_optional": true
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "job-loss"
+  ]
+}

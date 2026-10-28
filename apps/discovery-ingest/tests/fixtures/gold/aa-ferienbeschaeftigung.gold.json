@@ -1,0 +1,48 @@
+{
+  "source_url": "https://www.arbeitsagentur.de/unternehmen/fachkraefte-ausland/ferienbeschaeftigung",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Immatrikulationsbescheinigung",
+      "role": "required"
+    },
+    {
+      "name": "amtlich beglaubigte Übersetzung der Immatrikulationsbescheinigung",
+      "role": "required",
+      "condition": "falls die Bescheinigung nicht in deutscher oder englischer Sprache vorliegt"
+    },
+    {
+      "name": "Erklärung zur Immatrikulationsbescheinigung",
+      "role": "form"
+    },
+    {
+      "name": "Vollmacht des Betriebes",
+      "role": "required",
+      "condition": "falls der Antrag im Auftrag eines Unternehmens gestellt wird"
+    },
+    {
+      "name": "Auszug aus dem Informationsportal „anabin“",
+      "role": "required"
+    },
+    {
+      "name": "Antragsformular Ferienbeschäftigung für ausländische Studierende, Fachschüler/innen",
+      "role": "form",
+      "condition": "für den schriftlichen Antrag"
+    },
+    {
+      "name": "Stellenangebot für einen Ferienjob in Deutschland",
+      "role": "form",
+      "condition": "um den Ferienjob auszuschreiben",
+      "is_optional": true
+    },
+    {
+      "name": "Bestätigung der Ferienbeschäftigung",
+      "role": "issued"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": []
+}

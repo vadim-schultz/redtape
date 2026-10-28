@@ -28,6 +28,69 @@ isProject: false
 | X14 | **robots.txt follows RFC 9309, in-house.** Python's `urllib.robotparser` is first-match and ignores `*` and `$`, which blocks pages a site allows and fetches files a site forbids (checked 2026-10-28 against four real files). A small matcher replaces it behind the unchanged `RobotsCache` interface; `Protego` is the pre-approved swap, no new dependency now. Executes second, right after E11 and before E1, as chapter E10, because it decides which pages are fetched and rendered. A real `Disallow: /` stays blocked (`dipul.de`). |
 | X15 | **Free-tier caps sit at 95 percent of each allowance.** Owner decision 2026-10-28, executed first as chapter E11: R2 bytes 9.5 GB, Class A 950,000 and Class B 9,500,000 a month, Browser Run 570 s, neurons 9,500 and the database 475 MB. The GitHub Actions budget is a share of an account-wide pool and stays 1,000 (CI reserve 600); the admin's 80 percent warning chip is an alert and stays. The thinner margin and its mitigations are recorded in E11. |
 
+## Pending decisions
+
+### X16 (chapter E5 calls it X14): model, prompt version and thresholds. Pending the live eval
+
+Chapter E5 numbers this decision X14, but X14 is the robots.txt decision (E10), so it is recorded here as X16. The
+harness, the 20-page real gold set and the offline numbers are done. The live eval needs the Workers AI token and the
+human review of the gold labels (`apps/discovery-ingest/tests/fixtures/gold/README.md`). Until then `llm_model` stays
+unset and `PROMPT_VERSION` stays `ext-1`. Under invariant 1 this gate never blocks a merge.
+
+**Starting thresholds** (replace them with what the measurements justify): precision at least 0.80, recall at least
+0.60, grounded rate at least 0.95, tag agreement at least 0.60 (tags reach the emit payload only if it passes). The
+table of `llm eval` prints each target next to its value, and the expected pages per day at the 9,500-neuron cap.
+
+**Candidate models.** The three that the E4 probe checks, in this order of expected quality and cost. Run the probe
+first and drop a model that does not accept `response_format`.
+
+| Model | Expected neurons per page | Pages per day | Neurons for the 19 pages that reach the model |
+| --- | --- | --- | --- |
+| `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | about 210 | about 45 | about 4,000 |
+| `@cf/meta/llama-3.1-8b-instruct` | about 130 | about 74 | about 2,400 |
+| `@cf/openai/gpt-oss-20b` | about 75 (reasoning tokens may add output) | about 126 | about 1,400 |
+
+The estimate uses the real cleaned text of the gold pages (mean 5,263 characters), one token per three characters, a
+1,500-token prompt overhead and 600 output tokens. The probe replaces these guesses.
+
+**Commands** (operator, from `apps/discovery-ingest`, with `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`,
+`DISCOVERY_API_URL` and `DISCOVERY_API_KEY` exported; plan the runs over two days):
+
+```bash
+python -m discovery_ingest llm probe --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --model @cf/meta/llama-3.1-8b-instruct --model @cf/openai/gpt-oss-20b --fixture tests/fixtures/pages/table_page.html
+python -m discovery_ingest llm eval --model @cf/meta/llama-3.1-8b-instruct --neuron-budget 4000 --out /tmp/eval-1.json
+python -m discovery_ingest llm eval --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --neuron-budget 4500 --out /tmp/eval-2.json
+```
+
+Why 4,500 for the 70b model: the budget is a ceiling on the running total plus the next reservation (about 400
+neurons), so 4,000 would stop at page 18 of 19. A stopped run exits 1 and still writes the finished pages. Answers are
+cached, so a second run with a higher budget only pays for the pages that were not done.
+
+**Record here after the live eval:** the model and endpoint mode (from the probe), `PROMPT_VERSION`, the cleaner
+version (`clean-1`), precision, recall, grounded rate, tag agreement, cleaner recall and neurons per page of each run,
+the neurons used per run, and the thresholds that the later live gates use. Then set `llm_model` and, if the prompt
+changed, `PROMPT_VERSION` in a follow-up commit. If no candidate reaches the targets, record the shortfall and one of
+three decisions: accept lower recall because everything is human-reviewed, change the cleaner or the prompt, or fall
+back to hand-written extractors for the weak hosts (crawlers chapter 18).
+
+**Offline numbers** (2026-10-28, 20 real pages from 14 hosts, 47 gold documents, 2 gold edges; no model involved):
+
+- `cleaner_recall` is **0.936** (44 of 47 gold names are in the cleaned text with the 12,000-character cap) and 0.979
+  (46 of 47) with no cap.
+- Missing names and causes: `Bestandsliste` (`www.ble.de`) and `Nachweis des Verwandtschaftsverhältnisses`
+  (`www.bundesarchiv.de`) are cut by the cap, because the page text is 21,238 and 17,716 characters long and the BLE
+  menu links come before the content. `Antragsformular Ferienbeschäftigung für ausländische Studierende,
+  Fachschüler/innen` (`www.arbeitsagentur.de`) is joined to its description without a space ("Fachschüler/innenFormular
+  für den Arbeitgeber"), so the name never ends at a word boundary.
+- Characters per page (raw HTML, cleaned with the cap, cleaned without it) are in the README of the gold set. The
+  cleaned size is 0 for the client-side shell, 1,076 to 6,924 for 15 pages and 11,677 to 11,956 for the four BLE and
+  Bundesarchiv pages (three of them truncated).
+- **Cleaner swap check (offline part).** Recall misses are two cap effects and one whitespace defect, not a boilerplate
+  problem that Trafilatura is known to fix. Cheaper first steps, for a follow-up of chapter E2 and not decided here:
+  drop menu blocks that are not `nav` elements (BLE) and insert a space between a link title and its description. Decide
+  the Trafilatura swap by running `cleaner_recall` on this gold set with both cleaners; the live recall of the model
+  stays the other half of that decision.
+
 ## Open seams
 
 | Seam | Placeholder | Forcing condition |

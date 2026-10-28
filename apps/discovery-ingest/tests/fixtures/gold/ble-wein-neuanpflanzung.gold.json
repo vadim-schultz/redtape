@@ -1,0 +1,23 @@
+{
+  "source_url": "https://www.ble.de/DE/Themen/Landwirtschaft/Wein/wein_node.html",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Onlineantrag",
+      "role": "form"
+    },
+    {
+      "name": "Vollmachtserklärung zur Beantragung einer Genehmigung für Pflanzrechte Wein",
+      "role": "form"
+    },
+    {
+      "name": "Genehmigungsbescheide",
+      "role": "issued"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "self-employment-business"
+  ],
+  "situation_codes": []
+}

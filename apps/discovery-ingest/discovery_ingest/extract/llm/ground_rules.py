@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
-from typing import Protocol, TypeVar
+from typing import TypeVar
 
 from discovery_ingest.extract.clean_links import absolute_web_url
 from discovery_ingest.extract.llm.ground_state import Tally
@@ -14,12 +14,7 @@ from discovery_ingest.harvest.noise import is_noise
 MAX_URL_LENGTH = 500
 
 
-class _Quoted(Protocol):
-    @property
-    def quote(self) -> str: ...
-
-
-Q = TypeVar("Q", bound=_Quoted)
+Q = TypeVar("Q", DocumentItem, DependencyItem)
 
 
 def _quotes_page(quote: str, haystack: str) -> bool:
@@ -30,8 +25,13 @@ def _quotes_page(quote: str, haystack: str) -> bool:
 def keep_quoted(items: Sequence[Q], haystack: str, reason: str, tally: Tally) -> list[Q]:
     """Keep the items whose quote is on the page; ``haystack`` is the normalised page text."""
     kept = [item for item in items if _quotes_page(item.quote, haystack)]
-    tally.drop(reason, len(items) - len(kept))
+    _lose_all([item for item in items if item not in kept], reason, tally)
     return kept
+
+
+def _lose_all(items: Sequence[Q], reason: str, tally: Tally) -> None:
+    for item in items:
+        tally.lose(reason, item)
 
 
 def ground_url(document: DocumentItem, links: Collection[str], tally: Tally) -> DocumentItem:
@@ -59,7 +59,7 @@ def keep_names(documents: Sequence[DocumentItem], tally: Tally) -> list[Document
     for document in documents:
         verdict = _name_verdict(document, seen)
         if verdict is not None:
-            tally.drop(verdict)
+            tally.lose(verdict, document)
             continue
         seen.add((name_slug(document.name), document.role))
         kept.append(document)
@@ -72,11 +72,16 @@ def _has_known_endpoints(dependency: DependencyItem, slugs: set[str]) -> bool:
 
 
 def _once_per_pair(dependencies: Sequence[DependencyItem], tally: Tally) -> list[DependencyItem]:
-    first: dict[tuple[str, str], DependencyItem] = {}
+    seen: set[tuple[str, str]] = set()
+    kept: list[DependencyItem] = []
     for dependency in dependencies:
-        first.setdefault((name_slug(dependency.parent), name_slug(dependency.requires)), dependency)
-    tally.drop("dependency_duplicate", len(dependencies) - len(first))
-    return list(first.values())
+        pair = (name_slug(dependency.parent), name_slug(dependency.requires))
+        if pair in seen:
+            tally.lose("dependency_duplicate", dependency)
+            continue
+        seen.add(pair)
+        kept.append(dependency)
+    return kept
 
 
 def keep_dependencies(
@@ -85,7 +90,7 @@ def keep_dependencies(
     """Keep dependencies between two different kept documents whose quote is on the page, once per pair."""
     slugs = {name_slug(document.name) for document in documents}
     linked = [dep for dep in dependencies if _has_known_endpoints(dep, slugs)]
-    tally.drop("dependency_endpoint", len(dependencies) - len(linked))
+    _lose_all([dep for dep in dependencies if dep not in linked], "dependency_endpoint", tally)
     return _once_per_pair(keep_quoted(linked, haystack, "dependency_quote", tally), tally)
 
 

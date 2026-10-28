@@ -20,6 +20,7 @@ from discovery_ingest.artifacts import (
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
+from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
@@ -277,6 +278,10 @@ class DiscoveryMachineClient:
             )
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def get_taxonomy(self) -> Taxonomy:
+        """Return the closed domain and life-situation vocabulary workers tag pages with."""
+        return Taxonomy.model_validate(self._call("GET", "/taxonomy").json())
 
     def get_budgets(self) -> BudgetSnapshot:
         """Return every budget resource in its current period."""
