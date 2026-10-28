@@ -120,3 +120,45 @@ def test_output_is_deterministic_and_collapses_whitespace_and_duplicate_lines() 
     first = clean_page(html, BASE)
     assert first == clean_page(html, BASE)
     assert first.text.splitlines() == ["Hinweis", "A B", "Hinweis"]
+
+
+def test_links_include_anchors_outside_the_kept_region_and_exclude_non_pages() -> None:
+    body = (
+        "<nav><a href='/start'>Start</a></nav><div id='cookie-banner'><a href='https://cdn.example/datenschutz'>D</a></div>"
+        f"<p hidden><a href='/versteckt'>V</a></p><main><p>{LONG_PARAGRAPH}</p>"
+        "<a href='antrag.pdf#seite2'>Antrag</a><a href='/start'>Start nochmal</a>"
+        "<a href='mailto:amt@portal.example'>Mail</a><a href='javascript:void(0)'>Los</a>"
+        "<a href='#oben'>Nach oben</a><a href='ftp://files.example/a'>FTP</a><a>Ohne Ziel</a></main>"
+        "<footer><a href='//other.example/impressum'>Impressum</a></footer>"
+    )
+    assert clean_page(_page(body), BASE).links == frozenset(
+        {
+            "https://portal.example/start",
+            "https://cdn.example/datenschutz",
+            "https://portal.example/versteckt",
+            "https://portal.example/dienst/antrag.pdf",
+            "https://other.example/impressum",
+        }
+    )
+
+
+def test_a_page_without_anchors_has_no_links() -> None:
+    assert clean_page(_page("<p>Text</p>"), BASE).links == frozenset()
+
+
+@pytest.mark.parametrize(("lang", "expected"), [("de-DE", "de"), ("EN", "en"), ("de_AT", "de"), (" fr ", "fr")])
+def test_language_is_read_from_the_html_lang_attribute(lang: str, expected: str) -> None:
+    assert clean_page(f"<html lang='{lang}'><body><p>x</p></body></html>", BASE).language == expected
+
+
+@pytest.mark.parametrize(
+    "html", ["<html><body><p>x</p></body></html>", "<html lang=''><body></body></html>", "<p>x</p>"]
+)
+def test_language_is_none_when_absent_or_empty(html: str) -> None:
+    assert clean_page(html, BASE).language is None
+
+
+def test_title_is_collapsed_and_none_when_absent() -> None:
+    titled = clean_page(_page("<p>x</p>", "<title> Reisepass\n beantragen </title>"), BASE)
+    assert titled.title == "Reisepass beantragen"
+    assert clean_page(_page("<p>x</p>"), BASE).title is None
