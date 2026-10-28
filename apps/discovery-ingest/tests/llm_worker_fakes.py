@@ -103,6 +103,7 @@ class LlmApi(ExtractApi):
         super().__init__(tasks, html.encode(), "text/html; charset=utf-8")
         self.ledger_remaining = 9000.0
         self.unknown_codes = 0
+        self.taxonomy_status = 200
         self.edge_status = 200
         self.edge_detail = ""
         self.mention_status = 200
@@ -116,7 +117,7 @@ class LlmApi(ExtractApi):
         if path.endswith("/candidates/edges"):
             return self._edges(request)
         if path.endswith("/taxonomy"):
-            return httpx.Response(200, json=taxonomy().model_dump(mode="json"))
+            return httpx.Response(self.taxonomy_status, json=taxonomy().model_dump(mode="json"))
         return super().handler(request)
 
     def _mentions(self, request: httpx.Request) -> httpx.Response:
