@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from selectolax.lexbor import LexborHTMLParser
 
 from discovery_ingest.extract.clean_dom import drop_boilerplate, drop_widget_forms, main_region
+from discovery_ingest.extract.clean_links import absolutize_links
 from discovery_ingest.extract.clean_markdown import render_lines
 
 CLEAN_VERSION = "clean-1"
@@ -37,5 +38,7 @@ def _clean_lines(tree: LexborHTMLParser) -> list[str]:
 
 def clean_page(html: str, base_url: str, *, max_chars: int = DEFAULT_MAX_CHARS) -> CleanPage:
     """Return the compact markdown, link set and language of ``html``, resolved against ``base_url``."""
-    lines = _clean_lines(LexborHTMLParser(html))
+    tree = LexborHTMLParser(html)
+    absolutize_links(tree, base_url)
+    lines = _clean_lines(tree)
     return CleanPage("\n".join(lines), frozenset(), None, None, False, CLEAN_VERSION)
