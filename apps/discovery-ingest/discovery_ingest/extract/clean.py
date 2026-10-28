@@ -27,7 +27,7 @@ class CleanPage:
     version: str
 
 
-def _clean_lines(tree: LexborHTMLParser) -> list[str]:
+def _region_lines(tree: LexborHTMLParser) -> list[str]:
     drop_boilerplate(tree)
     region = main_region(tree)
     if region is None:
@@ -35,6 +35,14 @@ def _clean_lines(tree: LexborHTMLParser) -> list[str]:
     if region.tag == "body":
         drop_widget_forms(region)
     return render_lines(region)
+
+
+def _clean_lines(tree: LexborHTMLParser) -> list[str]:
+    """Return the page lines; a DOM nested deeper than the interpreter can walk reads as an empty page."""
+    try:
+        return _region_lines(tree)
+    except RecursionError:
+        return []
 
 
 def clean_page(html: str, base_url: str, *, max_chars: int = DEFAULT_MAX_CHARS) -> CleanPage:
