@@ -148,7 +148,7 @@ def test_the_prompt_never_contains_a_credential_or_a_setting(monkeypatch: pytest
     assert not re.search(r"api[_ -]?key|token|secret|password|authorization|bearer", rendered, re.IGNORECASE)
 
 
-WORDING_DIGESTS = {"ext-1": "33b98a3792bb", "ext-2": "040099cebc43"}
+WORDING_DIGESTS = {"ext-1": "33b98a3792bb", "ext-2": "040099cebc43", "ext-3": "9be145f7d8b8"}
 
 
 def test_a_wording_change_needs_a_new_prompt_version() -> None:

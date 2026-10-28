@@ -8,7 +8,7 @@ from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm.prompt_template import PAGE_CLOSE, PAGE_OPEN, system_text
 from discovery_ingest.extract.llm.taxonomy import Taxonomy, TaxonomyTerm
 
-PROMPT_VERSION = "ext-2"
+PROMPT_VERSION = "ext-3"
 
 
 def _term_line(term: TaxonomyTerm) -> str:
