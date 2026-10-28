@@ -452,8 +452,8 @@ def _build_parser() -> argparse.ArgumentParser:
     worker_drain.add_argument(
         "--browser-budget-seconds",
         type=float,
-        default=480.0,
-        help="Browser seconds this run may spend on render_page and capture_screenshot (positive, default 480)",
+        default=570.0,
+        help="Browser seconds this run may spend on render_page and capture_screenshot (positive, default 570)",
     )
     worker_drain.add_argument(
         "--kinds",
