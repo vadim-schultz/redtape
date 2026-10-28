@@ -180,3 +180,11 @@ def test_unterminated_markup_still_yields_its_text() -> None:
 def test_absurdly_deep_nesting_returns_empty_text_without_raising() -> None:
     html = "<div>" * 5000 + "Text" + "</div>" * 5000
     assert clean_page(html, BASE).text == ""
+
+
+def test_line_breaks_split_a_paragraph_into_lines() -> None:
+    assert clean_page(_page("<p>Straße 1<br>12345 Musterstadt<br/><br>Tel. 115</p>"), BASE).text.splitlines() == [
+        "Straße 1",
+        "12345 Musterstadt",
+        "Tel. 115",
+    ]
