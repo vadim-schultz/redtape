@@ -1,0 +1,4 @@
+# Captured 2026-10-28 from https://www.fuehrungszeugnis.bund.de/robots.txt (untrimmed).
+User-Agent: *
+Disallow: /
+Allow: /$
