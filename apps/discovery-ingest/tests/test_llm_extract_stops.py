@@ -2,24 +2,27 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
 from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.extract.clean import clean_page
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, LlmRequestError
-from discovery_ingest.extract.llm.prices import cost, estimate
+from discovery_ingest.extract.llm.prices import cost, estimate, reserved_output_tokens
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
 
+from eval_fakes import long_page_html
 from extract_fakes import PAGE_URL
 from llm_worker_fakes import MODEL, PAGE_HTML, SERVICE, LlmApi, ScriptedLlm, llm_task, resources
 from render_fakes import robots_fetcher
 
 POLICY = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=800)
-ESTIMATE = estimate(MODEL, len(clean_page(PAGE_HTML, PAGE_URL).text), 1500)
+PAGE_CHARS = len(clean_page(PAGE_HTML, PAGE_URL).text)
+ESTIMATE = estimate(MODEL, PAGE_CHARS, reserved_output_tokens(PAGE_CHARS, 4000))
 
 
 def _tasks(count: int = 3) -> list[dict[str, object]]:
@@ -186,3 +189,19 @@ def test_the_drain_requires_llm_resources_for_the_llm_kind(monkeypatch: pytest.M
         run_worker_drain(api.client(monkeypatch), robots_fetcher(), POLICY)
 
     assert api.batches
+
+
+def test_a_drain_with_a_2500_neuron_budget_completes_three_long_pages_before_it_stops_with_llm_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """llm_extract · 25,000-character pages at 8,700 tokens in and 2,500 out cost about 745 each; reserving the page's own size lets three through."""
+    api = LlmApi(_tasks(5), html=long_page_html(25_000))
+    llm = ScriptedLlm(SERVICE, usage=(8_700, 2_500))
+    policy = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=2500)
+
+    report = run_worker_drain(
+        api.client(monkeypatch), robots_fetcher(), policy, llm=replace(resources(llm), max_tokens=4000)
+    )
+
+    assert report.completed >= 3 and report.stop_reason == "llm_budget"
+    assert report.released == 5 - report.completed

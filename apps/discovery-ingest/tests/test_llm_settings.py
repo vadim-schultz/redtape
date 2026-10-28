@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from discovery_ingest.config import load_ingest_settings
+from discovery_ingest.extract.llm.schema import MAX_DEPENDENCIES, MAX_DOCUMENTS, PageExtraction
 from discovery_ingest.llm_settings import load_llm_settings
+from discovery_ingest.worker.llm_runtime import LlmResources
 
 ACCOUNT_ID = "acc0123456789abcdef0123456789abc"
 TOKEN = "ai-tok-SECRET-0123456789"
@@ -27,7 +31,7 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_settings_default_the_limits_and_read_the_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    """settings · limits default to 1500 tokens, 30000 characters and 60 s; the token stays out of the repr."""
+    """settings · limits default to 4000 tokens, 30000 characters and 60 s; the token stays out of the repr."""
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID)
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
 
@@ -35,7 +39,7 @@ def test_settings_default_the_limits_and_read_the_credentials(monkeypatch: pytes
 
     assert settings.ai_credentials() == (ACCOUNT_ID, TOKEN)
     assert settings.missing_ai_credentials() == []
-    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (None, 1500, 30000)
+    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (None, 4000, 30000)
     assert settings.llm_request_timeout_seconds == 60.0
     assert TOKEN not in repr(settings)
 
@@ -74,3 +78,32 @@ def test_llm_limits_must_be_positive(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ValueError, match="LLM_MAX_TOKENS"):
         load_llm_settings()
+
+
+JSON_CHARS_PER_TOKEN = 3.1
+"""The fewest JSON characters per token among the ten recorded answers (3.1 to 3.6, 2026-10-28)."""
+
+
+def _answer(documents: int, dependencies: int, quote_length: int) -> str:
+    quote = "Bitte legen Sie " + "x" * (quote_length - 16)
+    document = {"name": "Meldebescheinigung", "role": "required", "quote": quote, "url": None, "condition": None}
+    dependency = {"parent": "Antrag", "requires": "Meldebescheinigung", "quote": quote, "condition": None}
+    answer = {"page_kind": "service", "domain_codes": ["housing"], "situation_codes": []}
+    answer |= {"documents": [document] * documents, "dependencies": [dependency] * dependencies}
+    return json.dumps(PageExtraction.model_validate(answer).model_dump(mode="json"), ensure_ascii=False)
+
+
+def test_the_default_output_limit_is_4000_tokens_and_a_worst_case_realistic_answer_fits() -> None:
+    """settings · 40 documents and 8 dependencies with 80-character quotes need about 3,900 tokens at the recorded density."""
+    limit = load_llm_settings().llm_max_tokens
+    realistic = _answer(MAX_DOCUMENTS, 8, quote_length=80)
+
+    assert limit == 4000 == LlmResources.__dataclass_fields__["max_tokens"].default
+    assert len(realistic) / JSON_CHARS_PER_TOKEN <= limit
+
+
+def test_an_answer_with_every_list_full_and_the_longest_quotes_does_not_fit_and_is_left_to_the_repair_path() -> None:
+    """settings · the schema maximum (40 + 40 items, 300-character quotes) exceeds the limit, so it ends as invalid output."""
+    extreme = _answer(MAX_DOCUMENTS, MAX_DEPENDENCIES, quote_length=300)
+
+    assert len(extreme) / JSON_CHARS_PER_TOKEN > load_llm_settings().llm_max_tokens
