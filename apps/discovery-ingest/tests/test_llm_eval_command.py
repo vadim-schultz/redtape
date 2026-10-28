@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 from discovery_ingest.cli import main
+from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded
 from discovery_ingest.extract.llm.evaluation import command
 from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
@@ -95,3 +96,56 @@ def test_limit_keeps_the_first_pages_by_name(monkeypatch: pytest.MonkeyPatch, tm
 
     assert _eval(tmp_path, "--limit", "1") == 0
     assert [page["name"] for page in _out(tmp_path)["pages"]] == ["alpha"] and llm.calls == ["Reisepass"]
+
+
+def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_budget_is_spent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · each call reserves first and settles after; the next page past the run budget ends the run, kept results stay."""
+    write_gold(tmp_path / "gold", names=["alpha", "beta", "gamma"])
+    llm = FakeLlm()
+    ledger = _wire(monkeypatch, llm)
+
+    code = _eval(tmp_path, "--neuron-budget", "160")
+
+    report = _out(tmp_path)
+    shown = capsys.readouterr().out
+    assert code == 1 and llm.calls == ["Reisepass"]
+    assert ledger.actions()[:3] == ["budgets", "reserve", "adjust"]
+    assert ledger.remaining == pytest.approx(9000 - cost(MODEL, 1000, 200))
+    assert [page["name"] for page in report["pages"]] == ["alpha"] and report["stopped"]["reason"] == "budget"
+    assert "neuron budget of 160 is spent" in shown and "pages run 1 of 3" in shown
+
+
+def test_eval_refuses_to_start_when_the_day_is_spent_or_the_ledger_cannot_be_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · an exhausted day and an unreachable ledger both exit 1 before any model call and write no file."""
+    write_gold(tmp_path / "gold", names=["alpha"])
+    llm = FakeLlm()
+    _wire(monkeypatch, llm, FakeLedger(remaining=0, exhausted=True))
+    assert _eval(tmp_path) == 1
+    assert "no neurons are left today" in capsys.readouterr().err
+
+    _wire(monkeypatch, llm, FakeLedger(remaining=9000, down=True))
+    assert _eval(tmp_path) == 1
+    assert "ledger is unreachable" in capsys.readouterr().err
+    assert llm.calls == [] and not (tmp_path / "out.json").exists()
+
+
+def test_a_provider_quota_error_marks_the_day_exhausted_and_a_rejected_token_stops_the_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · LlmQuotaExceeded tells the ledger and stops with llm_quota; LlmAuthError stops with llm_auth."""
+    write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    quota = FakeLlm({**ANSWERS, "Reisepass": LlmQuotaExceeded("daily free allocation used up")})
+    ledger = _wire(monkeypatch, quota)
+
+    assert _eval(tmp_path) == 1
+    assert "exhaust" in ledger.actions() and _out(tmp_path)["stopped"]["reason"] == "llm_quota"
+    assert "daily free allocation used up" in capsys.readouterr().out
+
+    denied = FakeLlm({**ANSWERS, "Reisepass": LlmAuthError("Cloudflare HTTP 403")})
+    ledger = _wire(monkeypatch, denied)
+    assert _eval(tmp_path) == 1
+    assert "exhaust" not in ledger.actions() and _out(tmp_path)["stopped"]["reason"] == "llm_auth"
