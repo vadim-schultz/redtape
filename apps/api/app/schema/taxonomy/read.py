@@ -36,3 +36,18 @@ class MatrixResponse(BaseModel):
     cells: list[MatrixCell]
     situations: list[AxisCount]
     domains: list[AxisCount]
+
+
+class VocabularyTerm(BaseModel):
+    """A domain or life situation with every stored translation, for machine consumers."""
+
+    code: str
+    name_i18n: dict[str, str]
+    description_i18n: dict[str, str]
+
+
+class VocabularyResponse(BaseModel):
+    """Both closed vocabularies in sort order."""
+
+    domains: list[VocabularyTerm]
+    situations: list[VocabularyTerm]

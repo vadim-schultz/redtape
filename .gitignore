@@ -215,3 +215,5 @@ build/
 **/android/.gradle/
 **/android/captures/
 **/android/local.properties
+# llm eval answer cache (apps/discovery-ingest)
+.llm-eval-cache/

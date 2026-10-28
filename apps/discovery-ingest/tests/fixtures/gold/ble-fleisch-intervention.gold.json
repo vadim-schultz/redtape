@@ -1,0 +1,47 @@
+{
+  "source_url": "https://www.ble.de/DE/Themen/Marktorganisation/Intervention/Fleisch/fleisch_node.html",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Meldung Zerlege- und Schockfrostkapazität",
+      "role": "form",
+      "condition": "nach Vertragsabschluss"
+    },
+    {
+      "name": "Palettenkarte",
+      "role": "form",
+      "condition": "nach Vertragsabschluss"
+    },
+    {
+      "name": "Freiraummeldung",
+      "role": "form",
+      "condition": "nach Vertragsabschluss"
+    },
+    {
+      "name": "Lagerbericht",
+      "role": "form",
+      "condition": "nach der Einlagerung"
+    },
+    {
+      "name": "Partiekarte",
+      "role": "form",
+      "condition": "nach der Einlagerung"
+    },
+    {
+      "name": "Monatsbilanz",
+      "role": "form",
+      "condition": "nach der Einlagerung"
+    },
+    {
+      "name": "Anzeige Umlagerung",
+      "role": "form"
+    },
+    {
+      "name": "Bestandsliste",
+      "role": "form"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [],
+  "situation_codes": []
+}

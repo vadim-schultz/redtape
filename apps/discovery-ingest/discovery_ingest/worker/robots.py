@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from urllib.parse import urlparse
-from urllib.robotparser import RobotFileParser
 
 from discovery_ingest.config import BOT_PRODUCT_TOKEN
 from discovery_ingest.worker.outcome import FetchOutcome
+from discovery_ingest.worker.robots_rules import RobotsRules
 
 RobotsFetch = Callable[[str], FetchOutcome]
 
@@ -26,14 +26,18 @@ def _unavailable(outcome: FetchOutcome) -> bool:
     return outcome.error_message is not None or status is None or not (200 <= status < 500)
 
 
-def _parse(outcome: FetchOutcome) -> RobotFileParser:
+def _lines(outcome: FetchOutcome) -> list[str]:
+    """Return the rule lines of a 2xx body; a client error's body is an error page, not rules."""
+    if outcome.http_status is None or outcome.http_status >= 300:
+        return []
+    return (outcome.body or b"").decode("utf-8", errors="replace").splitlines()
+
+
+def _parse(outcome: FetchOutcome, agent: str) -> RobotsRules:
     """Build rules from a robots.txt outcome; a client error means everything is allowed."""
     if _unavailable(outcome):
         raise RobotsUnavailableError(f"robots.txt unavailable ({outcome.error_message or outcome.http_status})")
-    lines = (outcome.body or b"").decode("utf-8", errors="replace").splitlines()
-    rules = RobotFileParser()
-    rules.parse(lines if outcome.body is not None else [])
-    return rules
+    return RobotsRules.parse(_lines(outcome), agent)
 
 
 class RobotsCache:
@@ -42,22 +46,22 @@ class RobotsCache:
     def __init__(self, fetch: RobotsFetch, *, agent: str = BOT_PRODUCT_TOKEN) -> None:
         self._fetch = fetch
         self._agent = agent
-        self._rules: dict[str, RobotFileParser | RobotsUnavailableError] = {}
+        self._rules: dict[str, RobotsRules | RobotsUnavailableError] = {}
 
     def allowed(self, url: str) -> bool:
         """Return whether ``url`` may be fetched; raise when the host's robots.txt is unavailable."""
         rules = self._rules_for(_origin(url))
         if isinstance(rules, RobotsUnavailableError):
             raise RobotsUnavailableError(*rules.args)
-        return rules.can_fetch(self._agent, url)
+        return rules.allowed(url)
 
-    def _rules_for(self, origin: str) -> RobotFileParser | RobotsUnavailableError:
+    def _rules_for(self, origin: str) -> RobotsRules | RobotsUnavailableError:
         if origin not in self._rules:
             self._rules[origin] = self._load(origin)
         return self._rules[origin]
 
-    def _load(self, origin: str) -> RobotFileParser | RobotsUnavailableError:
+    def _load(self, origin: str) -> RobotsRules | RobotsUnavailableError:
         try:
-            return _parse(self._fetch(f"{origin}/robots.txt"))
+            return _parse(self._fetch(f"{origin}/robots.txt"), self._agent)
         except RobotsUnavailableError as err:
             return err

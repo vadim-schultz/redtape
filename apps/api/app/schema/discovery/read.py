@@ -282,6 +282,10 @@ class CandidateMentionRead(BaseModel):
     artifact: ArtifactSummaryRead | None
     extractor: str
     extractor_version: str
+    condition: str | None
+    is_optional: bool | None
+    domain_codes: list[str]
+    situation_codes: list[str]
     created_at: datetime
 
     @classmethod
@@ -301,13 +305,28 @@ class CandidateMentionRead(BaseModel):
             artifact=ArtifactSummaryRead.from_row(artifact) if artifact else None,
             extractor=mention.extractor,
             extractor_version=mention.extractor_version,
+            condition=mention.condition,
+            is_optional=mention.is_optional,
+            domain_codes=mention.domain_codes or [],
+            situation_codes=mention.situation_codes or [],
             created_at=mention.created_at,
         )
 
 
+class TagSupportRead(BaseModel):
+    """How many procedures carry a code, their share of the tagged procedures, and whether emit would use it."""
+
+    code: str
+    procedures: int
+    share: float
+    accepted: bool
+
+
 class CandidateDetailResponse(BaseModel):
-    """A candidate with its jurisdiction name and every mention."""
+    """A candidate with its jurisdiction name, every mention and the tag consensus of those mentions."""
 
     candidate: CandidateRead
     jurisdiction_name_i18n: dict[str, str]
     mentions: list[CandidateMentionRead]
+    suggested_domain_codes: list[TagSupportRead]
+    suggested_situation_codes: list[TagSupportRead]

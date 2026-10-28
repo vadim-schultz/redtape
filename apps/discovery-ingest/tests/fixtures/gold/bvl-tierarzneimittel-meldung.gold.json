@@ -1,0 +1,17 @@
+{
+  "source_url": "https://www.bvl.bund.de/VETUAW/DE/Home/home_node.html",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Online-Meldeformular",
+      "role": "form"
+    },
+    {
+      "name": "PDF-Meldeformular",
+      "role": "form"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [],
+  "situation_codes": []
+}

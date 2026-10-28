@@ -81,6 +81,8 @@ Before chapter 15 starts, the operator does S15–S17, S19 and S21 of chapter 22
 
 Launch: `/chief-of-staff` on `.plans/crawlers/`, loop branch `feat/crawlers`, resume.
 
+**Cap revision:** 2026-10-28 — the free-tier caps named in chapter 23 (and this ledger's history) now sit at 95 percent of each allowance, set by [extraction chapter E11](../extraction/chapters/11-free-tier-caps-95.md); the GitHub Actions share stays 1,000 minutes. Chapter files here are history and keep their original numbers.
+
 **Last orchestration:** 2026-10-27 — chapters 7–17, 19–21 and 23 merged into `feat/crawlers` on local CI only; chapter 18 deferred (optional), chapter 22 operator-owned; final local gate green (API 903 passed + docs fix, ingest 423, web 458); release PR #217 merged into `main` (022c3aa); FIM label fix merged (PR #218); human steps after deploy in `docs/operations/crawlers-post-deploy-human-steps.md`.
 
 **Earlier orchestration:** 2026-10-26 — chapters 7–14 and 23 merged into `feat/crawlers` on local CI only (Actions quota exhausted); stopped before chapter 15: its blocking Step 0 (Cloudflare browser probe) needs the operator's S15–S17 (Cloudflare account id and browser token, probe, storage check). Resume at chapter 15.

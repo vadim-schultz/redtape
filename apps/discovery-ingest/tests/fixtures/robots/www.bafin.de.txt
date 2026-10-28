@@ -1,0 +1,12 @@
+# Captured 2026-10-28 from https://www.bafin.de/robots.txt (untrimmed).
+User-agent: *
+Disallow: /SiteGlobals/
+Disallow: /DE/_pgb/
+Disallow: /Login/
+Disallow: /LoginDefault/
+Disallow: /NoIndex/
+Disallow: /Migration/
+Allow: /SiteGlobals/Modules/
+Allow: /SiteGlobals/NavStyles/
+Allow: /SiteGlobals/Frontend/
+Sitemap: https://www.bafin.de/Sitemap_Index.xml

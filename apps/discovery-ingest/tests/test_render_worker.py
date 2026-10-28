@@ -262,6 +262,18 @@ def test_render_page_stops_when_the_ledger_has_less_left_than_the_run_budget_all
     assert (report.completed, report.released, report.stop_reason) == (1, 1, "browser_budget")
 
 
+def test_a_run_budget_above_the_ledgers_remaining_seconds_is_still_capped_by_the_ledger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """render_page · a 570 s run budget does not spend past the 40 s the shared ledger day has left."""
+    api = FakeApi([_tasks(2)], ledger_remaining=40.0)
+
+    report = _drain(monkeypatch, api, FakeBrowser(page(ms=36_000)), budget_seconds=570.0)
+
+    assert (report.completed, report.released, report.stop_reason) == (1, 1, "browser_budget")
+    assert report.browser_seconds_used <= 40.0
+
+
 def test_render_page_stops_before_claiming_when_the_day_is_already_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
     """render_page · an exhausted ledger day stops browser_budget with nothing claimed."""
     api = FakeApi([_tasks(2)])

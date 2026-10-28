@@ -1,0 +1,347 @@
+{
+  "domains": [
+    {
+      "code": "identity-civil-status",
+      "name_i18n": {
+        "de": "Identität & Personenstand",
+        "en": "Identity & civil status"
+      },
+      "description_i18n": {
+        "de": "Ausweise, Urkunden und Personenstandsnachweise.",
+        "en": "ID documents, certificates and civil status records."
+      }
+    },
+    {
+      "code": "housing",
+      "name_i18n": {
+        "de": "Wohnen",
+        "en": "Housing"
+      },
+      "description_i18n": {
+        "de": "Wohnsitz, Miete und Eigentum.",
+        "en": "Residence, renting and property."
+      }
+    },
+    {
+      "code": "vehicles-mobility",
+      "name_i18n": {
+        "de": "Fahrzeuge & Mobilität",
+        "en": "Vehicles & mobility"
+      },
+      "description_i18n": {
+        "de": "Auto, Motorrad, Boot und Führerscheine.",
+        "en": "Car, motorbike, boat and licences."
+      }
+    },
+    {
+      "code": "work-employment",
+      "name_i18n": {
+        "de": "Arbeit & Beruf",
+        "en": "Work & employment"
+      },
+      "description_i18n": {
+        "de": "Arbeitsverhältnis, Arbeitslosigkeit und Berufsnachweise.",
+        "en": "Employment, unemployment and professional credentials."
+      }
+    },
+    {
+      "code": "family-children",
+      "name_i18n": {
+        "de": "Familie & Kinder",
+        "en": "Family & children"
+      },
+      "description_i18n": {
+        "de": "Kinder, Elternschaft und Familienleistungen.",
+        "en": "Children, parenthood and family benefits."
+      }
+    },
+    {
+      "code": "education",
+      "name_i18n": {
+        "de": "Bildung",
+        "en": "Education"
+      },
+      "description_i18n": {
+        "de": "Schule, Ausbildung und Studium.",
+        "en": "School, vocational training and university."
+      }
+    },
+    {
+      "code": "health-insurance",
+      "name_i18n": {
+        "de": "Gesundheit & Versicherung",
+        "en": "Health & insurance"
+      },
+      "description_i18n": {
+        "de": "Krankenversicherung, Pflege und Gesundheitsnachweise.",
+        "en": "Health insurance, care and medical records."
+      }
+    },
+    {
+      "code": "taxes-finance",
+      "name_i18n": {
+        "de": "Steuern & Finanzen",
+        "en": "Taxes & finance"
+      },
+      "description_i18n": {
+        "de": "Steuererklärung, Steuer-ID und Bankangelegenheiten.",
+        "en": "Tax returns, tax ID and banking matters."
+      }
+    },
+    {
+      "code": "residence-migration",
+      "name_i18n": {
+        "de": "Aufenthalt & Migration",
+        "en": "Residence & migration"
+      },
+      "description_i18n": {
+        "de": "Aufenthaltstitel, Visa und Einbürgerung.",
+        "en": "Residence permits, visas and naturalisation."
+      }
+    },
+    {
+      "code": "retirement-old-age",
+      "name_i18n": {
+        "de": "Rente & Alter",
+        "en": "Retirement & old age"
+      },
+      "description_i18n": {
+        "de": "Rentenanträge und Leistungen im Alter.",
+        "en": "Pension applications and old-age benefits."
+      }
+    },
+    {
+      "code": "self-employment-business",
+      "name_i18n": {
+        "de": "Selbstständigkeit & Gewerbe",
+        "en": "Self-employment & business"
+      },
+      "description_i18n": {
+        "de": "Gewerbeanmeldung, Freiberuf und Unternehmensgründung.",
+        "en": "Trade registration, freelancing and starting a business."
+      }
+    },
+    {
+      "code": "social-benefits",
+      "name_i18n": {
+        "de": "Soziales & Leistungen",
+        "en": "Social benefits"
+      },
+      "description_i18n": {
+        "de": "Bürgergeld, Wohngeld und weitere Sozialleistungen.",
+        "en": "Citizen's income, housing benefit and other social benefits."
+      }
+    },
+    {
+      "code": "law-justice",
+      "name_i18n": {
+        "de": "Recht & Justiz",
+        "en": "Law & justice"
+      },
+      "description_i18n": {
+        "de": "Führungszeugnis, Vollmachten und Gerichtsverfahren.",
+        "en": "Certificates of good conduct, powers of attorney and court matters."
+      }
+    }
+  ],
+  "situations": [
+    {
+      "code": "moving-house",
+      "name_i18n": {
+        "de": "Umzug",
+        "en": "Moving house"
+      },
+      "description_i18n": {
+        "de": "Ummelden und Wohnsitz wechseln.",
+        "en": "Registering a new address."
+      }
+    },
+    {
+      "code": "birth-of-child",
+      "name_i18n": {
+        "de": "Geburt eines Kindes",
+        "en": "Birth of a child"
+      },
+      "description_i18n": {
+        "de": "Nachweise und Anträge rund um die Geburt.",
+        "en": "Certificates and applications around a birth."
+      }
+    },
+    {
+      "code": "marriage",
+      "name_i18n": {
+        "de": "Heirat / Lebenspartnerschaft",
+        "en": "Marriage / civil partnership"
+      },
+      "description_i18n": {
+        "de": "Eheschließung oder Lebenspartnerschaft anmelden.",
+        "en": "Registering a marriage or civil partnership."
+      }
+    },
+    {
+      "code": "separation-divorce",
+      "name_i18n": {
+        "de": "Trennung & Scheidung",
+        "en": "Separation & divorce"
+      },
+      "description_i18n": {
+        "de": "Trennung, Scheidung und deren Folgen.",
+        "en": "Separation, divorce and their consequences."
+      }
+    },
+    {
+      "code": "death-of-relative",
+      "name_i18n": {
+        "de": "Todesfall",
+        "en": "Death of a relative"
+      },
+      "description_i18n": {
+        "de": "Sterbeurkunde, Erbe und Nachlass.",
+        "en": "Death certificate, inheritance and estate."
+      }
+    },
+    {
+      "code": "job-loss",
+      "name_i18n": {
+        "de": "Jobverlust",
+        "en": "Losing a job"
+      },
+      "description_i18n": {
+        "de": "Arbeitslosmeldung und Leistungen bei Arbeitslosigkeit.",
+        "en": "Registering as unemployed and unemployment benefits."
+      }
+    },
+    {
+      "code": "new-job",
+      "name_i18n": {
+        "de": "Berufseinstieg / Jobwechsel",
+        "en": "Starting or changing jobs"
+      },
+      "description_i18n": {
+        "de": "Nachweise für Berufseinstieg und neue Arbeitgeber.",
+        "en": "Paperwork for a first job or a new employer."
+      }
+    },
+    {
+      "code": "going-self-employed",
+      "name_i18n": {
+        "de": "Selbstständig machen",
+        "en": "Going self-employed"
+      },
+      "description_i18n": {
+        "de": "Gewerbe anmelden und Selbstständigkeit starten.",
+        "en": "Registering a business and starting self-employment."
+      }
+    },
+    {
+      "code": "studying",
+      "name_i18n": {
+        "de": "Studium",
+        "en": "Studying"
+      },
+      "description_i18n": {
+        "de": "Einschreibung, BAföG und Studiennachweise.",
+        "en": "Enrolment, student finance and study records."
+      }
+    },
+    {
+      "code": "starting-school",
+      "name_i18n": {
+        "de": "Einschulung",
+        "en": "Starting school"
+      },
+      "description_i18n": {
+        "de": "Schulanmeldung und Schuleingangsuntersuchung.",
+        "en": "School registration and school entry examination."
+      }
+    },
+    {
+      "code": "renting-home",
+      "name_i18n": {
+        "de": "Wohnung mieten",
+        "en": "Renting a home"
+      },
+      "description_i18n": {
+        "de": "Mietvertrag, Kaution und Vermieterbestätigungen.",
+        "en": "Rental contract, deposit and landlord confirmations."
+      }
+    },
+    {
+      "code": "buying-property",
+      "name_i18n": {
+        "de": "Immobilie kaufen / bauen",
+        "en": "Buying or building property"
+      },
+      "description_i18n": {
+        "de": "Kauf, Baugenehmigung und Grundbuch.",
+        "en": "Purchase, building permit and land register."
+      }
+    },
+    {
+      "code": "buying-vehicle",
+      "name_i18n": {
+        "de": "Fahrzeug kaufen / zulassen",
+        "en": "Buying and registering a vehicle"
+      },
+      "description_i18n": {
+        "de": "Zulassung, Versicherung und Kennzeichen.",
+        "en": "Registration, insurance and number plates."
+      }
+    },
+    {
+      "code": "getting-licence",
+      "name_i18n": {
+        "de": "Führerschein / Bootsschein erwerben",
+        "en": "Getting a driving or boating licence"
+      },
+      "description_i18n": {
+        "de": "Fahrerlaubnis und Sportbootführerschein.",
+        "en": "Driving licence and boating licence."
+      }
+    },
+    {
+      "code": "immigration",
+      "name_i18n": {
+        "de": "Zuzug nach Deutschland",
+        "en": "Moving to Germany"
+      },
+      "description_i18n": {
+        "de": "Anmeldung, Aufenthalt und erste Behördengänge.",
+        "en": "Registration, residence and first visits to authorities."
+      }
+    },
+    {
+      "code": "naturalisation",
+      "name_i18n": {
+        "de": "Einbürgerung",
+        "en": "Naturalisation"
+      },
+      "description_i18n": {
+        "de": "Antrag auf die deutsche Staatsangehörigkeit.",
+        "en": "Applying for German citizenship."
+      }
+    },
+    {
+      "code": "illness-care",
+      "name_i18n": {
+        "de": "Krankheit / Pflegebedürftigkeit",
+        "en": "Illness / care needs"
+      },
+      "description_i18n": {
+        "de": "Krankengeld, Pflegegrad und Schwerbehinderung.",
+        "en": "Sick pay, care level and disability status."
+      }
+    },
+    {
+      "code": "retirement",
+      "name_i18n": {
+        "de": "Renteneintritt",
+        "en": "Retirement"
+      },
+      "description_i18n": {
+        "de": "Rentenantrag und Übergang in den Ruhestand.",
+        "en": "Pension application and transition to retirement."
+      }
+    }
+  ]
+}

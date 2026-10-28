@@ -19,7 +19,9 @@ from discovery_ingest.artifacts import (
 )
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
+from discovery_ingest.edges import EdgeItem, EdgesRequest, EdgesResponse
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
+from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
@@ -138,6 +140,12 @@ class DiscoveryMachineClient:
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
         return MentionsResponse.model_validate(response.json())
+
+    def post_edges(self, items: Sequence[EdgeItem]) -> EdgesResponse:
+        """Record up to 100 requirement edges; both endpoints must already be candidates (post mentions first)."""
+        body = EdgesRequest(items=list(items))
+        response = self._call("POST", "/candidates/edges", json=body.model_dump(mode="json"))
+        return EdgesResponse.model_validate(response.json())
 
     def list_staged_candidates(self, *, min_mentions: int, limit: int) -> CandidatePage:
         """Return up to ``limit`` staged candidates with at least ``min_mentions`` mentions, most mentioned first."""
@@ -277,6 +285,10 @@ class DiscoveryMachineClient:
             )
         if response.status_code >= 400:
             raise DiscoveryMachineApiError(response.status_code, response.text)
+
+    def get_taxonomy(self) -> Taxonomy:
+        """Return the closed domain and life-situation vocabulary workers tag pages with."""
+        return Taxonomy.model_validate(self._call("GET", "/taxonomy").json())
 
     def get_budgets(self) -> BudgetSnapshot:
         """Return every budget resource in its current period."""

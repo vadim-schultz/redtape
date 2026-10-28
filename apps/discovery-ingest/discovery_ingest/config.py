@@ -5,6 +5,8 @@ from __future__ import annotations
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from discovery_ingest.llm_settings import LlmSettings
+
 DEFAULT_BOT_CONTACT_URL = "https://github.com/vadim-schultz/redtape"
 BOT_PRODUCT_TOKEN = "RedtapeBot"
 
@@ -47,8 +49,8 @@ class BrowserSettings(BaseSettings):
         return [name for name, value in names.items() if not value]
 
 
-class IngestSettings(BrowserSettings):
-    """Discovery machine API, optional GovData CKAN overrides and the optional browser settings."""
+class IngestSettings(BrowserSettings, LlmSettings):
+    """Discovery machine API, optional GovData CKAN overrides and the optional browser and Workers AI settings."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

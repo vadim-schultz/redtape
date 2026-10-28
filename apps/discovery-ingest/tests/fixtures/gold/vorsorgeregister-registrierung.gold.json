@@ -1,0 +1,27 @@
+{
+  "source_url": "https://www.vorsorgeregister.de/privatpersonen/registrierung/",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Antragsformular P",
+      "role": "form",
+      "condition": "für einen schriftlichen Antrag"
+    },
+    {
+      "name": "Zusatzformular PZ",
+      "role": "form",
+      "condition": "wenn mehr als eine Vertrauensperson registriert werden soll"
+    },
+    {
+      "name": "Eintragungsunterlagen",
+      "role": "issued"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "law-justice"
+  ],
+  "situation_codes": [
+    "illness-care"
+  ]
+}

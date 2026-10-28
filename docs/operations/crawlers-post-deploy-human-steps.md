@@ -119,7 +119,7 @@ Both schedules ship switched off. A person decides when to enable them.
 - [ ] **S20: compare Actions usage.** GitHub, Billing and plans, Usage for Actions, against
   `python -m discovery_ingest budget show` (resource `actions_minutes`). Record the month and both figures. If CI alone
   nears the 600-minute reserve, lower the drain allowance.
-- [ ] **S8: watch the limits** monthly or when an alert arrives: Supabase database size (500 MB, soft limit 400 MB),
+- [ ] **S8: watch the limits** monthly or when an alert arrives: Supabase database size (500 MB, soft limit 475 MB),
   R2 bytes and operations, browser minutes.
 - [ ] **S9: rotation.** Rotate the R2 key and the Cloudflare token when needed; the steps are in the checklist.
 

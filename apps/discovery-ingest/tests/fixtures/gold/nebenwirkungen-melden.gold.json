@@ -1,0 +1,29 @@
+{
+  "source_url": "https://nebenwirkungen.bund.de/nw/DE/home/home_node.html",
+  "page_kind": "service",
+  "documents": [
+    {
+      "name": "Allgemeines Meldeformular",
+      "role": "form",
+      "condition": "für alle Arzneimittel außer Impfstoffen"
+    },
+    {
+      "name": "Impfstoff-Meldeformular",
+      "role": "form",
+      "condition": "für die Meldung einer Nebenwirkung eines Impfstoffs"
+    },
+    {
+      "name": "Meldeformulare des BfArM als PDF",
+      "role": "form"
+    },
+    {
+      "name": "Meldeformulare des Paul-Ehrlich-Instituts als PDF",
+      "role": "form"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "health-insurance"
+  ],
+  "situation_codes": []
+}

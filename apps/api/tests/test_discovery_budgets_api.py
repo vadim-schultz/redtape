@@ -29,7 +29,7 @@ def test_list_returns_every_resource_with_its_cap_for_the_machine_key(
     rows = _by_resource(response.json()["items"])
     assert response.status_code == 200
     assert set(rows) == RESOURCES
-    assert (rows["neurons"]["cap"], rows["neurons"]["used"], rows["neurons"]["remaining"]) == (8000, 0, 8000)
+    assert (rows["neurons"]["cap"], rows["neurons"]["used"], rows["neurons"]["remaining"]) == (9500, 0, 9500)
     assert rows["actions_minutes"]["cap"] == 400
 
 
@@ -43,7 +43,7 @@ def test_reserve_returns_200_when_granted_and_409_when_denied(
 ) -> None:
     headers = {"X-API-Key": _issue_key(db_session)}
 
-    granted = client.post(f"{MACHINE}/neurons/reserve", json={"amount": 7500}, headers=headers)
+    granted = client.post(f"{MACHINE}/neurons/reserve", json={"amount": 9000}, headers=headers)
     denied = client.post(f"{MACHINE}/neurons/reserve", json={"amount": 600}, headers=headers)
 
     assert (granted.status_code, granted.json()) == (200, {"granted": True, "remaining": 500})
@@ -99,7 +99,7 @@ def test_admin_budgets_include_the_stored_bytes_and_the_byte_cap(
     body = response.json()
     assert response.status_code == 200
     assert {item["resource"] for item in body["items"]} == RESOURCES
-    assert (body["stored_bytes"], body["stored_bytes_cap"]) == (0, 8 * 1024**3)
+    assert (body["stored_bytes"], body["stored_bytes_cap"]) == (0, 9_500_000_000)
 
 
 def test_admin_budgets_require_an_admin(client: TestClient[Litestar], db_session: Session) -> None:

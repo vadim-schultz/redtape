@@ -69,24 +69,24 @@ Step by step: [crawlers-operator-checklist.md](crawlers-operator-checklist.md) S
 | `OBJECT_STORE_BUCKET` | The private bucket, for example `discovery-artifacts` |
 | `OBJECT_STORE_ACCESS_KEY_ID`, `OBJECT_STORE_SECRET_ACCESS_KEY` | An R2 token with Object Read & Write on that bucket only |
 | `OBJECT_STORE_FORCE_PATH_STYLE` | Optional, default `true` |
-| `OBJECT_STORE_MAX_BYTES` | Optional, default 8589934592 (8 GiB, below R2's free 10 GB) |
+| `OBJECT_STORE_MAX_BYTES` | Optional, default 9500000000 (95 percent of R2's free 10 GB) |
 
 All five required values must be set. If one is missing, the API still boots, the artifact routes answer **503**, and
 a browser drain refuses to start. An upload that would pass `OBJECT_STORE_MAX_BYTES` answers **507** and writes
 nothing. The cap sums the `discovery_artifact` rows, not the objects in the bucket.
 
-The budget ledger caps every free allocation below its allowance. The defaults are already safe, so set a variable only
-to tighten it.
+The budget ledger caps every free allocation at 95 percent of its allowance. The defaults are already safe, so set a
+variable only to tighten it.
 
 | Variable | Default | Guards |
 | --- | --- | --- |
-| `BUDGET_R2_CLASS_A_MONTHLY` | 400000 | R2 writes a month (free tier 1 million) |
-| `BUDGET_R2_CLASS_B_MONTHLY` | 4000000 | R2 reads a month (free tier 10 million); each presigned link reserves one |
-| `BUDGET_BROWSER_SECONDS_DAILY` | 480 | Cloudflare browser seconds a day, all runs together (free plan 600) |
-| `BUDGET_NEURONS_DAILY` | 8000 | Workers AI neurons a day (extraction suite; free plan 10,000) |
+| `BUDGET_R2_CLASS_A_MONTHLY` | 950000 | R2 writes a month (free tier 1 million) |
+| `BUDGET_R2_CLASS_B_MONTHLY` | 9500000 | R2 reads a month (free tier 10 million); each presigned link reserves one |
+| `BUDGET_BROWSER_SECONDS_DAILY` | 570 | Cloudflare browser seconds a day, all runs together (free plan 600) |
+| `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day (extraction suite; free plan 10,000) |
 | `BUDGET_ACTIONS_MINUTES_MONTHLY` | 1000 | This repository's GitHub Actions minutes a month |
 | `ACTIONS_CI_RESERVE_MINUTES` | 600 | The part of those minutes that CI keeps; drains may use 400 |
-| `DB_SOFT_LIMIT_BYTES` | 400000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
+| `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
 
 The Cloudflare Browser Run token (`CLOUDFLARE_BROWSER_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`) is deliberately
 **not a Render variable**. The API never calls Cloudflare Browser Run. The token lives in GitHub Actions secrets and

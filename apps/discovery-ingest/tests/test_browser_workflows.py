@@ -61,11 +61,20 @@ def test_the_render_workflow_is_dispatched_with_the_browser_inputs_and_a_gated_d
         "max_tasks": "5",
         "max_batches": "40",
         "time_budget_seconds": "900",
-        "browser_budget_seconds": "480",
+        "browser_budget_seconds": "570",
         "kinds": "render_page,capture_screenshot",
     }
     assert document[True]["schedule"] == [{"cron": "0 5 * * *"}]
     assert "vars.DISCOVERY_RENDER_SCHEDULE == 'enabled'" in _render_job()["if"]
+
+
+def test_the_render_workflow_default_and_fallback_browser_budget_is_570() -> None:
+    """render workflow · the dispatch default and the scheduled-run fallback are both 570 seconds."""
+    text = (WORKFLOWS / RENDER).read_text()
+    env = _render_job()["env"]
+
+    assert env["BROWSER_BUDGET_SECONDS"] == "${{ inputs.browser_budget_seconds || '570' }}"
+    assert "480" not in text
 
 
 def test_the_render_workflow_shares_the_drain_concurrency_group_and_has_the_four_secrets() -> None:

@@ -47,7 +47,7 @@ def test_object_store_is_enabled_when_all_settings_are_present() -> None:
 
     assert settings.object_store_enabled is True
     assert settings.object_store_force_path_style is True
-    assert settings.object_store_max_bytes == 8 * 1024**3
+    assert settings.object_store_max_bytes == 9_500_000_000
 
 
 def test_build_object_store_is_none_when_disabled_and_a_store_when_enabled() -> None:

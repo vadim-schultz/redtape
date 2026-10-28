@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from app.models.discovery import (
     CatalogueService,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
+    DiscoveryMentionRole,
 )
 from litestar import Litestar
 from litestar.testing import TestClient
+from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -50,7 +53,12 @@ def test_mentions_batch_creates_a_candidate_and_a_mention(client: TestClient[Lit
     response = _post(client, key, _item(catalogue))
 
     assert response.status_code == 200
-    assert response.json() == {"candidates_created": 1, "mentions_created": 1, "mentions_updated": 0}
+    assert response.json() == {
+        "candidates_created": 1,
+        "mentions_created": 1,
+        "mentions_updated": 0,
+        "unknown_codes": 0,
+    }
     candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
     assert candidate.key == "personalausweis"
     assert candidate.jurisdiction_id == catalogue.jurisdiction_id
@@ -64,7 +72,7 @@ def test_mentions_batch_is_idempotent(client: TestClient[Litestar], db_session: 
 
     replay = _post(client, key, _item(catalogue, excerpt="Neuer Text", extractor_version="2"))
 
-    assert replay.json() == {"candidates_created": 0, "mentions_created": 0, "mentions_updated": 1}
+    assert replay.json() == {"candidates_created": 0, "mentions_created": 0, "mentions_updated": 1, "unknown_codes": 0}
     assert _count(db_session, DiscoveryDocumentCandidate) == 1
     mention = db_session.scalars(select(DiscoveryCandidateMention)).one()
     assert (mention.excerpt, mention.extractor_version) == ("Neuer Text", "2")
@@ -82,7 +90,12 @@ def test_two_services_mentioning_one_title_share_one_candidate(
 
     response = _post(client, key, _item(first), _item(second, title_i18n={"de": " PERSONALAUSWEIS "}))
 
-    assert response.json() == {"candidates_created": 1, "mentions_created": 2, "mentions_updated": 0}
+    assert response.json() == {
+        "candidates_created": 1,
+        "mentions_created": 2,
+        "mentions_updated": 0,
+        "unknown_codes": 0,
+    }
     assert _count(db_session, DiscoveryDocumentCandidate) == 1
     assert _count(db_session, DiscoveryCandidateMention) == 2
 
@@ -200,3 +213,139 @@ def test_route_requires_the_machine_api_key(client: TestClient[Litestar], db_ses
     response = client.post(MENTIONS_URL, json={"items": [_item(catalogue)]})
 
     assert response.status_code == 401
+
+
+LLM_FIELDS: dict[str, object] = {
+    "source_field": "llm",
+    "role": "issued",
+    "condition": "bei Zuzug aus dem Ausland",
+    "is_optional": True,
+    "domain_codes": ["housing"],
+    "situation_codes": ["moving-house", "birth-of-child"],
+}
+
+
+@pytest.fixture
+def vocabulary(db_session: Session) -> None:
+    seed_taxonomy(db_session, tags={})
+
+
+def _only_mention(db_session: Session) -> DiscoveryCandidateMention:
+    db_session.expire_all()
+    return db_session.scalars(select(DiscoveryCandidateMention)).one()
+
+
+def test_mention_items_store_condition_optional_flag_and_codes(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue, **LLM_FIELDS))
+
+    assert response.status_code == 200
+    mention = _only_mention(db_session)
+    assert mention.role is DiscoveryMentionRole.ISSUED
+    assert (mention.condition, mention.is_optional) == ("bei Zuzug aus dem Ausland", True)
+    assert (mention.domain_codes, mention.situation_codes) == (["housing"], ["moving-house", "birth-of-child"])
+
+
+def test_unknown_codes_are_dropped_and_counted_and_valid_codes_are_kept(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    item = _item(catalogue, **{**LLM_FIELDS, "domain_codes": ["housing", "no-such"], "situation_codes": ["nope"]})
+
+    response = _post(client, key, item, _item(catalogue, source_field="llm2", domain_codes=["also-missing"]))
+
+    assert response.status_code == 200
+    assert response.json()["unknown_codes"] == 3
+    assert _count(db_session, DiscoveryCandidateMention) == 2
+    stored = {m.source_field: m for m in db_session.scalars(select(DiscoveryCandidateMention))}
+    assert (stored["llm"].domain_codes, stored["llm"].situation_codes) == (["housing"], [])
+    assert stored["llm2"].domain_codes == []
+
+
+def test_a_reposted_llm_mention_updates_in_place_instead_of_adding_a_row(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue, **LLM_FIELDS))
+
+    replay = _post(client, key, _item(catalogue, **{**LLM_FIELDS, "condition": None, "domain_codes": []}))
+
+    assert replay.json()["mentions_updated"] == 1
+    mention = _only_mention(db_session)
+    assert (mention.condition, mention.domain_codes) == (None, [])
+    assert mention.situation_codes == ["moving-house", "birth-of-child"]
+
+
+def test_items_without_the_new_fields_behave_exactly_as_before(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue))
+
+    assert response.json() == {
+        "candidates_created": 1,
+        "mentions_created": 1,
+        "mentions_updated": 0,
+        "unknown_codes": 0,
+    }
+    mention = _only_mention(db_session)
+    assert (mention.condition, mention.is_optional, mention.domain_codes, mention.situation_codes) == (
+        None,
+        None,
+        None,
+        None,
+    )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"domain_codes": ["a", "b", "c"]},
+        {"situation_codes": ["a", "b", "c", "d"]},
+        {"condition": "x" * 301},
+    ],
+    ids=["three-domains", "four-situations", "long-condition"],
+)
+def test_too_many_codes_or_a_long_condition_is_a_422_and_writes_nothing(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    overrides: dict[str, object],
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue, **overrides))
+
+    assert response.status_code == 422
+    assert _count(db_session, DiscoveryCandidateMention) == 0
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"domain_codes": ["a", "b"]}, {"situation_codes": ["a", "b", "c"]}, {"condition": "x" * 300}],
+    ids=["two-domains", "three-situations", "300-condition"],
+)
+def test_codes_and_condition_at_their_limits_are_accepted(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    overrides: dict[str, object],
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    assert _post(client, key, _item(catalogue, **overrides)).status_code == 200

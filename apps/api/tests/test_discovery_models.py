@@ -11,9 +11,11 @@ from app.models.discovery import (
     DiscoveryArtifact,
     DiscoveryArtifactKind,
     DiscoveryBudgetLedger,
+    DiscoveryCandidateEdge,
     DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
     DiscoveryDocumentCandidate,
+    DiscoveryEdgeBasis,
     DiscoveryEntity,
     DiscoveryEvent,
     DiscoveryEventType,
@@ -393,3 +395,104 @@ def test_budget_ledger_is_unique_per_period_and_resource(db_session: Session) ->
 
     with pytest.raises(IntegrityError):
         db_session.flush()
+
+
+def test_llm_extract_task_kind_and_issued_role_are_stored(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id, kind=DiscoveryTaskKind.LLM_EXTRACT, target_url="https://example.gov/page"
+    )
+    mention = _mention(candidate, catalogue, role=DiscoveryMentionRole.ISSUED)
+    db_session.add_all([task, mention])
+    db_session.flush()
+    db_session.expire_all()
+
+    assert db_session.get(DiscoveryTask, task.id).kind is DiscoveryTaskKind.LLM_EXTRACT
+    assert db_session.get(DiscoveryCandidateMention, mention.id).role is DiscoveryMentionRole.ISSUED
+
+
+def test_mention_condition_and_code_columns_default_to_none(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    candidate = _candidate(db_session, catalogue.jurisdiction_id)
+    mention = _mention(candidate, catalogue)
+    db_session.add(mention)
+    db_session.flush()
+    db_session.expire_all()
+    stored = db_session.get(DiscoveryCandidateMention, mention.id)
+
+    assert (stored.condition, stored.is_optional, stored.domain_codes, stored.situation_codes) == (
+        None,
+        None,
+        None,
+        None,
+    )
+
+
+def _edge(
+    parent: DiscoveryDocumentCandidate, required: DiscoveryDocumentCandidate, catalogue: CatalogueService
+) -> DiscoveryCandidateEdge:
+    return DiscoveryCandidateEdge(
+        parent_candidate_id=parent.id,
+        required_candidate_id=required.id,
+        catalogue_service_id=catalogue.id,
+        excerpt="Personalausweis, Meldebescheinigung",
+        basis=DiscoveryEdgeBasis.EXPLICIT,
+        extractor="llm",
+        extractor_version="1",
+    )
+
+
+def _two_candidates(session: Session, catalogue: CatalogueService) -> tuple[DiscoveryDocumentCandidate, ...]:
+    parent = _candidate(session, catalogue.jurisdiction_id, key="reisepass")
+    required = _candidate(session, catalogue.jurisdiction_id, key="meldebescheinigung")
+    return parent, required
+
+
+def test_edge_is_stored_with_optional_condition_unset(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    parent, required = _two_candidates(db_session, catalogue)
+    edge = _edge(parent, required, catalogue)
+    db_session.add(edge)
+    db_session.flush()
+    db_session.expire_all()
+    stored = db_session.get(DiscoveryCandidateEdge, edge.id)
+
+    assert stored.basis is DiscoveryEdgeBasis.EXPLICIT
+    assert (stored.condition, stored.is_optional) == (None, None)
+
+
+def test_edge_unique_per_parent_required_and_procedure(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    parent, required = _two_candidates(db_session, catalogue)
+    db_session.add(_edge(parent, required, catalogue))
+    db_session.flush()
+    db_session.add(_edge(parent, required, catalogue))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+def test_edge_with_equal_endpoints_is_rejected(db_session: Session) -> None:
+    catalogue = _catalogue_service(db_session)
+    parent, _ = _two_candidates(db_session, catalogue)
+    db_session.add(_edge(parent, parent, catalogue))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+@pytest.mark.parametrize("end", ["parent", "required"])
+def test_deleting_a_candidate_cascades_its_edges(db_session: Session, end: str) -> None:
+    catalogue = _catalogue_service(db_session)
+    parent, required = _two_candidates(db_session, catalogue)
+    edge = _edge(parent, required, catalogue)
+    db_session.add(edge)
+    db_session.flush()
+    edge_id = edge.id
+
+    db_session.delete(parent if end == "parent" else required)
+    db_session.flush()
+    db_session.expire_all()
+
+    assert db_session.get(DiscoveryCandidateEdge, edge_id) is None

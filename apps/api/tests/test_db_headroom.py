@@ -182,7 +182,7 @@ def test_complete_fail_release_claim_and_the_read_routes_still_work_above_the_li
 
 
 def test_the_default_headroom_follows_the_configured_soft_limit() -> None:
-    assert Settings(_env_file=None).db_soft_limit_bytes == 400_000_000
+    assert Settings(_env_file=None).db_soft_limit_bytes == 475_000_000
     assert DatabaseHeadroom().limit() == settings.db_soft_limit_bytes
 
 

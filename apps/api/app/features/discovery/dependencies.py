@@ -17,6 +17,7 @@ from app.features.discovery.budgets import BudgetService
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
+from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.run_service import DiscoveryRunService
@@ -28,6 +29,7 @@ from app.features.suggestions.dependencies import (
     provide_suggestion_service,
 )
 from app.features.suggestions.service import SuggestionService
+from app.features.taxonomy.service import TaxonomyService
 from app.shared.object_store import ObjectStore
 from app.shared.object_store.http import InjectedObjectStore
 from app.shared.object_store.provider import get_object_store
@@ -45,8 +47,14 @@ def provide_discovery_machine_service(discovery_repository: DiscoveryRepository)
     return DiscoveryMachineService(discovery_repository)
 
 
-def provide_discovery_candidate_service(discovery_repository: DiscoveryRepository) -> CandidateService:
-    return CandidateService(discovery_repository)
+def provide_discovery_candidate_service(
+    discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
+) -> CandidateService:
+    return CandidateService(discovery_repository, taxonomy_service)
+
+
+def provide_discovery_edge_service(discovery_repository: DiscoveryRepository) -> EdgeService:
+    return EdgeService(discovery_repository)
 
 
 def provide_discovery_candidate_admin_service(discovery_repository: DiscoveryRepository) -> CandidateAdminService:
@@ -113,6 +121,7 @@ router_dependencies = {
     "discovery_admin_service": Provide(provide_discovery_admin_service, sync_to_thread=False),
     "discovery_machine_service": Provide(provide_discovery_machine_service, sync_to_thread=False),
     "discovery_candidate_service": Provide(provide_discovery_candidate_service, sync_to_thread=False),
+    "discovery_edge_service": Provide(provide_discovery_edge_service, sync_to_thread=False),
     "discovery_candidate_admin_service": Provide(provide_discovery_candidate_admin_service, sync_to_thread=False),
     "discovery_candidate_emit_service": Provide(provide_discovery_candidate_emit_service, sync_to_thread=False),
     "discovery_artifact_upload_service": Provide(provide_discovery_artifact_upload_service, sync_to_thread=False),

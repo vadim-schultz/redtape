@@ -252,6 +252,8 @@ StopReason = Literal[
     "browser_quota",
     "storage_unavailable",
     "db_limit",
+    "llm_budget",
+    "llm_quota",
 ]
 """Why a worker drain ended; mirrors the ingest worker's ``StopReason``."""
 

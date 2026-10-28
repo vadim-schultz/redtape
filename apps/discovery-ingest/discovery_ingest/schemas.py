@@ -77,12 +77,20 @@ class ClaimAppendResponse(BaseModel):
 
 
 DiscoveryTaskKind = Literal[
-    "fetch_url", "enrich_metadata", "harvest_payload", "extract_page", "render_page", "capture_screenshot"
+    "fetch_url",
+    "enrich_metadata",
+    "harvest_payload",
+    "extract_page",
+    "render_page",
+    "capture_screenshot",
+    "llm_extract",
 ]
 TASK_KINDS: tuple[DiscoveryTaskKind, ...] = get_args(DiscoveryTaskKind)
 LEGACY_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("fetch_url", "enrich_metadata")
 BROWSER_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("render_page", "capture_screenshot")
 """Kinds that spend Cloudflare browser time; never in the default kinds."""
+LLM_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = ("llm_extract",)
+"""Kinds that spend Workers AI neurons; never in the default kinds."""
 WORKER_DEFAULT_TASK_KINDS: tuple[DiscoveryTaskKind, ...] = (*LEGACY_TASK_KINDS, "harvest_payload", "extract_page")
 
 
@@ -168,6 +176,8 @@ StopReason = Literal[
     "browser_quota",
     "storage_unavailable",
     "db_limit",
+    "llm_budget",
+    "llm_quota",
 ]
 
 
@@ -187,6 +197,8 @@ class DrainReport(BaseModel):
     ledger_unavailable: bool = False
     released: int = 0
     browser_seconds_used: float = 0.0
+    neurons_used: float = 0.0
+    llm_calls: int = 0
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
     error: str | None = None

@@ -165,6 +165,7 @@ Without one the API serves only the two legacy kinds, `fetch_url` and `enrich_me
 | `extract_page` | stored HTML snapshot (no network) | document mentions |
 | `render_page` | page URL, Cloudflare Browser Run | `html_snapshot` artifact |
 | `capture_screenshot` | page URL, Cloudflare Browser Run | `screenshot` artifact |
+| `llm_extract` | stored HTML snapshot, Cloudflare Workers AI (the worker handler is not built yet) | document mentions, staged edges, tag codes |
 
 ```text
 catalogue row -> fetch_url -> render_page -> snapshot -> extract_page -> mentions -> candidates
@@ -488,7 +489,7 @@ mode by default. Until that is changed (follow-up), reproduce locally to see the
 | Drain of a browser kind exits 2 | `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_BROWSER_API_TOKEN` are exported ([discovery-online.md](discovery-online.md) § Browser kinds) |
 | Drain of a browser kind exits 1 before claiming | `GET …/machine/artifacts/status` shows `storage_enabled: false`; set the Render `OBJECT_STORE_*` variables |
 | Artifact routes answer 503 or 507 | 503: storage unset or an operation cap reached; 507: the byte cap ([deployment-checklist.md](deployment-checklist.md)) |
-| Machine writes answer 507 `database_soft_limit` | Database above 400 MB; free space or raise `DB_SOFT_LIMIT_BYTES` knowingly |
+| Machine writes answer 507 `database_soft_limit` | Database above 475 MB; free space or raise `DB_SOFT_LIMIT_BYTES` knowingly |
 | Admin tasks filter answers 422 | `kind`, `status` or `source` is not a known value |
 
 Scheduled GitHub Actions ingest uses the same host-root `DISCOVERY_API_URL` and repository secrets

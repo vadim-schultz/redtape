@@ -52,21 +52,25 @@ class Settings(BaseSettings):
     object_store_secret_access_key: str | None = Field(default=None, repr=False)
     object_store_force_path_style: bool = True
     object_store_max_bytes: int = Field(
-        default=8 * 1024**3,
-        description="Ceiling for the sum of stored artifact bytes (8 GiB, below the R2 free 10 GB); enforced on upload.",
+        default=9_500_000_000,
+        description="Ceiling for the sum of stored artifact bytes: 95 percent of the R2 free 10 GB; enforced on upload.",
     )
 
     budget_r2_class_a_monthly: int = Field(
-        default=400_000, description="Monthly cap on R2 Class A operations (write, delete); R2 free tier is 1M."
+        default=950_000,
+        description="Monthly cap on R2 Class A operations (write, delete): 95 percent of the free 1M.",
     )
     budget_r2_class_b_monthly: int = Field(
-        default=4_000_000, description="Monthly cap on R2 Class B operations (read, head); R2 free tier is 10M."
+        default=9_500_000,
+        description="Monthly cap on R2 Class B operations (read, head): 95 percent of the free 10M.",
     )
     budget_browser_seconds_daily: int = Field(
-        default=480, description="Daily cap on Cloudflare Browser Run seconds, all runs together; free plan is 600."
+        default=570,
+        description="Daily cap on Cloudflare Browser Run seconds, all runs together: 95 percent of the free 600.",
     )
     budget_neurons_daily: int = Field(
-        default=8_000, description="Daily cap on Workers AI neurons (extraction suite); free plan is 10,000."
+        default=9_500,
+        description="Daily cap on Workers AI neurons (extraction suite): 95 percent of the free 10,000.",
     )
     budget_actions_minutes_monthly: int = Field(
         default=1_000, description="This repository's monthly GitHub Actions minutes (the free 2,000 are shared)."
@@ -75,8 +79,17 @@ class Settings(BaseSettings):
         default=600, description="Part of the monthly Actions minutes that CI keeps; drain workflows may not spend it."
     )
     db_soft_limit_bytes: int = Field(
-        default=400_000_000,
-        description="Database size above which machine write routes answer 507; Supabase goes read-only at 500 MB.",
+        default=475_000_000,
+        description="Database size above which machine write routes answer 507: 95 percent of the 500 MB read-only limit.",
+    )
+    discovery_tag_min_procedures: int = Field(
+        default=2, ge=1, description="Procedures that must tag a candidate with a code before emit offers the code."
+    )
+    discovery_tag_min_share: float = Field(
+        default=0.5,
+        gt=0,
+        le=1,
+        description="Share of a candidate's tagged procedures that must carry a code before emit offers the code.",
     )
 
     @property

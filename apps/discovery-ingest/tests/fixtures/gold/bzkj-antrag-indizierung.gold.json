@@ -1,0 +1,15 @@
+{
+  "source_url": "https://www.bzkj.de/bzkj/service/formulare/antrag",
+  "page_kind": "form",
+  "documents": [
+    {
+      "name": "Antrag auf Indizierung",
+      "role": "form"
+    }
+  ],
+  "dependencies": [],
+  "domain_codes": [
+    "law-justice"
+  ],
+  "situation_codes": []
+}

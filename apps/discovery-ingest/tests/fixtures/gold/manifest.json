@@ -1,0 +1,401 @@
+[
+  {
+    "name": "aa-probebeschaeftigung",
+    "snapshot_id": "4e75424e-9e6e-470d-b347-5f099f2de4f2",
+    "source_url": "https://www.arbeitsagentur.de/unternehmen/finanziell/foerderung-menschen-mit-behinderungen/probebeschaeftigung",
+    "requested_url": "https://www.arbeitsagentur.de/link/ozg3-011",
+    "fetched_at": "2026-10-28T08:31:36.643799Z",
+    "host": "www.arbeitsagentur.de",
+    "original_bytes": 77443,
+    "original_sha256": "fd3f21af962a0ea0b96ec15ab03e3efa43d22f09d0461acb93ea0d7fc825da18",
+    "original_chars": 77134,
+    "trimmed_bytes": 16065,
+    "cleaned_chars": 4465,
+    "cleaned_full_chars": 4465,
+    "truncated": false,
+    "cleaned_sha256": "a722d0e9ca9386670f290625eb45016c9fd96d7e89e41f45fefc3fbe0b5cf1a3",
+    "kinds": [
+      "service",
+      "conditional"
+    ]
+  },
+  {
+    "name": "aa-ferienbeschaeftigung",
+    "snapshot_id": "6086ba0f-8f57-4bb9-87d0-d68761d40008",
+    "source_url": "https://www.arbeitsagentur.de/unternehmen/fachkraefte-ausland/ferienbeschaeftigung",
+    "requested_url": "https://www.arbeitsagentur.de/link/ozg3-071",
+    "fetched_at": "2026-10-28T08:32:59.986253Z",
+    "host": "www.arbeitsagentur.de",
+    "original_bytes": 111244,
+    "original_sha256": "2e863bada2769f79539f1318dca526229c96578be8f37470df1f6365567acc03",
+    "original_chars": 110684,
+    "trimmed_bytes": 26274,
+    "cleaned_chars": 6924,
+    "cleaned_full_chars": 6924,
+    "truncated": false,
+    "cleaned_sha256": "ed9825d1ce1cfb2d35842edd143ee8fd20775d52604846e508cade7ea0aa78a5",
+    "kinds": [
+      "service",
+      "conditional"
+    ]
+  },
+  {
+    "name": "aa-transferkurzarbeitergeld",
+    "snapshot_id": "60266a22-288c-4dd0-be45-dc282c26bbb3",
+    "source_url": "https://www.arbeitsagentur.de/unternehmen/finanziell/kurzarbeitergeldformen/transfermassnahmen-transferkurzarbeitergeld/transferkurzarbeitergeld-anzeige-antrag-abschlusspruefung",
+    "requested_url": "https://www.arbeitsagentur.de/link/ozg3-022",
+    "fetched_at": "2026-10-28T08:34:55.749191Z",
+    "host": "www.arbeitsagentur.de",
+    "original_bytes": 95587,
+    "original_sha256": "95772bc21d4774961ac40f9a7f7b5eebe4592f8d2965c658ac2e98d8d8c69e3f",
+    "original_chars": 95332,
+    "trimmed_bytes": 21564,
+    "cleaned_chars": 3709,
+    "cleaned_full_chars": 3709,
+    "truncated": false,
+    "cleaned_sha256": "83945dc7c9ddf62ff1a85d0b1b1c1c1c74b64d62e02059a831a6ae557e01b70e",
+    "kinds": [
+      "service",
+      "conditional"
+    ]
+  },
+  {
+    "name": "aa-arbeitslos-schritte",
+    "snapshot_id": "487af011-e3a5-4a59-a73c-f05c9d5f9d28",
+    "source_url": "https://www.arbeitsagentur.de/arbeitslos-arbeit-finden/arbeitslosengeld/ihre-schritte-wenn-sie-arbeitslos-werden",
+    "requested_url": "https://www.arbeitsagentur.de/link/ozg3-078",
+    "fetched_at": "2026-10-28T08:29:32.680693Z",
+    "host": "www.arbeitsagentur.de",
+    "original_bytes": 61199,
+    "original_sha256": "2f5141ea9e39c9576cb46150e89f9ec38081ee5566ce5a490b971a750929f349",
+    "original_chars": 61110,
+    "trimmed_bytes": 11409,
+    "cleaned_chars": 1388,
+    "cleaned_full_chars": 1388,
+    "truncated": false,
+    "cleaned_sha256": "a4e576ddf7dc58c15d74effae78f18f1b379bc0bb59627bdd80829e4e8ed5fb6",
+    "kinds": [
+      "list",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "ble-fleisch-intervention",
+    "snapshot_id": "1d0b649d-0e9a-4e22-8fe7-f3624bd90ae6",
+    "source_url": "https://www.ble.de/DE/Themen/Marktorganisation/Intervention/Fleisch/fleisch_node.html",
+    "requested_url": "https://www.ble.de/DE/Themen/Marktorganisation/Intervention/Fleisch/fleisch_node.html",
+    "fetched_at": "2026-10-28T08:54:21.133675Z",
+    "host": "www.ble.de",
+    "original_bytes": 53155,
+    "original_sha256": "a7aabcfce4078019c0d97afe2ed7754d31560471bfd83e982e3deec167ae7b4c",
+    "original_chars": 52994,
+    "trimmed_bytes": 44725,
+    "cleaned_chars": 11803,
+    "cleaned_full_chars": 21238,
+    "truncated": true,
+    "cleaned_sha256": "9457fd139ac3efba4288f1620bc99e6c1d5b91c08f8e4483487e289d0daa0d31",
+    "kinds": [
+      "service",
+      "conditional",
+      "truncated"
+    ]
+  },
+  {
+    "name": "ble-wein-neuanpflanzung",
+    "snapshot_id": "7b40d6ee-e11b-42c5-97b8-29bac35ab7bb",
+    "source_url": "https://www.ble.de/DE/Themen/Landwirtschaft/Wein/wein_node.html",
+    "requested_url": "https://www.ble.de/DE/Themen/Landwirtschaft/Wein/wein_node.html",
+    "fetched_at": "2026-10-28T08:39:39.619709Z",
+    "host": "www.ble.de",
+    "original_bytes": 56600,
+    "original_sha256": "d3768a21b42f58af08357cb4a931329f4f073f962e4fdf82c63ede6c6ec16558",
+    "original_chars": 56338,
+    "trimmed_bytes": 48385,
+    "cleaned_chars": 11956,
+    "cleaned_full_chars": 20249,
+    "truncated": true,
+    "cleaned_sha256": "ebf3dcec34c38d2858607830add633e2ed7e7140c71a609575d840d09024d450",
+    "kinds": [
+      "service",
+      "truncated"
+    ]
+  },
+  {
+    "name": "ble-kaese-lagerhaltung",
+    "snapshot_id": "33cc7dd5-2105-4a40-93db-20437761106c",
+    "source_url": "https://www.ble.de/DE/Themen/Marktorganisation/Private-Lagerhaltung/Kaese/kaese_node.html",
+    "requested_url": "https://www.ble.de/DE/Themen/Marktorganisation/Private-Lagerhaltung/Kaese/kaese_node.html",
+    "fetched_at": "2026-10-28T08:58:52.457159Z",
+    "host": "www.ble.de",
+    "original_bytes": 36745,
+    "original_sha256": "fadfe7045066b7b0e0e0ca772b8eb5e20650b76bb2b7c41d7b1dcca0971314a2",
+    "original_chars": 36674,
+    "trimmed_bytes": 28507,
+    "cleaned_chars": 11677,
+    "cleaned_full_chars": 11677,
+    "truncated": false,
+    "cleaned_sha256": "4742cfa6c7c7dd01a1570fcb7668183ae03e9b820c4f75b6da16de5d31f82f45",
+    "kinds": [
+      "no-documents"
+    ]
+  },
+  {
+    "name": "bundesarchiv-akteneinsicht",
+    "snapshot_id": "8c630a05-8e71-4c8f-954c-beefc4023416",
+    "source_url": "https://www.bundesarchiv.de/im-archiv-recherchieren/stasi-unterlagen-einsehen/akteneinsicht-fuer-privatpersonen/",
+    "requested_url": "https://www.bundesarchiv.de/im-archiv-recherchieren/stasi-unterlagen-einsehen/akteneinsicht-fuer-privatpersonen/",
+    "fetched_at": "2026-10-28T08:40:08.110647Z",
+    "host": "www.bundesarchiv.de",
+    "original_bytes": 145189,
+    "original_sha256": "2288d9483aa72fbae99ab31f79d1952e7f65eb1555cd444da9605e624b7dd510",
+    "original_chars": 144830,
+    "trimmed_bytes": 71852,
+    "cleaned_chars": 11865,
+    "cleaned_full_chars": 17716,
+    "truncated": true,
+    "cleaned_sha256": "d9f0f5086c03198e57d87de0e3fd94d99ea12d4b6270dc234edc21ae78562379",
+    "kinds": [
+      "service",
+      "accordion",
+      "conditional",
+      "truncated"
+    ]
+  },
+  {
+    "name": "bfj-gewerbezentralregister",
+    "snapshot_id": "daa3ab37-2bab-4762-8fb4-20339588f2c0",
+    "source_url": "https://www.bundesjustizamt.de/DE/Themen/ZentraleRegister/Gewerbezentralregister/Gewerbezentralregister_node.html",
+    "requested_url": "https://www.bundesjustizamt.de/DE/Themen/ZentraleRegister/Gewerbezentralregister/Gewerbezentralregister_node.html",
+    "fetched_at": "2026-10-28T08:37:21.285846Z",
+    "host": "www.bundesjustizamt.de",
+    "original_bytes": 106670,
+    "original_sha256": "5eb10b2dd1523801e99105884c45ee42c44f9736dfb6fea246e560baf9f4e45e",
+    "original_chars": 106506,
+    "trimmed_bytes": 69386,
+    "cleaned_chars": 5949,
+    "cleaned_full_chars": 5949,
+    "truncated": false,
+    "cleaned_sha256": "9dde53bc8cb7b7960a8a13184868f2b0e8ba55f4d362fc32d26888a6a8138383",
+    "kinds": [
+      "list",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "bzkj-antrag-indizierung",
+    "snapshot_id": "dd63a528-81b6-4cbe-a6bc-61d8578574db",
+    "source_url": "https://www.bzkj.de/bzkj/service/formulare/antrag",
+    "requested_url": "https://www.bzkj.de/bzkj/service/formulare/antrag",
+    "fetched_at": "2026-10-28T08:37:34.231677Z",
+    "host": "www.bzkj.de",
+    "original_bytes": 41610,
+    "original_sha256": "6d6728087c88e2d07603d76a98e0fa9c9b335f4fd5028fdff0b67d7304b68d98",
+    "original_chars": 41520,
+    "trimmed_bytes": 40619,
+    "cleaned_chars": 1940,
+    "cleaned_full_chars": 1940,
+    "truncated": false,
+    "cleaned_sha256": "9e0b30928a661a847a9f27426251a82fbcd22e76638425d2db00e282e333dce9",
+    "kinds": [
+      "form"
+    ]
+  },
+  {
+    "name": "kba-zfer-login",
+    "snapshot_id": "7cadcb7e-3c04-43a7-bd1f-6cfced6205ca",
+    "source_url": "https://www.kba-online.de/registerauskunft/app/",
+    "requested_url": "https://www.kba-online.de/registerauskunft/app/#/zfer",
+    "fetched_at": "2026-10-28T08:31:50.011635Z",
+    "host": "www.kba-online.de",
+    "original_bytes": 28376,
+    "original_sha256": "139b654d809daf872b05c57df8d740cbc9bafacc287f4785fd468d909fa6b4cb",
+    "original_chars": 28353,
+    "trimmed_bytes": 12174,
+    "cleaned_chars": 1368,
+    "cleaned_full_chars": 1368,
+    "truncated": false,
+    "cleaned_sha256": "03c6db8b4efefb6a0bf1614a649310c5ae7264220fc5602eb1b3bd6c3479f677",
+    "kinds": [
+      "login-wall",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "goaml-start",
+    "snapshot_id": "95223ee8-0e32-4fac-abe4-51773cdaafd7",
+    "source_url": "https://goaml.fiu.bund.de/Home",
+    "requested_url": "https://goaml.fiu.bund.de/Home",
+    "fetched_at": "2026-10-28T09:19:14.360233Z",
+    "host": "goaml.fiu.bund.de",
+    "original_bytes": 11578,
+    "original_sha256": "57d50d51d25b6d1219fd5b0536aee8a4ac9898ef01a957e72a02036d2a9ce0f3",
+    "original_chars": 11514,
+    "trimmed_bytes": 8316,
+    "cleaned_chars": 4082,
+    "cleaned_full_chars": 4082,
+    "truncated": false,
+    "cleaned_sha256": "590b9b17de21edd9d2f80c7b7c9f553b029860cc3908074fce5f61f5eefc91e0",
+    "kinds": [
+      "login-wall",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "vorsorgeregister-registrierung",
+    "snapshot_id": "65bb6745-840a-4c28-93a0-f5c6510de84f",
+    "source_url": "https://www.vorsorgeregister.de/privatpersonen/registrierung/",
+    "requested_url": "https://www.vorsorgeregister.de/privatpersonen/registrierung/",
+    "fetched_at": "2026-10-28T08:51:02.979979Z",
+    "host": "www.vorsorgeregister.de",
+    "original_bytes": 29527,
+    "original_sha256": "32008566c2d1148dd6ea6218a2810dc7a88e7122d4f6d4af2cd276b95e07306b",
+    "original_chars": 29482,
+    "trimmed_bytes": 15622,
+    "cleaned_chars": 1872,
+    "cleaned_full_chars": 1872,
+    "truncated": false,
+    "cleaned_sha256": "9d91ea11bb045479d8abca4c7be4afd1382eb3408057ae9d0f2e4d575bc4f9bc",
+    "kinds": [
+      "service",
+      "conditional"
+    ]
+  },
+  {
+    "name": "nebenwirkungen-melden",
+    "snapshot_id": "95e1c73c-3f63-4089-8f84-956c69b6c050",
+    "source_url": "https://nebenwirkungen.bund.de/nw/DE/home/home_node.html",
+    "requested_url": "https://nebenwirkungen.bund.de/nw/DE/home/home_node.html",
+    "fetched_at": "2026-10-28T08:26:43.143758Z",
+    "host": "nebenwirkungen.bund.de",
+    "original_bytes": 32530,
+    "original_sha256": "e3931d8903719877cb016e08567b0f0cb771deb9349fa3d0a68cc5359045772e",
+    "original_chars": 32441,
+    "trimmed_bytes": 22649,
+    "cleaned_chars": 4728,
+    "cleaned_full_chars": 4728,
+    "truncated": false,
+    "cleaned_sha256": "31e1f63a547639224a70585805c89eb7bd9b865815fac87e547e6a911d409ba4",
+    "kinds": [
+      "service",
+      "accordion",
+      "conditional"
+    ]
+  },
+  {
+    "name": "bvl-tierarzneimittel-meldung",
+    "snapshot_id": "cfe4a357-c017-4128-b417-9d586e9410a8",
+    "source_url": "https://www.bvl.bund.de/VETUAW/DE/Home/home_node.html",
+    "requested_url": "https://www.bvl.bund.de/VETUAW/DE/Home/home_node.html",
+    "fetched_at": "2026-10-28T08:26:30.381178Z",
+    "host": "www.bvl.bund.de",
+    "original_bytes": 25917,
+    "original_sha256": "bcca27aa5b0529702372dad0584ac6cb3591aec6d577a5b2e8de4ed2e66cbdb5",
+    "original_chars": 25822,
+    "trimmed_bytes": 23890,
+    "cleaned_chars": 5149,
+    "cleaned_full_chars": 5149,
+    "truncated": false,
+    "cleaned_sha256": "24a3c47693c68b8894d352bbeb12a3788210a788eef84f6249f0dad43d573978",
+    "kinds": [
+      "service"
+    ]
+  },
+  {
+    "name": "verwaltung-js-shell",
+    "snapshot_id": "d4ba4e36-1e8a-4cdd-a533-a0417c93e7d3",
+    "source_url": "https://verwaltung.bund.de/leistungsbeantragung/DE/leistung/99080089011000/herausgeber/LeiKa-103778568/region/00",
+    "requested_url": "https://verwaltung.bund.de/leistungsbeantragung/DE/leistung/99080089011000/herausgeber/LeiKa-103778568/region/00",
+    "fetched_at": "2026-10-28T09:11:46.397635Z",
+    "host": "verwaltung.bund.de",
+    "original_bytes": 6159,
+    "original_sha256": "32ce814edf92fbe51bc7e6ff0fdc90564ee4fd5c63a42ad4f29f411f348d72b2",
+    "original_chars": 6158,
+    "trimmed_bytes": 1840,
+    "cleaned_chars": 0,
+    "cleaned_full_chars": 0,
+    "truncated": false,
+    "cleaned_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "kinds": [
+      "js-shell",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "verwaltung-fluggastrechte-anzeige",
+    "snapshot_id": "71fee861-8330-445e-886d-c3a37a5d9edc",
+    "source_url": "https://verwaltung.bund.de/leistungsbeantragung/DE/leistung/99080054261000/herausgeber/LeiKa-103751218/region/00",
+    "requested_url": "https://verwaltung.bund.de/leistungsbeantragung/DE/leistung/99080054261000/herausgeber/LeiKa-103751218/region/00",
+    "fetched_at": "2026-10-28T09:01:25.430895Z",
+    "host": "verwaltung.bund.de",
+    "original_bytes": 10354,
+    "original_sha256": "ea7ffa09c68e8c053a792610e724587026d8b725ac0efa1752a475697ceb9460",
+    "original_chars": 10324,
+    "trimmed_bytes": 5431,
+    "cleaned_chars": 1963,
+    "cleaned_full_chars": 1963,
+    "truncated": false,
+    "cleaned_sha256": "395a5c121db76c8a8c80d61e22c737e293b974926ad95d355b1cd0752839e275",
+    "kinds": [
+      "form",
+      "no-documents"
+    ]
+  },
+  {
+    "name": "auswaertiges-amt-start",
+    "snapshot_id": "5ee1859d-b10c-46e7-a168-1fb6479ecffb",
+    "source_url": "https://www.auswaertiges-amt.de/de/reiseundsicherheit/reise-und-sicherheitshinweise",
+    "requested_url": "https://www.auswaertiges-amt.de/de/reiseundsicherheit/reise-und-sicherheitshinweise",
+    "fetched_at": "2026-10-28T09:20:09.512218Z",
+    "host": "www.auswaertiges-amt.de",
+    "original_bytes": 113372,
+    "original_sha256": "130b7103a2a61ec2a9cc133d0af5c3eab911b58792fd20c22f6fe10fa4f58429",
+    "original_chars": 113167,
+    "trimmed_bytes": 74194,
+    "cleaned_chars": 1076,
+    "cleaned_full_chars": 1076,
+    "truncated": false,
+    "cleaned_sha256": "f87274418ae7cb2b3dc353ff1cca4d18c75766fd90443df793ff9ee37e866583",
+    "kinds": [
+      "no-documents"
+    ]
+  },
+  {
+    "name": "netzausbau-start",
+    "snapshot_id": "e25c5c1c-3169-4340-baa9-d8bfd130ae28",
+    "source_url": "https://www.netzausbau.de/home/de.html",
+    "requested_url": "https://www.netzausbau.de/home/de.html",
+    "fetched_at": "2026-10-28T09:08:30.587421Z",
+    "host": "www.netzausbau.de",
+    "original_bytes": 74825,
+    "original_sha256": "c30e7935de399ad1caad93f63d87aa346c5d52a5bf35c91ce2a4c0c052ef5f1d",
+    "original_chars": 74189,
+    "trimmed_bytes": 28900,
+    "cleaned_chars": 5695,
+    "cleaned_full_chars": 5695,
+    "truncated": false,
+    "cleaned_sha256": "833f4fa6c8756491c97d250233cc9159d5b603e35ed8fadfbdff2628a1ee19ec",
+    "kinds": [
+      "no-documents"
+    ]
+  },
+  {
+    "name": "fragebogen-bundeskartellamt-registrierung",
+    "snapshot_id": "42fa031c-356d-462d-9b8f-b3ff781f8210",
+    "source_url": "https://www.fragebogen-bundeskartellamt.de/lip/form/display.do?%24context=6A639A6DBD1181B6CD72",
+    "requested_url": "https://www.fragebogen-bundeskartellamt.de/mtsk/phi/",
+    "fetched_at": "2026-10-28T08:53:24.760537Z",
+    "host": "www.fragebogen-bundeskartellamt.de",
+    "original_bytes": 17116,
+    "original_sha256": "2c0a94f4109ddf289eae87fcb45fb2dc208f99b55de6d7bb33d50b980e507198",
+    "original_chars": 17074,
+    "trimmed_bytes": 10976,
+    "cleaned_chars": 2390,
+    "cleaned_full_chars": 2390,
+    "truncated": false,
+    "cleaned_sha256": "adfcab2ec1de7fc2d489aab638263be923d5a01fb11be10c38ae3cc862201920",
+    "kinds": [
+      "form",
+      "no-documents"
+    ]
+  }
+]

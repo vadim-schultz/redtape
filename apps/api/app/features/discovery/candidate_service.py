@@ -5,9 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from app.features.discovery.candidate_codes import CodeVocabulary
 from app.features.discovery.candidate_key import candidate_key
 from app.features.discovery.lookups import require_catalogue
+from app.features.discovery.mention_rows import PreparedMention, new_mention, refresh_mention
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.taxonomy.service import TaxonomyService
 from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate
 from app.schema.discovery.candidates import (
     CandidateMentionItem,
@@ -30,71 +33,60 @@ def merge_titles(existing: dict[str, str], incoming: dict[str, str]) -> dict[str
     return {**existing, **additions}
 
 
-def _new_mention(candidate: DiscoveryDocumentCandidate, item: CandidateMentionItem) -> DiscoveryCandidateMention:
-    return DiscoveryCandidateMention(
-        candidate_id=candidate.id,
-        catalogue_service_id=item.catalogue_service_id,
-        role=item.role,
-        source_field=item.source_field,
-        excerpt=item.excerpt,
-        artifact_id=item.artifact_id,
-        extractor=item.extractor,
-        extractor_version=item.extractor_version,
-    )
-
-
-def _refresh_mention(mention: DiscoveryCandidateMention, item: CandidateMentionItem) -> None:
-    mention.excerpt = item.excerpt
-    mention.extractor = item.extractor
-    mention.extractor_version = item.extractor_version
-    mention.artifact_id = item.artifact_id or mention.artifact_id
-
-
-def _tally(outcomes: list[MentionOutcome]) -> CandidateMentionsResponse:
+def _tally(prepared: list[PreparedMention], outcomes: list[MentionOutcome]) -> CandidateMentionsResponse:
     mentions_created = sum(outcome.mention_created for outcome in outcomes)
     return CandidateMentionsResponse(
         candidates_created=sum(outcome.candidate_created for outcome in outcomes),
         mentions_created=mentions_created,
         mentions_updated=len(outcomes) - mentions_created,
+        unknown_codes=sum(entry.codes.dropped for entry in prepared),
     )
 
 
 class CandidateService:
     """Record mentions and keep one candidate per jurisdiction and key."""
 
-    def __init__(self, repository: DiscoveryRepository) -> None:
-        """Bind the service to ``repository``."""
+    def __init__(self, repository: DiscoveryRepository, taxonomy: TaxonomyService) -> None:
+        """Bind the service to ``repository`` and the ``taxonomy`` that vets mention codes."""
         self._repo = repository
+        self._taxonomy = taxonomy
 
     def record_mentions(self, body: CandidateMentionsRequest) -> CandidateMentionsResponse:
         """Record every item or none: lookups and keys are checked before the first write."""
-        jurisdictions = self._jurisdictions(body.items)
-        keyed = [(item, candidate_key(item.title_i18n)) for item in body.items]
-        return _tally([self._record(item, key, jurisdictions[item.catalogue_service_id]) for item, key in keyed])
+        prepared = self._prepare(body.items)
+        return _tally(prepared, [self._record(entry) for entry in prepared])
+
+    def _prepare(self, items: list[CandidateMentionItem]) -> list[PreparedMention]:
+        jurisdictions = self._jurisdictions(items)
+        vocabulary = CodeVocabulary.for_items(items, self._taxonomy)
+        return [
+            PreparedMention(
+                item, candidate_key(item.title_i18n), jurisdictions[item.catalogue_service_id], vocabulary.filter(item)
+            )
+            for item in items
+        ]
 
     def _jurisdictions(self, items: list[CandidateMentionItem]) -> dict[UUID, UUID]:
         ids = {item.catalogue_service_id for item in items}
         return {catalogue_id: require_catalogue(self._repo, catalogue_id).jurisdiction_id for catalogue_id in ids}
 
-    def _record(self, item: CandidateMentionItem, key: str, jurisdiction_id: UUID) -> MentionOutcome:
-        candidate, candidate_created = self._resolve_candidate(item, key, jurisdiction_id)
-        return MentionOutcome(candidate_created, self._upsert_mention(candidate, item))
+    def _record(self, prepared: PreparedMention) -> MentionOutcome:
+        candidate, candidate_created = self._resolve_candidate(prepared)
+        return MentionOutcome(candidate_created, self._upsert_mention(candidate, prepared))
 
-    def _resolve_candidate(
-        self, item: CandidateMentionItem, key: str, jurisdiction_id: UUID
-    ) -> tuple[DiscoveryDocumentCandidate, bool]:
-        candidate = self._repo.get_candidate_by_key(jurisdiction_id=jurisdiction_id, key=key)
+    def _resolve_candidate(self, prepared: PreparedMention) -> tuple[DiscoveryDocumentCandidate, bool]:
+        candidate = self._repo.get_candidate_by_key(jurisdiction_id=prepared.jurisdiction_id, key=prepared.key)
         if candidate is None:
-            return self._repo.add_candidate(self._new_candidate(item, key, jurisdiction_id)), True
-        self._merge_fields(candidate, item)
+            return self._repo.add_candidate(self._new_candidate(prepared)), True
+        self._merge_fields(candidate, prepared.item)
         return candidate, False
 
-    def _new_candidate(self, item: CandidateMentionItem, key: str, jurisdiction_id: UUID) -> DiscoveryDocumentCandidate:
+    def _new_candidate(self, prepared: PreparedMention) -> DiscoveryDocumentCandidate:
         return DiscoveryDocumentCandidate(
-            jurisdiction_id=jurisdiction_id,
-            key=key,
-            title_i18n=merge_titles({}, item.title_i18n),
-            official_url=item.official_url,
+            jurisdiction_id=prepared.jurisdiction_id,
+            key=prepared.key,
+            title_i18n=merge_titles({}, prepared.item.title_i18n),
+            official_url=prepared.item.official_url,
         )
 
     def _merge_fields(self, candidate: DiscoveryDocumentCandidate, item: CandidateMentionItem) -> None:
@@ -102,13 +94,13 @@ class CandidateService:
         candidate.official_url = candidate.official_url or item.official_url
         self._repo.flush()
 
-    def _upsert_mention(self, candidate: DiscoveryDocumentCandidate, item: CandidateMentionItem) -> bool:
-        mention = self._find_mention(candidate, item)
+    def _upsert_mention(self, candidate: DiscoveryDocumentCandidate, prepared: PreparedMention) -> bool:
+        mention = self._find_mention(candidate, prepared.item)
         if mention is not None:
-            _refresh_mention(mention, item)
+            refresh_mention(mention, prepared)
             self._repo.flush()
             return False
-        self._repo.add_mention(_new_mention(candidate, item))
+        self._repo.add_mention(new_mention(candidate, prepared))
         return True
 
     def _find_mention(

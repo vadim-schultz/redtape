@@ -13,9 +13,11 @@ from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
+from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.repository import CandidateFilter, Page
 from app.models.discovery import DiscoveryCandidateStatus
+from app.schema.discovery.candidate_edges import CandidateEdgesRequest, CandidateEdgesResponse
 from app.schema.discovery.candidate_emit import CandidateEmitPreview, CandidateEmitRequest, CandidateEmitResponse
 from app.schema.discovery.candidates import CandidateMentionsRequest, CandidateMentionsResponse
 from app.schema.discovery.read import CandidateListResponse
@@ -35,6 +37,14 @@ class DiscoveryCandidateMachineController(Controller):
         data: CandidateMentionsRequest,
     ) -> CandidateMentionsResponse:
         return discovery_candidate_service.record_mentions(data)
+
+    @post("/edges", sync_to_thread=True, status_code=HTTP_200_OK, guards=DB_WRITE_GUARDS)
+    def record_edges(
+        self,
+        discovery_edge_service: EdgeService,
+        data: CandidateEdgesRequest,
+    ) -> CandidateEdgesResponse:
+        return discovery_edge_service.record_edges(data)
 
     @get("/", sync_to_thread=True)
     def select_candidates(

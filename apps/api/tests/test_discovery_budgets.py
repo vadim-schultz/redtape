@@ -30,16 +30,16 @@ def test_reserve_within_the_cap_is_granted_and_counted(db_session: Session) -> N
     service = _service(db_session)
 
     first = service.reserve(NEURONS, Decimal(3000), NOON)
-    second = service.reserve(NEURONS, Decimal(5000), NOON)
+    second = service.reserve(NEURONS, Decimal(6500), NOON)
 
-    assert (first.granted, first.remaining) == (True, Decimal(5000))
+    assert (first.granted, first.remaining) == (True, Decimal(6500))
     assert (second.granted, second.remaining) == (True, Decimal(0))
-    assert service.status(NEURONS, NOON).used == Decimal(8000)
+    assert service.status(NEURONS, NOON).used == Decimal(9500)
 
 
 def test_reserve_that_would_pass_the_cap_is_denied_and_does_not_change_usage(db_session: Session) -> None:
     service = _service(db_session)
-    service.reserve(NEURONS, Decimal(7000), NOON)
+    service.reserve(NEURONS, Decimal(8500), NOON)
 
     denied = service.reserve(NEURONS, Decimal(1001), NOON)
     too_big_first = _service(db_session, budget_browser_seconds_daily=100).reserve(
@@ -47,7 +47,7 @@ def test_reserve_that_would_pass_the_cap_is_denied_and_does_not_change_usage(db_
     )
 
     assert (denied.granted, denied.remaining) == (False, Decimal(1000))
-    assert service.status(NEURONS, NOON).used == Decimal(7000)
+    assert service.status(NEURONS, NOON).used == Decimal(8500)
     assert too_big_first.granted is False
     assert _service(db_session).status(BudgetResource.BROWSER_SECONDS, NOON).used == Decimal(0)
 
@@ -91,22 +91,22 @@ def test_adjust_with_a_negative_delta_never_goes_below_zero(db_session: Session)
 def test_adjust_is_never_refused_even_past_the_cap(db_session: Session) -> None:
     service = _service(db_session)
 
-    over = service.adjust(NEURONS, Decimal(9000), NOON)
+    over = service.adjust(NEURONS, Decimal(10_000), NOON)
 
-    assert (over.used, over.remaining) == (Decimal(9000), Decimal(0))
+    assert (over.used, over.remaining) == (Decimal(10_000), Decimal(0))
     assert service.reserve(NEURONS, Decimal(1), NOON).granted is False
 
 
 def test_snapshot_lists_every_resource_with_zero_for_unused_and_remaining_clamped(db_session: Session) -> None:
     service = _service(db_session)
-    service.adjust(NEURONS, Decimal(9000), NOON)
+    service.adjust(NEURONS, Decimal(10_000), NOON)
 
     rows = {row.resource: row for row in service.snapshot(NOON)}
 
     assert set(rows) == set(BudgetResource)
-    assert (rows[NEURONS].used, rows[NEURONS].remaining, rows[NEURONS].cap) == (Decimal(9000), Decimal(0), 8000)
+    assert (rows[NEURONS].used, rows[NEURONS].remaining, rows[NEURONS].cap) == (Decimal(10_000), Decimal(0), 9500)
     assert (rows[NEURONS].period, rows[CLASS_A].period) == ("2026-10-26", "2026-10")
-    assert (rows[CLASS_A].used, rows[CLASS_A].remaining, rows[CLASS_A].exhausted) == (0, 400_000, False)
+    assert (rows[CLASS_A].used, rows[CLASS_A].remaining, rows[CLASS_A].exhausted) == (0, 950_000, False)
 
 
 def test_actions_minutes_cap_is_the_monthly_cap_minus_the_ci_reserve(db_session: Session) -> None:
