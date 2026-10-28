@@ -27,12 +27,19 @@ def _link_text(anchor: LexborNode) -> str:
     return f"{text} ({href})" if text and href and text != href else text
 
 
-def _inline_part(node: LexborNode) -> str:
-    if node.tag == TEXT_TAG:
-        return node.text_content or ""
-    if node.tag == "a":
-        return _link_text(node)
+def _text(node: LexborNode) -> str:
+    return node.text_content or ""
+
+
+def _nested_inline(node: LexborNode) -> str:
     return "".join(_inline_part(child) for child in node.iter(include_text=True))
+
+
+_INLINE_PARTS: dict[str, Callable[[LexborNode], str]] = {TEXT_TAG: _text, "a": _link_text}
+
+
+def _inline_part(node: LexborNode) -> str:
+    return _INLINE_PARTS.get(node.tag or "", _nested_inline)(node)
 
 
 def _flush(buffer: list[str]) -> Iterator[str]:
@@ -86,8 +93,6 @@ def _container_lines(node: LexborNode) -> Iterator[str]:
         if _is_block(child):
             yield from _flush(buffer)
             yield from _BLOCK_LINES.get(child.tag or "", _container_lines)(child)
-        elif child.tag == "br":
-            yield from _flush(buffer)
         else:
             buffer.append(_inline_part(child))
     yield from _flush(buffer)

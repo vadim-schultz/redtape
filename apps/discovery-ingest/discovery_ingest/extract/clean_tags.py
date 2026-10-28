@@ -9,6 +9,7 @@ BLOCK_TAGS = frozenset(
         "article",
         "blockquote",
         "body",
+        "br",
         "button",
         "caption",
         "dd",
