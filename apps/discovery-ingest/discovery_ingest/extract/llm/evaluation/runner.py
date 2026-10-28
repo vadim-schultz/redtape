@@ -17,7 +17,7 @@ from discovery_ingest.extract.llm.evaluation.scoring import nothing_found, score
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.ground import ground
 from discovery_ingest.extract.llm.meter import NeuronMeter, Reservation
-from discovery_ingest.extract.llm.prices import actual_neurons
+from discovery_ingest.extract.llm.prices import actual_neurons, reserved_output_tokens
 from discovery_ingest.extract.llm.prompt import build_messages
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
 
@@ -109,7 +109,8 @@ class EvalRunner:
         return Failure("invalid_output" if isinstance(err, LlmInvalidOutput) else "request_error", str(err))
 
     def _reserve(self, input_chars: int) -> Reservation:
-        answer = self._meter.reserve(self._setup.model, input_chars, self._setup.max_tokens)
+        output = reserved_output_tokens(input_chars, self._setup.max_tokens)
+        answer = self._meter.reserve(self._setup.model, input_chars, output)
         if isinstance(answer, Reservation):
             return answer
         raise refusal_stop(answer, self._setup.neuron_budget, self._meter.used_neurons)

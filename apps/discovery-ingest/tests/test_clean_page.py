@@ -205,6 +205,6 @@ def test_inline_elements_inside_a_link_stay_joined_and_blocks_in_a_table_cell_ar
     assert clean_page(html, BASE).text == "Antragformular (https://portal.example/f)\nName Ort"
 
 
-def test_the_cleaner_version_is_clean_2() -> None:
-    """version · the layout rules changed, so cached answers of clean-1 are not reused."""
-    assert clean_page(_page("<p>Text</p>"), BASE).version == "clean-2"
+def test_the_cleaner_version_is_clean_3() -> None:
+    """version · the cap changed, so cached answers of clean-2 are not reused."""
+    assert clean_page(_page("<p>Text</p>"), BASE).version == "clean-3"

@@ -57,6 +57,30 @@ ANSWERS: dict[str, dict[str, Any]] = {
 }
 
 
+def long_page_html(characters: int) -> str:
+    """A page whose cleaned text is about ``characters`` long: numbered lines, one paragraph each."""
+    lines = (
+        f"Hinweis {number:05d}: Bitte reichen Sie die Unterlagen vollständig ein." for number in range(characters // 60)
+    )
+    return (
+        "<html lang='de'><body><main><h1>Verfahren</h1>"
+        + "".join(f"<p>{line}</p>" for line in lines)
+        + "</main></body></html>"
+    )
+
+
+def write_long_gold(directory: Path, *, count: int, characters: int = 25_000) -> Path:
+    """Write ``count`` gold pages of about ``characters`` cleaned characters, each with no labelled documents."""
+    directory.mkdir(parents=True, exist_ok=True)
+    for number in range(count):
+        name = f"long-{number:02d}"
+        (directory / f"{name}.html").write_text(long_page_html(characters), encoding="utf-8")
+        labels = {"source_url": f"{SOURCE}{name}", "documents": [], "dependencies": [], "domain_codes": []}
+        labels |= {"situation_codes": [], "page_kind": "other"}
+        (directory / f"{name}.gold.json").write_text(json.dumps(labels), encoding="utf-8")
+    return directory
+
+
 def write_gold(directory: Path, *, names: Sequence[str] = tuple(PAGES)) -> Path:
     """Write the chosen tiny gold pages and their labels into ``directory`` and return it."""
     directory.mkdir(parents=True, exist_ok=True)
@@ -76,9 +100,11 @@ class FakeLlm:
         answers: Mapping[str, dict[str, Any] | str | LlmError] = ANSWERS,
         *,
         usage: tuple[int | None, int | None] = (1000, 200),
+        model: str = MODEL,
     ) -> None:
         self.answers = answers
         self.usage = usage
+        self.model = model
         self.calls: list[str] = []
 
     def extract(self, messages: Sequence[dict[str, str]], json_schema: dict[str, Any], *, max_tokens: int) -> LlmResult:
@@ -90,4 +116,4 @@ class FakeLlm:
         if isinstance(answer, LlmError):
             raise answer
         text = answer if isinstance(answer, str) else json.dumps(answer)
-        return LlmResult(text, self.usage[0], self.usage[1], MODEL)
+        return LlmResult(text, self.usage[0], self.usage[1], self.model)
