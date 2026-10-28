@@ -43,7 +43,7 @@ def error_info(response: httpx.Response) -> ErrorInfo:
     return ErrorInfo(response.status_code, codes, text.lower())
 
 
-def _describe(response: httpx.Response, scrub: Scrub) -> str:
+def describe(response: httpx.Response, scrub: Scrub) -> str:
     errors = _errors(json_payload(response))
     detail = "; ".join(f"code {error.get('code')}: {error.get('message')}" for error in errors)
     return scrub(f"Cloudflare HTTP {response.status_code}" + (f" {detail}" if detail else ""))
@@ -63,7 +63,7 @@ _FIXED_ERRORS: tuple[tuple[Callable[[ErrorInfo], bool], type[LlmError]], ...] = 
 
 def error_for(response: httpx.Response, scrub: Scrub) -> LlmError:
     """Return the typed error that the error ``response`` stands for."""
-    info, message = error_info(response), _describe(response, scrub)
+    info, message = error_info(response), describe(response, scrub)
     for matches, error_type in _FIXED_ERRORS:
         if matches(info):
             return error_type(message)
