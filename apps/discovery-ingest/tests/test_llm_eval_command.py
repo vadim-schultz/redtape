@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from discovery_ingest.cli import main
-from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded
+from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, LlmRequestError
 from discovery_ingest.extract.llm.evaluation import command
 from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
@@ -16,7 +18,7 @@ from discovery_ingest.extract.llm.prices import cost
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold
 from ledger_fakes import FakeLedger, guard_for
 from llm_fakes import taxonomy
-from llm_transport import ACCOUNT_ID, TOKEN
+from llm_transport import ACCOUNT_ID, TOKEN, failure, success
 
 
 @pytest.fixture(autouse=True)
@@ -223,3 +225,57 @@ def test_the_output_file_lists_dropped_items_with_their_reasons(
     ]
     assert pages["gamma"]["dropped"] == []
     assert (pages["beta"]["raw_items"], pages["beta"]["kept_items"]) == (1, 0)
+
+
+def _router(monkeypatch: pytest.MonkeyPatch, ledger: FakeLedger, cloudflare: Callable[[str], httpx.Response]) -> None:
+    """Serve the machine API (taxonomy and ledger) and Cloudflare from one mock transport, behind the real wiring."""
+    real_client = httpx.Client
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "redtape.test" and request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=taxonomy().model_dump(mode="json"))
+        if request.url.host == "redtape.test":
+            return ledger(request)
+        return cloudflare(request.content.decode())
+
+    monkeypatch.setattr("time.sleep", lambda _seconds: None)
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(**{**kw, "transport": httpx.MockTransport(handler)}))
+
+
+def _answer(body: str) -> httpx.Response:
+    marker = next(marker for marker in ANSWERS if marker in body)
+    return success(ANSWERS[marker], {"prompt_tokens": 1000, "completion_tokens": 200})
+
+
+def test_eval_never_prints_the_token_or_the_account_id_even_when_cloudflare_echoes_them(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · through the real client and taxonomy route, neither the table, stderr nor the JSON holds a credential."""
+    write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    echo = failure(400, 1000, f"bad request for {TOKEN} on account {ACCOUNT_ID}")
+    _router(monkeypatch, FakeLedger(remaining=9000), lambda body: echo if "Neuigkeiten" in body else _answer(body))
+
+    assert _eval(tmp_path) == 0
+
+    shown = capsys.readouterr()
+    written = (tmp_path / "out.json").read_text(encoding="utf-8")
+    pages = {page["name"]: page for page in json.loads(written)["pages"]}
+    assert pages["alpha"]["status"] == "ok" and pages["gamma"]["status"] == "request_error"
+    assert "<redacted>" in pages["gamma"]["error"]
+    for secret in (TOKEN, ACCOUNT_ID):
+        assert secret not in shown.out + shown.err + written
+
+
+def test_a_credential_inside_an_error_text_is_scrubbed_at_the_command_even_when_the_client_did_not(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · defense in depth: a client that leaks the token in its error still cannot reach the output."""
+    write_gold(tmp_path / "gold", names=["gamma"])
+    leaky = FakeLlm({**ANSWERS, "Neuigkeiten": LlmRequestError(f"connect failed with {TOKEN}", retryable=True)})
+    _wire(monkeypatch, leaky)
+
+    assert _eval(tmp_path) == 0
+
+    shown = capsys.readouterr()
+    written = (tmp_path / "out.json").read_text(encoding="utf-8")
+    assert TOKEN not in shown.out + shown.err + written and "<redacted>" in written
