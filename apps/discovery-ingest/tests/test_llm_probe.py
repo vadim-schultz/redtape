@@ -210,3 +210,33 @@ def test_a_natural_quota_error_is_recorded_with_its_classification() -> None:
 
     assert "| quota |" in text and "LlmQuotaExceeded" in text and "HTTP 429 code 4006" in text
     assert report.refused is True and f"model {BIG_MODEL}" not in text
+
+
+def _row(text: str, item: str) -> str:
+    return next(line for line in text.splitlines() if line.startswith(f"| {item} |"))
+
+
+def test_the_violation_row_reports_a_usable_answer_as_usable_and_an_unparsable_one_as_a_finding() -> None:
+    """probe · a short call whose answer parses is usable; a cut-off one is a finding, never both words at once."""
+    usable = _row(_text(_probe(_handler(violation=success(ANSWER, USAGE)), [MODEL])), "violation")
+    cut_off = _row(_text(_probe(_handler(violation=success('{"page_kind": "fo', USAGE)), [MODEL])), "violation")
+
+    assert "usable answer" in usable and "not valid JSON" not in usable and "finding" not in usable
+    assert "finding" in cut_off and "not valid JSON" in cut_off and "usable answer" not in cut_off
+
+
+def test_the_cost_row_uses_the_usage_the_client_returned_even_when_the_answer_is_unusable() -> None:
+    """probe · a truncated answer still carries usage: tokens and the reported neurons show, not 'no usage block'."""
+    truncated = success('{"page_kind": "fo', {**USAGE, "neurons": 58.9})
+
+    row = _row(_text(_probe(_handler(run=truncated), [BIG_MODEL])), "cost")
+
+    assert "tokens_in=1000 tokens_out=200" in row and "reported_neurons=58.90" in row
+    assert "no usage block" not in row
+
+
+def test_the_cost_row_still_says_when_no_usage_came_back() -> None:
+    """probe · without any usage block the row says so and reports no neurons."""
+    row = _row(_text(_probe(_handler(run=success(ANSWER)), [BIG_MODEL])), "cost")
+
+    assert "no usage block" in row and "reported_neurons" not in row

@@ -52,3 +52,25 @@ def test_the_table_lists_the_six_documented_models() -> None:
     assert len(models) == 6
     assert LLAMA_8B in models and LLAMA_70B in models
     assert "@cf/openai/gpt-oss-20b" in models
+
+
+RECORDED_PAGE_CHARS = 3694
+RECORDED_PROMPT_TOKENS = 1597
+RECORDED_COMPLETION_TOKENS = 574
+RECORDED_NEURONS = 160.1
+
+
+def test_the_estimated_input_tokens_of_the_recorded_probe_page_are_within_15_percent_of_the_reported_ones() -> None:
+    """estimate · 3,694 characters plus the overhead against the 1,597 prompt tokens the API reported (probe 2026-10-28)."""
+    estimated = RECORDED_PAGE_CHARS / 3 + PROMPT_OVERHEAD_TOKENS
+
+    assert estimated == pytest.approx(RECORDED_PROMPT_TOKENS, rel=0.15)
+    assert PROMPT_OVERHEAD_TOKENS < 600
+
+
+def test_the_estimate_for_the_recorded_probe_page_is_within_15_percent_of_the_160_neurons_the_api_reported() -> None:
+    """estimate · with the completion that call produced, the formula lands on the reported neurons; a cap only adds."""
+    estimated = estimate(LLAMA_70B, RECORDED_PAGE_CHARS, RECORDED_COMPLETION_TOKENS)
+
+    assert estimated == pytest.approx(RECORDED_NEURONS, rel=0.15)
+    assert estimate(LLAMA_70B, RECORDED_PAGE_CHARS, 1500) > estimated

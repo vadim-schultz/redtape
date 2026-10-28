@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 import httpx
 from discovery_ingest.browser.throttle import Throttle
@@ -23,7 +23,7 @@ def settings(**overrides: object) -> LlmSettings:
     return LlmSettings.model_validate(fields)
 
 
-def success(response: object, usage: dict[str, int] | None = None) -> httpx.Response:
+def success(response: object, usage: Mapping[str, float] | None = None) -> httpx.Response:
     """A native ``/ai/run`` answer: ``result.response`` and, when given, ``result.usage``."""
     result: dict[str, object] = {"response": response}
     if usage is not None:
