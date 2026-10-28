@@ -5,6 +5,8 @@ from __future__ import annotations
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from discovery_ingest.extract.clean import DEFAULT_MAX_CHARS
+
 
 class LlmSettings(BaseSettings):
     """Cloudflare Workers AI credentials and call limits, read from the process environment only.
@@ -18,7 +20,7 @@ class LlmSettings(BaseSettings):
     cloudflare_ai_api_token: SecretStr | None = Field(default=None, validation_alias="CLOUDFLARE_AI_API_TOKEN")
     llm_model: str | None = Field(default=None, validation_alias="LLM_MODEL")
     llm_max_tokens: int = Field(default=1500, gt=0, validation_alias="LLM_MAX_TOKENS")
-    llm_input_chars: int = Field(default=12000, gt=0, validation_alias="LLM_INPUT_CHARS")
+    llm_input_chars: int = Field(default=DEFAULT_MAX_CHARS, gt=0, validation_alias="LLM_INPUT_CHARS")
     llm_request_timeout_seconds: float = Field(default=60.0, gt=0, validation_alias="LLM_REQUEST_TIMEOUT_SECONDS")
 
     def ai_credentials(self) -> tuple[str, str]:
