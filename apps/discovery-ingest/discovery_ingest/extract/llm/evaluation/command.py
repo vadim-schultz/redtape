@@ -44,9 +44,9 @@ class EvalRuntime:
     taxonomy: Taxonomy
 
 
-def _fail(message: str) -> int:
+def _fail(message: str, code: int = EXIT_USAGE) -> int:
     print(message, file=sys.stderr)
-    return EXIT_USAGE
+    return code
 
 
 def _runtime(settings: IngestSettings, model: str) -> EvalRuntime:
@@ -74,7 +74,7 @@ class EvalCommand:
         if isinstance(pages, str):
             return _fail(pages)
         if isinstance(meter, str):
-            return _fail(meter)
+            return _fail(meter, EXIT_STOPPED)
         return self._evaluate(pages, meter)
 
     def _pages(self) -> list[GoldPage] | str:
@@ -90,12 +90,19 @@ class EvalCommand:
         meter = open_neuron_meter(self._args.neuron_budget, self._runtime.guard)
         if meter is None:
             return "no neurons are left today according to the ledger; nothing was sent"
+        if meter.ledger_unavailable:
+            return "the budget ledger is unreachable; eval will not spend neurons without it"
         return meter
 
     def _setup(self) -> EvalSetup:
         settings, args = self._settings, self._args
         return EvalSetup(
-            args.model, args.prompt_version, self._runtime.taxonomy, settings.llm_max_tokens, settings.llm_input_chars
+            args.model,
+            args.prompt_version,
+            self._runtime.taxonomy,
+            settings.llm_max_tokens,
+            settings.llm_input_chars,
+            args.neuron_budget,
         )
 
     def _evaluate(self, pages: list[GoldPage], meter: NeuronMeter) -> int:

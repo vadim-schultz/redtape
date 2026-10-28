@@ -8,9 +8,9 @@ from pydantic import ValidationError
 
 from discovery_ingest.extract.clean import CleanPage, clean_page
 from discovery_ingest.extract.llm.client import LlmClient, LlmResult
-from discovery_ingest.extract.llm.errors import LlmInvalidOutput, LlmRequestError
+from discovery_ingest.extract.llm.errors import LlmAuthError, LlmError, LlmInvalidOutput, LlmQuotaExceeded
 from discovery_ingest.extract.llm.evaluation.gold import GoldPage
-from discovery_ingest.extract.llm.evaluation.page import Failure, PageContext, Reply, StopRun
+from discovery_ingest.extract.llm.evaluation.page import Failure, PageContext, Reply, StopRun, refusal_stop
 from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult, Usage
 from discovery_ingest.extract.llm.evaluation.scoring import nothing_found, score_page
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
@@ -19,6 +19,9 @@ from discovery_ingest.extract.llm.meter import NeuronMeter, Reservation
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.extract.llm.prompt import build_messages
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
+
+_STOP_REASONS: dict[type[LlmError], str] = {LlmQuotaExceeded: "llm_quota", LlmAuthError: "llm_auth"}
+"""Errors that end the run, not the page: the day is spent or the token is refused."""
 
 
 def _parse(result: LlmResult) -> PageExtraction | Failure:
@@ -71,18 +74,25 @@ class EvalRunner:
             result = self._client.extract(
                 build_messages(cleaned, self._setup.taxonomy), self._schema, max_tokens=self._setup.max_tokens
             )
-        except LlmInvalidOutput as err:
-            return Failure("invalid_output", str(err))
-        except LlmRequestError as err:
-            return Failure("request_error", str(err))
+        except LlmError as err:
+            return self._on_error(err)
         self._meter.settle(reservation, result)
         return Reply(result, self._usage(result, reservation))
+
+    def _on_error(self, err: LlmError) -> Failure:
+        """Stop the run for a quota or token error (telling the ledger about a spent day); fail the page otherwise."""
+        if isinstance(err, LlmQuotaExceeded):
+            self._meter.exhaust()
+        reason = _STOP_REASONS.get(type(err))
+        if reason:
+            raise StopRun(reason, str(err)) from err
+        return Failure("invalid_output" if isinstance(err, LlmInvalidOutput) else "request_error", str(err))
 
     def _reserve(self, input_chars: int) -> Reservation:
         answer = self._meter.reserve(self._setup.model, input_chars, self._setup.max_tokens)
         if isinstance(answer, Reservation):
             return answer
-        raise StopRun("stopped", "the run stopped before the last page")
+        raise refusal_stop(answer, self._setup.neuron_budget, self._meter.used_neurons)
 
     def _usage(self, result: LlmResult, reservation: Reservation) -> Usage:
         if result.input_tokens is None or result.output_tokens is None:

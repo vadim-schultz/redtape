@@ -9,10 +9,11 @@ from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
 @dataclass(frozen=True, slots=True)
 class EvalSetup:
-    """The model and prompt under test, the tag vocabulary and the per-call limits."""
+    """The model and prompt under test, the tag vocabulary, the per-call limits and the run's neuron budget."""
 
     model: str
     prompt_version: str
     taxonomy: Taxonomy
     max_tokens: int
     max_chars: int
+    neuron_budget: float
