@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/plans-web-gui-harmonization`  
 **Release branch:** `main`  
-**Release PR:** _(filled when the suite is complete)_
+**Release PR:** [#252](https://github.com/vadim-schultz/redtape/pull/252) — open, **not merged** (awaiting human manual smoke)
 
 Chapter PRs merge into the loop branch only. The chapter implementer does not edit this file.
 
@@ -24,5 +24,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [x] Narrow and full local CI gates are green (no remote CI: Actions minutes exhausted; full `ci.sh` re-run on loop branch `01913ba` against a scratch DB — the long-lived local `redtape` DB has a stale schema).
 - [ ] Manual smoke checklist is complete in light/dark and narrow layouts. **Pending a human** — no browser was available to any agent; checklist is in `docs/operations/admin-tables.md`.
 - [x] Existing visual-theme and menu-suite ownership links remain accurate (menu-suite chevron fix `ec4154f` already in history).
-- [ ] Release PR is opened from the loop branch to `main`.
+- [x] Release PR is opened from the loop branch to `main` (#252).
+
+**Last orchestration:** 2026-10-29 — stopped before release merge: all 8 chapters merged and local gate green; manual browser smoke pending a human.
 
