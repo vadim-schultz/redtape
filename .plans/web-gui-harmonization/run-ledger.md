@@ -9,7 +9,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | Chapter | Branch | PR | Local CI | Remote CI | Merged | Blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Visual foundation | `feat/web-gui-harmonization-visual-foundation` | [#244](https://github.com/vadim-schultz/redtape/pull/244) | pass (`ci.sh` on fresh DB) | n/a (no Actions minutes) | merged 2026-10-29 | none |
-| 2. DataTable kernel |  |  |  |  |  |  |
+| 2. DataTable kernel | `feat/web-gui-harmonization-data-table` | [#245](https://github.com/vadim-schultz/redtape/pull/245) | pass (`ci.sh` on fresh DB) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 3. List contract |  |  |  |  |  |  |
 | 4. Admin tables |  |  |  |  |  |  |
 | 5. Coverage tables |  |  |  |  |  |  |
