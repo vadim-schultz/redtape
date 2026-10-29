@@ -83,6 +83,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 7a. [chapters/16-documents-not-data-fields.md](chapters/16-documents-not-data-fields.md) (E16, added 2026-10-29, owner approved; executes after E7)
 7b. [chapters/17-price-rows-for-candidate-models.md](chapters/17-price-rows-for-candidate-models.md) (E17, added 2026-10-29; executes after E16; then the chief of staff runs the model comparison for X16)
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
+8a. [chapters/18-non-documents-and-tag-restraint.md](chapters/18-non-documents-and-tag-restraint.md) (E18, added 2026-10-29 from the ext-4 eval; executes after E8)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
 
 ## Chapters
@@ -106,6 +107,7 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 | E15 | Quote shape: one line per quote, drop screen-reader text (executes after E14) | worker | paired tests + CI | [15](chapters/15-quote-shape.md) | planned |
 | E16 | Documents, not data fields: prompt rule `ext-4` (executes after E7) | worker | paired tests + CI | [16](chapters/16-documents-not-data-fields.md) | planned |
 | E17 | Price rows for Mistral Small 3.1 and Llama 4 Scout (executes after E16) | worker | paired tests + CI | [17](chapters/17-price-rows-for-candidate-models.md) | planned |
+| E18 | Non-documents and tag restraint: prompt `ext-5` and guards (executes after E8) | worker | paired tests + CI | [18](chapters/18-non-documents-and-tag-restraint.md) | planned |
 
 ## Per-chapter gate
 
