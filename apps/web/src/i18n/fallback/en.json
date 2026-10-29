@@ -14,7 +14,14 @@
     "slow_server_body": "This can take up to a minute after a period of inactivity.",
     "toggle_color_mode": "Toggle color mode",
     "language": "Language",
-    "menu": "Menu"
+    "menu": "Menu",
+    "pagination": {
+      "label": "Pagination",
+      "range": "{from}–{to} of {total}",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {page}"
+    }
   },
   "nav": {
     "home": "Home",
