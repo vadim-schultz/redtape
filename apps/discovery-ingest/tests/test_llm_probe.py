@@ -168,8 +168,9 @@ def test_the_cli_runs_with_only_the_two_cloudflare_variables(
 def test_the_cli_refuses_a_missing_fixture_or_no_model(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
-    """probe · a fixture path that does not exist exits 2 before any call; so does a run without --model."""
+    """probe · a fixture path that does not exist exits 2 before any call; so does a run without --model and with an empty LLM_MODEL."""
     monkeypatch.setattr("discovery_ingest.extract.llm.probe_cli.httpx.Client", lambda **_kw: pytest.fail("called"))
+    monkeypatch.setenv("LLM_MODEL", "")
 
     assert main(["llm", "probe", "--model", MODEL, "--fixture", str(tmp_path / "nope.html")]) == 2
     assert main(["llm", "probe", "--fixture", str(FIXTURE)]) == 2

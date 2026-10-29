@@ -6,8 +6,8 @@ import json
 
 import pytest
 from discovery_ingest.config import load_ingest_settings
-from discovery_ingest.extract.llm.schema import MAX_DEPENDENCIES, MAX_DOCUMENTS, PageExtraction
 from discovery_ingest.extract.llm.prices import known_models
+from discovery_ingest.extract.llm.schema import MAX_DEPENDENCIES, MAX_DOCUMENTS, PageExtraction
 from discovery_ingest.llm_settings import DEFAULT_LLM_MODEL, load_llm_settings
 from discovery_ingest.worker.llm_runtime import LlmResources
 

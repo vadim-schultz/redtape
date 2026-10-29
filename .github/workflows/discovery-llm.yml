@@ -8,8 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       llm_model:
-        description: "Workers AI model id to extract with (required: the model decision is not made yet)"
-        required: true
+        description: "Workers AI model id to extract with (the default is the provisional choice for decision X16)"
+        required: false
+        default: "@cf/qwen/qwen3-30b-a3b-fp8"
         type: string
       max_tasks:
         description: "Maximum tasks per claim request (small: a limit releases every task of the batch)"

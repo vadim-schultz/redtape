@@ -7,6 +7,7 @@ import logging
 
 import httpx
 import pytest
+from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.errors import (
     LlmAuthError,
     LlmError,
@@ -15,7 +16,7 @@ from discovery_ingest.extract.llm.errors import (
     LlmRequestError,
 )
 
-from llm_transport import ACCOUNT_ID, MESSAGES, MODEL, SCHEMA, TOKEN, client, failure, success
+from llm_transport import ACCOUNT_ID, MESSAGES, MODEL, SCHEMA, TOKEN, client, failure, settings, success
 
 USAGE = {"prompt_tokens": 1200, "completion_tokens": 340, "total_tokens": 1540}
 
@@ -196,7 +197,7 @@ def test_the_token_never_appears_in_an_exception_message_or_log_line(caplog: pyt
 
 
 def test_calls_are_spaced_by_the_throttle_and_a_model_is_required() -> None:
-    """extract · every call enters the throttle; a client without a model refuses to start."""
+    """extract · every call enters the throttle; a client with an empty LLM_MODEL and no model refuses to start."""
     sleeps: list[float] = []
     subject = client(lambda _request: success({"a": 1}), sleeps=sleeps)
 
@@ -205,4 +206,4 @@ def test_calls_are_spaced_by_the_throttle_and_a_model_is_required() -> None:
 
     assert sleeps == [1.0]
     with pytest.raises(ValueError, match="model"):
-        client(lambda _request: success({}), model=None)
+        CloudflareAiClient(settings(LLM_MODEL=""), model=None)
