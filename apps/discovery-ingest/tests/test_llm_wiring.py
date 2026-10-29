@@ -121,7 +121,7 @@ def test_the_switch_needs_a_model_and_a_render_drain_refuses_to_start_without_on
     api = FakeApi([[task_json(uuid.uuid4(), URL)]])
     api.client(monkeypatch)
     monkeypatch.setenv("LLM_ENQUEUE", "true")
-    monkeypatch.delenv("LLM_MODEL")
+    monkeypatch.setenv("LLM_MODEL", "")
 
     assert main(RENDER) == 2
 
@@ -134,7 +134,7 @@ def test_the_switch_defaults_to_off_and_matters_only_to_render_drains(monkeypatc
     """worker drain · no model is needed for a render drain with the switch off, or for a drain without render_page."""
     api = FakeApi([])
     api.client(monkeypatch)
-    monkeypatch.delenv("LLM_MODEL")
+    monkeypatch.setenv("LLM_MODEL", "")
 
     assert main(RENDER) == 0
     monkeypatch.setenv("LLM_ENQUEUE", "true")
