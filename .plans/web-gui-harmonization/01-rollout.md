@@ -66,14 +66,14 @@ flowchart TD
 
 | # | Chapter | Layer | Gate | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [Visual foundation and surface shell](chapters/01-visual-foundation.md) | web | Vitest + `./ci.sh` | planned |
-| 2 | [DataTable and Chakra pagination kernel](chapters/02-data-table-kernel.md) | web | Vitest + `./ci.sh` | planned |
-| 3 | [Stable list contract and adapters](chapters/03-list-contract-and-adapters.md) | API + web | pytest/Vitest + `./ci.sh` | planned |
-| 4 | [Discovery admin table migration](chapters/04-discovery-admin-tables.md) | web | Vitest + `./ci.sh` | planned |
-| 5 | [Coverage and operational metrics tables](chapters/05-coverage-metrics-tables.md) | web | Vitest + `./ci.sh` | planned |
-| 6 | [Filter, search, sort, and pagination completion](chapters/06-table-interactions.md) | API + web | pytest/Vitest + `./ci.sh` | planned |
-| 7 | [Chevron and visual integration](chapters/07-chevron-and-visual-integration.md) | web | Vitest + manual smoke + `./ci.sh` | planned |
-| 8 | [Accessibility and release hardening](chapters/08-accessibility-release-hardening.md) | web + docs | Vitest + manual smoke + `./ci.sh` | planned |
+| 1 | [Visual foundation and surface shell](chapters/01-visual-foundation.md) | web | Vitest + `./ci.sh` | done |
+| 2 | [DataTable and Chakra pagination kernel](chapters/02-data-table-kernel.md) | web | Vitest + `./ci.sh` | done |
+| 3 | [Stable list contract and adapters](chapters/03-list-contract-and-adapters.md) | API + web | pytest/Vitest + `./ci.sh` | done |
+| 4 | [Discovery admin table migration](chapters/04-discovery-admin-tables.md) | web | Vitest + `./ci.sh` | done |
+| 5 | [Coverage and operational metrics tables](chapters/05-coverage-metrics-tables.md) | web | Vitest + `./ci.sh` | done |
+| 6 | [Filter, search, sort, and pagination completion](chapters/06-table-interactions.md) | API + web | pytest/Vitest + `./ci.sh` | done |
+| 7 | [Chevron and visual integration](chapters/07-chevron-and-visual-integration.md) | web | Vitest + manual smoke + `./ci.sh` | done |
+| 8 | [Accessibility and release hardening](chapters/08-accessibility-release-hardening.md) | web + docs | Vitest + manual smoke + `./ci.sh` | done |
 
 ## Per-chapter gate
 
@@ -92,6 +92,9 @@ API chapters also run the narrow pytest path named in the chapter before the ful
 cannot be marked green when only the happy path passes.
 
 ## Manual smoke after chapter 8
+
+The operator-facing checklist, with its status (not yet performed: no browser was available to the
+chapter implementers), is [docs/operations/admin-tables.md](../../docs/operations/admin-tables.md#release-smoke-checks).
 
 - Light and dark mode show a consistent canvas, raised table/section shells, borders, shadows, and
   text hierarchy without excessive decoration.

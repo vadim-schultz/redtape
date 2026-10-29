@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 8 — Accessibility and release hardening
 
-**Repo:** `redtape` (`apps/web`, documentation) · **Branch:** `feat/web-gui-harmonization-release-hardening` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`, documentation) · **Branch:** `feat/web-gui-harmonization-release-hardening` · **Status:** done  
 **Depends on:** [07-chevron-and-visual-integration.md](07-chevron-and-visual-integration.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

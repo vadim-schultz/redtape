@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 6 — Filter, search, sort, and pagination completion
 
-**Repo:** `redtape` (`apps/api`, `apps/web`) · **Branch:** `feat/web-gui-harmonization-table-interactions` · **Status:** planned  
+**Repo:** `redtape` (`apps/api`, `apps/web`) · **Branch:** `feat/web-gui-harmonization-table-interactions` · **Status:** done  
 **Depends on:** [03-list-contract-and-adapters.md](03-list-contract-and-adapters.md), [04-discovery-admin-tables.md](04-discovery-admin-tables.md), [05-coverage-metrics-tables.md](05-coverage-metrics-tables.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

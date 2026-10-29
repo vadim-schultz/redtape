@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 7 — Chevron and visual integration
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-visual-integration` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-visual-integration` · **Status:** done  
 **Depends on:** [05-coverage-metrics-tables.md](05-coverage-metrics-tables.md), [06-table-interactions.md](06-table-interactions.md), and [frontend-ui-menu chapter 1](../../frontend-ui-menu/chapters/01-remove-list-chevron.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

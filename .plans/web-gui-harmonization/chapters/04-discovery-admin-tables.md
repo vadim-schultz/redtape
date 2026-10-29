@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 4 — Discovery admin table migration
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-admin-tables` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-admin-tables` · **Status:** done  
 **Depends on:** [02-data-table-kernel.md](02-data-table-kernel.md), [03-list-contract-and-adapters.md](03-list-contract-and-adapters.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`
