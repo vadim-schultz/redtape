@@ -161,7 +161,11 @@ export type DiscoveryMentionRole = "required" | "form" | "issued";
 
 export type DiscoveryCandidateStatus = "staged" | "emitted";
 
-export type DiscoveryCandidateSort = "mentions_desc" | "title_asc" | "newest";
+/** Public sort keys of the candidate list; the table maps its columns to these. */
+export type CandidateSortKey = "mentions" | "title" | "created_at";
+
+/** Filter keys the candidate list accepts. */
+export type CandidateFilterKey = "status" | "role" | "source" | "min_mentions";
 
 /** A document candidate as the detail route returns it. */
 export type DiscoveryCandidateRecord = {

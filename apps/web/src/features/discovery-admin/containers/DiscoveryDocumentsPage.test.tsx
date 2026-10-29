@@ -82,8 +82,8 @@ it("documents page lists candidates with mention counts", async () => {
 
   renderPage();
 
-  const table = await screen.findByRole("table");
-  const rows = within(table).getAllByRole("row");
+  await screen.findByText("Personalausweis");
+  const rows = within(screen.getByRole("table")).getAllByRole("row");
   expect(rows).toHaveLength(3);
   expect(rows[1]).toHaveTextContent("Personalausweis");
   expect(rows[1]).toHaveTextContent("Germany");
@@ -107,7 +107,8 @@ it("discovery documents render typed columns inside the shared table shell", asy
 
   renderPage();
 
-  const table = await screen.findByRole("table", { name: "Documents" });
+  const table = screen.getByRole("table", { name: "Documents" });
+  await screen.findByText("Personalausweis");
   expect(table.closest("[data-section-card]")).not.toBeNull();
   expect(
     screen
@@ -121,10 +122,9 @@ it("discovery documents render typed columns inside the shared table shell", asy
     "Status",
     "First seen",
   ]);
-  expect(screen.getByRole("columnheader", { name: "Mentions" })).toHaveAttribute(
-    "aria-sort",
-    "descending",
-  );
+  expect(
+    screen.getByRole("columnheader", { name: "Mentions" }),
+  ).toHaveAttribute("aria-sort", "descending");
   expect(screen.queryByLabelText("Sort by")).toBeNull();
 });
 
@@ -140,15 +140,14 @@ it("documents page falls back across locales for the title and omits an unknown 
 
   renderPage();
 
-  const table = await screen.findByRole("table");
-  expect(table).toHaveTextContent("Carte d'identité");
+  expect(await screen.findByText("Carte d'identité")).toBeInTheDocument();
 });
 
 it("documents page sends filters and header sort as canonical query parameters", async () => {
   const urls = stubCandidatesFetch(() => page([candidate()], 1));
 
   const { user } = renderPage();
-  await screen.findByRole("table");
+  await screen.findByText("Personalausweis");
   expect([...urls[0].searchParams.keys()].sort()).toEqual(["limit", "offset"]);
 
   await user.type(screen.getByLabelText("Search titles"), "pass{Enter}");
@@ -180,7 +179,7 @@ it("documents page restores its query from the url and ignores values the contra
   const urls = stubCandidatesFetch(() => page([candidate()], 1));
 
   renderPage("/?sort_by=title&sort_order=desc&filter[role]=bogus&offset=20");
-  await screen.findByRole("table");
+  await screen.findByText("Personalausweis");
 
   const sent = urls[0].searchParams;
   expect(sent.get("sort_by")).toBe("title");
@@ -196,8 +195,7 @@ it("documents page pages through results and returns to the first page on a new 
   );
 
   const { user } = renderPage();
-  await screen.findByRole("table");
-  expect(screen.getByText("1–20 of 45")).toBeInTheDocument();
+  expect(await screen.findByText("1–20 of 45")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
 
   await user.click(screen.getByRole("button", { name: "Next page" }));

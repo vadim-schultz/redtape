@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 
-import { toQueryStatus } from "./queryStatus";
+import { loadingUntilData, toQueryStatus } from "./queryStatus";
 
 function queryOf(overrides: Partial<Parameters<typeof toQueryStatus>[0]> = {}) {
   return {
@@ -57,4 +57,17 @@ it("toQueryStatus · a settled query exposes no error and is idle", () => {
     isError: false,
     error: null,
   });
+});
+
+const SETTLED = toQueryStatus(queryOf());
+
+it("loadingUntilData · a query that has not produced data yet is still loading", () => {
+  expect(loadingUntilData(SETTLED, false).isLoading).toBe(true);
+});
+
+it("loadingUntilData · keeps an error or loaded data as it is", () => {
+  const failed = { ...SETTLED, isError: true };
+
+  expect(loadingUntilData(failed, false).isLoading).toBe(false);
+  expect(loadingUntilData(SETTLED, true).isLoading).toBe(false);
 });

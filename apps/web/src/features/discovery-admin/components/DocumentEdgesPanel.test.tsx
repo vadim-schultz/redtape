@@ -76,9 +76,7 @@ it("catalogue, mentions, and nested admin lists use the shared table contract (e
   expect(
     requiredByTable.getByRole("link", { name: "Führerschein" }),
   ).toHaveAttribute("href", "/admin/discovery/documents/par-1");
-  expect(
-    requiredByTable.queryByText("Geburtsurkunde"),
-  ).not.toBeInTheDocument();
+  expect(requiredByTable.queryByText("Geburtsurkunde")).not.toBeInTheDocument();
 });
 
 it("edges panel shows an empty state and the load error with a retry", () => {

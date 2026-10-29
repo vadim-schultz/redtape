@@ -26,3 +26,17 @@ export function toQueryStatus(query: QueryLike): QueryStatus {
     onRetry: () => void query.refetch(),
   };
 }
+
+/**
+ * A query that is disabled or waiting for its inputs reports no loading, yet has
+ * nothing to show; treat it as loading until it has data or has failed.
+ */
+export function loadingUntilData(
+  status: QueryStatus,
+  hasData: boolean,
+): QueryStatus {
+  return {
+    ...status,
+    isLoading: status.isLoading || !(hasData || status.isError),
+  };
+}

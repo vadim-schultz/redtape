@@ -5,14 +5,14 @@ import {
   type ListQueryState,
 } from "../../../services/listQuery";
 import type {
+  CandidateFilterKey,
+  CandidateSortKey,
   DiscoveryCandidateStatus,
   DiscoveryMentionRole,
   DiscoverySource,
 } from "../types";
 
-/** Public sort keys of the candidate list; the table maps its columns to these. */
-export type CandidateSortKey = "mentions" | "title" | "created_at";
-export type CandidateFilterKey = "status" | "role" | "source" | "min_mentions";
+export type { CandidateFilterKey, CandidateSortKey };
 export type CandidateListQuery = ListQueryState<
   CandidateSortKey,
   CandidateFilterKey

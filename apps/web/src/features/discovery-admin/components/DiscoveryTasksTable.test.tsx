@@ -56,12 +56,12 @@ function rowOf(url: string): HTMLElement {
 
 it("DiscoveryTasksTable · shows kind, attempts and a retry-after cell for a delayed task", () => {
   renderTable([
-        task({
-          target_url: "https://example.gov/delayed",
-          attempt_count: 2,
-          not_before: inHours(3.5),
-        }),
-      ]);
+    task({
+      target_url: "https://example.gov/delayed",
+      attempt_count: 2,
+      not_before: inHours(3.5),
+    }),
+  ]);
 
   const cells = within(rowOf("https://example.gov/delayed")).getAllByRole(
     "cell",
@@ -74,14 +74,14 @@ it("DiscoveryTasksTable · shows kind, attempts and a retry-after cell for a del
 
 it("DiscoveryTasksTable · leaves the retry-after cell empty unless not_before is in the future", () => {
   renderTable([
-        task({ id: "a", target_url: "https://example.gov/fresh" }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/due",
-          attempt_count: 1,
-          not_before: inHours(-2),
-        }),
-      ]);
+    task({ id: "a", target_url: "https://example.gov/fresh" }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/due",
+      attempt_count: 1,
+      not_before: inHours(-2),
+    }),
+  ]);
 
   for (const url of ["https://example.gov/fresh", "https://example.gov/due"]) {
     const texts = within(rowOf(url))
@@ -98,20 +98,20 @@ function statusCellOf(url: string): HTMLElement {
 
 it("tasks table shows the render_page kind and a result_note chip, and falls back to the raw value for an unknown note", () => {
   renderTable([
-        task({
-          id: "a",
-          target_url: "https://example.gov/walled",
-          kind: "render_page",
-          status: "completed",
-          result_note: "login_wall",
-        }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/odd",
-          status: "completed",
-          result_note: "brand_new_note",
-        }),
-      ]);
+    task({
+      id: "a",
+      target_url: "https://example.gov/walled",
+      kind: "render_page",
+      status: "completed",
+      result_note: "login_wall",
+    }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/odd",
+      status: "completed",
+      result_note: "brand_new_note",
+    }),
+  ]);
 
   const walled = within(rowOf("https://example.gov/walled"));
   expect(walled.getByText("render_page")).toBeInTheDocument();
@@ -140,28 +140,28 @@ it("tasks table labels result notes in German", () => {
 
 it("tasks table shows the llm_extract kind and translates its result notes, leaving the counts note raw", () => {
   renderTable([
-        task({
-          id: "a",
-          target_url: "https://example.gov/empty",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "no_content",
-        }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/none",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "no_documents",
-        }),
-        task({
-          id: "c",
-          target_url: "https://example.gov/done",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "docs=7 edges=5 dropped=2",
-        }),
-      ]);
+    task({
+      id: "a",
+      target_url: "https://example.gov/empty",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "no_content",
+    }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/none",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "no_documents",
+    }),
+    task({
+      id: "c",
+      target_url: "https://example.gov/done",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "docs=7 edges=5 dropped=2",
+    }),
+  ]);
 
   expect(
     within(statusCellOf("https://example.gov/empty")).getByText("No content"),

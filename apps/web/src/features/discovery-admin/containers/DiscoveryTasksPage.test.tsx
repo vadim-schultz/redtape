@@ -73,8 +73,10 @@ it("DiscoveryTasksPage · renders rows from mocked admin tasks API", async () =>
     authGateway: createFakeAuthGateway({ session }),
   });
 
-  const table = await screen.findByRole("table");
-  expect(table).toHaveTextContent("https://example.gov/service");
+  const table = screen.getByRole("table");
+  expect(
+    await within(table).findByText("https://example.gov/service"),
+  ).toBeVisible();
   expect(table).toHaveTextContent("pending");
   expect(table).toHaveTextContent("govdata");
 });
@@ -193,8 +195,8 @@ it("DiscoveryTasksPage · tolerates an unknown future kind label", async () => {
     authGateway: createFakeAuthGateway({ session }),
   });
 
-  const table = await screen.findByRole("table");
-  expect(within(table).getByText("render_pdf_v2")).toBeInTheDocument();
+  const table = screen.getByRole("table");
+  expect(await within(table).findByText("render_pdf_v2")).toBeInTheDocument();
 });
 
 function taskItem(id: string) {

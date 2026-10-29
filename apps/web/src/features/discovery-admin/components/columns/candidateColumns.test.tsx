@@ -32,7 +32,11 @@ const row: DiscoveryCandidate = {
 };
 
 type Query = NonNullable<
-  DataTableProps<DiscoveryCandidate, CandidateSortKey, CandidateFilterKey>["query"]
+  DataTableProps<
+    DiscoveryCandidate,
+    CandidateSortKey,
+    CandidateFilterKey
+  >["query"]
 >;
 
 function Table({ query }: { query: Query }) {
@@ -48,9 +52,7 @@ function Table({ query }: { query: Query }) {
 
 it("candidate columns sort only by the keys the candidate contract declares", async () => {
   const onSortChange = vi.fn();
-  const { user } = renderWithProviders(
-    <Table query={{ onSortChange }} />,
-  );
+  const { user } = renderWithProviders(<Table query={{ onSortChange }} />);
 
   await user.click(screen.getByRole("button", { name: "Mentions" }));
   await user.click(screen.getByRole("button", { name: "Title" }));
