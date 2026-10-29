@@ -5,6 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
+from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.models.discovery import (
     CatalogueService,
     DiscoveryArtifact,
@@ -311,6 +313,122 @@ def test_candidate_list_rejects_an_unknown_sort_or_role(client: TestClient[Lites
     bad_minimum = client.get(CANDIDATES_URL, params={"min_mentions": -1}, headers=_auth())
 
     assert [r.status_code for r in (bad_sort, bad_role, bad_source, bad_minimum)] == [422, 422, 422, 422]
+
+
+def _params_keys(client: TestClient[Litestar], params: dict[str, object]) -> list[str]:
+    return _keys(client, **params)
+
+
+def test_candidate_list_query_accepts_an_allowlisted_sort_and_filter(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    govdata = _catalogue(db_session)
+    pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="svc-2")
+    for key, title in (("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")):
+        _mention(db_session, _candidate(db_session, govdata, key=key, title_i18n={"de": title}), pvog, key)
+    _mention(db_session, _candidate(db_session, govdata, key="d", title_i18n={"de": "Delta"}), govdata, "d")
+    params = {"sort_by": "title", "sort_order": "desc", "filter[source]": "pvog", "limit": 2}
+
+    body = client.get(CANDIDATES_URL, params=params, headers=_auth()).json()
+
+    assert [item["key"] for item in body["items"]] == ["c", "b"]
+    assert (body["total"], body["offset"], body["limit"]) == (3, 0, 2)
+
+
+def test_candidate_list_query_filters_by_status_role_and_min_mentions(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    form = _candidate(db_session, catalogue, key="form-doc")
+    done = _candidate(db_session, catalogue, key="done", status=DiscoveryCandidateStatus.EMITTED)
+    _mention(db_session, form, catalogue, "a", DiscoveryMentionRole.FORM)
+    _mention(db_session, done, catalogue, "b")
+
+    assert _params_keys(client, {"filter[status]": "emitted"}) == ["done"]
+    assert _params_keys(client, {"filter[role]": "form", "filter[min_mentions]": 1}) == ["form-doc"]
+    assert _params_keys(client, {"filter[min_mentions]": 2}) == []
+
+
+def test_candidate_list_query_beats_the_legacy_parameters_it_replaces(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="svc-2")
+    _mention(db_session, _candidate(db_session, catalogue, key="gov", title_i18n={"de": "A"}), catalogue, "a")
+    _mention(db_session, _candidate(db_session, catalogue, key="pv", title_i18n={"de": "B"}), pvog, "b")
+
+    canonical = {"filter[source]": "pvog", "source": "govdata", "sort_by": "title", "sort_order": "desc", "sort": "newest"}
+
+    assert _params_keys(client, canonical) == ["pv"]
+    assert _params_keys(client, {"sort_by": "title", "sort_order": "desc"}) == ["pv", "gov"]
+
+
+def test_candidate_list_query_applies_deterministic_secondary_ordering(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    for key in ("delta", "alpha", "charlie", "bravo"):
+        _mention(db_session, _candidate(db_session, catalogue, key=key, title_i18n={"de": "Same"}), catalogue, key)
+    params = {"sort_by": "mentions", "sort_order": "desc", "limit": 2}
+
+    first = _params_keys(client, params)
+    second = _params_keys(client, params)
+    next_page = _params_keys(client, {**params, "offset": 2})
+
+    assert first == second == ["alpha", "bravo"]
+    assert next_page == ["charlie", "delta"]
+    assert _params_keys(client, {"sort_by": "created_at", "sort_order": "asc"}) == ["alpha", "bravo", "charlie", "delta"]
+
+
+def test_candidate_list_query_orders_by_the_requested_direction_then_the_stable_key(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    for key in ("delta", "alpha", "charlie", "bravo"):
+        candidate = _candidate(db_session, catalogue, key=key, title_i18n={"de": "Same"})
+        _mention(db_session, candidate, catalogue, key)
+    _mention(db_session, db_session.query(DiscoveryDocumentCandidate).filter_by(key="alpha").one(), catalogue, "extra")
+
+    ascending = _params_keys(client, {"sort_by": "mentions", "sort_order": "asc"})
+    descending = _params_keys(client, {"sort_by": "mentions", "sort_order": "desc"})
+
+    assert ascending == ["bravo", "charlie", "delta", "alpha"]
+    assert descending == ["alpha", "bravo", "charlie", "delta"]
+
+
+def test_candidate_list_query_rejects_an_unknown_sort_field_without_querying(
+    client: TestClient[Litestar], db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    queried: list[str] = []
+    monkeypatch.setattr(CandidateListingRepository, "count_candidates", lambda *_: queried.append("count") or 0)
+    monkeypatch.setattr(CandidateListingRepository, "list_candidates_page", lambda *_: queried.append("page") or [])
+
+    response = client.get(CANDIDATES_URL, params={"sort_by": "secret_column"}, headers=_auth())
+
+    assert response.status_code == 422
+    assert [(e["key"], e["source"]) for e in response.json()["extra"]] == [("sort_by", "query")]
+    assert queried == []
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("filter[role]", "optional"),
+        ("filter[min_mentions]", "-1"),
+        ("filter[min_mentions]", "many"),
+        ("filter[status]", "gone"),
+        ("filter[unknown]", "x"),
+    ],
+)
+def test_candidate_list_query_rejects_an_invalid_filter_value(
+    client: TestClient[Litestar], db_session: Session, key: str, value: str
+) -> None:
+    _candidate(db_session, _catalogue(db_session), key="personalausweis")
+
+    response = client.get(CANDIDATES_URL, params={key: value}, headers=_auth())
+
+    assert response.status_code == 422
+    assert [e["key"] for e in response.json()["extra"]] == [key]
 
 
 def test_admin_candidate_detail_includes_an_artifact_summary_on_mentions_that_have_one(
