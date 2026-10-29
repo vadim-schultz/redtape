@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../test/renderWithProviders";
@@ -44,6 +44,7 @@ const coverageResponse = {
   task_counts: { total: 3, pending: 2, claimed: 0, completed: 0, failed: 1 },
   task_counts_by_kind: {},
   candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+  llm_outcomes: { extracted: 0, no_documents: 0, login_wall: 0, no_content: 0 },
   artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
   fetch_attempts_total: 0,
   stale_claims: 0,
@@ -97,7 +98,7 @@ function renderCataloguePage() {
   });
 }
 
-it("DiscoveryCataloguePage · renders coverage chips and catalogue rows after both requests succeed", async () => {
+it("DiscoveryCataloguePage · renders coverage tables and catalogue rows after both requests succeed", async () => {
   stubDiscoveryFetch({
     catalogue: new Response(JSON.stringify(catalogueResponse)),
     coverage: new Response(JSON.stringify(coverageResponse)),
@@ -105,10 +106,21 @@ it("DiscoveryCataloguePage · renders coverage chips and catalogue rows after bo
 
   renderCataloguePage();
 
-  expect(await screen.findByRole("table")).toHaveTextContent("service-1");
-  expect(screen.getByText("govdata: 3")).toBeInTheDocument();
-  expect(screen.getByText("Pending tasks: 2")).toBeInTheDocument();
-  expect(screen.getByText("Emit-ready: 3")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("table", { name: "Catalogue services" }),
+  ).toHaveTextContent("service-1");
+  const queue = screen.getByRole("table", { name: "Task queue" });
+  expect(
+    within(queue).getByRole("row", { name: "Pending tasks 2" }),
+  ).toBeVisible();
+  expect(
+    within(queue).getByRole("row", { name: "Emit-ready 3" }),
+  ).toBeVisible();
+  expect(
+    within(
+      screen.getByRole("table", { name: "Catalogue rows by source" }),
+    ).getByRole("row", { name: "govdata 3" }),
+  ).toBeVisible();
 });
 
 it("DiscoveryCataloguePage · keeps catalogue rows visible when coverage fails", async () => {
@@ -119,7 +131,9 @@ it("DiscoveryCataloguePage · keeps catalogue rows visible when coverage fails",
 
   const { user } = renderCataloguePage();
 
-  expect(await screen.findByRole("table")).toHaveTextContent("service-1");
+  expect(
+    await screen.findByRole("table", { name: "Catalogue services" }),
+  ).toHaveTextContent("service-1");
   const retryButton = await screen.findByRole("button", { name: "Try again" });
   expect(retryButton).toBeInTheDocument();
 
@@ -158,7 +172,7 @@ it("DiscoveryCataloguePage · shows a retryable state when catalogue loading fai
     ).toBeInTheDocument(),
   );
   expect(screen.queryByText("service-1")).not.toBeInTheDocument();
-  expect(screen.getByText("govdata: 3")).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
   expect(
     fetchMock.mock.calls.some(([input]) =>
       String(input).includes("/api/v1/discovery/admin/catalogue"),
@@ -179,7 +193,7 @@ it("DiscoveryCataloguePage · shows a deliberate empty state for zero catalogue 
   expect(
     await screen.findByText("No catalogue services yet."),
   ).toBeInTheDocument();
-  expect(screen.getByText("govdata: 3")).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
 });
 
 it("DiscoveryCataloguePage · keeps its existing rows inside the section shell", async () => {
@@ -190,7 +204,9 @@ it("DiscoveryCataloguePage · keeps its existing rows inside the section shell",
 
   renderCataloguePage();
 
-  const table = await screen.findByRole("table");
+  const table = await screen.findByRole("table", {
+    name: "Catalogue services",
+  });
   const shell = table.closest("[data-section-card]");
 
   expect(shell).not.toBeNull();
@@ -211,5 +227,7 @@ it("DiscoveryCataloguePage · a failed catalogue query shows no shell around the
   const retry = await screen.findByRole("button", { name: "Try again" });
 
   expect(retry.closest("[data-section-card]")).toBeNull();
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("table", { name: "Catalogue services" }),
+  ).not.toBeInTheDocument();
 });

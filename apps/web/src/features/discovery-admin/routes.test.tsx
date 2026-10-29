@@ -83,7 +83,9 @@ it("DiscoveryAdminRoutes · renders the coverage page at /admin/discovery/covera
     authGateway: createFakeAuthGateway({ session }),
   });
 
-  expect(await screen.findByText("govdata: 3")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("table", { name: "Task queue" }),
+  ).toBeInTheDocument();
 });
 
 it("DiscoveryAdminRoutes · renders a fallback for an unknown discovery path", async () => {

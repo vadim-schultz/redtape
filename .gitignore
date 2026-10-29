@@ -199,6 +199,7 @@ dist/
 .next/
 out/
 coverage/
+!apps/web/src/**/coverage/
 .nyc_output/
 
 # --- Flutter / Dart (apps/mobile) ---
