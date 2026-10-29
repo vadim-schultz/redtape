@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 2 — DataTable and Chakra pagination kernel
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-data-table` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-data-table` · **Status:** done  
 **Depends on:** [01-visual-foundation.md](01-visual-foundation.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

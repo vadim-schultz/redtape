@@ -1,29 +1,34 @@
-import { Box, VStack } from "@chakra-ui/react";
+import { VStack } from "@chakra-ui/react";
 
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
-import type { DiscoveryTask } from "../types";
-import type { DiscoveryTaskFilters as DiscoveryTaskFiltersState } from "../hooks/useDiscoveryTaskFilters";
-
-import DiscoveryTaskFilters from "./DiscoveryTaskFilters";
-import DiscoveryTasksQueryStatus from "./DiscoveryTasksQueryStatus";
+import { useLocale } from "../../../contexts/LocaleContext";
+import type { TaskList } from "../hooks/useTaskListState";
+import type { DiscoveryTaskListResponse } from "../types";
+import DiscoveryTasksTable from "./DiscoveryTasksTable";
+import ListSearch from "./ListSearch";
 
 export interface DiscoveryTasksViewProps {
-  filters: DiscoveryTaskFiltersState;
-  tasks: DiscoveryTask[] | undefined;
+  list: TaskList;
+  page: DiscoveryTaskListResponse | undefined;
   status: QueryStatus;
 }
 
+/** Target search above the shared tasks table, whose header carries sort and filters. */
 export default function DiscoveryTasksView({
-  filters,
-  tasks,
+  list,
+  page,
   status,
 }: DiscoveryTasksViewProps) {
+  const { t } = useLocale();
+
   return (
     <VStack align="stretch" gap={4}>
-      <DiscoveryTaskFilters filters={filters} />
-      <Box>
-        <DiscoveryTasksQueryStatus status={status} tasks={tasks} />
-      </Box>
+      <ListSearch
+        value={list.state.search}
+        label={t("discovery_admin.tasks.filter_search")}
+        onSearch={list.setSearch}
+      />
+      <DiscoveryTasksTable page={page} status={status} list={list} />
     </VStack>
   );
 }

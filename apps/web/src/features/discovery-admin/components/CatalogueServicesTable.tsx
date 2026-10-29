@@ -1,59 +1,46 @@
-import { Table } from "@chakra-ui/react";
-import { Link } from "react-router-dom";
+import { LuLibrary } from "react-icons/lu";
 
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { CatalogueServiceSummary } from "../types";
+import { toTableQuery } from "../../../hooks/toTableQuery";
+import type { CatalogueList } from "../hooks/useCatalogueListState";
+import type { CatalogueListResponse } from "../types";
+import {
+  catalogueColumns,
+  cataloguePipelineHref,
+} from "./columns/catalogueColumns";
+import DiscoveryDataTable from "./DiscoveryDataTable";
+
+const NAMESPACE = "discovery_admin.catalogue";
+const COPY = { namespace: NAMESPACE, icon: LuLibrary };
 
 export interface CatalogueServicesTableProps {
-  items: CatalogueServiceSummary[];
+  page: CatalogueListResponse | undefined;
+  status: QueryStatus;
+  list: CatalogueList;
 }
 
-/** Catalogue index table with link to pipeline drill-down. */
+/** Catalogue index in the shared table: header sort and source filter, response total, server paging and a link to each pipeline. */
 export default function CatalogueServicesTable({
-  items,
+  page,
+  status,
+  list,
 }: CatalogueServicesTableProps) {
-  const { t } = useLocale();
-
-  if (items.length === 0) {
-    return (
-      <Table.Root size="sm">
-        <Table.Body>
-          <Table.Row>
-            <Table.Cell>{t("discovery_admin.catalogue.empty")}</Table.Cell>
-          </Table.Row>
-        </Table.Body>
-      </Table.Root>
-    );
-  }
+  const locale = useLocale();
 
   return (
-    <Table.Root size="sm">
-      <Table.Header>
-        <Table.Row>
-          <Table.ColumnHeader>
-            {t("discovery_admin.catalogue.col_external_id")}
-          </Table.ColumnHeader>
-          <Table.ColumnHeader>
-            {t("discovery_admin.catalogue.col_source")}
-          </Table.ColumnHeader>
-          <Table.ColumnHeader>
-            {t("discovery_admin.catalogue.col_stage")}
-          </Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {items.map((row) => (
-          <Table.Row key={row.id}>
-            <Table.Cell>
-              <Link to={`/admin/discovery/pipeline/${row.id}`}>
-                {row.external_id}
-              </Link>
-            </Table.Cell>
-            <Table.Cell>{row.source}</Table.Cell>
-            <Table.Cell>{row.pipeline_stage}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+    <DiscoveryDataTable
+      table={{
+        label: locale.t(`${NAMESPACE}.table_label`),
+        columns: catalogueColumns(locale),
+        getKey: (row) => row.id,
+        getHref: cataloguePipelineHref,
+        query: toTableQuery(list),
+      }}
+      page={page}
+      status={status}
+      onOffsetChange={list.setOffset}
+      copy={COPY}
+    />
   );
 }

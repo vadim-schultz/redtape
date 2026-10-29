@@ -91,6 +91,9 @@ authorization boundary; the browser does not contain an email allowlist.
 | `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
 
+Lists and tables share one contract and one set of components, and the release smoke checklist lives in
+[admin-tables.md](admin-tables.md).
+
 The emit preview is a subview of the pipeline page, not a top-level route. Every discovery page has
 visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
 the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the
@@ -291,7 +294,9 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |
 | `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
 | `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
-| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (`q`, `status`, `role`, `source`, `min_mentions`, `sort`), detail and preview |
+| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by`, `sort_order`, `filter[status\|role\|source\|min_mentions]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
+| `GET /admin/tasks` | Crawler queue (canonical `q` over the target URL, `sort_by` `target\|kind\|status\|source\|priority\|attempts` with `sort_order`, `filter[status\|source\|kind]`; legacy `status`, `source`, `kind` still accepted and overridden by the canonical form; ties fall back to the queue order; invalid values answer 422) |
+| `GET /admin/catalogue` | Imported catalogue (canonical `q` over the external id, `sort_by` `external_id\|source\|stage` with `sort_order`, `filter[source]`; legacy `source` still accepted; newest first by default; paged with `offset` and `limit`; `total` and the summary follow the filter) |
 | `GET /admin/candidates/{id}/edges` | Staged edges of a candidate, both directions, with basis, condition and the procedure |
 | `GET /admin/catalogue/{id}/artifacts`, `GET /admin/candidates/{id}/artifacts` | Artifacts with presigned `url` (`null` when storage is unset) |
 | `GET /admin/budgets` | The ledger plus `stored_bytes` and `stored_bytes_cap` |

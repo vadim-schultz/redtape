@@ -1,8 +1,10 @@
 import { screen, within } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
+import { fakeListController } from "../../../test/fakeListController";
 import { renderWithProviders } from "../../../test/renderWithProviders";
-import type { DiscoveryTask } from "../types";
+import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../types";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
 
 const HOUR_MS = 3_600_000;
@@ -27,6 +29,26 @@ function task(overrides: Partial<DiscoveryTask>): DiscoveryTask {
   };
 }
 
+const READY: QueryStatus = {
+  isLoading: false,
+  isRefreshing: false,
+  isError: false,
+  error: null,
+  onRetry: vi.fn(),
+};
+
+const fakeList = () => fakeListController<TaskSortKey, TaskFilterKey>();
+
+function renderTable(tasks: DiscoveryTask[], total = tasks.length) {
+  return renderWithProviders(
+    <DiscoveryTasksTable
+      status={READY}
+      page={{ items: tasks, total, offset: 0, limit: 20 }}
+      list={fakeList()}
+    />,
+  );
+}
+
 function inHours(hours: number): string {
   return new Date(Date.now() + hours * HOUR_MS).toISOString();
 }
@@ -36,17 +58,13 @@ function rowOf(url: string): HTMLElement {
 }
 
 it("DiscoveryTasksTable · shows kind, attempts and a retry-after cell for a delayed task", () => {
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[
-        task({
-          target_url: "https://example.gov/delayed",
-          attempt_count: 2,
-          not_before: inHours(3.5),
-        }),
-      ]}
-    />,
-  );
+  renderTable([
+    task({
+      target_url: "https://example.gov/delayed",
+      attempt_count: 2,
+      not_before: inHours(3.5),
+    }),
+  ]);
 
   const cells = within(rowOf("https://example.gov/delayed")).getAllByRole(
     "cell",
@@ -58,19 +76,15 @@ it("DiscoveryTasksTable · shows kind, attempts and a retry-after cell for a del
 });
 
 it("DiscoveryTasksTable · leaves the retry-after cell empty unless not_before is in the future", () => {
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[
-        task({ id: "a", target_url: "https://example.gov/fresh" }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/due",
-          attempt_count: 1,
-          not_before: inHours(-2),
-        }),
-      ]}
-    />,
-  );
+  renderTable([
+    task({ id: "a", target_url: "https://example.gov/fresh" }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/due",
+      attempt_count: 1,
+      not_before: inHours(-2),
+    }),
+  ]);
 
   for (const url of ["https://example.gov/fresh", "https://example.gov/due"]) {
     const texts = within(rowOf(url))
@@ -86,25 +100,21 @@ function statusCellOf(url: string): HTMLElement {
 }
 
 it("tasks table shows the render_page kind and a result_note chip, and falls back to the raw value for an unknown note", () => {
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[
-        task({
-          id: "a",
-          target_url: "https://example.gov/walled",
-          kind: "render_page",
-          status: "completed",
-          result_note: "login_wall",
-        }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/odd",
-          status: "completed",
-          result_note: "brand_new_note",
-        }),
-      ]}
-    />,
-  );
+  renderTable([
+    task({
+      id: "a",
+      target_url: "https://example.gov/walled",
+      kind: "render_page",
+      status: "completed",
+      result_note: "login_wall",
+    }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/odd",
+      status: "completed",
+      result_note: "brand_new_note",
+    }),
+  ]);
 
   const walled = within(rowOf("https://example.gov/walled"));
   expect(walled.getByText("render_page")).toBeInTheDocument();
@@ -117,11 +127,7 @@ it("tasks table shows the render_page kind and a result_note chip, and falls bac
 });
 
 it("tasks table shows no note chip for a task without a result_note", () => {
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[task({ target_url: "https://example.gov/plain" })]}
-    />,
-  );
+  renderTable([task({ target_url: "https://example.gov/plain" })]);
 
   expect(
     statusCellOf("https://example.gov/plain").querySelector(".chakra-badge"),
@@ -130,43 +136,35 @@ it("tasks table shows no note chip for a task without a result_note", () => {
 
 it("tasks table labels result notes in German", () => {
   window.localStorage.setItem("locale", "de");
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[task({ status: "completed", result_note: "oversize" })]}
-    />,
-  );
+  renderTable([task({ status: "completed", result_note: "oversize" })]);
 
   expect(screen.getByText("Zu groß")).toBeInTheDocument();
 });
 
 it("tasks table shows the llm_extract kind and translates its result notes, leaving the counts note raw", () => {
-  renderWithProviders(
-    <DiscoveryTasksTable
-      tasks={[
-        task({
-          id: "a",
-          target_url: "https://example.gov/empty",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "no_content",
-        }),
-        task({
-          id: "b",
-          target_url: "https://example.gov/none",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "no_documents",
-        }),
-        task({
-          id: "c",
-          target_url: "https://example.gov/done",
-          kind: "llm_extract",
-          status: "completed",
-          result_note: "docs=7 edges=5 dropped=2",
-        }),
-      ]}
-    />,
-  );
+  renderTable([
+    task({
+      id: "a",
+      target_url: "https://example.gov/empty",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "no_content",
+    }),
+    task({
+      id: "b",
+      target_url: "https://example.gov/none",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "no_documents",
+    }),
+    task({
+      id: "c",
+      target_url: "https://example.gov/done",
+      kind: "llm_extract",
+      status: "completed",
+      result_note: "docs=7 edges=5 dropped=2",
+    }),
+  ]);
 
   expect(
     within(statusCellOf("https://example.gov/empty")).getByText("No content"),
@@ -179,4 +177,99 @@ it("tasks table shows the llm_extract kind and translates its result notes, leav
       "docs=7 edges=5 dropped=2",
     ),
   ).toBeInTheDocument();
+});
+
+it("discovery tasks render response rows and total count", async () => {
+  const list = fakeList();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={READY}
+      page={{
+        items: [task({ id: "a" }), task({ id: "b", target_url: "https://b" })],
+        total: 45,
+        offset: 0,
+        limit: 20,
+      }}
+      list={list}
+    />,
+  );
+
+  const table = screen.getByRole("table", { name: "Crawler tasks" });
+  expect(table.closest("[data-section-card]")).not.toBeNull();
+  expect(screen.getByText("45 tasks")).toBeInTheDocument();
+  expect(screen.queryByText("2 tasks")).not.toBeInTheDocument();
+  expect(screen.getByText("1–20 of 45")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Next page" }));
+  expect(list.setOffset).toHaveBeenCalledExactlyOnceWith(20);
+});
+
+it("a failed refetch keeps the previous rows, the total and a retry", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={{ ...READY, isError: true, onRetry }}
+      page={{
+        items: [task({ target_url: "https://previous" })],
+        total: 1,
+        offset: 0,
+        limit: 20,
+      }}
+      list={fakeList()}
+    />,
+  );
+
+  expect(screen.getByText("https://previous")).toBeVisible();
+  expect(screen.getByText("1 task")).toBeVisible();
+  expect(screen.getByRole("alert")).toHaveTextContent("Could not refresh");
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it("a first-load failure shows the retryable error and no rows or count", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={{ ...READY, isError: true, onRetry }}
+      page={undefined}
+      list={fakeList()}
+    />,
+  );
+
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByText(/tasks?$/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it("tasks table shows the empty state without a count or paging", () => {
+  renderTable([]);
+
+  expect(screen.getByText("No tasks in queue")).toBeInTheDocument();
+  expect(screen.queryByText(/tasks?$/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+});
+
+it("tasks table sorts and filters through the list controller", async () => {
+  const list = fakeList();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={READY}
+      page={{ items: [task({})], total: 1, offset: 0, limit: 20 }}
+      list={list}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Attempts" }));
+  expect(list.setSort).toHaveBeenCalledExactlyOnceWith({
+    sortBy: "attempts",
+    sortOrder: "asc",
+  });
+  await user.click(screen.getByRole("button", { name: "Task status" }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Task status" }),
+    "failed",
+  );
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  expect(list.setFilter).toHaveBeenCalledExactlyOnceWith("status", "failed");
 });

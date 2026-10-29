@@ -5,17 +5,18 @@ import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
 import { useCatalogueState } from "./useCatalogueState";
 
+const QUERY = { offset: 0, limit: 20, filters: {} };
+
 const session = { accessToken: "t", userId: "u", email: "a@example.com" };
 const catalogue = { items: [{ id: "c1" }], total: 1, offset: 0, limit: 50 };
 const coverage = { by_source: {}, emit_ready_count: 3 };
 
 function StateProbe() {
-  const state = useCatalogueState();
+  const state = useCatalogueState(QUERY);
   if (state.kind !== "ready") {
     return <p>{`kind:${state.kind}`}</p>;
   }
-  const rows =
-    state.catalogue.state === "ready" ? state.catalogue.data.items : [];
+  const rows = state.catalogue.page?.items ?? [];
   const emit =
     state.coverage.state === "ready"
       ? state.coverage.data.emit_ready_count

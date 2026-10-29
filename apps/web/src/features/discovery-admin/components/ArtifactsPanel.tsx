@@ -1,5 +1,6 @@
-import { Stack, Text } from "@chakra-ui/react";
+import { Text } from "@chakra-ui/react";
 
+import SectionCard from "../../../components/data-display/SectionCard";
 import QueryError from "../../../components/feedback/QueryError";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -55,9 +56,8 @@ export default function ArtifactsPanel(props: ArtifactsPanelProps) {
   const { t } = useLocale();
 
   return (
-    <Stack gap={2} align="stretch">
-      <Text fontWeight="medium">{t("discovery_admin.artifacts.title")}</Text>
+    <SectionCard title={t("discovery_admin.artifacts.title")}>
       <PanelBody {...props} />
-    </Stack>
+    </SectionCard>
   );
 }

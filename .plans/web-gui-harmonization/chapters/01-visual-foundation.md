@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 1 — Visual foundation and surface shell
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-visual-foundation` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-visual-foundation` · **Status:** done  
 **Depends on:** existing `web-frontend` theme chapters · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

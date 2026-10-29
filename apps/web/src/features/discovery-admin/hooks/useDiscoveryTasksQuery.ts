@@ -4,29 +4,19 @@ import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../auth/contexts/AuthContext";
+import type { TaskListQuery } from "../services/taskListQuery";
 import { listDiscoveryTasks } from "../services/discoveryAdminApi";
 import type { DiscoveryTaskListResponse } from "../types";
-import type { DiscoveryTaskFilters } from "./useDiscoveryTaskFilters";
 
-export function useDiscoveryTasksQuery({
-  status,
-  source,
-  kind,
-}: Pick<DiscoveryTaskFilters, "status" | "source" | "kind">) {
+/** One page of the crawler queue for the typed query state. */
+export function useDiscoveryTasksQuery(query: TaskListQuery) {
   const { locale } = useLocale();
   const { session } = useAuth();
   const accessToken = session?.accessToken;
 
   return useApiQuery<DiscoveryTaskListResponse>(
-    queryKeys.discoveryAdmin.tasks(status, source, kind, locale),
-    () =>
-      listDiscoveryTasks({
-        locale,
-        accessToken: accessToken!,
-        status,
-        source: source ?? undefined,
-        kind: kind ?? undefined,
-      }),
+    queryKeys.discoveryAdmin.tasks(query, locale),
+    () => listDiscoveryTasks({ locale, accessToken: accessToken!, query }),
     { enabled: Boolean(accessToken), placeholderData: keepPreviousData },
   );
 }

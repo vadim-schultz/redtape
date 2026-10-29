@@ -1,79 +1,42 @@
-import { Table } from "@chakra-ui/react";
+import { LuListTodo } from "react-icons/lu";
 
+import { toTableQuery } from "../../../hooks/toTableQuery";
+import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import { formatRelativeTime } from "../../suggestions/utils/formatRelativeTime";
-import type { DiscoveryTask } from "../types";
-import { formatRetryAfter } from "../utils/formatRetryAfter";
-import TaskResultNote from "./TaskResultNote";
+import type { TaskList } from "../hooks/useTaskListState";
+import type { DiscoveryTaskListResponse } from "../types";
+import { taskColumns } from "./columns/taskColumns";
+import DiscoveryDataTable from "./DiscoveryDataTable";
 
-const COLUMNS = [
-  "target",
-  "kind",
-  "status",
-  "source",
-  "priority",
-  "attempts",
-  "retry",
-  "lease",
-];
+const NAMESPACE = "discovery_admin.tasks";
+const COPY = { namespace: NAMESPACE, icon: LuListTodo };
 
-function formatLeaseExpiry(
-  leaseExpiresAt: string | null,
-  locale: string,
-  t: (key: string) => string,
-): string {
-  if (!leaseExpiresAt) return t("discovery_admin.tasks.lease_none");
-  return formatRelativeTime(leaseExpiresAt, locale);
+export interface DiscoveryTasksTableProps {
+  page: DiscoveryTaskListResponse | undefined;
+  status: QueryStatus;
+  list: TaskList;
 }
 
-function TaskRow({ task }: { task: DiscoveryTask }) {
-  const { locale, t } = useLocale();
-
-  return (
-    <Table.Row>
-      <Table.Cell>{task.target_url}</Table.Cell>
-      <Table.Cell>{task.kind}</Table.Cell>
-      <Table.Cell>
-        {task.status}
-        {task.result_note ? <TaskResultNote note={task.result_note} /> : null}
-      </Table.Cell>
-      <Table.Cell>{task.source}</Table.Cell>
-      <Table.Cell>{task.priority}</Table.Cell>
-      <Table.Cell>{task.attempt_count}</Table.Cell>
-      <Table.Cell>
-        {formatRetryAfter(task.not_before, locale) ??
-          t("discovery_admin.tasks.retry_none")}
-      </Table.Cell>
-      <Table.Cell>
-        {formatLeaseExpiry(task.lease_expires_at, locale, t)}
-      </Table.Cell>
-    </Table.Row>
-  );
-}
-
+/** Crawler queue rows in the shared table: header sort and filters, response total and server paging. */
 export default function DiscoveryTasksTable({
-  tasks,
-}: {
-  tasks: DiscoveryTask[];
-}) {
-  const { t } = useLocale();
+  page,
+  status,
+  list,
+}: DiscoveryTasksTableProps) {
+  const locale = useLocale();
 
   return (
-    <Table.Root size="sm" variant="line">
-      <Table.Header>
-        <Table.Row>
-          {COLUMNS.map((column) => (
-            <Table.ColumnHeader key={column}>
-              {t(`discovery_admin.tasks.col_${column}`)}
-            </Table.ColumnHeader>
-          ))}
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {tasks.map((task) => (
-          <TaskRow key={task.id} task={task} />
-        ))}
-      </Table.Body>
-    </Table.Root>
+    <DiscoveryDataTable
+      table={{
+        label: locale.t(`${NAMESPACE}.table_label`),
+        columns: taskColumns(locale),
+        getKey: (task) => task.id,
+        query: toTableQuery(list),
+      }}
+      page={page}
+      status={status}
+      onOffsetChange={list.setOffset}
+      copy={COPY}
+    />
   );
 }

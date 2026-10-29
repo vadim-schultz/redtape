@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../test/renderWithProviders";
@@ -94,10 +94,15 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
     await screen.findByText("No successful run recorded yet."),
   ).toBeInTheDocument();
   expect(screen.getByText("No failed tasks.")).toBeInTheDocument();
+  const kinds = screen.getByRole("table", { name: "Tasks by kind" });
   expect(
-    screen.getByText("harvest_payload: 4 pending, 0 claimed, 0 done, 0 failed"),
-  ).toBeInTheDocument();
-  expect(screen.getByText("Candidates: 0")).toBeInTheDocument();
+    within(kinds).getByRole("row", { name: /^harvest_payload/ }),
+  ).toHaveTextContent("harvest_payload44000");
+  expect(
+    within(
+      screen.getByRole("table", { name: "Document candidates" }),
+    ).getByRole("row", { name: "Candidates 0" }),
+  ).toBeVisible();
 });
 
 it("Coverage page · shows unavailable state instead of zero-success language", async () => {
@@ -115,7 +120,7 @@ it("Coverage page · shows unavailable state instead of zero-success language", 
   expect(
     screen.queryByText("No successful run recorded yet."),
   ).not.toBeInTheDocument();
-  expect(screen.queryByText("Total tasks: 0")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table", { name: "Task queue" })).toBeNull();
 });
 
 function emptyCoverage(): Response {
@@ -182,16 +187,23 @@ it("Coverage page · shows the budget meters from the admin budgets route", asyn
   expect(screen.getByText("30 of 400 used, 370 left")).toBeInTheDocument();
 });
 
-it("Coverage page · keeps the coverage chips when only the budgets fail to load", async () => {
+it("coverage keeps metrics visible when budgets fail", async () => {
   stubCoverageFetch(emptyCoverage);
 
   renderWithProviders(<DiscoveryCoveragePage />, {
     authGateway: createFakeAuthGateway({ session }),
   });
 
+  const budgets = await screen.findByRole("region", {
+    name: "Free-tier budgets",
+  });
   expect(
-    await screen.findByText("Could not load the budgets."),
-  ).toBeInTheDocument();
+    within(budgets).getByText("Could not load the budgets."),
+  ).toBeVisible();
+  expect(
+    within(budgets).getByRole("button", { name: "Try again" }),
+  ).toBeVisible();
+  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
   expect(
     screen.getByText("No successful run recorded yet."),
   ).toBeInTheDocument();
@@ -223,8 +235,15 @@ it("Coverage page · shows the llm_extract outcomes and the neuron meter once, n
     authGateway: createFakeAuthGateway({ session }),
   });
 
-  expect(await screen.findByText("Extracted: 4")).toBeInTheDocument();
-  expect(screen.getByText("No content: 2")).toBeInTheDocument();
+  const outcomes = await screen.findByRole("table", {
+    name: "Extraction outcomes",
+  });
+  expect(
+    within(outcomes).getByRole("row", { name: "Extracted 4" }),
+  ).toBeVisible();
+  expect(
+    within(outcomes).getByRole("row", { name: "No content 2" }),
+  ).toBeVisible();
   expect(
     await screen.findByText("2,500 of 9,500 used, 7,000 left"),
   ).toBeInTheDocument();

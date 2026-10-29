@@ -1,14 +1,19 @@
-"""Filter and sort options for the admin candidate listing."""
+"""Filter options and sort choice for the admin candidate listing."""
 
 from __future__ import annotations
 
-import enum
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
 from sqlalchemy import ColumnElement, exists, func, literal, select
 
+from app.features.discovery.repository.candidate_sort import (
+    CandidateSortKey,
+    MentionCount,
+    Ordering,
+    candidate_ordering,
+)
 from app.models.discovery import (
     CatalogueService,
     DiscoveryCandidateMention,
@@ -17,26 +22,11 @@ from app.models.discovery import (
     DiscoveryMentionRole,
     DiscoverySource,
 )
+from app.shared.list_query import SortOrder
 
 Candidate = DiscoveryDocumentCandidate
 Mention = DiscoveryCandidateMention
-MentionCount = ColumnElement[int]
-Ordering = tuple[ColumnElement, ...]
 T = TypeVar("T")
-
-
-class CandidateSort(enum.StrEnum):
-    """Orderings the admin candidate list offers."""
-
-    MENTIONS_DESC = "mentions_desc"
-    TITLE_ASC = "title_asc"
-    NEWEST = "newest"
-
-
-def _title() -> ColumnElement[str]:
-    """Return the lower-cased German, else English, else key title used for ordering."""
-    german, english = Candidate.title_i18n["de"].as_string(), Candidate.title_i18n["en"].as_string()
-    return func.lower(func.coalesce(german, english, Candidate.key))
 
 
 def _title_matches(text: str) -> ColumnElement[bool]:
@@ -63,13 +53,6 @@ def _when(value: T | None, build: Callable[[T], ColumnElement[bool]]) -> list[Co
     return [] if value is None else [build(value)]
 
 
-_ORDERINGS: Mapping[CandidateSort, Callable[[MentionCount], Ordering]] = {
-    CandidateSort.MENTIONS_DESC: lambda count: (count.desc(), _title().asc(), Candidate.key.asc()),
-    CandidateSort.TITLE_ASC: lambda _count: (_title().asc(), Candidate.key.asc()),
-    CandidateSort.NEWEST: lambda _count: (Candidate.created_at.desc(), Candidate.key.asc()),
-}
-
-
 @dataclass(frozen=True, slots=True)
 class CandidateFilter:
     """Optional narrowing and ordering of one candidate listing."""
@@ -79,7 +62,8 @@ class CandidateFilter:
     min_mentions: int | None = None
     role: DiscoveryMentionRole | None = None
     source: DiscoverySource | None = None
-    sort: CandidateSort = CandidateSort.MENTIONS_DESC
+    sort_by: CandidateSortKey = CandidateSortKey.MENTIONS
+    sort_order: SortOrder = SortOrder.DESC
 
     def conditions(self, mention_count: MentionCount) -> list[ColumnElement[bool]]:
         """Return the where-clauses of the filters that are set."""
@@ -93,4 +77,4 @@ class CandidateFilter:
 
     def ordering(self, mention_count: MentionCount) -> Ordering:
         """Return the order-by clauses of the chosen sort."""
-        return _ORDERINGS[self.sort](mention_count)
+        return candidate_ordering(self.sort_by, self.sort_order, mention_count)

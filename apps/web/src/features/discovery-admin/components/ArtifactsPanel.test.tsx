@@ -85,12 +85,16 @@ it("artifacts panel shows a download link for an html snapshot and never renders
     snapshot({ source_url: "https://example.gov/<script>alert(1)</script>" }),
   ]);
 
-  const row = screen.getByText(
-    /1\.5 KB, fetched Oct 26, 2026, www\.example\.gov/,
-  );
-  const link = within(row.closest("li") as HTMLElement).getByRole("link", {
-    name: "Download",
-  });
+  const table = screen.getByRole("table", { name: "HTML snapshots" });
+  expect(
+    within(table)
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent),
+  ).toEqual(["Size", "Fetched", "Source host", "Download"]);
+  const row = within(screen.getByRole("row", { name: /1\.5 KB/ }));
+  expect(row.getByText("Oct 26, 2026")).toBeInTheDocument();
+  expect(row.getByText("www.example.gov")).toBeInTheDocument();
+  const link = row.getByRole("link", { name: "Download" });
   expect(link).toHaveAttribute(
     "href",
     "https://store.example/page.html?sig=def",
@@ -147,4 +151,26 @@ it("artifacts panel keeps the sections apart and tolerates an unknown kind", () 
   expect(screen.getByText("Screenshots")).toBeInTheDocument();
   expect(screen.getByText("HTML snapshots")).toBeInTheDocument();
   expect(screen.getByText("pdf_copy")).toBeInTheDocument();
+});
+
+it("artifacts panel puts stored pages in a titled section shell", () => {
+  renderPanel([snapshot()]);
+
+  const shell = screen.getByRole("region", { name: "Artifacts" });
+  expect(shell).toHaveAttribute("data-section-card");
+  expect(within(shell).getByRole("table")).toBeInTheDocument();
+});
+
+it("artifacts panel keeps loading, empty, and error feedback inside the section shell", () => {
+  for (const [artifacts, status] of [
+    [undefined, { isLoading: true }],
+    [[], {}],
+    [undefined, { isError: true }],
+  ] as const) {
+    const { unmount } = renderPanel([...(artifacts ?? [])], status);
+    expect(
+      screen.getByRole("region", { name: "Artifacts" }),
+    ).toBeInTheDocument();
+    unmount();
+  }
 });

@@ -32,6 +32,13 @@ export type DiscoveryTask = {
   updated_at: string;
 };
 
+/** Public sort keys of the task queue; the table maps its columns to these. */
+export type TaskSortKey =
+  "target" | "kind" | "status" | "source" | "priority" | "attempts";
+
+/** Filter keys the task queue accepts. */
+export type TaskFilterKey = "status" | "source" | "kind";
+
 /** Paginated discovery task queue from the admin API. */
 
 export type DiscoveryTaskListResponse = {
@@ -52,6 +59,12 @@ export type CatalogueServiceSummary = {
   created_at: string;
   updated_at: string;
 };
+
+/** Public sort keys of the catalogue index. */
+export type CatalogueSortKey = "external_id" | "source" | "stage";
+
+/** Filter keys the catalogue index accepts. */
+export type CatalogueFilterKey = "source";
 
 export type EmitPreviewItem = {
   claim_id: string;
@@ -161,7 +174,11 @@ export type DiscoveryMentionRole = "required" | "form" | "issued";
 
 export type DiscoveryCandidateStatus = "staged" | "emitted";
 
-export type DiscoveryCandidateSort = "mentions_desc" | "title_asc" | "newest";
+/** Public sort keys of the candidate list; the table maps its columns to these. */
+export type CandidateSortKey = "mentions" | "title" | "created_at";
+
+/** Filter keys the candidate list accepts. */
+export type CandidateFilterKey = "status" | "role" | "source" | "min_mentions";
 
 /** A document candidate as the detail route returns it. */
 export type DiscoveryCandidateRecord = {

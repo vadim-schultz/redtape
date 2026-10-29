@@ -49,6 +49,16 @@ export const textStyles = {
       lineHeight: "normal",
     },
   },
+  tableHeader: {
+    value: {
+      fontFamily: "body",
+      fontSize: "sm",
+      fontWeight: "semibold",
+      lineHeight: "normal",
+      letterSpacing: "wide",
+      color: "table.header.text",
+    },
+  },
   mono: {
     value: {
       fontFamily: "mono",
