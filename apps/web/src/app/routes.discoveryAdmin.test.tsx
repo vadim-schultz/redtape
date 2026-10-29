@@ -97,7 +97,9 @@ function renderAppAt(
 it("app · renders the discovery coverage page at /admin/discovery/coverage", async () => {
   renderAppAt("/admin/discovery/coverage");
 
-  expect(await screen.findByText("govdata: 3")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("table", { name: "Task queue" }),
+  ).toBeInTheDocument();
 });
 
 it("app · renders not-found for an unknown discovery path", async () => {
@@ -114,7 +116,9 @@ it("app · menu Coverage link opens the coverage page", async () => {
   await user.click(await screen.findByRole("button", { name: "Menu" }));
   await user.click(await screen.findByRole("link", { name: "Coverage" }));
 
-  expect(await screen.findByText("govdata: 3")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("table", { name: "Task queue" }),
+  ).toBeInTheDocument();
 });
 
 it("app · anonymous visitor at /admin/discovery/catalogue lands on login", async () => {
