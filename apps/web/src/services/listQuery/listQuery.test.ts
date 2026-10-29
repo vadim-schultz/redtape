@@ -73,9 +73,12 @@ describe("query state serialization", () => {
 
 describe("query state transitions", () => {
   it("query state resets offset when sort or filter changes", () => {
-    expect(withSort(BASE, { sortBy: "created_at", sortOrder: "asc" })).toEqual(
-      { ...BASE, sortBy: "created_at", sortOrder: "asc", offset: 0 },
-    );
+    expect(withSort(BASE, { sortBy: "created_at", sortOrder: "asc" })).toEqual({
+      ...BASE,
+      sortBy: "created_at",
+      sortOrder: "asc",
+      offset: 0,
+    });
     expect(withFilter(BASE, "colour", "blue").offset).toBe(0);
     expect(withFilter(BASE, "colour", undefined).filters).toEqual({
       min_size: 3,
