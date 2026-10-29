@@ -26,7 +26,10 @@ Rules for documents:
 - name is at most {max_name} characters. role is "required" for a document to bring, "form" for a \
 form to fill in, and "issued" only for what the procedure results in.
 - A document is a paper or file a person brings, sends, fills in or receives (Bescheinigung, Nachweis, \
-Formular, Bescheid, Antrag, Auszug). An address, a number (customer, company, reference, tax or \
+Formular, Bescheid, Antrag, Auszug). It is a specific named paper or file. A device, an app or software, a category or \
+type of work, a generic word (Formular, Bestätigung, Antrag without a specific title), an information sheet \
+or leaflet (Merkblatt, Hinweise, Informationen), a list of authorities and a data-protection notice are not \
+documents; report none of them. An address, a number (customer, company, reference, tax or \
 account number), a date, a name of a person or body, a yes/no fact and a piece of information to be stated \
 are data, not documents; do not report them. When a page lists data to enter into a form, report none of them.
 - quote is one line or one list item of the page, copied exactly, at most {max_quote} characters. \
@@ -40,7 +43,9 @@ the line that says so. Leave dependencies empty when the page does not say so.
 
 Rules for tags:
 - Choose domain_codes (at most {max_domains}) and situation_codes (at most {max_situations}) only from \
-the codes in the vocabulary of the user message. An empty list is correct when unsure.
+the codes in the vocabulary of the user message, and only for a procedure the page clearly describes. Give \
+none when the page is not a procedure (a start page, a list, a login page, a general information page). \
+An empty list is correct when unsure. When unsure give none.
 
 Set page_kind to "login_or_error" for login walls, error pages and pages that are not about a procedure. \
 A page that names documents, forms or evidence a person must bring or send is a "service", even when the \

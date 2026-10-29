@@ -123,10 +123,61 @@ def test_the_data_field_rule_takes_no_rule_of_ext_3_away() -> None:
         assert kept in system
 
 
-def test_the_prompt_version_is_ext_4() -> None:
-    """prompt · the wording changed, so recorded answers of ext-3 are not reused."""
-    assert PROMPT_VERSION == "ext-4"
-    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-4+clean-4+tax:")
+def test_the_system_message_says_that_devices_apps_categories_generic_words_leaflets_and_authority_lists_are_not_documents() -> (
+    None
+):
+    """prompt · a document is a specific named paper or file; the non-document kinds seen in ext-4 are named."""
+    system = " ".join(_system().split())
+    assert "It is a specific named paper or file." in system
+    for non_document in (
+        "A device",
+        "an app or software",
+        "a category or type of work",
+        "a generic word",
+        "Formular",
+        "Bestätigung",
+        "Antrag without a specific title",
+        "an information sheet or leaflet",
+        "Merkblatt",
+        "Hinweise",
+        "Informationen",
+        "a list of authorities",
+        "a data-protection notice",
+    ):
+        assert non_document in system
+    assert "are not documents; report none of them." in system
+
+
+def test_the_system_message_limits_codes_to_a_procedure_the_page_clearly_describes() -> None:
+    """prompt · codes only for a clearly described procedure, none for a start page, list or login page."""
+    system = " ".join(_system().split())
+    assert "only for a procedure the page clearly describes" in system
+    assert "none when the page is not a procedure" in system
+    for page_type in ("a start page", "a list", "a login page", "a general information page"):
+        assert page_type in system
+    assert "When unsure give none." in system
+    assert "at most 2" in system
+    assert "at most 3" in system
+
+
+def test_the_non_document_and_code_rules_take_no_earlier_rule_away() -> None:
+    """prompt · negative: one quote per line (ext-3) and data fields are not documents (ext-4) are still there."""
+    system = " ".join(_system().split())
+    for kept in (
+        "quote is one line or one list item of the page, copied exactly",
+        "Never join a heading and an item, or two items, into one quote.",
+        "A document is a paper or file a person brings, sends, fills in or receives",
+        "are data, not documents; do not report them",
+        "When a page lists data to enter into a form, report none of them.",
+        "An empty list is correct when unsure.",
+    ):
+        assert kept in system
+
+
+def test_the_prompt_version_is_ext_5() -> None:
+    """prompt · the wording changed, so recorded answers of ext-4 are not reused."""
+    assert PROMPT_VERSION == "ext-5"
+    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-5+clean-4+tax:")
 
 
 def test_page_text_never_reaches_the_system_message() -> None:
@@ -172,7 +223,13 @@ def test_the_prompt_never_contains_a_credential_or_a_setting(monkeypatch: pytest
     assert not re.search(r"api[_ -]?key|token|secret|password|authorization|bearer", rendered, re.IGNORECASE)
 
 
-WORDING_DIGESTS = {"ext-1": "33b98a3792bb", "ext-2": "040099cebc43", "ext-3": "9be145f7d8b8", "ext-4": "e1a1d7cce51b"}
+WORDING_DIGESTS = {
+    "ext-1": "33b98a3792bb",
+    "ext-2": "040099cebc43",
+    "ext-3": "9be145f7d8b8",
+    "ext-4": "e1a1d7cce51b",
+    "ext-5": "c300e072d7d0",
+}
 
 
 def test_a_wording_change_needs_a_new_prompt_version() -> None:
