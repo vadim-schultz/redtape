@@ -6,7 +6,11 @@ import { hostOf } from "../../utils/hostOf";
 import SnapshotDownloadCell from "./cells/SnapshotDownloadCell";
 import { headerLabels, type ColumnContext } from "./columnContext";
 
-/** Stored pages are read-only evidence: no column declares a sort or filter. */
+/**
+ * Stored pages are one catalogue row's artifacts, fetched as a single capped
+ * page (50) in the API's order; there is no sort or filter contract, so no
+ * column declares one.
+ */
 export type SnapshotColumn = DataTableColumn<DiscoveryArtifact, never, never>;
 
 /** Columns of the stored pages: size, fetch date, final host and a download link; content is never rendered. */

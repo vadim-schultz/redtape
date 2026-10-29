@@ -12,15 +12,23 @@ export interface SortState<SortKey extends string> {
   sortOrder?: SortOrder;
 }
 
+/** One value of a bounded filter and the text shown for it. */
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
 /** A column's filter capability: the server key, operators, and control name. */
 export interface FilterCapability<FilterKey extends string> {
   key: FilterKey;
   operators: readonly FilterOperator[];
-  /** Accessible name of the filter control. */
+  /** Accessible name of the filter control; also names the filter in the applied summary. */
   label: string;
+  /** The allowed values of a bounded field; without them the filter takes free text. */
+  options?: readonly FilterOption[];
 }
 
-/** The filter value a user entered for one declared filter key. */
+/** The filter value a user applied for one declared filter key; an empty value removes the filter. */
 export interface FilterChange<FilterKey extends string> {
   key: FilterKey;
   value: string;
@@ -46,14 +54,21 @@ export interface DataTableRows<Row> {
   getHref?: (row: Row) => string;
 }
 
-/** Sort state and the typed events the table emits to the parent's query hook. */
+/** The filter values the parent currently applies; absent or empty means not filtered. */
+export type AppliedFilters<FilterKey extends string> = Partial<
+  Record<FilterKey, string | number | undefined>
+>;
+
+/** Applied sort and filters, and the typed events the table emits to the parent's query hook. */
 export interface DataTableQuery<
   SortKey extends string,
   FilterKey extends string,
 > {
   sort?: SortState<SortKey>;
   onSortChange?: (next: SortState<SortKey>) => void;
+  filters?: AppliedFilters<FilterKey>;
   onFilterChange?: (change: FilterChange<FilterKey>) => void;
+  onFiltersClear?: () => void;
 }
 
 /** Opt-in state slots; each missing slot falls back to a shared default. */

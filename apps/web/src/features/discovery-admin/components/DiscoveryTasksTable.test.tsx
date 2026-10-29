@@ -2,8 +2,9 @@ import { screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
+import { fakeListController } from "../../../test/fakeListController";
 import { renderWithProviders } from "../../../test/renderWithProviders";
-import type { DiscoveryTask } from "../types";
+import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../types";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
 
 const HOUR_MS = 3_600_000;
@@ -36,12 +37,14 @@ const READY: QueryStatus = {
   onRetry: vi.fn(),
 };
 
+const fakeList = () => fakeListController<TaskSortKey, TaskFilterKey>();
+
 function renderTable(tasks: DiscoveryTask[], total = tasks.length) {
   return renderWithProviders(
     <DiscoveryTasksTable
       status={READY}
       page={{ items: tasks, total, offset: 0, limit: 20 }}
-      onOffsetChange={vi.fn()}
+      list={fakeList()}
     />,
   );
 }
@@ -177,7 +180,7 @@ it("tasks table shows the llm_extract kind and translates its result notes, leav
 });
 
 it("discovery tasks render response rows and total count", async () => {
-  const onOffsetChange = vi.fn();
+  const list = fakeList();
   const { user } = renderWithProviders(
     <DiscoveryTasksTable
       status={READY}
@@ -187,7 +190,7 @@ it("discovery tasks render response rows and total count", async () => {
         offset: 0,
         limit: 20,
       }}
-      onOffsetChange={onOffsetChange}
+      list={list}
     />,
   );
 
@@ -198,32 +201,75 @@ it("discovery tasks render response rows and total count", async () => {
   expect(screen.getByText("1–20 of 45")).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Next page" }));
-  expect(onOffsetChange).toHaveBeenCalledExactlyOnceWith(20);
+  expect(list.setOffset).toHaveBeenCalledExactlyOnceWith(20);
 });
 
-it("admin tables render an explicit empty or error state without stale rows", async () => {
+it("a failed refetch keeps the previous rows, the total and a retry", async () => {
   const onRetry = vi.fn();
-  const { user, unmount } = renderWithProviders(
+  const { user } = renderWithProviders(
     <DiscoveryTasksTable
       status={{ ...READY, isError: true, onRetry }}
       page={{
-        items: [task({ target_url: "https://stale" })],
+        items: [task({ target_url: "https://previous" })],
         total: 1,
         offset: 0,
         limit: 20,
       }}
-      onOffsetChange={vi.fn()}
+      list={fakeList()}
     />,
   );
 
-  expect(screen.queryByText("https://stale")).not.toBeInTheDocument();
-  expect(screen.queryByText("1 task")).not.toBeInTheDocument();
+  expect(screen.getByText("https://previous")).toBeVisible();
+  expect(screen.getByText("1 task")).toBeVisible();
+  expect(screen.getByRole("alert")).toHaveTextContent("Could not refresh");
   await user.click(screen.getByRole("button", { name: "Try again" }));
   expect(onRetry).toHaveBeenCalledOnce();
-  unmount();
+});
 
+it("a first-load failure shows the retryable error and no rows or count", async () => {
+  const onRetry = vi.fn();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={{ ...READY, isError: true, onRetry }}
+      page={undefined}
+      list={fakeList()}
+    />,
+  );
+
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByText(/tasks?$/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it("tasks table shows the empty state without a count or paging", () => {
   renderTable([]);
+
   expect(screen.getByText("No tasks in queue")).toBeInTheDocument();
   expect(screen.queryByText(/tasks?$/)).not.toBeInTheDocument();
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+});
+
+it("tasks table sorts and filters through the list controller", async () => {
+  const list = fakeList();
+  const { user } = renderWithProviders(
+    <DiscoveryTasksTable
+      status={READY}
+      page={{ items: [task({})], total: 1, offset: 0, limit: 20 }}
+      list={list}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Attempts" }));
+  expect(list.setSort).toHaveBeenCalledExactlyOnceWith({
+    sortBy: "attempts",
+    sortOrder: "asc",
+  });
+  await user.click(screen.getByRole("button", { name: "Task status" }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Task status" }),
+    "failed",
+  );
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  expect(list.setFilter).toHaveBeenCalledExactlyOnceWith("status", "failed");
 });

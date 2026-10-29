@@ -7,6 +7,7 @@ import {
   withFilter,
   withOffset,
   withSearch,
+  withoutFilters,
   withSort,
   type ListQuerySpec,
   type ListQueryState,
@@ -92,6 +93,20 @@ describe("query state transitions", () => {
   it("query state keeps the offset when only the page changes", () => {
     expect(withOffset(BASE, 60)).toEqual({ ...BASE, offset: 60 });
     expect(withOffset(BASE, -5).offset).toBe(0);
+  });
+});
+
+describe("clearing filters", () => {
+  it("clearing filters drops every filter, returns to page one and keeps search and sort", () => {
+    expect(withoutFilters(BASE)).toEqual({ ...BASE, filters: {}, offset: 0 });
+  });
+
+  it("clearing filters leaves no filter parameter in the request", () => {
+    const params = toListParams(withoutFilters(BASE));
+    expect(
+      Object.keys(params).filter((key) => key.startsWith("filter[")),
+    ).toEqual([]);
+    expect(params).toMatchObject({ offset: 0, q: "pass", sort_by: "name" });
   });
 });
 

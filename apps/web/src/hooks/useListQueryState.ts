@@ -8,6 +8,7 @@ import {
   withOffset,
   withSearch,
   withSort,
+  withoutFilters,
   type FilterValue,
   type ListQuerySpec,
   type ListQueryState,
@@ -22,6 +23,7 @@ export interface ListQueryController<
   setSort: (sort: SortChange<SortKey>) => void;
   setSearch: (search: string) => void;
   setFilter: (key: FilterKey, value: FilterValue | undefined) => void;
+  clearFilters: () => void;
   setOffset: (offset: number) => void;
 }
 
@@ -54,6 +56,7 @@ export function useListQueryState<
       setSearch: (search) => update((current) => withSearch(current, search)),
       setFilter: (key, value) =>
         update((current) => withFilter(current, key, value)),
+      clearFilters: () => update(withoutFilters),
       setOffset: (offset) => update((current) => withOffset(current, offset)),
     }),
     [state, update],

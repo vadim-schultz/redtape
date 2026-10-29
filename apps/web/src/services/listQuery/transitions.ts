@@ -47,6 +47,13 @@ export function withFilter<S extends string, F extends string>(
   return reshaped(state, { filters: filters as State<S, F>["filters"] });
 }
 
+/** Drop every filter and return to the first page; sort and search stay. */
+export function withoutFilters<S extends string, F extends string>(
+  state: State<S, F>,
+): State<S, F> {
+  return reshaped(state, { filters: {} });
+}
+
 /** Move to another page; the only change that keeps the rest of the query. */
 export function withOffset<S extends string, F extends string>(
   state: State<S, F>,

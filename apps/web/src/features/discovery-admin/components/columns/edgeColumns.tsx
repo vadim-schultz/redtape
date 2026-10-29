@@ -11,7 +11,11 @@ import { headerLabels, type ColumnContext } from "./columnContext";
 /** Which end of the edge the table shows: the document it requires, or the document that requires this one. */
 export type EdgeEnd = "required" | "parent";
 
-/** Staged edges are read-only: no column declares a sort or filter. */
+/**
+ * Staged edges are one candidate's complete set from an unpaged endpoint with a
+ * fixed order, so there is no server operation to push a sort or filter to; no
+ * column declares one.
+ */
 export type EdgeColumn = DataTableColumn<DiscoveryCandidateEdge, never, never>;
 
 function otherEnd(edge: DiscoveryCandidateEdge, end: EdgeEnd) {

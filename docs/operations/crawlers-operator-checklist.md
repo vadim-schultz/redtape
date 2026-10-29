@@ -342,14 +342,14 @@ Check with `GET /api/v1/discovery/machine/budgets`.
 
 ## German strings that need native review
 
-A language model wrote the German copy of the admin screens of chapters 8, 10, 16 and 20 and the table and coverage labels of web GUI harmonization chapters 4 and 5 (the English text is the
+A language model wrote the German copy of the admin screens of chapters 8, 10, 16 and 20 and the table, coverage and list-interaction labels of web GUI harmonization chapters 4, 5 and 6 (the English text is the
 reference). Have a native speaker review each key in
 [`apps/api/scripts/seed_data/translations/de.json`](../../apps/api/scripts/seed_data/translations/de.json). The web
 fallback in `apps/web` must stay identical to the seed, so change both in one commit.
 
-**Chapter 8 (task and coverage screens)** (10 keys)
+**Chapter 8 (task and coverage screens)** (9 keys)
 
-`discovery_admin.coverage.candidate_mentions`, `discovery_admin.coverage.candidates_emitted`, `discovery_admin.coverage.candidates_staged`, `discovery_admin.coverage.candidates_total`, `discovery_admin.tasks.col_attempts`, `discovery_admin.tasks.col_kind`, `discovery_admin.tasks.col_retry`, `discovery_admin.tasks.filter_kind`, `discovery_admin.tasks.filter_kind_all`, `discovery_admin.tasks.retry_none`
+`discovery_admin.coverage.candidate_mentions`, `discovery_admin.coverage.candidates_emitted`, `discovery_admin.coverage.candidates_staged`, `discovery_admin.coverage.candidates_total`, `discovery_admin.tasks.col_attempts`, `discovery_admin.tasks.col_kind`, `discovery_admin.tasks.col_retry`, `discovery_admin.tasks.filter_kind`, `discovery_admin.tasks.retry_none`
 
 **Chapter 10 (Documents list and paging)** (20 keys)
 
@@ -374,3 +374,9 @@ fallback in `apps/web` must stay identical to the seed, so change both in one co
 **Web GUI harmonization chapter 5 (coverage tables)** (34 keys)
 
 `discovery_admin.artifacts.col_resource`, `discovery_admin.artifacts.col_status`, `discovery_admin.artifacts.col_usage`, `discovery_admin.artifacts.stored_nearly_full`, `discovery_admin.artifacts.stored_of_cap`, `discovery_admin.artifacts.stored_total`, `discovery_admin.coverage.col_artifact_kind`, `discovery_admin.coverage.col_claimed`, `discovery_admin.coverage.col_count`, `discovery_admin.coverage.col_done`, `discovery_admin.coverage.col_failed`, `discovery_admin.coverage.col_files`, `discovery_admin.coverage.col_kind`, `discovery_admin.coverage.col_metric`, `discovery_admin.coverage.col_outcome`, `discovery_admin.coverage.col_pending`, `discovery_admin.coverage.col_size`, `discovery_admin.coverage.col_source`, `discovery_admin.coverage.col_total`, `discovery_admin.coverage.col_value`, `discovery_admin.coverage.group_artifacts`, `discovery_admin.coverage.group_candidates`, `discovery_admin.coverage.group_kinds`, `discovery_admin.coverage.group_last_run`, `discovery_admin.coverage.group_queue`, `discovery_admin.coverage.group_sources`, `discovery_admin.coverage.last_run_claimed`, `discovery_admin.coverage.last_run_completed`, `discovery_admin.coverage.last_run_failed`, `discovery_admin.coverage.last_run_finished`, `discovery_admin.coverage.last_run_skipped`, `discovery_admin.coverage.last_run_stop`, `discovery_admin.coverage.no_kinds`, `discovery_admin.coverage.status_attention`
+
+**Web GUI harmonization chapter 6 (table interactions)** (9 keys)
+
+`discovery_admin.catalogue.count_one`, `discovery_admin.catalogue.count_other`, `discovery_admin.catalogue.empty_description`, `discovery_admin.catalogue.empty_title`, `discovery_admin.catalogue.filter_search`, `discovery_admin.catalogue.filter_source`, `discovery_admin.documents.clear_filters`, `discovery_admin.tasks.filter_search`, `discovery_admin.tasks.filter_source`
+
+The shared table controls (`common.table.filter_apply`, `common.table.filter_any`, `common.table.filter_clear`, `common.table.filter_remove`, `common.table.filters_clear_all`, `common.table.refetch_failed`) are machine-written German too.

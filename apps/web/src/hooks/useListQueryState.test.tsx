@@ -56,3 +56,22 @@ it("list query state keeps the other parameters and pages without a reset", () =
   expect(result.current.location.search).toBe("?tab=1&offset=20&q=pass");
   expect(result.current.list.state.search).toBe("pass");
 });
+
+it("list query state clears every filter from the url and returns to the first page", () => {
+  const { result } = renderState(
+    "/x?offset=40&filter[colour]=red&q=pass&tab=1",
+  );
+
+  act(() => result.current.list.clearFilters());
+
+  expect(result.current.location.search).toBe("?tab=1&q=pass");
+  expect(result.current.list.state.filters).toEqual({});
+});
+
+it("list query state ignores a filter the spec rejects, so clearing starts from the valid state", () => {
+  const { result } = renderState("/x?filter[colour]=green&offset=20");
+
+  act(() => result.current.list.clearFilters());
+
+  expect(result.current.location.search).toBe("");
+});

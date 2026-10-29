@@ -1,8 +1,9 @@
 import { Stack, Table } from "@chakra-ui/react";
 
 import Pagination from "../Pagination";
-import DataTableHeader from "./DataTableHeader";
 import DataTableBody from "./DataTableBody";
+import DataTableFeedback from "./DataTableFeedback";
+import DataTableHeader from "./DataTableHeader";
 import { resolveTableState } from "./tableState";
 import type { DataTableProps } from "./types";
 
@@ -28,6 +29,12 @@ export default function DataTable<
 
   return (
     <Stack gap={3}>
+      <DataTableFeedback
+        state={state}
+        columns={columns}
+        query={query}
+        states={states}
+      />
       <Table.ScrollArea>
         <Table.Root
           size="sm"

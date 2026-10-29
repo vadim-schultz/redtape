@@ -55,11 +55,32 @@ it("task columns render every queue field of a task", () => {
   ]);
 });
 
-it("task columns declare no sort capability because the tasks API has no sort contract yet", async () => {
+it("task columns sort only by the keys the tasks API allowlists", async () => {
   const onSortChange = vi.fn();
   const { user } = renderWithProviders(<Table onSortChange={onSortChange} />);
 
-  expect(screen.queryByRole("button")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("columnheader", { name: "Attempts" }));
-  expect(onSortChange).not.toHaveBeenCalled();
+  const sortable = screen.getAllByRole("button").map((b) => b.textContent);
+  expect(sortable).toEqual([
+    "Target URL",
+    "Kind",
+    "Status",
+    "Source",
+    "Priority",
+    "Attempts",
+  ]);
+  await user.click(screen.getByRole("button", { name: "Priority" }));
+  expect(onSortChange).toHaveBeenCalledExactlyOnceWith({
+    sortBy: "priority",
+    sortOrder: "asc",
+  });
+});
+
+it("task columns leave the timestamp columns without sort or filter", () => {
+  renderWithProviders(<Table onSortChange={vi.fn()} />);
+
+  for (const name of ["Retry after", "Lease expires"]) {
+    const header = screen.getByRole("columnheader", { name });
+    expect(within(header).queryByRole("button")).not.toBeInTheDocument();
+    expect(header).not.toHaveAttribute("aria-sort");
+  }
 });

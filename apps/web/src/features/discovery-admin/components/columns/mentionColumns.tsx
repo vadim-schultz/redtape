@@ -8,7 +8,11 @@ import MentionRoleCell from "./cells/MentionRoleCell";
 import { headerLabels, type ColumnContext } from "./columnContext";
 import LongText from "./LongText";
 
-/** Mentions are read-only evidence rows: no column declares a sort or filter. */
+/**
+ * Mentions are one candidate's complete evidence set, embedded in its detail
+ * response in a fixed oldest-first order with no paging, so there is no server
+ * operation to push a sort or filter to; no column declares one.
+ */
 export type MentionColumn = DataTableColumn<
   DiscoveryCandidateMention,
   never,

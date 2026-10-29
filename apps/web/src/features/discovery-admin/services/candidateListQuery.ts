@@ -4,12 +4,12 @@ import {
   type ListQuerySpec,
   type ListQueryState,
 } from "../../../services/listQuery";
+import { DISCOVERY_SOURCES } from "../types/listValues";
 import type {
   CandidateFilterKey,
   CandidateSortKey,
   DiscoveryCandidateStatus,
   DiscoveryMentionRole,
-  DiscoverySource,
 } from "../types";
 
 export type { CandidateFilterKey, CandidateSortKey };
@@ -32,14 +32,6 @@ const ROLES = [
   "form",
   "issued",
 ] as const satisfies readonly DiscoveryMentionRole[];
-const SOURCES = [
-  "govdata",
-  "pvog",
-  "fim",
-  "leika",
-  "manual",
-] as const satisfies readonly DiscoverySource[];
-
 /** Mirrors the API allowlist; values the API would refuse never reach a request or the URL state. */
 export const CANDIDATE_LIST_SPEC: ListQuerySpec<
   CandidateSortKey,
@@ -49,7 +41,7 @@ export const CANDIDATE_LIST_SPEC: ListQuerySpec<
   filters: {
     status: oneOfFilter(STATUSES),
     role: oneOfFilter(ROLES),
-    source: oneOfFilter(SOURCES),
+    source: oneOfFilter(DISCOVERY_SOURCES),
     min_mentions: minIntFilter(0),
   },
   defaultLimit: 20,

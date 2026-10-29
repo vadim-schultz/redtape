@@ -65,14 +65,40 @@ The existing [frontend-ui-menu chapter](../frontend-ui-menu/chapters/01-remove-l
 the non-functional document-count chevron removal. This suite verifies the final integration and
 does not create a second implementation or competing test.
 
+### D11 — Interaction coverage per surface (chapter 6)
+
+| Surface | Server operations | Why |
+| --- | --- | --- |
+| Discovery documents | `sort_by` (title, mentions, created_at), `q`, `filter[status\|role\|source\|min_mentions]`, paging | Chapter 3 contract |
+| Discovery tasks | `sort_by` (target, kind, status, source, priority, attempts), `q` over the target URL, `filter[status\|source\|kind]`, paging | Operators triage the queue by these fields; timestamps (retry, lease) are nullable and not sorted |
+| Catalogue index | `sort_by` (external_id, source, stage), `q` over the external id, `filter[source]`, paging | The fixed page of 50 silently cut larger catalogues |
+| Mentions, edges, stored pages | none | Each is one candidate's (or catalogue row's) complete set from an unpaged endpoint in a fixed order; there is nothing to push to a server, and a client-side sort would contradict D7 |
+| Coverage metrics | none | Static summaries, chapter 5 |
+| Public documents, suggestions | none yet | See below |
+
+URL state is canonical for all three paged admin lists. A filter applied from a column header or the
+documents toolbar is visible (summary chips or the select value), removable, and resettable.
+A failed refetch keeps the previous rows with a retryable alert; a failure with no rows (first load,
+or a changed query whose placeholder data TanStack Query drops) shows the error in the table shell
+with the header controls still reachable.
+
+**Public list audit.** `GET /documents` and `GET /suggestions` already return
+`{items,total,offset,limit}` and filter by taxonomy codes, municipality, status, kind and
+jurisdiction, but the web clients never send `offset` or `limit` and never read `total`, so each
+list shows at most the first 20 rows. There is no sort or search requirement in either API, and the
+cards are content previews (D3). Nothing is changed in this chapter: adding paging to a public
+browse page is a product decision (open seam above) rather than a table-interaction defect, and the
+exposure only appears once a filter matches more than 20 records. The truncation is recorded here so
+the decision is made deliberately.
+
 ## Open seams
 
 | Seam | Current position | Forcing condition |
 | --- | --- | --- |
 | Generic filter wire syntax | Use the bracketed `filter[field]` shape in the architecture contract | API framework constraints or generated OpenAPI representation |
-| Public document/suggestion pagination | Audit first; keep cards unless scale and API metadata justify a table/list change | Product decision that public browsing needs server search or paging |
+| Public document/suggestion pagination | Audited in D11: cards stay, first 20 rows only; the API already returns `total` | Product decision that public browsing needs server search or paging |
 | Coverage grouping | Prefer several small semantic tables over one wide metric table | Usability smoke test shows the groups are still difficult to scan |
-| Mentions sorting/filtering | Expose only fields with deterministic API semantics | API query cost or missing indexes |
+| Mentions sorting/filtering | Closed in D11: static, the endpoints are unpaged and fixed-order | API query cost or missing indexes |
 | Page-size selector | Start with the shared default and a fixed limit | Operator feedback requires user-selectable sizes |
 | API compatibility aliases | Keep existing resource-specific query names during migration | All clients have moved to the canonical query shape |
 | Existing visual-theme chapters | Consume their decisions and avoid parallel token rewrites | Theme contract changes before this suite starts |

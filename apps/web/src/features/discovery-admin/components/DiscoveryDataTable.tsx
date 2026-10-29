@@ -75,7 +75,7 @@ export default function DiscoveryDataTable<
 }: DiscoveryDataTableProps<Row, SortKey, FilterKey>) {
   const { label, columns, query, getKey, getHref } = table;
   const items = page?.items ?? [];
-  const counting = items.length > 0 && !status.isError;
+  const counting = items.length > 0;
 
   return (
     <SectionCard>
