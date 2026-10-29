@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { expandControlsBesideCount } from "../../../test/queryStatusCountRow";
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import DocumentsListPage from "./DocumentsListPage";
 
@@ -108,4 +109,16 @@ it("DocumentsListPage · taxonomy failure keeps the list usable", async () => {
   renderWithProviders(<DocumentsListPage />);
 
   expect(await screen.findByText("Passport")).toBeInTheDocument();
+});
+
+it("DocumentsListPage · populated document count row has no expand control", async () => {
+  renderWithProviders(<DocumentsListPage />, {
+    initialEntries: ["/documents"],
+  });
+
+  const count = await screen.findByTestId("query-status-count");
+  expect(count).toHaveTextContent("1 document");
+  expect(expandControlsBesideCount(count)).toHaveLength(0);
+  expect(count.closest("[aria-expanded]")).toBeNull();
+  expect(screen.getByRole("link", { name: /Passport/ })).toBeVisible();
 });

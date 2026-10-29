@@ -1,6 +1,7 @@
-import { Heading, Stack } from "@chakra-ui/react";
+import { Stack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import SectionCard from "../../../components/data-display/SectionCard";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCandidateDetailResponse } from "../types";
 import DocumentHeader from "./DocumentHeader";
@@ -28,12 +29,9 @@ export default function DocumentDetail({
         candidate={data.candidate}
         jurisdictionName={data.jurisdiction_name_i18n}
       />
-      <Stack gap={2} align="stretch">
-        <Heading size="sm">
-          {t("discovery_admin.document.mentions_title")}
-        </Heading>
+      <SectionCard title={t("discovery_admin.document.mentions_title")}>
         <DocumentMentionsTable mentions={data.mentions} />
-      </Stack>
+      </SectionCard>
       {tags}
       {edges}
       {evidence}
