@@ -5,7 +5,7 @@ import SectionCard from "../../../components/data-display/SectionCard";
 import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
 import CatalogueServicesTable from "../components/CatalogueServicesTable";
-import CoverageChips from "../components/CoverageChips";
+import CoverageSummary from "../components/coverage/CoverageSummary";
 import DiscoveryCatalogueQueryStatus from "../components/DiscoveryCatalogueQueryStatus";
 import {
   useCatalogueState,
@@ -35,7 +35,9 @@ function CoveragePanel({
 }) {
   return (
     <DiscoveryCatalogueQueryStatus state={panel.state} onRetry={panel.retry}>
-      {panel.state === "ready" ? <CoverageChips coverage={panel.data} /> : null}
+      {panel.state === "ready" ? (
+        <CoverageSummary coverage={panel.data} />
+      ) : null}
     </DiscoveryCatalogueQueryStatus>
   );
 }
