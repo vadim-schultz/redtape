@@ -291,7 +291,7 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |
 | `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
 | `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
-| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (`q`, `status`, `role`, `source`, `min_mentions`, `sort`), detail and preview |
+| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by`, `sort_order`, `filter[status\|role\|source\|min_mentions]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
 | `GET /admin/candidates/{id}/edges` | Staged edges of a candidate, both directions, with basis, condition and the procedure |
 | `GET /admin/catalogue/{id}/artifacts`, `GET /admin/candidates/{id}/artifacts` | Artifacts with presigned `url` (`null` when storage is unset) |
 | `GET /admin/budgets` | The ledger plus `stored_bytes` and `stored_bytes_cap` |

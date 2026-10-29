@@ -1,4 +1,5 @@
 import { apiRequest } from "../../../services/api";
+import { toListParams } from "../../../services/listQuery";
 import type {
   CandidateEmitPreview,
   CatalogueListResponse,
@@ -8,15 +9,14 @@ import type {
   DiscoveryCandidateDetailResponse,
   DiscoveryCandidateEdgesResponse,
   DiscoveryCandidateListResponse,
-  DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
-  DiscoveryMentionRole,
   DiscoverySource,
   DiscoveryTaskKind,
   DiscoveryTaskListResponse,
   DiscoveryTaskStatus,
   EmitPreviewResponse,
 } from "../types";
+import type { CandidateListQuery } from "./candidateListQuery";
 
 const TASKS_PATH = "/api/v1/discovery/admin/tasks";
 const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
@@ -118,29 +118,17 @@ export async function fetchEmitPreview(params: {
   );
 }
 
-/** Query of the document candidate list; unset filters are left out of the request. */
-export type DiscoveryCandidateQuery = {
-  q?: string;
-  minMentions?: number;
-  role?: DiscoveryMentionRole;
-  source?: DiscoverySource;
-  sort?: DiscoveryCandidateSort;
-  offset?: number;
-  limit?: number;
-};
-
-/** Paginated document candidates with search, filters and sort. */
+/** Paginated document candidates; the typed query is sent in its canonical parameter shape. */
 export async function listDiscoveryCandidates(params: {
   locale: string;
   accessToken: string;
-  query: DiscoveryCandidateQuery;
+  query: CandidateListQuery;
 }): Promise<DiscoveryCandidateListResponse> {
   const { locale, accessToken, query } = params;
-  const { minMentions, offset = 0, limit = 20, ...filters } = query;
   return apiRequest<DiscoveryCandidateListResponse>(CANDIDATES_PATH, {
     locale,
     accessToken,
-    query: { ...filters, min_mentions: minMentions, offset, limit },
+    query: toListParams(query),
   });
 }
 

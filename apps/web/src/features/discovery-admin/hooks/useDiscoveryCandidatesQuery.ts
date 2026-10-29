@@ -4,22 +4,39 @@ import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../auth/contexts/AuthContext";
-import {
-  listDiscoveryCandidates,
-  type DiscoveryCandidateQuery,
-} from "../services/discoveryAdminApi";
-import type { DiscoveryCandidateListResponse } from "../types";
+import type { SortChange } from "../../../services/listQuery";
+import type {
+  CandidateListQuery,
+  CandidateSortKey,
+} from "../services/candidateListQuery";
+import { listDiscoveryCandidates } from "../services/discoveryAdminApi";
+import type {
+  DiscoveryCandidateListResponse,
+  DiscoveryCandidateSort,
+} from "../types";
 import type { DiscoveryDocumentFilters } from "./useDiscoveryDocumentFilters";
 
-function toQuery(filters: DiscoveryDocumentFilters): DiscoveryCandidateQuery {
+/** The select's combined sort values as a key and direction; the table (chapter 4) emits these directly. */
+const SELECT_SORTS: Record<
+  DiscoveryCandidateSort,
+  Required<SortChange<CandidateSortKey>>
+> = {
+  mentions_desc: { sortBy: "mentions", sortOrder: "desc" },
+  title_asc: { sortBy: "title", sortOrder: "asc" },
+  newest: { sortBy: "created_at", sortOrder: "desc" },
+};
+
+function toQuery(filters: DiscoveryDocumentFilters): CandidateListQuery {
   return {
-    q: filters.q || undefined,
-    minMentions: filters.minMentions ?? undefined,
-    role: filters.role ?? undefined,
-    source: filters.source ?? undefined,
-    sort: filters.sort,
     offset: filters.offset,
     limit: filters.limit,
+    ...SELECT_SORTS[filters.sort],
+    search: filters.q || undefined,
+    filters: {
+      min_mentions: filters.minMentions ?? undefined,
+      role: filters.role ?? undefined,
+      source: filters.source ?? undefined,
+    },
   };
 }
 

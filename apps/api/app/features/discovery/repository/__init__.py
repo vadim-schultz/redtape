@@ -6,8 +6,9 @@ from app.features.discovery.repository.activity import ActivityRepository, Fetch
 from app.features.discovery.repository.artifact_listing import ArtifactFilter, ArtifactListingRepository
 from app.features.discovery.repository.artifacts import ArtifactRepository, ArtifactTotals, NewArtifact
 from app.features.discovery.repository.budgets import BudgetRepository, LedgerKey, LedgerState
-from app.features.discovery.repository.candidate_filter import CandidateFilter, CandidateSort
+from app.features.discovery.repository.candidate_filter import CandidateFilter
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
+from app.features.discovery.repository.candidate_sort import LEGACY_SORTS, CandidateSort, CandidateSortKey
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
@@ -31,6 +32,7 @@ __all__ = [
     "CandidateListingRepository",
     "CandidateRepository",
     "CandidateSort",
+    "CandidateSortKey",
     "CatalogueRepository",
     "ClaimRepository",
     "CoverageRepository",
@@ -40,6 +42,7 @@ __all__ = [
     "EdgeRow",
     "EntityRepository",
     "FetchLogEntry",
+    "LEGACY_SORTS",
     "LedgerKey",
     "LedgerState",
     "NewArtifact",
