@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from discovery_ingest.extract.llm.ground import Grounded, ground
-from discovery_ingest.extract.llm.schema import PageExtraction
+from discovery_ingest.extract.llm.schema import DocumentItem, PageExtraction
 
 from llm_fakes import page, taxonomy, term
 
@@ -159,7 +159,9 @@ def test_a_repeated_dependency_is_kept_once() -> None:
 
 
 def test_codes_are_kept_in_order_without_duplicates() -> None:
-    grounded = run(domain_codes=["housing", "identity-civil-status"], situation_codes=["moving-house"])
+    grounded = run(
+        [doc("Personalausweis")], domain_codes=["housing", "identity-civil-status"], situation_codes=["moving-house"]
+    )
     assert grounded.domain_codes == ("housing", "identity-civil-status")
     assert grounded.situation_codes == ("moving-house",)
 
@@ -175,7 +177,7 @@ def test_unknown_codes_are_dropped_and_counted_and_counts_are_capped() -> None:
         page_kind="service",
         domain_codes=["a", "nope", "a", "b", "c"],
         situation_codes=["w", "x", "y", "z"],
-        documents=[],
+        documents=[DocumentItem(name="Personalausweis", role="required", quote=ID_QUOTE)],
         dependencies=[],
     )
     grounded = ground(extraction, PAGE, wide)

@@ -47,8 +47,9 @@ def _ground(name: str, extraction: PageExtraction | None = None) -> Grounded:
 
 
 def _quoted_documents(grounded: Grounded) -> int:
-    """Count documents whose quote grounded; the data-field guard (E16) drops names after the quote check."""
-    return len(grounded.documents) + grounded.diagnostics.dropped.get("data_field", 0)
+    """Count documents whose quote grounded; the name guards (E16, E18) drop names after the quote check."""
+    name_drops = grounded.diagnostics.dropped.get("data_field", 0) + grounded.diagnostics.dropped.get("generic_name", 0)
+    return len(grounded.documents) + name_drops
 
 
 def _kept(grounded: Grounded) -> int:

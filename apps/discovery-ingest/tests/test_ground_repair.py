@@ -85,7 +85,7 @@ def test_a_percent_sign_that_is_not_a_sequence_is_not_repaired() -> None:
 
 def test_urls_are_never_decoded_by_the_repair() -> None:
     """repair · a link that carries percent sequences is matched and kept as written."""
-    document = _doc("Formular", "Bitte reichen Sie die Erklärung", url=LINK)
+    document = _doc("Erklärungsformular", "Bitte reichen Sie die Erklärung", url=LINK)
 
     grounded = _ground([document], links=(LINK,))
 
