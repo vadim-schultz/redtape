@@ -70,6 +70,12 @@ it("Coverage page · shows an explicit empty run state for an empty queue", asyn
             },
           },
           candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+          llm_outcomes: {
+            extracted: 0,
+            no_documents: 0,
+            login_wall: 0,
+            no_content: 0,
+          },
           artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
           fetch_attempts_total: 0,
           stale_claims: 0,
@@ -128,6 +134,12 @@ function emptyCoverage(): Response {
       },
       task_counts_by_kind: {},
       candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+      llm_outcomes: {
+        extracted: 4,
+        no_documents: 1,
+        login_wall: 0,
+        no_content: 2,
+      },
       artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
       fetch_attempts_total: 0,
       stale_claims: 0,
@@ -183,4 +195,38 @@ it("Coverage page · keeps the coverage chips when only the budgets fail to load
   expect(
     screen.getByText("No successful run recorded yet."),
   ).toBeInTheDocument();
+});
+
+it("Coverage page · shows the llm_extract outcomes and the neuron meter once, not among the other budgets", async () => {
+  stubCoverageFetch(
+    emptyCoverage,
+    () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              resource: "neurons",
+              period: "2026-10-29",
+              cap: 9500,
+              used: 2500,
+              remaining: 7000,
+              exhausted: false,
+            },
+          ],
+          stored_bytes: 0,
+          stored_bytes_cap: 8589934592,
+        }),
+      ),
+  );
+
+  renderWithProviders(<DiscoveryCoveragePage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(await screen.findByText("Extracted: 4")).toBeInTheDocument();
+  expect(screen.getByText("No content: 2")).toBeInTheDocument();
+  expect(
+    await screen.findByText("2,500 of 9,500 used, 7,000 left"),
+  ).toBeInTheDocument();
+  expect(screen.getAllByText(/AI neurons/)).toHaveLength(1);
 });

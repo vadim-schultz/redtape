@@ -9,6 +9,7 @@ from sqlalchemy import ColumnElement, func, select
 
 from app.features.discovery.pipeline import PipelineStage
 from app.features.discovery.repository.artifacts import ArtifactRepository, ArtifactTotals
+from app.features.discovery.repository.llm_outcomes import LlmOutcomeCounts, LlmOutcomeRepository
 from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts
 from app.features.discovery.repository.runs import RunRepository
 from app.models.base import Base
@@ -42,6 +43,7 @@ class DiscoveryCoverageCounts:
     task_counts: TaskStatusCounts
     task_counts_by_kind: dict[DiscoveryTaskKind, TaskStatusCounts]
     candidates: CandidateCounts
+    llm_outcomes: LlmOutcomeCounts
     artifacts: dict[DiscoveryArtifactKind, ArtifactTotals]
     fetch_attempts_total: int
     stale_claims: int
@@ -50,7 +52,7 @@ class DiscoveryCoverageCounts:
     last_successful_run: DiscoveryRun | None
 
 
-class CoverageRepository(QueueMetricsRepository, RunRepository, ArtifactRepository):
+class CoverageRepository(QueueMetricsRepository, RunRepository, ArtifactRepository, LlmOutcomeRepository):
     """Count catalogue rows, tasks, fetches, and runs for the coverage endpoint."""
 
     def fetch_coverage_metrics(self) -> DiscoveryCoverageCounts:
@@ -64,6 +66,7 @@ class CoverageRepository(QueueMetricsRepository, RunRepository, ArtifactReposito
             task_counts=self.task_status_counts(),
             task_counts_by_kind=self.task_counts_by_kind(),
             candidates=self._candidate_counts(),
+            llm_outcomes=self.llm_outcome_counts(),
             artifacts=self.artifact_totals(),
             fetch_attempts_total=self.count_fetch_attempts(),
             stale_claims=self.count_stale_claims(now=now),

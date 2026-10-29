@@ -142,3 +142,45 @@ describe("discovery admin artifact strings", () => {
     );
   });
 });
+
+const DOCUMENT_KEYS = [
+  "documents.role_issued",
+  "document.col_condition",
+  "document.optional",
+  ...["title", "domains", "situations", "support", "empty", "accepted"].map(
+    (key) => `document.tags.${key}`,
+  ),
+  ...[
+    "title",
+    "requires",
+    "required_by",
+    "empty",
+    "basis_explicit",
+    "basis_derived_single_issued",
+    "procedure",
+  ].map((key) => `document.edges.${key}`),
+  ...["title", "extracted", "no_documents", "login_wall", "no_content"].map(
+    (key) => `coverage.llm.${key}`,
+  ),
+  "tasks.note_no_content",
+  "tasks.note_no_documents",
+].map((key) => `discovery_admin.${key}`);
+
+describe("discovery admin extraction strings", () => {
+  it.each(["en", "de"])("all new strings resolve in %s", (locale) => {
+    const bundle = fallbackBundle(locale);
+
+    for (const key of DOCUMENT_KEYS) {
+      expect(bundle[key], key).toBeTruthy();
+    }
+  });
+
+  it("translates the extraction strings instead of copying English", () => {
+    const en = fallbackBundle("en");
+    const de = fallbackBundle("de");
+
+    expect(de["discovery_admin.document.tags.empty"]).not.toBe(
+      en["discovery_admin.document.tags.empty"],
+    );
+  });
+});

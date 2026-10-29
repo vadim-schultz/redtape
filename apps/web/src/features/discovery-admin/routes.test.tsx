@@ -21,6 +21,7 @@ const coverageResponse = {
   task_counts: { total: 3, pending: 2, claimed: 0, completed: 0, failed: 1 },
   task_counts_by_kind: {},
   candidates: { total: 0, staged: 0, emitted: 0, mentions: 0 },
+  llm_outcomes: { extracted: 0, no_documents: 0, login_wall: 0, no_content: 0 },
   artifacts: { by_kind: {}, total_bytes: 0, bytes_cap: 8589934592 },
   fetch_attempts_total: 0,
   stale_claims: 0,
