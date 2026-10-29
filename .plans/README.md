@@ -68,6 +68,24 @@ language). Frontend only, four chapters. Orchestrate with **chief of staff**; lo
 
 Status: planned — first: [chapters/01-remove-list-chevron.md](frontend-ui-menu/chapters/01-remove-list-chevron.md).
 
+### [web-gui-harmonization/](web-gui-harmonization/) — Shared tables and visual language
+
+Harmonize RedTape’s GUI with the recorded reference patterns: restrained raised surfaces, consistent
+typography and table tokens, one DataTable for discovery admin data, readable coverage tables, and a
+typed server-side contract for sorting, filtering, search, and pagination. Frontend plus the bounded
+API list contract, eight chapters, and chief-of-staff orchestration on
+`feat/plans-web-gui-harmonization`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](web-gui-harmonization/00-architecture.md) | Visual principles, surface inventory, DataTable architecture, and list contract |
+| [01-rollout.md](web-gui-harmonization/01-rollout.md) | Eight chapters, dependencies, gates, smoke checklist, and release protocol |
+| [gaps-and-decisions.md](web-gui-harmonization/gaps-and-decisions.md) | Table/card boundary, elevation, query state, and open seams |
+| [chapters/](web-gui-harmonization/chapters/) | Executable red → green → refactor chapter plans |
+| [run-ledger.md](web-gui-harmonization/run-ledger.md) | Chief-of-staff chapter and release tracking |
+
+Status: planned — first: [chapters/01-visual-foundation.md](web-gui-harmonization/chapters/01-visual-foundation.md).
+
 ### [ci-foundation/](ci-foundation/) — Postgres-backed API CI
 
 Run API tests against Postgres in GitHub Actions and local `./ci.sh` (today every DB test is skipped on
