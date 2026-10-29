@@ -10,6 +10,16 @@ function shell() {
   return screen.getByRole("region");
 }
 
+/** Emotion rules for the element's classes (jsdom drops var() shorthands). */
+function rulesFor(el: Element): string {
+  const classes = Array.from(el.classList).filter((c) => c.startsWith("css-"));
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => Array.from(sheet.cssRules))
+    .map((rule) => rule.cssText)
+    .filter((text) => classes.some((c) => text.includes(`.${c}`)))
+    .join("\n");
+}
+
 it("SectionCard · renders a raised title and toolbar surface", () => {
   renderWithProviders(
     <SectionCard title="Services" toolbar={<button>Filter</button>}>
@@ -25,7 +35,9 @@ it("SectionCard · renders a raised title and toolbar surface", () => {
   expect(shell()).toHaveTextContent("Body text");
   expect(style.backgroundColor).toBe("var(--chakra-colors-surface)");
   expect(style.boxShadow).toBe("var(--chakra-shadows-shell)");
-  expect(style.borderColor).toBe("var(--chakra-colors-border)");
+  expect(rulesFor(shell())).toContain(
+    "border-color: var(--chakra-colors-border)",
+  );
 });
 
 it("SectionCard · does not invent raw visual values or a hover lift", () => {
@@ -35,8 +47,8 @@ it("SectionCard · does not invent raw visual values or a hover lift", () => {
 
   expect(style.backgroundColor).not.toMatch(RAW_VALUE);
   expect(style.boxShadow).not.toMatch(RAW_VALUE);
-  expect(style.borderColor).not.toMatch(RAW_VALUE);
-  expect(style.transform).toBe("");
+  expect(rulesFor(shell())).not.toMatch(RAW_VALUE);
+  expect(rulesFor(shell())).not.toMatch(/transform|:hover/);
   expect(style.transitionDuration).not.toBe("var(--chakra-durations-normal)");
 });
 

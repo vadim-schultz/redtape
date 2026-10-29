@@ -3,6 +3,10 @@ import { mode } from "./mode";
 
 /** Shadows that deepen under the dark condition. Focus uses the accent ring. */
 export const semanticShadows = {
+  shell: mode(
+    "0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+    "0 1px 2px 0 rgba(0, 0, 0, 0.25)",
+  ),
   card: mode(
     "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
     "0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3)",

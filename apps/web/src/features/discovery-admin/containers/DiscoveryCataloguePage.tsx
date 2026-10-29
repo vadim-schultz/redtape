@@ -1,6 +1,7 @@
 import { Stack, Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import SectionCard from "../../../components/data-display/SectionCard";
 import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
 import CatalogueServicesTable from "../components/CatalogueServicesTable";
@@ -47,7 +48,9 @@ function CataloguePanel({
   return (
     <DiscoveryCatalogueQueryStatus state={panel.state} onRetry={panel.retry}>
       {panel.state === "ready" ? (
-        <CatalogueServicesTable items={panel.data.items} />
+        <SectionCard>
+          <CatalogueServicesTable items={panel.data.items} />
+        </SectionCard>
       ) : null}
     </DiscoveryCatalogueQueryStatus>
   );
