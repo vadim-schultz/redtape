@@ -46,8 +46,13 @@ def _ground(name: str, extraction: PageExtraction | None = None) -> Grounded:
     return ground(extraction or _extraction(name), _page(name), taxonomy)
 
 
+def _quoted_documents(grounded: Grounded) -> int:
+    """Count documents whose quote grounded; the data-field guard (E16) drops names after the quote check."""
+    return len(grounded.documents) + grounded.diagnostics.dropped.get("data_field", 0)
+
+
 def _kept(grounded: Grounded) -> int:
-    return len(grounded.documents) + len(grounded.dependencies)
+    return _quoted_documents(grounded) + len(grounded.dependencies)
 
 
 @pytest.mark.parametrize("name", sorted(KEPT_AFTER))
@@ -82,7 +87,7 @@ def test_changing_one_word_of_a_recorded_quote_makes_it_fail_again(name: str, ol
     """recorded · a quote that was grounded only through folding is dropped once a word is altered (negative)."""
     genuine = _ground(name)
     changed = _ground(name, _with_changed_word(_extraction(name), old, new))
-    assert len(changed.documents) < len(genuine.documents)
+    assert _quoted_documents(changed) < _quoted_documents(genuine)
     assert changed.diagnostics.dropped["quote"] > genuine.diagnostics.dropped.get("quote", 0)
 
 
