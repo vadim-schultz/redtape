@@ -7,15 +7,13 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, Select, func, select
 
 from app.features.discovery.repository.base import SessionRepository
+from app.features.discovery.repository.catalogue_filter import CatalogueFilter
 from app.models.discovery import CatalogueService, DiscoverySource
 
 
-def catalogue_list_stmt(*, source: DiscoverySource | None) -> Select:
-    """Return the catalogue select, filtered by ``source`` when given."""
-    stmt = select(CatalogueService)
-    if source is not None:
-        stmt = stmt.where(CatalogueService.source == source)
-    return stmt
+def catalogue_list_stmt(catalogue_filter: CatalogueFilter) -> Select:
+    """Return the catalogue select narrowed by ``catalogue_filter``."""
+    return select(CatalogueService).where(*catalogue_filter.conditions())
 
 
 class CatalogueRepository(SessionRepository):
@@ -40,22 +38,24 @@ class CatalogueRepository(SessionRepository):
         self._session.add(row)
         self._session.flush()
 
-    def count_catalogue(self, *, source: DiscoverySource | None = None) -> int:
-        """Count catalogue rows, optionally for one ``source``."""
-        stmt = select(func.count()).select_from(catalogue_list_stmt(source=source).subquery())
+    def count_catalogue(self, catalogue_filter: CatalogueFilter | None = None) -> int:
+        """Count the catalogue rows that match ``catalogue_filter``."""
+        stmt = select(func.count()).select_from(catalogue_list_stmt(catalogue_filter or CatalogueFilter()).subquery())
         return int(self._session.scalar(stmt) or 0)
 
     def list_catalogue_page(
-        self, *, offset: int, limit: int, source: DiscoverySource | None = None
+        self, *, offset: int, limit: int, catalogue_filter: CatalogueFilter | None = None
     ) -> list[CatalogueService]:
-        """Return one page of catalogue rows, newest first."""
-        stmt = catalogue_list_stmt(source=source)
-        stmt = stmt.order_by(CatalogueService.updated_at.desc(), CatalogueService.id.desc())
+        """Return one page of the rows that match ``catalogue_filter``, in its order."""
+        catalogue_filter = catalogue_filter or CatalogueFilter()
+        stmt = catalogue_list_stmt(catalogue_filter).order_by(*catalogue_filter.ordering())
         return list(self._session.scalars(stmt.offset(offset).limit(limit)).all())
 
-    def catalogue_summary(self, *, source: DiscoverySource | None = None) -> tuple[int, dict[str, int], dict[str, int]]:
-        """Return the total plus counts grouped by source and by pipeline stage."""
-        base = catalogue_list_stmt(source=source).subquery()
+    def catalogue_summary(
+        self, catalogue_filter: CatalogueFilter | None = None
+    ) -> tuple[int, dict[str, int], dict[str, int]]:
+        """Return the total plus counts grouped by source and by pipeline stage of the matching rows."""
+        base = catalogue_list_stmt(catalogue_filter or CatalogueFilter()).subquery()
         total = int(self._session.scalar(select(func.count()).select_from(base)) or 0)
         return total, self._grouped_counts(base.c.source), self._grouped_counts(base.c.pipeline_stage)
 

@@ -11,6 +11,7 @@ from app.features.discovery.repository.candidate_listing import CandidateListing
 from app.features.discovery.repository.candidate_sort import LEGACY_SORTS, CandidateSort, CandidateSortKey
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
+from app.features.discovery.repository.catalogue_filter import CatalogueFilter, CatalogueSortKey
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.composite import DiscoveryRepository
 from app.features.discovery.repository.coverage import CoverageRepository, DiscoveryCoverageCounts
@@ -19,6 +20,7 @@ from app.features.discovery.repository.entities import EntityRepository
 from app.features.discovery.repository.queue_metrics import QueueMetricsRepository, TaskStatusCounts, TaskSummary
 from app.features.discovery.repository.runs import RunReport, RunRepository
 from app.features.discovery.repository.task_listing import Page, TaskFilter, TaskListingRepository
+from app.features.discovery.repository.task_sort import TaskSortKey
 from app.features.discovery.repository.tasks import TaskRepository, TaskTarget
 
 __all__ = [
@@ -33,7 +35,9 @@ __all__ = [
     "CandidateRepository",
     "CandidateSort",
     "CandidateSortKey",
+    "CatalogueFilter",
     "CatalogueRepository",
+    "CatalogueSortKey",
     "ClaimRepository",
     "CoverageRepository",
     "DiscoveryCoverageCounts",
@@ -54,6 +58,7 @@ __all__ = [
     "TaskFilter",
     "TaskListingRepository",
     "TaskRepository",
+    "TaskSortKey",
     "TaskStatusCounts",
     "TaskSummary",
     "TaskTarget",

@@ -86,3 +86,18 @@ def test_list_query_reports_every_invalid_parameter_at_once() -> None:
     errors = _errors({"sort_by": "nope", "filter[colour]": "green"})
 
     assert sorted(error["key"] for error in errors) == ["filter[colour]", "sort_by"]
+
+
+def test_filter_or_prefers_the_canonical_filter_over_the_legacy_fallback() -> None:
+    query = parse_list_query({"filter[colour]": "red"}, SPEC)
+
+    assert query.filter_or("colour", Colour, Colour.BLUE) is Colour.RED
+    assert query.filter_or("colour", Colour, None) is Colour.RED
+
+
+def test_filter_or_falls_back_when_the_filter_is_absent_or_of_another_type() -> None:
+    query = parse_list_query({"filter[min_size]": "3"}, SPEC)
+
+    assert query.filter_or("colour", Colour, Colour.BLUE) is Colour.BLUE
+    assert query.filter_or("min_size", Colour, Colour.BLUE) is Colour.BLUE
+    assert query.filter_or("colour", Colour, None) is None

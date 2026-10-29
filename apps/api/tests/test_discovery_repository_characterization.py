@@ -11,7 +11,7 @@ import pytest
 from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_service import ClaimDraft, ClaimService
 from app.features.discovery.errors import UnknownJurisdictionError
-from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, TaskTarget
+from app.features.discovery.repository import CatalogueFilter, DiscoveryRepository, FetchLogEntry, TaskTarget
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
     CatalogueService,
@@ -259,5 +259,5 @@ def test_catalogue_summary_groups_by_source_and_stage(
     _catalogue(repo, country)
     total, by_source, by_stage = repo.catalogue_summary()
     assert (total, by_source, by_stage) == (1, {"fim": 1}, {"T0": 1})
-    assert repo.catalogue_summary(source=DiscoverySource.GOVDATA)[0] == 0
+    assert repo.catalogue_summary(CatalogueFilter(source=DiscoverySource.GOVDATA))[0] == 0
     assert _count(db_session, DiscoveryTask) == 0
