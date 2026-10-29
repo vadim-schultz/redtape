@@ -196,3 +196,64 @@ it("DiscoveryTasksPage · tolerates an unknown future kind label", async () => {
   const table = await screen.findByRole("table");
   expect(within(table).getByText("render_pdf_v2")).toBeInTheDocument();
 });
+
+function taskItem(id: string) {
+  return {
+    id,
+    catalogue_service_id: "cat-1",
+    source: "govdata",
+    kind: "fetch_url",
+    target_url: `https://example.gov/${id}`,
+    status: "pending",
+    priority: 100,
+    attempt_count: 0,
+    not_before: null,
+    input_key: null,
+    lease_expires_at: null,
+    created_at: "2026-01-01T12:00:00Z",
+    updated_at: "2026-01-01T12:00:00Z",
+  };
+}
+
+it("DiscoveryTasksPage · pages with the response total and returns to page one on a new filter", async () => {
+  const urls: URL[] = [];
+  stubTasksFetch((url) => {
+    urls.push(url);
+    return new Response(
+      JSON.stringify({
+        items: [taskItem("a"), taskItem("b")],
+        total: 45,
+        offset: Number(url.searchParams.get("offset")),
+        limit: 20,
+      }),
+    );
+  });
+
+  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(await screen.findByText("45 tasks")).toBeInTheDocument();
+  expect(urls[0].searchParams.get("offset")).toBe("0");
+  await user.click(screen.getByRole("button", { name: "Next page" }));
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.get("offset")).toBe("20"),
+  );
+  expect(await screen.findByText("21–40 of 45")).toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Task kind"), "fetch_url");
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.get("offset")).toBe("0"),
+  );
+});
+
+it("DiscoveryTasksPage · shows the empty state and hides paging without stale rows", async () => {
+  stubEmptyTasks();
+
+  renderWithProviders(<DiscoveryTasksPage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(await screen.findByText("No tasks in queue")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+});

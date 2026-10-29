@@ -59,8 +59,9 @@ function stubCandidatesFetch(
   return urls;
 }
 
-function renderPage() {
+function renderPage(url = "/") {
   return renderWithProviders(<DiscoveryDocumentsPage />, {
+    initialEntries: [url],
     authGateway: createFakeAuthGateway({ session }),
   });
 }
@@ -101,6 +102,32 @@ it("documents page lists candidates with mention counts", async () => {
   expect(screen.getByText("2 documents")).toBeInTheDocument();
 });
 
+it("discovery documents render typed columns inside the shared table shell", async () => {
+  stubCandidatesFetch(() => page([candidate()]));
+
+  renderPage();
+
+  const table = await screen.findByRole("table", { name: "Documents" });
+  expect(table.closest("[data-section-card]")).not.toBeNull();
+  expect(
+    screen
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent?.trim()),
+  ).toEqual([
+    "Title",
+    "Jurisdiction",
+    "Roles",
+    "Mentions",
+    "Status",
+    "First seen",
+  ]);
+  expect(screen.getByRole("columnheader", { name: "Mentions" })).toHaveAttribute(
+    "aria-sort",
+    "descending",
+  );
+  expect(screen.queryByLabelText("Sort by")).toBeNull();
+});
+
 it("documents page falls back across locales for the title and omits an unknown jurisdiction", async () => {
   stubCandidatesFetch(() =>
     page([
@@ -117,26 +144,18 @@ it("documents page falls back across locales for the title and omits an unknown 
   expect(table).toHaveTextContent("Carte d'identité");
 });
 
-it("documents page sends filters and sort as query parameters", async () => {
+it("documents page sends filters and header sort as canonical query parameters", async () => {
   const urls = stubCandidatesFetch(() => page([candidate()], 1));
 
   const { user } = renderPage();
   await screen.findByRole("table");
-  const first = urls[0].searchParams;
-  expect([...first.keys()].sort()).toEqual([
-    "limit",
-    "offset",
-    "sort_by",
-    "sort_order",
-  ]);
-  expect(first.get("sort_by")).toBe("mentions");
-  expect(first.get("sort_order")).toBe("desc");
+  expect([...urls[0].searchParams.keys()].sort()).toEqual(["limit", "offset"]);
 
   await user.type(screen.getByLabelText("Search titles"), "pass{Enter}");
   await user.selectOptions(screen.getByLabelText("Minimum mentions"), "2");
   await user.selectOptions(screen.getByLabelText("Role"), "form");
   await user.selectOptions(screen.getByLabelText("Source"), "pvog");
-  await user.selectOptions(screen.getByLabelText("Sort by"), "title_asc");
+  await user.click(screen.getByRole("button", { name: "Title" }));
 
   await waitFor(() => {
     const last = urls.at(-1)!.searchParams;
@@ -147,10 +166,28 @@ it("documents page sends filters and sort as query parameters", async () => {
     expect(last.get("sort_by")).toBe("title");
     expect(last.get("sort_order")).toBe("asc");
   });
+  await user.click(screen.getByRole("button", { name: "Title" }));
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.get("sort_order")).toBe("desc"),
+  );
   await user.selectOptions(screen.getByLabelText("Role"), "");
   await waitFor(() =>
     expect(urls.at(-1)?.searchParams.has("filter[role]")).toBe(false),
   );
+});
+
+it("documents page restores its query from the url and ignores values the contract rejects", async () => {
+  const urls = stubCandidatesFetch(() => page([candidate()], 1));
+
+  renderPage("/?sort_by=title&sort_order=desc&filter[role]=bogus&offset=20");
+  await screen.findByRole("table");
+
+  const sent = urls[0].searchParams;
+  expect(sent.get("sort_by")).toBe("title");
+  expect(sent.get("sort_order")).toBe("desc");
+  expect(sent.get("offset")).toBe("20");
+  expect(sent.has("filter[role]")).toBe(false);
+  expect(screen.getByLabelText("Role")).toHaveValue("");
 });
 
 it("documents page pages through results and returns to the first page on a new filter", async () => {
@@ -175,14 +212,24 @@ it("documents page pages through results and returns to the first page on a new 
   );
 });
 
-it("documents page shows the empty state and hides paging when nothing matches", async () => {
-  stubCandidatesFetch(() => page([]));
+it("admin tables render an explicit empty or error state without stale rows", async () => {
+  const handler = vi
+    .fn<(url: URL) => Response>()
+    .mockReturnValueOnce(page([]))
+    .mockReturnValue(new Response("", { status: 500 }));
+  stubCandidatesFetch(handler);
 
-  renderPage();
+  const { user, unmount } = renderPage();
 
   await screen.findByText("No documents found");
-  expect(screen.queryByRole("table")).toBeNull();
+  expect(screen.queryByRole("row", { name: /Personalausweis/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+  expect(screen.queryByText(/documents?$/)).toBeNull();
+  unmount();
+
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Try again" }));
+  expect(screen.queryByRole("row", { name: /Personalausweis/ })).toBeNull();
 });
 
 it("documents page shows the error state and retries", async () => {
@@ -195,6 +242,6 @@ it("documents page shows the error state and retries", async () => {
   const { user } = renderPage();
 
   await user.click(await screen.findByRole("button", { name: "Try again" }));
-  expect(await screen.findByRole("table")).toBeInTheDocument();
+  expect(await screen.findByText("Personalausweis")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
 });

@@ -52,3 +52,34 @@ it("mentions table shows no optional chip and a dash for a mention without a con
   const cells = within(rowOf(/Plain/)).getAllByRole("cell");
   expect(cells[2]).toHaveTextContent("—");
 });
+
+it("catalogue, mentions, and nested admin lists use the shared table contract (mentions)", () => {
+  renderWithProviders(<DocumentMentionsTable mentions={[mention()]} />);
+
+  const table = screen.getByRole("table", { name: "Mentions" });
+  expect(
+    within(table)
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent),
+  ).toEqual([
+    "Role",
+    "Excerpt",
+    "Condition",
+    "Source field",
+    "Extractor",
+    "Source host",
+    "Procedure",
+  ]);
+  expect(
+    within(rowOf(/Geburtsurkunde/)).getByRole("link", {
+      name: "Apply for an ID card",
+    }),
+  ).toHaveAttribute("href", "/admin/discovery/pipeline/cat-1");
+});
+
+it("mentions table shows an explicit empty message and no data rows", () => {
+  renderWithProviders(<DocumentMentionsTable mentions={[]} />);
+
+  expect(screen.getByText("No mentions yet.")).toBeVisible();
+  expect(screen.getAllByRole("row")).toHaveLength(2);
+});
