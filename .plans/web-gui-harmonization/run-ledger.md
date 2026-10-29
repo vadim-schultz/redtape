@@ -11,7 +11,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 1. Visual foundation | `feat/web-gui-harmonization-visual-foundation` | [#244](https://github.com/vadim-schultz/redtape/pull/244) | pass (`ci.sh` on fresh DB) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 2. DataTable kernel | `feat/web-gui-harmonization-data-table` | [#245](https://github.com/vadim-schultz/redtape/pull/245) | pass (`ci.sh` on fresh DB) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 3. List contract | `feat/web-gui-harmonization-list-contract` | [#246](https://github.com/vadim-schultz/redtape/pull/246) | pass (`ci.sh` on fresh DB; narrow pytest 62 passed) | n/a (no Actions minutes) | merged 2026-10-29 | none |
-| 4. Admin tables |  |  |  |  |  |  |
+| 4. Admin tables | `feat/web-gui-harmonization-admin-tables` | [#247](https://github.com/vadim-schultz/redtape/pull/247) | pass (`ci.sh` on fresh DB; stock run also hit one docs test, fixed in-PR) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 5. Coverage tables |  |  |  |  |  |  |
 | 6. Table interactions |  |  |  |  |  |  |
 | 7. Visual integration |  |  |  |  |  |  |
