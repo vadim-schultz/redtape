@@ -99,10 +99,34 @@ def test_the_system_message_no_longer_lets_a_quote_span_a_whole_sentence() -> No
     assert "the sentence or list line" not in system
 
 
-def test_the_prompt_version_is_ext_3() -> None:
-    """prompt · the wording changed, so recorded answers of ext-2 are not reused."""
-    assert PROMPT_VERSION == "ext-3"
-    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-3+clean-4+tax:")
+def test_the_system_message_says_that_addresses_numbers_dates_and_facts_to_state_are_not_documents() -> None:
+    """prompt · a document is a paper or file; data items to enter into a form are never reported."""
+    system = " ".join(_system().split())
+    assert "A document is a paper or file a person brings, sends, fills in or receives" in system
+    for data in ("An address", "a number", "a date", "a yes/no fact", "a piece of information to be stated"):
+        assert data in system
+    assert "are data, not documents; do not report them" in system
+    assert "When a page lists data to enter into a form, report none of them." in system
+
+
+def test_the_data_field_rule_takes_no_rule_of_ext_3_away() -> None:
+    """prompt · negative: every earlier rule is still in the message after the data-field paragraph is added."""
+    system = " ".join(_system().split())
+    for kept in (
+        "quote is one line or one list item of the page, copied exactly",
+        "Never join a heading and an item, or two items, into one quote.",
+        "Copy every name verbatim from the page.",
+        'split "A oder B" and "A und B" into two documents',
+        "Leave dependencies empty when the page does not say so.",
+        "An empty list is correct when unsure.",
+    ):
+        assert kept in system
+
+
+def test_the_prompt_version_is_ext_4() -> None:
+    """prompt · the wording changed, so recorded answers of ext-3 are not reused."""
+    assert PROMPT_VERSION == "ext-4"
+    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-4+clean-4+tax:")
 
 
 def test_page_text_never_reaches_the_system_message() -> None:
@@ -148,7 +172,7 @@ def test_the_prompt_never_contains_a_credential_or_a_setting(monkeypatch: pytest
     assert not re.search(r"api[_ -]?key|token|secret|password|authorization|bearer", rendered, re.IGNORECASE)
 
 
-WORDING_DIGESTS = {"ext-1": "33b98a3792bb", "ext-2": "040099cebc43", "ext-3": "9be145f7d8b8"}
+WORDING_DIGESTS = {"ext-1": "33b98a3792bb", "ext-2": "040099cebc43", "ext-3": "9be145f7d8b8", "ext-4": "e1a1d7cce51b"}
 
 
 def test_a_wording_change_needs_a_new_prompt_version() -> None:

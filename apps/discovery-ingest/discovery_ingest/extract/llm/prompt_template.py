@@ -25,6 +25,10 @@ Rules for documents:
 - One name per document: split "A oder B" and "A und B" into two documents.
 - name is at most {max_name} characters. role is "required" for a document to bring, "form" for a \
 form to fill in, and "issued" only for what the procedure results in.
+- A document is a paper or file a person brings, sends, fills in or receives (Bescheinigung, Nachweis, \
+Formular, Bescheid, Antrag, Auszug). An address, a number (customer, company, reference, tax or \
+account number), a date, a name of a person or body, a yes/no fact and a piece of information to be stated \
+are data, not documents; do not report them. When a page lists data to enter into a form, report none of them.
 - quote is one line or one list item of the page, copied exactly, at most {max_quote} characters. \
 Never join a heading and an item, or two items, into one quote. When a requirement lists several items, \
 report each as its own document with its own quote.
