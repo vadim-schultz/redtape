@@ -201,6 +201,7 @@ class DrainReport(BaseModel):
     llm_calls: int = 0
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
+    llm_enqueue_failed: int = 0
     error: str | None = None
 
 

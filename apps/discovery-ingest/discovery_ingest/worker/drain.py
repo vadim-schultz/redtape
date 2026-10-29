@@ -21,10 +21,12 @@ from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.handler_table import handler_table
 from discovery_ingest.worker.llm_drain import LlmDrain, open_llm_drain
+from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.render import AfterSnapshot
+from discovery_ingest.worker.snapshot_hooks import chain
 from discovery_ingest.worker.tally import Tally
 
 
@@ -64,6 +66,7 @@ def run_worker_drain(
     extractors: Sequence[Extractor] = EXTRACTORS,
     llm: LlmResources | None = None,
     after_extract: AfterExtract = no_after_extract,
+    llm_enqueue: LlmEnqueuer | None = None,
 ) -> DrainReport:
     """Claim and settle batches until ``policy`` says to stop.
 
@@ -73,7 +76,8 @@ def run_worker_drain(
     after-snapshot action (queue ``extract_page``); passing ``after_snapshot`` replaces that action.
 
     Draining ``llm_extract`` needs ``llm`` and ``policy.neuron_budget``; with no neurons left today the drain stops
-    ``llm_budget`` before it claims anything. ``after_extract`` runs for each page that staged mentions (no-op by default).
+    ``llm_budget`` before it claims anything. ``after_extract`` runs for each page that staged mentions (no-op by default). ``llm_enqueue`` runs after the
+    snapshot hook of every render and queues ``llm_extract``; its failures are counted in the report.
     """
     guard = budget or BudgetGuard(client)
     guard.snapshot()
@@ -83,18 +87,21 @@ def run_worker_drain(
     llm_drain = open_llm_drain(policy, guard, llm, after_extract)
     if policy.drains_llm_kinds and llm_drain is None:
         return _report(client, policy, tally, "llm_budget")
-    hook = after_snapshot or ExtractEnqueuer(client, extractors)
+    hook = chain(after_snapshot or ExtractEnqueuer(client, extractors), llm_enqueue)
     ctx = DrainContext(client, fetcher, policy, handler_table(extractors, (browser, spend, hook), llm_drain))
     reason, error = _drain_batches(ctx, tally, clock)
-    _close_tally(tally, guard, spend, llm_drain)
+    _close_tally(tally, guard, spend, (llm_drain, llm_enqueue))
     return _report(client, policy, tally, reason, error=error)
 
 
-def _close_tally(tally: Tally, guard: BudgetGuard, spend: BrowserSpend | None, llm_drain: LlmDrain | None) -> None:
+def _close_tally(
+    tally: Tally, guard: BudgetGuard, spend: BrowserSpend | None, llm: tuple[LlmDrain | None, LlmEnqueuer | None]
+) -> None:
     tally.ledger_unavailable = guard.ledger_unavailable
     tally.browser_seconds_used = spend.used_seconds if spend else 0.0
-    if llm_drain is not None:
-        llm_drain.record(tally)
+    for part in llm:
+        if part is not None:
+            part.record(tally)
 
 
 def _remaining(client: DiscoveryMachineClient, policy: DrainPolicy) -> int | None:

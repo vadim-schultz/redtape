@@ -34,6 +34,7 @@ from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
+from discovery_ingest.llm_requeue import llm_requeue
 from discovery_ingest.pvog.client import (
     FEDERAL_ARS,
     PvogClient,
@@ -50,8 +51,9 @@ from discovery_ingest.schemas import (
     is_task_kind,
 )
 from discovery_ingest.worker.browser_setup import BrowserSetupError, prepare_browser
+from discovery_ingest.worker.capture_enqueue import enqueue_screenshot_for_mentions
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
-from discovery_ingest.worker.llm_setup import LlmSetupError, prepare_llm
+from discovery_ingest.worker.llm_setup import LlmSetupError, prepare_llm, prepare_llm_enqueue
 from discovery_ingest.worker.policy import MAX_TASKS_PER_CLAIM, DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
 
@@ -259,10 +261,19 @@ def _worker_drain(args: argparse.Namespace) -> int:
 
 def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
     """Prepare the browser and the model when their kinds are drained, run the recorded drain and print its report."""
+    llm_enqueue = prepare_llm_enqueue(settings, client, policy)
     browser = prepare_browser(settings, settings.user_agent, client) if policy.drains_browser_kinds else None
     llm = prepare_llm(settings, client) if policy.drains_llm_kinds else None
     fetcher = PoliteUrlFetcher(user_agent=settings.user_agent)
-    report = run_recorded_drain(client, fetcher, policy, browser=browser, llm=llm)
+    report = run_recorded_drain(
+        client,
+        fetcher,
+        policy,
+        browser=browser,
+        llm=llm,
+        after_extract=enqueue_screenshot_for_mentions,
+        llm_enqueue=llm_enqueue,
+    )
     print(json.dumps(report.model_dump(mode="json")))
     return 0 if report.succeeded else 1
 
@@ -363,6 +374,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("browser", "probe"): browser_probe,
     ("llm", "probe"): llm_probe,
     ("llm", "eval"): llm_eval,
+    ("llm", "requeue"): llm_requeue,
     ("artifacts", "list"): artifacts_list,
     ("artifacts", "download"): artifacts_download,
 }
