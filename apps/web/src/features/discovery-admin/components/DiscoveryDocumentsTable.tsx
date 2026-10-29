@@ -1,5 +1,6 @@
 import { LuFileText } from "react-icons/lu";
 
+import { toTableQuery } from "../../../hooks/toTableQuery";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CandidateList } from "../hooks/useCandidateListState";
@@ -24,7 +25,6 @@ export default function DiscoveryDocumentsTable({
   list,
 }: DiscoveryDocumentsTableProps) {
   const locale = useLocale();
-  const { sortBy } = list.state;
 
   return (
     <DiscoveryDataTable
@@ -33,10 +33,7 @@ export default function DiscoveryDocumentsTable({
         columns: candidateColumns(locale),
         getKey: (candidate) => candidate.id,
         getHref: candidateHref,
-        query: {
-          sort: sortBy ? list.state : DEFAULT_CANDIDATE_SORT,
-          onSortChange: list.setSort,
-        },
+        query: toTableQuery(list, DEFAULT_CANDIDATE_SORT),
       }}
       page={page}
       status={status}

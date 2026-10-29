@@ -91,16 +91,105 @@ describe("DataTable", () => {
     expect(onFilterChange).not.toHaveBeenCalled();
   });
 
-  it("DataTable emits a typed filter event for a filterable column", async () => {
+  it("DataTable keeps a filter draft local until Apply emits it", async () => {
     const onFilterChange = vi.fn();
     const { user } = renderTable({ query: { onFilterChange } });
 
+    await user.click(screen.getByRole("button", { name: "Filter name" }));
     await user.type(screen.getByRole("textbox", { name: "Filter name" }), "x");
+    expect(onFilterChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(onFilterChange).toHaveBeenCalledExactlyOnceWith({
       key: "name",
       value: "x",
     });
+  });
+
+  it("DataTable discards an unapplied filter draft when the popover closes", async () => {
+    const onFilterChange = vi.fn();
+    const { user } = renderTable({
+      query: { onFilterChange, filters: { name: "Al" } },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Filter name" }));
+    await user.type(screen.getByRole("textbox", { name: "Filter name" }), "x");
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Filter name" }));
+
+    expect(onFilterChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: "Filter name" })).toHaveValue(
+      "Al",
+    );
+  });
+
+  it("DataTable offers a bounded filter as options with an any choice", async () => {
+    const onFilterChange = vi.fn();
+    const bounded: DataTableColumn<Row, SortKey, FilterKey>[] = [
+      {
+        key: "name",
+        header: "Name",
+        filter: {
+          key: "name",
+          operators: ["eq"],
+          label: "Filter name",
+          options: [
+            { value: "Alpha", label: "Alpha team" },
+            { value: "Beta", label: "Beta team" },
+          ],
+        },
+        render: (row) => row.name,
+      },
+    ];
+    const { user } = renderTable({
+      columns: bounded,
+      query: { onFilterChange },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Filter name" }));
+    const select = screen.getByRole("combobox", { name: "Filter name" });
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Any", "Alpha team", "Beta team"]);
+    await user.selectOptions(select, "Beta");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(onFilterChange).toHaveBeenCalledExactlyOnceWith({
+      key: "name",
+      value: "Beta",
+    });
+  });
+
+  it("DataTable lists applied filters as removable chips with a clear-all", async () => {
+    const onFilterChange = vi.fn();
+    const onFiltersClear = vi.fn();
+    const { user } = renderTable({
+      query: { onFilterChange, onFiltersClear, filters: { name: "Al" } },
+    });
+
+    expect(screen.getByText("Filter name: Al")).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Remove filter Filter name" }),
+    );
+    expect(onFilterChange).toHaveBeenCalledExactlyOnceWith({
+      key: "name",
+      value: "",
+    });
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }));
+    expect(onFiltersClear).toHaveBeenCalledOnce();
+  });
+
+  it("DataTable shows no filter summary without an applied filter", () => {
+    renderTable({
+      query: { onFilterChange: vi.fn(), onFiltersClear: vi.fn(), filters: {} },
+    });
+
+    expect(screen.queryByText(/Filter name:/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Clear all filters" }),
+    ).not.toBeInTheDocument();
   });
 
   it("DataTable shows explicit error and empty states", async () => {
@@ -112,7 +201,10 @@ describe("DataTable", () => {
       error: new Error("boom"),
       onRetry,
     };
-    const { user, unmount } = renderTable({ states: { status } });
+    const { user, unmount } = renderTable({
+      rows: { items: [], getKey: (row) => row.id },
+      states: { status },
+    });
 
     expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -141,6 +233,39 @@ describe("DataTable", () => {
 
     expect(screen.getByRole("table")).toHaveAttribute("aria-busy", "true");
     expect(screen.getByText("Alpha")).toBeVisible();
+  });
+
+  it("DataTable keeps previous rows and offers a retry when a refetch fails", async () => {
+    const onRetry = vi.fn();
+    const status = {
+      isLoading: false,
+      isRefreshing: false,
+      isError: true,
+      error: new Error("boom"),
+      onRetry,
+    };
+    const { user } = renderTable({ states: { status } });
+
+    expect(screen.getByText("Alpha")).toBeVisible();
+    expect(screen.getByText("Beta")).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not refresh the list",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("DataTable shows no refetch alert while the request succeeds", () => {
+    const status = {
+      isLoading: false,
+      isRefreshing: false,
+      isError: false,
+      error: null,
+      onRetry: vi.fn(),
+    };
+    renderTable({ states: { status } });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("DataTable shows the loading slot instead of rows while loading", () => {

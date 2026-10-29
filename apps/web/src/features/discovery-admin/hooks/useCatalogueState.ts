@@ -1,5 +1,10 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 
+import {
+  toQueryStatus,
+  type QueryStatus,
+} from "../../../components/feedback/queryStatus";
+import type { CatalogueListQuery } from "../services/catalogueListQuery";
 import type {
   CatalogueListResponse,
   DiscoveryCoverageResponse,
@@ -15,6 +20,13 @@ export type PanelState<T> =
   | (PanelBase & { state: "error" })
   | (PanelBase & { state: "ready"; data: T });
 
+/** The catalogue index: its page (kept across a failed refetch) and the query status the table renders. */
+export type CataloguePanel = {
+  page: CatalogueListResponse | undefined;
+  status: QueryStatus;
+  pending: boolean;
+};
+
 /** Combined catalogue page state; ``ready`` carries per-panel states. */
 export type CatalogueState =
   | { kind: "loading" }
@@ -22,7 +34,7 @@ export type CatalogueState =
   | {
       kind: "ready";
       coverage: PanelState<DiscoveryCoverageResponse>;
-      catalogue: PanelState<CatalogueListResponse>;
+      catalogue: CataloguePanel;
     };
 
 function panelState<T>(query: UseQueryResult<T>): PanelState<T> {
@@ -32,28 +44,39 @@ function panelState<T>(query: UseQueryResult<T>): PanelState<T> {
   return { state: "ready", data: query.data, retry };
 }
 
+function cataloguePanel(
+  query: UseQueryResult<CatalogueListResponse>,
+): CataloguePanel {
+  return {
+    page: query.data,
+    status: toQueryStatus(query),
+    pending: query.isPending,
+  };
+}
+
 function combine(
   coverage: PanelState<DiscoveryCoverageResponse>,
-  catalogue: PanelState<CatalogueListResponse>,
+  catalogue: CataloguePanel,
 ): CatalogueState {
-  if (coverage.state === "loading" && catalogue.state === "loading") {
+  const failed = catalogue.status.isError && catalogue.page === undefined;
+  if (coverage.state === "loading" && catalogue.pending) {
     return { kind: "loading" };
   }
-  if (coverage.state === "error" && catalogue.state === "error") {
+  if (coverage.state === "error" && failed) {
     return {
       kind: "error",
       retry: () => {
         coverage.retry();
-        catalogue.retry();
+        catalogue.status.onRetry();
       },
     };
   }
   return { kind: "ready", coverage, catalogue };
 }
 
-/** Merge the coverage and catalogue queries into one typed page state. */
-export function useCatalogueState(): CatalogueState {
+/** Merge the coverage query and the catalogue page of ``query`` into one typed page state. */
+export function useCatalogueState(query: CatalogueListQuery): CatalogueState {
   const coverage = panelState(useDiscoveryCoverageQuery());
-  const catalogue = panelState(useDiscoveryCatalogueQuery());
+  const catalogue = cataloguePanel(useDiscoveryCatalogueQuery(query));
   return combine(coverage, catalogue);
 }

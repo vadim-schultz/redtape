@@ -1,6 +1,8 @@
 import { Table } from "@chakra-ui/react";
 
-import { ColumnFilter, SortButton } from "./ColumnControls";
+import ColumnFilter from "./ColumnFilter";
+import { appliedValue } from "./filters";
+import SortButton from "./SortButton";
 import { ariaSortFor, nextSort } from "./sorting";
 import type { DataTableColumn, DataTableQuery } from "./types";
 
@@ -20,7 +22,7 @@ type CellProps<Row, SortKey extends string, FilterKey extends string> = {
 
 function HeaderCell<Row, SortKey extends string, FilterKey extends string>({
   column: { canSort, filter, header },
-  query: { sort = {}, onSortChange, onFilterChange },
+  query: { sort = {}, onSortChange, onFilterChange, filters },
 }: CellProps<Row, SortKey, FilterKey>) {
   const sortable = canSort !== undefined && onSortChange !== undefined;
   const filterable = filter !== undefined && onFilterChange !== undefined;
@@ -43,6 +45,7 @@ function HeaderCell<Row, SortKey extends string, FilterKey extends string>({
       {filterable ? (
         <ColumnFilter
           filter={filter}
+          value={appliedValue(filters, filter.key)}
           onChange={(value) => onFilterChange({ key: filter.key, value })}
         />
       ) : null}

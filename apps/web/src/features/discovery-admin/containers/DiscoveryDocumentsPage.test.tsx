@@ -243,3 +243,33 @@ it("documents page shows the error state and retries", async () => {
   expect(await screen.findByText("Personalausweis")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
 });
+
+it("documents page clearing filters restores the default result set and keeps search and sort", async () => {
+  const urls = stubCandidatesFetch(() => page([candidate()], 1));
+
+  const { user } = renderPage(
+    "/?offset=20&filter[role]=required&filter[source]=pvog&sort_by=title&q=pass",
+  );
+  await user.click(
+    await screen.findByRole("button", { name: "Clear filters" }),
+  );
+
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.has("filter[role]")).toBe(false),
+  );
+  const sent = urls.at(-1)?.searchParams;
+  expect(sent?.has("filter[source]")).toBe(false);
+  expect(sent?.get("offset")).toBe("0");
+  expect(sent?.get("sort_by")).toBe("title");
+  expect(sent?.get("q")).toBe("pass");
+  expect(screen.getByLabelText("Role")).toHaveValue("");
+});
+
+it("documents page offers no clear control while no filter is applied", async () => {
+  stubCandidatesFetch(() => page([candidate()], 1));
+
+  renderPage("/?q=pass");
+  await screen.findByText("Personalausweis");
+
+  expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull();
+});

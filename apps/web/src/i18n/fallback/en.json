@@ -21,6 +21,14 @@
       "previous": "Previous page",
       "next": "Next page",
       "page": "Page {page}"
+    },
+    "table": {
+      "filter_apply": "Apply",
+      "filter_clear": "Clear",
+      "filter_any": "Any",
+      "filters_clear_all": "Clear all filters",
+      "filter_remove": "Remove filter {label}",
+      "refetch_failed": "Could not refresh the list. The rows shown may be outdated."
     }
   },
   "nav": {
@@ -100,10 +108,8 @@
     "disabled_body": "Discovery administration is not configured on this deployment. Check the deployment configuration, then try again.",
     "tasks": {
       "filter_status": "Task status",
-      "filter_source": "Source",
-      "filter_source_all": "All sources",
+      "filter_source": "Task source",
       "filter_kind": "Task kind",
-      "filter_kind_all": "All kinds",
       "col_target": "Target URL",
       "col_kind": "Kind",
       "col_status": "Status",
@@ -124,7 +130,8 @@
       "note_no_extractor": "No extractor",
       "note_no_content": "No content",
       "note_no_documents": "No documents",
-      "table_label": "Crawler tasks"
+      "table_label": "Crawler tasks",
+      "filter_search": "Search target URLs"
     },
     "documents": {
       "filter_search": "Search titles",
@@ -148,7 +155,8 @@
       "count_one": "{count} document",
       "count_other": "{count} documents",
       "role_issued": "Issued",
-      "table_label": "Documents"
+      "table_label": "Documents",
+      "clear_filters": "Clear filters"
     },
     "document": {
       "jurisdiction": "Jurisdiction",
@@ -262,12 +270,17 @@
       "last_run_stop": "Stop reason"
     },
     "catalogue": {
-      "empty": "No catalogue services yet.",
       "load_error": "Could not load catalogue data.",
       "col_external_id": "External ID",
       "col_source": "Source",
       "col_stage": "Stage",
-      "table_label": "Catalogue services"
+      "table_label": "Catalogue services",
+      "filter_search": "Search external IDs",
+      "filter_source": "Catalogue source",
+      "count_one": "{count} catalogue service",
+      "count_other": "{count} catalogue services",
+      "empty_title": "No catalogue services",
+      "empty_description": "Try another source or search term."
     },
     "artifacts": {
       "title": "Artifacts",

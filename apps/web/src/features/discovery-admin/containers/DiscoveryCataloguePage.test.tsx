@@ -92,9 +92,10 @@ function stubDiscoveryFetch(
   return fetchMock;
 }
 
-function renderCataloguePage() {
+function renderCataloguePage(entry = "/admin/discovery/catalogue") {
   return renderWithProviders(<DiscoveryCataloguePage />, {
     authGateway: createFakeAuthGateway({ session }),
+    initialEntries: [entry],
   });
 }
 
@@ -190,9 +191,7 @@ it("DiscoveryCataloguePage · shows a deliberate empty state for zero catalogue 
 
   renderCataloguePage();
 
-  expect(
-    await screen.findByText("No catalogue services yet."),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("No catalogue services")).toBeInTheDocument();
   expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
 });
 
@@ -216,7 +215,7 @@ it("DiscoveryCataloguePage · keeps its existing rows inside the section shell",
   );
 });
 
-it("DiscoveryCataloguePage · a failed catalogue query shows no shell around the error", async () => {
+it("DiscoveryCataloguePage · a failed catalogue query keeps search and filters reachable", async () => {
   stubDiscoveryFetch({
     catalogue: () => new Response("", { status: 500 }),
     coverage: () => new Response(JSON.stringify(coverageResponse)),
@@ -224,10 +223,107 @@ it("DiscoveryCataloguePage · a failed catalogue query shows no shell around the
 
   renderCataloguePage();
 
-  const retry = await screen.findByRole("button", { name: "Try again" });
-
-  expect(retry.closest("[data-section-card]")).toBeNull();
+  const table = await screen.findByRole("table", {
+    name: "Catalogue services",
+  });
   expect(
-    screen.queryByRole("table", { name: "Catalogue services" }),
-  ).not.toBeInTheDocument();
+    within(table).getByRole("button", { name: "Try again" }),
+  ).toBeVisible();
+  expect(within(table).queryByRole("link")).not.toBeInTheDocument();
+  expect(
+    within(table).getByRole("button", { name: "Catalogue source" }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("textbox", { name: "Search external IDs" }),
+  ).toBeVisible();
+});
+
+function catalogueUrls(total = 120) {
+  stubDiscoveryFetch({
+    catalogue: () =>
+      new Response(JSON.stringify({ ...catalogueResponse, total, limit: 20 })),
+    coverage: () => new Response(JSON.stringify(coverageResponse)),
+  });
+  const fetchMock = vi.mocked(fetch);
+  return () =>
+    fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((url) => url.pathname.endsWith("/discovery/admin/catalogue"))
+      .slice(-1)[0];
+}
+
+it("DiscoveryCataloguePage · pages past the first page of the response total", async () => {
+  const lastRequest = catalogueUrls();
+  const { user } = renderCataloguePage(
+    "/admin/discovery/catalogue?sort_by=stage",
+  );
+
+  expect(await screen.findByText("120 catalogue services")).toBeVisible();
+  expect(lastRequest().searchParams.get("limit")).toBe("20");
+  await user.click(screen.getByRole("button", { name: "Next page" }));
+
+  await waitFor(() =>
+    expect(lastRequest().searchParams.get("offset")).toBe("20"),
+  );
+  expect(lastRequest().searchParams.get("sort_by")).toBe("stage");
+});
+
+it("DiscoveryCataloguePage · sort, filter and search return to page one and serialize the contract", async () => {
+  const lastRequest = catalogueUrls();
+  const { user } = renderCataloguePage("/admin/discovery/catalogue?offset=40");
+  await screen.findByText("120 catalogue services");
+
+  await user.click(screen.getByRole("button", { name: "External ID" }));
+  await waitFor(() =>
+    expect(lastRequest().searchParams.get("sort_by")).toBe("external_id"),
+  );
+  expect(lastRequest().searchParams.get("sort_order")).toBe("asc");
+  expect(lastRequest().searchParams.get("offset")).toBe("0");
+
+  await user.click(screen.getByRole("button", { name: "Catalogue source" }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Catalogue source" }),
+    "pvog",
+  );
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  await waitFor(() =>
+    expect(lastRequest().searchParams.get("filter[source]")).toBe("pvog"),
+  );
+  expect(lastRequest().searchParams.get("sort_by")).toBe("external_id");
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Search external IDs" }),
+    "svc",
+  );
+  await user.click(screen.getByRole("button", { name: "Search" }));
+  await waitFor(() => expect(lastRequest().searchParams.get("q")).toBe("svc"));
+
+  await user.click(screen.getByRole("button", { name: "Clear all filters" }));
+  await waitFor(() =>
+    expect(lastRequest().searchParams.has("filter[source]")).toBe(false),
+  );
+  expect(lastRequest().searchParams.get("q")).toBe("svc");
+});
+
+it("DiscoveryCataloguePage · invalid URL list state falls back to safe defaults", async () => {
+  const lastRequest = catalogueUrls();
+  renderCataloguePage(
+    "/admin/discovery/catalogue?offset=abc&limit=0&sort_by=raw_payload&filter[source]=nowhere&filter[stage]=T0",
+  );
+  await screen.findByText("120 catalogue services");
+
+  const params = lastRequest().searchParams;
+  expect(params.get("offset")).toBe("0");
+  expect(params.get("limit")).toBe("20");
+  for (const key of ["sort_by", "filter[source]", "filter[stage]"]) {
+    expect(params.has(key)).toBe(false);
+  }
+});
+
+it("DiscoveryCataloguePage · a single page of rows shows no pagination", async () => {
+  catalogueUrls(1);
+  renderCataloguePage();
+
+  expect(await screen.findByText("1 catalogue service")).toBeVisible();
+  expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
 });

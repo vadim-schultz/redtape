@@ -1,16 +1,16 @@
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import DiscoveryTasksView from "../components/DiscoveryTasksView";
-import { useDiscoveryTaskFilters } from "../hooks/useDiscoveryTaskFilters";
 import { useDiscoveryTasksQuery } from "../hooks/useDiscoveryTasksQuery";
+import { useTaskListState } from "../hooks/useTaskListState";
 
 /** Admin crawler queue at ``/admin/discovery/tasks``. */
 export default function DiscoveryTasksPage() {
-  const filters = useDiscoveryTaskFilters();
-  const tasksQuery = useDiscoveryTasksQuery(filters);
+  const list = useTaskListState();
+  const tasksQuery = useDiscoveryTasksQuery(list.state);
 
   return (
     <DiscoveryTasksView
-      filters={filters}
+      list={list}
       page={tasksQuery.data}
       status={toQueryStatus(tasksQuery)}
     />

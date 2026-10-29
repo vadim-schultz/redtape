@@ -15,9 +15,14 @@ from app.features.discovery.pipeline_rows import (
     fetch_log_dict,
     stage_of,
 )
-from app.features.discovery.repository import DiscoveryRepository, Page, TaskFilter, TaskStatusCounts
+from app.features.discovery.repository import (
+    CatalogueFilter,
+    DiscoveryRepository,
+    Page,
+    TaskFilter,
+    TaskStatusCounts,
+)
 from app.features.discovery.repository.coverage import DiscoveryCoverageCounts
-from app.models.discovery import DiscoverySource
 from app.schema.discovery.read import (
     ArtifactCoverageRead,
     ArtifactTotalsRead,
@@ -63,19 +68,13 @@ class DiscoveryAdminService:
         items = [DiscoveryTaskRead.from_row(task, source=task_source) for task, task_source in rows]
         return DiscoveryTaskListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
-    def list_catalogue(
-        self,
-        *,
-        source: DiscoverySource | None,
-        offset: int,
-        limit: int,
-    ) -> CatalogueListResponse:
-        """Return one page of catalogue rows with summary chips."""
-        total = self._repo.count_catalogue(source=source)
-        rows = self._repo.list_catalogue_page(offset=offset, limit=limit, source=source)
+    def list_catalogue(self, catalogue_filter: CatalogueFilter, page: Page) -> CatalogueListResponse:
+        """Return one page of catalogue rows matching ``catalogue_filter`` with summary chips."""
+        total = self._repo.count_catalogue(catalogue_filter)
+        rows = self._repo.list_catalogue_page(offset=page.offset, limit=page.limit, catalogue_filter=catalogue_filter)
         items = [CatalogueServiceRead.from_row(row) for row in rows]
         return CatalogueListResponse(
-            items=items, summary=self._summary(source), total=total, offset=offset, limit=limit
+            items=items, summary=self._summary(catalogue_filter), total=total, offset=page.offset, limit=page.limit
         )
 
     def coverage(self) -> DiscoveryCoverageResponse:
@@ -126,6 +125,6 @@ class DiscoveryAdminService:
             events=[event_dict(e) for e in self._repo.list_catalogue_events(catalogue_id)],
         )
 
-    def _summary(self, source: DiscoverySource | None) -> CatalogueSummaryChips:
-        total, by_source, by_stage = self._repo.catalogue_summary(source=source)
+    def _summary(self, catalogue_filter: CatalogueFilter) -> CatalogueSummaryChips:
+        total, by_source, by_stage = self._repo.catalogue_summary(catalogue_filter)
         return CatalogueSummaryChips(total=total, by_source=by_source, by_pipeline_stage=by_stage)

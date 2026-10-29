@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import TypeVar
 
 from app.features.discovery.repository import CandidateFilter, CandidateSortKey
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryMentionRole, DiscoverySource
 from app.shared.list_query import ListQuery, ListQuerySpec, SortOrder, enum_filter, min_int_filter
-
-T = TypeVar("T")
 
 CANDIDATE_LIST_SPEC = ListQuerySpec(
     sort_keys=frozenset(key.value for key in CandidateSortKey),
@@ -22,19 +19,15 @@ CANDIDATE_LIST_SPEC = ListQuerySpec(
 )
 
 
-def _canonical_or(canonical: T | None, legacy: T | None) -> T | None:
-    return legacy if canonical is None else canonical
-
-
 def candidate_filter_from(query: ListQuery, legacy: CandidateFilter) -> CandidateFilter:
     """Return the filter for ``query``; canonical parameters win over the ``legacy`` ones they replace."""
     narrowed = replace(
         legacy,
         q=query.q,
-        status=_canonical_or(query.filter_value("status", DiscoveryCandidateStatus), legacy.status),
-        role=_canonical_or(query.filter_value("role", DiscoveryMentionRole), legacy.role),
-        source=_canonical_or(query.filter_value("source", DiscoverySource), legacy.source),
-        min_mentions=_canonical_or(query.filter_value("min_mentions", int), legacy.min_mentions),
+        status=query.filter_or("status", DiscoveryCandidateStatus, legacy.status),
+        role=query.filter_or("role", DiscoveryMentionRole, legacy.role),
+        source=query.filter_or("source", DiscoverySource, legacy.source),
+        min_mentions=query.filter_or("min_mentions", int, legacy.min_mentions),
     )
     if query.sort_by is None:
         return narrowed

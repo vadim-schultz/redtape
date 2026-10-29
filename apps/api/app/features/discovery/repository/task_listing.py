@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, Select, func, select
 
 from app.features.discovery.repository.base import SessionRepository
-from app.features.discovery.repository.tasks import QUEUE_ORDER
+from app.features.discovery.repository.task_sort import Ordering, TaskSortKey, task_ordering
 from app.models.discovery import (
     CatalogueService,
     DiscoverySource,
@@ -16,6 +16,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.shared.list_query import SortOrder
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,11 +29,14 @@ class Page:
 
 @dataclass(frozen=True, slots=True)
 class TaskFilter:
-    """Optional status, source and kind a task listing is narrowed to."""
+    """Optional status, source, kind and target search a task listing is narrowed to, plus its ordering."""
 
     status: DiscoveryTaskStatus | None = None
     source: DiscoverySource | None = None
     kind: DiscoveryTaskKind | None = None
+    q: str | None = None
+    sort_by: TaskSortKey | None = None
+    sort_order: SortOrder = SortOrder.ASC
 
     def conditions(self) -> list[ColumnElement[bool]]:
         """Return the where-clauses of the filters that are set."""
@@ -41,7 +45,14 @@ class TaskFilter:
             (CatalogueService.source, self.source),
             (DiscoveryTask.kind, self.kind),
         )
-        return [column == value for column, value in pairs if value is not None]
+        matches = [column == value for column, value in pairs if value is not None]
+        if self.q is None:
+            return matches
+        return [*matches, DiscoveryTask.target_url.icontains(self.q, autoescape=True)]
+
+    def ordering(self) -> Ordering:
+        """Return the order-by clauses of the chosen sort."""
+        return task_ordering(self.sort_by, self.sort_order)
 
 
 def _task_list_stmt(task_filter: TaskFilter) -> Select:
@@ -63,7 +74,8 @@ class TaskListingRepository(SessionRepository):
         self, page: Page, task_filter: TaskFilter | None = None
     ) -> list[tuple[DiscoveryTask, DiscoverySource]]:
         """Return one page of tasks matching ``task_filter`` with their catalogue source, in queue order."""
-        stmt = _task_list_stmt(task_filter or TaskFilter()).order_by(*QUEUE_ORDER)
+        task_filter = task_filter or TaskFilter()
+        stmt = _task_list_stmt(task_filter).order_by(*task_filter.ordering())
         return list(self._session.execute(stmt.offset(page.offset).limit(page.limit)).tuples().all())
 
     def list_catalogue_tasks(self, catalogue_id: UUID) -> list[tuple[DiscoveryTask, DiscoverySource]]:

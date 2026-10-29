@@ -2,21 +2,26 @@ import { Button, HStack, Input } from "@chakra-ui/react";
 import { useState, type FormEvent } from "react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { CandidateList } from "../hooks/useCandidateListState";
 
-const NAMESPACE = "discovery_admin.documents";
+export interface ListSearchProps {
+  /** The applied search term. */
+  value: string | undefined;
+  /** Accessible name of the input. */
+  label: string;
+  onSearch: (search: string) => void;
+}
 
-/** Title search applied on submit, so typing does not request on every key. */
-export default function DiscoveryDocumentSearch({
-  list,
-}: {
-  list: CandidateList;
-}) {
+/** Search applied on submit, so typing does not request on every key. */
+export default function ListSearch({
+  value,
+  label,
+  onSearch,
+}: ListSearchProps) {
   const { t } = useLocale();
-  const [draft, setDraft] = useState(list.state.search ?? "");
+  const [draft, setDraft] = useState(value ?? "");
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    list.setSearch(draft);
+    onSearch(draft);
   };
 
   return (
@@ -25,7 +30,7 @@ export default function DiscoveryDocumentSearch({
         <Input
           size="sm"
           width="14rem"
-          aria-label={t(`${NAMESPACE}.filter_search`)}
+          aria-label={label}
           value={draft}
           onChange={(event) => setDraft(event.currentTarget.value)}
         />

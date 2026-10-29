@@ -1,10 +1,14 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import { focusManager } from "@tanstack/react-query";
+import type userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../../auth/services/authGateway";
 import DiscoveryTasksPage from "./DiscoveryTasksPage";
+
+type User = ReturnType<typeof userEvent.setup>;
 
 const session: AuthSession = {
   accessToken: "token-1",
@@ -106,62 +110,6 @@ function stubEmptyTasks() {
   return urls;
 }
 
-it("DiscoveryTasksPage · sends the selected kind as a query parameter", async () => {
-  const urls = stubEmptyTasks();
-
-  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
-    authGateway: createFakeAuthGateway({ session }),
-  });
-  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
-  expect(urls[0].searchParams.has("kind")).toBe(false);
-
-  await user.selectOptions(
-    screen.getByLabelText("Task kind"),
-    "harvest_payload",
-  );
-
-  await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.get("kind")).toBe("harvest_payload"),
-  );
-  await user.selectOptions(screen.getByLabelText("Task kind"), "");
-  await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.has("kind")).toBe(false),
-  );
-});
-
-it("DiscoveryTasksPage · lists the browser kinds in the kind select and filters by render_page", async () => {
-  const urls = stubEmptyTasks();
-
-  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
-    authGateway: createFakeAuthGateway({ session }),
-  });
-  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
-  const select = screen.getByLabelText("Task kind");
-
-  expect(
-    within(select).getByRole("option", { name: "capture_screenshot" }),
-  ).toBeInTheDocument();
-  await user.selectOptions(select, "render_page");
-
-  await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.get("kind")).toBe("render_page"),
-  );
-});
-
-it("DiscoveryTasksPage · offers llm_extract in the kind select and filters by it", async () => {
-  const urls = stubEmptyTasks();
-
-  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
-    authGateway: createFakeAuthGateway({ session }),
-  });
-  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
-  await user.selectOptions(screen.getByLabelText("Task kind"), "llm_extract");
-
-  await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.get("kind")).toBe("llm_extract"),
-  );
-});
-
 it("DiscoveryTasksPage · tolerates an unknown future kind label", async () => {
   stubTasksFetch(
     () =>
@@ -217,45 +165,209 @@ function taskItem(id: string) {
   };
 }
 
-it("DiscoveryTasksPage · pages with the response total and returns to page one on a new filter", async () => {
+function stubPagedTasks(total = 45) {
   const urls: URL[] = [];
   stubTasksFetch((url) => {
     urls.push(url);
     return new Response(
       JSON.stringify({
         items: [taskItem("a"), taskItem("b")],
-        total: 45,
-        offset: Number(url.searchParams.get("offset")),
+        total,
+        offset: Number(url.searchParams.get("offset") ?? 0),
         limit: 20,
       }),
     );
   });
+  return urls;
+}
 
-  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
+function renderPage(entry = "/admin/discovery/tasks") {
+  return renderWithProviders(<DiscoveryTasksPage />, {
     authGateway: createFakeAuthGateway({ session }),
+    initialEntries: [entry],
   });
+}
 
-  expect(await screen.findByText("45 tasks")).toBeInTheDocument();
-  expect(urls[0].searchParams.get("offset")).toBe("0");
-  await user.click(screen.getByRole("button", { name: "Next page" }));
-  await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.get("offset")).toBe("20"),
+async function applyFilter(user: User, label: string, value: string) {
+  await user.click(screen.getByRole("button", { name: label }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: label }),
+    value,
   );
-  expect(await screen.findByText("21–40 of 45")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+}
 
-  await user.selectOptions(screen.getByLabelText("Task kind"), "fetch_url");
+const lastUrl = (urls: URL[]) => urls[urls.length - 1];
+
+it("changing a filter resets the admin table to the first page", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage("/admin/discovery/tasks?offset=20&sort_by=kind");
+  await screen.findByText("21–40 of 45");
+  expect(lastUrl(urls).searchParams.get("offset")).toBe("20");
+
+  await applyFilter(user, "Task kind", "llm_extract");
+
   await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.get("offset")).toBe("0"),
+    expect(lastUrl(urls).searchParams.get("filter[kind]")).toBe("llm_extract"),
+  );
+  const params = lastUrl(urls).searchParams;
+  expect(params.get("offset")).toBe("0");
+  expect(params.get("sort_by")).toBe("kind");
+  expect(screen.getByText("Task kind: llm_extract")).toBeVisible();
+});
+
+it("changing sort resets the admin table and serializes direction", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage("/admin/discovery/tasks?offset=20");
+  await screen.findByText("21–40 of 45");
+
+  await user.click(screen.getByRole("button", { name: "Attempts" }));
+  await waitFor(() =>
+    expect(lastUrl(urls).searchParams.get("sort_by")).toBe("attempts"),
+  );
+  expect(lastUrl(urls).searchParams.get("sort_order")).toBe("asc");
+  expect(lastUrl(urls).searchParams.get("offset")).toBe("0");
+
+  await user.click(screen.getByRole("button", { name: "Attempts" }));
+  await waitFor(() =>
+    expect(lastUrl(urls).searchParams.get("sort_order")).toBe("desc"),
   );
 });
 
-it("DiscoveryTasksPage · shows the empty state and hides paging without stale rows", async () => {
-  stubEmptyTasks();
+it("clearing filters restores the default result set", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage(
+    "/admin/discovery/tasks?offset=20&filter[status]=failed&filter[kind]=fetch_url",
+  );
+  expect(await screen.findByText("Task status: failed")).toBeVisible();
+  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
+  expect(lastUrl(urls).searchParams.get("filter[status]")).toBe("failed");
 
-  renderWithProviders(<DiscoveryTasksPage />, {
-    authGateway: createFakeAuthGateway({ session }),
-  });
+  await user.click(screen.getByRole("button", { name: "Clear all filters" }));
+
+  await waitFor(() =>
+    expect(lastUrl(urls).searchParams.has("filter[status]")).toBe(false),
+  );
+  const params = lastUrl(urls).searchParams;
+  expect(params.has("filter[kind]")).toBe(false);
+  expect(params.get("offset")).toBe("0");
+  expect(screen.queryByText(/Task status:/)).not.toBeInTheDocument();
+});
+
+it("removing one applied filter keeps the others", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage(
+    "/admin/discovery/tasks?filter[status]=failed&filter[kind]=fetch_url",
+  );
+  await screen.findByText("Task status: failed");
+
+  await user.click(
+    screen.getByRole("button", { name: "Remove filter Task status" }),
+  );
+
+  await waitFor(() =>
+    expect(lastUrl(urls).searchParams.has("filter[status]")).toBe(false),
+  );
+  expect(lastUrl(urls).searchParams.get("filter[kind]")).toBe("fetch_url");
+});
+
+it("invalid URL list state falls back to safe defaults", async () => {
+  const urls = stubPagedTasks();
+  renderPage(
+    "/admin/discovery/tasks?offset=-5&limit=9999&sort_by=password&sort_order=up&filter[status]=gone&filter[priority]=1&q=",
+  );
+  await screen.findByText("45 tasks");
+
+  const params = urls[0].searchParams;
+  expect(params.get("offset")).toBe("0");
+  expect(params.get("limit")).toBe("20");
+  for (const key of [
+    "sort_by",
+    "sort_order",
+    "filter[status]",
+    "filter[priority]",
+    "q",
+  ]) {
+    expect(params.has(key)).toBe(false);
+  }
+});
+
+it("a search term resets the page and is sent as q", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage("/admin/discovery/tasks?offset=20");
+  await screen.findByText("21–40 of 45");
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Search target URLs" }),
+    "gov",
+  );
+  await user.click(screen.getByRole("button", { name: "Search" }));
+
+  await waitFor(() => expect(lastUrl(urls).searchParams.get("q")).toBe("gov"));
+  expect(lastUrl(urls).searchParams.get("offset")).toBe("0");
+});
+
+it("paging keeps the sort and filters of the query", async () => {
+  const urls = stubPagedTasks();
+  const { user } = renderPage(
+    "/admin/discovery/tasks?sort_by=kind&filter[source]=pvog",
+  );
+  await screen.findByText("45 tasks");
+
+  await user.click(screen.getByRole("button", { name: "Next page" }));
+
+  await waitFor(() =>
+    expect(lastUrl(urls).searchParams.get("offset")).toBe("20"),
+  );
+  expect(lastUrl(urls).searchParams.get("sort_by")).toBe("kind");
+  expect(lastUrl(urls).searchParams.get("filter[source]")).toBe("pvog");
+});
+
+it("single-page result hides pagination controls", async () => {
+  stubPagedTasks(2);
+  renderPage();
+
+  expect(await screen.findByText("2 tasks")).toBeInTheDocument();
+  expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+});
+
+it("shows the empty state and hides paging without stale rows", async () => {
+  stubEmptyTasks();
+  renderPage();
 
   expect(await screen.findByText("No tasks in queue")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+});
+
+it("refetch failure preserves previous rows with visible feedback", async () => {
+  let fail = false;
+  stubTasksFetch(() =>
+    fail
+      ? new Response("", { status: 500 })
+      : new Response(
+          JSON.stringify({
+            items: [taskItem("a")],
+            total: 1,
+            offset: 0,
+            limit: 20,
+          }),
+        ),
+  );
+  const { user } = renderPage();
+  expect(await screen.findByText("https://example.gov/a")).toBeVisible();
+
+  fail = true;
+  focusManager.setFocused(false);
+  focusManager.setFocused(true);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not refresh",
+  );
+  expect(screen.getByText("https://example.gov/a")).toBeVisible();
+  fail = false;
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+  );
+  expect(screen.getByText("https://example.gov/a")).toBeVisible();
 });

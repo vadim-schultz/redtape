@@ -40,3 +40,8 @@ class ListQuery:
         """Return the filter ``key`` when it is set and of type ``kind``."""
         value = self.filters.get(key)
         return value if isinstance(value, kind) else None
+
+    def filter_or(self, key: str, kind: type[_Value], fallback: _Value | None) -> _Value | None:
+        """Return the filter ``key`` when it is set, else ``fallback`` (the legacy parameter it replaces)."""
+        value = self.filter_value(key, kind)
+        return fallback if value is None else value
