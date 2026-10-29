@@ -1,123 +1,15 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { mention } from "../../test/discoveryAdminFixtures";
+import { longUrl, session, stubAdminApi } from "../../test/adminRoutesApi";
 import { expandControlsBesideCount } from "../../test/queryStatusCountRow";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../auth/services/fakeAuthGateway";
-import { baseCoverage } from "./components/coverage/coverageFixture";
 import DiscoveryAdminRoutes from "./routes";
-
-type Mode = "populated" | "empty" | "error";
-
-const session = {
-  accessToken: "token-1",
-  userId: "user-1",
-  email: "admin@example.com",
-};
-const admin = "/api/v1/discovery/admin";
-const longUrl = `https://example.gov/${"very-long-segment/".repeat(12)}end`;
-
-const candidate = {
-  id: "cand-1",
-  jurisdiction_id: "jur-1",
-  key: "personalausweis",
-  title_i18n: { en: "Personalausweis" },
-  official_url: null,
-  status: "staged",
-  suggestion_id: null,
-  mention_count: 7,
-  roles: ["form"],
-  jurisdiction_name_i18n: { en: "Germany" },
-  created_at: "2026-01-01T12:00:00Z",
-  updated_at: "2026-01-01T12:00:00Z",
-};
-const task = {
-  id: "task-1",
-  catalogue_service_id: "cat-1",
-  source: "govdata",
-  kind: "fetch_url",
-  target_url: longUrl,
-  status: "pending",
-  priority: 100,
-  attempt_count: 0,
-  not_before: null,
-  input_key: null,
-  lease_expires_at: null,
-  created_at: "2026-01-01T12:00:00Z",
-  updated_at: "2026-01-01T12:00:00Z",
-};
-const service = {
-  id: "catalogue-1",
-  source: "govdata",
-  external_id: "service-1",
-  jurisdiction_id: "jur-1",
-  title_i18n: { en: "Example service" },
-  pipeline_stage: "T3",
-  portal_url: longUrl,
-  created_at: "2026-01-01T12:00:00Z",
-  updated_at: "2026-01-01T12:00:00Z",
-};
-const detail = {
-  candidate: { ...candidate, mention_count: 1 },
-  jurisdiction_name_i18n: { en: "Germany" },
-  mentions: [mention({ excerpt: "Bitte Geburtsurkunde mitbringen" })],
-  suggested_domain_codes: [],
-  suggested_situation_codes: [],
-};
-
-const skippedPreview = {
-  candidate_id: "cand-1",
-  suggestion: null,
-  suggestion_id: null,
-  skip_reason: "no_mentions",
-  conflicts: [],
-};
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
-
-function paged(items: unknown[], extra = {}) {
-  return { items, total: items.length, offset: 0, limit: 20, ...extra };
-}
-
-function bodyFor(path: string, mode: Mode): unknown {
-  const rows = (item: unknown) => (mode === "empty" ? [] : [item]);
-  if (path.endsWith("/me")) {
-    return { id: "user-1", email: session.email, role: "user" };
-  }
-  if (path.endsWith(`${admin}/tasks`)) return paged(rows(task));
-  if (path.endsWith(`${admin}/candidates`)) return paged(rows(candidate));
-  if (path.endsWith(`${admin}/candidates/cand-1`)) return detail;
-  if (path.endsWith("/emit-preview")) return skippedPreview;
-  if (path.endsWith(`${admin}/catalogue`)) {
-    const summary = { total: 1, by_source: {}, by_pipeline_stage: {} };
-    return paged(rows(service), { summary, limit: 50 });
-  }
-  if (path.endsWith(`${admin}/coverage`)) return baseCoverage;
-  return { items: [], total: 0, offset: 0, limit: 20 };
-}
-
-function isListPath(path: string): boolean {
-  return [`${admin}/tasks`, `${admin}/candidates`, `${admin}/catalogue`].some(
-    (list) => path.endsWith(list),
-  );
-}
-
-/** Serves every admin endpoint; in `error` mode the list endpoints fail but the admin probe and coverage pass. */
-function stubAdminApi(mode: Mode) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input?: unknown) => {
-      const url = new URL(String(input));
-      const isProbe = url.searchParams.get("limit") === "1";
-      const failing = mode === "error" && !isProbe && isListPath(url.pathname);
-      if (failing) return new Response("", { status: 500 });
-      return new Response(JSON.stringify(bodyFor(url.pathname, mode)));
-    }),
-  );
-}
 
 /** jsdom ignores `@layer` rules in computed style, so read the declarations Emotion injected. */
 function declaredStyle(element: HTMLElement): string {
@@ -258,13 +150,9 @@ it("narrow admin tables remain horizontally inspectable", async () => {
   expect(within(table).getByText(longUrl)).toBeVisible();
 
   const sort = within(table).getAllByRole("button")[0];
-  await user.tab();
-  while (
-    document.activeElement !== sort &&
-    document.activeElement !== document.body
-  ) {
+  for (let tabs = 0; tabs < 30 && document.activeElement !== sort; tabs += 1) {
     await user.tab();
   }
   expect(sort).toHaveFocus();
-  await waitFor(() => expect(scroller).toContainElement(sort));
+  expect(scroller).toContainElement(sort);
 });
