@@ -155,7 +155,7 @@ cannot spend more than the day has left.
   the version a result belongs to, it does not select a wording. Exit 2 means a missing variable, an unpriced model or
   a gold label outside the taxonomy.
 - `--out FILE` writes the per-page results and, for every item grounding dropped, its reason (`quote`, `duplicate`,
-  `noise`, `data_field`, `dependency_endpoint`, `dependency_quote`, `dependency_duplicate`, or `page_kind` for a login page).
+  `noise`, `data_field`, `generic_name`, `dependency_endpoint`, `dependency_quote`, `dependency_duplicate`, or `page_kind` for a login page).
 - Answers are cached in `--cache-dir` (default `.llm-eval-cache/`, ignored by git) by model, prompt version, cleaner
   version, vocabulary and page text, so a re-run of an unchanged page costs nothing. The cached cost is still reported.
 - A page whose cleaned text is empty (a client-side shell) is not sent and scores as nothing found.

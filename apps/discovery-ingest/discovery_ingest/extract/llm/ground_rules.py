@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Collection, Sequence
 from typing import TypeVar
 
 from discovery_ingest.extract.clean_links import absolute_web_url
-from discovery_ingest.extract.llm.data_fields import is_data_field
 from discovery_ingest.extract.llm.ground_state import Tally
 from discovery_ingest.extract.llm.normalise import name_slug, normalise
 from discovery_ingest.extract.llm.schema import DependencyItem, DocumentItem
-from discovery_ingest.harvest.noise import is_noise
 
 MAX_URL_LENGTH = 500
 
@@ -44,43 +42,6 @@ def ground_url(document: DocumentItem, links: Collection[str], tally: Tally) -> 
         return document.model_copy(update={"url": url})
     tally.urls_nulled += 1
     return document.model_copy(update={"url": None})
-
-
-def _is_noise(document: DocumentItem, seen: set[tuple[str, str]]) -> bool:
-    return is_noise(document.name) or not name_slug(document.name)
-
-
-def _is_data_field(document: DocumentItem, seen: set[tuple[str, str]]) -> bool:
-    return is_data_field(document.name)
-
-
-def _is_repeat(document: DocumentItem, seen: set[tuple[str, str]]) -> bool:
-    return (name_slug(document.name), document.role) in seen
-
-
-NAME_REJECTIONS: tuple[tuple[str, Callable[[DocumentItem, set[tuple[str, str]]], bool]], ...] = (
-    ("noise", _is_noise),
-    ("data_field", _is_data_field),
-    ("duplicate", _is_repeat),
-)
-
-
-def _name_verdict(document: DocumentItem, seen: set[tuple[str, str]]) -> str | None:
-    return next((reason for reason, rejects in NAME_REJECTIONS if rejects(document, seen)), None)
-
-
-def keep_names(documents: Sequence[DocumentItem], tally: Tally) -> list[DocumentItem]:
-    """Drop noise names, data fields and repeats of one ``(slug, role)``, keeping the first."""
-    seen: set[tuple[str, str]] = set()
-    kept: list[DocumentItem] = []
-    for document in documents:
-        verdict = _name_verdict(document, seen)
-        if verdict is not None:
-            tally.lose(verdict, document)
-            continue
-        seen.add((name_slug(document.name), document.role))
-        kept.append(document)
-    return kept
 
 
 def _has_known_endpoints(dependency: DependencyItem, slugs: set[str]) -> bool:
