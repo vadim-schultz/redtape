@@ -13,6 +13,7 @@ from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.llm.evaluation.command import register_eval_parser
 from discovery_ingest.extract.llm.probe import run_probe
 from discovery_ingest.extract.llm.probe_report import report_lines
+from discovery_ingest.llm_requeue import register_requeue_parser
 from discovery_ingest.llm_settings import load_llm_settings
 
 EXIT_REFUSED = 1
@@ -26,6 +27,7 @@ def register_llm_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     llm = sub.add_parser("llm", help="Cloudflare Workers AI")
     llm_sub = llm.add_subparsers(dest="llm_command")
     register_eval_parser(llm_sub)
+    register_requeue_parser(llm_sub)
     probe = llm_sub.add_parser("probe", help="Probe models on one fixture and print a table")
     probe.add_argument("--model", action="append", default=[], help="A Workers AI model id (repeatable)")
     probe.add_argument("--fixture", required=True, help="Path of a rendered HTML page to clean and send")

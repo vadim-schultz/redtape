@@ -34,6 +34,7 @@ from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
+from discovery_ingest.llm_requeue import llm_requeue
 from discovery_ingest.pvog.client import (
     FEDERAL_ARS,
     PvogClient,
@@ -373,6 +374,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("browser", "probe"): browser_probe,
     ("llm", "probe"): llm_probe,
     ("llm", "eval"): llm_eval,
+    ("llm", "requeue"): llm_requeue,
     ("artifacts", "list"): artifacts_list,
     ("artifacts", "download"): artifacts_download,
 }
