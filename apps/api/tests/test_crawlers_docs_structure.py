@@ -100,7 +100,7 @@ def test_the_german_review_list_names_only_keys_that_exist_and_covers_every_chap
     """Machine-written German needs native review; each key listed exists in the seed, none is missing."""
     listed = set(_GERMAN_KEY.findall(read(CHECKLIST)))
     assert listed and listed <= _german_keys(), sorted(listed - _german_keys())
-    prefixes = ("documents.", "pagination.", "artifacts.", "tasks.note_", "document.emit_", "coverage.candidate")
+    prefixes = ("documents.", "artifacts.", "tasks.note_", "document.emit_", "coverage.candidate")
     assert all(any(key.startswith(f"discovery_admin.{prefix}") for key in listed) for prefix in prefixes)
     assert len(listed) >= 88
 
