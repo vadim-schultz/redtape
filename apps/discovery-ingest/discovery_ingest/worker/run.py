@@ -7,6 +7,7 @@ from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.policy import DrainPolicy
@@ -51,6 +52,7 @@ def run_recorded_drain(
     browser: BrowserClient | None = None,
     llm: LlmResources | None = None,
     after_extract: AfterExtract = no_after_extract,
+    llm_enqueue: LlmEnqueuer | None = None,
 ) -> DrainReport:
     """Drain bounded batches between a run start and a run finish.
 
@@ -59,7 +61,15 @@ def run_recorded_drain(
     """
     run_id = client.start_run()
     try:
-        report = run_worker_drain(client, fetcher, policy, browser=browser, llm=llm, after_extract=after_extract)
+        report = run_worker_drain(
+            client,
+            fetcher,
+            policy,
+            browser=browser,
+            llm=llm,
+            after_extract=after_extract,
+            llm_enqueue=llm_enqueue,
+        )
     except DiscoveryMachineApiError as err:
         client.finish_run(run_id, _failed(str(err)))
         raise

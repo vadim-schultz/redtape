@@ -24,6 +24,7 @@ class LlmSettings(BaseSettings):
     llm_model: str | None = Field(default=None, validation_alias="LLM_MODEL")
     llm_max_tokens: int = Field(default=DEFAULT_MAX_TOKENS, gt=0, validation_alias="LLM_MAX_TOKENS")
     llm_input_chars: int = Field(default=DEFAULT_MAX_CHARS, gt=0, validation_alias="LLM_INPUT_CHARS")
+    llm_enqueue: bool = Field(default=False, validation_alias="LLM_ENQUEUE")
     llm_request_timeout_seconds: float = Field(default=60.0, gt=0, validation_alias="LLM_REQUEST_TIMEOUT_SECONDS")
 
     def ai_credentials(self) -> tuple[str, str]:
