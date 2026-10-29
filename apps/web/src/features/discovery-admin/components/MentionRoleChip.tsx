@@ -4,6 +4,12 @@ import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryMentionRole } from "../types";
 import { translateOrRaw } from "../utils/translateOrRaw";
 
+const ROLE_PALETTE: Record<DiscoveryMentionRole, string> = {
+  required: "gray",
+  form: "blue",
+  issued: "green",
+};
+
 /** The role a document plays in a procedure, as a labelled chip. */
 export default function MentionRoleChip({
   role,
@@ -18,7 +24,7 @@ export default function MentionRoleChip({
   );
 
   return (
-    <Badge variant="subtle" colorPalette={role === "form" ? "blue" : "gray"}>
+    <Badge variant="subtle" colorPalette={ROLE_PALETTE[role]}>
       {label}
     </Badge>
   );

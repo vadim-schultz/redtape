@@ -12,7 +12,9 @@ from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.meter import RESOURCE
 from discovery_ingest.extract.llm.prices import known_models
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_runtime import LlmResources
+from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.storage_guard import storage_problem
 
 EXIT_MISSING_SETTINGS = 2
@@ -79,3 +81,20 @@ def prepare_llm(settings: IngestSettings, client: DiscoveryMachineClient) -> Llm
         settings, model=model, http=httpx.Client(trust_env=True), throttle=Throttle(MIN_INTERVAL_SECONDS)
     )
     return LlmResources(model_client, taxonomy, model, settings.llm_max_tokens, settings.llm_input_chars)
+
+
+def prepare_llm_enqueue(
+    settings: IngestSettings, client: DiscoveryMachineClient, policy: DrainPolicy
+) -> LlmEnqueuer | None:
+    """Return the ``llm_extract`` enqueue hook, or ``None`` when ``LLM_ENQUEUE`` is off or no page is rendered.
+
+    Raise :class:`LlmSetupError` when the switch is on for a render drain and ``LLM_MODEL`` is not set, because the
+    task key is derived from the model.
+    """
+    if not settings.llm_enqueue or "render_page" not in policy.kinds:
+        return None
+    if not settings.llm_model:
+        raise LlmSetupError(
+            "LLM_ENQUEUE needs the environment variable LLM_MODEL (it keys the task)", EXIT_MISSING_SETTINGS
+        )
+    return LlmEnqueuer(client, settings.llm_model)

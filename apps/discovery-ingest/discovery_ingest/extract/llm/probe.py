@@ -11,9 +11,10 @@ from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.extract.clean import CleanPage, clean_page
 from discovery_ingest.extract.llm.payloads import chat_body, run_body
 from discovery_ingest.extract.llm.probe_calls import ProbeClient, RawCall
+from discovery_ingest.extract.llm.probe_cost import cost_row, neurons_of
 from discovery_ingest.extract.llm.probe_envelope import chat_envelope_row, envelope_row, usage_row
 from discovery_ingest.extract.llm.probe_errors import acceptance_row, quota_row, refusal, violation_row
-from discovery_ingest.extract.llm.probe_outcome import cleaner_row, cost_row, neurons_of, quality_row
+from discovery_ingest.extract.llm.probe_outcome import cleaner_row, quality_row
 from discovery_ingest.extract.llm.probe_report import ProbeReport, ProbeRow
 from discovery_ingest.extract.llm.probe_taxonomy import PROBE_TAXONOMY
 from discovery_ingest.extract.llm.prompt import build_messages

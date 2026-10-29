@@ -58,7 +58,7 @@ The user message carries the cleaned text and the vocabulary (code, German and E
 
 **Grounding** (`ground.py`, pure): `ground(extraction, clean_page, vocab) -> Grounded(documents, dependencies, domain_codes, situation_codes, diagnostics)`:
 
-1. **Quote check:** an item is kept only if `normalise(quote)` is a substring of `normalise(clean_page.text)` (case and whitespace insensitive, markdown markers and link targets stripped). Dropped items are counted per reason.
+1. **Quote check:** an item is kept only if `normalise(quote)` is a substring of `normalise(clean_page.text)`. As built in E3 this was case and whitespace insensitive with markdown markers and link targets stripped; [E13](13-grounding-normalisation.md) made it symmetric (quote marks removed, dashes folded, list bullets removed anywhere after whitespace) and [E12](12-extraction-quality-tuning.md) added a percent-decoding repair before the check. Dropped items are counted per reason.
 2. **URL check:** a `url` not in `clean_page.links` after normalisation is set to `None` (the item survives).
 3. **Names:** run the shared noise filter from crawlers chapter 7; drop names that are sentences, too short or in the stop list; deduplicate by `candidate_key`-equivalent slug (the same rule used at promotion) keeping the first quote; the role precedence `issued` over `required` over `form` applies only when the same name appears twice with different roles on one page, which keeps both mentions (they are different facts), so deduplication is per `(slug, role)`.
 4. **Dependencies:** both endpoints must match (by slug) a kept document, endpoints must differ, and the quote must ground; otherwise dropped.

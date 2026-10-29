@@ -11,7 +11,7 @@ import DiscoveryDocumentSearch from "./DiscoveryDocumentSearch";
 import FilterSelect, { type FilterOption } from "./FilterSelect";
 
 const NAMESPACE = "discovery_admin.documents";
-const ROLES: DiscoveryMentionRole[] = ["required", "form"];
+const ROLES: DiscoveryMentionRole[] = ["required", "form", "issued"];
 const SOURCES: DiscoverySource[] = [
   "govdata",
   "pvog",

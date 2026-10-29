@@ -9,10 +9,14 @@ import DocumentMentionsTable from "./DocumentMentionsTable";
 /** Candidate detail body: header, mentions and the emit and evidence slots. */
 export default function DocumentDetail({
   data,
+  tags,
+  edges,
   emit,
   evidence,
 }: {
   data: DiscoveryCandidateDetailResponse;
+  tags: ReactNode;
+  edges: ReactNode;
   emit: ReactNode;
   evidence: ReactNode;
 }) {
@@ -30,6 +34,8 @@ export default function DocumentDetail({
         </Heading>
         <DocumentMentionsTable mentions={data.mentions} />
       </Stack>
+      {tags}
+      {edges}
       {evidence}
       {emit}
     </Stack>

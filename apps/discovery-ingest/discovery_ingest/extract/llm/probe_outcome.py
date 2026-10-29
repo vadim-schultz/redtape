@@ -1,4 +1,4 @@
-"""Probe items 4, 5 and 7: the cost of the call, the quality of the answer and the cleaner against toMarkdown."""
+"""Probe items 5 and 7: the quality of the answer and the cleaner against toMarkdown."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm.envelope import read_result
 from discovery_ingest.extract.llm.errors import LlmInvalidOutput
 from discovery_ingest.extract.llm.ground import ground
-from discovery_ingest.extract.llm.prices import NEURON_PRICES, cost
 from discovery_ingest.extract.llm.probe_calls import RawCall
 from discovery_ingest.extract.llm.probe_report import ProbeRow
 from discovery_ingest.extract.llm.probe_shape import failure_text, fields
@@ -17,34 +16,6 @@ from discovery_ingest.extract.llm.schema import PageExtraction
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
 CHARS_PER_TOKEN = 3
-NO_PRICE = "n/a (no price row: the meter would refuse this model)"
-
-
-def tokens_of(model: str, call: RawCall) -> tuple[int, int] | None:
-    """Return the (input, output) tokens of a native answer, or ``None`` without usage."""
-    if call.response is None or not call.ok:
-        return None
-    try:
-        answer = read_result(call.response, model)
-    except LlmInvalidOutput:
-        return None
-    if answer.input_tokens is None or answer.output_tokens is None:
-        return None
-    return answer.input_tokens, answer.output_tokens
-
-
-def neurons_of(model: str, call: RawCall) -> float:
-    """Return the neurons ``call`` cost by the price table, or 0 without usage or a price row."""
-    tokens = tokens_of(model, call)
-    return cost(model, *tokens) if tokens is not None and model in NEURON_PRICES else 0.0
-
-
-def cost_row(model: str, call: RawCall) -> ProbeRow:
-    """Report tokens in and out, the neurons they cost by the price table and the wall time."""
-    tokens = tokens_of(model, call)
-    neurons = f"{neurons_of(model, call):.2f}" if model in NEURON_PRICES else NO_PRICE
-    seen = f"tokens_in={tokens[0]} tokens_out={tokens[1]}" if tokens else "tokens n/a (no usage block)"
-    return ProbeRow(model, "cost", f"{seen} neurons={neurons} wall_ms={call.wall_ms}")
 
 
 def _grounded_text(extraction: PageExtraction, clean_page: CleanPage, taxonomy: Taxonomy) -> str:

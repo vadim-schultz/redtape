@@ -1,0 +1,65 @@
+{
+  "page_kind": "service",
+  "domain_codes": [
+    "work-employment"
+  ],
+  "situation_codes": [
+    "immigration"
+  ],
+  "documents": [
+    {
+      "name": "Immatrikulationsbescheinigung",
+      "role": "required",
+      "quote": "Immatrikulationsbescheinigung der Universität Ihres oder Ihrer ausländischen Studierenden in deutscher oder englischer Sprache.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Erkl%C3%A4rung zur Immatrikulationsbescheinigung",
+      "role": "required",
+      "quote": "Formular %E2%80%9DErkl%C3%A4rung zur Immatrikulationsbescheinigung%E2%80%9D %E2%80%9DErkl%C3%A4rung zur Immatrikulationsbescheinigung (englisch)%E2%80%9D (ausgef%C3%BCllt von der ausl%C3%A4ndischen Hochschule)",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Vollmacht des Betriebes",
+      "role": "required",
+      "quote": "Falls Sie den Antrag im Auftrag eines Unternehmens stellen: Vollmacht des Betriebes",
+      "condition": "Falls Sie den Antrag im Auftrag eines Unternehmens stellen",
+      "is_optional": true
+    },
+    {
+      "name": "Auszug aus dem Informationsportal %E2%80%9Danabin%E2%80%9D",
+      "role": "required",
+      "quote": "Auszug aus dem Informationsportal %E2%80%9Danabin%E2%80%9D, der den Status (H+ oder H+/-) der ausl%C3%A4ndischen Hochschule zeigt.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Antragsformular Ferienbesch%C3%A4ftigung",
+      "role": "form",
+      "quote": "Sie k%C3%B6nnen die Unterlagen auch schriftlich einreichen. In diesem Fall ben%C3%B6tigen wir das Antragsformular in zweifacher Ausfertigung.",
+      "condition": "",
+      "is_optional": false
+    },
+    {
+      "name": "Best%C3%A4tigung der Ferienbesch%C3%A4ftigung",
+      "role": "issued",
+      "quote": "Die Zentrale Auslands- und Fachvermittlung pr%C3%BCft Ihre Unterlagen. Sind alle Voraussetzungen erf%C3%BCllt, best%C3%A4tigt sie Ihnen die Ferienbesch%C3%A4ftigung schriftlich.",
+      "condition": "",
+      "is_optional": false
+    }
+  ],
+  "dependencies": [
+    {
+      "parent": "Immatrikulationsbescheinigung",
+      "requires": "Erkl%C3%A4rung zur Immatrikulationsbescheinigung",
+      "quote": "Immatrikulationsbescheinigung der Universit%C3%A4t Ihres oder Ihrer ausl%C3%A4ndischen Studierenden in deutscher oder englischer Sprache. Falls das nicht m%C3%B6glich ist, lassen Sie sich zus%C3%A4tzlich eine amtlich beglaubigte %C3%9Cbersetzung der Immatrikulationsbescheinigung in deutscher odereng"
+    },
+    {
+      "parent": "Antragsformular Ferienbesch%C3%A4ftigung",
+      "requires": "Immatrikulationsbescheinigung",
+      "quote": "Sie m%C3%BCssen in jedem Fall die Best%C3%A4tigung der Ferienbesch%C3%A4ftigung beantragen %E2%80%93 unabh%C3%A4ngig davon, ob Ihnen Ihr Ferienjobber oder Ihre Ferienjobberin durch die Zentrale Auslands- und Fachvermittlung vermittelt wurde oder nicht."
+    }
+  ]
+}

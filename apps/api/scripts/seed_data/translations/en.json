@@ -114,7 +114,9 @@
       "note_login_wall": "Login wall",
       "note_oversize": "Too large",
       "note_no_mentions": "No mentions",
-      "note_no_extractor": "No extractor"
+      "note_no_extractor": "No extractor",
+      "note_no_content": "No content",
+      "note_no_documents": "No documents"
     },
     "documents": {
       "filter_search": "Search titles",
@@ -140,7 +142,8 @@
       "empty_title": "No documents found",
       "empty_description": "Try another search or filter.",
       "count_one": "{count} document",
-      "count_other": "{count} documents"
+      "count_other": "{count} documents",
+      "role_issued": "Issued"
     },
     "document": {
       "jurisdiction": "Jurisdiction",
@@ -166,7 +169,26 @@
       "emit_conflicts": "Conflicts",
       "emit_emitted": "Emitted as suggestion",
       "emit_pending": "Pending review",
-      "emit_cli_hint": "Emitting is done from the command line, not here."
+      "emit_cli_hint": "Emitting is done from the command line, not here.",
+      "col_condition": "Condition",
+      "optional": "Optional",
+      "tags": {
+        "title": "Suggested tags",
+        "domains": "Domains",
+        "situations": "Life situations",
+        "support": "{name} · {procedures} of {total} procedures",
+        "empty": "No consensus yet.",
+        "accepted": "Meets the thresholds"
+      },
+      "edges": {
+        "title": "Dependencies",
+        "requires": "Requires",
+        "required_by": "Required by",
+        "empty": "No dependencies staged yet.",
+        "basis_explicit": "Explicit",
+        "basis_derived_single_issued": "Derived",
+        "procedure": "Procedure"
+      }
     },
     "pagination": {
       "range": "{from}–{to} of {total}",
@@ -204,7 +226,14 @@
       "candidates_total": "Candidates: {count}",
       "candidates_staged": "Staged candidates: {count}",
       "candidates_emitted": "Emitted candidates: {count}",
-      "candidate_mentions": "Candidate mentions: {count}"
+      "candidate_mentions": "Candidate mentions: {count}",
+      "llm": {
+        "title": "Extraction outcomes",
+        "extracted": "Extracted: {count}",
+        "no_documents": "No documents: {count}",
+        "login_wall": "Login wall: {count}",
+        "no_content": "No content: {count}"
+      }
     },
     "catalogue": {
       "empty": "No catalogue services yet.",

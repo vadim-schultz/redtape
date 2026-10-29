@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { edge, mention, tag } from "../../../test/discoveryAdminFixtures";
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
 import type { AuthSession } from "../../auth/services/authGateway";
@@ -9,6 +10,7 @@ import type {
   CandidateEmitPreview,
   DiscoveryArtifact,
   DiscoveryCandidateDetailResponse,
+  DiscoveryCandidateEdge,
   DiscoveryCandidateMention,
 } from "../types";
 import DiscoveryDocumentPage from "./DiscoveryDocumentPage";
@@ -24,27 +26,6 @@ const base = `/api/v1/discovery/admin/candidates/${candidateId}`;
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
-
-function mention(
-  overrides: Partial<DiscoveryCandidateMention> = {},
-): DiscoveryCandidateMention {
-  return {
-    id: "m-1",
-    catalogue_service_id: "cat-1",
-    procedure_title_i18n: { en: "Apply for an ID card" },
-    procedure_source: "pvog",
-    portal_url: "https://example.gov/service/1",
-    role: "required",
-    excerpt: "Bitte Geburtsurkunde mitbringen",
-    source_field: "details[0]",
-    artifact_id: null,
-    artifact: null,
-    extractor: "pvog-payload",
-    extractor_version: "1",
-    created_at: "2026-10-26T12:00:00Z",
-    ...overrides,
-  };
-}
 
 function detail(
   overrides: Partial<DiscoveryCandidateDetailResponse["candidate"]> = {},
@@ -66,10 +47,13 @@ function detail(
     },
     jurisdiction_name_i18n: { en: "Germany" },
     mentions,
+    suggested_domain_codes: [],
+    suggested_situation_codes: [],
   };
 }
 
 type Extras = {
+  edges?: DiscoveryCandidateEdge[];
   artifacts?: DiscoveryArtifact[];
   preview?: CandidateEmitPreview;
 };
@@ -112,7 +96,7 @@ function skippedPreview(
 
 function stubDocumentFetch(
   body: DiscoveryCandidateDetailResponse,
-  { artifacts = [], preview = skippedPreview() }: Extras = {},
+  { artifacts = [], edges = [], preview = skippedPreview() }: Extras = {},
 ) {
   const calls: { path: string; method: string }[] = [];
   vi.stubGlobal(
@@ -133,6 +117,9 @@ function stubDocumentFetch(
       if (pathname.endsWith(base)) return new Response(JSON.stringify(body));
       if (pathname.endsWith(`${base}/artifacts`)) {
         return new Response(artifactsBody(artifacts));
+      }
+      if (pathname.endsWith(`${base}/edges`)) {
+        return new Response(JSON.stringify({ items: edges }));
       }
       if (pathname.endsWith(`${base}/emit-preview`)) {
         return new Response(JSON.stringify(preview));
@@ -302,6 +289,47 @@ it("document page has no emit control", async () => {
   renderDocumentPage();
 
   await screen.findByText("Would create a new document suggestion.");
+  expect(screen.queryAllByRole("button")).toHaveLength(0);
+  expect(calls.filter(({ method }) => method !== "GET")).toEqual([]);
+});
+
+it("document page shows the suggested tag chips and the edges of the candidate", async () => {
+  stubDocumentFetch(
+    {
+      ...detail(),
+      suggested_domain_codes: [
+        tag({ code: "housing", procedures: 3, share: 0.75, accepted: true }),
+      ],
+    },
+    {
+      edges: [
+        edge({
+          parent_candidate_id: candidateId,
+          required_candidate_id: "req-1",
+          required_title_i18n: { de: "Meldebescheinigung" },
+        }),
+      ],
+    },
+  );
+  renderDocumentPage();
+
+  expect(
+    await screen.findByText("housing · 3 of 4 procedures"),
+  ).toHaveAttribute("data-accepted", "true");
+  expect(
+    await screen.findByRole("link", { name: "Meldebescheinigung" }),
+  ).toHaveAttribute("href", "/admin/discovery/documents/req-1");
+});
+
+it("the document page still has no emit control", async () => {
+  const calls = stubDocumentFetch(detail(), {
+    edges: [edge({ parent_candidate_id: candidateId })],
+    preview: skippedPreview({ suggestion: newDocument, skip_reason: null }),
+  });
+  renderDocumentPage();
+
+  await screen.findByText("Would create a new document suggestion.");
+  await screen.findByText("Requires");
   expect(screen.queryAllByRole("button")).toHaveLength(0);
   expect(calls.filter(({ method }) => method !== "GET")).toEqual([]);
 });

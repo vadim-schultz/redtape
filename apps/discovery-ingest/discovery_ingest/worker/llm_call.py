@@ -11,6 +11,7 @@ from discovery_ingest.extract.llm.errors import (
     LlmRequestError,
 )
 from discovery_ingest.extract.llm.meter import LedgerUnavailable, NeuronMeter, Reservation
+from discovery_ingest.extract.llm.prices import reserved_output_tokens
 from discovery_ingest.extract.llm.prompt import build_messages
 from discovery_ingest.extract.llm.schema import PageExtraction, build_json_schema
 from discovery_ingest.worker.browser_steps import Job, Settled
@@ -54,10 +55,11 @@ class ModelCaller:
 
     def _reserve(self, input_chars: int) -> Reservation:
         resources = self._resources
-        answer = self._meter.reserve(resources.model, input_chars, resources.max_tokens)
+        output = reserved_output_tokens(input_chars, resources.max_tokens)
+        answer = self._meter.reserve(resources.model, input_chars, output)
         if isinstance(answer, LedgerUnavailable):
             self._meter.stop_using_ledger()
-            answer = self._meter.reserve(resources.model, input_chars, resources.max_tokens)
+            answer = self._meter.reserve(resources.model, input_chars, output)
         if isinstance(answer, Reservation):
             return answer
         raise StopDrain("llm_budget", denial_reason(answer))

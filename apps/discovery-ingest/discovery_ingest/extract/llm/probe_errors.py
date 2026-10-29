@@ -51,8 +51,8 @@ def _violation(response: httpx.Response, call: RawCall, model: str) -> str:
     try:
         read_result(response, model)
     except LlmInvalidOutput as err:
-        return f"answered 200 but the answer is unusable: {err}"
-    return "answered 200 with an answer that parses as JSON despite the tiny max_tokens"
+        return f"finding: answered 200 but the answer cannot be used: {err}"
+    return "usable answer: answered 200 with an answer that parses as JSON despite the tiny max_tokens"
 
 
 def violation_row(model: str, call: RawCall | None) -> ProbeRow:

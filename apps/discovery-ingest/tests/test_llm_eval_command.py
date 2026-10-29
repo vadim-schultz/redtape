@@ -16,10 +16,12 @@ from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
-from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold
+from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold, write_long_gold
 from ledger_fakes import FakeLedger, guard_for
 from llm_fakes import taxonomy
 from llm_transport import ACCOUNT_ID, TOKEN, failure, success
+
+LLAMA_70B = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 
 @pytest.fixture(autouse=True)
@@ -112,7 +114,7 @@ def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_b
     llm = FakeLlm()
     ledger = _wire(monkeypatch, llm)
 
-    code = _eval(tmp_path, "--neuron-budget", "160")
+    code = _eval(tmp_path, "--neuron-budget", "80")
 
     report = _out(tmp_path)
     shown = capsys.readouterr().out
@@ -120,7 +122,36 @@ def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_b
     assert ledger.actions()[:3] == ["budgets", "reserve", "adjust"]
     assert ledger.remaining == pytest.approx(9000 - cost(MODEL, 1000, 200))
     assert [page["name"] for page in report["pages"]] == ["alpha"] and report["stopped"]["reason"] == "budget"
-    assert "neuron budget of 160 is spent" in shown and "pages run 1 of 3" in shown
+    assert "neuron budget of 80 is spent" in shown and "pages run 1 of 3" in shown
+
+
+def test_an_eval_run_with_the_default_budget_processes_at_least_five_long_pages_before_it_stops(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval · six 25,000-character pages at 8,700 tokens in and 2,500 out on the 70B model: five or more run, then the budget ends it."""
+    write_long_gold(tmp_path / "gold", count=6)
+    monkeypatch.setenv("LLM_MAX_TOKENS", "4000")  # the default output limit of chapter E14
+    llm = FakeLlm({"Hinweis": ANSWERS["Neuigkeiten"]}, usage=(8_700, 2_500), model=LLAMA_70B)
+    _wire(monkeypatch, llm)
+
+    code = _eval(tmp_path, model=LLAMA_70B)
+
+    report = _out(tmp_path)
+    assert len(llm.calls) >= 5 and len(report["pages"]) >= 5
+    assert code == 1 and report["stopped"]["reason"] == "budget"
+
+
+def test_a_page_pays_for_its_own_reservation_not_for_the_maximum_answer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval · a short page on the 70B model reserves a few hundred neurons, so a 600-neuron budget still runs it."""
+    write_gold(tmp_path / "gold", names=["alpha"])
+    monkeypatch.setenv("LLM_MAX_TOKENS", "4000")
+    llm = FakeLlm(usage=(1000, 200), model=LLAMA_70B)
+    _wire(monkeypatch, llm)
+
+    assert _eval(tmp_path, "--neuron-budget", "600", model=LLAMA_70B) == 0
+    assert len(llm.calls) == 1
 
 
 def test_eval_refuses_to_start_when_the_day_is_spent_or_the_ledger_cannot_be_read(
@@ -301,4 +332,4 @@ def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cle
     summary = _out(tmp_path)["summary"]
     assert code == 0 and summary["pages_run"] == 20 and len(llm.calls) == 19
     assert (summary["recall"], summary["precision"], summary["failed_pages"]) == (0.0, 1.0, 0)
-    assert summary["cleaner_recall"] == pytest.approx(44 / 47)
+    assert summary["cleaner_recall"] == pytest.approx(47 / 47)

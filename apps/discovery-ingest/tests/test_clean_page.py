@@ -188,3 +188,68 @@ def test_line_breaks_split_a_paragraph_into_lines() -> None:
         "12345 Musterstadt",
         "Tel. 115",
     ]
+
+
+def test_a_link_with_a_strong_title_and_a_block_description_keeps_a_space_between_them() -> None:
+    """whitespace · the title and the description of one download link are two words, not one fused word."""
+    link = "<a href='/f.pdf'><strong>Antragsformular Ferienbeschäftigung</strong><div>Formular für den Arbeitgeber</div></a>"
+    text = clean_page(_page(f"<ul><li>{link}</li></ul>"), BASE).text
+    assert "Antragsformular Ferienbeschäftigung Formular für den Arbeitgeber" in text
+
+
+def test_inline_elements_inside_a_link_stay_joined_and_blocks_in_a_table_cell_are_separated() -> None:
+    """whitespace · only block children add a space: ``<strong>Antrag</strong>formular`` is still one word."""
+    html = _page(
+        "<p><a href='/f'><strong>Antrag</strong>formular</a></p><table><tr><td><p>Name</p><p>Ort</p></td></tr></table>"
+    )
+    assert clean_page(html, BASE).text == "Antragformular (https://portal.example/f)\nName Ort"
+
+
+def test_the_cleaner_version_is_clean_4() -> None:
+    """version · screen-reader text is dropped, so cached answers of clean-3 are not reused."""
+    assert clean_page(_page("<p>Text</p>"), BASE).version == "clean-4"
+
+
+@pytest.mark.parametrize(
+    "token", ["sr-only", "visually-hidden", "visuallyhidden", "screen-reader-text", "show-for-sr", "u-sr-only"]
+)
+def test_a_span_with_a_screen_reader_only_class_is_dropped_with_its_text(token: str) -> None:
+    """helper text · ``<span class="sr-only">positiv:</span>`` is not page text, so the bullet reads without it."""
+    html = _page(f"<ul><li><span class='row {token}'>positiv:</span>Kundennummer</li></ul>")
+    assert clean_page(html, BASE).text == "- Kundennummer"
+
+
+def test_a_doubled_label_made_of_visible_text_and_a_screen_reader_copy_is_printed_once() -> None:
+    """helper text · ``Wichtig:Wichtig:`` came from a screen-reader copy next to the visible label."""
+    html = _page("<p><span class='sr-only'>Wichtig:</span><strong>Wichtig:</strong> Ohne Bestätigung kein Zugang.</p>")
+    assert clean_page(html, BASE).text == "Wichtig: Ohne Bestätigung kein Zugang."
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        "id='sr-only'",
+        "class='sr-only-label'",
+        "class='no-sr-only'",
+        "class='visually-hidden-focusable-not'",
+        "data-x='sr-only'",
+    ],
+)
+def test_a_visible_element_whose_name_merely_contains_sr_only_is_kept(attributes: str) -> None:
+    """helper text · whole class tokens only: lookalike ids, classes and attributes keep their text."""
+    html = _page(f"<p>Hinweis <span {attributes}>Personalausweis</span> mitbringen und sr-only lesen</p>")
+    assert clean_page(html, BASE).text == "Hinweis Personalausweis mitbringen und sr-only lesen"
+
+
+@pytest.mark.parametrize(
+    "markup",
+    [
+        "<body class='sr-only'><p>Hauptinhalt</p></body>",
+        "<body><main class='visually-hidden'><p>Hauptinhalt</p></main></body>",
+        "<body><div class='sr-only'><main><p>Hauptinhalt</p></main></div></body>",
+        "<body><div class='u-sr-only'><article><p>Hauptinhalt</p></article></div></body>",
+    ],
+)
+def test_the_page_body_and_the_main_region_are_never_dropped_by_the_helper_text_rule(markup: str) -> None:
+    """helper text · a class on ``body``, ``main`` or a wrapper of the main content does not empty the page."""
+    assert clean_page(f"<html><head></head>{markup}</html>", BASE).text == "Hauptinhalt"

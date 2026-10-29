@@ -138,3 +138,45 @@ it("tasks table labels result notes in German", () => {
 
   expect(screen.getByText("Zu groß")).toBeInTheDocument();
 });
+
+it("tasks table shows the llm_extract kind and translates its result notes, leaving the counts note raw", () => {
+  renderWithProviders(
+    <DiscoveryTasksTable
+      tasks={[
+        task({
+          id: "a",
+          target_url: "https://example.gov/empty",
+          kind: "llm_extract",
+          status: "completed",
+          result_note: "no_content",
+        }),
+        task({
+          id: "b",
+          target_url: "https://example.gov/none",
+          kind: "llm_extract",
+          status: "completed",
+          result_note: "no_documents",
+        }),
+        task({
+          id: "c",
+          target_url: "https://example.gov/done",
+          kind: "llm_extract",
+          status: "completed",
+          result_note: "docs=7 edges=5 dropped=2",
+        }),
+      ]}
+    />,
+  );
+
+  expect(
+    within(statusCellOf("https://example.gov/empty")).getByText("No content"),
+  ).toHaveClass("chakra-badge");
+  expect(
+    within(statusCellOf("https://example.gov/none")).getByText("No documents"),
+  ).toBeInTheDocument();
+  expect(
+    within(statusCellOf("https://example.gov/done")).getByText(
+      "docs=7 edges=5 dropped=2",
+    ),
+  ).toBeInTheDocument();
+});

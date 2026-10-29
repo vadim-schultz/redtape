@@ -269,9 +269,11 @@ class DiscoveryMachineClient:
         response = self._call("GET", f"/artifacts/{artifact_id}/content")
         return ArtifactContent(response.content, response.headers.get("content-type"))
 
-    def list_artifacts(self, *, host: str, kind: ArtifactKind, offset: int, limit: int) -> ArtifactPage:
-        """List stored artifacts of ``kind`` whose source host is ``host``, newest first; ``limit`` is at most 100."""
-        params: dict[str, str | int] = {"host": host, "kind": kind, "offset": offset, "limit": limit}
+    def list_artifacts(self, *, host: str | None, kind: ArtifactKind, offset: int, limit: int) -> ArtifactPage:
+        """List stored artifacts of ``kind``, newest first, of source host ``host`` (any host when ``None``); ``limit`` is at most 100."""
+        params: dict[str, str | int] = {"kind": kind, "offset": offset, "limit": limit}
+        if host is not None:
+            params["host"] = host
         return ArtifactPage.model_validate(self._call("GET", "/artifacts", params=params).json())
 
     def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:

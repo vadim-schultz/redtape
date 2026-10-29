@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from discovery_ingest.extract.clean import DEFAULT_MAX_CHARS
 from discovery_ingest.extract.llm.client import LlmClient
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
-
-DEFAULT_MAX_TOKENS = 1500
-DEFAULT_MAX_CHARS = 12000
+from discovery_ingest.llm_settings import DEFAULT_MAX_TOKENS
 
 
 @dataclass(frozen=True, slots=True)

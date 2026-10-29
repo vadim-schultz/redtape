@@ -9,12 +9,13 @@ from typing import Any, Protocol
 
 @dataclass(frozen=True, slots=True)
 class LlmResult:
-    """The model's JSON text and the token counts the provider reported (``None`` when it reported none)."""
+    """The model's JSON text, the token counts and the neurons the provider reported (``None`` when it reported none)."""
 
     parsed_json: str
     input_tokens: int | None
     output_tokens: int | None
     model: str
+    neurons: float | None = None
 
 
 class LlmClient(Protocol):

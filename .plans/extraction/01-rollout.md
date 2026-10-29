@@ -1,6 +1,6 @@
 ---
 name: Extraction — Rollout
-overview: "Twelve independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, wiring and workflow, admin display, and docs with operator steps."
+overview: "Eighteen independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, quality tuning, grounding normalisation, a higher input cap, quote shape, data-field and non-document guards, price rows for candidate models, wiring and workflow, admin display, and docs with operator steps."
 isProject: false
 ---
 
@@ -57,7 +57,10 @@ flowchart TD
   E11 --> E4
   E11 --> E9
   E5 --> E12[E12 QualityTuning]
-  E12 --> E7
+  E12 --> E13[E13 GroundingNormalisation]
+  E13 --> E14[E14 RaiseInputCap]
+  E14 --> E15[E15 QuoteShape]
+  E15 --> E7
 ```
 
 E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of E1 to E9 and execute first: E10 decides which pages are fetched and rendered at all, and E11 settles the caps before the first live gate spends neurons. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
@@ -73,26 +76,40 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 5. [chapters/05-eval-harness-and-model-choice.md](chapters/05-eval-harness-and-model-choice.md)
 6. [chapters/06-llm-extract-handler.md](chapters/06-llm-extract-handler.md)
 6a. [chapters/12-extraction-quality-tuning.md](chapters/12-extraction-quality-tuning.md) (E12, added 2026-10-28 after the first live eval; executes after E6)
+6b. [chapters/13-grounding-normalisation.md](chapters/13-grounding-normalisation.md) (E13, added 2026-10-28 from E12's findings; executes after E12)
+6c. [chapters/14-raise-the-input-cap.md](chapters/14-raise-the-input-cap.md) (E14, added 2026-10-28, owner decision: quality over throughput; executes after E13)
+6d. [chapters/15-quote-shape.md](chapters/15-quote-shape.md) (E15, added 2026-10-28 from E13's findings; executes after E14)
 7. [chapters/07-wiring-and-workflow.md](chapters/07-wiring-and-workflow.md)
+7a. [chapters/16-documents-not-data-fields.md](chapters/16-documents-not-data-fields.md) (E16, added 2026-10-29, owner approved; executes after E7)
+7b. [chapters/17-price-rows-for-candidate-models.md](chapters/17-price-rows-for-candidate-models.md) (E17, added 2026-10-29; executes after E16; then the chief of staff runs the model comparison for X16)
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
+8a. [chapters/18-non-documents-and-tag-restraint.md](chapters/18-non-documents-and-tag-restraint.md) (E18, added 2026-10-29 from the ext-4 eval; executes after E8)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
 
 ## Chapters
 
+Status is `merged` into `feat/extraction`; the proof (verification, refactor outcome, live gate) for each chapter is in [run-ledger.md](run-ledger.md). The mid-suite release [PR #229](https://github.com/vadim-schultz/redtape/pull/229) put E11, E10 and E1 to E6 on `main`; E7, E8, E9 and E12 to E18 go in the final release PR.
+
 | # | Chapter | Layer | Gate | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| E1 | Staging groundwork (kind, role, columns, edges, taxonomy route, tag aggregation) | model + migration + API | paired tests + round trip + CI | [01](chapters/01-staging-groundwork.md) | planned |
-| E2 | Page cleaner | worker | fixture tests + recall gate + CI | [02](chapters/02-page-cleaner.md) | planned |
-| E3 | Extraction schema, prompt and grounding | worker | paired tests + CI | [03](chapters/03-extraction-schema-and-grounding.md) | planned |
-| E4 | Workers AI client, neuron meter and probe | worker + CI workflow | paired tests + CI + live probe | [04](chapters/04-workers-ai-client-and-probe.md) | planned |
-| E5 | Eval harness and model choice | worker | gold set + eval run recorded | [05](chapters/05-eval-harness-and-model-choice.md) | planned |
-| E6 | `llm_extract` handler | worker | paired tests + CI | [06](chapters/06-llm-extract-handler.md) | planned |
-| E7 | Wiring and workflow | worker + CI workflow | paired tests + CI + live drain | [07](chapters/07-wiring-and-workflow.md) | planned |
-| E8 | Admin display | API + frontend | paired tests + web CI + browser check | [08](chapters/08-admin-display.md) | planned |
-| E9 | Docs sync and operator steps | docs + ops | link checks + docs tests + checklist | [09](chapters/09-docs-and-operator-steps.md) | planned |
-| E10 | Robots rules fix (executes second, after E11) | worker | paired tests + real-file fixtures + CI + re-pend counts | [10](chapters/10-robots-rules-fix.md) | planned |
-| E11 | Free-tier caps at 95 percent (executes first) | config + workflow + docs | paired tests + ratio guard + CI + budgets route check | [11](chapters/11-free-tier-caps-95.md) | planned |
-| E12 | Extraction quality tuning (executes after E6) | worker | paired tests + gold-set re-run | [12](chapters/12-extraction-quality-tuning.md) | planned |
+| E1 | Staging groundwork (kind, role, columns, edges, taxonomy route, tag aggregation) | model + migration + API | paired tests + round trip + CI | [01](chapters/01-staging-groundwork.md) | merged |
+| E2 | Page cleaner | worker | fixture tests + recall gate + CI | [02](chapters/02-page-cleaner.md) | merged |
+| E3 | Extraction schema, prompt and grounding | worker | paired tests + CI | [03](chapters/03-extraction-schema-and-grounding.md) | merged |
+| E4 | Workers AI client, neuron meter and probe | worker + CI workflow | paired tests + CI + live probe | [04](chapters/04-workers-ai-client-and-probe.md) | merged |
+| E5 | Eval harness and model choice | worker | gold set + eval run recorded | [05](chapters/05-eval-harness-and-model-choice.md) | merged |
+| E6 | `llm_extract` handler | worker | paired tests + CI | [06](chapters/06-llm-extract-handler.md) | merged |
+| E7 | Wiring and workflow | worker + CI workflow | paired tests + CI + live drain | [07](chapters/07-wiring-and-workflow.md) | merged |
+| E8 | Admin display | API + frontend | paired tests + web CI + browser check | [08](chapters/08-admin-display.md) | merged |
+| E9 | Docs sync and operator steps | docs + ops | link checks + docs tests + checklist | [09](chapters/09-docs-and-operator-steps.md) | merged (docs sync, this change) |
+| E10 | Robots rules fix (executes second, after E11) | worker | paired tests + real-file fixtures + CI + re-pend counts | [10](chapters/10-robots-rules-fix.md) | merged |
+| E11 | Free-tier caps at 95 percent (executes first) | config + workflow + docs | paired tests + ratio guard + CI + budgets route check | [11](chapters/11-free-tier-caps-95.md) | merged |
+| E12 | Extraction quality tuning (executes after E6) | worker | paired tests + gold-set re-run | [12](chapters/12-extraction-quality-tuning.md) | merged |
+| E13 | Grounding normalisation (executes after E12) | worker | paired tests + recorded answers regress + CI | [13](chapters/13-grounding-normalisation.md) | merged |
+| E14 | Raise the input cap to 30,000 characters (executes after E13) | worker + docs | paired tests + CI | [14](chapters/14-raise-the-input-cap.md) | merged |
+| E15 | Quote shape: one line per quote, drop screen-reader text (executes after E14) | worker | paired tests + CI | [15](chapters/15-quote-shape.md) | merged |
+| E16 | Documents, not data fields: prompt rule `ext-4` (executes after E7) | worker | paired tests + CI | [16](chapters/16-documents-not-data-fields.md) | merged |
+| E17 | Price rows for Mistral Small 3.1 and Llama 4 Scout (executes after E16) | worker | paired tests + CI | [17](chapters/17-price-rows-for-candidate-models.md) | merged |
+| E18 | Non-documents and tag restraint: prompt `ext-5` and guards (executes after E8) | worker | paired tests + CI | [18](chapters/18-non-documents-and-tag-restraint.md) | merged |
 
 ## Per-chapter gate
 

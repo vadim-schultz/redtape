@@ -138,6 +138,15 @@ class CandidateCountsRead(BaseModel):
     mentions: int
 
 
+class LlmOutcomesRead(BaseModel):
+    """Completed ``llm_extract`` tasks by what the model run produced."""
+
+    extracted: int
+    no_documents: int
+    login_wall: int
+    no_content: int
+
+
 class ArtifactTotalsRead(BaseModel):
     """Artifact count and stored bytes of one kind."""
 
@@ -182,6 +191,7 @@ class DiscoveryCoverageResponse(BaseModel):
     task_counts: TaskCountsRead
     task_counts_by_kind: dict[str, TaskCountsRead] = Field(default_factory=dict)
     candidates: CandidateCountsRead
+    llm_outcomes: LlmOutcomesRead
     artifacts: ArtifactCoverageRead
     fetch_attempts_total: int
     stale_claims: int

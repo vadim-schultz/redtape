@@ -1,17 +1,24 @@
 ---
 name: "Chapter 21 — LLM extract flag"
-overview: "Deferred: optional LLM-assisted claim extraction behind a feature flag."
+overview: "Superseded by the extraction suite: LLM-assisted extraction is built there as the budgeted llm_extract task kind, not as a claim extractor behind a flag."
 todos: []
 isProject: false
 ---
 
 # Chapter 21 — LLM extract flag
 
-**Branch:** `feat/discovery-layer-llm-extract` · **Status:** deferred
+**Branch:** `feat/discovery-layer-llm-extract` · **Status:** superseded by the [extraction suite](../../extraction/00-architecture.md)
 
 **Loop branch:** `feat/plans-discovery-layer` · **Rollout:** [../01-rollout.md](../01-rollout.md) (not in CoS execution order)
 
 ---
+
+## Superseded
+
+The deferred flag is superseded by [`.plans/extraction/`](../../extraction/00-architecture.md). That suite builds the
+reader as the budgeted task kind `llm_extract` (Cloudflare Workers AI, grounded, staged as document candidates, mentions
+and edges), not as a settings flag that fills `discovery_claim` rows. The claim-extraction idea below stays an open seam
+(T4 search); do not reopen this chapter for LLM extraction.
 
 ## Goal
 
