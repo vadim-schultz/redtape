@@ -123,8 +123,14 @@ it("documents page sends filters and sort as query parameters", async () => {
   const { user } = renderPage();
   await screen.findByRole("table");
   const first = urls[0].searchParams;
-  expect([...first.keys()].sort()).toEqual(["limit", "offset", "sort"]);
-  expect(first.get("sort")).toBe("mentions_desc");
+  expect([...first.keys()].sort()).toEqual([
+    "limit",
+    "offset",
+    "sort_by",
+    "sort_order",
+  ]);
+  expect(first.get("sort_by")).toBe("mentions");
+  expect(first.get("sort_order")).toBe("desc");
 
   await user.type(screen.getByLabelText("Search titles"), "pass{Enter}");
   await user.selectOptions(screen.getByLabelText("Minimum mentions"), "2");
@@ -135,14 +141,15 @@ it("documents page sends filters and sort as query parameters", async () => {
   await waitFor(() => {
     const last = urls.at(-1)!.searchParams;
     expect(last.get("q")).toBe("pass");
-    expect(last.get("min_mentions")).toBe("2");
-    expect(last.get("role")).toBe("form");
-    expect(last.get("source")).toBe("pvog");
-    expect(last.get("sort")).toBe("title_asc");
+    expect(last.get("filter[min_mentions]")).toBe("2");
+    expect(last.get("filter[role]")).toBe("form");
+    expect(last.get("filter[source]")).toBe("pvog");
+    expect(last.get("sort_by")).toBe("title");
+    expect(last.get("sort_order")).toBe("asc");
   });
   await user.selectOptions(screen.getByLabelText("Role"), "");
   await waitFor(() =>
-    expect(urls.at(-1)?.searchParams.has("role")).toBe(false),
+    expect(urls.at(-1)?.searchParams.has("filter[role]")).toBe(false),
   );
 });
 
