@@ -114,7 +114,9 @@
       "note_login_wall": "Login erforderlich",
       "note_oversize": "Zu groß",
       "note_no_mentions": "Keine Erwähnungen",
-      "note_no_extractor": "Kein Extraktor"
+      "note_no_extractor": "Kein Extraktor",
+      "note_no_content": "Kein Inhalt",
+      "note_no_documents": "Keine Dokumente"
     },
     "documents": {
       "filter_search": "Titel durchsuchen",
@@ -140,7 +142,8 @@
       "empty_title": "Keine Dokumente gefunden",
       "empty_description": "Andere Suche oder anderen Filter versuchen.",
       "count_one": "{count} Dokument",
-      "count_other": "{count} Dokumente"
+      "count_other": "{count} Dokumente",
+      "role_issued": "Ausgestellt"
     },
     "document": {
       "jurisdiction": "Zuständigkeitsgebiet",
@@ -166,7 +169,26 @@
       "emit_conflicts": "Konflikte",
       "emit_emitted": "Als Vorschlag übernommen",
       "emit_pending": "Wartet auf Prüfung",
-      "emit_cli_hint": "Das Übernehmen erfolgt über die Kommandozeile, nicht hier."
+      "emit_cli_hint": "Das Übernehmen erfolgt über die Kommandozeile, nicht hier.",
+      "col_condition": "Bedingung",
+      "optional": "Optional",
+      "tags": {
+        "title": "Vorgeschlagene Schlagwörter",
+        "domains": "Themenbereiche",
+        "situations": "Lebenslagen",
+        "support": "{name} · {procedures} von {total} Verfahren",
+        "empty": "Noch kein Konsens.",
+        "accepted": "Erreicht die Schwellenwerte"
+      },
+      "edges": {
+        "title": "Abhängigkeiten",
+        "requires": "Benötigt",
+        "required_by": "Wird benötigt von",
+        "empty": "Noch keine Abhängigkeiten vorgemerkt.",
+        "basis_explicit": "Ausdrücklich",
+        "basis_derived_single_issued": "Abgeleitet",
+        "procedure": "Verfahren"
+      }
     },
     "pagination": {
       "range": "{from}–{to} von {total}",
@@ -204,7 +226,14 @@
       "candidates_total": "Kandidaten: {count}",
       "candidates_staged": "Vorgemerkte Kandidaten: {count}",
       "candidates_emitted": "Übernommene Kandidaten: {count}",
-      "candidate_mentions": "Kandidaten-Erwähnungen: {count}"
+      "candidate_mentions": "Kandidaten-Erwähnungen: {count}",
+      "llm": {
+        "title": "Ergebnisse der Extraktion",
+        "extracted": "Extrahiert: {count}",
+        "no_documents": "Keine Dokumente: {count}",
+        "login_wall": "Login erforderlich: {count}",
+        "no_content": "Kein Inhalt: {count}"
+      }
     },
     "catalogue": {
       "empty": "Noch keine Katalogdienste.",

@@ -146,6 +146,20 @@ it("DiscoveryTasksPage · lists the browser kinds in the kind select and filters
   );
 });
 
+it("DiscoveryTasksPage · offers llm_extract in the kind select and filters by it", async () => {
+  const urls = stubEmptyTasks();
+
+  const { user } = renderWithProviders(<DiscoveryTasksPage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+  await waitFor(() => expect(urls.length).toBeGreaterThan(0));
+  await user.selectOptions(screen.getByLabelText("Task kind"), "llm_extract");
+
+  await waitFor(() =>
+    expect(urls.at(-1)?.searchParams.get("kind")).toBe("llm_extract"),
+  );
+});
+
 it("DiscoveryTasksPage · tolerates an unknown future kind label", async () => {
   stubTasksFetch(
     () =>

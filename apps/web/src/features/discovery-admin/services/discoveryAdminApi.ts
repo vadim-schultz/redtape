@@ -6,6 +6,7 @@ import type {
   DiscoveryArtifactListResponse,
   DiscoveryBudgetsResponse,
   DiscoveryCandidateDetailResponse,
+  DiscoveryCandidateEdgesResponse,
   DiscoveryCandidateListResponse,
   DiscoveryCandidateSort,
   DiscoveryCoverageResponse,
@@ -152,6 +153,19 @@ export async function fetchDiscoveryCandidate(params: {
   const { locale, accessToken, candidateId } = params;
   return apiRequest<DiscoveryCandidateDetailResponse>(
     `${CANDIDATES_PATH}/${candidateId}`,
+    { locale, accessToken },
+  );
+}
+
+/** Every staged edge that has the candidate as parent or as required end. */
+export async function fetchCandidateEdges(params: {
+  locale: string;
+  accessToken: string;
+  candidateId: string;
+}): Promise<DiscoveryCandidateEdgesResponse> {
+  const { locale, accessToken, candidateId } = params;
+  return apiRequest<DiscoveryCandidateEdgesResponse>(
+    `${CANDIDATES_PATH}/${candidateId}/edges`,
     { locale, accessToken },
   );
 }

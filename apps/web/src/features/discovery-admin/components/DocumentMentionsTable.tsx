@@ -1,4 +1,4 @@
-import { Box, Table, Text } from "@chakra-ui/react";
+import { Box, HStack, Table, Text } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -6,8 +6,17 @@ import type { DiscoveryCandidateMention } from "../types";
 import { hostOf } from "../utils/hostOf";
 import { localizedTitle } from "../utils/localizedTitle";
 import MentionRoleChip from "./MentionRoleChip";
+import OptionalChip from "./OptionalChip";
 
-const COLUMNS = ["role", "excerpt", "field", "extractor", "host", "procedure"];
+const COLUMNS = [
+  "role",
+  "excerpt",
+  "condition",
+  "field",
+  "extractor",
+  "host",
+  "procedure",
+];
 const NAMESPACE = "discovery_admin.document";
 
 function MentionRow({ mention }: { mention: DiscoveryCandidateMention }) {
@@ -17,9 +26,13 @@ function MentionRow({ mention }: { mention: DiscoveryCandidateMention }) {
   return (
     <Table.Row>
       <Table.Cell>
-        <MentionRoleChip role={mention.role} />
+        <HStack gap={1} wrap="wrap">
+          <MentionRoleChip role={mention.role} />
+          <OptionalChip isOptional={mention.is_optional} />
+        </HStack>
       </Table.Cell>
       <Table.Cell whiteSpace="normal">{mention.excerpt}</Table.Cell>
+      <Table.Cell whiteSpace="normal">{mention.condition ?? "—"}</Table.Cell>
       <Table.Cell>{mention.source_field}</Table.Cell>
       <Table.Cell>{`${mention.extractor}@${mention.extractor_version}`}</Table.Cell>
       <Table.Cell>{hostOf(mention.portal_url) || "—"}</Table.Cell>

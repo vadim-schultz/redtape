@@ -11,7 +11,8 @@ export type DiscoveryTaskKind =
   | "harvest_payload"
   | "extract_page"
   | "render_page"
-  | "capture_screenshot";
+  | "capture_screenshot"
+  | "llm_extract";
 
 export type DiscoveryTask = {
   id: string;
@@ -130,6 +131,14 @@ export type DiscoveryArtifactCoverage = {
   bytes_cap: number;
 };
 
+/** Completed `llm_extract` tasks by what the model run produced. */
+export type DiscoveryLlmOutcomes = {
+  extracted: number;
+  no_documents: number;
+  login_wall: number;
+  no_content: number;
+};
+
 export type DiscoveryCoverageResponse = {
   by_source: Partial<Record<DiscoverySource, number>>;
   tasks_pending: number;
@@ -139,6 +148,7 @@ export type DiscoveryCoverageResponse = {
   /** Keyed by task kind; a kind this client does not know yet still renders. */
   task_counts_by_kind: Record<string, DiscoveryTaskCounts>;
   candidates: DiscoveryCandidateCounts;
+  llm_outcomes: DiscoveryLlmOutcomes;
   artifacts: DiscoveryArtifactCoverage;
   fetch_attempts_total: number;
   stale_claims: number;
@@ -147,7 +157,7 @@ export type DiscoveryCoverageResponse = {
   last_successful_run: DiscoveryRun | null;
 };
 
-export type DiscoveryMentionRole = "required" | "form";
+export type DiscoveryMentionRole = "required" | "form" | "issued";
 
 export type DiscoveryCandidateStatus = "staged" | "emitted";
 
@@ -239,13 +249,53 @@ export type DiscoveryCandidateMention = {
   artifact: DiscoveryMentionArtifact | null;
   extractor: string;
   extractor_version: string;
+  /** When the document applies ("bei Zuzug aus dem Ausland"), as the page states it. */
+  condition: string | null;
+  is_optional: boolean | null;
+  domain_codes: string[];
+  situation_codes: string[];
   created_at: string;
+};
+
+/** How many procedures carry a tag code, and whether an emit would use it. */
+export type DiscoveryTagSupport = {
+  code: string;
+  procedures: number;
+  /** Share of the candidate's tagged procedures, from 0 to 1. */
+  share: number;
+  accepted: boolean;
 };
 
 export type DiscoveryCandidateDetailResponse = {
   candidate: DiscoveryCandidateRecord;
   jurisdiction_name_i18n: Record<string, string>;
   mentions: DiscoveryCandidateMention[];
+  suggested_domain_codes: DiscoveryTagSupport[];
+  suggested_situation_codes: DiscoveryTagSupport[];
+};
+
+/** A staged "parent requires required" edge with both titles and the stating procedure. */
+export type DiscoveryCandidateEdge = {
+  id: string;
+  parent_candidate_id: string;
+  parent_title_i18n: Record<string, string>;
+  required_candidate_id: string;
+  required_title_i18n: Record<string, string>;
+  catalogue_service_id: string;
+  procedure_title_i18n: Record<string, string>;
+  /** Open set: `explicit`, `derived_single_issued`. */
+  basis: string;
+  condition: string | null;
+  is_optional: boolean | null;
+  excerpt: string;
+  extractor: string;
+  extractor_version: string;
+  created_at: string;
+};
+
+/** Every edge that has the candidate as parent or as required end. */
+export type DiscoveryCandidateEdgesResponse = {
+  items: DiscoveryCandidateEdge[];
 };
 
 /** A catalogue entity or pending suggestion an emit would duplicate. */

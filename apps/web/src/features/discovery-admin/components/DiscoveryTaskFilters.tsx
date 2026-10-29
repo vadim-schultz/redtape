@@ -31,6 +31,7 @@ const KINDS: DiscoveryTaskKind[] = [
   "extract_page",
   "render_page",
   "capture_screenshot",
+  "llm_extract",
 ];
 
 function plain(values: string[]): FilterOption[] {
