@@ -46,11 +46,11 @@ def test_an_unknown_model_is_refused_rather_than_guessed() -> None:
         cost("@cf/acme/mystery-model", 10, 10)
 
 
-def test_the_table_lists_the_six_documented_models() -> None:
-    """prices · the initial rows from Cloudflare's pricing page are present."""
+def test_the_table_lists_the_documented_models() -> None:
+    """prices · the initial rows and the two candidate rows are present."""
     models = known_models()
 
-    assert len(models) == 6
+    assert len(models) == 8
     assert LLAMA_8B in models and LLAMA_70B in models
     assert "@cf/openai/gpt-oss-20b" in models
 

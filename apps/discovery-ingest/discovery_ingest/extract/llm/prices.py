@@ -30,8 +30,14 @@ NEURON_PRICES: dict[str, NeuronPrice] = {
     "@cf/openai/gpt-oss-20b": NeuronPrice(18_182, 27_273),
     "@cf/google/gemma-4-26b-a4b-it": NeuronPrice(9_091, 27_273),
     "@cf/qwen/qwen3-30b-a3b-fp8": NeuronPrice(4_625, 30_475),
+    "@cf/mistralai/mistral-small-3.1-24b-instruct": NeuronPrice(31_876, 50_488),
+    "@cf/meta/llama-4-scout-17b-16e-instruct": NeuronPrice(24_545, 77_273),
 }
-"""Initial rows from Cloudflare's pricing page. The gemma and qwen ids are best guesses until the probe accepts them."""
+"""Rows from Cloudflare's pricing page (developers.cloudflare.com/workers-ai/platform/pricing/).
+
+The Mistral and Scout rows were fetched on 2026-10-29 and reproduce the neurons the probe of 2026-10-28 reported
+(105.33 for 2,351 + 602 tokens, 97.48 for 2,139 + 582). The gemma id is a best guess: that probe timed out on it.
+"""
 
 
 class UnknownModelError(ValueError):
