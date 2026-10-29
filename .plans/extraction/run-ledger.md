@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/extraction`
 **Release branch:** `main`
-**Release PR:** final release not opened. **Mid-suite release:** [PR #229](https://github.com/vadim-schultz/redtape/pull/229) merged `feat/extraction` into `main` on 2026-10-28 (E11, E10, E1 to E6 and the plan docs), on local CI only. The production database already had migration `20261029_staging_edges` applied by hand before the merge. E12 and E7 to E9 go in the final release PR.
+**Release PR:** [PR #240](https://github.com/vadim-schultz/redtape/pull/240) opened 2026-10-29 (`feat/extraction` into `main`, E7 to E9 and E12 to E18); not merged, remote CI cannot run (billing). **Mid-suite release:** [PR #229](https://github.com/vadim-schultz/redtape/pull/229) merged `feat/extraction` into `main` on 2026-10-28 (E11, E10, E1 to E6 and the plan docs), on local CI only. The production database already had migration `20261029_staging_edges` applied by hand before the merge. E12 and E7 to E9 go in the final release PR.
 **CI policy (owner, 2026-10-28):** GitHub Actions minutes are exhausted until the end of October. Chapters gate on the full local CI and merge into the loop branch without remote CI. Rerun remote CI on the release PR if minutes are back.
 
 Update this ledger after every chapter implementation or documented operator verification. A chapter is not complete until its gate, its live gate (or the reason it is deferred), and its refactor outcome are recorded. Record GitHub Actions run IDs, or the local command and date, for every live gate, and the `neurons_used` of every model run.
