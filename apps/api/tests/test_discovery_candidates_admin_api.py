@@ -357,7 +357,13 @@ def test_candidate_list_query_beats_the_legacy_parameters_it_replaces(
     _mention(db_session, _candidate(db_session, catalogue, key="gov", title_i18n={"de": "A"}), catalogue, "a")
     _mention(db_session, _candidate(db_session, catalogue, key="pv", title_i18n={"de": "B"}), pvog, "b")
 
-    canonical = {"filter[source]": "pvog", "source": "govdata", "sort_by": "title", "sort_order": "desc", "sort": "newest"}
+    canonical = {
+        "filter[source]": "pvog",
+        "source": "govdata",
+        "sort_by": "title",
+        "sort_order": "desc",
+        "sort": "newest",
+    }
 
     assert _params_keys(client, canonical) == ["pv"]
     assert _params_keys(client, {"sort_by": "title", "sort_order": "desc"}) == ["pv", "gov"]
@@ -377,7 +383,12 @@ def test_candidate_list_query_applies_deterministic_secondary_ordering(
 
     assert first == second == ["alpha", "bravo"]
     assert next_page == ["charlie", "delta"]
-    assert _params_keys(client, {"sort_by": "created_at", "sort_order": "asc"}) == ["alpha", "bravo", "charlie", "delta"]
+    assert _params_keys(client, {"sort_by": "created_at", "sort_order": "asc"}) == [
+        "alpha",
+        "bravo",
+        "charlie",
+        "delta",
+    ]
 
 
 def test_candidate_list_query_orders_by_the_requested_direction_then_the_stable_key(
