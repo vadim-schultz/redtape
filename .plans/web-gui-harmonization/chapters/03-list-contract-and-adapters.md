@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 3 — Stable list contract and adapters
 
-**Repo:** `redtape` (`apps/api`, `apps/web`) · **Branch:** `feat/web-gui-harmonization-list-contract` · **Status:** planned  
+**Repo:** `redtape` (`apps/api`, `apps/web`) · **Branch:** `feat/web-gui-harmonization-list-contract` · **Status:** done  
 **Depends on:** [02-data-table-kernel.md](02-data-table-kernel.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

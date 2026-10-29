@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 5 — Coverage and operational metrics tables
 
-**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-coverage` · **Status:** planned  
+**Repo:** `redtape` (`apps/web`) · **Branch:** `feat/web-gui-harmonization-coverage` · **Status:** done  
 **Depends on:** [04-discovery-admin-tables.md](04-discovery-admin-tables.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-web-gui-harmonization` · **Release branch:** `main`

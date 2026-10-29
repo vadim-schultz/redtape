@@ -6,6 +6,7 @@ import {
   type DataTableProps,
 } from "../../../../components/data-display/DataTable";
 import { useLocale } from "../../../../contexts/LocaleContext";
+import { emotionRules } from "../../../../test/emotionRules";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type {
   CandidateFilterKey,
@@ -82,4 +83,14 @@ it("candidate columns give display-only columns no sort or filter control", asyn
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   expect(onSortChange).not.toHaveBeenCalled();
   expect(onFilterChange).not.toHaveBeenCalled();
+});
+
+it("candidate columns align the mention count to the end", () => {
+  renderWithProviders(<Table query={{}} />);
+
+  const header = screen.getByRole("columnheader", { name: /Mentions/ });
+  const title = screen.getByRole("columnheader", { name: /Title/ });
+
+  expect(emotionRules(header)).toContain("text-align: end");
+  expect(emotionRules(title)).not.toContain("text-align: end");
 });

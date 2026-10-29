@@ -21,7 +21,7 @@ type CellProps<Row, SortKey extends string, FilterKey extends string> = {
 };
 
 function HeaderCell<Row, SortKey extends string, FilterKey extends string>({
-  column: { canSort, filter, header },
+  column: { canSort, filter, header, align },
   query: { sort = {}, onSortChange, onFilterChange, filters },
 }: CellProps<Row, SortKey, FilterKey>) {
   const sortable = canSort !== undefined && onSortChange !== undefined;
@@ -30,6 +30,7 @@ function HeaderCell<Row, SortKey extends string, FilterKey extends string>({
   return (
     <Table.ColumnHeader
       textStyle="tableHeader"
+      textAlign={align}
       backgroundColor="table.header.bg"
       aria-sort={sortable ? ariaSortFor(sort, canSort) : undefined}
     >

@@ -4,6 +4,7 @@ import Pagination from "../Pagination";
 import DataTableBody from "./DataTableBody";
 import DataTableFeedback from "./DataTableFeedback";
 import DataTableHeader from "./DataTableHeader";
+import ScrollRegion from "./ScrollRegion";
 import { resolveTableState } from "./tableState";
 import type { DataTableProps } from "./types";
 
@@ -35,7 +36,7 @@ export default function DataTable<
         query={query}
         states={states}
       />
-      <Table.ScrollArea>
+      <ScrollRegion label={label}>
         <Table.Root
           size="sm"
           aria-label={label}
@@ -51,7 +52,7 @@ export default function DataTable<
             states={states}
           />
         </Table.Root>
-      </Table.ScrollArea>
+      </ScrollRegion>
       {page && state === "populated" ? <Pagination {...page} /> : null}
     </Stack>
   );

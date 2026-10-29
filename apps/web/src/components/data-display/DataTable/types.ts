@@ -34,6 +34,9 @@ export interface FilterChange<FilterKey extends string> {
   value: string;
 }
 
+/** Horizontal alignment of a column's header and cells; numeric columns use `end`. */
+export type ColumnAlign = "start" | "center" | "end";
+
 /** A column declares its sort/filter capability; display columns declare none. */
 export interface DataTableColumn<
   Row,
@@ -44,6 +47,7 @@ export interface DataTableColumn<
   header: ReactNode;
   canSort?: SortKey;
   filter?: FilterCapability<FilterKey>;
+  align?: ColumnAlign;
   render: (row: Row) => ReactNode;
 }
 

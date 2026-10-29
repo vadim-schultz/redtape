@@ -84,7 +84,8 @@ API list contract, eight chapters, and chief-of-staff orchestration on
 | [chapters/](web-gui-harmonization/chapters/) | Executable red → green → refactor chapter plans |
 | [run-ledger.md](web-gui-harmonization/run-ledger.md) | Chief-of-staff chapter and release tracking |
 
-Status: planned — first: [chapters/01-visual-foundation.md](web-gui-harmonization/chapters/01-visual-foundation.md).
+Status: chapters 1–8 are done on the loop branch; the release PR to `main` and the manual browser smoke
+([admin-tables.md](../docs/operations/admin-tables.md#release-smoke-checks)) are pending.
 
 ### [ci-foundation/](ci-foundation/) — Postgres-backed API CI
 

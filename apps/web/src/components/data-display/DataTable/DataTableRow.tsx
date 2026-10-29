@@ -28,7 +28,7 @@ export default function DataTableRow<
       {...navigation}
     >
       {columns.map((column) => (
-        <Table.Cell key={column.key} textStyle="body">
+        <Table.Cell key={column.key} textStyle="body" textAlign={column.align}>
           {column.render(row)}
         </Table.Cell>
       ))}

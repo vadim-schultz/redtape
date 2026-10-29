@@ -152,3 +152,25 @@ it("artifacts panel keeps the sections apart and tolerates an unknown kind", () 
   expect(screen.getByText("HTML snapshots")).toBeInTheDocument();
   expect(screen.getByText("pdf_copy")).toBeInTheDocument();
 });
+
+it("artifacts panel puts stored pages in a titled section shell", () => {
+  renderPanel([snapshot()]);
+
+  const shell = screen.getByRole("region", { name: "Artifacts" });
+  expect(shell).toHaveAttribute("data-section-card");
+  expect(within(shell).getByRole("table")).toBeInTheDocument();
+});
+
+it("artifacts panel keeps loading, empty, and error feedback inside the section shell", () => {
+  for (const [artifacts, status] of [
+    [undefined, { isLoading: true }],
+    [[], {}],
+    [undefined, { isError: true }],
+  ] as const) {
+    const { unmount } = renderPanel([...(artifacts ?? [])], status);
+    expect(
+      screen.getByRole("region", { name: "Artifacts" }),
+    ).toBeInTheDocument();
+    unmount();
+  }
+});

@@ -379,4 +379,4 @@ fallback in `apps/web` must stay identical to the seed, so change both in one co
 
 `discovery_admin.catalogue.count_one`, `discovery_admin.catalogue.count_other`, `discovery_admin.catalogue.empty_description`, `discovery_admin.catalogue.empty_title`, `discovery_admin.catalogue.filter_search`, `discovery_admin.catalogue.filter_source`, `discovery_admin.documents.clear_filters`, `discovery_admin.tasks.filter_search`, `discovery_admin.tasks.filter_source`
 
-The shared table controls (`common.table.filter_apply`, `common.table.filter_any`, `common.table.filter_clear`, `common.table.filter_remove`, `common.table.filters_clear_all`, `common.table.refetch_failed`) are machine-written German too.
+The shared table controls (`common.table.filter_apply`, `common.table.filter_any`, `common.table.filter_clear`, `common.table.filter_remove`, `common.table.filters_clear_all`, `common.table.refetch_failed`, `common.table.scroll_region`) are machine-written German too.

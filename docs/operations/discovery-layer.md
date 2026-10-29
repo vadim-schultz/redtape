@@ -91,6 +91,9 @@ authorization boundary; the browser does not contain an email allowlist.
 | `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
 
+Lists and tables share one contract and one set of components, and the release smoke checklist lives in
+[admin-tables.md](admin-tables.md).
+
 The emit preview is a subview of the pipeline page, not a top-level route. Every discovery page has
 visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
 the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the

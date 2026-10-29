@@ -91,6 +91,26 @@ browse page is a product decision (open seam above) rather than a table-interact
 exposure only appears once a filter matches more than 20 records. The truncation is recorded here so
 the decision is made deliberately.
 
+### D12 — Release hardening (chapter 8)
+
+- **Accessibility lives in the shared kernel.** The scroll container is a named, focusable group
+  (`common.table.scroll_region`), loading rows are a named `status`, the filter popover is a named
+  dialog on the `surface.overlay` and `dropdown` shadow tokens, and a column may declare
+  `align: "end"` (applied to the coverage value columns, task priority and attempts, and the
+  document mention count).
+- **Edge lists and stored-page tables** now sit in `SectionCard` (`DocumentEdgesPanel`,
+  `ArtifactsPanel`). Their inner captions stay as the table names.
+- **Architecture rule.** Only `components/data-display/DataTable` may import Chakra's `Table` or
+  render a raw `<table>`.
+- **Manual browser smoke was not performed** by any chapter implementer (no browser). The
+  checklist is [docs/operations/admin-tables.md](../../docs/operations/admin-tables.md#release-smoke-checks)
+  and stays open for a human before or after the release PR.
+- **Recorded follow-ups, not done here:** the pipeline detail page has no route-level integration
+  guard; screenshot thumbnails, tag-support chips, the pipeline timeline, and emit previews stay
+  outside the table language by design; the jsdom "Could not parse CSS stylesheet" warnings (27 in
+  the full run) are identical on `main` before this suite and are not caused by it; D11 (public
+  list paging) remains a product decision.
+
 ## Open seams
 
 | Seam | Current position | Forcing condition |

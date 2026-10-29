@@ -94,3 +94,34 @@ it("edges panel shows the query error instead of the empty state", () => {
   ).not.toBeInTheDocument();
   expect(screen.getByRole("button")).toBeInTheDocument();
 });
+
+it("edges panel puts its tables in a titled section shell", () => {
+  renderPanel([requires, requiredBy]);
+
+  const shell = screen.getByRole("region", { name: "Dependencies" });
+  expect(shell).toHaveAttribute("data-section-card");
+  expect(
+    within(shell).getByRole("table", { name: "Requires" }),
+  ).toBeInTheDocument();
+  expect(
+    within(shell).getByRole("table", { name: "Required by" }),
+  ).toBeInTheDocument();
+});
+
+it("edges panel keeps empty and error feedback inside the section shell", () => {
+  const empty = renderWithProviders(
+    <DocumentEdgesPanel candidateId="doc-1" status={ready} edges={[]} />,
+  );
+  const shell = screen.getByRole("region", { name: "Dependencies" });
+  expect(
+    within(shell).getByText("No dependencies staged yet."),
+  ).toBeInTheDocument();
+  empty.unmount();
+
+  renderPanel([], { ...ready, isError: true });
+  expect(
+    within(screen.getByRole("region", { name: "Dependencies" })).getByRole(
+      "button",
+    ),
+  ).toBeInTheDocument();
+});

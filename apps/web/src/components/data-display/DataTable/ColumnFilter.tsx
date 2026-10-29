@@ -43,7 +43,13 @@ export default function ColumnFilter<FilterKey extends string>({
       </Popover.Trigger>
       <Portal>
         <Popover.Positioner>
-          <Popover.Content>
+          <Popover.Content
+            aria-label={filter.label}
+            backgroundColor="surface.overlay"
+            borderWidth="1px"
+            borderColor="border"
+            shadow="dropdown"
+          >
             <Popover.Body>
               <FilterDraftForm filter={filter} value={value} onApply={apply} />
             </Popover.Body>
