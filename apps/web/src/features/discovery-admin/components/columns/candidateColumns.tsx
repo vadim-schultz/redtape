@@ -46,6 +46,7 @@ export function candidateColumns(context: ColumnContext): CandidateColumn[] {
     {
       key: "mentions",
       header: header("mentions"),
+      align: "end",
       canSort: "mentions",
       render: (c) => c.mention_count,
     },

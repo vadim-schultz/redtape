@@ -1,5 +1,6 @@
 import { Stack, Text } from "@chakra-ui/react";
 
+import SectionCard from "../../../components/data-display/SectionCard";
 import QueryError from "../../../components/feedback/QueryError";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -50,11 +51,10 @@ export default function DocumentEdgesPanel(props: DocumentEdgesPanelProps) {
   const { t } = useLocale();
 
   return (
-    <Stack gap={2} align="stretch">
-      <Text fontWeight="medium">
-        {t("discovery_admin.document.edges.title")}
-      </Text>
-      <PanelBody {...props} />
-    </Stack>
+    <SectionCard title={t("discovery_admin.document.edges.title")}>
+      <Stack gap={4} align="stretch">
+        <PanelBody {...props} />
+      </Stack>
+    </SectionCard>
   );
 }

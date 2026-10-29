@@ -113,3 +113,40 @@ describe("component folders are PascalCase", () => {
     expect(KEBAB_DIR_RE.test("DocumentsListView")).toBe(false);
   });
 });
+
+const TABLE_HOME = path.join(SRC, "components", "data-display", "DataTable");
+const CHAKRA_TABLE_RE =
+  /import\s*\{[^}]*\bTable\b[^}]*\}\s*from\s*["']@chakra-ui\/react["']|<table[\s>]/;
+
+/** True when `source` builds a table from Chakra's `Table` or a raw `<table>`. */
+export function buildsOwnTable(source: string): boolean {
+  return CHAKRA_TABLE_RE.test(source);
+}
+
+describe("tables come from the shared DataTable", () => {
+  it("has no table primitive outside components/data-display/DataTable", () => {
+    const offenders = walk(SRC).filter(
+      (file) =>
+        isSource(file) &&
+        !file.startsWith(TABLE_HOME) &&
+        buildsOwnTable(readFileSync(file, "utf8")),
+    );
+    expect(offenders.map((file) => path.relative(SRC, file))).toEqual([]);
+  });
+
+  it("flags a Chakra Table import and a raw table element", () => {
+    expect(
+      buildsOwnTable('import { Box, Table } from "@chakra-ui/react";'),
+    ).toBe(true);
+    expect(buildsOwnTable("return <table><tbody /></table>;")).toBe(true);
+  });
+
+  it("accepts the shared DataTable and unrelated Chakra imports", () => {
+    expect(
+      buildsOwnTable('import { DataTable } from "../data-display/DataTable";'),
+    ).toBe(false);
+    expect(buildsOwnTable('import { Box } from "@chakra-ui/react";')).toBe(
+      false,
+    );
+  });
+});

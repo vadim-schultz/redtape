@@ -10,7 +10,7 @@ type MetricColumn = DataTableColumn<MetricRow, never, never>;
 
 function CellView({ cell }: { cell: MetricCell }) {
   return (
-    <HStack gap={2}>
+    <HStack gap={2} justify="flex-end">
       <Text fontVariantNumeric="tabular-nums">{cell.text}</Text>
       {cell.badge ? (
         <Badge variant="subtle" colorPalette={cell.badge.palette}>
@@ -25,6 +25,7 @@ function columnsOf(headers: string[]): MetricColumn[] {
   return headers.map((header, index) => ({
     key: `column_${index}`,
     header,
+    align: index === 0 ? "start" : "end",
     render: (row) =>
       index === 0 ? row.label : <CellView cell={row.cells[index - 1]} />,
   }));

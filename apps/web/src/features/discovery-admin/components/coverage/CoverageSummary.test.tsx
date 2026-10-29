@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 
+import { emotionRules } from "../../../../test/emotionRules";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DiscoveryCoverageResponse } from "../../types";
 import { baseCoverage, emptyCoverage, finishedRun } from "./coverageFixture";
@@ -185,4 +186,24 @@ it("coverage view tolerates a zero storage cap without warning", () => {
   });
 
   expect(screen.queryByText("Nearly full")).not.toBeInTheDocument();
+});
+
+it("coverage aligns metric values to the end while labels stay at the start", () => {
+  renderSummary(baseCoverage);
+
+  const table = screen.getByRole("table", { name: "Tasks by kind" });
+  const [label, ...values] = within(table).getAllByRole("columnheader");
+  const row = within(table).getByRole("row", { name: /^harvest_payload\b/ });
+  const [labelCell, firstValue, , , , badged] =
+    within(row).getAllByRole("cell");
+
+  expect(emotionRules(label)).not.toContain("text-align: end");
+  expect(emotionRules(labelCell)).not.toContain("text-align: end");
+  for (const header of values) {
+    expect(emotionRules(header)).toContain("text-align: end");
+  }
+  expect(emotionRules(firstValue)).toContain("text-align: end");
+  expect(emotionRules(badged.firstElementChild!)).toContain(
+    "justify-content: flex-end",
+  );
 });

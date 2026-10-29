@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { longUrl, session, stubAdminApi } from "../../test/adminRoutesApi";
+import { emotionRules } from "../../test/emotionRules";
 import { expandControlsBesideCount } from "../../test/queryStatusCountRow";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../auth/services/fakeAuthGateway";
@@ -10,16 +11,6 @@ import DiscoveryAdminRoutes from "./routes";
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
-
-/** jsdom ignores `@layer` rules in computed style, so read the declarations Emotion injected. */
-function declaredStyle(element: HTMLElement): string {
-  const selector = `.${element.classList[0]}`;
-  return Array.from(document.styleSheets)
-    .flatMap((sheet) => Array.from(sheet.cssRules))
-    .map((rule) => rule.cssText)
-    .filter((css) => css.includes(selector))
-    .join(" ");
-}
 
 function renderRoute(path: string) {
   return renderWithProviders(
@@ -145,8 +136,8 @@ it("narrow admin tables remain horizontally inspectable", async () => {
 
   const table = await screen.findByRole("table", { name: "Crawler tasks" });
   const scroller = table.parentElement as HTMLElement;
-  expect(declaredStyle(scroller)).toContain("overflow: auto");
-  expect(declaredStyle(scroller)).toContain("max-width: 100%");
+  expect(emotionRules(scroller)).toContain("overflow: auto");
+  expect(emotionRules(scroller)).toContain("max-width: 100%");
   expect(within(table).getByText(longUrl)).toBeVisible();
 
   const sort = within(table).getAllByRole("button")[0];

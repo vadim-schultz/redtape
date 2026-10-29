@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
@@ -51,5 +51,41 @@ describe("Pagination", () => {
     await first.user.click(previous);
 
     expect(first.onOffsetChange).not.toHaveBeenCalled();
+  });
+
+  it("pagination exposes the current page and keyboard navigation", async () => {
+    const { user, onOffsetChange } = renderPagination(page);
+
+    const nav = screen.getByRole("navigation", { name: "Pagination" });
+    const current = within(nav)
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-current") === "page");
+    expect(current.map((button) => button.textContent)).toEqual(["2"]);
+    for (const button of within(nav).getAllByRole("button")) {
+      expect(button).toHaveAccessibleName();
+    }
+
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Previous page" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Page 1" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onOffsetChange).toHaveBeenLastCalledWith(0);
+  });
+
+  it("pagination leaves a disabled edge control out of keyboard navigation", async () => {
+    const { user, onOffsetChange } = renderPagination({
+      offset: 0,
+      limit: 20,
+      total: 100,
+    });
+
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Page 1" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "Previous page" }),
+    ).toBeDisabled();
+    await user.keyboard("{Enter}");
+    expect(onOffsetChange).not.toHaveBeenCalledWith(-20);
   });
 });

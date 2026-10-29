@@ -1,13 +1,17 @@
 import { Skeleton, Stack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import { useLocale } from "../../../contexts/LocaleContext";
 import QueryError from "../../feedback/QueryError";
 import type { TableState } from "./tableState";
 import type { DataTableStates } from "./types";
 
+/** Placeholder rows announced to assistive technology as the loading status. */
 function LoadingRows() {
+  const { t } = useLocale();
+
   return (
-    <Stack gap={2} aria-busy="true">
+    <Stack gap={2} role="status" aria-label={t("common.loading")} aria-busy>
       <Skeleton height="5" />
       <Skeleton height="5" />
       <Skeleton height="5" />

@@ -61,12 +61,14 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
     {
       key: "priority",
       header: header("priority"),
+      align: "end",
       canSort: "priority",
       render: (task) => task.priority,
     },
     {
       key: "attempts",
       header: header("attempts"),
+      align: "end",
       canSort: "attempts",
       render: (task) => task.attempt_count,
     },

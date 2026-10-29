@@ -28,7 +28,8 @@
       "filter_any": "Any",
       "filters_clear_all": "Clear all filters",
       "filter_remove": "Remove filter {label}",
-      "refetch_failed": "Could not refresh the list. The rows shown may be outdated."
+      "refetch_failed": "Could not refresh the list. The rows shown may be outdated.",
+      "scroll_region": "{label}, scrollable"
     }
   },
   "nav": {

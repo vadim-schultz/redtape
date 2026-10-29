@@ -3,7 +3,8 @@ import { vi } from "vitest";
 import { baseCoverage } from "../features/discovery-admin/components/coverage/coverageFixture";
 import { mention } from "./discoveryAdminFixtures";
 
-export type AdminApiMode = "populated" | "empty" | "error";
+export type AdminApiMode =
+  "populated" | "empty" | "error" | "loading" | "refreshing";
 
 export const session = {
   accessToken: "token-1",
@@ -96,15 +97,31 @@ function isListPath(path: string): boolean {
   );
 }
 
-/** Serves every admin endpoint; in `error` mode the list endpoints fail but the admin probe and coverage pass. */
+const NEVER = new Promise<Response>(() => undefined);
+
+/** Whether a list request should hang: always when loading, after the first answer when refreshing. */
+function hangs(mode: AdminApiMode, path: string, served: Set<string>): boolean {
+  if (mode === "loading") return true;
+  const repeat = served.has(path);
+  served.add(path);
+  return mode === "refreshing" && repeat;
+}
+
+/**
+ * Serves every admin endpoint. In `error` mode the list endpoints fail, in
+ * `loading` they never answer, and in `refreshing` only their first request
+ * is answered; the admin probe and coverage always pass.
+ */
 export function stubAdminApi(mode: AdminApiMode) {
+  const served = new Set<string>();
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
       const url = new URL(String(input));
       const isProbe = url.searchParams.get("limit") === "1";
-      const failing = mode === "error" && !isProbe && isListPath(url.pathname);
-      if (failing) return new Response("", { status: 500 });
+      const listing = !isProbe && isListPath(url.pathname);
+      if (listing && hangs(mode, url.pathname, served)) return NEVER;
+      if (listing && mode === "error") return new Response("", { status: 500 });
       return new Response(JSON.stringify(bodyFor(url.pathname, mode)));
     }),
   );

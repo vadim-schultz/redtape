@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { DataTable } from "../../../../components/data-display/DataTable";
 import { useLocale } from "../../../../contexts/LocaleContext";
+import { emotionRules } from "../../../../test/emotionRules";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DiscoveryTask } from "../../types";
 import { taskColumns } from "./taskColumns";
@@ -83,4 +84,15 @@ it("task columns leave the timestamp columns without sort or filter", () => {
     expect(within(header).queryByRole("button")).not.toBeInTheDocument();
     expect(header).not.toHaveAttribute("aria-sort");
   }
+});
+
+it("task columns align priority and attempts to the end", () => {
+  renderWithProviders(<Table onSortChange={vi.fn()} />);
+
+  for (const name of [/Priority/, /Attempts/]) {
+    const header = screen.getByRole("columnheader", { name });
+    expect(emotionRules(header)).toContain("text-align: end");
+  }
+  const target = screen.getByRole("columnheader", { name: /Target/ });
+  expect(emotionRules(target)).not.toContain("text-align: end");
 });
