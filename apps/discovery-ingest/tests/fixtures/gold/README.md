@@ -22,7 +22,8 @@ No page was written by hand and none is synthetic.
 
 ## What the labels mean
 
-The rule is the one in the extraction prompt (`ext-1`).
+The rule is the one in the extraction prompt. The labels were drafted against `ext-1`; the prompt is now `ext-5`
+(`PROMPT_VERSION` in `extract/llm/prompt.py`), and the labels still wait for a human review.
 
 - A name is copied verbatim from the page, atomic ("A oder B" is two names).
 - `required` is a document the applicant brings, `form` is a form to fill in,

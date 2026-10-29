@@ -67,10 +67,11 @@ Built on `feat/crawlers`; the release PR to `main` is pending, so none of it run
 | Admin | Task kinds, attempts, retry time and result note on the Tasks screen, candidate and artifact counts on Coverage (8, 16); one-row menu with a Documents icon (9) |
 | Docs and ops | Runbooks, this loop document and the operator checklist (21, 22); ingest CI (1) |
 
-Not built: Chapter 18 (first page extractor, optional; hand-written extractors wait for the
-[extraction](../../../.plans/extraction/01-rollout.md) suite). No extractor is registered, so every `extract_page` task
-completes with `no_extractor` and no `capture_screenshot` task is queued yet. Document candidates come from the PVOG
-payload harvest only.
+Not built: Chapter 18 (first page extractor, optional; the general reader is the
+[extraction](../../../.plans/extraction/01-rollout.md) suite, see [extraction.md](extraction.md)). No extractor is
+registered, so every `extract_page` task completes with `no_extractor`. Document candidates come from the PVOG payload
+harvest and, once that suite is released and run, from `llm_extract`, which also queues `capture_screenshot` for a page
+that posted a mention.
 
 ## Known gaps
 
@@ -113,7 +114,7 @@ Each is also in the ledger or in
 
 - Link-following frontier crawling and crawl budgets.
 - Freshness crawling of existing documents.
-- LLM extraction.
+- LLM extraction: left to a separate suite, now built on `feat/extraction`; see [extraction.md](extraction.md).
 - Resolving mentions to canonical documents and emitting `new_requirement` suggestions.
 - A web voting and moderation UI.
 - Attaching artifacts to suggestions as `evidence` rows.

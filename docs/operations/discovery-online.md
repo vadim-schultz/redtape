@@ -51,6 +51,7 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 | `--max-batches` | 1 | Maximum claim and process batches (positive) |
 | `--time-budget-seconds` | none | Optional positive wall-clock budget for the whole drain |
 | `--browser-budget-seconds` | 570 | Browser seconds this run may spend; read only when a browser kind is drained (positive) |
+| `--neuron-budget` | none | Workers AI neurons this run may spend; required when `llm_extract` is drained (see § LLM kind) |
 | `--kinds` | `fetch_url,enrich_metadata,harvest_payload,extract_page` | Comma separated task kinds to claim; an unknown kind exits 2 before any claim |
 
 Invalid bounds exit with code 2. An API failure exits with code 1. A drain that ends on a limit exits 0.
@@ -74,6 +75,7 @@ cannot handle.
 | `extract_page` | no | Reads a stored snapshot, runs the matching extractor and posts mentions. Completes with the note `no_extractor` when none matches, `no_mentions` when the page has none | yes |
 | `render_page` | Cloudflare | Renders the page and stores the DOM as an `html_snapshot` artifact | no |
 | `capture_screenshot` | Cloudflare | Stores a full-page JPEG as a `screenshot` artifact | no |
+| `llm_extract` | Cloudflare Workers AI | Cleans a stored snapshot, asks the model for documents, dependencies and tags, grounds the answer and posts mentions, then edges. Budgeted in neurons | no |
 
 No extractor is registered yet (`discovery_ingest/extract/registry.py` is empty; the first one is chapter 18, which is
 optional), so every `extract_page` task completes with `no_extractor` and no `capture_screenshot` task is queued.
@@ -106,6 +108,8 @@ Each drain prints one JSON report and records the run through the machine API (`
 | `succeeded` | `false` only for `error` |
 | `released` | Tasks handed back without consuming an attempt |
 | `browser_seconds_used` | Browser seconds this run spent |
+| `neurons_used`, `llm_calls` | Workers AI neurons this run settled and the model calls it made |
+| `llm_enqueue_failed` | `llm_extract` tasks a render drain with `LLM_ENQUEUE=true` could not enqueue; the page itself still completed |
 | `render_enqueue_failed`, `capture_enqueue_failed` | Follow-up tasks a fetch or an extraction could not enqueue; the page itself still completed |
 | `ledger_unavailable` | The budget ledger could not be read; the run used its own budget |
 | `run_id`, `error` | The recorded run, and the failure text if any |
@@ -174,6 +178,50 @@ missing, and exits **1** when `GET /api/v1/discovery/machine/artifacts/status` s
 The token needs only "Browser Run - Edit". It is a GitHub Actions secret and a local variable. It is not a Render
 variable, and the API never reads it.
 
+### LLM kind (`llm_extract`, Cloudflare Workers AI)
+
+`llm_extract` calls Workers AI over HTTP, in JSON mode, for one stored snapshot per task. The worker, not the API,
+holds the token. Staged output only: mentions, edges and tag codes; nothing is emitted. Settings and commands:
+[`apps/discovery-ingest/README.md`](../../apps/discovery-ingest/README.md) § Drain `llm_extract`. What the staging
+holds: [discovery-layer.md](discovery-layer.md) § Extracted documents, edges and tags.
+
+| Free-plan fact | Worker behaviour |
+| --- | --- |
+| 10,000 neurons a day on Workers Free | The ledger resource `neurons` caps the day at 9,500. A run budget (`--neuron-budget`) caps the run, the smaller of the two wins |
+| Every call must be paid before it is made | The worker reserves the page's input tokens at the input price plus an answer sized to the page (500 tokens and a quarter of the page, never above `LLM_MAX_TOKENS`, 4000), about 890 neurons for a 30,000-character page on the 70b model. A denial stops the run `llm_budget` before the call |
+| The API reports the real cost | After the call the worker settles to `usage.neurons` from the response, falling back to the priced token usage. A real answer above its reserve corrects upward, so a run can overshoot its budget slightly |
+| `429` with code 4006 ("daily free allocation") | The provider says the day is used up. The worker marks `neurons` exhausted, releases the batch and stops `llm_quota` |
+
+**The ledger is not the whole meter.** The ledger counts what drains and `llm eval` reserve. Cloudflare's own daily
+allocation counts all Workers AI use on the account, including `llm probe` calls and any run that bypasses the ledger.
+A `429` code 4006 can therefore arrive while the ledger still shows neurons left. The run then stops `llm_quota`, the
+tasks are released, and the next UTC day starts clean. Do not retry the same day.
+
+**Limits release, pages fail.** `llm_budget`, `llm_quota`, `db_limit` and `storage_unavailable` release the in-flight
+and unstarted tasks and end the run successfully. A rejected token (401 or 403) stops with `error` and exit 1. An
+answer that is not usable JSON is retried once under a second reservation; then the task fails permanently, because the
+page, not a limit, was the problem. A ledger that stops answering mid-run falls back to the run budget and the report
+says `ledger_unavailable`.
+
+**Result notes** (the task's `note`, shown on `/admin/discovery/tasks`):
+
+| Note | Meaning |
+| --- | --- |
+| `docs=7 edges=5 dropped=2` | Mentions and edges were posted; `dropped` items failed grounding |
+| `no_documents` | The model found no document, or grounding dropped them all |
+| `login_wall` | The model judged the page a login or error page; nothing is posted |
+| `no_content` | The cleaned text is under 200 characters (usually a client-side shell that needs `render_page` first); no call and no reservation |
+
+The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`, `no_documents`, `login_wall`,
+`no_content`) and shows the neuron meter next to them.
+
+**Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
+(priority 200). `discovery-render.yml` does not set either variable, so scheduled renders queue nothing until an
+operator adds `LLM_ENQUEUE: "true"` and `LLM_MODEL: <model id>` to that job's `env`; a laptop render with both exported
+does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key
+`llm:<8 hex>` (model, `PROMPT_VERSION`, `CLEAN_VERSION`), so a re-render of the same page under the same versions never
+queues a second task.
+
 ### Snapshots, screenshots and the storage limits
 
 - **Snapshot:** the rendered DOM as `text/html`, up to 4 MB, the latest two per catalogue row, deduplicated by sha256.
@@ -221,6 +269,13 @@ Run it at most once a day. The check of the Cloudflare credentials needs only th
 | `render_page`, `capture_screenshot` | Run ends `storage_unavailable` | Check `GET …/artifacts/status` and the Render `OBJECT_STORE_*` variables |
 | any | Run ends `db_limit` | Check the database size against 475 MB (checklist S8) |
 | `extract_page` | All tasks completed with `no_extractor` | No extractor is registered yet. Expected today |
+| `llm_extract` | Run ends `llm_budget` | The run budget or today's neurons cannot cover the next reservation. Expected. A budget under about 900 neurons cannot run a 30,000-character page; use at least 2,500 |
+| `llm_extract` | Run ends `llm_quota` | Cloudflare's own allocation is used up (code 4006), possibly by probes the ledger never saw. Tasks were released. Wait for 00:00 UTC |
+| `llm_extract` | Many `no_content` notes | Client-side shells. Run `render_page` for the host first (all of `verwaltung.bund.de` is like this) |
+| `llm_extract` | Many `no_documents` | Check a sample on `/admin/discovery/tasks`; pages that are lists or navigation pages are correct. A host with real documents and a `no_documents` note is a prompt or cleaner finding for the ledger, not a retry |
+| `llm_extract` | Task `failed` with an invalid-answer error | The model returned unusable JSON twice. Permanent for this model and prompt version; try another model through `llm requeue` |
+| `llm_extract` | Run exits 1 before claiming | The ledger, artifact storage or `GET /machine/taxonomy` cannot be read. Check the API deploy |
+| `llm_extract` | Run exits 2 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`, `LLM_MODEL` (with a price row) or `--neuron-budget` is missing |
 | any | `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source |
 
 ### Manual dispatch (debugging)
@@ -244,6 +299,7 @@ gh workflow run platform-maintenance.yml -f job=all
 | `FEDERAL_JURISDICTION_ID` | yes | Must equal live `jurisdiction.id` for `kind=COUNTRY`, `code=DE` (see triage below) — not always the seed UUID after OpenPLZ. Resolve: production SQL below, or `python -m scripts.print_federal_jurisdiction_id` in `apps/api` against the same DB |
 | `DATABASE_URL` | **no** | OpenPLZ job only |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | no | `discovery-render.yml` and `discovery-browser-probe.yml` only; never Render |
+| `CLOUDFLARE_AI_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID`) | no | `discovery-llm.yml` and `discovery-llm-probe.yml` only; the Workers AI permission only; never Render |
 | `OBJECT_STORE_*` (five names) | no | `discovery-storage-probe.yml` only; the application reads them from Render |
 
 Issue and rotate keys: [auth-setup.md](auth-setup.md#7-issue-and-revoke-crawler-keys). Render admin
@@ -373,6 +429,7 @@ from a laptop is documented there.
 ## Related
 
 - Maintenance schedule, drain workflows and secrets: [scheduled-jobs.md](scheduled-jobs.md)
+- Operator steps for `llm_extract`: [extraction-operator-checklist.md](extraction-operator-checklist.md); suite and known gaps: [loops/extraction.md](loops/extraction.md)
 - Manual steps that unlock live gates: [crawlers-operator-checklist.md](crawlers-operator-checklist.md)
 - Actions minutes: [gha-budget.md](gha-budget.md)
 - Suite orchestration and known gaps: [loops/crawlers.md](loops/crawlers.md)

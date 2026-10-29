@@ -83,19 +83,33 @@ variable only to tighten it.
 | `BUDGET_R2_CLASS_A_MONTHLY` | 950000 | R2 writes a month (free tier 1 million) |
 | `BUDGET_R2_CLASS_B_MONTHLY` | 9500000 | R2 reads a month (free tier 10 million); each presigned link reserves one |
 | `BUDGET_BROWSER_SECONDS_DAILY` | 570 | Cloudflare browser seconds a day, all runs together (free plan 600) |
-| `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day (extraction suite; free plan 10,000) |
+| `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day, an API variable (`llm_extract` and `llm eval` reserve from it; free plan 10,000). Cloudflare's own allocation also counts uses the ledger never sees, such as `llm probe`, so only 500 neurons a day stay unreserved; tighten it if other workloads use Workers AI |
 | `BUDGET_ACTIONS_MINUTES_MONTHLY` | 1000 | This repository's GitHub Actions minutes a month |
 | `ACTIONS_CI_RESERVE_MINUTES` | 600 | The part of those minutes that CI keeps; drains may use 400 |
+| `DISCOVERY_TAG_MIN_PROCEDURES` | 2 | Procedures that must tag a candidate with a domain or life-situation code before emit offers it |
+| `DISCOVERY_TAG_MIN_SHARE` | 0.5 | Share of a candidate's tagged procedures that must carry the code |
 | `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
 
 The Cloudflare Browser Run token (`CLOUDFLARE_BROWSER_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`) is deliberately
 **not a Render variable**. The API never calls Cloudflare Browser Run. The token lives in GitHub Actions secrets and
 in the operator's local environment, and has only the "Browser Run - Edit" permission.
 
+The Workers AI token (`CLOUDFLARE_AI_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`) is likewise deliberately **not a Render
+variable**. The API never calls Workers AI and never sees the token: the worker calls the model, and the API only keeps
+the neuron ledger and the staged results. It lives in GitHub Actions secrets (used by `discovery-llm.yml` and
+`discovery-llm-probe.yml` only) and in the operator's local environment, with only the Workers AI permission. The account
+stays on the Workers **Free** plan (no Workers Paid, which would bill neurons).
+
+**Deploy the API and the web app together.** The admin Coverage screen requires the `llm_outcomes` block that the API
+now returns, so a new web deploy against an old API breaks that screen. After the deploy the API seeds translations on
+boot (`apps/api/scripts/start.sh`); confirm the new keys under `discovery_admin.coverage.llm` exist. The extraction
+migration `20261029_staging_edges` is additive and was applied to production by hand on 2026-10-28.
+
 Checks:
 
 - [ ] `curl -s -w "\nHTTP %{http_code}\n" -H "X-API-Key: $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"` returns 200 with `"storage_enabled": true`.
 - [ ] The same call to `…/machine/budgets` returns five resources (`r2_class_a`, `r2_class_b`, `browser_seconds`, `neurons`, `actions_minutes`) with their caps.
+- [ ] `GET …/machine/taxonomy` returns 200 with 13 domains and 18 life situations.
 - [ ] The storage probe passes (S6). It runs on a laptop with the Render values exported: `cd apps/api && set -a; source <env file>; set +a; .venv/bin/python -m scripts.object_store_probe`. Do not commit the env file.
 
 ### Worker-origin discovery probe sequence

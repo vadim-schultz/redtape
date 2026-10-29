@@ -86,7 +86,7 @@ Chapter 7a can run in parallel with 1–7 once the contract in [02-staging-model
 | --- | --- | --- |
 | 16 | [discovery-claim-evidence](chapters/16-discovery-claim-evidence.md) | evidence-storage seam |
 | 20 | [crawler-frontier-adapter](chapters/20-crawler-frontier-adapter.md) | crawlers suite |
-| 21 | [llm-extract-flag](chapters/21-llm-extract-flag.md) | open seam |
+| 21 | [llm-extract-flag](chapters/21-llm-extract-flag.md) | superseded by the [extraction suite](../extraction/00-architecture.md) |
 
 ---
 
@@ -115,7 +115,7 @@ Chapter 7a can run in parallel with 1–7 once the contract in [02-staging-model
 | 18 | Emit suggestions | backend | pytest + `./ci.sh` | yes | [18](chapters/18-emit-suggestions.md) | shipped |
 | 19 | Coverage metrics | backend + web | pytest + vitest + `./ci.sh` | yes | [19](chapters/19-coverage-metrics.md) | shipped |
 | 20 | Crawler frontier adapter | crawler | — | **deferred** | [20](chapters/20-crawler-frontier-adapter.md) | deferred |
-| 21 | LLM extract flag | backend | — | **deferred** | [21](chapters/21-llm-extract-flag.md) | deferred |
+| 21 | LLM extract flag | backend | — | **deferred**, superseded by the [extraction suite](../extraction/00-architecture.md) | [21](chapters/21-llm-extract-flag.md) | deferred |
 | 22 | Orchestration runbook | docs + ops | manual | yes | [22](chapters/22-orchestration-runbook.md) | shipped |
 | 23 | Docs sync | docs | link check | yes | [23](chapters/23-docs-sync.md) | shipped |
 
