@@ -36,7 +36,12 @@ isProject: false
 Chapter E5 numbers this decision X14, but X14 is the robots.txt decision (E10), so it is recorded here as X16. The
 harness, the 20-page real gold set and the offline numbers are done. The live eval needs the Workers AI token and the
 human review of the gold labels (`apps/discovery-ingest/tests/fixtures/gold/README.md`). Until then `llm_model` stays
-unset and `PROMPT_VERSION` stays `ext-1`. Under invariant 1 this gate never blocks a merge.
+unset (`LLM_MODEL` has no default) and `PROMPT_VERSION` has moved on through the quality chapters to `ext-5` (cleaner
+`clean-4`). Under invariant 1 this gate never blocks a merge. **State on 2026-10-29** (numbers in the
+[ledger](run-ledger.md), eval of `ext-4` on the 20 gold pages): the provisional pick is
+`@cf/qwen/qwen3-30b-a3b-fp8` (recall 0.79, no `quote` drops, about 65 neurons a page and 146 pages a day), pending the
+live `ext-5` eval after the quota reset, the Mistral and Scout runs, and a human review of the gold labels. The older
+text below is the original plan and its `ext-1` numbers; the ledger holds what was measured.
 
 **Starting thresholds** (replace them with what the measurements justify): precision at least 0.80, recall at least
 0.60, grounded rate at least 0.95, tag agreement at least 0.60 (tags reach the emit payload only if it passes). The

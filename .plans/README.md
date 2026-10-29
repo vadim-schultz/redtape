@@ -195,17 +195,22 @@ Turns the rendered snapshots of `crawlers` into grounded document candidates, re
 domain/life-situation tags: an in-house page cleaner, a Cloudflare Workers AI JSON-mode call behind an `LlmClient`
 port (free plan, neuron budget kept in the crawlers budget ledger), deterministic grounding of every quote, and
 staged candidates, mentions and edges in the existing discovery tables. A new budgeted task kind `llm_extract`
-in the same queue; nothing is ever emitted automatically. Nine chapters; loop branch `feat/extraction`.
+in the same queue; nothing is ever emitted automatically. Eighteen chapters (E1 to E18); loop branch `feat/extraction`.
 
 | Doc | What it is |
 | --- | --- |
 | [00-architecture.md](extraction/00-architecture.md) | Flow, cleaner, extraction model, tagging, edges, budget |
-| [01-rollout.md](extraction/01-rollout.md) | Nine chapters, dependency graph, invariants, gates |
+| [01-rollout.md](extraction/01-rollout.md) | Eighteen chapters, dependency graph, invariants, gates |
 | [gaps-and-decisions.md](extraction/gaps-and-decisions.md) | Settled decisions, open seams, risks |
 | [run-ledger.md](extraction/run-ledger.md) | Chapter outcomes and live-gate run IDs |
 | [chapters/](extraction/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started; depends on crawlers chapters 14, 15 and 23. First: [chapters/01-staging-groundwork.md](extraction/chapters/01-staging-groundwork.md).
+Status: built on the loop branch `feat/extraction`: all eighteen chapters are merged into it, on local CI only (GitHub
+Actions minutes are exhausted until the end of October 2026). E11, E10 and E1 to E6 reached `main` in the mid-suite
+release [PR #229](https://github.com/vadim-schultz/redtape/pull/229); E7, E8, E9 and E12 to E18 wait for the final
+release PR. Pending: the model decision X16 (provisional pick `@cf/qwen/qwen3-30b-a3b-fp8`), the live gates of E7 and
+E8, and the operator steps in the [operator checklist](../docs/operations/extraction-operator-checklist.md). Nothing is
+emitted automatically. CoS orchestration and known gaps: [`docs/operations/loops/extraction.md`](../docs/operations/loops/extraction.md).
 
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 

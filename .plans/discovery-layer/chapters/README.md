@@ -25,7 +25,7 @@ One executable plan per chapter. Order, dependencies and gates: [../01-rollout.m
 | 18 | [18-emit-suggestions.md](18-emit-suggestions.md) | backend |
 | 19 | [19-coverage-metrics.md](19-coverage-metrics.md) | backend + web |
 | 20 | [20-crawler-frontier-adapter.md](20-crawler-frontier-adapter.md) | deferred |
-| 21 | [21-llm-extract-flag.md](21-llm-extract-flag.md) | deferred |
+| 21 | [21-llm-extract-flag.md](21-llm-extract-flag.md) | superseded by the [extraction suite](../../extraction/00-architecture.md) |
 | 22 | [22-orchestration-runbook.md](22-orchestration-runbook.md) | docs + ops |
 | 23 | [23-docs-sync.md](23-docs-sync.md) | docs |
 

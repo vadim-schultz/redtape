@@ -32,6 +32,29 @@ isProject: false
 
 Leave the repository describing what exists, and collect every manual action in the order it is needed. This chapter changes documentation and documentation tests only; code found to be wrong goes to the ledger and its own chapter. It also completes what the crawlers revision deliberately left for later: the operator docs that still say "Supabase bucket" or "about 960 minutes" are corrected by crawlers chapter 21; this chapter covers the extraction side.
 
+## As built
+
+The suite grew to eighteen chapters while this one waited, so the chapter was executed against the ledger, not against
+the text below. Differences, all documentation only:
+
+- **Operator steps are OP1 to OP16, not X1 to X10.** `X` numbers are decisions (X16 is the model decision), so the
+  checklist [`extraction-operator-checklist.md`](../../../docs/operations/extraction-operator-checklist.md) renames
+  them and adds the pending items of the ledger hand-off: gold-label review, the model decision, the database size
+  check, the E6 dry smoke and E7 live gate, E10 re-pend counts, fixture capture, the final release PR, the E8 deploy
+  note and the German review.
+- **The CLI surface is taken from the code:** `llm probe`, `llm eval`, `llm requeue`, `budget show`, `LLM_MODEL` (no
+  default), `LLM_ENQUEUE`, `LLM_MAX_TOKENS` 4000, `LLM_INPUT_CHARS` 30000, `--neuron-budget`, `PROMPT_VERSION` `ext-5`,
+  `CLEAN_VERSION` `clean-4`.
+- **Tests:** `test_extraction_docs.py` (content contracts), `test_extraction_docs_structure.py` (links, indexes,
+  checklist, neighbours, and the versions and settings read from the ingest source) and `extraction_docs_support.py`.
+  The "eleven chapters" check became eighteen. The tests are paired with detector tests that fire on a stale claim.
+- **Stale text fixed:** architecture section 6 and chapter E3 on normalisation (E13), the `input_key` form in
+  architecture section 4, decision X16's `ext-1` state, the ingest README's `ext-2` and `X14`, the gold README's `ext-1`.
+- **Also documented:** the E7 gap (`discovery-render.yml` does not set `LLM_ENQUEUE` or `LLM_MODEL`), the dedupe
+  identity, the neuron facts (the ledger cap is 9,500, Cloudflare's own allocation counts probes, a 429 with code 4006
+  can arrive before the ledger is spent, settlement uses `usage.neurons`), and the CI policy (Actions minutes exhausted
+  until the end of October 2026, merge on the full local CI).
+
 ## Documentation targets
 
 | Document | Update |

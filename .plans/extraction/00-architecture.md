@@ -47,7 +47,7 @@ Workers own orchestration, the API owns persistence (crawlers D4). The handler r
 
 ## 4. The queue
 
-One new kind, `llm_extract`, in the existing `discovery_task` table (crawlers D2). Input: the snapshot `artifact_id` (crawlers chapter 14), `input_key = llm:<schema_version>:<model>`, priority 200 (after renders at 100, before screenshots at 300). A new schema version or model enqueues new tasks for the same snapshot through `llm requeue`, never automatically, because re-extraction spends neurons. The kind is **never in a default kind list**, is drained by `discovery-llm.yml` (or locally), and refuses to start without the Workers AI token, a neuron budget and a readable ledger.
+One new kind, `llm_extract`, in the existing `discovery_task` table (crawlers D2). Input: the snapshot `artifact_id` (crawlers chapter 14), `input_key = llm:<8 hex of sha256 over model|PROMPT_VERSION|CLEAN_VERSION>`, priority 200 (after renders at 100, before screenshots at 300). A new schema version or model enqueues new tasks for the same snapshot through `llm requeue`, never automatically, because re-extraction spends neurons. The kind is **never in a default kind list**, is drained by `discovery-llm.yml` (or locally), and refuses to start without the Workers AI token, a neuron budget and a readable ledger.
 
 ## 5. The cleaner
 
@@ -80,7 +80,7 @@ dependencies[]   parent, requires (names that appear in documents[]), quote, con
 
 **No translation.** Candidate keys are `slugify(pick_title(title_i18n))` (crawlers D7) and `pick_title` prefers `en`; a model-made English title would make keys unstable across runs. The title is stored as `{"de": name}` (language from the page); translation is a later, separate step (open seam).
 
-**Grounding** (chapter E3, deterministic, after the model): drop any item whose `quote` is not, after whitespace normalisation, a substring of the cleaned text; null any `url` not in the link set; apply the shared noise filter from crawlers chapter 7; deduplicate; cap counts (40 documents, 40 dependencies); drop dependency endpoints that are not in `documents[]`. A model's output is never trusted for anything it cannot quote. **Page text is untrusted** (prompt injection): the model has no tools, its output only reaches staging, and every item must quote the page.
+**Grounding** (chapters E3, E12, E13, E16, E18; deterministic, after the model): decode percent-encoded text the model wrote (a name, quote or condition with two or more `%XX` sequences, kept only when the result is valid UTF-8); drop any item whose `quote` is not a substring of the cleaned text after `normalise()` has been applied to **both** sides (NFKC, case folded, link targets and markdown markers removed, quote marks removed, dashes folded to a hyphen, list bullets removed anywhere after whitespace, whitespace collapsed; letters are never touched, so a model that drops umlauts is not tolerated); null any `url` not in the link set; apply the shared noise filter from crawlers chapter 7; drop names that are data fields (`data_field`, E16) or generic names (`generic_name`, E18); deduplicate; cap counts (40 documents, 40 dependencies); drop dependency endpoints that are not in `documents[]`; carry no codes from a page that kept no document (E18). Each loss is counted per reason in `Diagnostics`. A model's output is never trusted for anything it cannot quote. **Page text is untrusted** (prompt injection): the model has no tools, its output only reaches staging, and every item must quote the page.
 
 ## 7. Tags: domains and life situations
 
