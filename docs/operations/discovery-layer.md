@@ -165,12 +165,13 @@ Without one the API serves only the two legacy kinds, `fetch_url` and `enrich_me
 | `extract_page` | stored HTML snapshot (no network) | document mentions |
 | `render_page` | page URL, Cloudflare Browser Run | `html_snapshot` artifact |
 | `capture_screenshot` | page URL, Cloudflare Browser Run | `screenshot` artifact |
-| `llm_extract` | stored HTML snapshot, Cloudflare Workers AI (the worker handler is not built yet) | document mentions, staged edges, tag codes |
+| `llm_extract` | stored HTML snapshot, Cloudflare Workers AI (budgeted: neurons, never in the default kinds) | document mentions with conditions and tag codes, staged edges |
 
 ```text
 catalogue row -> fetch_url -> render_page -> snapshot -> extract_page -> mentions -> candidates
 catalogue row -> harvest_payload ----------------------------------> mentions -> candidates
 extract_page (at least one mention) -> capture_screenshot -> screenshot
+snapshot -> llm_extract -> mentions, staged edges, tag codes -> candidates (at least one mention: capture_screenshot)
 candidates -> admin review -> manual emit -> pending new_document suggestion
 ```
 
@@ -186,7 +187,8 @@ The crawl layer is **document-first**: it builds document nodes before any edge 
 | --- | --- |
 | Procedure | A catalogue service (a Leistung, for example "Anmeldung einer Wohnung"). Staging context, never a document node |
 | Candidate | A deduplicated document name harvested from one or more sources, not yet emitted. Status `staged`, then `emitted` |
-| Mention | One occurrence of a candidate in a procedure: role (`required` or `form`), excerpt, source field, extractor and version, optional artifact |
+| Mention | One occurrence of a candidate in a procedure: role (`required`, `form` or `issued`), excerpt, source field, extractor and version, optional artifact; extracted mentions also carry a condition, an optional flag and the page's domain and life-situation codes |
+| Edge | A staged `parent requires required` link between two candidates, with the procedure as provenance, a condition and an optional flag. Staged only (see below) |
 | Key | `slugify(pick_title(title_i18n))`, the same rule promotion uses, so two candidates never collide at promotion without colliding as candidates |
 
 **A procedure is not a document.** Service-level `new_document` claims that FIM enrichment writes for a procedure's
@@ -194,8 +196,45 @@ own title stay staged and are excluded from the document-first path. Only what a
 (forms, documents to bring) becomes a candidate.
 
 Sources today: `harvest_payload` reads PVOG modules `08` (required documents) and `14` (forms) from the stored
-payload. Page extractors are a framework (`discovery_ingest/extract`); none is registered yet. Mentions keep their role so
-a later suite can build `requires` edges without a new crawl.
+payload, and `llm_extract` reads the free text of a stored snapshot (next section). Hand-written page extractors are a
+framework (`discovery_ingest/extract`); none is registered yet.
+
+## Extracted documents, edges and tags (`llm_extract`)
+
+`llm_extract` is the general reader for pages that carry no structured payload. It runs one model call per stored
+snapshot and stages the result; it emits nothing. Architecture, decisions and the chapter ledger:
+[`.plans/extraction/`](../../.plans/extraction/00-architecture.md). Drain commands and flags:
+[`apps/discovery-ingest/README.md`](../../apps/discovery-ingest/README.md) and
+[discovery-online.md](discovery-online.md) § LLM kind. Operator steps: [extraction-operator-checklist.md](extraction-operator-checklist.md).
+
+- **Budgeted kind.** `llm_extract` spends Cloudflare Workers AI neurons (10,000 a day on the Workers Free plan, 9,500
+  under the ledger cap). It is never in the default kinds, is drained only with an explicit `--kinds llm_extract` and a
+  `--neuron-budget`, and every call reserves neurons from the budget ledger first. A limit releases tasks; it never
+  fails a page.
+- **Grounding rule.** The page is cleaned first (`CLEAN_VERSION`, at most 30,000 characters). The model answers in JSON
+  mode with a name, a role and a verbatim quote for each document. An item whose quote, after the shared
+  normalisation (case, whitespace, list bullets, quote marks, dashes, markdown markers and link targets folded on both
+  sides), is not on the page is dropped. A URL that is not a link of the page is cleared. A code outside the taxonomy is
+  dropped. Names that are data fields (an address, a number) or generic words (a leaflet, a device) are dropped too.
+  Percent-encoded text the model sometimes returns is decoded before the check.
+- **Role `issued`.** The document a procedure results in. When a page has exactly one `issued` document, every
+  `required` document of the page gets a `derived_single_issued` edge from it; the model's own `dependencies` become
+  `explicit` edges. Edges live in `discovery_candidate_edge` and are read at
+  `GET /admin/candidates/{id}/edges`. **Edges are staged, not emitted**: no route or schedule turns them into
+  requirements, and candidate emit (above) still carries documents only.
+- **Conditions.** A mention keeps the page's condition ("bei Zuzug aus dem Ausland") and an optional flag. Names stay
+  German and verbatim; no translation is made.
+- **Taxonomy route.** `GET /machine/taxonomy` returns the closed vocabulary (13 domains, 18 life situations, with
+  German and English names) that the worker puts in the prompt. The model tags the page, not each document; the page's
+  codes are copied onto its mentions.
+- **Tag consensus rule.** A candidate's suggested tags are the codes that at least `DISCOVERY_TAG_MIN_PROCEDURES`
+  (default 2) procedures and at least `DISCOVERY_TAG_MIN_SHARE` (default 0.5) of the candidate's tagged procedures
+  carry. A document seen on one page stays untagged until a second page agrees. The candidate detail shows each code
+  with its support (`procedures`, `share`, `accepted`); nothing is written to a document automatically.
+- **Re-extraction is deliberate.** The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION`
+  (`ext-5`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
+  that key, so a re-render under the same versions queues no second task; only `llm requeue` after a model, prompt or
+  cleaner change queues one. LLM mentions use a fixed `source_field`, so a re-run updates them in place.
 
 ## Manual candidate emit
 
@@ -247,10 +286,13 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `POST /machine/tasks/{id}/complete` | Complete, with an optional result `note` |
 | `POST /machine/tasks/{id}/artifacts` | Upload a snapshot or screenshot (multipart): 415, 413, 503, 507 |
 | `GET /machine/artifacts`, `…/{id}/content`, `…/status` | List (`kind`, `host`), read bytes, and check `storage_enabled` and the byte accounting |
-| `POST /machine/candidates/mentions` | Post mentions for a candidate |
+| `POST /machine/candidates/mentions` | Post mentions for a candidate (role, condition, optional flag, tag codes; the response counts `unknown_codes`) |
+| `POST /machine/candidates/edges` | Post staged edges: answers `{edges_created, edges_updated, edges_skipped, skipped}` |
+| `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |
 | `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
 | `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
 | `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (`q`, `status`, `role`, `source`, `min_mentions`, `sort`), detail and preview |
+| `GET /admin/candidates/{id}/edges` | Staged edges of a candidate, both directions, with basis, condition and the procedure |
 | `GET /admin/catalogue/{id}/artifacts`, `GET /admin/candidates/{id}/artifacts` | Artifacts with presigned `url` (`null` when storage is unset) |
 | `GET /admin/budgets` | The ledger plus `stored_bytes` and `stored_bytes_cap` |
 
