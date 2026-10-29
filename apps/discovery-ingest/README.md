@@ -68,7 +68,7 @@ idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
 | `CLOUDFLARE_AI_API_TOKEN` | only for `llm probe` and `llm_extract` | A custom token with only the Workers AI permission, next to `CLOUDFLARE_ACCOUNT_ID`. Never a Render variable; never commit it |
-| `LLM_MODEL`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Model id (chosen by the eval), output cap (4000), page characters sent (30000) and per-call timeout (60) |
+| `LLM_MODEL`, `LLM_ENQUEUE`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Model id (chosen by the eval), render-time llm_extract enqueue switch (`false`), output cap (4000), page characters sent (30000) and per-call timeout (60) |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
 Copy [`.env.example`](.env.example) to `.env` for local runs.
@@ -187,6 +187,22 @@ A spent run budget or day (`llm_budget`), a provider quota error (`llm_quota`, t
 limit (`db_limit`) and unavailable storage release the in-flight and unstarted tasks and end the run successfully. A
 rejected token ends it as `error` (exit 1). A ledger that stops answering falls back to the run budget and the report
 says `ledger_unavailable`.
+
+Two things queue `llm_extract`; neither runs on its own. A render drain with `LLM_ENQUEUE=true` (default `false`, needs
+`LLM_MODEL`) enqueues one task per stored snapshot at priority 200; a failed enqueue is logged and counted as
+`llm_enqueue_failed` in the report. `llm requeue` queues the latest snapshot of each catalogue row, for the backlog and
+after a model, prompt or cleaner change:
+
+```bash
+python -m discovery_ingest llm requeue --limit 20 --dry-run   # counts only, no enqueue call
+python -m discovery_ingest llm requeue --host verwaltung.bund.de --limit 50
+```
+
+The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION` and `CLEAN_VERSION`, so a page already
+queued, running or done under the current versions is counted as `already_queued` and a bump queues it again. `--limit`
+defaults to 50 and is refused above 200. A page that staged mentions then gets one `capture_screenshot` task (priority
+300). The workflow `discovery-llm.yml` drains the kind with a required `llm_model` input and a 2,500-neuron default;
+it skips itself when the Actions minutes, the neurons or the model are missing.
 
 ### Run a browser drain on your machine
 
