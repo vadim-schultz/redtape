@@ -56,8 +56,8 @@ Manual dispatch always works once the file is on `main`.
 
 **Drain inputs.** `discovery-drain.yml`: `max_tasks` (50), `max_batches` (20), `time_budget_seconds` (empty: the variable
 `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900), `kinds`. `discovery-render.yml`: `max_tasks` (5), `max_batches` (40),
-`time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds`. `discovery-llm.yml`: **`llm_model` (required, no
-default: the model decision X16 is pending)**, `max_tasks` (5), `max_batches` (20), `time_budget_seconds` (600),
+`time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds`. `discovery-llm.yml`: `llm_model` (default
+`@cf/qwen/qwen3-30b-a3b-fp8`, the provisional X16 choice; the final decision is pending the `ext-5` live eval), `max_tasks` (5), `max_batches` (20), `time_budget_seconds` (600),
 `neuron_budget` (2500), `kinds` (`llm_extract`). Browser and LLM drains use small batches because a limit releases every
 task of the batch.
 
@@ -68,7 +68,7 @@ without failing, when the ledger has under 20 Actions minutes or under 300 neuro
 kinds. Its four secrets are `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` and
 `CLOUDFLARE_AI_API_TOKEN`; the Workers AI token is used only by this workflow and the probe, and is not a Render
 variable. `discovery-render.yml` is unchanged and does not queue `llm_extract`; to queue after scheduled renders add
-`LLM_ENQUEUE: "true"` and `LLM_MODEL` to its job `env` (details in [discovery-online.md](discovery-online.md) § LLM kind).
+`LLM_ENQUEUE: "true"` (and `LLM_MODEL` for another model than the default) to its job `env` (details in [discovery-online.md](discovery-online.md) § LLM kind).
 
 **Concurrency.** All three drains share the group `discovery-drain` with `cancel-in-progress: false`, so they never overlap.
 GitHub keeps one pending run per group, so a third queued run cancels the older pending one.

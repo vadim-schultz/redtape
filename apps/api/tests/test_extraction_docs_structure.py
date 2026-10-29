@@ -116,9 +116,12 @@ def test_the_docs_name_the_real_settings_and_commands_of_the_ingest_package() ->
     tokens = constant("discovery_ingest/llm_settings.py", "DEFAULT_MAX_TOKENS")
     chars = constant("discovery_ingest/extract/clean.py", "DEFAULT_MAX_CHARS")
     settings = read(REPO_ROOT / "apps/discovery-ingest/discovery_ingest/llm_settings.py")
-    assert "llm_model: str | None = Field(default=None" in settings
+    default_model = re.search(r'^DEFAULT_LLM_MODEL = "(@cf/[^"]+)"', settings, re.M)
+    assert default_model and "llm_model: str = Field(default=DEFAULT_LLM_MODEL" in settings
     assert not missing(INGEST_README, (f"output limit ({tokens} tokens)", f"({chars}, the cleaner's cap)"))
-    assert not missing(INGEST_README, ("**No default**", "@cf/qwen/qwen3-30b-a3b-fp8", "X16", "--neuron-budget"))
+    assert not missing(INGEST_README, ("Defaults to", default_model.group(1), "X16", "--neuron-budget"))
+    for doc in (SCHEDULED_JOBS, CHECKLIST, LOOP_DOC, DISCOVERY_ONLINE):
+        assert default_model.group(1) in read(doc) and "provisional" in read(doc), doc
     assert not missing(INGEST_README, ("`llm probe", "`llm eval", "`llm requeue", "`budget show`"))
     cli = read(REPO_ROOT / "apps/discovery-ingest/discovery_ingest/cli.py")
     assert all(f'"{command}"' in cli for command in ("requeue", "probe", "eval", "budget"))

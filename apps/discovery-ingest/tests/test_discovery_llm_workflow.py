@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 import yaml
 from discovery_ingest.cli import _build_parser, _drain_policy
+from discovery_ingest.llm_settings import DEFAULT_LLM_MODEL
 
 NAME = "discovery-llm.yml"
 PATH = Path(__file__).resolve().parents[3] / ".github" / "workflows" / NAME
@@ -99,15 +100,15 @@ def test_the_job_passes_only_the_four_named_secrets_and_installs_no_extra(job: d
     assert "pip install -e ." in install and "[" not in install
 
 
-def test_the_inputs_have_the_bounded_defaults_and_the_model_is_required_without_a_default(
+def test_the_inputs_have_the_bounded_defaults_and_the_model_defaults_to_the_code_default(
     document: dict[Any, Any],
 ) -> None:
-    """discovery-llm.yml · neuron_budget 2500 (not 4000); llm_model is required, has no default and no model id appears."""
+    """discovery-llm.yml · neuron_budget 2500 (not 4000); llm_model is optional and defaults to DEFAULT_LLM_MODEL, the only model id."""
     inputs = document[True]["workflow_dispatch"]["inputs"]
 
     assert {name: spec["default"] for name, spec in inputs.items() if name != "llm_model"} == DEFAULTS
-    assert inputs["llm_model"]["required"] is True and "default" not in inputs["llm_model"]
-    assert "@cf/" not in PATH.read_text()
+    assert inputs["llm_model"]["required"] is False and inputs["llm_model"]["default"] == DEFAULT_LLM_MODEL
+    assert re.findall(r"@cf/[\w./-]+", PATH.read_text()) == [DEFAULT_LLM_MODEL]
 
 
 def test_the_workflow_inputs_match_the_drain_flags_of_the_command_line(job: dict[str, Any]) -> None:

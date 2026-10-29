@@ -165,7 +165,7 @@ def test_requeue_without_a_model_exits_2_before_any_call(
     api: Api, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """llm requeue · the key is derived from the model, so no LLM_MODEL means no call."""
-    monkeypatch.delenv("LLM_MODEL")
+    monkeypatch.setenv("LLM_MODEL", "")
 
     code, _, err = _run_with_stderr(capsys)
 

@@ -10,6 +10,9 @@ from discovery_ingest.extract.clean import DEFAULT_MAX_CHARS
 DEFAULT_MAX_TOKENS = 4000
 """The output limit of one model call; enough for a long answer, and the one number the handler imports too."""
 
+DEFAULT_LLM_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
+"""The provisional choice for decision X16; ``LLM_MODEL`` overrides it and an empty ``LLM_MODEL`` means no model."""
+
 
 class LlmSettings(BaseSettings):
     """Cloudflare Workers AI credentials and call limits, read from the process environment only.
@@ -21,7 +24,7 @@ class LlmSettings(BaseSettings):
 
     cloudflare_account_id: str | None = Field(default=None, validation_alias="CLOUDFLARE_ACCOUNT_ID")
     cloudflare_ai_api_token: SecretStr | None = Field(default=None, validation_alias="CLOUDFLARE_AI_API_TOKEN")
-    llm_model: str | None = Field(default=None, validation_alias="LLM_MODEL")
+    llm_model: str = Field(default=DEFAULT_LLM_MODEL, validation_alias="LLM_MODEL")
     llm_max_tokens: int = Field(default=DEFAULT_MAX_TOKENS, gt=0, validation_alias="LLM_MAX_TOKENS")
     llm_input_chars: int = Field(default=DEFAULT_MAX_CHARS, gt=0, validation_alias="LLM_INPUT_CHARS")
     llm_enqueue: bool = Field(default=False, validation_alias="LLM_ENQUEUE")

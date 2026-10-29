@@ -78,7 +78,7 @@ def test_a_drain_without_the_ai_token_or_the_model_or_a_known_price_fails_before
     assert main(DRAIN) == 2
     token_err = capsys.readouterr().err
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
-    monkeypatch.delenv("LLM_MODEL")
+    monkeypatch.setenv("LLM_MODEL", "")
     assert main(DRAIN) == 2
     model_err = capsys.readouterr().err
     monkeypatch.setenv("LLM_MODEL", "@cf/acme/mystery-model")

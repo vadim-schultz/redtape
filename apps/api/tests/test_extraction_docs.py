@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from app.config import Settings
 from tests.crawlers_docs_support import unqualified_lines
@@ -50,11 +52,19 @@ def test_the_drain_runbook_states_that_the_ledger_is_not_the_whole_meter_and_the
 
 
 def test_the_workflow_docs_match_the_llm_workflow_inputs_and_the_render_gap() -> None:
-    """The model input is required, the budget default is documented, and the unchanged render workflow is flagged."""
+    """The model input has the code default, the budget default is documented, and the unchanged render workflow is flagged."""
     workflow = read(WORKFLOWS / "discovery-llm.yml")
-    assert "required: true" in workflow and "DISCOVERY_LLM_SCHEDULE == 'enabled'" in workflow
+    model = re.search(
+        r'^DEFAULT_LLM_MODEL = "(@cf/[^"]+)"',
+        read(REPO_ROOT / "apps/discovery-ingest/discovery_ingest/llm_settings.py"),
+        re.M,
+    )
+    assert model and f'default: "{model.group(1)}"' in workflow and "required: true" not in workflow
+    assert "DISCOVERY_LLM_SCHEDULE == 'enabled'" in workflow
     assert "vars.DISCOVERY_LLM_MODEL" in workflow and 'default: "2500"' in workflow
-    assert not missing(SCHEDULED_JOBS, ("`llm_model`", "`DISCOVERY_LLM_MODEL`", "`neuron_budget` (2500)"))
+    assert not missing(
+        SCHEDULED_JOBS, ("`llm_model`", "`DISCOVERY_LLM_MODEL`", "`neuron_budget` (2500)", model.group(1))
+    )
     assert "LLM_ENQUEUE" not in read(WORKFLOWS / "discovery-render.yml")
     assert not missing(CHECKLIST, ("LLM_ENQUEUE", "discovery-render.yml", "`env`"))
     assert not missing(SCHEDULED_JOBS, ("`LLM_ENQUEUE:", "discovery-render.yml"))

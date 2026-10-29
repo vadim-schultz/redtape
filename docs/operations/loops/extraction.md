@@ -84,7 +84,8 @@ Settings, flags and stop reasons are in [`apps/discovery-ingest/README.md`](../.
 Each is also in the [ledger](../../../.plans/extraction/run-ledger.md) or in
 [`gaps-and-decisions.md`](../../../.plans/extraction/gaps-and-decisions.md). Nothing here is a reason to hold the release.
 
-- **No model is chosen.** `LLM_MODEL` has no default. On the 20 gold pages no model meets the starting targets
+- **No model is finally chosen.** `LLM_MODEL` defaults to the provisional pick `@cf/qwen/qwen3-30b-a3b-fp8` (override
+  with `LLM_MODEL`; empty means no model). On the 20 gold pages no model meets the starting targets
   (precision 0.80, recall 0.60, grounded 0.95, tag agreement 0.60). The `ext-4` eval of 2026-10-29 gave
   `@cf/qwen/qwen3-30b-a3b-fp8` precision 0.53 and recall 0.79, and the 70b model 0.57 and 0.51; after E18 an offline
   replay gives Qwen precision 0.74. The provisional pick is Qwen, to be confirmed by the live `ext-5` eval, the Mistral
@@ -102,7 +103,7 @@ Each is also in the [ledger](../../../.plans/extraction/run-ledger.md) or in
 - **The output limit is below the schema maximum.** 4,000 tokens do not hold 40 documents and 40 dependencies; a
   truncated answer takes the repair path and then fails the page. `LLM_MAX_TOKENS` is the lever.
 - **`discovery-render.yml` does not queue `llm_extract`.** Scheduled renders queue nothing until an operator adds
-  `LLM_ENQUEUE` and `LLM_MODEL` to that job (checklist step OP13). `llm requeue --dry-run` cannot tell which pages are
+  `LLM_ENQUEUE` (and `LLM_MODEL` to change the model) to that job (checklist step OP13). `llm requeue --dry-run` cannot tell which pages are
   already queued.
 - **Client-side shells need `render_page` first.** 111 of 115 `verwaltung.bund.de` snapshots clean to under 200
   characters and complete as `no_content`.

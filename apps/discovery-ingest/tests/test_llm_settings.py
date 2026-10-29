@@ -6,8 +6,9 @@ import json
 
 import pytest
 from discovery_ingest.config import load_ingest_settings
+from discovery_ingest.extract.llm.prices import known_models
 from discovery_ingest.extract.llm.schema import MAX_DEPENDENCIES, MAX_DOCUMENTS, PageExtraction
-from discovery_ingest.llm_settings import load_llm_settings
+from discovery_ingest.llm_settings import DEFAULT_LLM_MODEL, load_llm_settings
 from discovery_ingest.worker.llm_runtime import LlmResources
 
 ACCOUNT_ID = "acc0123456789abcdef0123456789abc"
@@ -39,9 +40,26 @@ def test_settings_default_the_limits_and_read_the_credentials(monkeypatch: pytes
 
     assert settings.ai_credentials() == (ACCOUNT_ID, TOKEN)
     assert settings.missing_ai_credentials() == []
-    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (None, 4000, 30000)
+    assert (settings.llm_model, settings.llm_max_tokens, settings.llm_input_chars) == (DEFAULT_LLM_MODEL, 4000, 30000)
     assert settings.llm_request_timeout_seconds == 60.0
     assert TOKEN not in repr(settings)
+
+
+def test_the_default_model_is_the_provisional_x16_choice_and_has_a_price() -> None:
+    """settings · LLM_MODEL defaults to the Qwen3-30B-A3B-FP8 id, which has a neuron price row."""
+    settings = load_llm_settings()
+
+    assert DEFAULT_LLM_MODEL == "@cf/qwen/qwen3-30b-a3b-fp8"
+    assert settings.llm_model == DEFAULT_LLM_MODEL and DEFAULT_LLM_MODEL in known_models()
+
+
+def test_an_explicit_model_wins_and_an_explicit_empty_one_means_no_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    """settings · LLM_MODEL overrides the default; LLM_MODEL= (empty) stays empty so the refusal paths still fire."""
+    monkeypatch.setenv("LLM_MODEL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+    assert load_llm_settings().llm_model == "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+    monkeypatch.setenv("LLM_MODEL", "")
+
+    assert not load_llm_settings().llm_model
 
 
 def test_settings_name_missing_variables_without_values_and_refuse_credentials(

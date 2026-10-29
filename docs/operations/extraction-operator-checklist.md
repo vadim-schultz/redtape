@@ -124,7 +124,8 @@ python -m discovery_ingest llm eval --model @cf/meta/llama-3.3-70b-instruct-fp8-
 
 Write decision X16 in `gaps-and-decisions.md` (model, endpoint mode, `PROMPT_VERSION` `ext-5`, `CLEAN_VERSION`
 `clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set `LLM_MODEL` for the
-render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). If no model reaches the targets, record
+render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). Until then `LLM_MODEL` defaults to the
+provisional pick `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to choose another model. If no model reaches the targets, record
 the shortfall and one of three decisions: accept lower recall because everything is human-reviewed, change the cleaner
 or the prompt, or fall back to hand-written extractors for the weak hosts (crawlers chapter 18). If the 70b model is
 chosen, revert the E18 code guard with the one-line change in `ground._codes`.
@@ -165,6 +166,7 @@ already has the E1 routes and the E6 stop reasons. Plan it for one day with no o
 then the gate:
 
 ```bash
+# LLM_MODEL defaults to the provisional X16 choice (@cf/qwen/qwen3-30b-a3b-fp8); export it only for another model
 export LLM_MODEL=<chosen model id>
 python -m discovery_ingest llm requeue --limit 20 --dry-run
 python -m discovery_ingest worker drain --kinds llm_extract --max-tasks 1 --max-batches 1 --neuron-budget 1000
@@ -177,7 +179,7 @@ A budget under about 900 neurons cannot run a 30,000-character page. After the d
 `issued`, conditions, suggested tags and edges. Read ten mentions against their source pages and record the precision
 (for example "8 of 10 real"), the neurons per page, the ledger's `neurons` figure (`budget show --resource neurons`),
 the report's `stop_reason` and `neurons_used`, and confirm a `capture_screenshot` task exists for a page with mentions
-and none for a page without. The gate with the workflow (`gh workflow run discovery-llm.yml -f llm_model=<id> -f
+and none for a page without. The gate with the workflow (`gh workflow run discovery-llm.yml -f llm_model=<id> (optional, the same default) -f
 max_batches=4 -f neuron_budget=2500`) needs OP2, OP10 and Actions minutes.
 
 **OP10: Open and merge the final release PR.** `feat/extraction` into `main`, after the ledger rows E7 to E9 and E12 to
@@ -212,14 +214,15 @@ catalogue row, the kind, the target URL and the key), so a daily `llm requeue` i
 
 **OP13: Queue after scheduled renders (optional).** `discovery-render.yml` was not changed by the suite and sets neither
 `LLM_ENQUEUE` nor `LLM_MODEL`. To queue `llm_extract` after scheduled renders, add both to the `env` block of its
-`drain` job (the model id is a plain value or `${{ vars.DISCOVERY_LLM_MODEL }}`):
+`drain` job (without `LLM_MODEL` the default model applies; to choose one, the id is a plain value or
+`${{ vars.DISCOVERY_LLM_MODEL }}`, and an unset variable becomes an empty value, which means no model):
 
 ```yaml
       LLM_ENQUEUE: "true"
       LLM_MODEL: ${{ vars.DISCOVERY_LLM_MODEL }}
 ```
 
-With `LLM_ENQUEUE` on and no model the render drain exits 2. A failed enqueue never fails a render; it is counted as
+With `LLM_ENQUEUE` on and an empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
 `llm_enqueue_failed`. A laptop render with both variables exported does the same without a workflow change.
 
 **OP14: Enable the schedule (optional).** Only after the OP9 live gate and only if the monthly Actions allowance has room
@@ -227,7 +230,8 @@ With `LLM_ENQUEUE` on and no model the render drain exits 2. A failed enqueue ne
 (Settings, Secrets and variables, Actions, Variables). The run is daily at 06:00 UTC with 2,500 neurons and skips itself
 when the model, the Actions minutes (under 20) or the neurons (under 300) are missing. To pause, delete
 `DISCOVERY_LLM_SCHEDULE`; manual dispatch keeps working:
-`gh workflow run discovery-llm.yml -f llm_model=<id> -f neuron_budget=2500`.
+`gh workflow run discovery-llm.yml -f neuron_budget=2500` (add `-f llm_model=<id>` for another model than the default).
+Only a scheduled run needs the variable `DISCOVERY_LLM_MODEL`.
 
 **OP15: Review before emitting tags.** Read ten candidates' suggested tags against their procedures in the admin and compare
 with the eval's tag agreement. If they disagree, leave tags out of emit (the thresholds `DISCOVERY_TAG_MIN_PROCEDURES` and

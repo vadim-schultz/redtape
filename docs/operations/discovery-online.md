@@ -216,9 +216,10 @@ The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`
 `no_content`) and shows the neuron meter next to them.
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
-(priority 200). `discovery-render.yml` does not set either variable, so scheduled renders queue nothing until an
-operator adds `LLM_ENQUEUE: "true"` and `LLM_MODEL: <model id>` to that job's `env`; a laptop render with both exported
-does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key
+(priority 200). `LLM_MODEL` defaults to the provisional X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
+`LLM_MODEL`; an empty value means no model). `discovery-render.yml` sets neither variable, so scheduled renders queue
+nothing until an operator adds `LLM_ENQUEUE: "true"` to that job's `env` (and `LLM_MODEL` to pick another model); a
+laptop render with `LLM_ENQUEUE=true` exported does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key
 `llm:<8 hex>` (model, `PROMPT_VERSION`, `CLEAN_VERSION`), so a re-render of the same page under the same versions never
 queues a second task.
 
@@ -275,7 +276,7 @@ Run it at most once a day. The check of the Cloudflare credentials needs only th
 | `llm_extract` | Many `no_documents` | Check a sample on `/admin/discovery/tasks`; pages that are lists or navigation pages are correct. A host with real documents and a `no_documents` note is a prompt or cleaner finding for the ledger, not a retry |
 | `llm_extract` | Task `failed` with an invalid-answer error | The model returned unusable JSON twice. Permanent for this model and prompt version; try another model through `llm requeue` |
 | `llm_extract` | Run exits 1 before claiming | The ledger, artifact storage or `GET /machine/taxonomy` cannot be read. Check the API deploy |
-| `llm_extract` | Run exits 2 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`, `LLM_MODEL` (with a price row) or `--neuron-budget` is missing |
+| `llm_extract` | Run exits 2 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`, `LLM_MODEL` (empty, or without a price row) or `--neuron-budget` is missing |
 | any | `failures_by_source` growing | Inspect failed tasks on `/admin/discovery/tasks` for that source |
 
 ### Manual dispatch (debugging)
