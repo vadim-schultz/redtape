@@ -80,6 +80,8 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 6c. [chapters/14-raise-the-input-cap.md](chapters/14-raise-the-input-cap.md) (E14, added 2026-10-28, owner decision: quality over throughput; executes after E13)
 6d. [chapters/15-quote-shape.md](chapters/15-quote-shape.md) (E15, added 2026-10-28 from E13's findings; executes after E14)
 7. [chapters/07-wiring-and-workflow.md](chapters/07-wiring-and-workflow.md)
+7a. [chapters/16-documents-not-data-fields.md](chapters/16-documents-not-data-fields.md) (E16, added 2026-10-29, owner approved; executes after E7)
+7b. [chapters/17-price-rows-for-candidate-models.md](chapters/17-price-rows-for-candidate-models.md) (E17, added 2026-10-29; executes after E16; then the chief of staff runs the model comparison for X16)
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
 
@@ -102,6 +104,8 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 | E13 | Grounding normalisation (executes after E12) | worker | paired tests + recorded answers regress + CI | [13](chapters/13-grounding-normalisation.md) | planned |
 | E14 | Raise the input cap to 30,000 characters (executes after E13) | worker + docs | paired tests + CI | [14](chapters/14-raise-the-input-cap.md) | planned |
 | E15 | Quote shape: one line per quote, drop screen-reader text (executes after E14) | worker | paired tests + CI | [15](chapters/15-quote-shape.md) | planned |
+| E16 | Documents, not data fields: prompt rule `ext-4` (executes after E7) | worker | paired tests + CI | [16](chapters/16-documents-not-data-fields.md) | planned |
+| E17 | Price rows for Mistral Small 3.1 and Llama 4 Scout (executes after E16) | worker | paired tests + CI | [17](chapters/17-price-rows-for-candidate-models.md) | planned |
 
 ## Per-chapter gate
 
