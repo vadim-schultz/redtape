@@ -123,7 +123,8 @@
       "note_no_mentions": "Keine Erwähnungen",
       "note_no_extractor": "Kein Extraktor",
       "note_no_content": "Kein Inhalt",
-      "note_no_documents": "Keine Dokumente"
+      "note_no_documents": "Keine Dokumente",
+      "table_label": "Crawler-Aufgaben"
     },
     "documents": {
       "filter_search": "Titel durchsuchen",
@@ -136,10 +137,6 @@
       "role_form": "Formular",
       "filter_source": "Quelle",
       "source_all": "Alle Quellen",
-      "filter_sort": "Sortieren nach",
-      "sort_mentions_desc": "Meiste Erwähnungen",
-      "sort_title_asc": "Titel A–Z",
-      "sort_newest": "Neueste",
       "col_title": "Titel",
       "col_jurisdiction": "Zuständigkeitsbereich",
       "col_roles": "Rollen",
@@ -150,7 +147,8 @@
       "empty_description": "Andere Suche oder anderen Filter versuchen.",
       "count_one": "{count} Dokument",
       "count_other": "{count} Dokumente",
-      "role_issued": "Ausgestellt"
+      "role_issued": "Ausgestellt",
+      "table_label": "Dokumente"
     },
     "document": {
       "jurisdiction": "Zuständigkeitsgebiet",
@@ -194,13 +192,10 @@
         "empty": "Noch keine Abhängigkeiten vorgemerkt.",
         "basis_explicit": "Ausdrücklich",
         "basis_derived_single_issued": "Abgeleitet",
-        "procedure": "Verfahren"
+        "procedure": "Verfahren",
+        "col_document": "Dokument",
+        "col_basis": "Grundlage"
       }
-    },
-    "pagination": {
-      "range": "{from}–{to} von {total}",
-      "previous": "Vorherige Seite",
-      "next": "Nächste Seite"
     },
     "pipeline": {
       "stage_label": "Pipeline-Stufe",
@@ -247,7 +242,8 @@
       "load_error": "Katalogdaten konnten nicht geladen werden.",
       "col_external_id": "Externe ID",
       "col_source": "Quelle",
-      "col_stage": "Stufe"
+      "col_stage": "Stufe",
+      "table_label": "Katalogdienste"
     },
     "artifacts": {
       "title": "Artefakte",
@@ -258,7 +254,6 @@
       "kind_screenshot": "Screenshots",
       "download": "Herunterladen",
       "screenshot_alt": "Screenshot vom {date}",
-      "html_meta": "{size}, abgerufen am {date}, {host}",
       "chip_kind": "{kind}: {count} ({size})",
       "chip_total": "Gespeichert: {size} von {cap}",
       "chip_total_warning": "Speicher fast voll: {size} von {cap}",
@@ -271,7 +266,11 @@
       "budget_browser_seconds": "Browser-Sekunden",
       "budget_neurons": "KI-Neuronen",
       "budget_actions_minutes": "Actions-Minuten",
-      "budget_stored_bytes": "Gespeicherte Artefakte"
+      "budget_stored_bytes": "Gespeicherte Artefakte",
+      "col_size": "Größe",
+      "col_fetched": "Abgerufen",
+      "col_host": "Quellhost",
+      "col_download": "Herunterladen"
     }
   },
   "suggest": {

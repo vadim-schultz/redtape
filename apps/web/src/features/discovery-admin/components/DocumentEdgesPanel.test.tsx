@@ -46,15 +46,18 @@ function renderPanel(items: ReturnType<typeof edge>[], status = ready) {
   );
 }
 
-it("edges panel shows requires and required-by with condition, basis and procedure links", () => {
+it("catalogue, mentions, and nested admin lists use the shared table contract (edges)", () => {
   renderPanel([requires, derived, requiredBy]);
 
-  const requiresList = within(screen.getByRole("list", { name: "Requires" }));
+  const requiresTable = within(screen.getByRole("table", { name: "Requires" }));
+  expect(
+    requiresTable.getAllByRole("columnheader").map((cell) => cell.textContent),
+  ).toEqual(["Document", "Condition", "Basis", "Procedure"]);
   const first = within(
-    requiresList.getByRole("link", { name: "Geburtsurkunde" }).closest("li")!,
+    requiresTable.getByRole("link", { name: "Geburtsurkunde" }).closest("tr")!,
   );
   expect(
-    requiresList.getByRole("link", { name: "Geburtsurkunde" }),
+    requiresTable.getByRole("link", { name: "Geburtsurkunde" }),
   ).toHaveAttribute("href", "/admin/discovery/documents/req-1");
   expect(first.getByText("bei Zuzug aus dem Ausland")).toBeInTheDocument();
   expect(first.getByText("Optional")).toBeInTheDocument();
@@ -62,25 +65,25 @@ it("edges panel shows requires and required-by with condition, basis and procedu
   expect(
     first.getByRole("link", { name: "Apply for an ID card" }),
   ).toHaveAttribute("href", "/admin/discovery/pipeline/cat-1");
-  expect(requiresList.getByText("Derived")).toBeInTheDocument();
+  expect(requiresTable.getByText("Derived")).toBeInTheDocument();
   expect(
-    requiresList.getByRole("link", { name: "Register a move" }),
+    requiresTable.getByRole("link", { name: "Register a move" }),
   ).toHaveAttribute("href", "/admin/discovery/pipeline/cat-2");
 
-  const requiredByList = within(
-    screen.getByRole("list", { name: "Required by" }),
+  const requiredByTable = within(
+    screen.getByRole("table", { name: "Required by" }),
   );
   expect(
-    requiredByList.getByRole("link", { name: "Führerschein" }),
+    requiredByTable.getByRole("link", { name: "Führerschein" }),
   ).toHaveAttribute("href", "/admin/discovery/documents/par-1");
-  expect(requiredByList.queryByText("Geburtsurkunde")).not.toBeInTheDocument();
+  expect(requiredByTable.queryByText("Geburtsurkunde")).not.toBeInTheDocument();
 });
 
 it("edges panel shows an empty state and the load error with a retry", () => {
   renderPanel([]);
 
   expect(screen.getByText("No dependencies staged yet.")).toBeInTheDocument();
-  expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
 });
 
 it("edges panel shows the query error instead of the empty state", () => {

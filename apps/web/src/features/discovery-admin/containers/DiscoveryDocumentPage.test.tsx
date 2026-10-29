@@ -170,7 +170,8 @@ it("document page says so when the candidate has no mentions", async () => {
   renderDocumentPage();
 
   expect(await screen.findByText("No mentions yet.")).toBeInTheDocument();
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  const table = screen.getByRole("table", { name: "Mentions" });
+  expect(within(table).getAllByRole("row")).toHaveLength(2);
 });
 
 it("external url renders only when present and with rel noopener noreferrer", async () => {

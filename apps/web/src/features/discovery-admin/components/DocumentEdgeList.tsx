@@ -1,9 +1,11 @@
 import { Stack, Text } from "@chakra-ui/react";
 
+import { DataTable } from "../../../components/data-display/DataTable";
+import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCandidateEdge } from "../types";
-import DocumentEdgeItem, { type EdgeEnd } from "./DocumentEdgeItem";
+import { edgeColumns, type EdgeEnd } from "./columns/edgeColumns";
 
-/** A titled list of edges; renders nothing when there are none. */
+/** A titled edge table; renders nothing when there are none. */
 export default function DocumentEdgeList({
   title,
   edges,
@@ -13,18 +15,19 @@ export default function DocumentEdgeList({
   edges: DiscoveryCandidateEdge[];
   end: EdgeEnd;
 }) {
+  const locale = useLocale();
   if (edges.length === 0) return null;
 
   return (
     <Stack gap={1} align="stretch">
-      <Text fontSize="sm" color="muted">
+      <Text textStyle="caption" color="muted">
         {title}
       </Text>
-      <Stack as="ul" aria-label={title} gap={1} listStyleType="none" ps={0}>
-        {edges.map((edge) => (
-          <DocumentEdgeItem key={edge.id} edge={edge} end={end} />
-        ))}
-      </Stack>
+      <DataTable
+        label={title}
+        columns={edgeColumns(locale, end)}
+        rows={{ items: edges, getKey: (edge) => edge.id }}
+      />
     </Stack>
   );
 }

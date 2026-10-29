@@ -11,7 +11,7 @@ export default function DiscoveryTasksPage() {
   return (
     <DiscoveryTasksView
       filters={filters}
-      tasks={tasksQuery.data?.items}
+      page={tasksQuery.data}
       status={toQueryStatus(tasksQuery)}
     />
   );

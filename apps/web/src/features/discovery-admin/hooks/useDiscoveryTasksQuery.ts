@@ -8,17 +8,26 @@ import { listDiscoveryTasks } from "../services/discoveryAdminApi";
 import type { DiscoveryTaskListResponse } from "../types";
 import type { DiscoveryTaskFilters } from "./useDiscoveryTaskFilters";
 
+type TaskQuery = Pick<
+  DiscoveryTaskFilters,
+  "status" | "source" | "kind" | "offset" | "limit"
+>;
+
+/** One page of the crawler queue for the current filters. */
 export function useDiscoveryTasksQuery({
   status,
   source,
   kind,
-}: Pick<DiscoveryTaskFilters, "status" | "source" | "kind">) {
+  offset,
+  limit,
+}: TaskQuery) {
   const { locale } = useLocale();
   const { session } = useAuth();
   const accessToken = session?.accessToken;
+  const query = { status, source, kind, offset, limit };
 
   return useApiQuery<DiscoveryTaskListResponse>(
-    queryKeys.discoveryAdmin.tasks(status, source, kind, locale),
+    queryKeys.discoveryAdmin.tasks(query, locale),
     () =>
       listDiscoveryTasks({
         locale,
@@ -26,6 +35,8 @@ export function useDiscoveryTasksQuery({
         status,
         source: source ?? undefined,
         kind: kind ?? undefined,
+        offset,
+        limit,
       }),
     { enabled: Boolean(accessToken), placeholderData: keepPreviousData },
   );

@@ -342,7 +342,7 @@ Check with `GET /api/v1/discovery/machine/budgets`.
 
 ## German strings that need native review
 
-A language model wrote the German copy of the admin screens of chapters 8, 10, 16 and 20 (the English text is the
+A language model wrote the German copy of the admin screens of chapters 8, 10, 16 and 20 and the table labels of web GUI harmonization chapter 4 (the English text is the
 reference). Have a native speaker review each key in
 [`apps/api/scripts/seed_data/translations/de.json`](../../apps/api/scripts/seed_data/translations/de.json). The web
 fallback in `apps/web` must stay identical to the seed, so change both in one commit.
@@ -351,13 +351,13 @@ fallback in `apps/web` must stay identical to the seed, so change both in one co
 
 `discovery_admin.coverage.candidate_mentions`, `discovery_admin.coverage.candidates_emitted`, `discovery_admin.coverage.candidates_staged`, `discovery_admin.coverage.candidates_total`, `discovery_admin.coverage.kind_chip`, `discovery_admin.tasks.col_attempts`, `discovery_admin.tasks.col_kind`, `discovery_admin.tasks.col_retry`, `discovery_admin.tasks.filter_kind`, `discovery_admin.tasks.filter_kind_all`, `discovery_admin.tasks.retry_none`
 
-**Chapter 10 (Documents list and paging)** (27 keys)
+**Chapter 10 (Documents list and paging)** (20 keys)
 
-`discovery_admin.documents.col_first_seen`, `discovery_admin.documents.col_jurisdiction`, `discovery_admin.documents.col_mentions`, `discovery_admin.documents.col_roles`, `discovery_admin.documents.col_status`, `discovery_admin.documents.col_title`, `discovery_admin.documents.count_one`, `discovery_admin.documents.count_other`, `discovery_admin.documents.empty_description`, `discovery_admin.documents.empty_title`, `discovery_admin.documents.filter_min_mentions`, `discovery_admin.documents.filter_role`, `discovery_admin.documents.filter_search`, `discovery_admin.documents.filter_sort`, `discovery_admin.documents.filter_source`, `discovery_admin.documents.min_mentions_any`, `discovery_admin.documents.min_mentions_option`, `discovery_admin.documents.role_all`, `discovery_admin.documents.role_form`, `discovery_admin.documents.role_required`, `discovery_admin.documents.sort_mentions_desc`, `discovery_admin.documents.sort_newest`, `discovery_admin.documents.sort_title_asc`, `discovery_admin.documents.source_all`, `discovery_admin.pagination.next`, `discovery_admin.pagination.previous`, `discovery_admin.pagination.range`
+`discovery_admin.documents.col_first_seen`, `discovery_admin.documents.col_jurisdiction`, `discovery_admin.documents.col_mentions`, `discovery_admin.documents.col_roles`, `discovery_admin.documents.col_status`, `discovery_admin.documents.col_title`, `discovery_admin.documents.count_one`, `discovery_admin.documents.count_other`, `discovery_admin.documents.empty_description`, `discovery_admin.documents.empty_title`, `discovery_admin.documents.filter_min_mentions`, `discovery_admin.documents.filter_role`, `discovery_admin.documents.filter_search`, `discovery_admin.documents.filter_source`, `discovery_admin.documents.min_mentions_any`, `discovery_admin.documents.min_mentions_option`, `discovery_admin.documents.role_all`, `discovery_admin.documents.role_form`, `discovery_admin.documents.role_required`, `discovery_admin.documents.source_all`
 
-**Chapter 16 (Artifacts panel, budgets, result notes)** (26 keys)
+**Chapter 16 (Artifacts panel, budgets, result notes)** (25 keys)
 
-`discovery_admin.artifacts.budget_actions_minutes`, `discovery_admin.artifacts.budget_browser_seconds`, `discovery_admin.artifacts.budget_exhausted`, `discovery_admin.artifacts.budget_neurons`, `discovery_admin.artifacts.budget_r2_class_a`, `discovery_admin.artifacts.budget_r2_class_b`, `discovery_admin.artifacts.budget_stored_bytes`, `discovery_admin.artifacts.budget_usage`, `discovery_admin.artifacts.budgets_error`, `discovery_admin.artifacts.budgets_title`, `discovery_admin.artifacts.chip_kind`, `discovery_admin.artifacts.chip_total`, `discovery_admin.artifacts.chip_total_warning`, `discovery_admin.artifacts.download`, `discovery_admin.artifacts.empty`, `discovery_admin.artifacts.html_meta`, `discovery_admin.artifacts.kind_html_snapshot`, `discovery_admin.artifacts.kind_screenshot`, `discovery_admin.artifacts.link_unavailable`, `discovery_admin.artifacts.screenshot_alt`, `discovery_admin.artifacts.storage_unconfigured`, `discovery_admin.artifacts.title`, `discovery_admin.tasks.note_login_wall`, `discovery_admin.tasks.note_no_extractor`, `discovery_admin.tasks.note_no_mentions`, `discovery_admin.tasks.note_oversize`
+`discovery_admin.artifacts.budget_actions_minutes`, `discovery_admin.artifacts.budget_browser_seconds`, `discovery_admin.artifacts.budget_exhausted`, `discovery_admin.artifacts.budget_neurons`, `discovery_admin.artifacts.budget_r2_class_a`, `discovery_admin.artifacts.budget_r2_class_b`, `discovery_admin.artifacts.budget_stored_bytes`, `discovery_admin.artifacts.budget_usage`, `discovery_admin.artifacts.budgets_error`, `discovery_admin.artifacts.budgets_title`, `discovery_admin.artifacts.chip_kind`, `discovery_admin.artifacts.chip_total`, `discovery_admin.artifacts.chip_total_warning`, `discovery_admin.artifacts.download`, `discovery_admin.artifacts.empty`, `discovery_admin.artifacts.kind_html_snapshot`, `discovery_admin.artifacts.kind_screenshot`, `discovery_admin.artifacts.link_unavailable`, `discovery_admin.artifacts.screenshot_alt`, `discovery_admin.artifacts.storage_unconfigured`, `discovery_admin.artifacts.title`, `discovery_admin.tasks.note_login_wall`, `discovery_admin.tasks.note_no_extractor`, `discovery_admin.tasks.note_no_mentions`, `discovery_admin.tasks.note_oversize`
 
 **Chapter 20 (document detail, mentions)** (10 keys)
 
@@ -366,4 +366,8 @@ fallback in `apps/web` must stay identical to the seed, so change both in one co
 **Chapter 20 (emit preview and suggestion state)** (14 keys)
 
 `discovery_admin.document.emit_cli_hint`, `discovery_admin.document.emit_conflicts`, `discovery_admin.document.emit_emitted`, `discovery_admin.document.emit_official_url`, `discovery_admin.document.emit_pending`, `discovery_admin.document.emit_skipped`, `discovery_admin.document.emit_source_url`, `discovery_admin.document.emit_title`, `discovery_admin.document.emit_title_label`, `discovery_admin.document.emit_would_create`, `discovery_admin.document.skip_reason_duplicate`, `discovery_admin.document.skip_reason_invalid_payload`, `discovery_admin.document.skip_reason_no_mentions`, `discovery_admin.document.skip_reason_no_source_url`
+
+**Web GUI harmonization chapter 4 (admin table labels)** (9 keys)
+
+`discovery_admin.artifacts.col_download`, `discovery_admin.artifacts.col_fetched`, `discovery_admin.artifacts.col_host`, `discovery_admin.artifacts.col_size`, `discovery_admin.catalogue.table_label`, `discovery_admin.document.edges.col_basis`, `discovery_admin.document.edges.col_document`, `discovery_admin.documents.table_label`, `discovery_admin.tasks.table_label`
 
