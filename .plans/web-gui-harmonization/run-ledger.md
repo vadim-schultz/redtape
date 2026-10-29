@@ -14,7 +14,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 4. Admin tables | `feat/web-gui-harmonization-admin-tables` | [#247](https://github.com/vadim-schultz/redtape/pull/247) | pass (`ci.sh` on fresh DB; stock run also hit one docs test, fixed in-PR) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 5. Coverage tables | `feat/web-gui-harmonization-coverage` | [#248](https://github.com/vadim-schultz/redtape/pull/248) | pass (`ci.sh` on fresh DB) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 6. Table interactions | `feat/web-gui-harmonization-table-interactions` | [#249](https://github.com/vadim-schultz/redtape/pull/249) | pass (`ci.sh` on fresh DB; narrow pytest 148 passed) | n/a (no Actions minutes) | merged 2026-10-29 | none |
-| 7. Visual integration |  |  |  |  |  |  |
+| 7. Visual integration | `feat/web-gui-harmonization-visual-integration` | [#250](https://github.com/vadim-schultz/redtape/pull/250) | pass (`ci.sh` on fresh DB; manual smoke NOT performed) | n/a (no Actions minutes) | merged 2026-10-29 | none |
 | 8. Release hardening |  |  |  |  |  |  |
 
 ## Release checklist
