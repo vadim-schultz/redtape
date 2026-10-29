@@ -113,6 +113,7 @@ def _task(
     status: DiscoveryTaskStatus,
     lease_expires_at: datetime | None = None,
     kind: DiscoveryTaskKind = DiscoveryTaskKind.FETCH_URL,
+    result_note: str | None = None,
 ) -> DiscoveryTask:
     task = DiscoveryTask(
         catalogue_service_id=catalogue.id,
@@ -120,6 +121,7 @@ def _task(
         target_url="https://example.gov/service",
         status=status,
         lease_expires_at=lease_expires_at,
+        result_note=result_note,
     )
     session.add(task)
     session.flush()
@@ -367,3 +369,39 @@ def test_coverage_artifacts_are_zero_when_there_are_none(client: TestClient[Lite
         "total_bytes": 0,
         "bytes_cap": settings.object_store_max_bytes,
     }
+
+
+NO_LLM_OUTCOMES = {"extracted": 0, "no_documents": 0, "login_wall": 0, "no_content": 0}
+
+
+def _llm_task(db_session: Session, row: CatalogueService, note: str | None, kind: DiscoveryTaskKind) -> None:
+    _task(db_session, catalogue=row, status=DiscoveryTaskStatus.COMPLETED, kind=kind, result_note=note)
+
+
+def test_coverage_groups_llm_extract_tasks_by_result_note(client: TestClient[Litestar], db_session: Session) -> None:
+    row = _catalogue(db_session, external_id="gov-llm")
+    llm = DiscoveryTaskKind.LLM_EXTRACT
+    for note in ("docs=7 edges=5 dropped=2", "docs=1 edges=0 dropped=0", "no_documents", "login_wall", "no_content"):
+        _llm_task(db_session, row, note, llm)
+    _llm_task(db_session, row, "no_content", llm)
+    _llm_task(db_session, row, "login_wall", DiscoveryTaskKind.RENDER_PAGE)
+    _llm_task(db_session, row, None, llm)
+
+    body = _get_coverage(client)
+
+    assert body["llm_outcomes"] == {"extracted": 2, "no_documents": 1, "login_wall": 1, "no_content": 2}
+
+
+def test_coverage_reports_zero_llm_outcomes_when_there_are_none(client: TestClient[Litestar]) -> None:
+    body = _get_coverage(client)
+
+    assert body["llm_outcomes"] == NO_LLM_OUTCOMES
+
+
+def test_coverage_with_llm_outcomes_still_requires_an_admin(client: TestClient[Litestar]) -> None:
+    token = _token(sub=uuid.uuid4(), email="stranger@example.com")
+
+    response = client.get(COVERAGE_URL, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 403
+    assert "llm_outcomes" not in response.text

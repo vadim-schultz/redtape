@@ -32,6 +32,7 @@ from app.schema.discovery.read import (
     DiscoveryTaskRead,
     EmitPreviewItemRead,
     EmitPreviewResponse,
+    LlmOutcomesRead,
     TaskCountsRead,
 )
 
@@ -89,6 +90,7 @@ class DiscoveryAdminService:
             task_counts=_task_counts_read(counts.task_counts),
             task_counts_by_kind={kind.value: _task_counts_read(c) for kind, c in counts.task_counts_by_kind.items()},
             candidates=CandidateCountsRead(**asdict(counts.candidates)),
+            llm_outcomes=LlmOutcomesRead(**asdict(counts.llm_outcomes)),
             artifacts=_artifact_coverage(counts),
             fetch_attempts_total=counts.fetch_attempts_total,
             stale_claims=counts.stale_claims,
