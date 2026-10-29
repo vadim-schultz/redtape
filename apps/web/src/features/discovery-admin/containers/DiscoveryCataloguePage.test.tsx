@@ -181,3 +181,35 @@ it("DiscoveryCataloguePage · shows a deliberate empty state for zero catalogue 
   ).toBeInTheDocument();
   expect(screen.getByText("govdata: 3")).toBeInTheDocument();
 });
+
+it("DiscoveryCataloguePage · keeps its existing rows inside the section shell", async () => {
+  stubDiscoveryFetch({
+    catalogue: new Response(JSON.stringify(catalogueResponse)),
+    coverage: new Response(JSON.stringify(coverageResponse)),
+  });
+
+  renderCataloguePage();
+
+  const table = await screen.findByRole("table");
+  const shell = table.closest("[data-section-card]");
+
+  expect(shell).not.toBeNull();
+  expect(shell).toHaveTextContent("service-1");
+  expect(getComputedStyle(shell!).boxShadow).toBe(
+    "var(--chakra-shadows-shell)",
+  );
+});
+
+it("DiscoveryCataloguePage · a failed catalogue query shows no shell around the error", async () => {
+  stubDiscoveryFetch({
+    catalogue: () => new Response("", { status: 500 }),
+    coverage: () => new Response(JSON.stringify(coverageResponse)),
+  });
+
+  renderCataloguePage();
+
+  const retry = await screen.findByRole("button", { name: "Try again" });
+
+  expect(retry.closest("[data-section-card]")).toBeNull();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
