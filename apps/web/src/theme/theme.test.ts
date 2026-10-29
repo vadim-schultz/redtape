@@ -103,3 +103,38 @@ it("theme · rejects unregistered semantic token lookup", () => {
   expect(system.tokens.getByName(UNREGISTERED_SEMANTIC_TOKEN)).toBeUndefined();
   expect(system.token(UNREGISTERED_SEMANTIC_TOKEN)).toBeUndefined();
 });
+
+it("theme · exposes the shared table and section surface roles", () => {
+  const roles = [
+    "colors.surface",
+    "colors.border",
+    "colors.table.header.bg",
+    "colors.table.header.text",
+    "colors.table.row.bg",
+    "colors.table.border",
+    "shadows.shell",
+  ];
+
+  for (const role of roles) {
+    expect(system.tokens.getByName(role), role).toBeDefined();
+  }
+  expect(system._config.theme?.textStyles).toHaveProperty("tableHeader");
+});
+
+it("theme · the shell shadow is lighter than the card shadow and deepens in dark mode", () => {
+  const conditions = (name: string) =>
+    system.tokens.getByName(name)?.extensions.conditions as
+      Record<string, string> | undefined;
+
+  expect(conditions("shadows.shell")?.base).not.toBe(
+    conditions("shadows.card")?.base,
+  );
+  expect(conditions("shadows.shell")?._dark).not.toBe(
+    conditions("shadows.shell")?.base,
+  );
+});
+
+it("theme · rejects an unregistered shell role", () => {
+  expect(system.tokens.getByName("shadows.shellRaw")).toBeUndefined();
+  expect(system._config.theme?.textStyles).not.toHaveProperty("tableHeaderRaw");
+});
