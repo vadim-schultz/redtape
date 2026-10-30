@@ -6,7 +6,7 @@ import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CandidateList } from "../../hooks/useCandidateListState";
 import type { CandidateListResponse } from "../../types";
 import { hasActiveFilters } from "../../utils/hasActiveFilters";
-import CandidatesBanner from "./CandidatesBanner";
+import { CandidatesBanner } from "../CandidatesBanner";
 import CandidatesFilters, { type CandidateTerms } from "./CandidatesFilters";
 import CandidatesListQueryStatus from "./CandidatesListQueryStatus";
 

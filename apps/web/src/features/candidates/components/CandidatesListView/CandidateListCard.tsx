@@ -4,7 +4,7 @@ import AppCard from "../../../../components/data-display/AppCard";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CandidateCard } from "../../types";
 import { CompletenessChips } from "../CompletenessChips";
-import CandidateTagBadges from "./CandidateTagBadges";
+import { CandidateTagBadges } from "../CandidateTagBadges";
 
 export interface CandidateListCardProps {
   candidate: CandidateCard;
