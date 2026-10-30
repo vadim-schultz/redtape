@@ -2,27 +2,45 @@ import { Button, HStack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CandidateList } from "../hooks/useCandidateListState";
-import { filterFields, type FilterField } from "./documentFilterFields";
+import { DISCOVERY_SOURCES } from "../types/listValues";
+import { plainOptions } from "./columns/filterOptions";
 import FilterSelect from "./FilterSelect";
 import ListSearch from "./ListSearch";
 
 const NAMESPACE = "discovery_admin.documents";
 
-/** A select bound to one filter key; the empty option clears it. */
-function FieldSelect({
-  list,
-  field,
-}: {
-  list: CandidateList;
-  field: FilterField;
-}) {
+/** The source select, which has no column of its own; the empty option clears it. */
+function SourceSelect({ list }: { list: CandidateList }) {
+  const { t } = useLocale();
+  const options = [
+    { value: "", label: t(`${NAMESPACE}.source_all`) },
+    ...plainOptions(DISCOVERY_SOURCES),
+  ];
+
   return (
     <FilterSelect
-      label={field.label}
-      value={String(list.state.filters[field.key] ?? "")}
-      options={field.options}
-      onChange={(value) => list.setFilter(field.key, value || undefined)}
+      label={t(`${NAMESPACE}.filter_source`)}
+      value={String(list.state.filters.source ?? "")}
+      options={options}
+      onChange={(value) => list.setFilter("source", value || undefined)}
     />
+  );
+}
+
+/** Quick filter for candidates with all five completeness flags. */
+function ReadyFilter({ list }: { list: CandidateList }) {
+  const { t } = useLocale();
+  const pressed = list.state.filters.complete === "yes";
+
+  return (
+    <Button
+      size="sm"
+      variant={pressed ? "subtle" : "outline"}
+      aria-pressed={pressed}
+      onClick={() => list.setFilter("complete", "yes")}
+    >
+      {t(`${NAMESPACE}.ready_filter`)}
+    </Button>
   );
 }
 
@@ -38,7 +56,7 @@ function ClearFilters({ list }: { list: CandidateList }) {
   );
 }
 
-/** Search and filter controls of the documents list; sorting lives in the table header. */
+/** Toolbar of the documents table header: search, source, the Ready quick filter and clear. */
 export default function DiscoveryDocumentFilters({
   list,
 }: {
@@ -47,15 +65,14 @@ export default function DiscoveryDocumentFilters({
   const { t } = useLocale();
 
   return (
-    <HStack gap={4} flexWrap="wrap">
+    <HStack gap={3} flexWrap="wrap">
       <ListSearch
         value={list.state.search}
         label={t(`${NAMESPACE}.filter_search`)}
         onSearch={list.setSearch}
       />
-      {filterFields(t).map((field) => (
-        <FieldSelect key={field.key} list={list} field={field} />
-      ))}
+      <SourceSelect list={list} />
+      <ReadyFilter list={list} />
       <ClearFilters list={list} />
     </HStack>
   );

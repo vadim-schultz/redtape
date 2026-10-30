@@ -8,6 +8,7 @@ from litestar.plugins.pydantic import PydanticPlugin
 
 from app.db import provide_session
 from app.features.auth.router import auth_router
+from app.features.candidates.router import candidates_router
 from app.features.discovery.router import discovery_admin_router, discovery_machine_router
 from app.features.documents.router import documents_router
 from app.features.locations.router import locations_router
@@ -30,6 +31,7 @@ def create_app() -> Litestar:
             translations_bundle,
             auth_router,
             documents_router,
+            candidates_router,
             discovery_admin_router,
             discovery_machine_router,
             locations_router,

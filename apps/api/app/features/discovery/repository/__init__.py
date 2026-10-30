@@ -6,9 +6,16 @@ from app.features.discovery.repository.activity import ActivityRepository, Fetch
 from app.features.discovery.repository.artifact_listing import ArtifactFilter, ArtifactListingRepository
 from app.features.discovery.repository.artifacts import ArtifactRepository, ArtifactTotals, NewArtifact
 from app.features.discovery.repository.budgets import BudgetRepository, LedgerKey, LedgerState
+from app.features.discovery.repository.candidate_completeness_repository import CompletenessRepository
 from app.features.discovery.repository.candidate_filter import CandidateFilter
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.features.discovery.repository.candidate_sort import LEGACY_SORTS, CandidateSort, CandidateSortKey
+from app.features.discovery.repository.candidate_source_filter import CandidateSourceFilter
+from app.features.discovery.repository.candidate_sources import (
+    CandidateSourceRepository,
+    CandidateSourceRow,
+    CandidateSourceRows,
+)
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.catalogue_filter import CatalogueFilter, CatalogueSortKey
@@ -34,11 +41,16 @@ __all__ = [
     "CandidateListingRepository",
     "CandidateRepository",
     "CandidateSort",
+    "CandidateSourceFilter",
+    "CandidateSourceRepository",
+    "CandidateSourceRow",
+    "CandidateSourceRows",
     "CandidateSortKey",
     "CatalogueFilter",
     "CatalogueRepository",
     "CatalogueSortKey",
     "ClaimRepository",
+    "CompletenessRepository",
     "CoverageRepository",
     "DiscoveryCoverageCounts",
     "DiscoveryRepository",

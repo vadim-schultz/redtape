@@ -27,7 +27,7 @@ describe("catalogue list query", () => {
   it("catalogue list query rejects values the API would refuse", () => {
     const parsed = parseListUrl(
       new URLSearchParams(
-        "sort_by=raw_payload&filter[source]=nowhere&filter[stage]=T0&offset=-1",
+        "sort_by=raw_payload&filter[source]=nowhere&filter[stage]=T9&offset=-1",
       ),
       CATALOGUE_LIST_SPEC,
     );
@@ -38,7 +38,7 @@ describe("catalogue list query", () => {
   });
 
   it("catalogue list query accepts every allowlisted sort key", () => {
-    const keys = ["external_id", "source", "stage"];
+    const keys = ["external_id", "title", "source", "stage"];
     const parsed = keys.map(
       (key) =>
         parseListUrl(new URLSearchParams({ sort_by: key }), CATALOGUE_LIST_SPEC)

@@ -1,8 +1,10 @@
 import { screen, within } from "@testing-library/react";
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 
 import AppLayout from "../components/layout/AppLayout";
 import { createFakeAuthGateway } from "../features/auth/services/fakeAuthGateway";
+import { candidateDetailFixture } from "../test/candidateFixtures";
+import { json, stubCandidateDetailApi } from "../test/candidatesApiStub";
 import { renderWithProviders } from "../test/renderWithProviders";
 import App from "./App";
 
@@ -93,4 +95,48 @@ it("app · /suggestions/:id needs no authentication", async () => {
   expect(
     screen.queryByRole("button", { name: "Send magic link" }),
   ).not.toBeInTheDocument();
+});
+
+it("app routes /candidates without a guard", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/candidates", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Candidates" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
+});
+
+it("app routes /candidates/:id without a guard", async () => {
+  window.localStorage.setItem("locale", "en");
+  stubCandidateDetailApi(() => json(candidateDetailFixture()));
+  renderAppAt("/candidates/c1", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { level: 1, name: "Passport" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
+  vi.unstubAllGlobals();
+});
+
+it("app resolves /candidates/ with no id to the list", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/candidates/", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Candidates" }),
+  ).toBeInTheDocument();
+});
+
+it("app treats /candidates/a/b as not-found", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/candidates/a/b", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Page not found" }),
+  ).toBeInTheDocument();
 });

@@ -112,11 +112,15 @@ it("legitimate filter select indicators remain available", async () => {
   renderRoute("documents");
 
   await screen.findByText("1 document");
-  for (const name of ["Minimum mentions", "Role", "Source"]) {
-    const select = screen.getByRole("combobox", { name });
-    expect(
-      select.parentElement?.querySelector(".chakra-native-select__indicator"),
-    ).not.toBeNull();
+  const select = screen.getByRole("combobox", { name: "Source" });
+  expect(
+    select.parentElement?.querySelector(".chakra-native-select__indicator"),
+  ).not.toBeNull();
+  for (const name of ["Minimum mentions", "Role", "Document status"]) {
+    expect(screen.getByRole("button", { name })).toHaveAttribute(
+      "aria-haspopup",
+      "dialog",
+    );
   }
 });
 

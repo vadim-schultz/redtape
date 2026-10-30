@@ -27,6 +27,15 @@ const candidate = {
   jurisdiction_name_i18n: { en: "Germany" },
   created_at: "2026-01-01T12:00:00Z",
   updated_at: "2026-01-01T12:00:00Z",
+  completeness: 4,
+  complete: false,
+  flags: {
+    has_domain: true,
+    has_situation: true,
+    has_edges: true,
+    has_snapshot: true,
+    has_screenshot: false,
+  },
 };
 const task = {
   id: "task-1",

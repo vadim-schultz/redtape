@@ -59,7 +59,7 @@ def _answers_with(status_code: int) -> ExceptionHandler[DiscoveryError]:
     return handler
 
 
-_DOMAIN_ERROR_HANDLERS: ExceptionHandlersMap = {
+DISCOVERY_ERROR_HANDLERS: ExceptionHandlersMap = {
     ArtifactTooLargeError: _answers_with(HTTP_413_REQUEST_ENTITY_TOO_LARGE),
     UnsupportedArtifactTypeError: _answers_with(HTTP_415_UNSUPPORTED_MEDIA_TYPE),
     StorageCapExceededError: _answers_with(HTTP_507_INSUFFICIENT_STORAGE),
@@ -78,7 +78,7 @@ discovery_admin_router = Router(
         DiscoveryBudgetAdminController,
     ],
     dependencies=router_dependencies,
-    exception_handlers=_DOMAIN_ERROR_HANDLERS,
+    exception_handlers=DISCOVERY_ERROR_HANDLERS,
     tags=["discovery-admin"],
 )
 
@@ -92,6 +92,6 @@ discovery_machine_router = Router(
         DiscoveryTaxonomyMachineController,
     ],
     dependencies=router_dependencies,
-    exception_handlers=_DOMAIN_ERROR_HANDLERS,
+    exception_handlers=DISCOVERY_ERROR_HANDLERS,
     tags=["discovery-machine"],
 )

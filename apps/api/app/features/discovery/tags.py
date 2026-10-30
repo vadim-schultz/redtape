@@ -9,9 +9,14 @@ from uuid import UUID
 
 DEFAULT_MIN_PROCEDURES = 2
 DEFAULT_MIN_SHARE = 0.5
+MANUAL_EXTRACTOR = "manual"
+"""The ``extractor`` of a mention written by a curator; its codes are authoritative for their axis."""
 
 TaggedMention = tuple[UUID, Sequence[str] | None]
 """A mention as plain data: the procedure (catalogue row) it came from and the codes it carries."""
+
+ProvenancedMention = tuple[UUID, str, Sequence[str] | None]
+"""A mention as plain data: the procedure it came from, the extractor that wrote it and the codes it carries."""
 
 
 class TagSupport(NamedTuple):
@@ -50,4 +55,17 @@ def aggregate_tags(
     by_code = _procedures_by_code(mentions)
     tagged = len(set().union(*by_code.values()))
     supports = [_support(code, len(ids), tagged, min_procedures, min_share) for code, ids in by_code.items()]
+    return sorted(supports, key=lambda support: (-support.procedures, support.code))
+
+
+def curated_codes(mentions: Iterable[ProvenancedMention]) -> list[TagSupport]:
+    """Return the codes the manual mentions carry, or nothing when no manual mention carries any.
+
+    A curator's word replaces the extracted consensus for the axis, and one procedure suffices, so every
+    curated code is accepted with a share of 1. An empty result means the consensus stays in force.
+    """
+    by_code = _procedures_by_code(
+        (procedure, codes) for procedure, extractor, codes in mentions if extractor == MANUAL_EXTRACTOR
+    )
+    supports = [TagSupport(code, len(ids), 1.0, True) for code, ids in by_code.items()]
     return sorted(supports, key=lambda support: (-support.procedures, support.code))

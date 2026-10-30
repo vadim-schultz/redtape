@@ -5,13 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, Select, func, or_, select
+from sqlalchemy import ColumnElement, ColumnExpressionArgument, Select, func, or_, select
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.task_listing import Page
 from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind, DiscoveryCandidateMention
 
 _URL_HOST = r"^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#:]+)"
+
+
+def url_host(column: ColumnExpressionArgument[str]) -> ColumnElement[str]:
+    """Return the lower-case host of the URL in ``column``, the expression ``host`` filters compare."""
+    return func.lower(func.substring(column, _URL_HOST))
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +32,7 @@ class ArtifactFilter:
         pairs = (
             (DiscoveryArtifact.catalogue_service_id, self.catalogue_service_id),
             (DiscoveryArtifact.kind, self.kind),
-            (func.lower(func.substring(DiscoveryArtifact.source_url, _URL_HOST)), self.host and self.host.lower()),
+            (url_host(DiscoveryArtifact.source_url), self.host and self.host.lower()),
         )
         return [column == value for column, value in pairs if value is not None]
 

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from discovery_ingest.mentions import MentionRole
+
 MAX_EMIT_CANDIDATES = 50
 
 
@@ -17,9 +19,13 @@ class EmitConflict(BaseModel):
 
 
 class CandidateSummary(BaseModel):
-    """One staged candidate from ``GET /candidates``."""
+    """One staged candidate from ``GET /candidates``: its key, titles and the roles it was mentioned in."""
 
     id: UUID
+    jurisdiction_id: UUID
+    key: str
+    title_i18n: dict[str, str]
+    roles: list[MentionRole]
     mention_count: int
 
 
@@ -27,6 +33,7 @@ class CandidatePage(BaseModel):
     """A page of staged candidates, most mentioned first."""
 
     items: list[CandidateSummary]
+    total: int
 
 
 class EmitRequest(BaseModel):

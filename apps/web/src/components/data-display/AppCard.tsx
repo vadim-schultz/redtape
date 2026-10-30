@@ -7,10 +7,17 @@ import { hoverMotion } from "../../theme/transitions";
 export interface AppCardProps {
   /** When set, the whole card is a link and lifts on hover. */
   to?: string;
+  /** Router state handed to the destination, so it can tell where the visitor came from. */
+  state?: unknown;
   children: ReactNode;
 }
 
-function LinkedCard({ to, children }: Required<AppCardProps>) {
+function LinkedCard({
+  to,
+  state,
+  children,
+}: Required<Pick<AppCardProps, "to" | "children">> &
+  Pick<AppCardProps, "state">) {
   return (
     <Card.Root
       asChild
@@ -21,7 +28,7 @@ function LinkedCard({ to, children }: Required<AppCardProps>) {
       {...hoverMotion}
       _hover={{ shadow: "elevated", transform: "translateY(-2px)" }}
     >
-      <RouterLink to={to}>
+      <RouterLink to={to} state={state}>
         <Card.Body>{children}</Card.Body>
       </RouterLink>
     </Card.Root>
@@ -37,7 +44,12 @@ function StaticCard({ children }: { children: ReactNode }) {
 }
 
 /** The one card look: the document list and the detail page both use it. */
-export default function AppCard({ to, children }: AppCardProps) {
-  if (to) return <LinkedCard to={to}>{children}</LinkedCard>;
+export default function AppCard({ to, state, children }: AppCardProps) {
+  if (to)
+    return (
+      <LinkedCard to={to} state={state}>
+        {children}
+      </LinkedCard>
+    );
   return <StaticCard>{children}</StaticCard>;
 }

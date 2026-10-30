@@ -4,6 +4,7 @@ export type {
   DataTableColumn,
   DataTableProps,
   DataTableQuery,
+  FilterCapability,
   FilterChange,
   FilterOption,
   FilterOperator,

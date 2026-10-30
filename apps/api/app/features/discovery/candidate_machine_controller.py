@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from litestar import Controller, get, post
@@ -15,10 +16,11 @@ from app.features.discovery.candidate_service import CandidateService
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.guards import require_discovery_machine
-from app.features.discovery.repository import CandidateFilter, Page
+from app.features.discovery.repository import CandidateFilter, CandidateSourceFilter, Page
 from app.models.discovery import DiscoveryCandidateStatus
 from app.schema.discovery.candidate_edges import CandidateEdgesRequest, CandidateEdgesResponse
 from app.schema.discovery.candidate_emit import CandidateEmitPreview, CandidateEmitRequest, CandidateEmitResponse
+from app.schema.discovery.candidate_sources import CandidateSourceListResponse
 from app.schema.discovery.candidates import CandidateMentionsRequest, CandidateMentionsResponse
 from app.schema.discovery.read import CandidateListResponse
 from app.shared.paging import PageParams
@@ -56,6 +58,26 @@ class DiscoveryCandidateMachineController(Controller):
     ) -> CandidateListResponse:
         candidate_filter = CandidateFilter(status=status, min_mentions=min_mentions)
         return discovery_candidate_admin_service.list_candidates(
+            candidate_filter, Page(offset=page.offset, limit=page.limit)
+        )
+
+    @get("/sources", sync_to_thread=True)
+    def select_candidate_sources(
+        self,
+        discovery_candidate_admin_service: CandidateAdminService,
+        page: PageParams,
+        missing: Literal["screenshot"] | None = Parameter(query="missing", default=None),
+        host: str | None = Parameter(query="host", default=None, min_length=1, max_length=253),
+        candidate_id: UUID | None = Parameter(query="candidate_id", default=None),
+        service_ids: list[UUID] | None = Parameter(query="catalogue_service_id", default=None, max_items=20),
+    ) -> CandidateSourceListResponse:
+        candidate_filter = CandidateSourceFilter(
+            missing_screenshot=missing == "screenshot",
+            host=host,
+            candidate_id=candidate_id,
+            service_ids=service_ids or (),
+        )
+        return discovery_candidate_admin_service.list_candidate_sources(
             candidate_filter, Page(offset=page.offset, limit=page.limit)
         )
 

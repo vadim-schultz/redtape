@@ -44,7 +44,13 @@ function stubAdminFetch() {
       }
       if (pathname.endsWith("/admin/catalogue")) {
         return new Response(
-          JSON.stringify({ items: [], total: 0, offset: 0, limit: 50 }),
+          JSON.stringify({
+            items: [],
+            summary: { total: 0, by_source: {}, by_pipeline_stage: {} },
+            total: 0,
+            offset: 0,
+            limit: 50,
+          }),
         );
       }
       return new Response("", { status: 503 });
@@ -63,18 +69,18 @@ async function renderedSummary(page: ReactElement): Promise<string[]> {
   const { unmount } = renderWithProviders(page, {
     authGateway: createFakeAuthGateway({ session }),
   });
-  await screen.findByRole("table", { name: "Task queue" });
+  await screen.findByRole("table", { name: /Task queue|Catalogue services/ });
   const names = summaryTableNames();
   unmount();
   return names;
 }
 
-it("catalogue and coverage reuse the same coverage summary composition", async () => {
+it("coverage keeps its eight summary cards and the catalogue shows none of them", async () => {
   stubAdminFetch();
 
-  const onCatalogue = await renderedSummary(<DiscoveryCataloguePage />);
   const onCoverage = await renderedSummary(<DiscoveryCoveragePage />);
+  const onCatalogue = await renderedSummary(<DiscoveryCataloguePage />);
 
-  expect(onCatalogue).toEqual(SUMMARY_TABLES);
-  expect(onCoverage).toEqual(onCatalogue);
+  expect(onCoverage).toEqual(SUMMARY_TABLES);
+  expect(onCatalogue).toEqual([]);
 });

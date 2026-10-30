@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
 import LoadingShell from "./LoadingShell";
+import { CandidateDetailSkeleton } from "../features/candidates/components/CandidateDetailView";
+import { CandidatesListSkeleton } from "../features/candidates/components/CandidatesListView";
 import { DocumentDetailSkeleton } from "../features/documents/components/DocumentDetailView";
 import { DocumentsListSkeleton } from "../features/documents/components/DocumentsListView";
 import RequireAuth from "../features/auth/components/RequireAuth";
@@ -13,6 +15,12 @@ const DocumentsListPage = lazy(
 );
 const DocumentDetailPage = lazy(
   () => import("../features/documents/containers/DocumentDetailPage"),
+);
+const CandidatesListPage = lazy(
+  () => import("../features/candidates/containers/CandidatesListPage"),
+);
+const CandidateDetailPage = lazy(
+  () => import("../features/candidates/containers/CandidateDetailPage"),
 );
 const LoginPage = lazy(() => import("../features/auth/containers/LoginPage"));
 const SuggestPage = lazy(
@@ -51,6 +59,22 @@ export const routes = [
     element: (
       <Suspense fallback={<DocumentDetailSkeleton />}>
         <DocumentDetailPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/candidates",
+    element: (
+      <Suspense fallback={<CandidatesListSkeleton />}>
+        <CandidatesListPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/candidates/:id",
+    element: (
+      <Suspense fallback={<CandidateDetailSkeleton />}>
+        <CandidateDetailPage />
       </Suspense>
     ),
   },

@@ -26,6 +26,55 @@ function readSeed(locale: string): Record<string, string> {
   return flatten(JSON.parse(readFileSync(file, "utf8")) as Nested);
 }
 
+const CANDIDATE_KEYS = [
+  "title",
+  "subtitle",
+  "banner_title",
+  "banner_body",
+  "search_label",
+  "filter_domain",
+  "filter_situation",
+  "complete_only",
+  "clear_filters",
+  "count_one",
+  "count_other",
+  "empty_title",
+  "empty_description",
+  "empty_filtered_description",
+  "flag_domain",
+  "flag_situation",
+  "flag_edges",
+  "flag_snapshot",
+  "flag_screenshot",
+  "flag_present",
+  "flag_missing",
+  "from_source",
+  "ingress",
+  "ingress_subtitle",
+  "ingress_empty",
+  "egress",
+  "egress_subtitle",
+  "egress_empty",
+  "optional",
+  "condition_label",
+  "evidence",
+  "screenshot_alt",
+  "screenshot_missing",
+  "screenshot_fetched",
+  "sources",
+  "source_role_required",
+  "source_role_form",
+  "source_role_issued",
+  "checklist_title",
+  "checklist_count",
+  "flow",
+  "flow_summary",
+  "flow_empty",
+  "flow_more",
+  "back_to_list",
+  "not_found_title",
+];
+
 describe("fallback translation bundles", () => {
   it.each(["en", "de"])("matches the API seed for %s", (locale) => {
     expect(fallbackBundle(locale)).toEqual(readSeed(locale));
@@ -83,6 +132,25 @@ describe("fallback translation bundles", () => {
     const enKeys = suggestionsKeys("en");
     expect(enKeys.length).toBeGreaterThan(0);
     expect(suggestionsKeys("de")).toEqual(enKeys);
+  });
+
+  it.each(["en", "de"])("resolves every candidates key for %s", (locale) => {
+    const bundle = fallbackBundle(locale);
+
+    for (const key of CANDIDATE_KEYS) {
+      expect(bundle[`candidates.${key}`], key).toBeTruthy();
+    }
+    expect(bundle["nav.candidates"]).toBeTruthy();
+  });
+
+  it("has every candidates.* key in both fallback bundles", () => {
+    const candidateKeys = (locale: string) =>
+      Object.keys(fallbackBundle(locale))
+        .filter((key) => key.startsWith("candidates."))
+        .sort();
+
+    expect(candidateKeys("en")).toHaveLength(CANDIDATE_KEYS.length);
+    expect(candidateKeys("de")).toEqual(candidateKeys("en"));
   });
 
   it("has every discovery_admin.* key in both fallback bundles", () => {

@@ -19,6 +19,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.schema.candidate import CandidateFlags
 from app.schema.discovery.artifacts import ArtifactSummaryRead
 
 
@@ -260,10 +261,13 @@ class CandidateRead(BaseModel):
 
 
 class CandidateListItemRead(CandidateRead):
-    """A listed candidate with the roles it was mentioned in and its jurisdiction name."""
+    """A listed candidate with its roles, jurisdiction name and completeness flags."""
 
     roles: list[DiscoveryMentionRole]
     jurisdiction_name_i18n: dict[str, str]
+    completeness: int
+    complete: bool
+    flags: CandidateFlags
 
 
 class CandidateListResponse(BaseModel):

@@ -51,11 +51,9 @@ class CatalogueRepository(SessionRepository):
         stmt = catalogue_list_stmt(catalogue_filter).order_by(*catalogue_filter.ordering())
         return list(self._session.scalars(stmt.offset(offset).limit(limit)).all())
 
-    def catalogue_summary(
-        self, catalogue_filter: CatalogueFilter | None = None
-    ) -> tuple[int, dict[str, int], dict[str, int]]:
-        """Return the total plus counts grouped by source and by pipeline stage of the matching rows."""
-        base = catalogue_list_stmt(catalogue_filter or CatalogueFilter()).subquery()
+    def catalogue_summary(self) -> tuple[int, dict[str, int], dict[str, int]]:
+        """Return the total plus counts grouped by source and by pipeline stage of the whole catalogue."""
+        base = catalogue_list_stmt(CatalogueFilter()).subquery()
         total = int(self._session.scalar(select(func.count()).select_from(base)) or 0)
         return total, self._grouped_counts(base.c.source), self._grouped_counts(base.c.pipeline_stage)
 

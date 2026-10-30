@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 from typing import TypeVar
+from uuid import UUID
 
 from app.shared.list_query.model import FilterParser, FilterValue
 
@@ -30,5 +31,24 @@ def min_int_filter(minimum: int) -> FilterParser:
         if not raw.lstrip("-").isdigit() or int(raw) < minimum:
             raise ValueError(f"Expected an integer of at least {minimum}")
         return int(raw)
+
+    return parse
+
+
+def uuid_filter(raw: str) -> FilterValue:
+    """Accept a UUID and return it in canonical text form."""
+    try:
+        return str(UUID(raw))
+    except ValueError:
+        raise ValueError("Expected a UUID") from None
+
+
+def text_filter(max_length: int) -> FilterParser:
+    """Return a parser accepting text of 1 to ``max_length`` characters."""
+
+    def parse(raw: str) -> FilterValue:
+        if not 1 <= len(raw) <= max_length:
+            raise ValueError(f"Expected 1 to {max_length} characters")
+        return raw
 
     return parse

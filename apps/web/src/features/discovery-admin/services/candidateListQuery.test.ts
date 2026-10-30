@@ -49,4 +49,23 @@ describe("candidate list query", () => {
       min_mentions: 0,
     });
   });
+
+  it("candidate list query accepts the sort keys and the complete filter of the admin contract", () => {
+    for (const key of ["jurisdiction", "status", "roles", "completeness"]) {
+      const parsed = parseListUrl(
+        new URLSearchParams(`sort_by=${key}&filter[complete]=yes`),
+        CANDIDATE_LIST_SPEC,
+      );
+      expect(parsed.sortBy).toBe(key);
+      expect(parsed.filters).toEqual({ complete: "yes" });
+    }
+  });
+
+  it("candidate list query drops a complete value the API would refuse", () => {
+    const parsed = parseListUrl(
+      new URLSearchParams("filter[complete]=maybe&filter[status]=bogus"),
+      CANDIDATE_LIST_SPEC,
+    );
+    expect(parsed.filters).toEqual({});
+  });
 });

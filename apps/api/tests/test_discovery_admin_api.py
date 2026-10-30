@@ -222,7 +222,7 @@ def test_get_discovery_admin_catalogue_lists_catalogue_services_with_source_filt
     assert body["total"] == 1
     assert len(body["items"]) == 1
     assert body["items"][0]["source"] == "govdata"
-    assert body["summary"]["total"] == 1
+    assert body["summary"]["total"] == 2
 
 
 def _kind_task(
