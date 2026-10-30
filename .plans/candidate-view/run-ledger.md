@@ -9,7 +9,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | Chapter | Branch | PR | Local CI | Remote CI | Merged | Blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Capture requeue and machine route | `feat/candidate-view-capture-requeue` | [#263](https://github.com/vadim-schultz/redtape/pull/263) | pass (`./ci.sh` on scratch DB: api 1048, web 627, ingest 1156) | not run (Actions billing, D17) | yes, 704f25b | none |
-| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | | | | | needs the API deployed (chapter 1); continuing with chapters that need no screenshots |
+| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | n/a | n/a | n/a | partial: 16 of 17 pending captured (owner-approved drain of the queued tasks, 2026-10-30) | the sources route is not deployed (404), so the full categorised set cannot be requeued yet |
 | 2. Completeness read model | `feat/candidate-view-completeness` | [#264](https://github.com/vadim-schultz/redtape/pull/264) | pass (`./ci.sh` on scratch DB: api 1113, ingest 1156, web green on rerun after 2 unrelated timeouts) | not run (Actions billing, D17) | yes, ba38f55 | none |
 | 11. Manual curation tool | `feat/candidate-view-curation-tool` | [#265](https://github.com/vadim-schultz/redtape/pull/265) | pass (`./ci.sh` on scratch DB: api 1113, web 627, ingest 1181) | not run (Actions billing, D17) | yes, 3c9b7fd | none |
 | 3. Public candidate API | `feat/candidate-view-public-api` | [#266](https://github.com/vadim-schultz/redtape/pull/266) | pass (`./ci.sh` on scratch DB: api 1150, web 627, ingest 1181; one known flaky key-prefix test passed on rerun) | not run (Actions billing, D17) | yes, 0591cb7 | none |
@@ -24,7 +24,15 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 
 ## Live run records
 
-**LR1, screenshots.** _(chief of staff fills: run IDs, screenshots before and after, pending and missing counts, browser seconds, bytes, one-image verdict, next date to repeat)_
+**LR1, screenshots (partial, 2026-10-30).** The owner asked to drain the 17 already-queued `capture_screenshot` tasks without waiting for the API deploy; chapter 1's route (`/machine/candidates/sources`) and the public list both still answered 404, so S0 "pages missing" and S1 requeue were not run.
+
+- **Drain run:** `d3e046e5-bf97-41a7-92dd-546f4db958b5`, `--max-tasks 5 --max-batches 4`, `stop_reason` batch_limit, claimed 17, completed 16, failed 1, released 0, `capture_enqueue_failed` 0.
+- **Screenshots:** 0 before, 16 after (`GET /machine/artifacts?kind=screenshot`). Hosts: arbeitsagentur.de (10), ble.de (2), bvl.bund.de, nebenwirkungen.bund.de, vorsorgeregister.de, goaml.fiu.bund.de, kba-online.de.
+- **Queue:** `pending_ready` 17 before, 0 after; the failed task went back to `pending_delayed` (1) for a retry. The failure reason was not read (the tasks listing answered 405 on that path).
+- **Browser seconds:** the drain reported 43.6; the budget ledger shows 67.1 of 570 used on 2026-10-30 (503 left). The drain printed `ledger_unavailable: true`, but the server-side ledger did record usage.
+- **Bytes:** artifact `bytes_used` 6,051,076 before, 18,018,387 after: about 0.75 MB per screenshot, above the 60 to 300 KB the runbook assumed (JPEG, 1280 px wide, full page: 431 KB at 1280x3919, 177 KB at 1280x1260). Far below the 9.5 GB cap, but chapter 10 should state the larger figure.
+- **One-image verdict:** two images viewed (an arbeitsagentur.de page and the KBA ZFER page). Both show the procedure page. The arbeitsagentur capture carries a cookie-consent dialog over the header; the content below it is legible. The other 14 were not viewed, so the consent-wall rate is unknown.
+- **Next:** once the owner deploys the API, run S0 and S1 to queue the remaining categorised pages and drain them (503 browser seconds are left today; otherwise the next UTC day, 2026-10-31).
 
 **LR2, showcase candidates.** _(chief of staff fills: ranks and flags before and after, the chosen set with each candidate's role and `/candidates/<id>` path, codes and edge counts, the `curate` report line, the docs PR, capture result, one-image verdict, candidates still missing a screenshot)_
 
