@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+from urllib.parse import urlparse
 from uuid import UUID
 
 from app.features.discovery.candidate_tags import candidate_tag_suggestions
 from app.features.discovery.lookups import require_candidate
-from app.features.discovery.repository import CandidateFilter, DiscoveryRepository, EdgeRow, Page
+from app.features.discovery.repository import (
+    CandidateFilter,
+    CandidateSourceFilter,
+    CandidateSourceRow,
+    DiscoveryRepository,
+    EdgeRow,
+    Page,
+)
 from app.features.discovery.repository.candidate_listing import CandidateListRow
 from app.models.discovery import DiscoveryMentionRole
 from app.schema.discovery.candidate_edges import CandidateEdgeListResponse, CandidateEdgeRead
+from app.schema.discovery.candidate_sources import CandidateSourceListResponse, CandidateSourceRead
 from app.schema.discovery.read import (
     CandidateDetailResponse,
     CandidateListItemRead,
@@ -27,6 +37,11 @@ def _list_item(row: CandidateListRow) -> CandidateListItemRead:
         roles=[DiscoveryMentionRole(role) for role in row.roles],
         jurisdiction_name_i18n=row.jurisdiction_name_i18n,
     )
+
+
+def _source_read(row: CandidateSourceRow) -> CandidateSourceRead:
+    host = (urlparse(row.source_url).hostname or "").lower()
+    return CandidateSourceRead(**asdict(row), host=host)
 
 
 def _edge_read(row: EdgeRow) -> CandidateEdgeRead:
@@ -61,6 +76,14 @@ class CandidateAdminService:
         rows = self._repo.list_candidates_page(page, candidate_filter)
         items = [_list_item(row) for row in rows]
         return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
+
+    def list_candidate_sources(
+        self, candidate_filter: CandidateSourceFilter, page: Page
+    ) -> CandidateSourceListResponse:
+        """Return one page of procedures with candidate mentions and the snapshot page to capture."""
+        found = self._repo.list_candidate_sources(candidate_filter, page)
+        items = [_source_read(row) for row in found.items]
+        return CandidateSourceListResponse(items=items, total=found.total, offset=page.offset, limit=page.limit)
 
     def candidate_detail(self, candidate_id: UUID) -> CandidateDetailResponse:
         """Return one candidate with its jurisdiction name, mentions, procedures and artifact summaries."""

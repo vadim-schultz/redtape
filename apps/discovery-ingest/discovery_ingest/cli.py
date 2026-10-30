@@ -16,6 +16,7 @@ from discovery_ingest.artifacts_cli import artifacts_download, artifacts_list, r
 from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
 from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
+from discovery_ingest.capture_requeue import capture_requeue, register_capture_parser
 from discovery_ingest.catalogue_export import load_catalogue_row
 from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
 from discovery_ingest.enrich import (
@@ -375,6 +376,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("llm", "probe"): llm_probe,
     ("llm", "eval"): llm_eval,
     ("llm", "requeue"): llm_requeue,
+    ("capture", "requeue"): capture_requeue,
     ("artifacts", "list"): artifacts_list,
     ("artifacts", "download"): artifacts_download,
 }
@@ -512,4 +514,5 @@ def _build_parser() -> argparse.ArgumentParser:
     register_browser_parser(sub)
     register_llm_parser(sub)
     register_artifacts_parser(sub)
+    register_capture_parser(sub)
     return parser
