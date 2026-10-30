@@ -178,9 +178,10 @@ def test_ungrounded_excerpt_is_refused_unless_pages_are_not_checked(
     refused = _run(capsys, "curate", "--file", path)
     assert refused[0] == 2 and api.posts == [] and "Personalausweis" in refused[2] and "excerpt" in refused[2]
 
+    fetched = len(api.requests)
     code, _, err = _run(capsys, "curate", "--file", path, "--no-check-pages")
     assert code == 0 and "warning" in err and len(api.posts) == 2
-    assert not any(r.url.path.endswith("/content") for r in api.requests[len(api.requests) - 3 :])
+    assert not any(r.url.path.endswith("/content") for r in api.requests[fetched:])
 
 
 @pytest.mark.parametrize(

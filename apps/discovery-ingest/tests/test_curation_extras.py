@@ -135,3 +135,25 @@ def test_page_reports_a_procedure_without_a_stored_snapshot(
 
     assert code == 1 and "no html_snapshot" in err and str(uuid.UUID(int=4242)) in err
     assert out.startswith(str(uuid.UUID(int=4242))) and list(tmp_path.iterdir()) == []
+
+
+def test_a_tag_only_entry_uses_its_note_as_excerpt_and_posts_no_edges(
+    api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """curate · codes without edges give one ``manual:tags`` mention whose excerpt is the note, and no edge call."""
+    path = write_file(tmp_path, entry(requires=[], required_by=[]))
+
+    code, out, _ = _run(capsys, "curate", "--file", str(path))
+
+    (item,) = api.bodies("mentions")[0]["items"]
+    assert code == 0 and item["excerpt"] == "issued when moving" and api.bodies("edges") == []
+    assert out.splitlines()[0] == "Meldebescheinigung tags=2 edges=0"
+
+
+def test_codes_without_a_tag_note_are_refused_before_any_call(
+    api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """curate · a curator must say why the codes were chosen: no ``tag_note`` refuses the file."""
+    code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, entry(tag_note=None))))
+
+    assert code == 2 and api.requests == [] and "tag_note" in err

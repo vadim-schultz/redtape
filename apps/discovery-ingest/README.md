@@ -15,6 +15,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `fim probe --keys K1,K2` | Report status and top-level keys of live steckbriefe; exit 1 when the gate fails, 2 for a malformed key |
 | `worker drain` | Claim, process and settle tasks; see below |
 | `candidates emit` | Emit staged document candidates as pending suggestions; see below |
+| `candidates page`, `candidates curate` | Read the source pages of a candidate; complete candidates by hand from a reviewed file; see [Curate candidates by hand](#curate-candidates-by-hand) |
 | `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
 | `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, tag agreement and neurons per page |
@@ -53,6 +54,52 @@ python -m discovery_ingest candidates emit --id <candidate-uuid>
 `--dry-run` calls the read-only preview and writes nothing. `--limit` is 1–50 (default 10). Emit is manual and
 idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/operations/discovery-layer.md)
 § Manual candidate emit.
+
+### Curate candidates by hand
+
+A curator reads the source page of a candidate and writes a curation file: manual domain and life-situation codes, and
+`requires` and `required_by` edges with a verbatim excerpt. The command sends the file through the existing machine
+mention and edge routes, marked `extractor = "manual"`. It adds no route and deletes nothing. It needs only
+`DISCOVERY_API_URL` and `DISCOVERY_API_KEY`.
+
+```bash
+python -m discovery_ingest candidates page --candidate-id <uuid> --out pages/   # procedures and cleaned page text
+python -m discovery_ingest candidates curate --file docs/operations/candidate-curation/showcase.json --dry-run
+python -m discovery_ingest candidates curate --file docs/operations/candidate-curation/showcase.json
+```
+
+`candidates page` is read-only. It prints `catalogue_service_id`, `source_url`, `host` and `has_screenshot` for each
+procedure of the candidate and, with `--out`, writes the cleaned text of the newest `html_snapshot` as
+`<catalogue_service_id>.txt`. That is the text the grounding check compares with.
+
+The file is JSON with `version`, `curator` and at most 8 `candidates` (at most 60 edges in all). Each candidate has
+`candidate_id`, `catalogue_service_id`, `title_de`, `domain_codes` (at most 2), `situation_codes` (at most 3),
+`tag_note` (why these codes) and the edge lists `requires` and `required_by`. An edge has `title_de`, `excerpt`,
+`condition`, `is_optional` and `create`. Unknown keys are refused.
+
+`candidates curate` checks the whole file before it writes anything, and exits 2 with one line per fault:
+
+1. Every code is in `GET /machine/taxonomy`.
+2. Every title is the title of a staged candidate. A typo is refused with the closest staged title. A neighbour that
+   does not exist yet needs `"create": true`.
+3. The `catalogue_service_id` is a procedure the candidate is mentioned on.
+4. Every excerpt is on the cleaned page text of the procedure. `--no-check-pages` skips this and prints a warning.
+5. No edge points at itself or appears twice.
+
+It posts the mentions first (one `manual:tags` mention per candidate and one `manual:neighbour` mention per created
+neighbour), then the edges. It prints `<title> tags=<n> edges=<n>` for each candidate and a final line with
+`mentions_created`, `mentions_updated`, `edges_created`, `edges_updated`, `edges_skipped`, `unknown_codes` and
+`dry_run`. `--dry-run` makes no write call. A second run updates and creates nothing. The exit code is 1 when the API
+skips an edge or drops a code.
+
+There is no machine delete. To undo a curation, run this as the database owner, in this order:
+
+```sql
+DELETE FROM discovery_candidate_edge WHERE extractor = 'manual';
+DELETE FROM discovery_candidate_mention WHERE extractor = 'manual';
+DELETE FROM discovery_document_candidate c WHERE c.status = 'staged'
+  AND NOT EXISTS (SELECT 1 FROM discovery_candidate_mention m WHERE m.candidate_id = c.id);
+```
 
 ## Environment
 
