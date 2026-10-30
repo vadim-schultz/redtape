@@ -48,6 +48,8 @@ export interface DataTableColumn<
   canSort?: SortKey;
   filter?: FilterCapability<FilterKey>;
   align?: ColumnAlign;
+  /** Upper bound of the column's cells (a size token or CSS length); overflow is clipped. */
+  maxWidth?: string;
   render: (row: Row) => ReactNode;
 }
 
