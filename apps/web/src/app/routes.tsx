@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
 import LoadingShell from "./LoadingShell";
+import { CandidateDetailSkeleton } from "../features/candidates/components/CandidateDetailView";
 import { CandidatesListSkeleton } from "../features/candidates/components/CandidatesListView";
 import { DocumentDetailSkeleton } from "../features/documents/components/DocumentDetailView";
 import { DocumentsListSkeleton } from "../features/documents/components/DocumentsListView";
@@ -17,6 +18,9 @@ const DocumentDetailPage = lazy(
 );
 const CandidatesListPage = lazy(
   () => import("../features/candidates/containers/CandidatesListPage"),
+);
+const CandidateDetailPage = lazy(
+  () => import("../features/candidates/containers/CandidateDetailPage"),
 );
 const LoginPage = lazy(() => import("../features/auth/containers/LoginPage"));
 const SuggestPage = lazy(
@@ -63,6 +67,14 @@ export const routes = [
     element: (
       <Suspense fallback={<CandidatesListSkeleton />}>
         <CandidatesListPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/candidates/:id",
+    element: (
+      <Suspense fallback={<CandidateDetailSkeleton />}>
+        <CandidateDetailPage />
       </Suspense>
     ),
   },

@@ -1,4 +1,4 @@
-import { HStack } from "@chakra-ui/react";
+import { Stack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CompletenessFlags } from "../../types";
@@ -6,6 +6,8 @@ import FlagChip from "./FlagChip";
 
 export interface CompletenessChipsProps {
   flags: CompletenessFlags;
+  /** `vertical` stacks the chips as a checklist; the default is a wrapping row. */
+  orientation?: "horizontal" | "vertical";
 }
 
 const FLAG_LABELS = [
@@ -16,15 +18,29 @@ const FLAG_LABELS = [
   ["has_screenshot", "candidates.flag_screenshot"],
 ] as const satisfies readonly (readonly [keyof CompletenessFlags, string])[];
 
+const LAYOUTS = {
+  horizontal: { direction: "row" },
+  vertical: { direction: "column", align: "flex-start" },
+} as const;
+
 /** The five completeness flags as labelled chips; shared by the list and the item page. */
-export default function CompletenessChips({ flags }: CompletenessChipsProps) {
+export default function CompletenessChips({
+  flags,
+  orientation = "horizontal",
+}: CompletenessChipsProps) {
   const { t } = useLocale();
 
   return (
-    <HStack as="ul" listStyle="none" wrap="wrap" gap={1}>
+    <Stack
+      as="ul"
+      listStyle="none"
+      {...LAYOUTS[orientation]}
+      wrap="wrap"
+      gap={1}
+    >
       {FLAG_LABELS.map(([flag, labelKey]) => (
         <FlagChip key={flag} label={t(labelKey)} present={flags[flag]} />
       ))}
-    </HStack>
+    </Stack>
   );
 }
