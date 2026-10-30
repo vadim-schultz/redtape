@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from discovery_ingest.extract.clean import CleanPage, clean_page
-from discovery_ingest.extract.llm.evaluation.drop_reasons import reason_class
+from discovery_ingest.extract.llm.evaluation.drop_reasons import UnknownDropReason, reason_class
 from discovery_ingest.extract.llm.evaluation.gold import load_gold
+from discovery_ingest.extract.llm.evaluation.results import PageResult, Scores, Usage
+from discovery_ingest.extract.llm.evaluation.scoring import score_page
+from discovery_ingest.extract.llm.evaluation.summary import summarise
+from discovery_ingest.extract.llm.evaluation.targets import MIN_GROUNDED_RATE
 from discovery_ingest.extract.llm.ground import Grounded, ground
 from discovery_ingest.extract.llm.ground_names import NAME_REJECTIONS
+from discovery_ingest.extract.llm.ground_state import DroppedItem
 from discovery_ingest.extract.llm.schema import PageExtraction
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
@@ -121,3 +127,44 @@ def test_every_drop_reason_that_grounding_produces_is_assigned_to_a_class() -> N
     reasons = seen | {reason for reason, _ in NAME_REJECTIONS} | _reasons_in_source()
     assert {"quote", "dependency_quote", "dependency_endpoint", "dependency_duplicate"} <= reasons
     assert {reason: reason_class(reason) for reason in reasons}
+
+
+def _scores(name: str, extraction: PageExtraction | None = None) -> Scores:
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == name)
+    extraction = extraction or _extraction(name)
+    return score_page(gold, extraction, _ground(name, extraction))
+
+
+def _result(name: str, scores: Scores) -> PageResult:
+    return PageResult(name, "ok", "service", 0, False, 0, (), Usage(), scores)
+
+
+def test_on_the_recorded_answers_the_quote_grounded_rate_is_above_the_kept_rate_by_the_guard_drops() -> None:
+    """recorded · 36 raw items, 10 kept, 16 lost to a quote (the kept figure is the old grounded rate), 10 to a guard."""
+    summary = summarise(tuple(_result(name, _scores(name)) for name in sorted(KEPT_AFTER)))
+    assert summary.kept_rate == pytest.approx(10 / 36)
+    assert summary.grounded_rate == pytest.approx(20 / 36)
+    assert summary.grounded_rate < MIN_GROUNDED_RATE
+
+
+def test_a_recorded_answer_with_only_guard_drops_is_fully_quote_grounded() -> None:
+    """recorded · the kept documents plus a data field and a repeat: quote-grounded 1.0, kept below 1.0 (like Qwen on ext-4)."""
+    kept = _ground("aa-ferienbeschaeftigung").documents
+    data_field = kept[0].model_copy(update={"name": "Kundennummer der Person"})
+    extraction = _extraction("aa-ferienbeschaeftigung").model_copy(
+        update={"documents": [*kept, data_field, kept[0]], "dependencies": []}
+    )
+
+    summary = summarise((_result("aa-ferienbeschaeftigung", _scores("aa-ferienbeschaeftigung", extraction)),))
+
+    assert (summary.grounded_rate, summary.kept_rate) == (1.0, len(kept) / (len(kept) + 2))
+
+
+def test_a_scorer_given_an_unassigned_drop_reason_fails_loudly() -> None:
+    """recorded · a drop with a reason outside both classes is refused by the scorer (negative)."""
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == "aa-ferienbeschaeftigung")
+    grounded = _ground("aa-ferienbeschaeftigung")
+    item = grounded.documents[0]
+    diagnostics = replace(grounded.diagnostics, dropped_items=(DroppedItem("invented", item),))
+    with pytest.raises(UnknownDropReason, match="invented"):
+        score_page(gold, _extraction("aa-ferienbeschaeftigung"), replace(grounded, diagnostics=diagnostics))

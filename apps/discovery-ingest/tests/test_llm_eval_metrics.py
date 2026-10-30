@@ -15,8 +15,11 @@ from discovery_ingest.extract.llm.evaluation.metrics import (
     document_counts,
     edge_counts,
     grounded_rate,
+    kept_rate,
     tag_agreement,
 )
+from discovery_ingest.extract.llm.evaluation.results import PageResult, Scores, Usage
+from discovery_ingest.extract.llm.evaluation.summary import summarise
 from discovery_ingest.extract.llm.ground_state import DroppedItem
 from discovery_ingest.extract.llm.schema import DocumentItem
 
@@ -49,12 +52,44 @@ def test_edge_scoring_uses_parent_and_required_slugs() -> None:
     assert edge_counts(predicted, gold) == Counts(correct=1, predicted=3, gold=2)
 
 
-def test_grounded_rate_is_surviving_items_over_raw_items() -> None:
-    """grounded_rate · three of four raw items surviving is 0.75; no raw items is a full rate; more survivors is refused."""
-    assert grounded_rate(raw_items=4, kept_items=3) == 0.75
-    assert grounded_rate(raw_items=0, kept_items=0) == 1.0
+def test_grounded_rate_is_the_share_of_raw_items_whose_quote_is_on_the_page() -> None:
+    """grounded_rate · one quote failure in four raw items is 0.75; no raw items is a full rate; more failures than items is refused."""
+    assert grounded_rate(raw_items=4, quote_failed_items=1) == 0.75
+    assert grounded_rate(raw_items=0, quote_failed_items=0) == 1.0
+    with pytest.raises(ValueError, match="more quote failures than raw"):
+        grounded_rate(raw_items=1, quote_failed_items=2)
+
+
+def test_kept_rate_is_surviving_items_over_raw_items() -> None:
+    """kept_rate · three of four raw items surviving is 0.75; no raw items is a full rate; more survivors is refused."""
+    assert kept_rate(raw_items=4, kept_items=3) == 0.75
+    assert kept_rate(raw_items=0, kept_items=0) == 1.0
     with pytest.raises(ValueError, match="more items kept than raw"):
-        grounded_rate(raw_items=1, kept_items=2)
+        kept_rate(raw_items=1, kept_items=2)
+
+
+def _result(raw: int, kept: int, quote_failed: int) -> PageResult:
+    scores = Scores(Counts(0, 0, 0), Counts(0, 0, 0), raw_items=raw, kept_items=kept, quote_failed_items=quote_failed)
+    return PageResult("page", "ok", "service", 100, False, 0, (), Usage(), scores)
+
+
+def test_a_page_with_only_guard_drops_is_fully_quote_grounded_but_not_fully_kept() -> None:
+    """summarise · four items, three kept, none with a quote failure: grounded 1.0, kept 0.75."""
+    summary = summarise((_result(raw=4, kept=3, quote_failed=0),))
+    assert (summary.grounded_rate, summary.kept_rate) == (1.0, 0.75)
+
+
+def test_a_page_with_quote_drops_lowers_both_rates() -> None:
+    """summarise · two quote failures among four items, two kept: grounded 0.5 and kept 0.5; pages pool by counts."""
+    summary = summarise((_result(raw=4, kept=2, quote_failed=2), _result(raw=4, kept=4, quote_failed=0)))
+    assert (summary.grounded_rate, summary.kept_rate) == (0.75, 0.75)
+    assert summarise((_result(raw=4, kept=2, quote_failed=2),)).grounded_rate == 0.5
+
+
+def test_no_items_at_all_is_a_full_rate_for_both() -> None:
+    """summarise · a run where the model said nothing has grounded and kept rates of 1.0."""
+    summary = summarise((_result(raw=0, kept=0, quote_failed=0),))
+    assert (summary.grounded_rate, summary.kept_rate) == (1.0, 1.0)
 
 
 def test_tag_agreement_is_the_mean_jaccard_and_treats_empty_against_empty_as_agreement() -> None:
