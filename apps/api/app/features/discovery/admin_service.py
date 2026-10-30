@@ -69,12 +69,12 @@ class DiscoveryAdminService:
         return DiscoveryTaskListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def list_catalogue(self, catalogue_filter: CatalogueFilter, page: Page) -> CatalogueListResponse:
-        """Return one page of catalogue rows matching ``catalogue_filter`` with summary chips."""
+        """Return one page of catalogue rows matching ``catalogue_filter`` with the summary chips of the whole catalogue."""
         total = self._repo.count_catalogue(catalogue_filter)
         rows = self._repo.list_catalogue_page(offset=page.offset, limit=page.limit, catalogue_filter=catalogue_filter)
         items = [CatalogueServiceRead.from_row(row) for row in rows]
         return CatalogueListResponse(
-            items=items, summary=self._summary(catalogue_filter), total=total, offset=page.offset, limit=page.limit
+            items=items, summary=self._summary(), total=total, offset=page.offset, limit=page.limit
         )
 
     def coverage(self) -> DiscoveryCoverageResponse:
@@ -125,6 +125,7 @@ class DiscoveryAdminService:
             events=[event_dict(e) for e in self._repo.list_catalogue_events(catalogue_id)],
         )
 
-    def _summary(self, catalogue_filter: CatalogueFilter) -> CatalogueSummaryChips:
-        total, by_source, by_stage = self._repo.catalogue_summary(catalogue_filter)
+    def _summary(self) -> CatalogueSummaryChips:
+        """Return the chips of the whole catalogue, so filter chips stay switchable while a filter is active."""
+        total, by_source, by_stage = self._repo.catalogue_summary()
         return CatalogueSummaryChips(total=total, by_source=by_source, by_pipeline_stage=by_stage)
