@@ -27,7 +27,7 @@ def register_eval_parser(llm_sub: argparse._SubParsersAction[argparse.ArgumentPa
         "--neuron-budget",
         type=float,
         default=DEFAULT_NEURON_BUDGET,
-        help=f"Stop before a page that would pass this many neurons (default {DEFAULT_NEURON_BUDGET:g})",
+        help=f"Stop once this many neurons are used; the last call may pass it by its own cost (default {DEFAULT_NEURON_BUDGET:g})",
     )
     parser.add_argument("--gold-dir", default=str(DEFAULT_GOLD_DIR), help="Directory of the gold pages and labels")
     parser.add_argument("--cache-dir", default=str(DEFAULT_CACHE_DIR), help="Directory of cached model answers")

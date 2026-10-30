@@ -485,7 +485,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--neuron-budget",
         type=float,
         default=None,
-        help="Workers AI neurons this run may spend on llm_extract (positive; required for that kind, no default)",
+        help="Workers AI neurons this run may spend on llm_extract: it stops once the budget is reached, and the last call may pass it by its own cost (positive; required for that kind, no default)",
     )
     worker_drain.add_argument(
         "--kinds",
