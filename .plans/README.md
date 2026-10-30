@@ -255,7 +255,7 @@ admin catalogue and coverage pages. Eleven chapters and two live runs; loop bran
 | [run-ledger.md](candidate-view/run-ledger.md) | Chapter outcomes and live-run record |
 | [chapters/](candidate-view/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. First: [chapters/01-capture-requeue.md](candidate-view/chapters/01-capture-requeue.md).
+Status: planned — implementation not started. First: [chapters/01-capture-requeue.md](candidate-view/chapters/01-capture-requeue.md).
 CoS orchestration: [`docs/operations/loops/candidate-view.md`](../docs/operations/loops/candidate-view.md).
 
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
