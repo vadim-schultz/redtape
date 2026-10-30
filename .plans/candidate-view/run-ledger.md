@@ -18,7 +18,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 5. Web candidate list | `feat/candidate-view-web-list` | [#268](https://github.com/vadim-schultz/redtape/pull/268) | partial: web narrow + full `npm test` (660) + lint/format/typecheck/build pass; api 1180 and ingest 1181 pass; `./ci.sh` web stage hit the known SuggestPage/SuggestionForm load timeouts twice (passed alone), so no clean end-to-end run | not run (Actions billing, D17) | yes, 6f5a51d | none; the release gate needs one clean `./ci.sh` |
 | 6. Web candidate detail | `feat/candidate-view-web-detail` | [#269](https://github.com/vadim-schultz/redtape/pull/269) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web green, ingest 1181) | not run (Actions billing, D17) | yes, 607f945 | none |
 | 7. Flow diagram | `feat/candidate-view-flow-diagram` | [#270](https://github.com/vadim-schultz/redtape/pull/270) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web 722, ingest 1181) | not run (Actions billing, D17) | yes, bfecff1 | none |
-| 8. Admin documents table | `feat/candidate-view-admin-table` | | | | | |
+| 8. Admin documents table | `feat/candidate-view-admin-table` | [#271](https://github.com/vadim-schultz/redtape/pull/271) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1181, web green, ingest green) | not run (Actions billing, D17) | yes, 6fa692f | none; gaps recorded below |
 | 9. Catalogue vs coverage | `feat/candidate-view-catalogue-coverage` | | | | | |
 | 10. Docs and release | `docs/candidate-view-release` | | | | | |
 
@@ -27,6 +27,11 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 **LR1, screenshots.** _(chief of staff fills: run IDs, screenshots before and after, pending and missing counts, browser seconds, bytes, one-image verdict, next date to repeat)_
 
 **LR2, showcase candidates.** _(chief of staff fills: ranks and flags before and after, the chosen set with each candidate's role and `/candidates/<id>` path, codes and edge counts, the `curate` report line, the docs PR, capture result, one-image verdict, candidates still missing a screenshot)_
+
+## Chapter notes
+
+- **Chapter 8 gaps.** No Jurisdiction column filter (the API takes a jurisdiction UUID, so free text is unusable; the column sorts only). No Source column (the list item has no source field), so `source` stays a select in the header toolbar. `CompletenessChips` is imported from `features/candidates` through its barrel, which crosses the feature boundary in `apps/web/CLAUDE.md`; a later move to `components/` would clean it up. `min_mentions_any` and `role_all` stay in the API because `test_crawlers_docs_structure.py` pins them, though the web no longer uses them.
+- **Chapter 4 follow-up.** `_accepted()` and `CompleteChoice` are duplicated once between the admin and public candidate modules; point both at the shared versions when a third consumer appears.
 
 ## Release checklist
 
@@ -39,4 +44,4 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11, 3, 4, 5, 6 and 7 merged and verified, LR1 blocked on the owner's API deploy.
+**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11, 3, 4, 5, 6, 7 and 8 merged and verified, LR1 blocked on the owner's API deploy.
