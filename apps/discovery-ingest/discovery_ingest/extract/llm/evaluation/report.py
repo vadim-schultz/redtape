@@ -9,6 +9,7 @@ from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.evaluation.summary import Summary
 from discovery_ingest.extract.llm.evaluation.targets import (
     DAILY_NEURON_CAP,
+    METRIC_VERSION,
     MIN_GROUNDED_RATE,
     MIN_PRECISION,
     MIN_RECALL,
@@ -40,7 +41,8 @@ def _metric_rows(summary: Summary) -> Iterator[str]:
     yield f"| recall | {_verdict(summary.documents.recall, MIN_RECALL)} |"
     yield f"| edge precision | {summary.edges.precision:.2f} | |"
     yield f"| edge recall | {summary.edges.recall:.2f} | |"
-    yield f"| grounded rate | {_verdict(summary.grounded_rate, MIN_GROUNDED_RATE)} |"
+    yield f"| quote-grounded rate | {_verdict(summary.grounded_rate, MIN_GROUNDED_RATE)} |"
+    yield f"| kept rate | {summary.kept_rate:.2f} | |"
     yield f"| tag agreement | {_verdict(summary.tag_agreement, MIN_TAG_AGREEMENT)} |"
     yield f"| cleaner recall | {summary.cleaner_recall:.2f} | |"
     yield f"| page kind accuracy | {summary.page_kind_accuracy:.2f} | |"
@@ -52,7 +54,7 @@ def _metric_rows(summary: Summary) -> Iterator[str]:
 def table_lines(run: EvalRun, summary: Summary, setup: EvalSetup) -> list[str]:
     """Return the table: one row per page, then each metric with its starting target."""
     lines = [
-        f"llm eval model={setup.model} prompt={setup.prompt_version} taxonomy={setup.taxonomy.digest()}",
+        f"llm eval model={setup.model} prompt={setup.prompt_version} taxonomy={setup.taxonomy.digest()} {METRIC_VERSION}",
         f"pages run {len(run.pages)} of {run.total_pages}, failed {summary.failed_pages}",
         "| page | kind | docs correct/predicted/gold | items kept/raw | tokens in/out | neurons | status |",
         *map(_page_row, run.pages),
