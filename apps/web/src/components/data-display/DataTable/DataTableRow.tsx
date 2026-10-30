@@ -28,7 +28,13 @@ export default function DataTableRow<
       {...navigation}
     >
       {columns.map((column) => (
-        <Table.Cell key={column.key} textStyle="body" textAlign={column.align}>
+        <Table.Cell
+          key={column.key}
+          textStyle="body"
+          textAlign={column.align}
+          maxWidth={column.maxWidth}
+          overflow={column.maxWidth ? "hidden" : undefined}
+        >
           {column.render(row)}
         </Table.Cell>
       ))}

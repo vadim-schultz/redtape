@@ -206,7 +206,13 @@
       "count_other": "{count} documents",
       "role_issued": "Issued",
       "table_label": "Documents",
-      "clear_filters": "Clear filters"
+      "clear_filters": "Clear filters",
+      "col_readiness": "Readiness",
+      "ready_filter": "Ready",
+      "filter_status": "Document status",
+      "filter_complete": "Completeness",
+      "complete_yes": "Complete",
+      "complete_no": "Incomplete"
     },
     "document": {
       "jurisdiction": "Jurisdiction",

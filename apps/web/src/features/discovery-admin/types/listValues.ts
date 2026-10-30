@@ -1,4 +1,6 @@
 import type {
+  DiscoveryCandidateStatus,
+  DiscoveryMentionRole,
   DiscoverySource,
   DiscoveryTaskKind,
   DiscoveryTaskStatus,
@@ -31,3 +33,16 @@ export const TASK_KINDS = [
   "capture_screenshot",
   "llm_extract",
 ] as const satisfies readonly DiscoveryTaskKind[];
+
+/** Candidate statuses in lifecycle order. */
+export const CANDIDATE_STATUSES = [
+  "staged",
+  "emitted",
+] as const satisfies readonly DiscoveryCandidateStatus[];
+
+/** Roles a mention can play, in the order the documents list offers them. */
+export const MENTION_ROLES = [
+  "required",
+  "form",
+  "issued",
+] as const satisfies readonly DiscoveryMentionRole[];

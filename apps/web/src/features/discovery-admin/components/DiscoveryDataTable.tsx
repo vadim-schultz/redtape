@@ -1,4 +1,5 @@
 import { Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
 
 import { DataTable } from "../../../components/data-display/DataTable";
@@ -39,8 +40,11 @@ export interface DiscoveryDataTableProps<
   page: PagedRows<Row> | undefined;
   status: QueryStatus;
   onOffsetChange: (offset: number) => void;
-  /** i18n namespace of the count and empty copy, and the icon of the empty state. */
-  copy: { namespace: string; icon: IconType };
+  /**
+   * i18n namespace of the count and empty copy, the icon of the empty state,
+   * and an optional toolbar shown in the card header.
+   */
+  copy: { namespace: string; icon: IconType; toolbar?: ReactNode };
 }
 
 function ResultCount({
@@ -74,11 +78,12 @@ export default function DiscoveryDataTable<
   copy,
 }: DiscoveryDataTableProps<Row, SortKey, FilterKey>) {
   const { label, columns, query, getKey, getHref } = table;
+  const { toolbar, ...emptyCopy } = copy;
   const items = page?.items ?? [];
   const counting = items.length > 0;
 
   return (
-    <SectionCard>
+    <SectionCard toolbar={toolbar}>
       {counting && page ? (
         <ResultCount namespace={copy.namespace} total={page.total} />
       ) : null}
@@ -89,7 +94,7 @@ export default function DiscoveryDataTable<
         query={query}
         states={{
           status: loadingUntilData(status, page !== undefined),
-          empty: <NamespacedEmptyState {...copy} />,
+          empty: <NamespacedEmptyState {...emptyCopy} />,
         }}
         page={page && { ...page, onOffsetChange }}
       />

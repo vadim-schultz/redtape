@@ -206,7 +206,13 @@
       "count_other": "{count} Dokumente",
       "role_issued": "Ausgestellt",
       "table_label": "Dokumente",
-      "clear_filters": "Filter zurücksetzen"
+      "clear_filters": "Filter zurücksetzen",
+      "col_readiness": "Bereitschaft",
+      "ready_filter": "Bereit",
+      "filter_status": "Dokumentstatus",
+      "filter_complete": "Vollständigkeit",
+      "complete_yes": "Vollständig",
+      "complete_no": "Unvollständig"
     },
     "document": {
       "jurisdiction": "Zuständigkeitsgebiet",

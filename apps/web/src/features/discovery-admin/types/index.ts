@@ -1,3 +1,5 @@
+import type { CompletenessFlags } from "../../candidates/types";
+
 /** Discovery task queue row from the admin API. */
 
 export type DiscoveryTaskStatus =
@@ -175,10 +177,18 @@ export type DiscoveryMentionRole = "required" | "form" | "issued";
 export type DiscoveryCandidateStatus = "staged" | "emitted";
 
 /** Public sort keys of the candidate list; the table maps its columns to these. */
-export type CandidateSortKey = "mentions" | "title" | "created_at";
+export type CandidateSortKey =
+  | "mentions"
+  | "title"
+  | "created_at"
+  | "jurisdiction"
+  | "status"
+  | "roles"
+  | "completeness";
 
 /** Filter keys the candidate list accepts. */
-export type CandidateFilterKey = "status" | "role" | "source" | "min_mentions";
+export type CandidateFilterKey =
+  "status" | "role" | "source" | "min_mentions" | "complete";
 
 /** A document candidate as the detail route returns it. */
 export type DiscoveryCandidateRecord = {
@@ -194,10 +204,13 @@ export type DiscoveryCandidateRecord = {
   updated_at: string;
 };
 
-/** One listed document candidate with its mention statistics. */
+/** One listed document candidate with its mention statistics and completeness flags. */
 export type DiscoveryCandidate = DiscoveryCandidateRecord & {
   roles: DiscoveryMentionRole[];
   jurisdiction_name_i18n: Record<string, string>;
+  completeness: number;
+  complete: boolean;
+  flags: CompletenessFlags;
 };
 
 export type DiscoveryCandidateListResponse = {

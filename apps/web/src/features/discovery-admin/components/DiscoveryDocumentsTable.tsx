@@ -8,6 +8,7 @@ import type { DiscoveryCandidateListResponse } from "../types";
 import { candidateColumns } from "./columns/candidateColumns";
 import { candidateHref, DEFAULT_CANDIDATE_SORT } from "./columns/candidateRows";
 import DiscoveryDataTable from "./DiscoveryDataTable";
+import DiscoveryDocumentFilters from "./DiscoveryDocumentFilters";
 
 const NAMESPACE = "discovery_admin.documents";
 const COPY = { namespace: NAMESPACE, icon: LuFileText };
@@ -18,7 +19,7 @@ export interface DiscoveryDocumentsTableProps {
   list: CandidateList;
 }
 
-/** Candidate rows in the shared table: header sort, response total, server paging and a link to each document. */
+/** Candidate rows in the shared table: toolbar, header sort and filters, response total, server paging and a link to each document. */
 export default function DiscoveryDocumentsTable({
   page,
   status,
@@ -38,7 +39,7 @@ export default function DiscoveryDocumentsTable({
       page={page}
       status={status}
       onOffsetChange={list.setOffset}
-      copy={COPY}
+      copy={{ ...COPY, toolbar: <DiscoveryDocumentFilters list={list} /> }}
     />
   );
 }
