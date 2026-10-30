@@ -186,8 +186,10 @@
     "documents": {
       "filter_search": "Search titles",
       "filter_min_mentions": "Minimum mentions",
+      "min_mentions_any": "Any mentions",
       "min_mentions_option": "At least {count}",
       "filter_role": "Role",
+      "role_all": "All roles",
       "role_required": "Required",
       "role_form": "Form",
       "filter_source": "Source",

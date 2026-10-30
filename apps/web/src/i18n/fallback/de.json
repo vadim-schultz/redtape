@@ -186,8 +186,10 @@
     "documents": {
       "filter_search": "Titel durchsuchen",
       "filter_min_mentions": "Mindestanzahl Erwähnungen",
+      "min_mentions_any": "Beliebig viele Erwähnungen",
       "min_mentions_option": "Mindestens {count}",
       "filter_role": "Rolle",
+      "role_all": "Alle Rollen",
       "role_required": "Erforderlich",
       "role_form": "Formular",
       "filter_source": "Quelle",
