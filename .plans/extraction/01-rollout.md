@@ -11,7 +11,7 @@ isProject: false
 **Loop branch:** `feat/extraction`
 **Release branch:** `main`
 
-**Where to resume (2026-10-30).** E1 to E18 are merged and released. The loop branch `feat/extraction` is 48 commits behind `main` (the release PRs and the web-gui work went to `main`): fast-forward it first (`git merge --ff-only origin/main`, push). Then run **E19**, then **E20**, then the live runs in [02-live-runs.md](02-live-runs.md) (chief of staff, not an implementer), then the second release PR. The ledger hand-off lists the same steps.
+**Where to resume (2026-10-30).** E1 to E18 are merged and released; E19 and E20 are merged into `feat/extraction` (not yet released). Next: the live runs in [02-live-runs.md](02-live-runs.md) (chief of staff, not an implementer), then the second release PR. The ledger hand-off lists the same steps.
 
 **Prerequisites.** Not on `main` yet, tracked in the [crawlers ledger](../crawlers/run-ledger.md): chapters 7 (HTML parser, `MentionItem`, noise filter), 11 (emit), 14 (artifacts), 15 (Cloudflare render, stop reasons, release), 17 (decode, `after_snapshot`), 19 (screenshot enqueue), 20 (document detail page) and **23 (budget ledger)**. The extraction chapters list exactly which of these each needs, so the first ones (E1 to E3) can start as soon as crawlers chapters 7 and 23 are merged, and none of them needs live infrastructure.
 
@@ -126,8 +126,8 @@ Status is `merged` into `feat/extraction`; the proof (verification, refactor out
 | E16 | Documents, not data fields: prompt rule `ext-4` (executes after E7) | worker | paired tests + CI | [16](chapters/16-documents-not-data-fields.md) | merged |
 | E17 | Price rows for Mistral Small 3.1 and Llama 4 Scout (executes after E16) | worker | paired tests + CI | [17](chapters/17-price-rows-for-candidate-models.md) | merged |
 | E18 | Non-documents and tag restraint: prompt `ext-5` and guards (executes after E8) | worker | paired tests + CI | [18](chapters/18-non-documents-and-tag-restraint.md) | merged |
-| E19 | Neuron overshoot: a day reaches its cap, overshoot at most one call (executes after E9) | worker + docs | paired tests + CI | [19](chapters/19-neuron-overshoot.md) | planned |
-| E20 | Quote-grounded rate: quote-grounded and kept rate in the eval (executes after E19) | worker + docs | paired tests + recorded answers replay + CI | [20](chapters/20-quote-grounded-rate.md) | planned |
+| E19 | Neuron overshoot: a day reaches its cap, overshoot at most one call (executes after E9) | worker + docs | paired tests + CI | [19](chapters/19-neuron-overshoot.md) | merged |
+| E20 | Quote-grounded rate: quote-grounded and kept rate in the eval (executes after E19) | worker + docs | paired tests + recorded answers replay + CI | [20](chapters/20-quote-grounded-rate.md) | merged |
 
 ## Live gates (chief of staff)
 
