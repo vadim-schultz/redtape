@@ -173,7 +173,7 @@ CANDIDATE_VIEW_HEADINGS = ("## Release smoke checks", "## Deploy order")
 # (doc, needle) pairs: each doc must carry the needle once the public candidate view is documented.
 CANDIDATE_VIEW_DOC_NEEDLES = {
     "discovery-layer.md links the operator doc": (RUNBOOK, "candidate-view.md"),
-    "discovery-layer.md lists the public routes": (RUNBOOK, "/api/v1/candidates"),
+    "discovery-layer.md lists the public routes": (RUNBOOK, "| `/candidates/<candidate-id>` |"),
     "admin-tables.md notes the header toolbar": (REPO_ROOT / "docs/operations/admin-tables.md", "toolbar"),
     "extraction checklist links the requeue command": (
         REPO_ROOT / "docs/operations/extraction-operator-checklist.md",

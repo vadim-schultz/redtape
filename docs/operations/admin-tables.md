@@ -25,6 +25,15 @@ in `apps/api/app/shared/list_query/` and the typed specs in `apps/web/src/servic
 - The URL is the canonical state of the three paged admin lists, so a link restores the same view.
 - Mentions, edges, and stored pages are one record's complete sets from unpaged, fixed-order
   endpoints; they declare no sort or filter and are not paged. Coverage tables are static summaries.
+- The toolbar sits in the table header, not above the table: search and "clear filters" are a header
+  slot of `DiscoveryDataTable`, and active filters appear as removable chips. The documents table
+  also has a Ready quick filter (`filter[complete]=yes`, the five completeness flags of the
+  [public candidate view](candidate-view.md)).
+- A cell that holds a long title is bounded: `DataTableColumn.maxWidth` clips it with an ellipsis,
+  and a tooltip shows the whole text on hover and on keyboard focus. The documents Title column
+  and the tasks target column use it.
+- The catalogue list sorts by `title` and filters by pipeline `stage`. Its summary chips (total,
+  source, stage) filter the table and count the whole catalogue, not the filtered rows.
 - Public `/documents` and `/suggestions` are not part of this contract. They show at most the first
   20 rows by design (decision D11 in the plan).
 
