@@ -148,15 +148,12 @@ class DiscoveryMachineClient:
         response = self._call("POST", "/candidates/edges", json=body.model_dump(mode="json"))
         return EdgesResponse.model_validate(response.json())
 
-    def list_staged_candidates(self, *, min_mentions: int, limit: int) -> CandidatePage:
-        """Return up to ``limit`` staged candidates with at least ``min_mentions`` mentions, most mentioned first."""
-        url = f"{self._base_url}/api/v1/discovery/machine/candidates/"
-        params: dict[str, str | int] = {"status": "staged", "min_mentions": min_mentions, "limit": limit}
-        with httpx.Client(trust_env=True, timeout=60.0) as client:
-            response = client.get(url, params=params, headers={"X-API-Key": self._api_key})
-        if response.status_code >= 400:
-            raise DiscoveryMachineApiError(response.status_code, response.text)
-        return CandidatePage.model_validate(response.json())
+    def list_staged_candidates(self, *, min_mentions: int, limit: int, offset: int = 0) -> CandidatePage:
+        """Return up to ``limit`` staged candidates from ``offset`` with at least ``min_mentions`` mentions, most mentioned first."""
+        params: dict[str, str | int | list[str]] = {"status": "staged", "min_mentions": min_mentions, "limit": limit}
+        if offset:
+            params["offset"] = offset
+        return CandidatePage.model_validate(self._call("GET", "/candidates/", params=params).json())
 
     def preview_candidate_emit(self, candidate_id: UUID) -> EmitPreview:
         """Return what emitting ``candidate_id`` would create; the route never writes."""

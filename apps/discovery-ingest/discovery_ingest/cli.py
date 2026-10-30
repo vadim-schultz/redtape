@@ -16,9 +16,11 @@ from discovery_ingest.artifacts_cli import artifacts_download, artifacts_list, r
 from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
 from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, emit_report, preview_report
+from discovery_ingest.candidates_cli import candidates_page, register_candidates_aids
 from discovery_ingest.capture_requeue import capture_requeue, register_capture_parser
 from discovery_ingest.catalogue_export import load_catalogue_row
 from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
+from discovery_ingest.curation_command import candidates_curate
 from discovery_ingest.enrich import (
     fim_id_from_catalogue,
     fim_steckbrief_claim_requests,
@@ -370,6 +372,8 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("leika", "enrich"): _leika_enrich,
     ("worker", "drain"): _worker_drain,
     ("candidates", "emit"): _candidates_emit,
+    ("candidates", "page"): candidates_page,
+    ("candidates", "curate"): candidates_curate,
     ("budget", "show"): budget_show,
     ("budget", "report-minutes"): budget_report_minutes,
     ("browser", "probe"): browser_probe,
@@ -510,6 +514,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=f"Maximum candidates to emit (1-50, default {DEFAULT_EMIT_LIMIT})",
     )
     emit.add_argument("--dry-run", action="store_true", help="Preview only; nothing is written")
+    register_candidates_aids(candidates_sub)
     register_budget_parser(sub)
     register_browser_parser(sub)
     register_llm_parser(sub)
