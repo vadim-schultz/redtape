@@ -15,6 +15,9 @@ export const DISCOVERY_SOURCES = [
   "manual",
 ] as const satisfies readonly DiscoverySource[];
 
+/** Catalogue pipeline stages in order; mirrors the API enum. */
+export const PIPELINE_STAGES = ["T0", "T1", "T2", "T3", "T4"] as const;
+
 /** Task statuses in lifecycle order. */
 export const TASK_STATUSES = [
   "pending",

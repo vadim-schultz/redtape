@@ -63,10 +63,10 @@ export type CatalogueServiceSummary = {
 };
 
 /** Public sort keys of the catalogue index. */
-export type CatalogueSortKey = "external_id" | "source" | "stage";
+export type CatalogueSortKey = "external_id" | "title" | "source" | "stage";
 
 /** Filter keys the catalogue index accepts. */
-export type CatalogueFilterKey = "source";
+export type CatalogueFilterKey = "source" | "stage";
 
 export type EmitPreviewItem = {
   claim_id: string;

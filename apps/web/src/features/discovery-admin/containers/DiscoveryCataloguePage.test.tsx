@@ -1,3 +1,4 @@
+import { focusManager } from "@tanstack/react-query";
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -120,9 +121,7 @@ it("DiscoveryCataloguePage · renders its own summary and not the coverage cards
 
   renderCataloguePage();
 
-  expect(
-    await screen.findByRole("table", { name: "Catalogue services" }),
-  ).toHaveTextContent("service-1");
+  await screen.findByText("service-1");
   for (const title of COVERAGE_CARDS) {
     expect(screen.queryByRole("table", { name: title })).toBeNull();
   }
@@ -138,7 +137,7 @@ it("DiscoveryCataloguePage · does not request coverage", async () => {
   });
 
   renderCataloguePage();
-  await screen.findByRole("table", { name: "Catalogue services" });
+  await screen.findByText("service-1");
 
   expect(coverageCalls(fetchMock)).toHaveLength(0);
 });
@@ -182,9 +181,8 @@ it("DiscoveryCataloguePage · keeps its existing rows inside the section shell",
 
   renderCataloguePage();
 
-  const table = await screen.findByRole("table", {
-    name: "Catalogue services",
-  });
+  await screen.findByText("service-1");
+  const table = screen.getByRole("table", { name: "Catalogue services" });
   const shell = table.closest("[data-section-card]");
 
   expect(shell).not.toBeNull();
@@ -205,7 +203,7 @@ it("DiscoveryCataloguePage · a failed catalogue query keeps search and filters 
     name: "Catalogue services",
   });
   expect(
-    within(table).getByRole("button", { name: "Try again" }),
+    await within(table).findByRole("button", { name: "Try again" }),
   ).toBeVisible();
   expect(within(table).queryByRole("link")).not.toBeInTheDocument();
   expect(
@@ -363,13 +361,16 @@ it("DiscoveryCataloguePage · a failed refetch keeps the previous rows and the c
         ? new Response(JSON.stringify(catalogueResponse))
         : new Response("", { status: 500 }),
   });
-  const { user } = renderCataloguePage();
+  renderCataloguePage();
   await screen.findByText("service-1");
 
-  await user.click(screen.getByRole("button", { name: "govdata 1" }));
+  focusManager.setFocused(false);
+  focusManager.setFocused(true);
 
+  await waitFor(() => expect(calls).toBeGreaterThan(1));
   expect(
     await screen.findByRole("button", { name: "Try again" }),
   ).toBeVisible();
   expect(screen.getByText("service-1")).toBeVisible();
+  expect(screen.getByRole("button", { name: "govdata 1" })).toBeVisible();
 });

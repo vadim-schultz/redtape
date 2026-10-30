@@ -11,14 +11,8 @@ const session = { accessToken: "t", userId: "u", email: "a@example.com" };
 const catalogue = { items: [{ id: "c1" }], total: 1, offset: 0, limit: 50 };
 
 function StateProbe() {
-  const state = useCatalogueState(QUERY);
-  if (state.kind !== "ready") {
-    return <p>{`kind:${state.kind}`}</p>;
-  }
-  const { page, status } = state.catalogue;
-  return (
-    <p>{`ready rows:${page?.items.length ?? -1} error:${status.isError}`}</p>
-  );
+  const { page, status } = useCatalogueState(QUERY);
+  return <p>{`rows:${page?.items.length ?? -1} error:${status.isError}`}</p>;
 }
 
 function stub(catalogueRes: () => Response) {
@@ -41,32 +35,28 @@ function renderProbe() {
   });
 }
 
-it("useCatalogueState · is ready with the rows of the one catalogue query", async () => {
+it("useCatalogueState · carries the rows of the one catalogue query", async () => {
   stub(() => new Response(JSON.stringify(catalogue)));
   renderProbe();
-  expect(
-    await screen.findByText("ready rows:1 error:false"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("rows:1 error:false")).toBeInTheDocument();
 });
 
-it("useCatalogueState · is loading while the query is pending", () => {
+it("useCatalogueState · has no rows and no error while the query is pending", () => {
   stub(() => new Response());
   renderProbe();
-  expect(screen.getByText("kind:loading")).toBeInTheDocument();
+  expect(screen.getByText("rows:-1 error:false")).toBeInTheDocument();
 });
 
-it("useCatalogueState · stays ready without rows and flags the error when the query fails", async () => {
+it("useCatalogueState · has no rows and flags the error when the query fails", async () => {
   stub(() => new Response("", { status: 500 }));
   renderProbe();
-  expect(
-    await screen.findByText("ready rows:-1 error:true"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("rows:-1 error:true")).toBeInTheDocument();
 });
 
 it("useCatalogueState · never asks for coverage", async () => {
   stub(() => new Response(JSON.stringify(catalogue)));
   renderProbe();
-  await screen.findByText("ready rows:1 error:false");
+  await screen.findByText("rows:1 error:false");
 
   const paths = vi
     .mocked(fetch)

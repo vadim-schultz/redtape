@@ -4,7 +4,7 @@ import {
   type ListQueryState,
 } from "../../../services/listQuery";
 import type { CatalogueFilterKey, CatalogueSortKey } from "../types";
-import { DISCOVERY_SOURCES } from "../types/listValues";
+import { DISCOVERY_SOURCES, PIPELINE_STAGES } from "../types/listValues";
 
 export type { CatalogueFilterKey, CatalogueSortKey };
 export type CatalogueListQuery = ListQueryState<
@@ -14,6 +14,7 @@ export type CatalogueListQuery = ListQueryState<
 
 const SORT_KEYS = [
   "external_id",
+  "title",
   "source",
   "stage",
 ] as const satisfies readonly CatalogueSortKey[];
@@ -24,7 +25,10 @@ export const CATALOGUE_LIST_SPEC: ListQuerySpec<
   CatalogueFilterKey
 > = {
   sortKeys: SORT_KEYS,
-  filters: { source: oneOfFilter(DISCOVERY_SOURCES) },
+  filters: {
+    source: oneOfFilter(DISCOVERY_SOURCES),
+    stage: oneOfFilter(PIPELINE_STAGES),
+  },
   defaultLimit: 20,
   maxLimit: 100,
 };
