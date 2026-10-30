@@ -12,7 +12,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | | | | | needs the API deployed (chapter 1); continuing with chapters that need no screenshots |
 | 2. Completeness read model | `feat/candidate-view-completeness` | [#264](https://github.com/vadim-schultz/redtape/pull/264) | pass (`./ci.sh` on scratch DB: api 1113, ingest 1156, web green on rerun after 2 unrelated timeouts) | not run (Actions billing, D17) | yes, ba38f55 | none |
 | 11. Manual curation tool | `feat/candidate-view-curation-tool` | [#265](https://github.com/vadim-schultz/redtape/pull/265) | pass (`./ci.sh` on scratch DB: api 1113, web 627, ingest 1181) | not run (Actions billing, D17) | yes, 3c9b7fd | none |
-| 3. Public candidate API | `feat/candidate-view-public-api` | | | | | |
+| 3. Public candidate API | `feat/candidate-view-public-api` | [#266](https://github.com/vadim-schultz/redtape/pull/266) | pass (`./ci.sh` on scratch DB: api 1150, web 627, ingest 1181; one known flaky key-prefix test passed on rerun) | not run (Actions billing, D17) | yes, 0591cb7 | none |
 | LR2. Showcase curation ([02-live-runs.md](02-live-runs.md#lr2--showcase-curation)) | docs PR `docs/candidate-view-showcase` | | | | | needs the API deployed (chapters 2, 3, 11) and LR1 |
 | 4. Admin list contract | `feat/candidate-view-admin-list-contract` | | | | | |
 | 5. Web candidate list | `feat/candidate-view-web-list` | | | | | |
@@ -39,4 +39,4 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2 and 11 merged and verified, LR1 blocked on the owner's API deploy.
+**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11 and 3 merged and verified, LR1 blocked on the owner's API deploy.
