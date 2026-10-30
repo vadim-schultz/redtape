@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "curator": "chief-of-staff 2026-10-30",
+  "candidates": [
+    {
+      "candidate_id": "2cabe381-6b75-49b1-ae31-c5e1668fe024",
+      "catalogue_service_id": "8360c8b6-0a7a-4091-a9d5-6153f0e7985a",
+      "title_de": "Antrag auf Leistungen zur Teilhabe",
+      "domain_codes": [
+        "work-employment"
+      ],
+      "situation_codes": [
+        "illness-care"
+      ],
+      "tag_note": "Antrag der Bundesagentur für Arbeit auf Leistungen zur Teilhabe am Arbeitsleben für gesundheitlich beeinträchtigte Menschen.",
+      "requires": [
+        {
+          "title_de": "Lebenslauf",
+          "excerpt": "für Antragstellende mit Berufserfahrung: Lebenslauf",
+          "condition": "für Antragstellende mit Berufserfahrung",
+          "is_optional": false
+        },
+        {
+          "title_de": "Nachweis über die Antragstellung durch die Vertretung",
+          "excerpt": "bei Vertretung: Nachweis über die Antragstellung durch die Vertretung",
+          "condition": "bei Vertretung",
+          "is_optional": false
+        }
+      ],
+      "required_by": []
+    },
+    {
+      "candidate_id": "ee051d87-5cac-4884-8469-cd274d61a267",
+      "catalogue_service_id": "8360c8b6-0a7a-4091-a9d5-6153f0e7985a",
+      "title_de": "Nachweis über den Grad der Behinderung (GdB)",
+      "domain_codes": [
+        "health-insurance",
+        "work-employment"
+      ],
+      "situation_codes": [
+        "illness-care"
+      ],
+      "tag_note": "Gesundheitsnachweis (Schwerbehinderung), der für den Antrag auf berufliche Rehabilitation benötigt wird.",
+      "requires": [],
+      "required_by": [
+        {
+          "title_de": "Antrag auf Leistungen zur Teilhabe",
+          "excerpt": "Nachweis über den Grad der Behinderung (GdB)",
+          "condition": "Je nach Fall",
+          "is_optional": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "2bea6edf-0e21-407b-87d9-8db3c2dcaa76",
+      "catalogue_service_id": "8360c8b6-0a7a-4091-a9d5-6153f0e7985a",
+      "title_de": "Bescheide eines anderen Rehabilitations- oder Sozialversicherungs-Trägers",
+      "domain_codes": [
+        "social-benefits",
+        "work-employment"
+      ],
+      "situation_codes": [
+        "illness-care"
+      ],
+      "tag_note": "Bescheide anderer Sozialleistungsträger als Unterlage für den Antrag auf berufliche Rehabilitation.",
+      "requires": [],
+      "required_by": [
+        {
+          "title_de": "Antrag auf Leistungen zur Teilhabe",
+          "excerpt": "Bescheide eines anderen Rehabilitations- oder Sozialversicherungs-Trägers (etwa Jobcenter, Krankenkasse, Rentenversicherung, Eingliederungshilfe oder Jugendhilfe)",
+          "condition": "Je nach Fall",
+          "is_optional": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "443381cd-85d8-425c-bb45-e0d8560c2f8d",
+      "catalogue_service_id": "11e6ed88-aad6-4cc0-88b9-2fcf3b51d063",
+      "title_de": "Bestätigung der Ferienbeschäftigung",
+      "domain_codes": [
+        "work-employment",
+        "residence-migration"
+      ],
+      "situation_codes": [
+        "new-job",
+        "immigration"
+      ],
+      "tag_note": "Arbeitgeber brauchen die Bestätigung der Bundesagentur, um ausländische Studierende im Ferienjob zu beschäftigen.",
+      "requires": [
+        {
+          "title_de": "Immatrikulationsbescheinigung der Universität",
+          "excerpt": "Immatrikulationsbescheinigung der Universität Ihres oder Ihrer ausländischen Studierenden in deutscher oder englischer Sprache.",
+          "condition": null,
+          "is_optional": false
+        },
+        {
+          "title_de": "Auszug aus dem Informationsportal „anabin“",
+          "excerpt": "Auszug aus dem Informationsportal „anabin“, der den Status (H+ oder H+/-) der ausländischen Hochschule zeigt.",
+          "condition": null,
+          "is_optional": false
+        }
+      ],
+      "required_by": []
+    },
+    {
+      "candidate_id": "603cdee2-aeeb-4b7f-9e4b-cc1187d26134",
+      "catalogue_service_id": "11e6ed88-aad6-4cc0-88b9-2fcf3b51d063",
+      "title_de": "Vollmacht des Betriebes",
+      "domain_codes": [
+        "law-justice"
+      ],
+      "situation_codes": [
+        "new-job"
+      ],
+      "tag_note": "Vollmacht, wenn ein Unternehmen die Bestätigung der Ferienbeschäftigung beantragt.",
+      "requires": [],
+      "required_by": [
+        {
+          "title_de": "Bestätigung der Ferienbeschäftigung",
+          "excerpt": "Falls Sie den Antrag im Auftrag eines Unternehmens stellen: Vollmacht des Betriebes",
+          "condition": "Falls Sie den Antrag im Auftrag eines Unternehmens stellen",
+          "is_optional": false
+        }
+      ]
+    }
+  ]
+}
