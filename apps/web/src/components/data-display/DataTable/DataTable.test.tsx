@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
+import { emotionRules } from "../../../test/emotionRules";
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import DataTable from "./DataTable";
 import type { DataTableColumn, DataTableProps } from "./types";
@@ -311,5 +312,25 @@ describe("DataTable", () => {
     });
 
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("DataTable bounds a cell to the column maxWidth and clips its overflow", () => {
+    const bounded: DataTableColumn<Row, SortKey, FilterKey>[] = [
+      { ...columns[0], maxWidth: "28rem" },
+      columns[1],
+    ];
+    renderTable({ columns: bounded });
+
+    const cell = screen.getByRole("cell", { name: "Alpha" });
+    expect(emotionRules(cell)).toContain("max-width: 28rem");
+    expect(emotionRules(cell)).toContain("overflow: hidden");
+  });
+
+  it("DataTable leaves a column without maxWidth unbounded", () => {
+    renderTable({});
+
+    const rules = emotionRules(screen.getByRole("cell", { name: "Alpha" }));
+    expect(rules).not.toContain("max-width");
+    expect(rules).not.toContain("overflow: hidden");
   });
 });

@@ -122,3 +122,17 @@ it("catalogue table sorts and filters only by the allowlisted keys", async () =>
   await user.click(screen.getByRole("button", { name: "Apply" }));
   expect(list.setFilter).toHaveBeenCalledExactlyOnceWith("source", "pvog");
 });
+
+it("header toolbar is absent from the catalogue table", () => {
+  renderWithProviders(
+    <CatalogueServicesTable
+      page={pageOf([service])}
+      status={READY}
+      list={fakeList()}
+    />,
+  );
+
+  const card = screen.getByRole("table").closest("[data-section-card]");
+  expect(card).not.toBeNull();
+  expect(card?.querySelector("[data-section-header]")).toBeNull();
+});

@@ -27,12 +27,18 @@ const task: DiscoveryTask = {
   updated_at: "2026-01-01T12:00:00Z",
 };
 
-function Table({ onSortChange }: { onSortChange: () => void }) {
+function Table({
+  onSortChange = vi.fn(),
+  items = [task],
+}: {
+  onSortChange?: () => void;
+  items?: DiscoveryTask[];
+}) {
   return (
     <DataTable
       label="Tasks"
       columns={taskColumns(useLocale())}
-      rows={{ items: [task], getKey: (item) => item.id }}
+      rows={{ items, getKey: (item) => item.id }}
       query={{ onSortChange }}
     />
   );
@@ -95,4 +101,27 @@ it("task columns align priority and attempts to the end", () => {
   }
   const target = screen.getByRole("columnheader", { name: /Target/ });
   expect(emotionRules(target)).not.toContain("text-align: end");
+});
+
+it("tasks target uses the bounded cell and keeps the full URL available", async () => {
+  const long = `https://example.gov/${"path/".repeat(40)}`;
+  const { user } = renderWithProviders(
+    <Table items={[{ ...task, target_url: long }]} />,
+  );
+
+  const target = screen.getByText(long);
+  expect(emotionRules(target)).toContain("max-width: 24rem");
+  expect(emotionRules(target)).toContain("text-overflow: ellipsis");
+  expect(emotionRules(target.closest("td") as HTMLElement)).toContain(
+    "max-width: 24rem",
+  );
+  await user.hover(target);
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(long);
+});
+
+it("tasks target leaves the other task cells unbounded", () => {
+  renderWithProviders(<Table />);
+
+  const kind = screen.getByRole("cell", { name: "fetch_url" });
+  expect(emotionRules(kind)).not.toContain("max-width");
 });

@@ -371,3 +371,15 @@ it("refetch failure preserves previous rows with visible feedback", async () => 
   );
   expect(screen.getByText("https://example.gov/a")).toBeVisible();
 });
+
+it("header toolbar is absent from the tasks table", async () => {
+  stubEmptyTasks();
+  renderWithProviders(<DiscoveryTasksPage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  const table = await screen.findByRole("table");
+  const card = table.closest("[data-section-card]");
+  expect(card).not.toBeNull();
+  expect(card?.querySelector("[data-section-header]")).toBeNull();
+});
