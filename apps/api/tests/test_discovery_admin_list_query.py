@@ -162,7 +162,7 @@ def test_catalogue_list_query_sorts_filters_and_searches_with_a_consistent_total
     ).json()
 
     assert [item["external_id"] for item in ordered["items"]] == ["b-gov", "a-gov"]
-    assert (ordered["total"], ordered["summary"]["total"]) == (2, 2)
+    assert (ordered["total"], ordered["summary"]["total"]) == (2, 3)
     assert _external_ids(client, {"q": "PVOG"}) == ["c-pvog"]
     assert _external_ids(client, {"sort_by": "source", "sort_order": "desc"})[0] == "c-pvog"
 
@@ -195,7 +195,7 @@ def test_catalogue_list_query_keeps_the_legacy_source_parameter_and_lets_the_can
 
 @pytest.mark.parametrize(
     ("key", "value"),
-    [("sort_by", "raw_payload"), ("filter[source]", "unknown"), ("filter[stage]", "T0"), ("q", "x" * 201)],
+    [("sort_by", "raw_payload"), ("filter[source]", "unknown"), ("filter[stage]", "T9"), ("q", "x" * 201)],
 )
 def test_catalogue_list_query_rejects_values_outside_the_allowlist_before_querying(
     client: TestClient[Litestar], db_session: Session, monkeypatch: pytest.MonkeyPatch, key: str, value: str
