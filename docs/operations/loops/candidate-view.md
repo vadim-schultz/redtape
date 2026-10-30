@@ -17,11 +17,14 @@ Plan suite: [`.plans/candidate-view/`](../../../.plans/candidate-view/) on `main
 4. One **chapter-implementer** per chapter, in the execution order of [01-rollout.md](../../../.plans/candidate-view/01-rollout.md); each PR targets the loop branch only.
 5. After chapter 1, the chief runs **LR1, the screenshot collection**, of [02-live-runs.md](../../../.plans/candidate-view/02-live-runs.md). It needs the owner to deploy the API (the machine sources route). Without the deploy the run records a blocker and the chapters that need no screenshots continue.
 6. After chapters 2, 3 and 11 and LR1, and a second owner API deploy (override and public list), the chief runs **LR2, the showcase curation**: it picks the highest-ranking candidates, reads their pages, writes a reviewed curation file, applies it with `candidates curate` (everything marked `manual`), and captures their screenshots. Both live runs happen before chapter 10.
-7. When the ledger is complete, open the release PR **loop branch to `main`**. The owner then deploys the API first, then the web, and a human performs the smoke checks in `docs/operations/candidate-view.md`, section Release smoke checks (written by chapter 10).
+7. When the ledger is complete, open the release PR **loop branch to `main`**. The owner then deploys the API first, then the web, and a human performs the smoke checks in `docs/operations/candidate-view.md`, section Release smoke checks (written by chapter 10). Operator guide: [candidate-view.md](../candidate-view.md).
 
 ## Status
 
-Planned: eleven chapters (chapter 11 executes after chapter 2) and two live runs. No chapter started.
+Built on the loop branch: all eleven chapters are merged and both live runs are recorded in the
+[run ledger](../../../.plans/candidate-view/run-ledger.md). Release PR #273 is merged into `main`; a second release PR
+carries chapter 10. Open: one screenshot retry (a `bundesarchiv.de` page), the manual smoke in
+[candidate-view.md](../candidate-view.md#release-smoke-checks) and the owner's deploy (API first, then web).
 
 ## Exit criteria
 

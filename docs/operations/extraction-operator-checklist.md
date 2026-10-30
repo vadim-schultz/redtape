@@ -179,7 +179,7 @@ A budget under about 900 neurons cannot run a 30,000-character page. After the d
 `issued`, conditions, suggested tags and edges. Read ten mentions against their source pages and record the precision
 (for example "8 of 10 real"), the neurons per page, the ledger's `neurons` figure (`budget show --resource neurons`),
 the report's `stop_reason` and `neurons_used`, and confirm a `capture_screenshot` task exists for a page with mentions
-and none for a page without. The gate with the workflow (`gh workflow run discovery-llm.yml -f llm_model=<id> (optional, the same default) -f
+and none for a page without. Pages extracted before the capture hook have no screenshot task: `python -m discovery_ingest capture requeue --limit 60` queues them, and the drain cadence is in [candidate-view.md](candidate-view.md#screenshot-cadence). The gate with the workflow (`gh workflow run discovery-llm.yml -f llm_model=<id> (optional, the same default) -f
 max_batches=4 -f neuron_budget=2500`) needs OP2, OP10 and Actions minutes.
 
 **OP10: Open and merge the final release PR.** `feat/extraction` into `main`, after the ledger rows E7 to E9 and E12 to

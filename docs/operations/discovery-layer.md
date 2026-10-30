@@ -83,16 +83,26 @@ authorization boundary; the browser does not contain an email allowlist.
 | Web route | Behavior |
 | --- | --- |
 | `/admin/discovery` | Redirects to the catalogue page. |
-| `/admin/discovery/catalogue` | Shows catalogue rows and the coverage summary. |
-| `/admin/discovery/coverage` | Shows the dedicated coverage summary. |
+| `/admin/discovery/catalogue` | Shows catalogue rows with their own summary chips (total, source, pipeline stage) that filter the table, a Title column and a stage filter. |
+| `/admin/discovery/coverage` | Shows the dedicated coverage summary and the budgets. |
 | `/admin/discovery/tasks` | Shows the crawler task queue: kind, status and source filters; columns for attempts, retry time and result note. |
-| `/admin/discovery/documents` | Lists document candidates (search, role, source, minimum mentions, sort, paging). |
+| `/admin/discovery/documents` | Lists document candidates: toolbar in the table header, every column sorts, filters appear as removable chips, a Ready quick filter (the five completeness flags), long titles clipped with a tooltip, paging. |
 | `/admin/discovery/documents/<candidate-id>` | Shows one candidate: mentions, evidence artifacts, emit preview and suggestion state. |
 | `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
 
 Lists and tables share one contract and one set of components, and the release smoke checklist lives in
 [admin-tables.md](admin-tables.md).
+
+The staged candidates also have a **public** read-only view, outside this admin surface and without a guard:
+
+| Web route | Behavior |
+| --- | --- |
+| `/candidates` | Lists every staged candidate, complete ones first (search, domain and situation chips, a "complete only" switch, paging). |
+| `/candidates/<candidate-id>` | Shows one candidate: tags, ingress and egress cards, the flow diagram, the screenshot and the sources. |
+
+The public API routes, the deploy order, the screenshot cadence, the showcase candidates and the
+release smoke checks are in [candidate-view.md](candidate-view.md).
 
 The emit preview is a subview of the pipeline page, not a top-level route. Every discovery page has
 visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
@@ -295,15 +305,15 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `POST /machine/tasks/{id}/complete` | Complete, with an optional result `note` |
 | `POST /machine/tasks/{id}/artifacts` | Upload a snapshot or screenshot (multipart): 415, 413, 503, 507 |
 | `GET /machine/artifacts`, `…/{id}/content`, `…/status` | List (`kind`, `host`), read bytes, and check `storage_enabled` and the byte accounting |
-| `GET /machine/candidates/sources` | Catalogue rows with at least one candidate mention and the newest `html_snapshot` url of each (`missing=screenshot`, `host`, `candidate_id`, repeated `catalogue_service_id` up to 20, `offset`, `limit`); read-only; the input of `capture requeue` |
+| `GET /machine/candidates/sources` | Catalogue rows with at least one candidate mention and the newest `html_snapshot` url of each (`missing=screenshot`, `host`, `candidate_id`, repeated `catalogue_service_id` up to 20, `offset`, `limit`); read-only; the input of `capture requeue`; see [candidate-view.md](candidate-view.md#screenshot-cadence) |
 | `POST /machine/candidates/mentions` | Post mentions for a candidate (role, condition, optional flag, tag codes; the response counts `unknown_codes`) |
 | `POST /machine/candidates/edges` | Post staged edges: answers `{edges_created, edges_updated, edges_skipped, skipped}` |
 | `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |
 | `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
 | `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
-| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by`, `sort_order`, `filter[status\|role\|source\|min_mentions]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
+| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by` including `completeness`, `sort_order`, `filter[status\|role\|source\|min_mentions\|jurisdiction\|domain\|situation]` and the yes/no completeness flags `filter[has_domain\|has_situation\|has_edges\|has_snapshot\|has_screenshot\|complete]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
 | `GET /admin/tasks` | Crawler queue (canonical `q` over the target URL, `sort_by` `target\|kind\|status\|source\|priority\|attempts` with `sort_order`, `filter[status\|source\|kind]`; legacy `status`, `source`, `kind` still accepted and overridden by the canonical form; ties fall back to the queue order; invalid values answer 422) |
-| `GET /admin/catalogue` | Imported catalogue (canonical `q` over the external id, `sort_by` `external_id\|source\|stage` with `sort_order`, `filter[source]`; legacy `source` still accepted; newest first by default; paged with `offset` and `limit`; `total` and the summary follow the filter) |
+| `GET /admin/catalogue` | Imported catalogue (canonical `q` over the external id, `sort_by` `external_id\|title\|source\|stage` with `sort_order`, `filter[source\|stage]`; legacy `source` still accepted; newest first by default; paged with `offset` and `limit`; `total` and the summary follow the filter) |
 | `GET /admin/candidates/{id}/edges` | Staged edges of a candidate, both directions, with basis, condition and the procedure |
 | `GET /admin/catalogue/{id}/artifacts`, `GET /admin/candidates/{id}/artifacts` | Artifacts with presigned `url` (`null` when storage is unset) |
 | `GET /admin/budgets` | The ledger plus `stored_bytes` and `stored_bytes_cap` |
