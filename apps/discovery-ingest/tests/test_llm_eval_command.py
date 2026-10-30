@@ -70,9 +70,11 @@ def test_eval_runs_every_gold_page_through_clean_client_and_grounding_and_prints
     assert code == 0 and sorted(llm.calls) == ["BundID", "Neuigkeiten", "Reisepass"]
     assert all(name in shown for name in ("alpha", "beta", "gamma", "shell"))
     assert all(
-        label in shown for label in ("precision", "recall", "grounded rate", "tag agreement", "neurons per page")
+        label in shown
+        for label in ("precision", "recall", "quote-grounded rate", "kept rate", "tag agreement", "neurons per page")
     )
     assert (summary["precision"], summary["recall"], summary["grounded_rate"]) == (1.0, 0.5, 0.5)
+    assert summary["kept_rate"] == 0.5
     assert summary["tag_agreement"] == 1.0 and summary["pages_run"] == 4
     assert summary["neurons_per_page"] == pytest.approx(cost(MODEL, 1000, 200))
     assert (summary["input_tokens"], summary["output_tokens"]) == (3000, 600)
@@ -307,6 +309,60 @@ def _router(monkeypatch: pytest.MonkeyPatch, ledger: FakeLedger, cloudflare: Cal
 def _answer(body: str) -> httpx.Response:
     marker = next(marker for marker in ANSWERS if marker in body)
     return success(ANSWERS[marker], {"prompt_tokens": 1000, "completion_tokens": 200})
+
+
+def _rows(shown: str) -> dict[str, str]:
+    """Return each table row of the metric table as ``label -> 'value | target'``."""
+    cells = [
+        [cell.strip() for cell in line.strip("|").split("|")] for line in shown.splitlines() if line.startswith("|")
+    ]
+    return {row[0]: " | ".join(row[1:]).strip() for row in cells if len(row) == 3 and row[0] != "metric"}
+
+
+def test_the_table_prints_the_quote_grounded_rate_with_its_target_and_the_kept_rate_without_one(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval table · quote-grounded rate against 0.95, kept rate with an empty target, and the header names the metric."""
+    write_gold(tmp_path / "gold")
+    _wire(monkeypatch, FakeLlm())
+
+    assert _eval(tmp_path) == 0
+
+    shown = capsys.readouterr().out
+    rows = _rows(shown)
+    assert rows["quote-grounded rate"] == "0.50 | >= 0.95 (below)" and rows["kept rate"] == "0.50 |"
+    assert "grounded rate |" not in shown.replace("quote-grounded rate |", "")
+    assert shown.splitlines()[0].endswith("grounded_rate=quote")
+
+
+def test_the_json_report_has_the_quote_grounded_rate_the_kept_rate_and_names_the_metric_version(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """eval --out · grounded_rate and kept_rate sit in the summary, quote_failed_items per page, and the metric version on top."""
+    write_gold(tmp_path / "gold", names=["alpha", "beta", "gamma"])
+    _wire(monkeypatch, FakeLlm())
+
+    assert _eval(tmp_path) == 0
+
+    report = _out(tmp_path)
+    alpha = next(page for page in report["pages"] if page["name"] == "alpha")
+    assert report["metric_version"] == "grounded_rate=quote"
+    assert (report["summary"]["grounded_rate"], report["summary"]["kept_rate"]) == (0.5, 0.5)
+    assert (alpha["raw_items"], alpha["kept_items"], alpha["quote_failed_items"]) == (2, 1, 1)
+
+
+def test_a_run_that_stopped_early_still_prints_both_rows_and_writes_both_rates(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · when the budget ends the run after one page, both rate rows and both JSON figures are there (negative: stop)."""
+    write_gold(tmp_path / "gold", names=["alpha", "beta", "gamma"])
+    _wire(monkeypatch, FakeLlm())
+
+    assert _eval(tmp_path, "--neuron-budget", "40") == 1
+
+    rows = _rows(capsys.readouterr().out)
+    assert rows["quote-grounded rate"].startswith("0.50") and rows["kept rate"] == "0.50 |"
+    assert (_out(tmp_path)["summary"]["grounded_rate"], _out(tmp_path)["summary"]["kept_rate"]) == (0.5, 0.5)
 
 
 def test_eval_never_prints_the_token_or_the_account_id_even_when_cloudflare_echoes_them(
