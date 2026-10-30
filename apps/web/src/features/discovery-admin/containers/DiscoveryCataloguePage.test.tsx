@@ -99,7 +99,20 @@ function renderCataloguePage(entry = "/admin/discovery/catalogue") {
   });
 }
 
-it("DiscoveryCataloguePage · renders coverage tables and catalogue rows after both requests succeed", async () => {
+const COVERAGE_CARDS = [
+  "Task queue",
+  "Tasks by kind",
+  "Catalogue rows by source",
+  "Document candidates",
+];
+
+function coverageCalls(fetchMock: ReturnType<typeof stubDiscoveryFetch>) {
+  return fetchMock.mock.calls.filter(([input]) =>
+    String(input).includes("/api/v1/discovery/admin/coverage"),
+  );
+}
+
+it("DiscoveryCataloguePage · renders its own summary and not the coverage cards", async () => {
   stubDiscoveryFetch({
     catalogue: new Response(JSON.stringify(catalogueResponse)),
     coverage: new Response(JSON.stringify(coverageResponse)),
@@ -110,75 +123,43 @@ it("DiscoveryCataloguePage · renders coverage tables and catalogue rows after b
   expect(
     await screen.findByRole("table", { name: "Catalogue services" }),
   ).toHaveTextContent("service-1");
-  const queue = screen.getByRole("table", { name: "Task queue" });
-  expect(
-    within(queue).getByRole("row", { name: "Pending tasks 2" }),
-  ).toBeVisible();
-  expect(
-    within(queue).getByRole("row", { name: "Emit-ready 3" }),
-  ).toBeVisible();
-  expect(
-    within(
-      screen.getByRole("table", { name: "Catalogue rows by source" }),
-    ).getByRole("row", { name: "govdata 3" }),
-  ).toBeVisible();
+  for (const title of COVERAGE_CARDS) {
+    expect(screen.queryByRole("table", { name: title })).toBeNull();
+  }
+  expect(screen.getByText("Total")).toBeVisible();
+  expect(screen.getByRole("button", { name: "govdata 1" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "T3 1" })).toBeVisible();
 });
 
-it("DiscoveryCataloguePage · keeps catalogue rows visible when coverage fails", async () => {
+it("DiscoveryCataloguePage · does not request coverage", async () => {
   const fetchMock = stubDiscoveryFetch({
-    catalogue: () => new Response(JSON.stringify(catalogueResponse)),
-    coverage: () => new Response("", { status: 500 }),
+    catalogue: new Response(JSON.stringify(catalogueResponse)),
+    coverage: new Response(JSON.stringify(coverageResponse)),
+  });
+
+  renderCataloguePage();
+  await screen.findByRole("table", { name: "Catalogue services" });
+
+  expect(coverageCalls(fetchMock)).toHaveLength(0);
+});
+
+it("DiscoveryCataloguePage · a failed catalogue query shows retry and no chips", async () => {
+  const fetchMock = stubDiscoveryFetch({
+    catalogue: () => new Response("", { status: 500 }),
   });
 
   const { user } = renderCataloguePage();
 
-  expect(
-    await screen.findByRole("table", { name: "Catalogue services" }),
-  ).toHaveTextContent("service-1");
-  const retryButton = await screen.findByRole("button", { name: "Try again" });
-  expect(retryButton).toBeInTheDocument();
-
-  const coverageCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
-    String(input).includes("/api/v1/discovery/admin/coverage"),
-  ).length;
-  const catalogueCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
-    String(input).includes("/api/v1/discovery/admin/catalogue"),
-  ).length;
-  await user.click(retryButton);
-  await waitFor(() =>
-    expect(
-      fetchMock.mock.calls.filter(([input]) =>
-        String(input).includes("/api/v1/discovery/admin/coverage"),
-      ),
-    ).toHaveLength(coverageCallsBeforeRetry + 1),
-  );
-  expect(
-    fetchMock.mock.calls.filter(([input]) =>
-      String(input).includes("/api/v1/discovery/admin/catalogue"),
-    ),
-  ).toHaveLength(catalogueCallsBeforeRetry);
-});
-
-it("DiscoveryCataloguePage · shows a retryable state when catalogue loading fails", async () => {
-  const fetchMock = stubDiscoveryFetch({
-    catalogue: () => new Response("", { status: 500 }),
-    coverage: () => new Response(JSON.stringify(coverageResponse)),
-  });
-
-  renderCataloguePage();
-
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Try again" }),
-    ).toBeInTheDocument(),
-  );
+  const retry = await screen.findByRole("button", { name: "Try again" });
   expect(screen.queryByText("service-1")).not.toBeInTheDocument();
-  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
-  expect(
-    fetchMock.mock.calls.some(([input]) =>
-      String(input).includes("/api/v1/discovery/admin/catalogue"),
-    ),
-  ).toBe(true);
+  expect(screen.queryByText("Total")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "govdata 1" })).toBeNull();
+  const before = fetchMock.mock.calls.length;
+  await user.click(retry);
+  await waitFor(() =>
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(before),
+  );
+  expect(coverageCalls(fetchMock)).toHaveLength(0);
 });
 
 it("DiscoveryCataloguePage · shows a deliberate empty state for zero catalogue rows", async () => {
@@ -186,13 +167,11 @@ it("DiscoveryCataloguePage · shows a deliberate empty state for zero catalogue 
     catalogue: new Response(
       JSON.stringify({ ...catalogueResponse, items: [], total: 0 }),
     ),
-    coverage: new Response(JSON.stringify(coverageResponse)),
   });
 
   renderCataloguePage();
 
   expect(await screen.findByText("No catalogue services")).toBeInTheDocument();
-  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
 });
 
 it("DiscoveryCataloguePage · keeps its existing rows inside the section shell", async () => {
@@ -218,7 +197,6 @@ it("DiscoveryCataloguePage · keeps its existing rows inside the section shell",
 it("DiscoveryCataloguePage · a failed catalogue query keeps search and filters reachable", async () => {
   stubDiscoveryFetch({
     catalogue: () => new Response("", { status: 500 }),
-    coverage: () => new Response(JSON.stringify(coverageResponse)),
   });
 
   renderCataloguePage();
@@ -242,7 +220,6 @@ function catalogueUrls(total = 120) {
   stubDiscoveryFetch({
     catalogue: () =>
       new Response(JSON.stringify({ ...catalogueResponse, total, limit: 20 })),
-    coverage: () => new Response(JSON.stringify(coverageResponse)),
   });
   const fetchMock = vi.mocked(fetch);
   return () =>
@@ -308,7 +285,7 @@ it("DiscoveryCataloguePage · sort, filter and search return to page one and ser
 it("DiscoveryCataloguePage · invalid URL list state falls back to safe defaults", async () => {
   const lastRequest = catalogueUrls();
   renderCataloguePage(
-    "/admin/discovery/catalogue?offset=abc&limit=0&sort_by=raw_payload&filter[source]=nowhere&filter[stage]=T0",
+    "/admin/discovery/catalogue?offset=abc&limit=0&sort_by=raw_payload&filter[source]=nowhere&filter[stage]=T9",
   );
   await screen.findByText("120 catalogue services");
 
@@ -326,4 +303,73 @@ it("DiscoveryCataloguePage · a single page of rows shows no pagination", async 
 
   expect(await screen.findByText("1 catalogue service")).toBeVisible();
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+});
+
+it("DiscoveryCataloguePage · a source chip sets the source filter and clears on a second click", async () => {
+  const lastRequest = catalogueUrls();
+  const { user } = renderCataloguePage("/admin/discovery/catalogue?offset=40");
+  await screen.findByText("120 catalogue services");
+
+  await user.click(screen.getByRole("button", { name: "govdata 1" }));
+  await waitFor(() =>
+    expect(lastRequest().searchParams.get("filter[source]")).toBe("govdata"),
+  );
+  expect(lastRequest().searchParams.get("offset")).toBe("0");
+  expect(screen.getByRole("button", { name: "govdata 1" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await user.click(screen.getByRole("button", { name: "govdata 1" }));
+  await waitFor(() =>
+    expect(lastRequest().searchParams.has("filter[source]")).toBe(false),
+  );
+  expect(screen.getByRole("button", { name: "govdata 1" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+it("DiscoveryCataloguePage · the stage chip and the stage header filter agree", async () => {
+  const lastRequest = catalogueUrls();
+  const { user } = renderCataloguePage();
+  await screen.findByText("120 catalogue services");
+  expect(screen.getByRole("button", { name: "T3 1" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  await user.click(screen.getByRole("button", { name: "Pipeline stage" }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Pipeline stage" }),
+    "T3",
+  );
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+
+  await waitFor(() =>
+    expect(lastRequest().searchParams.get("filter[stage]")).toBe("T3"),
+  );
+  expect(screen.getByRole("button", { name: "T3 1" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
+it("DiscoveryCataloguePage · a failed refetch keeps the previous rows and the chips", async () => {
+  let calls = 0;
+  stubDiscoveryFetch({
+    catalogue: () =>
+      ++calls === 1
+        ? new Response(JSON.stringify(catalogueResponse))
+        : new Response("", { status: 500 }),
+  });
+  const { user } = renderCataloguePage();
+  await screen.findByText("service-1");
+
+  await user.click(screen.getByRole("button", { name: "govdata 1" }));
+
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeVisible();
+  expect(screen.getByText("service-1")).toBeVisible();
 });
