@@ -57,7 +57,7 @@ class NeuronMeter:
     def reserve(self, model: str, input_chars: int, max_tokens: int) -> Reservation | Denied | LedgerUnavailable:
         """Reserve the estimate for one call; raises :class:`UnknownModelError` for a model without a price."""
         neurons = estimate(model, input_chars, max_tokens)
-        if self._used + neurons > self._limit:
+        if self._run_budget_reached():
             return Denied("run_budget")
         refusal = self._ledger_refusal(neurons)
         return self._grant(model, neurons) if refusal is None else refusal
@@ -80,6 +80,10 @@ class NeuronMeter:
         """Tell the ledger the day's neurons are gone (a provider quota error)."""
         if self._use_ledger:
             self._guard.exhaust(RESOURCE)
+
+    def _run_budget_reached(self) -> bool:
+        """Whether the run has used its budget; below it a call may still go out and pass it by its own cost."""
+        return self._used >= self._limit
 
     def _correct(self, reservation: Reservation, delta: float) -> None:
         self._used += delta
