@@ -79,6 +79,8 @@ def test_a_run_budget_that_one_call_spends_stops_with_llm_budget_after_that_call
 
     assert (report.completed, report.released, report.stop_reason) == (1, 2, "llm_budget")
     assert report.neurons_used == pytest.approx(cost(MODEL, 1000, 200), abs=0.1)
+    note = str(_released(api)[0][1])
+    assert "run budget is reached" in note and "would pass" not in note
 
 
 def test_a_day_with_no_neurons_left_stops_with_llm_budget_before_claiming(monkeypatch: pytest.MonkeyPatch) -> None:
