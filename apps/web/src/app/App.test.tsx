@@ -94,3 +94,24 @@ it("app · /suggestions/:id needs no authentication", async () => {
     screen.queryByRole("button", { name: "Send magic link" }),
   ).not.toBeInTheDocument();
 });
+
+it("app routes /candidates without a guard", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/candidates", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Candidates" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
+});
+
+it("app keeps /candidates/:id as not-found until the item page exists", async () => {
+  window.localStorage.setItem("locale", "en");
+  renderAppAt("/candidates/c1", createFakeAuthGateway({ session: null }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Page not found" }),
+  ).toBeInTheDocument();
+});
