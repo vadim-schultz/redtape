@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 
 def pick_i18n(
-    values: dict[str, object] | None,
+    values: Mapping[str, object] | None,
     *,
     locale: str,
     enabled: Iterable[str],

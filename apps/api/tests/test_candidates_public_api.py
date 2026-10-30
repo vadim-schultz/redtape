@@ -216,7 +216,7 @@ def test_candidate_detail_hides_a_non_http_portal_url(client: TestClient[Litesta
     owner = scene.candidate("subject")
     urls = ["javascript:alert(1)", "data:text/html,x", "https://example.gov/leistung"]
     for index, url in enumerate(urls):
-        scene.mention(owner, scene.procedure(f"Leistung {index}", portal_url=url), days_old=index)
+        scene.mention(owner, scene.procedure(f"Leistung {index}", portal_url=url), days_old=len(urls) - index)
 
     sources = client.get(f"{URL}/{owner.id}").json()["sources"]
 
@@ -260,11 +260,20 @@ def test_detail_screenshot_field_is_a_relative_proxy_path(client: TestClient[Lit
     assert "X-Amz" not in str(present) and "memory://" not in str(present)
 
 
-def test_public_routes_have_no_auth_guards() -> None:
-    from app.features.candidates.controller import CandidatesController
-    from app.features.discovery.candidate_admin_controller import DiscoveryCandidateAdminController
-    from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
+def _guards_by_path(prefix: str) -> dict[str, list[object]]:
+    """Resolve the guards of every handler under ``prefix`` (app, router, controller and handler level)."""
+    routes = [route for route in create_app().routes if route.path.startswith(prefix)]
+    return {
+        f"{route.path} {method}": list(handler.resolve_guards())
+        for route in routes
+        for method, (handler, _) in route.route_handler_map.items()
+    }
 
-    assert not CandidatesController.guards
-    assert DiscoveryCandidateAdminController.guards == DISCOVERY_ADMIN_GUARDS
-    assert DISCOVERY_ADMIN_GUARDS
+
+def test_public_routes_have_no_auth_guards() -> None:
+    public = _guards_by_path(URL)
+    admin = _guards_by_path("/api/v1/discovery/admin/candidates")
+
+    assert len(public) >= 2
+    assert all(not guards for guards in public.values())
+    assert admin and all(guards for guards in admin.values())
