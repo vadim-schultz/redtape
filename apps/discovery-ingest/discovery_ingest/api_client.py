@@ -19,6 +19,7 @@ from discovery_ingest.artifacts import (
 )
 from discovery_ingest.batch_dedup import dedupe_batch_items
 from discovery_ingest.budget_models import BudgetReservation, BudgetResource, BudgetRow, BudgetSnapshot
+from discovery_ingest.candidate_sources import CandidateSourcePage, SourceMissing
 from discovery_ingest.edges import EdgeItem, EdgesRequest, EdgesResponse
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
@@ -276,6 +277,33 @@ class DiscoveryMachineClient:
             params["host"] = host
         return ArtifactPage.model_validate(self._call("GET", "/artifacts", params=params).json())
 
+    def list_candidate_sources(
+        self,
+        *,
+        host: str | None,
+        missing: SourceMissing | None,
+        candidate_id: UUID | None,
+        service_ids: Sequence[UUID],
+        offset: int,
+        limit: int,
+    ) -> CandidateSourcePage:
+        """List catalogue rows with candidate mentions and their newest snapshot url; ``limit`` is at most 100.
+
+        ``missing="screenshot"`` keeps rows without a screenshot; ``candidate_id`` and ``service_ids`` (at most 20)
+        keep rows of that candidate or those procedures; ``host`` is the snapshot's source host.
+        """
+        params: dict[str, str | int | list[str]] = {"offset": offset, "limit": limit}
+        optional: dict[str, str | None] = {
+            "host": host,
+            "missing": missing,
+            "candidate_id": None if candidate_id is None else str(candidate_id),
+        }
+        params |= {name: value for name, value in optional.items() if value is not None}
+        if service_ids:
+            params["catalogue_service_id"] = [str(service_id) for service_id in service_ids]
+        response = self._call("GET", "/candidates/sources", params=params)
+        return CandidateSourcePage.model_validate(response.json())
+
     def fail_task(self, task_id: UUID, *, error: str, retryable: bool = False) -> None:
         """Fail a claimed task with ``error``; the API re-pends it when ``retryable`` and attempts remain."""
         url = f"{self._base_url}/api/v1/discovery/machine/tasks/{task_id}/fail"
@@ -320,7 +348,7 @@ class DiscoveryMachineClient:
         path: str,
         *,
         json: Mapping[str, str | float] | None = None,
-        params: Mapping[str, str | int] | None = None,
+        params: Mapping[str, str | int | list[str]] | None = None,
         data: dict[str, str] | None = None,
         files: dict[str, tuple[str, bytes, str]] | None = None,
         allow: tuple[int, ...] = (),

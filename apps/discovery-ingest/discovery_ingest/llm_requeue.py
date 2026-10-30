@@ -4,68 +4,29 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass
 
-import httpx
-from pydantic import ValidationError
-
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactRead
 from discovery_ingest.cli_errors import failing_with_api_error
 from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.latest_snapshots import latest_snapshots
+from discovery_ingest.requeue_common import Counts, add_requeue_options, enqueue_counted
 from discovery_ingest.worker.llm_enqueue import llm_extract_request, llm_input_key
 
-DEFAULT_LIMIT = 50
-MAX_LIMIT = 200
-"""More pages than this in one run would commit more neurons than a day allows; the command refuses before any call."""
 EXIT_MISSING_MODEL = 2
-
-
-@dataclass(slots=True)
-class Counts:
-    """What a requeue did, one count per page: queued now, already queued under this key, or refused."""
-
-    pages: int = 0
-    queued: int = 0
-    already_queued: int = 0
-    failed: int = 0
-
-
-def _limit_arg(raw: str) -> int:
-    if not raw.isdigit() or not 1 <= int(raw) <= MAX_LIMIT:
-        raise argparse.ArgumentTypeError(f"expected a whole number from 1 to {MAX_LIMIT}; got {raw!r}")
-    return int(raw)
 
 
 def register_requeue_parser(llm_sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Add ``requeue`` to the ``llm`` command."""
     requeue = llm_sub.add_parser("requeue", help="Queue llm_extract for the latest snapshots under the current key")
-    requeue.add_argument("--host", default=None, help="Only snapshots of this source host (default: every host)")
-    requeue.add_argument(
-        "--limit",
-        type=_limit_arg,
-        default=DEFAULT_LIMIT,
-        help=f"Maximum pages to queue (1-{MAX_LIMIT}, default {DEFAULT_LIMIT})",
-    )
-    requeue.add_argument("--dry-run", action="store_true", help="Count the pages; make no enqueue call")
-
-
-def _enqueue(client: DiscoveryMachineClient, artifact: ArtifactRead, model: str, counts: Counts) -> None:
-    try:
-        created = client.enqueue_task(llm_extract_request(artifact, model)).created
-    except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError):
-        counts.failed += 1
-        return
-    counts.queued += created
-    counts.already_queued += not created
+    add_requeue_options(requeue)
 
 
 def enqueue_all(client: DiscoveryMachineClient, snapshots: list[ArtifactRead], model: str) -> Counts:
     """Enqueue ``llm_extract`` for each snapshot; the queue's identity answers ``created`` false for a known key."""
     counts = Counts(pages=len(snapshots))
     for artifact in snapshots:
-        _enqueue(client, artifact, model, counts)
+        enqueue_counted(client, llm_extract_request(artifact, model), counts)
     return counts
 
 
