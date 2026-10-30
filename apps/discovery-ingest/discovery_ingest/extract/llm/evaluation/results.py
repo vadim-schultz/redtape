@@ -23,12 +23,13 @@ class Usage:
 
 @dataclass(frozen=True, slots=True)
 class Scores:
-    """How one page scored: counts, raw and surviving items, codes, the predicted kind and the items lost."""
+    """How one page scored: counts, raw, surviving and quote-failed items, codes, the predicted kind and the items lost."""
 
     documents: Counts
     edges: Counts
     raw_items: int = 0
     kept_items: int = 0
+    quote_failed_items: int = 0
     predicted_codes: tuple[str, ...] = ()
     gold_codes: tuple[str, ...] = ()
     page_kind: str | None = None

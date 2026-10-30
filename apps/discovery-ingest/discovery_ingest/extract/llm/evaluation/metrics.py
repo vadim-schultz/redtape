@@ -59,8 +59,15 @@ def _edge_keys(edges: Iterable[Edge]) -> set[Key]:
     return {(name_slug(parent), name_slug(required)) for parent, required in edges}
 
 
-def grounded_rate(*, raw_items: int, kept_items: int) -> float:
-    """Return the share of raw model items that survived grounding; no items at all is a full rate."""
+def grounded_rate(*, raw_items: int, quote_failed_items: int) -> float:
+    """Return the share of raw model items whose quote is on the page; no items at all is a full rate."""
+    if quote_failed_items > raw_items:
+        raise ValueError(f"more quote failures than raw items: {quote_failed_items} of {raw_items}")
+    return 1 - quote_failed_items / raw_items if raw_items else 1.0
+
+
+def kept_rate(*, raw_items: int, kept_items: int) -> float:
+    """Return the share of raw model items that the pipeline kept; no items at all is a full rate."""
     if kept_items > raw_items:
         raise ValueError(f"more items kept than raw: {kept_items} of {raw_items}")
     return kept_items / raw_items if raw_items else 1.0
