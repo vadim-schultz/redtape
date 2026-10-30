@@ -2,18 +2,18 @@
 
 **Loop branch:** `feat/plans-candidate-view`  
 **Release branch:** `main`  
-**Release PR:** _(filled when opened)_
+**Release PR:** [#273](https://github.com/vadim-schultz/redtape/pull/273), merged into `main` on 2026-10-30 (merge commit `49526e8`) by the owner's request, before chapter 10 and without remote CI (Actions billing, D17).
 
 Chapter PRs merge into the loop branch only. The chapter implementer does not edit this file. The chief of staff records the screenshot live run here too.
 
 | Chapter | Branch | PR | Local CI | Remote CI | Merged | Blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Capture requeue and machine route | `feat/candidate-view-capture-requeue` | [#263](https://github.com/vadim-schultz/redtape/pull/263) | pass (`./ci.sh` on scratch DB: api 1048, web 627, ingest 1156) | not run (Actions billing, D17) | yes, 704f25b | none |
-| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | n/a | n/a | n/a | partial: 16 of 17 pending captured (owner-approved drain of the queued tasks, 2026-10-30) | the sources route is not deployed (404), so the full categorised set cannot be requeued yet |
+| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | n/a | n/a | n/a | yes: 16 of the 17 categorised pages | one page (bundesarchiv.de) fails before the browser and is retried later |
 | 2. Completeness read model | `feat/candidate-view-completeness` | [#264](https://github.com/vadim-schultz/redtape/pull/264) | pass (`./ci.sh` on scratch DB: api 1113, ingest 1156, web green on rerun after 2 unrelated timeouts) | not run (Actions billing, D17) | yes, ba38f55 | none |
 | 11. Manual curation tool | `feat/candidate-view-curation-tool` | [#265](https://github.com/vadim-schultz/redtape/pull/265) | pass (`./ci.sh` on scratch DB: api 1113, web 627, ingest 1181) | not run (Actions billing, D17) | yes, 3c9b7fd | none |
 | 3. Public candidate API | `feat/candidate-view-public-api` | [#266](https://github.com/vadim-schultz/redtape/pull/266) | pass (`./ci.sh` on scratch DB: api 1150, web 627, ingest 1181; one known flaky key-prefix test passed on rerun) | not run (Actions billing, D17) | yes, 0591cb7 | none |
-| LR2. Showcase curation ([02-live-runs.md](02-live-runs.md#lr2--showcase-curation)) | docs PR `docs/candidate-view-showcase` | | | | | needs the API deployed (chapters 2, 3, 11) and LR1 |
+| LR2. Showcase curation ([02-live-runs.md](02-live-runs.md#lr2--showcase-curation)) | docs PR [#274](https://github.com/vadim-schultz/redtape/pull/274) | [#274](https://github.com/vadim-schultz/redtape/pull/274) | n/a (dry run: 0 problems) | n/a | yes: 5 candidates complete (5 of 5 flags) in production | none |
 | 4. Admin list contract | `feat/candidate-view-admin-list-contract` | [#267](https://github.com/vadim-schultz/redtape/pull/267) | pass (`./ci.sh` on scratch DB: api 1180; web lint/format/typecheck/build green, one known SuggestionForm flake passed alone; no web code changed) | not run (Actions billing, D17) | yes, c06c021 | none |
 | 5. Web candidate list | `feat/candidate-view-web-list` | [#268](https://github.com/vadim-schultz/redtape/pull/268) | partial: web narrow + full `npm test` (660) + lint/format/typecheck/build pass; api 1180 and ingest 1181 pass; `./ci.sh` web stage hit the known SuggestPage/SuggestionForm load timeouts twice (passed alone), so no clean end-to-end run | not run (Actions billing, D17) | yes, 6f5a51d | none; the release gate needs one clean `./ci.sh` |
 | 6. Web candidate detail | `feat/candidate-view-web-detail` | [#269](https://github.com/vadim-schultz/redtape/pull/269) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web green, ingest 1181) | not run (Actions billing, D17) | yes, 607f945 | none |
@@ -34,7 +34,27 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - **One-image verdict:** two images viewed (an arbeitsagentur.de page and the KBA ZFER page). Both show the procedure page. The arbeitsagentur capture carries a cookie-consent dialog over the header; the content below it is legible. The other 14 were not viewed, so the consent-wall rate is unknown.
 - **Next:** once the owner deploys the API, run S0 and S1 to queue the remaining categorised pages and drain them (503 browser seconds are left today; otherwise the next UTC day, 2026-10-31).
 
-**LR2, showcase candidates.** _(chief of staff fills: ranks and flags before and after, the chosen set with each candidate's role and `/candidates/<id>` path, codes and edge counts, the `curate` report line, the docs PR, capture result, one-image verdict, candidates still missing a screenshot)_
+**LR2, showcase candidates (2026-10-30).** The API deploy was live (`/api/v1/candidates` and the machine sources route answered 200).
+
+- **Before.** 4,612 candidates in total; the best completeness was 4 of 5. The top 30 by completeness: six at 4 (domain, edges, snapshot, screenshot present; no situation), eight at 3, then 2s. Titles of the top 30 are largely generic (`Bescheid`, `Kontaktformular`, `weitere Nachweise und Anlagen`, `Anlage N`) or file names (`Bestandsliste`, `Lagerbericht` ...). Skipped on purpose: `Lebenslauf` (generic, its description mixes several pages), `Bescheid`, `Kontaktformular`, the annexes.
+- **Chosen set** (all on two pages of the Bundesagentur für Arbeit; the four rehabilitation procedures share one identical page):
+
+| Candidate | Role | Flags before | After | Domain | Situation | Manual edges | Path |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Antrag auf Leistungen zur Teilhabe | ingress only (4 ingress) | 4 | 5 | work-employment | illness-care | 2 | `/candidates/2cabe381-6b75-49b1-ae31-c5e1668fe024` |
+| Nachweis über den Grad der Behinderung (GdB) | ingress and egress (1 and 2) | 4 | 5 | health-insurance, work-employment | illness-care | 1 | `/candidates/ee051d87-5cac-4884-8469-cd274d61a267` |
+| Bescheide eines anderen Rehabilitations- oder Sozialversicherungs-Trägers | long title (73 characters), egress only (3) | 4 | 5 | social-benefits, work-employment | illness-care | 1 | `/candidates/2bea6edf-0e21-407b-87d9-8db3c2dcaa76` |
+| Bestätigung der Ferienbeschäftigung | two codes on both axes, 3 ingress | 3 | 5 | work-employment, residence-migration | new-job, immigration | 2 | `/candidates/443381cd-85d8-425c-bb45-e0d8560c2f8d` |
+| Vollmacht des Betriebes | egress only, untagged before | 3 | 5 | law-justice | new-job | 1 | `/candidates/603cdee2-aeeb-4b7f-9e4b-cc1187d26134` |
+
+  The 12-neighbour cap is not exercised by real data (the largest side has 4), so it stays covered by the unit tests. Flags are domain, situation, edges, snapshot, screenshot.
+- **Curation file:** `docs/operations/candidate-curation/showcase.json`, docs PR #274 (merged by the owner before the apply). The dry run grounded every excerpt in the cleaned page and every code in the taxonomy: 0 problems.
+- **`curate` report line:** `mentions_created=5 mentions_updated=0 edges_created=4 edges_updated=3 edges_skipped=0 unknown_codes=0 dry_run=false` (three of the edges already existed from extraction and were updated as `manual`).
+- **Capture (C4):** not needed; all five candidates already had a screenshot from LR1. No browser seconds spent in LR2.
+- **After (C5).** `filter[complete]=yes` lists exactly these five (`total` 5), each with `complete` true, tags with names on both axes, `ingress` and `egress` as in the table, and a description. `GET /candidates/<id>/screenshot` answers 200, `image/jpeg`, `Cache-Control: public, max-age=31536000, immutable` and an `ETag`; the same request with `If-None-Match` answers 304; an unknown id answers 404.
+- **One-image verdict (public route, Bestätigung der Ferienbeschäftigung):** shows the procedure page; a cookie-consent dialog covers the header, the content below is legible.
+- **Observations for chapter 10.** The detail `description_source` for several candidates is a procedure title that differs from the candidate (for example GdB shows "Prüfung der beruflichen Eignung von Menschen mit Behinderungen beantragen"), because D4 takes the best mention excerpt's procedure; that is as designed but the owner may find it odd. The shared page also means one page backs four candidates.
+- **Reversal.** The owner can undo the run with the SQL in the ingest README ("Curate candidates by hand"): delete `discovery_candidate_edge` and `discovery_candidate_mention` rows with `extractor = 'manual'`.
 
 ## Chapter notes
 
@@ -46,13 +66,13 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 
 ## Release checklist
 
-- [ ] All chapter PRs are merged into the loop branch (verified with the host, not only the implementer's word).
-- [ ] Each chapter reports a red, green, refactor outcome.
-- [ ] Local gate green on the loop branch (`./ci.sh` on a scratch database if the local one is stale).
-- [ ] Screenshot collection (LR1) and showcase curation (LR2) recorded above, or deferred with the blocker named.
-- [ ] The showcase candidates are complete in the public list (five chips) and their paths are in the ledger for the smoke.
+- [x] All chapter PRs are merged into the loop branch (verified with the host, not only the implementer's word): #263 to #272 (chapters 1 to 9 and 11). Chapter 10 is not done.
+- [x] Each chapter reports a red, green, refactor outcome (chapters 1 to 9 and 11).
+- [x] Local gate green: the last full `./ci.sh` (scratch database) before the release was api 1185, web 763, ingest 1181 passed.
+- [x] Screenshot collection (LR1) and showcase curation (LR2) recorded above; LR1 has one page still to retry.
+- [x] The showcase candidates are complete in the public list (five of five flags); their paths are in the LR2 table for the smoke.
 - [ ] Manual smoke (`docs/operations/candidate-view.md`, section Release smoke checks, written by chapter 10) performed by a human in light, dark and narrow layouts.
-- [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
+- [x] Release PR opened and merged: #273 (before chapter 10; remote CI not run, Actions billing). A second release PR is needed for chapter 10.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30 — stopped before chapter 10: chapters 1 to 9 and 11 merged and verified; LR1 partial (16 screenshots), LR2 not run. Chapter 10 and the release PR wait for the owner's API deploy (chapters 1, 2, 3, 11), because chapter 10 needs the LR2 showcase list and the LR1 totals.
+**Last orchestration:** 2026-10-30. Chapters 1 to 9 and 11 merged and verified; release PR #273 merged into `main`; LR1 and LR2 done. Open: chapter 10 (docs and release smoke checklist), the retry of one screenshot, and the manual smoke.
