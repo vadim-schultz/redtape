@@ -47,6 +47,18 @@ it("candidate detail renders every section for a populated candidate", async () 
   expect(screen.getByRole("heading", { name: "Evidence" })).toBeVisible();
 });
 
+it("item page shows the flow between the lists and the evidence", async () => {
+  stubCandidateDetailApi(() => json(populated));
+  renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  const names = screen
+    .getAllByRole("heading", { level: 2, hidden: true })
+    .map((heading) => heading.textContent);
+  const wanted = ["Ingress", "Egress", "Flow", "Evidence"];
+  expect(names.filter((name) => wanted.includes(name ?? ""))).toEqual(wanted);
+});
+
 it("candidate detail makes no screenshot request without a screenshot", async () => {
   const fetchMock = stubCandidateDetailApi(() =>
     json(candidateDetailFixture({ screenshot: null })),
@@ -109,7 +121,7 @@ it.each(BANNER_STATES)(
     stubCandidateDetailApi(respond);
     renderPage();
 
-    expect(await screen.findByText(marker)).toBeInTheDocument();
+    expect((await screen.findAllByText(marker)).length).toBeGreaterThan(0);
     expect(screen.getByText(BANNER)).toBeInTheDocument();
   },
 );

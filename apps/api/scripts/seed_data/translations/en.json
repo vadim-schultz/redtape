@@ -112,6 +112,10 @@
     "source_role_issued": "Issued",
     "checklist_title": "Completeness",
     "checklist_count": "{count} of 5",
+    "flow": "Flow",
+    "flow_summary": "{ingress} documents needed first, {egress} documents that need this one",
+    "flow_empty": "No dependencies staged for this document",
+    "flow_more": "+{count} more, see the list above",
     "back_to_list": "Back to the list",
     "not_found_title": "Candidate not found"
   },

@@ -112,6 +112,10 @@
     "source_role_issued": "Ausgestellt",
     "checklist_title": "Vollständigkeit",
     "checklist_count": "{count} von 5",
+    "flow": "Ablauf",
+    "flow_summary": "{ingress} Dokumente zuerst nötig, {egress} Dokumente, die dieses brauchen",
+    "flow_empty": "Für dieses Dokument sind keine Abhängigkeiten hinterlegt",
+    "flow_more": "+{count} weitere, siehe Liste oben",
     "back_to_list": "Zurück zur Liste",
     "not_found_title": "Kandidat nicht gefunden"
   },
