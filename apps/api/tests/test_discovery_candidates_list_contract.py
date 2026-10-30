@@ -7,6 +7,7 @@ import uuid
 import pytest
 from app.config import settings
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.repository.candidate_completeness import TagThresholds, completeness_subquery
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus, DiscoveryMentionRole
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -14,6 +15,7 @@ from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import Subquery
 
 from candidates_public_world import HOUSING, MOVING, Scene
 from test_discovery_admin_api import ADMIN_EMAIL, _admin_headers, _token
@@ -182,7 +184,7 @@ def test_candidate_list_filters_by_an_accepted_domain_code(client: Client, scene
 
     domain = _get(client, **{"filter[domain]": HOUSING})
     situation = _keys(client, **{"filter[situation]": MOVING})
-    other = _get(client, **{"filter[domain]": "family"})
+    other = _get(client, **{"filter[domain]": "identity-civil-status"})
 
     assert [item["key"] for item in domain["items"]] == ["accepted"] and domain["total"] == 1
     assert situation == ["accepted"]
@@ -208,6 +210,25 @@ def test_candidate_list_rejects_an_invalid_flag_value(client: Client, scene: Sce
 
     assert response.status_code == 422
     assert [(e["key"], e["source"]) for e in response.json()["extra"]] == [(key, "query")]
+
+
+def test_candidate_list_joins_the_completeness_model_only_when_it_is_needed(
+    client: Client, scene: Scene, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scene.candidate("anything")
+    joined: list[str] = []
+
+    def spy(thresholds: TagThresholds) -> Subquery:
+        joined.append("joined")
+        return completeness_subquery(thresholds)
+
+    monkeypatch.setattr("app.features.discovery.repository.candidate_relations.completeness_subquery", spy)
+
+    plain = client.get(URL, params={"sort_by": "roles", "filter[status]": "staged"}, headers=_admin_headers())
+    assert plain.status_code == 200 and joined == []
+    for params in ({"sort_by": "completeness"}, {"filter[has_edges]": "no"}):
+        assert client.get(URL, params=params, headers=_admin_headers()).status_code == 200
+    assert joined == ["joined"] * 4
 
 
 def test_candidate_list_rejects_an_unknown_sort_key_without_querying(
@@ -282,4 +303,3 @@ def test_machine_candidate_list_is_unchanged(
     assert {"id", "key", "title_i18n", "status", "mention_count", "roles", "jurisdiction_name_i18n"} <= set(
         both["items"][0]
     )
-

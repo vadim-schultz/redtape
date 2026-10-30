@@ -6,6 +6,7 @@ from dataclasses import asdict
 from urllib.parse import urlparse
 from uuid import UUID
 
+from app.features.discovery.candidate_list_items import list_item, reject_unknown_codes
 from app.features.discovery.candidate_tags import candidate_tag_suggestions
 from app.features.discovery.lookups import require_candidate
 from app.features.discovery.repository import (
@@ -16,27 +17,16 @@ from app.features.discovery.repository import (
     EdgeRow,
     Page,
 )
-from app.features.discovery.repository.candidate_listing import CandidateListRow
-from app.models.discovery import DiscoveryMentionRole
+from app.features.taxonomy.service import TaxonomyService
 from app.schema.discovery.candidate_edges import CandidateEdgeListResponse, CandidateEdgeRead
 from app.schema.discovery.candidate_sources import CandidateSourceListResponse, CandidateSourceRead
 from app.schema.discovery.read import (
     CandidateDetailResponse,
-    CandidateListItemRead,
     CandidateListResponse,
     CandidateMentionRead,
     CandidateRead,
     TagSupportRead,
 )
-
-
-def _list_item(row: CandidateListRow) -> CandidateListItemRead:
-    base = CandidateRead.from_row(row.candidate, mention_count=row.mention_count)
-    return CandidateListItemRead(
-        **base.model_dump(),
-        roles=[DiscoveryMentionRole(role) for role in row.roles],
-        jurisdiction_name_i18n=row.jurisdiction_name_i18n,
-    )
 
 
 def _source_read(row: CandidateSourceRow) -> CandidateSourceRead:
@@ -66,15 +56,21 @@ def _edge_read(row: EdgeRow) -> CandidateEdgeRead:
 class CandidateAdminService:
     """Read-only document candidates for allowlisted operators."""
 
-    def __init__(self, repository: DiscoveryRepository) -> None:
-        """Bind the service to ``repository``."""
+    def __init__(self, repository: DiscoveryRepository, taxonomy: TaxonomyService) -> None:
+        """Bind the service to ``repository`` and the taxonomy lookups."""
         self._repo = repository
+        self._taxonomy = taxonomy
 
     def list_candidates(self, candidate_filter: CandidateFilter, page: Page) -> CandidateListResponse:
-        """Return one page of matching candidates with mention counts and the total."""
+        """Return one page of matching candidates with counts, completeness and the total.
+
+        An unknown taxonomy code in the filter is a validation error.
+        """
+        reject_unknown_codes(candidate_filter.completeness, self._taxonomy)
         total = self._repo.count_candidates(candidate_filter)
         rows = self._repo.list_candidates_page(page, candidate_filter)
-        items = [_list_item(row) for row in rows]
+        done = self._repo.completeness_for([row.candidate.id for row in rows])
+        items = [list_item(row, done[row.candidate.id]) for row in rows]
         return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def list_candidate_sources(
