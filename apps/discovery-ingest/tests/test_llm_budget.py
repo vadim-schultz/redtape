@@ -17,17 +17,21 @@ def _result(input_tokens: int | None, output_tokens: int | None, neurons: float 
     return LlmResult("{}", input_tokens, output_tokens, MODEL, neurons)
 
 
-def test_reserve_is_granted_within_the_ledger_and_denied_beyond_it(monkeypatch: pytest.MonkeyPatch) -> None:
-    """reserve · the ledger grants the estimate while it lasts and a denial is Denied, not an exception."""
+def test_reserve_is_granted_within_the_ledger_then_clamped_to_what_is_left_and_then_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """reserve · the ledger grants the estimate while it lasts, then the 5 left, then a denial is Denied, not an exception."""
     ledger = FakeLedger(remaining=ESTIMATE + 5)
     meter = NeuronMeter(guard_for(monkeypatch, ledger), 4000)
 
     granted = meter.reserve(MODEL, 3000, 1000)
+    clamped = meter.reserve(MODEL, 3000, 1000)
     denied = meter.reserve(MODEL, 3000, 1000)
 
     assert granted == Reservation(MODEL, ESTIMATE, ledgered=True)
+    assert clamped == Reservation(MODEL, 5, ledgered=True)
     assert denied == Denied("ledger")
-    assert meter.used_neurons == ESTIMATE
+    assert meter.used_neurons == ESTIMATE + 5
 
 
 def test_a_reservation_that_would_pass_the_run_limit_is_granted_while_used_is_below_the_limit(
