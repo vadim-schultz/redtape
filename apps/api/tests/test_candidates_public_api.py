@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
+import app.features.discovery.dependencies as discovery_dependencies
 import pytest
+from app.config import settings
+from app.features.discovery.budget_resources import BudgetResource
+from app.features.discovery.budgets import BudgetService
+from app.features.discovery.repository import DiscoveryRepository
 from app.main import create_app
 from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus, DiscoveryMentionRole
+from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
 from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
@@ -31,6 +39,42 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
 @pytest.fixture
 def scene(db_session: Session) -> Scene:
     return Scene(db_session)
+
+
+class CountingStore(InMemoryObjectStore):
+    """An in-memory store that counts the reads that reach it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.reads = 0
+
+    def get(self, key: str) -> bytes:
+        self.reads += 1
+        return super().get(key)
+
+
+class StoreSlot:
+    """The store the app resolves for its ``object_store`` dependency; tests may swap or clear it."""
+
+    def __init__(self) -> None:
+        self.store: ObjectStore | None = CountingStore()
+
+    @property
+    def memory(self) -> CountingStore:
+        assert isinstance(self.store, CountingStore)
+        return self.store
+
+
+@pytest.fixture
+def slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
+    """Put the slot's store under the ledger meter the discovery dependencies pass to ``get_object_store``."""
+    holder = StoreSlot()
+
+    def metered_slot_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore | None:
+        return None if holder.store is None else MeteredObjectStore(holder.store, meter)
+
+    monkeypatch.setattr(discovery_dependencies, "get_object_store", metered_slot_store)
+    return holder
 
 
 def _keys(response) -> list[str]:
@@ -277,3 +321,124 @@ def test_public_routes_have_no_auth_guards() -> None:
     assert len(public) >= 2
     assert all(not guards for guards in public.values())
     assert admin and all(guards for guards in admin.values())
+
+
+SHOT = "/screenshot"
+IMMUTABLE = "public, max-age=31536000, immutable"
+
+
+def _etag(data: bytes) -> str:
+    return f'"{hashlib.sha256(data).hexdigest()}"'
+
+
+def _class_b_reads(db_session: Session) -> float:
+    """How many R2 Class B reads the budget ledger has counted in the current period."""
+    status = BudgetService(DiscoveryRepository(db_session)).status(BudgetResource.R2_CLASS_B, datetime.now(UTC))
+    return float(status.used)
+
+
+def _with_shots(scene: Scene, slot: StoreSlot) -> uuid.UUID:
+    """A candidate on two procedures with an older and a newer screenshot; return its id."""
+    owner, old, new = scene.candidate("subject"), scene.procedure(), scene.procedure()
+    scene.mention(owner, old)
+    scene.mention(owner, new)
+    scene.stored_screenshot(old, slot.memory, b"old-image", days_old=5)
+    scene.stored_screenshot(new, slot.memory, b"new-image", days_old=1)
+    return owner.id
+
+
+def test_screenshot_streams_the_newest_image_with_immutable_headers(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot, db_session: Session
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}")
+
+    assert response.status_code == 200
+    assert response.content == b"new-image"
+    assert response.headers["content-type"].startswith("image/jpeg")
+    assert response.headers["cache-control"] == IMMUTABLE
+    assert response.headers["etag"] == _etag(b"new-image")
+    assert _class_b_reads(db_session) == 1
+
+
+def test_screenshot_answers_304_for_a_matching_etag_without_reading_the_store(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot, db_session: Session
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}", headers={"If-None-Match": _etag(b"new-image")})
+
+    assert response.status_code == 304
+    assert response.content == b""
+    assert (response.headers["etag"], response.headers["cache-control"]) == (_etag(b"new-image"), IMMUTABLE)
+    assert slot.memory.reads == 0
+    assert _class_b_reads(db_session) == 0
+
+
+def test_screenshot_sends_the_image_for_a_stale_etag(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+
+    stale = client.get(f"{URL}/{candidate_id}{SHOT}", headers={"If-None-Match": _etag(b"old-image")})
+
+    assert (stale.status_code, stale.content) == (200, b"new-image")
+
+
+def test_screenshot_is_404_without_an_image(client: TestClient[Litestar], scene: Scene, slot: StoreSlot) -> None:
+    bare, elsewhere = scene.candidate("bare"), scene.candidate("elsewhere")
+    scene.mention(elsewhere, scene.procedure())
+    scene.stored_screenshot(scene.procedure(), slot.memory, b"not-theirs")
+
+    no_image = client.get(f"{URL}/{bare.id}{SHOT}")
+    other_procedure = client.get(f"{URL}/{elsewhere.id}{SHOT}")
+    unknown = client.get(f"{URL}/{uuid.uuid4()}{SHOT}")
+
+    assert (no_image.status_code, other_procedure.status_code, unknown.status_code) == (404, 404, 404)
+    assert "no screenshot" in no_image.json()["detail"].lower()
+    assert "candidate not found" in unknown.json()["detail"].lower()
+    assert slot.memory.reads == 0
+
+
+def test_screenshot_is_404_when_the_stored_object_is_gone(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+    for key in slot.memory.stored_keys():
+        slot.memory.delete(key)
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}")
+
+    assert response.status_code == 404
+    assert "no screenshot" in response.json()["detail"].lower()
+
+
+def test_screenshot_is_503_over_the_read_budget(
+    client: TestClient[Litestar],
+    scene: Scene,
+    slot: StoreSlot,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+    monkeypatch.setattr(settings, "budget_r2_class_b_monthly", 0)
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}")
+
+    assert response.status_code == 503
+    assert b"new-image" not in response.content
+    assert slot.memory.reads == 0
+    assert _class_b_reads(db_session) == 0
+
+
+def test_screenshot_is_503_when_storage_is_not_configured(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+    slot.store = None
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}")
+
+    assert response.status_code == 503
+    assert "not configured" in response.json()["detail"].lower()
