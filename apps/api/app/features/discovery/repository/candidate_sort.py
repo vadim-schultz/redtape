@@ -50,8 +50,13 @@ _PRIMARY: Mapping[CandidateSortKey, Callable[[MentionCount], ColumnElement]] = {
 }
 
 
+def tie_break() -> Ordering:
+    """Return the deterministic tail of every candidate ordering: title, key and id ascending."""
+    return (title_expression().asc(), Candidate.key.asc(), Candidate.id.asc())
+
+
 def candidate_ordering(key: CandidateSortKey, order: SortOrder, mention_count: MentionCount) -> Ordering:
-    """Return the order-by clauses: the requested key and direction, then title, key and id ascending."""
+    """Return the order-by clauses: the requested key and direction, then the :func:`tie_break`."""
     primary = _PRIMARY[key](mention_count)
     directed = primary.desc() if order is SortOrder.DESC else primary.asc()
-    return (directed, title_expression().asc(), Candidate.key.asc(), Candidate.id.asc())
+    return (directed, *tie_break())

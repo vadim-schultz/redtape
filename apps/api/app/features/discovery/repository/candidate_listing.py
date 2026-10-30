@@ -37,7 +37,8 @@ class CandidateMentionRow(NamedTuple):
     artifact: DiscoveryArtifact | None
 
 
-def _mention_stats() -> Subquery:
+def mention_stats() -> Subquery:
+    """Return ``(candidate_id, mention_count, roles)`` per candidate that has a mention."""
     role = cast(DiscoveryCandidateMention.role, String)
     return (
         select(
@@ -50,11 +51,13 @@ def _mention_stats() -> Subquery:
     )
 
 
-def _count_of(stats: Subquery) -> ColumnElement[int]:
+def mention_count_of(stats: Subquery) -> ColumnElement[int]:
+    """Return the mention count of ``stats``, ``0`` for a candidate without a mention."""
     return func.coalesce(stats.c.mention_count, 0)
 
 
-def _with_stats(stmt: Select, stats: Subquery) -> Select:
+def with_stats(stmt: Select, stats: Subquery) -> Select:
+    """Left-join ``stats`` to a select over candidates."""
     return stmt.outerjoin(stats, stats.c.candidate_id == DiscoveryDocumentCandidate.id)
 
 
@@ -63,16 +66,16 @@ class CandidateListingRepository(SessionRepository):
 
     def count_candidates(self, candidate_filter: CandidateFilter) -> int:
         """Count the candidates that match ``candidate_filter``."""
-        stats = _mention_stats()
-        stmt = _with_stats(select(func.count()).select_from(DiscoveryDocumentCandidate), stats)
-        return int(self._session.scalar(stmt.where(*candidate_filter.conditions(_count_of(stats)))) or 0)
+        stats = mention_stats()
+        stmt = with_stats(select(func.count()).select_from(DiscoveryDocumentCandidate), stats)
+        return int(self._session.scalar(stmt.where(*candidate_filter.conditions(mention_count_of(stats)))) or 0)
 
     def list_candidates_page(self, page: Page, candidate_filter: CandidateFilter) -> list[CandidateListRow]:
         """Return one page of matching candidates in the filter's order."""
-        stats = _mention_stats()
-        count = _count_of(stats)
+        stats = mention_stats()
+        count = mention_count_of(stats)
         columns = select(DiscoveryDocumentCandidate, count, stats.c.roles, Jurisdiction.name_i18n)
-        stmt = _with_stats(columns, stats).join(
+        stmt = with_stats(columns, stats).join(
             Jurisdiction, Jurisdiction.id == DiscoveryDocumentCandidate.jurisdiction_id
         )
         stmt = stmt.where(*candidate_filter.conditions(count)).order_by(*candidate_filter.ordering(count))
