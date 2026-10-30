@@ -178,6 +178,12 @@ snapshot -> llm_extract -> mentions, staged edges, tag codes -> candidates (at l
 candidates -> admin review -> manual emit -> pending new_document suggestion
 ```
 
+Only `llm_extract` queues a capture, and only after it posts mentions. A page that was extracted earlier has none.
+`capture requeue` queues `capture_screenshot` for each page that carries candidate mentions and has no screenshot (it
+reads them from `GET /machine/candidates/sources`). Its identity is the catalogue row, the kind, the URL and `shot@1`, so
+a repeated run reports `already_queued` and never duplicates. Then drain `capture_screenshot` on a laptop
+([discovery-online.md](discovery-online.md) § Run a browser drain on a laptop).
+
 The default drain handles `fetch_url`, `enrich_metadata`, `harvest_payload` and `extract_page`. The browser kinds are
 drained only by `discovery-render.yml` or an explicit `--kinds`, with a browser budget. Flags, retry rules, stop
 reasons and limits: [discovery-online.md](discovery-online.md) § Bounded drain and § Browser kinds.
@@ -289,6 +295,7 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `POST /machine/tasks/{id}/complete` | Complete, with an optional result `note` |
 | `POST /machine/tasks/{id}/artifacts` | Upload a snapshot or screenshot (multipart): 415, 413, 503, 507 |
 | `GET /machine/artifacts`, `…/{id}/content`, `…/status` | List (`kind`, `host`), read bytes, and check `storage_enabled` and the byte accounting |
+| `GET /machine/candidates/sources` | Catalogue rows with at least one candidate mention and the newest `html_snapshot` url of each (`missing=screenshot`, `host`, `candidate_id`, repeated `catalogue_service_id` up to 20, `offset`, `limit`); read-only; the input of `capture requeue` |
 | `POST /machine/candidates/mentions` | Post mentions for a candidate (role, condition, optional flag, tag codes; the response counts `unknown_codes`) |
 | `POST /machine/candidates/edges` | Post staged edges: answers `{edges_created, edges_updated, edges_skipped, skipped}` |
 | `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |

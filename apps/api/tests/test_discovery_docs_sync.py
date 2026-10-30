@@ -110,3 +110,39 @@ def test_discovery_online_docs_relative_links_resolve() -> None:
         RUNBOOK,
     ):
         _assert_relative_links_resolve(path)
+
+
+INGEST_README = REPO_ROOT / "apps/discovery-ingest/README.md"
+SOURCES_ROUTE = "/machine/candidates/sources"
+CAPTURE_REQUEUE = "capture requeue"
+
+
+def _sources_docs_gaps(runbook: str, ingest_readme: str, online_runbook: str) -> list[str]:
+    """Name the docs that miss the sources route or the ``capture requeue`` command."""
+    expected = {
+        "discovery-layer.md route table": (runbook, SOURCES_ROUTE),
+        "discovery-layer.md command": (runbook, CAPTURE_REQUEUE),
+        "ingest README": (ingest_readme, CAPTURE_REQUEUE),
+        "discovery-online.md": (online_runbook, CAPTURE_REQUEUE),
+    }
+    return [name for name, (text, needle) in expected.items() if needle not in text]
+
+
+def test_discovery_docs_list_the_sources_route_and_capture_requeue() -> None:
+    """The route table, the ingest README and the laptop drain doc name the sources route and the command."""
+    texts = [path.read_text(encoding="utf-8") for path in (RUNBOOK, INGEST_README, DISCOVERY_ONLINE_RUNBOOK)]
+
+    assert _sources_docs_gaps(*texts) == []
+
+
+def test_sources_docs_check_fails_when_a_doc_drops_the_route_or_the_command() -> None:
+    """Negative: text without the route or the command is reported, so removing either from a doc fails the check."""
+    runbook = f"| `GET {SOURCES_ROUTE}` | list |\n{CAPTURE_REQUEUE}"
+
+    assert _sources_docs_gaps(runbook, "", "") == ["ingest README", "discovery-online.md"]
+    assert _sources_docs_gaps(runbook.replace(SOURCES_ROUTE, ""), CAPTURE_REQUEUE, CAPTURE_REQUEUE) == [
+        "discovery-layer.md route table"
+    ]
+    assert _sources_docs_gaps(runbook.replace(CAPTURE_REQUEUE, ""), CAPTURE_REQUEUE, CAPTURE_REQUEUE) == [
+        "discovery-layer.md command"
+    ]

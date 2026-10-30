@@ -115,6 +115,18 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
   --time-budget-seconds 900 --browser-budget-seconds 570
 ```
 
+`capture requeue` queues `capture_screenshot` for each page that carries candidate mentions and has no screenshot. It
+needs only `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` (no Cloudflare variables; the drain checks those):
+
+```bash
+# Count first, then queue; a repeated run reports already_queued and never duplicates (identity: row, kind, URL, shot@1):
+python -m discovery_ingest capture requeue --limit 50 --dry-run
+python -m discovery_ingest capture requeue --limit 50 [--host verwaltung.bund.de] [--service-id UUID ...]
+```
+
+It prints `pages=N queued=N already_queued=N failed=N` (and `dry_run=true`) and exits 1 when `failed` is not zero.
+`--limit` is 1 to 200 (default 50); `--service-id` is repeatable, at most 20.
+
 `browser probe` takes `--url` (repeatable), `--error-url`, `--variant` (repeatable) and `--max-browser-seconds`
 (default 240). It exits 2 when a Cloudflare variable is missing and 1 when Cloudflare refused.
 

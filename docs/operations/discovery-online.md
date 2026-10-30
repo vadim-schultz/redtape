@@ -252,6 +252,17 @@ python -m discovery_ingest worker drain --kinds render_page --max-tasks 5 --max-
   --time-budget-seconds 900 --browser-budget-seconds 570
 ```
 
+To capture the pages that were categorised before any screenshot was queued, run `capture requeue`, then drain
+`capture_screenshot` (it needs only `DISCOVERY_API_URL` and `DISCOVERY_API_KEY`; the drain needs the Cloudflare
+variables). Use `--dry-run` first to count the pages:
+
+```bash
+python -m discovery_ingest capture requeue --limit 50 --dry-run
+python -m discovery_ingest capture requeue --limit 50
+python -m discovery_ingest worker drain --kinds capture_screenshot --max-tasks 5 --max-batches 40 \
+  --time-budget-seconds 900 --browser-budget-seconds 570
+```
+
 Run it at most once a day. The check of the Cloudflare credentials needs only the two Cloudflare variables:
 `python -m discovery_ingest browser probe --url https://example.com`.
 
