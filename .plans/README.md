@@ -235,6 +235,29 @@ E19 (a neuron overshoot rule so a day reaches its cap) and E20 (a quote-grounded
 the [operator checklist](../docs/operations/extraction-operator-checklist.md). Nothing is emitted automatically. CoS
 orchestration and known gaps: [`docs/operations/loops/extraction.md`](../docs/operations/loops/extraction.md).
 
+### [candidate-view/](candidate-view/) — Public candidate list and item view
+
+A public, read-only view of the staged document candidates: `/candidates` (every candidate as a card, ranked by a
+five-flag completeness: domain, life situation, dependencies, snapshot, screenshot) and `/candidates/:id` (title,
+description, ingress and egress dependency cards, and a hand-rolled SVG flow diagram with smooth arrows into and out
+of the title card). One completeness read model is shared with the admin list. Also: the screenshot collection that
+makes the pages worth opening (a `capture requeue` tool and a chief-of-staff live run, because production has none), a handful of highest-ranking candidates completed by hand (a file-driven `candidates curate` tool, manual tags that override the consensus, a second live run) so the pages can be checked against full data,
+a public screenshot proxy with immutable caching, the admin documents table brought to the DataTable contract (toolbar
+in the table header, every column sortable and filterable, bounded titles with a tooltip, a Ready filter), and distinct
+admin catalogue and coverage pages. Eleven chapters and two live runs; loop branch `feat/plans-candidate-view`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](candidate-view/00-architecture.md) | Vocabulary (ingress, egress), completeness model, API and UI contract, diagram design |
+| [01-rollout.md](candidate-view/01-rollout.md) | Eleven chapters, dependency graph, invariants, execution order, gates |
+| [02-live-runs.md](candidate-view/02-live-runs.md) | LR1 screenshot collection and LR2 showcase curation, run by the chief of staff |
+| [gaps-and-decisions.md](candidate-view/gaps-and-decisions.md) | Settled decisions, open seams (curation gate), risks |
+| [run-ledger.md](candidate-view/run-ledger.md) | Chapter outcomes and live-run record |
+| [chapters/](candidate-view/chapters/) | One executable plan per chapter |
+
+Status: planned — implementation not started. First: [chapters/01-capture-requeue.md](candidate-view/chapters/01-capture-requeue.md).
+CoS orchestration: [`docs/operations/loops/candidate-view.md`](../docs/operations/loops/candidate-view.md).
+
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 
 Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine discovery API, read-only admin at `/admin/discovery/*`, machine emit to [suggestion-interface](suggestion-interface/00-architecture.md) (`pending` only). **Loop-complete without** voting-moderation, evidence-storage, or crawlers — those suites consume or extend staging later.
