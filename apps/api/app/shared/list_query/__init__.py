@@ -5,7 +5,7 @@ A resource declares a ``ListQuerySpec``: the sort keys it can order by and a typ
 ``ValidationException`` that lists every offending parameter. No client text reaches a repository unchecked.
 """
 
-from app.shared.list_query.filters import enum_filter, min_int_filter
+from app.shared.list_query.filters import enum_filter, min_int_filter, text_filter, uuid_filter
 from app.shared.list_query.model import FilterParser, FilterValue, ListQuery, ListQuerySpec, SortOrder
 from app.shared.list_query.parse import SEARCH_MAX_LENGTH, parse_list_query
 from app.shared.list_query.provider import provide_list_query
@@ -21,4 +21,6 @@ __all__ = [
     "min_int_filter",
     "parse_list_query",
     "provide_list_query",
+    "text_filter",
+    "uuid_filter",
 ]

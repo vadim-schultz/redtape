@@ -57,8 +57,10 @@ def provide_discovery_edge_service(discovery_repository: DiscoveryRepository) ->
     return EdgeService(discovery_repository)
 
 
-def provide_discovery_candidate_admin_service(discovery_repository: DiscoveryRepository) -> CandidateAdminService:
-    return CandidateAdminService(discovery_repository)
+def provide_discovery_candidate_admin_service(
+    discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
+) -> CandidateAdminService:
+    return CandidateAdminService(discovery_repository, taxonomy_service)
 
 
 def provide_discovery_candidate_emit_service(

@@ -5,15 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar
+from uuid import UUID
 
 from sqlalchemy import ColumnElement, exists, func, literal, select
 
-from app.features.discovery.repository.candidate_sort import (
-    CandidateSortKey,
-    MentionCount,
-    Ordering,
-    candidate_ordering,
-)
+from app.features.discovery.repository.candidate_filter_flags import CompletenessFilter
+from app.features.discovery.repository.candidate_relations import CandidateRelations
+from app.features.discovery.repository.candidate_sort import CandidateSortKey, Ordering, ordered_by
 from app.models.discovery import (
     CatalogueService,
     DiscoveryCandidateMention,
@@ -63,19 +61,39 @@ class CandidateFilter:
     min_mentions: int | None = None
     role: DiscoveryMentionRole | None = None
     source: DiscoverySource | None = None
+    jurisdiction_id: UUID | None = None
+    completeness: CompletenessFilter = CompletenessFilter()
     sort_by: CandidateSortKey = CandidateSortKey.MENTIONS
     sort_order: SortOrder = SortOrder.DESC
 
-    def conditions(self, mention_count: MentionCount) -> list[ColumnElement[bool]]:
+    @property
+    def needs_completeness(self) -> bool:
+        """Whether the query has to join the completeness model: a flag or code filter, or its sort."""
+        return self.completeness.is_set or self.sort_by is CandidateSortKey.COMPLETENESS
+
+    def relations(self) -> CandidateRelations:
+        """Return the relations this filter reads; the completeness model only when it is needed."""
+        if self.needs_completeness:
+            return CandidateRelations.with_completeness()
+        return CandidateRelations.mentions_only()
+
+    def conditions(self, relations: CandidateRelations) -> list[ColumnElement[bool]]:
         """Return the where-clauses of the filters that are set."""
         return [
             *when(self.status, lambda status: Candidate.status == status),
             *when(self.q, title_matches),
-            *when(self.min_mentions, lambda minimum: mention_count >= minimum),
+            *when(self.min_mentions, lambda minimum: relations.mention_count >= minimum),
             *when(self.role, _has_role),
             *when(self.source, _has_source),
+            *when(self.jurisdiction_id, lambda jurisdiction: Candidate.jurisdiction_id == jurisdiction),
+            *self._completeness_conditions(relations),
         ]
 
-    def ordering(self, mention_count: MentionCount) -> Ordering:
+    def ordering(self, relations: CandidateRelations) -> Ordering:
         """Return the order-by clauses of the chosen sort."""
-        return candidate_ordering(self.sort_by, self.sort_order, mention_count)
+        return ordered_by(self.sort_by, self.sort_order, relations.sort_inputs())
+
+    def _completeness_conditions(self, relations: CandidateRelations) -> list[ColumnElement[bool]]:
+        if relations.completeness is None:
+            return []
+        return self.completeness.conditions(relations.completeness)
