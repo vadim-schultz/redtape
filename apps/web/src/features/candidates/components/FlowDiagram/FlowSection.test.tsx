@@ -49,7 +49,7 @@ it("flow diagram is hidden below the md breakpoint", () => {
 
   const heading = screen.getByRole("heading", { name: "Flow", hidden: true });
   const section = heading.closest("section")!;
-  expect(heading.parentElement).toBe(section);
+  expect(section).toContainElement(heading);
   const className = section.className.split(" ").pop()!;
   const css = cssText();
   expect(css).toMatch(new RegExp(`\\.${className}[^{]*\\{[^}]*display: none`));

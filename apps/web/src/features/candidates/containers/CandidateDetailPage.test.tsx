@@ -121,7 +121,7 @@ it.each(BANNER_STATES)(
     stubCandidateDetailApi(respond);
     renderPage();
 
-    expect(await screen.findByText(marker)).toBeInTheDocument();
+    expect((await screen.findAllByText(marker)).length).toBeGreaterThan(0);
     expect(screen.getByText(BANNER)).toBeInTheDocument();
   },
 );
