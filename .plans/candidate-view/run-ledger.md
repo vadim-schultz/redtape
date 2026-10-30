@@ -14,7 +14,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 11. Manual curation tool | `feat/candidate-view-curation-tool` | [#265](https://github.com/vadim-schultz/redtape/pull/265) | pass (`./ci.sh` on scratch DB: api 1113, web 627, ingest 1181) | not run (Actions billing, D17) | yes, 3c9b7fd | none |
 | 3. Public candidate API | `feat/candidate-view-public-api` | [#266](https://github.com/vadim-schultz/redtape/pull/266) | pass (`./ci.sh` on scratch DB: api 1150, web 627, ingest 1181; one known flaky key-prefix test passed on rerun) | not run (Actions billing, D17) | yes, 0591cb7 | none |
 | LR2. Showcase curation ([02-live-runs.md](02-live-runs.md#lr2--showcase-curation)) | docs PR `docs/candidate-view-showcase` | | | | | needs the API deployed (chapters 2, 3, 11) and LR1 |
-| 4. Admin list contract | `feat/candidate-view-admin-list-contract` | | | | | |
+| 4. Admin list contract | `feat/candidate-view-admin-list-contract` | [#267](https://github.com/vadim-schultz/redtape/pull/267) | pass (`./ci.sh` on scratch DB: api 1180; web lint/format/typecheck/build green, one known SuggestionForm flake passed alone; no web code changed) | not run (Actions billing, D17) | yes, c06c021 | none |
 | 5. Web candidate list | `feat/candidate-view-web-list` | | | | | |
 | 6. Web candidate detail | `feat/candidate-view-web-detail` | | | | | |
 | 7. Flow diagram | `feat/candidate-view-flow-diagram` | | | | | |
@@ -39,4 +39,4 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11 and 3 merged and verified, LR1 blocked on the owner's API deploy.
+**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11, 3 and 4 merged and verified, LR1 blocked on the owner's API deploy.
