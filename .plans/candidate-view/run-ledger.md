@@ -20,7 +20,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 7. Flow diagram | `feat/candidate-view-flow-diagram` | [#270](https://github.com/vadim-schultz/redtape/pull/270) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web 722, ingest 1181) | not run (Actions billing, D17) | yes, bfecff1 | none |
 | 8. Admin documents table | `feat/candidate-view-admin-table` | [#271](https://github.com/vadim-schultz/redtape/pull/271) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1181, web green, ingest green) | not run (Actions billing, D17) | yes, 6fa692f | none; gaps recorded below |
 | 9. Catalogue vs coverage | `feat/candidate-view-catalogue-coverage` | [#272](https://github.com/vadim-schultz/redtape/pull/272) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1185, web 763, ingest 1181) | not run (Actions billing, D17) | yes, 4462b65 | none (first implementer died on an expired auth session; a second one finished it; see notes) |
-| 10. Docs and release | `docs/candidate-view-release` | | | | | |
+| 10. Docs and release | `docs/candidate-view-release` | [#276](https://github.com/vadim-schultz/redtape/pull/276) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1192, web 763, ingest 1181; one known key-prefix flake passed alone) | not run (Actions billing, D17) | yes, 4ed8243 | none; the operator doc lists all seven smoke items as not yet performed |
 
 ## Live run records
 
@@ -66,13 +66,13 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 
 ## Release checklist
 
-- [x] All chapter PRs are merged into the loop branch (verified with the host, not only the implementer's word): #263 to #272 (chapters 1 to 9 and 11). Chapter 10 is not done.
-- [x] Each chapter reports a red, green, refactor outcome (chapters 1 to 9 and 11).
+- [x] All chapter PRs are merged into the loop branch (verified with the host, not only the implementer's word): #263 to #272 and #276 (chapters 1 to 11).
+- [x] Each chapter reports a red, green, refactor outcome (chapters 1 to 11).
 - [x] Local gate green: the last full `./ci.sh` (scratch database) before the release was api 1185, web 763, ingest 1181 passed.
 - [x] Screenshot collection (LR1) and showcase curation (LR2) recorded above; LR1 has one page still to retry.
 - [x] The showcase candidates are complete in the public list (five of five flags); their paths are in the LR2 table for the smoke.
 - [ ] Manual smoke (`docs/operations/candidate-view.md`, section Release smoke checks, written by chapter 10) performed by a human in light, dark and narrow layouts.
-- [x] Release PR opened and merged: #273 (before chapter 10; remote CI not run, Actions billing). A second release PR is needed for chapter 10.
+- [x] Release PRs opened and merged: #273 (chapters 1 to 9 and 11, before chapter 10) and the closing release PR with chapter 10 (see the Release PR line). Remote CI not run (Actions billing).
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30. Chapters 1 to 9 and 11 merged and verified; release PR #273 merged into `main`; LR1 and LR2 done. Open: chapter 10 (docs and release smoke checklist), the retry of one screenshot, and the manual smoke.
+**Last orchestration:** 2026-10-30. All chapters (1 to 11) merged and verified; LR1 and LR2 done; the closing release PR merges chapter 10 into `main`. Open: the manual smoke (`docs/operations/candidate-view.md#release-smoke-checks`), the retry of one screenshot, the web deploy, and the owner's check of a possible production-database contact during chapter 9.

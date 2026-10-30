@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 STATUS = REPO_ROOT / "docs/planning/STATUS.md"
 ROLLOUT = REPO_ROOT / ".plans/discovery-layer/01-rollout.md"
@@ -32,8 +34,15 @@ def _relative_markdown_targets(markdown: str) -> list[str]:
     return targets
 
 
+def _display_name(markdown_path: Path) -> str:
+    """Name a doc relative to the repo root, or by its full path when it lives elsewhere."""
+    if markdown_path.is_relative_to(REPO_ROOT):
+        return str(markdown_path.relative_to(REPO_ROOT))
+    return str(markdown_path)
+
+
 def _assert_relative_links_resolve(markdown_path: Path) -> None:
-    assert markdown_path.is_file(), f"missing doc: {markdown_path.relative_to(REPO_ROOT)}"
+    assert markdown_path.is_file(), f"missing doc: {_display_name(markdown_path)}"
     text = markdown_path.read_text(encoding="utf-8")
     base = markdown_path.parent
     missing: list[str] = []
@@ -41,7 +50,7 @@ def _assert_relative_links_resolve(markdown_path: Path) -> None:
         resolved = (base / rel).resolve()
         if not (resolved.is_file() or resolved.is_dir()):
             missing.append(rel)
-    assert not missing, f"broken relative links in {markdown_path.relative_to(REPO_ROOT)}: {missing}"
+    assert not missing, f"broken relative links in {_display_name(markdown_path)}: {missing}"
 
 
 def test_status_mentions_discovery_layer_runbook() -> None:
@@ -146,3 +155,90 @@ def test_sources_docs_check_fails_when_a_doc_drops_the_route_or_the_command() ->
     assert _sources_docs_gaps(runbook.replace(CAPTURE_REQUEUE, ""), CAPTURE_REQUEUE, CAPTURE_REQUEUE) == [
         "discovery-layer.md command"
     ]
+
+
+CANDIDATE_VIEW_SUITE = REPO_ROOT / ".plans/candidate-view"
+CANDIDATE_VIEW_DOC = REPO_ROOT / "docs/operations/candidate-view.md"
+CANDIDATE_VIEW_SUITE_FILES = tuple(
+    CANDIDATE_VIEW_SUITE / name
+    for name in (
+        "00-architecture.md",
+        "01-rollout.md",
+        "02-live-runs.md",
+        "gaps-and-decisions.md",
+        "run-ledger.md",
+    )
+)
+CANDIDATE_VIEW_HEADINGS = ("## Release smoke checks", "## Deploy order")
+# (doc, needle) pairs: each doc must carry the needle once the public candidate view is documented.
+CANDIDATE_VIEW_DOC_NEEDLES = {
+    "discovery-layer.md links the operator doc": (RUNBOOK, "candidate-view.md"),
+    "discovery-layer.md lists the public routes": (RUNBOOK, "| `/candidates/<candidate-id>` |"),
+    "admin-tables.md notes the header toolbar": (REPO_ROOT / "docs/operations/admin-tables.md", "toolbar"),
+    "extraction checklist links the requeue command": (
+        REPO_ROOT / "docs/operations/extraction-operator-checklist.md",
+        "capture requeue",
+    ),
+    "STATUS records the candidate view": (STATUS, "candidate view"),
+    "loop doc is no longer planned": (REPO_ROOT / "docs/operations/loops/candidate-view.md", "Status\n\nBuilt"),
+}
+
+
+def _candidate_view_doc_gaps() -> list[str]:
+    """Name the docs that do not yet mention the public candidate view."""
+    return [
+        name
+        for name, (path, needle) in CANDIDATE_VIEW_DOC_NEEDLES.items()
+        if needle not in path.read_text(encoding="utf-8")
+    ]
+
+
+def test_candidate_view_operator_doc_links_resolve() -> None:
+    """The operator doc exists and its relative links resolve."""
+    _assert_relative_links_resolve(CANDIDATE_VIEW_DOC)
+
+
+def test_candidate_view_operator_doc_has_the_deploy_order_and_smoke_headings() -> None:
+    """The operator doc carries the deploy order and the release smoke checks."""
+    lines = CANDIDATE_VIEW_DOC.read_text(encoding="utf-8").splitlines()
+
+    assert [heading for heading in CANDIDATE_VIEW_HEADINGS if heading not in lines] == []
+
+
+def test_plans_readme_links_the_candidate_view_suite() -> None:
+    """The plans index names the suite, its rollout and the operator doc, and marks it built."""
+    text = PLANS_README.read_text(encoding="utf-8")
+    block = text.split("### [candidate-view/](candidate-view/)", 1)[-1].split("### [", 1)[0]
+
+    assert "candidate-view/01-rollout.md" in block
+    assert "operations/candidate-view.md" in block
+    assert "Status: built" in block
+
+
+def test_candidate_view_suite_documents_have_no_broken_relative_links() -> None:
+    """The five suite files resolve their relative links."""
+    for path in CANDIDATE_VIEW_SUITE_FILES:
+        _assert_relative_links_resolve(path)
+
+
+def test_candidate_view_docs_mention_the_public_view() -> None:
+    """The route tables, the admin notes, the indexes and the loop doc describe the public candidate view."""
+    assert _candidate_view_doc_gaps() == []
+
+
+def test_link_checker_reports_the_missing_target(tmp_path: Path) -> None:
+    """Negative: a doc with one broken link fails and the failure names that link."""
+    (tmp_path / "present.md").write_text("# Present\n", encoding="utf-8")
+    doc = tmp_path / "doc.md"
+    doc.write_text("[ok](present.md) and [gone](missing/target.md#top)\n", encoding="utf-8")
+
+    with pytest.raises(AssertionError, match=r"missing/target\.md") as failure:
+        _assert_relative_links_resolve(doc)
+
+    assert "present.md" not in str(failure.value)
+
+
+def test_link_checker_names_a_missing_doc(tmp_path: Path) -> None:
+    """Negative: a doc that does not exist is reported by its path."""
+    with pytest.raises(AssertionError, match="missing doc"):
+        _assert_relative_links_resolve(tmp_path / "absent.md")
