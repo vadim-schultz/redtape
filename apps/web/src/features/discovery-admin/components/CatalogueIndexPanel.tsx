@@ -4,6 +4,7 @@ import { useLocale } from "../../../contexts/LocaleContext";
 import type { CatalogueList } from "../hooks/useCatalogueListState";
 import type { CataloguePanel } from "../hooks/useCatalogueState";
 import CatalogueServicesTable from "./CatalogueServicesTable";
+import CatalogueSummaryChips from "./CatalogueSummaryChips";
 import ListSearch from "./ListSearch";
 
 export interface CatalogueIndexPanelProps {
@@ -11,7 +12,7 @@ export interface CatalogueIndexPanelProps {
   list: CatalogueList;
 }
 
-/** External-id search above the catalogue table, whose header carries sort and the source filter. */
+/** Summary chips and external-id search above the catalogue table, whose header carries sort and the column filters. */
 export default function CatalogueIndexPanel({
   panel,
   list,
@@ -20,6 +21,9 @@ export default function CatalogueIndexPanel({
 
   return (
     <Stack gap={4} align="stretch">
+      {panel.page ? (
+        <CatalogueSummaryChips summary={panel.page.summary} list={list} />
+      ) : null}
       <ListSearch
         value={list.state.search}
         label={t("discovery_admin.catalogue.filter_search")}

@@ -9,37 +9,22 @@ const QUERY = { offset: 0, limit: 20, filters: {} };
 
 const session = { accessToken: "t", userId: "u", email: "a@example.com" };
 const catalogue = { items: [{ id: "c1" }], total: 1, offset: 0, limit: 50 };
-const coverage = { by_source: {}, emit_ready_count: 3 };
 
 function StateProbe() {
-  const state = useCatalogueState(QUERY);
-  if (state.kind !== "ready") {
-    return <p>{`kind:${state.kind}`}</p>;
-  }
-  const rows = state.catalogue.page?.items ?? [];
-  const emit =
-    state.coverage.state === "ready"
-      ? state.coverage.data.emit_ready_count
-      : -1;
-  return (
-    <p>{`ready rows:${rows.length} coverage:${state.coverage.state} emit:${emit}`}</p>
-  );
+  const { page, status } = useCatalogueState(QUERY);
+  return <p>{`rows:${page?.items.length ?? -1} error:${status.isError}`}</p>;
 }
 
-function stub(catalogueRes: () => Response, coverageRes: () => Response) {
+function stub(catalogueRes: () => Response) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith("/catalogue")) return catalogueRes();
-      if (path.endsWith("/coverage")) return coverageRes();
       return new Response(JSON.stringify({ translations: {} }));
     }),
   );
 }
-
-const ok = (body: unknown) => () => new Response(JSON.stringify(body));
-const fail = () => new Response("", { status: 500 });
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
@@ -50,33 +35,31 @@ function renderProbe() {
   });
 }
 
-it("useCatalogueState · is ready with rows and coverage when both queries succeed", async () => {
-  stub(ok(catalogue), ok(coverage));
+it("useCatalogueState · carries the rows of the one catalogue query", async () => {
+  stub(() => new Response(JSON.stringify(catalogue)));
   renderProbe();
-  expect(
-    await screen.findByText("ready rows:1 coverage:ready emit:3"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("rows:1 error:false")).toBeInTheDocument();
 });
 
-it("useCatalogueState · stays ready with rows and flags coverage as error when only coverage fails", async () => {
-  stub(ok(catalogue), fail);
+it("useCatalogueState · has no rows and no error while the query is pending", () => {
+  stub(() => new Response());
   renderProbe();
-  expect(
-    await screen.findByText("ready rows:1 coverage:error emit:-1"),
-  ).toBeInTheDocument();
+  expect(screen.getByText("rows:-1 error:false")).toBeInTheDocument();
 });
 
-it("useCatalogueState · is loading while both queries are pending", () => {
-  stub(
-    () => new Response(),
-    () => new Response(),
-  );
+it("useCatalogueState · has no rows and flags the error when the query fails", async () => {
+  stub(() => new Response("", { status: 500 }));
   renderProbe();
-  expect(screen.getByText("kind:loading")).toBeInTheDocument();
+  expect(await screen.findByText("rows:-1 error:true")).toBeInTheDocument();
 });
 
-it("useCatalogueState · is error when both queries fail", async () => {
-  stub(fail, fail);
+it("useCatalogueState · never asks for coverage", async () => {
+  stub(() => new Response(JSON.stringify(catalogue)));
   renderProbe();
-  expect(await screen.findByText("kind:error")).toBeInTheDocument();
+  await screen.findByText("rows:1 error:false");
+
+  const paths = vi
+    .mocked(fetch)
+    .mock.calls.map(([input]) => new URL(String(input)).pathname);
+  expect(paths.some((path) => path.endsWith("/coverage"))).toBe(false);
 });

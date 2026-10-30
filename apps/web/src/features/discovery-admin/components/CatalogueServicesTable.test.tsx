@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { emotionRules } from "../../../test/emotionRules";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { fakeListController } from "../../../test/fakeListController";
 import { renderWithProviders } from "../../../test/renderWithProviders";
@@ -60,12 +61,13 @@ it("catalogue, mentions, and nested admin lists use the shared table contract (c
     within(table)
       .getAllByRole("columnheader")
       .map((header) => header.textContent),
-  ).toEqual(["External ID", "Source", "Stage"]);
+  ).toEqual(["External ID", "Title", "Source", "Stage"]);
   const row = within(screen.getByRole("row", { name: /service-1/ }));
   expect(row.getByRole("link", { name: "service-1" })).toHaveAttribute(
     "href",
     "/admin/discovery/pipeline/cat-1",
   );
+  expect(row.getByText("Example")).toBeInTheDocument();
   expect(row.getByText("pvog")).toBeInTheDocument();
   expect(row.getByText("T3")).toBeInTheDocument();
 });
@@ -135,4 +137,66 @@ it("header toolbar is absent from the catalogue table", () => {
   const card = screen.getByRole("table").closest("[data-section-card]");
   expect(card).not.toBeNull();
   expect(card?.querySelector("[data-section-header]")).toBeNull();
+});
+
+const LONG_TITLE = "A very long service title ".repeat(12).trim();
+
+it("title column clips with a tooltip and falls back to the external id", async () => {
+  const { user } = renderWithProviders(
+    <CatalogueServicesTable
+      page={pageOf([
+        { ...service, title_i18n: { en: LONG_TITLE } },
+        { ...service, id: "cat-2", external_id: "service-2", title_i18n: {} },
+      ])}
+      status={READY}
+      list={fakeList()}
+    />,
+  );
+
+  const long = screen.getByText(LONG_TITLE);
+  expect(emotionRules(long)).toContain("max-width: 28rem");
+  await user.hover(long);
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(LONG_TITLE);
+
+  const untitled = within(screen.getByRole("row", { name: /service-2/ }));
+  expect(untitled.getAllByText("service-2")).toHaveLength(2);
+});
+
+it("title column sorts by the title key", async () => {
+  const list = fakeList();
+  const { user } = renderWithProviders(
+    <CatalogueServicesTable
+      page={pageOf([service])}
+      status={READY}
+      list={list}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Title" }));
+  expect(list.setSort).toHaveBeenCalledExactlyOnceWith({
+    sortBy: "title",
+    sortOrder: "asc",
+  });
+});
+
+it("stage header filter offers T0 to T4 and sets the stage filter", async () => {
+  const list = fakeList();
+  const { user } = renderWithProviders(
+    <CatalogueServicesTable
+      page={pageOf([service])}
+      status={READY}
+      list={list}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Pipeline stage" }));
+  const select = screen.getByRole("combobox", { name: "Pipeline stage" });
+  expect(
+    within(select)
+      .getAllByRole("option")
+      .map((option) => option.textContent),
+  ).toEqual(expect.arrayContaining(["T0", "T1", "T2", "T3", "T4"]));
+  await user.selectOptions(select, "T4");
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  expect(list.setFilter).toHaveBeenCalledExactlyOnceWith("stage", "T4");
 });
