@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from discovery_ingest.extract.llm.evaluation.drop_reasons import quote_failures
 from discovery_ingest.extract.llm.evaluation.gold import GoldPage
 from discovery_ingest.extract.llm.evaluation.metrics import Counts, document_counts, edge_counts
 from discovery_ingest.extract.llm.evaluation.results import Scores
@@ -34,20 +35,22 @@ def lost_items(extraction: PageExtraction, grounded: Grounded) -> tuple[DroppedI
 
 
 def score_page(gold: GoldPage, extraction: PageExtraction, grounded: Grounded) -> Scores:
-    """Return the scores of the grounded answer, with the raw item count for the grounded rate."""
+    """Return the scores of the grounded answer, with the raw, kept and quote-failed item counts for the two rates."""
     documents = document_counts(
         [(d.name, d.role) for d in grounded.documents], [(d.name, d.role) for d in gold.documents]
     )
     edges = edge_counts(
         [(d.parent, d.requires) for d in grounded.dependencies], [(d.parent, d.requires) for d in gold.dependencies]
     )
+    dropped = lost_items(extraction, grounded)
     return Scores(
         documents,
         edges,
         raw_items=len(extraction.documents) + len(extraction.dependencies),
         kept_items=len(grounded.documents) + len(grounded.dependencies),
+        quote_failed_items=quote_failures(dropped),
         predicted_codes=(*grounded.domain_codes, *grounded.situation_codes),
         gold_codes=gold_codes(gold),
         page_kind=extraction.page_kind,
-        dropped=lost_items(extraction, grounded),
+        dropped=dropped,
     )

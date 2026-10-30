@@ -32,7 +32,43 @@ isProject: false
 
 ## Pending decisions
 
-### X16 (chapter E5 calls it X14): model, prompt version and thresholds. Pending the live eval
+### X16 (chapter E5 calls it X14): model, prompt version and thresholds. Decided 2026-10-30: Qwen3-30B
+
+**Final decision 2026-10-30 (chief of staff, under the owner's delegation of 2026-10-29).** Model
+`@cf/qwen/qwen3-30b-a3b-fp8` (already `DEFAULT_LLM_MODEL`, so no code change), prompt `ext-5`, cleaner `clean-4`,
+input cap 30,000 characters, `LLM_MAX_TOKENS` 4,000. Live `llm eval` on the 20 gold pages, run 2026-10-30 from
+`feat/extraction` at 870ffcf (E19 and E20 in), cache and results outside the repository; the chapter E20 metric
+(`grounded_rate=quote`):
+
+| Model | Precision (0.80) | Recall (0.60) | Quote-grounded (0.95) | Kept rate | Tag agreement (0.60) | Page kind | Neurons per page | Pages per day | Neurons this run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `qwen3-30b-a3b-fp8` | 0.68 | **0.68 met** | 0.93 | 0.73 | **0.63 met** | 0.74 | 63.5 | 150 | 1,206.4 |
+| `llama-4-scout-17b-16e-instruct` | 0.61 | 0.60 (just under) | **0.97 met** | 0.78 | 0.58 | 0.74 | 101.2 | 94 | 1,922.3 |
+| `mistral-small-3.1-24b-instruct` | 0.65 | 0.36 | 0.91 | 0.74 | **0.65 met** | 0.47 | 115.5 | 82 | 2,195.0 |
+| `llama-3.3-70b-instruct-fp8-fast` | not run on `ext-5` | | | | | | | | `ext-4`: P 0.57, R 0.51, tag 0.71, 154 a page; far from Qwen, not worth 3,100 neurons |
+
+Why Qwen: it meets two of the four thresholds, Scout and Mistral one each; it has the best precision and recall and the
+lowest cost, and the graph needs documents and categories (recall and tag agreement) first. Scout grounds best but
+misses documents (it answers `other` with no items on `bvl-tierarzneimittel-meldung` and `bzkj-antrag-indizierung`) and
+costs 60 percent more per page; Mistral answers `other` with an empty list on 9 pages, among them
+`ble-fleisch-intervention` (8 gold documents), and has page-kind accuracy 0.47. Qwen's `ext-5` live figures against the
+`ext-4` live run: precision 0.53 to 0.68, recall 0.79 to 0.68, tag agreement 0.49 to 0.63, kept rate 0.87 to 0.73; the
+offline E18 replay (0.74 and 0.79) was optimistic because `ext-5` changes the answers themselves.
+
+**Shortfall and the way forward.** Qwen is below target on precision (0.68 against 0.80) and quote-grounded rate (0.93
+against 0.95). Precision is understated until a human reviews the gold labels (OP6), and the first production drain
+measured about 17 percent definite false positives (ledger, "Live runs 2026-10-30"). The five quote drops are paraphrased
+quotes (`Bestätigung der Ferienbeschäftigung`, `Unterlagen in Blindenschrift`, `Kopien der Unterlagen`, `Anzeige`,
+`Bestätigung`). Chosen from the three named decisions: **accept the lower precision because every staged candidate is
+human-reviewed and nothing is emitted automatically**; the second way (change the prompt or guards) is the possible
+chapter E21, to be written from the false positives of live pages (generic "further proofs" names, the `Anlage N:`
+prefix) and needing the owner's approval. Hand-written extractors are not needed. The tag aggregate gives codes to
+few candidates (6 of 58 in the first drain), so tag agreement on the gold set says little about live coverage.
+
+**Still open, not part of this decision:** the 70B on a later day only if Qwen's live false positives turn out to be a
+model problem; a human review of the gold labels; `Scout` recall 0.60 is a rounding tie, not a reason to switch.
+
+#### Earlier text (provisional choice and plan, kept for the record)
 
 **Where it stands on 2026-10-30.** The live `ext-5` eval of Qwen, Scout and Mistral and the first live drain are run by the chief of staff from [02-live-runs.md](02-live-runs.md) (L0 to L5), after E19 and E20. Two things changed in how the targets are read. (1) Chapter E20 splits the grounded rate into the **quote-grounded rate** (the 0.95 target: is what the model quotes on the page?) and the **kept rate** (informational): guard drops for data fields, generic names and repeats no longer count as grounding failures, which is why Qwen read 0.64 with no `quote` drop; both numbers are always printed, the threshold does not move. (2) The decision is judged on the aim of the suite, documents (nodes), edges and tags for the dependency graph: ties are broken by document recall and tag agreement, then neurons per page. Edge precision and recall cannot be scored on the gold set (2 edges); edges are judged on the live drain pages.
 
@@ -55,8 +91,10 @@ gave Qwen 0.74, 0.79, 0.64 and 0.595. The decision stays open until the `ext-5` 
 the 70b model.
 
 **Starting thresholds** (replace them with what the measurements justify): precision at least 0.80, recall at least
-0.60, grounded rate at least 0.95, tag agreement at least 0.60 (tags reach the emit payload only if it passes). The
-table of `llm eval` prints each target next to its value, and the expected pages per day at the 9,500-neuron cap.
+0.60, quote-grounded rate at least 0.95 (the share of raw model items whose quote is on the page; chapter E20, the
+threshold is unchanged and the old kept-over-raw figure is now printed as the **kept rate**, without a target), tag
+agreement at least 0.60 (tags reach the emit payload only if it passes). The table of `llm eval` prints each target next
+to its value, and the expected pages per day at the 9,500-neuron cap.
 
 **Candidate models.** The three that the E4 probe checks, in this order of expected quality and cost. Run the probe
 first and drop a model that does not accept `response_format`.

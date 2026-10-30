@@ -24,7 +24,7 @@ class StopRun(Exception):
 
 def _budget_stop(budget: float, used: float) -> StopRun:
     return StopRun(
-        "budget", f"the neuron budget of {budget:g} is spent ({used:.1f} used): raise --neuron-budget to go on"
+        "budget", f"the neuron budget of {budget:g} is reached ({used:.1f} used): raise --neuron-budget to go on"
     )
 
 

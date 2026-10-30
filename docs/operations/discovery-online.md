@@ -189,7 +189,7 @@ holds: [discovery-layer.md](discovery-layer.md) § Extracted documents, edges an
 | --- | --- |
 | 10,000 neurons a day on Workers Free | The ledger resource `neurons` caps the day at 9,500. A run budget (`--neuron-budget`) caps the run, the smaller of the two wins |
 | Every call must be paid before it is made | The worker reserves the page's input tokens at the input price plus an answer sized to the page (500 tokens and a quarter of the page, never above `LLM_MAX_TOKENS`, 4000), about 890 neurons for a 30,000-character page on the 70b model. A denial stops the run `llm_budget` before the call |
-| The API reports the real cost | After the call the worker settles to `usage.neurons` from the response, falling back to the priced token usage. A real answer above its reserve corrects upward, so a run can overshoot its budget slightly |
+| The API reports the real cost | After the call the worker settles to `usage.neurons` from the response, falling back to the priced token usage. A real answer above its reserve corrects upward. A call is allowed while the run and the day are below their limits, so the last call may pass the budget by its own cost: the overshoot is at most one call per run, and the ledger can end the day slightly above 9,500 |
 | `429` with code 4006 ("daily free allocation") | The provider says the day is used up. The worker marks `neurons` exhausted, releases the batch and stops `llm_quota` |
 
 **The ledger is not the whole meter.** The ledger counts what drains and `llm eval` reserve. Cloudflare's own daily
@@ -216,7 +216,7 @@ The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`
 `no_content`) and shows the neuron meter next to them.
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
-(priority 200). `LLM_MODEL` defaults to the provisional X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
+(priority 200). `LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
 `LLM_MODEL`; an empty value means no model). `discovery-render.yml` sets neither variable, so scheduled renders queue
 nothing until an operator adds `LLM_ENQUEUE: "true"` to that job's `env` (and `LLM_MODEL` to pick another model); a
 laptop render with `LLM_ENQUEUE=true` exported does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key

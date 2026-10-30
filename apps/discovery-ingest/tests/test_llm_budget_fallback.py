@@ -56,10 +56,13 @@ def test_after_an_outage_the_meter_can_fall_back_to_the_run_budget(monkeypatch: 
     assert meter.ledger_unavailable is True
 
 
-def test_the_run_budget_still_caps_a_meter_that_fell_back(monkeypatch: pytest.MonkeyPatch) -> None:
-    """stop_using_ledger · without the ledger the run budget alone says no."""
+def test_the_run_budget_still_stops_a_meter_that_fell_back_after_one_overshooting_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """stop_using_ledger · without the ledger the run budget alone says no, once the last call has passed it."""
     meter = NeuronMeter(guard_for(monkeypatch, FakeLedger(remaining=9000)), ESTIMATE - 1)
 
     meter.stop_using_ledger()
 
+    assert meter.reserve(MODEL, 3000, 1000) == Reservation(MODEL, ESTIMATE, ledgered=False)
     assert meter.reserve(MODEL, 3000, 1000) == Denied("run_budget")

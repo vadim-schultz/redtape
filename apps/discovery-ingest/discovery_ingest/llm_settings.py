@@ -11,7 +11,7 @@ DEFAULT_MAX_TOKENS = 4000
 """The output limit of one model call; enough for a long answer, and the one number the handler imports too."""
 
 DEFAULT_LLM_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
-"""The provisional choice for decision X16; ``LLM_MODEL`` overrides it and an empty ``LLM_MODEL`` means no model."""
+"""The choice of decision X16 (Qwen3-30B, 2026-10-30); ``LLM_MODEL`` overrides it and an empty ``LLM_MODEL`` means no model."""
 
 
 class LlmSettings(BaseSettings):

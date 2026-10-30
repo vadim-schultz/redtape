@@ -17,7 +17,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `candidates emit` | Emit staged document candidates as pending suggestions; see below |
 | `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
-| `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, grounded rate, tag agreement and neurons per page |
+| `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, tag agreement and neurons per page |
 | `llm requeue [--host H] [--limit N] [--dry-run]` | Queue `llm_extract` for the latest snapshot of each catalogue row under the current model, prompt and cleaner versions |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger (`--resource`, `--require-remaining RESOURCE=N` exits 3 when short, `--strict` exits 4 when the API is unreachable); add Actions minutes to it |
@@ -69,7 +69,7 @@ idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
 | `CLOUDFLARE_AI_API_TOKEN` | only for `llm probe` and `llm_extract` | A custom token with only the Workers AI permission, next to `CLOUDFLARE_ACCOUNT_ID`. Never a Render variable; never commit it |
-| `LLM_MODEL` | for `llm_extract`, `llm requeue` and `LLM_ENQUEUE` | A Workers AI model id with a price row in `prices.py`. Defaults to `@cf/qwen/qwen3-30b-a3b-fp8`, the provisional choice for decision X16 (final decision pending the `ext-5` live eval); set `LLM_MODEL` to override, and an empty `LLM_MODEL=` means no model (exit 2) |
+| `LLM_MODEL` | for `llm_extract`, `llm requeue` and `LLM_ENQUEUE` | A Workers AI model id with a price row in `prices.py`. Defaults to `@cf/qwen/qwen3-30b-a3b-fp8`, the choice of decision X16 (decided 2026-10-30); set `LLM_MODEL` to override, and an empty `LLM_MODEL=` means no model (exit 2) |
 | `LLM_ENQUEUE`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Render-time `llm_extract` enqueue switch (`false`; needs `LLM_MODEL`), output limit (4000 tokens), page characters sent (30000, the cleaner's cap) and per-call timeout (60 s) |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
@@ -138,9 +138,13 @@ The manual workflow `discovery-llm-probe.yml` runs the same command.
 
 `llm eval` measures one model and prompt version on the 20 real pages of `tests/fixtures/gold/` (see its README: the
 labels are drafted and need a human review). Each page is cleaned, sent to the model and grounded, and the table shows
-the pooled precision and recall of documents, the same for edges, the grounded rate (the share of raw model items that
-quote the page), the tag agreement, the cleaner recall, the neurons per page and the pages per day that follows from
-it. Next to each metric the table prints the starting target of decision X16.
+the pooled precision and recall of documents, the same for edges, the **quote-grounded rate** (the share of raw model
+items whose quote is on the page; target 0.95) and the **kept rate** (the share of raw model items the pipeline kept,
+with no target), the tag agreement, the cleaner recall, the neurons per page and the pages per day that follows from
+it. Both rates are always printed: a guard drop (`data_field`, `generic_name`, `duplicate`, `noise`, a dependency
+whose endpoint was lost) lowers the kept rate only, while a `quote` or `dependency_quote` drop lowers both. The table
+header and the JSON (`metric_version`) say `grounded_rate=quote`; the JSON `grounded_rate` is the quote-grounded rate
+and `kept_rate` is the old figure. Next to each other metric the table prints the starting target of decision X16.
 
 ```bash
 python -m discovery_ingest llm eval --model @cf/meta/llama-3.1-8b-instruct --neuron-budget 4000 --out /tmp/eval-1.json
@@ -150,7 +154,7 @@ It needs `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` (the budget ledger and `GET
 Cloudflare variables, and it never prints the token. Every call reserves neurons from the ledger first, so an eval
 cannot spend more than the day has left.
 
-- `--neuron-budget` (default 4000; use 5000 for the 70b model) ends the run before the page that would pass its reservation (up to about 900 neurons for a long page). The pages done so far are
+- `--neuron-budget` (default 4000; use 5000 for the 70b model) ends the run once the budget is reached; the last call may pass it by its own cost (up to about 900 neurons for a long page). The pages done so far are
   printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
   token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
 - `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`PROMPT_VERSION` in
@@ -210,7 +214,7 @@ python -m discovery_ingest llm requeue --host verwaltung.bund.de --limit 50
 The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION` and `CLEAN_VERSION`, so a page already
 queued, running or done under the current versions is counted as `already_queued` and a bump queues it again. `--limit`
 defaults to 50 and is refused above 200. A page that staged mentions then gets one `capture_screenshot` task (priority
-300). The workflow `discovery-llm.yml` drains the kind with an `llm_model` input (default the provisional X16 model) and a
+300). The workflow `discovery-llm.yml` drains the kind with an `llm_model` input (default the X16 model) and a
 2,500-neuron default (`neuron_budget`); a scheduled run (`DISCOVERY_LLM_SCHEDULE=enabled`) takes the model from the repository variable
 `DISCOVERY_LLM_MODEL`. It skips itself when the Actions minutes, the neurons or the model are missing. The render
 workflow does not set `LLM_ENQUEUE` or `LLM_MODEL`: to queue after scheduled renders add both to the `env` of its

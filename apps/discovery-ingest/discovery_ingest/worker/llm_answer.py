@@ -35,5 +35,5 @@ def parse_answer(result: LlmResult) -> PageExtraction | Invalid:
 def denial_reason(answer: Denied | LedgerUnavailable) -> str:
     """Say in words why a reservation was refused."""
     if isinstance(answer, Denied):
-        return "the run's neuron budget is spent" if answer.reason == "run_budget" else "the day's neurons are spent"
+        return "the run's neuron budget is reached" if answer.reason == "run_budget" else "the day's neurons are spent"
     return "the neuron ledger is unavailable"

@@ -154,3 +154,15 @@ def test_a_rejected_ai_token_fails_the_run_and_the_command(
     report = json.loads(capsys.readouterr().out)
     assert code == 1 and (report["succeeded"], report["stop_reason"], report["released"]) == (False, "error", 2)
     assert api.finishes[0]["status"] == "failed" and TOKEN not in json.dumps(report) + str(api.finishes)
+
+
+def test_the_drain_neuron_budget_help_says_the_last_call_may_pass_the_budget(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """worker drain --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
+    with pytest.raises(SystemExit):
+        main(["worker", "drain", "--help"])
+
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "stops once the budget is reached" in help_text and "may pass it by its own cost" in help_text
+    assert "would pass" not in help_text
