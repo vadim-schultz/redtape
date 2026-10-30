@@ -1,4 +1,5 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
+import TruncatedText from "../../../../components/data-display/TruncatedText";
 import { formatRelativeTime } from "../../../suggestions/utils/formatRelativeTime";
 import {
   DISCOVERY_SOURCES,
@@ -10,7 +11,9 @@ import { formatRetryAfter } from "../../utils/formatRetryAfter";
 import TaskStatusCell from "./cells/TaskStatusCell";
 import { headerLabels, type ColumnContext } from "./columnContext";
 import { plainOptions } from "./filterOptions";
-import LongText from "./LongText";
+
+/** Width at which the target URL is clipped. */
+const TARGET_MAX_WIDTH = "24rem";
 
 /** Rendered action-free columns of the queue; retry and lease are timestamps without a server sort. */
 export type TaskColumn = DataTableColumn<
@@ -35,7 +38,12 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
       key: "target",
       header: header("target"),
       canSort: "target",
-      render: (task) => <LongText>{task.target_url}</LongText>,
+      maxWidth: TARGET_MAX_WIDTH,
+      render: (task) => (
+        <TruncatedText maxWidth={TARGET_MAX_WIDTH}>
+          {task.target_url}
+        </TruncatedText>
+      ),
     },
     {
       key: "kind",

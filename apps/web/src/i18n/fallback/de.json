@@ -186,10 +186,8 @@
     "documents": {
       "filter_search": "Titel durchsuchen",
       "filter_min_mentions": "Mindestanzahl Erwähnungen",
-      "min_mentions_any": "Beliebig viele Erwähnungen",
       "min_mentions_option": "Mindestens {count}",
       "filter_role": "Rolle",
-      "role_all": "Alle Rollen",
       "role_required": "Erforderlich",
       "role_form": "Formular",
       "filter_source": "Quelle",
@@ -206,7 +204,13 @@
       "count_other": "{count} Dokumente",
       "role_issued": "Ausgestellt",
       "table_label": "Dokumente",
-      "clear_filters": "Filter zurücksetzen"
+      "clear_filters": "Filter zurücksetzen",
+      "col_readiness": "Bereitschaft",
+      "ready_filter": "Bereit",
+      "filter_status": "Dokumentstatus",
+      "filter_complete": "Vollständigkeit",
+      "complete_yes": "Vollständig",
+      "complete_no": "Unvollständig"
     },
     "document": {
       "jurisdiction": "Zuständigkeitsgebiet",

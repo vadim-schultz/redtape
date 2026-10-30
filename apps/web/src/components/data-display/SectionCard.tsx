@@ -21,6 +21,7 @@ function SectionHeader({
   if (!title && !toolbar) return null;
   return (
     <Card.Header
+      data-section-header=""
       flexDirection="row"
       alignItems="center"
       justifyContent="space-between"

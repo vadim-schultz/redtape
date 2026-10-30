@@ -94,7 +94,9 @@ it("every sortable candidate column sets the sort key of the admin contract on h
 });
 
 it("candidate columns declare a filter on roles, mentions, status and readiness only", () => {
-  renderWithProviders(<Table query={{ onFilterChange: vi.fn() }} />);
+  renderWithProviders(
+    <Table query={{ onFilterChange: vi.fn(), onSortChange: vi.fn() }} />,
+  );
 
   for (const label of [
     "Role",
@@ -115,7 +117,10 @@ it("a column filter applies the contract key and value", async () => {
   const { user } = renderWithProviders(<Table query={{ onFilterChange }} />);
 
   await user.click(screen.getByRole("button", { name: "Document status" }));
-  await user.selectOptions(screen.getByLabelText("Document status"), "staged");
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Document status" }),
+    "staged",
+  );
   await user.click(screen.getByRole("button", { name: "Apply" }));
 
   expect(onFilterChange).toHaveBeenCalledExactlyOnceWith({

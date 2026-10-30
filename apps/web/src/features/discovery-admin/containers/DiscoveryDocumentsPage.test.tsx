@@ -191,10 +191,16 @@ it("documents page keeps no free-standing filter bar above the table card", asyn
   renderPage();
   await screen.findByText("Personalausweis");
 
-  const card = screen.getByRole("table").closest("[data-section-card]");
-  expect(card?.previousElementSibling).toBeNull();
-  expect(screen.queryByLabelText("Minimum mentions")).toBeNull();
-  expect(screen.queryByRole("combobox")).toBeNull();
+  const header = screen
+    .getByRole("table")
+    .closest("[data-section-card]")
+    ?.querySelector("[data-section-header]");
+  for (const control of screen.getAllByRole("combobox")) {
+    expect(header).toContainElement(control);
+  }
+  expect(
+    screen.queryByRole("combobox", { name: "Minimum mentions" }),
+  ).toBeNull();
 });
 
 it("documents page sends search and header sort as canonical query parameters", async () => {

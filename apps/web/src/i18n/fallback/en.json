@@ -186,10 +186,8 @@
     "documents": {
       "filter_search": "Search titles",
       "filter_min_mentions": "Minimum mentions",
-      "min_mentions_any": "Any mentions",
       "min_mentions_option": "At least {count}",
       "filter_role": "Role",
-      "role_all": "All roles",
       "role_required": "Required",
       "role_form": "Form",
       "filter_source": "Source",
@@ -206,7 +204,13 @@
       "count_other": "{count} documents",
       "role_issued": "Issued",
       "table_label": "Documents",
-      "clear_filters": "Clear filters"
+      "clear_filters": "Clear filters",
+      "col_readiness": "Readiness",
+      "ready_filter": "Ready",
+      "filter_status": "Document status",
+      "filter_complete": "Completeness",
+      "complete_yes": "Complete",
+      "complete_no": "Incomplete"
     },
     "document": {
       "jurisdiction": "Jurisdiction",
