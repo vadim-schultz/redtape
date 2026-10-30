@@ -46,3 +46,19 @@ it("completeness chips keep a visible text label on every chip", () => {
     expect(within(chips[index]).getByText(label)).toBeVisible(),
   );
 });
+
+it("completeness chips stack in a column in the vertical variant", () => {
+  renderWithProviders(
+    <CompletenessChips flags={ALL_FLAGS} orientation="vertical" />,
+  );
+
+  const list = screen.getAllByRole("listitem")[0].parentElement!;
+  expect(getComputedStyle(list).flexDirection).toBe("column");
+});
+
+it("completeness chips keep a row by default", () => {
+  renderWithProviders(<CompletenessChips flags={ALL_FLAGS} />);
+
+  const list = screen.getAllByRole("listitem")[0].parentElement!;
+  expect(getComputedStyle(list).flexDirection).toBe("row");
+});

@@ -39,3 +39,15 @@ export function listCalls(fetchMock: ReturnType<typeof stubCandidatesApi>) {
 
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
+
+/** Stub `fetch` for one candidate's detail endpoint; every other URL answers 404. */
+export function stubCandidateDetailApi(onDetail: Responder) {
+  const fetchMock = vi.fn(async (input?: unknown) => {
+    const url = new URL(String(input));
+    if (/\/api\/v1\/candidates\/[^/]+$/.test(url.pathname))
+      return onDetail(url);
+    return new Response("", { status: 404 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
