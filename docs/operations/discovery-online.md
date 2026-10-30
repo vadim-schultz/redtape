@@ -216,7 +216,7 @@ The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`
 `no_content`) and shows the neuron meter next to them.
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
-(priority 200). `LLM_MODEL` defaults to the provisional X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
+(priority 200). `LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
 `LLM_MODEL`; an empty value means no model). `discovery-render.yml` sets neither variable, so scheduled renders queue
 nothing until an operator adds `LLM_ENQUEUE: "true"` to that job's `env` (and `LLM_MODEL` to pick another model); a
 laptop render with `LLM_ENQUEUE=true` exported does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key

@@ -57,7 +57,7 @@ Manual dispatch always works once the file is on `main`.
 **Drain inputs.** `discovery-drain.yml`: `max_tasks` (50), `max_batches` (20), `time_budget_seconds` (empty: the variable
 `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900), `kinds`. `discovery-render.yml`: `max_tasks` (5), `max_batches` (40),
 `time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds`. `discovery-llm.yml`: `llm_model` (default
-`@cf/qwen/qwen3-30b-a3b-fp8`, the provisional X16 choice; the final decision is pending the `ext-5` live eval), `max_tasks` (5), `max_batches` (20), `time_budget_seconds` (600),
+`@cf/qwen/qwen3-30b-a3b-fp8`, the X16 choice, decided 2026-10-30), `max_tasks` (5), `max_batches` (20), `time_budget_seconds` (600),
 `neuron_budget` (2500), `kinds` (`llm_extract`). Browser and LLM drains use small batches because a limit releases every
 task of the batch.
 

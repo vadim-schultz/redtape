@@ -93,7 +93,7 @@ Aim to keep in view: the suite exists to extract the documents (nodes) and requi
 
 Next steps, in order. The chief of staff resumes at the first one that is not done:
 
-**Progress (2026-10-30, later): steps 1 to 4 are done** (plans on `main`, loop branch fast-forwarded, E19 and E20 merged into `feat/extraction`). L0 to L4 are done (see "Live runs 2026-10-30" and "L2 and L3"); X16 is decided (Qwen). Resume at L5: close-out (owner reads the dashboard once more, the day's total, false-positive evidence for a possible E21, the German operator docs that still say "Grounded"), then the second release PR.
+**Progress (2026-10-30, later): steps 1 to 4 are done** (plans on `main`, loop branch fast-forwarded, E19 and E20 merged into `feat/extraction`). L0 to L5 are done (see "Live runs 2026-10-30" and "L2 and L3"); X16 is decided (Qwen). L5 close-out: the operator docs no longer say "Grounded" or "provisional" (checklist OP7 table, loop doc, scheduled-jobs, discovery-online, ingest README, the `DEFAULT_LLM_MODEL` docstring, and the docs test now guards against "provisional"); the day's total is **8,582.17 of 9,500** (the E19 overshoot rule was not reached; no run came near the cap); the false-positive evidence for a possible E21 is in "Live runs 2026-10-30"; the second release PR follows. Left for the owner: read the dashboard after L3 (expected about 9,000), approve or drop E21, the gold-label review (OP6), the deploy of API and web and the translation re-seed (OP3, OP11), and the review of the staged candidates and edges in the admin.
 
 1. **Plans on `main`.** This change (new chapters E19 and E20, `02-live-runs.md`, updated rollout, ledger and gaps) must be merged to `main` through a docs PR (branch `docs/extraction-live-day-plan`) before the preflight passes.
 2. **Fast-forward the loop branch** (see the header): `feat/extraction` is 48 commits behind `main`.
@@ -142,8 +142,8 @@ Working conventions that apply to every restart: GitHub Actions minutes are exha
 - [ ] Edge emit, translation, per-document tags and automatic emit remain out of scope.
 - [ ] The neuron overshoot rule is in (E19, merged 2026-10-30) and a UTC day reaches the 9,500 cap (checked in the live runs).
 - [x] The eval reports the quote-grounded rate and the kept rate (E20, merged 2026-10-30).
-- [ ] L0 to L5 of [02-live-runs.md](02-live-runs.md) are recorded: live drain, ledger against the dashboard, `ext-5` eval of three models, final X16.
-- [ ] Second release PR from `feat/extraction` to `main` merged.
+- [x] L0 to L5 of [02-live-runs.md](02-live-runs.md) are recorded: live drain, ledger against the dashboard, `ext-5` eval of three models, final X16 (2026-10-30; the dashboard was read once, after L1).
+- [ ] Second release PR from `feat/extraction` to `main` merged (opened and merged by the chief on 2026-10-30 after this change; see the footer).
 - [x] Release PR from `feat/extraction` to `main` merged ([PR #240](https://github.com/vadim-schultz/redtape/pull/240), 2026-10-29).
 
 **Last orchestration:** 2026-10-30 (chief of staff): loop branch fast-forwarded to `main`, E19 ([PR #254](https://github.com/vadim-schultz/redtape/pull/254)) and E20 ([PR #255](https://github.com/vadim-schultz/redtape/pull/255)) implemented, verified and merged into `feat/extraction`; stopped before L0 (the live runs need the owner's go to continue in this session). Next: L0 to L5 of [02-live-runs.md](02-live-runs.md), then the second release PR. Earlier on 2026-10-30: chapters E19 and E20 and the live runbook added (plans only, nothing run). Before that, 2026-10-29: all chapters E1 to E18 merged and released; stopped at the owner's request with the model decision (X16) provisional and the live gates deferred (see the session hand-off). **Plan created:** 2026-10-26, alongside the crawlers revision for Cloudflare R2 and the free-tier guards.

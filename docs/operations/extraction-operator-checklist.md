@@ -29,9 +29,9 @@ as the equivalent local command; nothing else is blocked by it.
 | OP4 | [ ] | | Optional: tighten `BUDGET_NEURONS_DAILY` | the first model run |
 | OP5 | [ ] | | Run the probe | the eval |
 | OP6 | [ ] | | Review the gold labels | OP7 |
-| OP7 | [ ] | | Run the eval and decide X16 | OP9, every drain |
+| OP7 | [ ] | 2026-10-30, `ext-5` eval run by the chief (ledger, "L2 and L3"); X16 decided: Qwen3-30B | Run the eval and decide X16 | OP9, every drain |
 | OP8 | [ ] | | Housekeeping: database size, E10 re-pend, fixture capture | any bulk run |
-| OP9 | [ ] | | E6 dry smoke and the E7 live gate (local) | OP12 |
+| OP9 | [ ] | 2026-10-30, smoke `bd0e9da9-ff68-43c0-a3cf-25781e18dc4c`, drain `9dee445b-22c8-4d33-9653-8c27eefeb788` (run by the chief) | E6 dry smoke and the E7 live gate (local) | OP12 |
 | OP10 | [ ] | | Open and merge the final release PR | OP11 |
 | OP11 | [ ] | | Deploy API and web together, re-seed translations, E8 live gate | OP15 |
 | OP12 | [ ] | | Backfill and drain, once a day | OP14 |
@@ -103,29 +103,29 @@ model found real ones). Re-scoring after an edit is free, because the eval cache
 python -m discovery_ingest llm eval --model <model id> --neuron-budget 5000 --out /tmp/eval.json   # cached pages cost nothing
 ```
 
-**OP7: Run the eval and decide X16.** Plan the runs over two days (the day allows 9,500 neurons and an eval of a model
-costs about 1,000 to 3,000). Models in play, with the figures from the `ext-4` eval (20 pages):
+**OP7: Run the eval and decide X16.** Done on 2026-10-30 (the day allows 9,500 neurons; the three evals cost 5,324).
+Figures from the live `ext-5` eval on the 20 gold pages (the `ext-4` figures are in the ledger). The quote-grounded
+rate is the share of raw model items whose quote is on the page (target 0.95); the kept rate is the share the pipeline
+kept (no target); the old "Grounded" column of earlier tables is the kept rate:
 
-| Model | Precision | Recall | Grounded | Tag agreement | Neurons per page |
-| --- | --- | --- | --- | --- | --- |
-| `@cf/qwen/qwen3-30b-a3b-fp8` (provisional pick) | 0.53 | 0.79 | 0.87 | 0.49 | 65 |
-| `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | 0.57 | 0.51 | 0.59 | 0.71 | 154 |
-| `@cf/mistralai/mistral-small-3.1-24b-instruct` | 0.40 on 7 pages (quota) | 0.41 | 0.67 | 0.41 | 134 |
-| `@cf/meta/llama-4-scout-17b-16e-instruct` | not run (quota) | | | | |
+| Model | Precision | Recall | Quote-grounded | Kept rate | Tag agreement | Neurons per page |
+| --- | --- | --- | --- | --- | --- | --- |
+| `@cf/qwen/qwen3-30b-a3b-fp8` (X16 choice) | 0.68 | 0.68 | 0.93 | 0.73 | 0.63 | 63.5 |
+| `@cf/meta/llama-4-scout-17b-16e-instruct` | 0.61 | 0.60 | 0.97 | 0.78 | 0.58 | 101.2 |
+| `@cf/mistralai/mistral-small-3.1-24b-instruct` | 0.65 | 0.36 | 0.91 | 0.74 | 0.65 | 115.5 |
+| `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | not run on `ext-5` (`ext-4`: 0.57, 0.51, kept 0.59, tag 0.71, 154 a page) | | | | | |
 
-Starting thresholds: precision 0.80, recall 0.60, grounded 0.95, tag agreement 0.60. The `ext-5` prompt and the E18
-guards have only been replayed offline on the recorded `ext-4` answers (Qwen precision 0.74, recall 0.79). The live run
-needs the quota to have reset (after 00:00 UTC; Cloudflare answered 429 code 4006 on 2026-10-29):
+Thresholds: precision 0.80, recall 0.60, quote-grounded rate 0.95, tag agreement 0.60. To repeat the eval of a model
+(the live run needs the quota to be unspent for the day; Cloudflare answers 429 code 4006 when it is spent):
 
 ```bash
 python -m discovery_ingest llm eval --model @cf/qwen/qwen3-30b-a3b-fp8 --neuron-budget 4000 --out /tmp/eval-qwen-ext5.json
-python -m discovery_ingest llm eval --model @cf/meta/llama-3.3-70b-instruct-fp8-fast --neuron-budget 5000 --out /tmp/eval-70b-ext5.json
 ```
 
 Write decision X16 in `gaps-and-decisions.md` (model, endpoint mode, `PROMPT_VERSION` `ext-5`, `CLEAN_VERSION`
 `clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set `LLM_MODEL` for the
-render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). Until then `LLM_MODEL` defaults to the
-provisional pick `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to choose another model. If no model reaches the targets, record
+render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). `LLM_MODEL` defaults to the
+X16 choice `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to choose another model. If no model reaches the targets, record
 the shortfall and one of three decisions: accept lower recall because everything is human-reviewed, change the cleaner
 or the prompt, or fall back to hand-written extractors for the weak hosts (crawlers chapter 18). If the 70b model is
 chosen, revert the E18 code guard with the one-line change in `ground._codes`.
@@ -166,7 +166,7 @@ already has the E1 routes and the E6 stop reasons. Plan it for one day with no o
 then the gate:
 
 ```bash
-# LLM_MODEL defaults to the provisional X16 choice (@cf/qwen/qwen3-30b-a3b-fp8); export it only for another model
+# LLM_MODEL defaults to the X16 choice (@cf/qwen/qwen3-30b-a3b-fp8); export it only for another model
 export LLM_MODEL=<chosen model id>
 python -m discovery_ingest llm requeue --limit 20 --dry-run
 python -m discovery_ingest worker drain --kinds llm_extract --max-tasks 1 --max-batches 1 --neuron-budget 1000

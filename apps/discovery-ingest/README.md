@@ -69,7 +69,7 @@ idempotent per candidate. See [`docs/operations/discovery-layer.md`](../../docs/
 | `BOT_CONTACT_URL` | no | Contact URL in the `RedtapeBot/1.0 (+<url>)` User-Agent; defaults to the repository URL |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_API_TOKEN` | only for browser kinds and `browser probe` | Cloudflare account and a custom token with only "Browser Run - Edit". Never a Render variable; never commit them |
 | `CLOUDFLARE_AI_API_TOKEN` | only for `llm probe` and `llm_extract` | A custom token with only the Workers AI permission, next to `CLOUDFLARE_ACCOUNT_ID`. Never a Render variable; never commit it |
-| `LLM_MODEL` | for `llm_extract`, `llm requeue` and `LLM_ENQUEUE` | A Workers AI model id with a price row in `prices.py`. Defaults to `@cf/qwen/qwen3-30b-a3b-fp8`, the provisional choice for decision X16 (final decision pending the `ext-5` live eval); set `LLM_MODEL` to override, and an empty `LLM_MODEL=` means no model (exit 2) |
+| `LLM_MODEL` | for `llm_extract`, `llm requeue` and `LLM_ENQUEUE` | A Workers AI model id with a price row in `prices.py`. Defaults to `@cf/qwen/qwen3-30b-a3b-fp8`, the choice of decision X16 (decided 2026-10-30); set `LLM_MODEL` to override, and an empty `LLM_MODEL=` means no model (exit 2) |
 | `LLM_ENQUEUE`, `LLM_MAX_TOKENS`, `LLM_INPUT_CHARS`, `LLM_REQUEST_TIMEOUT_SECONDS` | no | Render-time `llm_extract` enqueue switch (`false`; needs `LLM_MODEL`), output limit (4000 tokens), page characters sent (30000, the cleaner's cap) and per-call timeout (60 s) |
 | `BROWSER_MIN_INTERVAL_SECONDS`, `BROWSER_REQUEST_TIMEOUT_SECONDS` | no | Seconds between the end of one Cloudflare call and the start of the next (default 11) and the per-call timeout (default 60) |
 
@@ -214,7 +214,7 @@ python -m discovery_ingest llm requeue --host verwaltung.bund.de --limit 50
 The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION` and `CLEAN_VERSION`, so a page already
 queued, running or done under the current versions is counted as `already_queued` and a bump queues it again. `--limit`
 defaults to 50 and is refused above 200. A page that staged mentions then gets one `capture_screenshot` task (priority
-300). The workflow `discovery-llm.yml` drains the kind with an `llm_model` input (default the provisional X16 model) and a
+300). The workflow `discovery-llm.yml` drains the kind with an `llm_model` input (default the X16 model) and a
 2,500-neuron default (`neuron_budget`); a scheduled run (`DISCOVERY_LLM_SCHEDULE=enabled`) takes the model from the repository variable
 `DISCOVERY_LLM_MODEL`. It skips itself when the Actions minutes, the neurons or the model are missing. The render
 workflow does not set `LLM_ENQUEUE` or `LLM_MODEL`: to queue after scheduled renders add both to the `env` of its
