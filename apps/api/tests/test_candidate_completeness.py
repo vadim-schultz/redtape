@@ -92,7 +92,7 @@ def test_artifacts_count_only_on_a_mentioning_procedure(db_session: Session) -> 
 def test_completeness_order_is_completeness_then_mentions(db_session: Session) -> None:
     procs = world.procedures(db_session, 2)
     bare, busy, done = (world.candidate(db_session, procs[0], key) for key in ("bare", "busy", "done"))
-    world.mentioned(db_session, bare, procs, [Row(0)])
+    world.mentioned(db_session, bare, procs, [Row(1)] * 4)
     world.mentioned(db_session, busy, procs, [Row(0), Row(1), Row(0)])
     world.mentioned(db_session, done, procs, [Row(0)])
     world.artifact(db_session, procs[0], SNAPSHOT)

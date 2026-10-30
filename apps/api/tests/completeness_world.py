@@ -132,4 +132,4 @@ def flags_of(session: Session, thresholds: TagThresholds = DEFAULTS) -> dict[uui
     """Run the completeness subquery and return its rows by candidate id."""
     sub = completeness_subquery(thresholds)
     rows = session.execute(select(*completeness_columns(sub))).all()
-    return {row.candidate_id: CandidateCompleteness(*row) for row in rows}
+    return {row.candidate_id: CandidateCompleteness.from_row(row) for row in rows}

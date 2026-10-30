@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 import pytest
 from app.config import settings
 from app.features.discovery.candidate_tags import accepted_codes, candidate_tag_suggestions
@@ -49,6 +51,11 @@ def test_a_share_just_below_the_boundary_is_not_accepted(db_session: Session) ->
     assert _accepted(db_session, rows)[0] == {"b"}
 
 
+def _python_accepted(mentions: list[tuple[UUID, list[str] | None]], thresholds: TagThresholds) -> set[str]:
+    supports = aggregate_tags(mentions, thresholds.min_procedures, thresholds.min_share)
+    return {support.code for support in supports if support.accepted}
+
+
 EXTRACTED: dict[str, list[Row]] = {
     "empty": [],
     "single": [Row(0, ["a"], ["x"])],
@@ -72,13 +79,10 @@ THRESHOLDS = [TagThresholds(2, 0.5), TagThresholds(1, 0.75)]
 def test_sql_consensus_matches_aggregate_tags(db_session: Session, name: str, thresholds: TagThresholds) -> None:
     rows = EXTRACTED[name]
     procs = world.procedures(db_session, 6)
+    tagged = [(procs[r.procedure].id, r.domains, r.situations) for r in rows]
     expected = (
-        {s.code for s in aggregate_tags([(procs[r.procedure].id, r.domains) for r in rows], *thresholds) if s.accepted},
-        {
-            s.code
-            for s in aggregate_tags([(procs[r.procedure].id, r.situations) for r in rows], *thresholds)
-            if s.accepted
-        },
+        _python_accepted([(p, d) for p, d, _ in tagged], thresholds),
+        _python_accepted([(p, s) for p, _, s in tagged], thresholds),
     )
 
     assert _accepted(db_session, rows, thresholds) == expected

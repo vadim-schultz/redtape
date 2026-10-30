@@ -7,6 +7,7 @@ import uuid
 import pytest
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.repository.activity import ActivityRepository
+from app.features.discovery.repository.candidate_completeness_repository import CompletenessRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
@@ -20,6 +21,7 @@ AGGREGATES = (
     ActivityRepository,
     CatalogueRepository,
     ClaimRepository,
+    CompletenessRepository,
     CoverageRepository,
     EntityRepository,
     TaskListingRepository,
