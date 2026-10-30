@@ -55,8 +55,10 @@ gave Qwen 0.74, 0.79, 0.64 and 0.595. The decision stays open until the `ext-5` 
 the 70b model.
 
 **Starting thresholds** (replace them with what the measurements justify): precision at least 0.80, recall at least
-0.60, grounded rate at least 0.95, tag agreement at least 0.60 (tags reach the emit payload only if it passes). The
-table of `llm eval` prints each target next to its value, and the expected pages per day at the 9,500-neuron cap.
+0.60, quote-grounded rate at least 0.95 (the share of raw model items whose quote is on the page; chapter E20, the
+threshold is unchanged and the old kept-over-raw figure is now printed as the **kept rate**, without a target), tag
+agreement at least 0.60 (tags reach the emit payload only if it passes). The table of `llm eval` prints each target next
+to its value, and the expected pages per day at the 9,500-neuron cap.
 
 **Candidate models.** The three that the E4 probe checks, in this order of expected quality and cost. Run the probe
 first and drop a model that does not accept `response_format`.
