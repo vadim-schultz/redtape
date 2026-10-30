@@ -11,7 +11,7 @@ isProject: false
 **Loop branch:** `feat/extraction`
 **Release branch:** `main`
 
-**Where to resume (2026-10-30).** E1 to E18 are merged and released; E19 and E20 are merged into `feat/extraction` (not yet released). Next: the live runs in [02-live-runs.md](02-live-runs.md) (chief of staff, not an implementer), then the second release PR. The ledger hand-off lists the same steps.
+**Where to resume (2026-10-30, closing).** E1 to E20 are merged and released to `main` (PR #229, #240, #260); the live runs L0 to L5 of [02-live-runs.md](02-live-runs.md) are done and decision X16 is final (Qwen3-30B). What is left belongs to the owner: the dashboard reading after the evals, approving or dropping a possible E21, the gold-label review, deploying API and web, and reviewing the staged candidates. The ledger hand-off lists them.
 
 **Prerequisites.** Not on `main` yet, tracked in the [crawlers ledger](../crawlers/run-ledger.md): chapters 7 (HTML parser, `MentionItem`, noise filter), 11 (emit), 14 (artifacts), 15 (Cloudflare render, stop reasons, release), 17 (decode, `after_snapshot`), 19 (screenshot enqueue), 20 (document detail page) and **23 (budget ledger)**. The extraction chapters list exactly which of these each needs, so the first ones (E1 to E3) can start as soon as crawlers chapters 7 and 23 are merged, and none of them needs live infrastructure.
 
