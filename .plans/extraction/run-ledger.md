@@ -69,6 +69,22 @@ Run by the chief from a detached worktree of `feat/extraction` at 870ffcf (E19 a
 
 Neurons today after L0 and L1: 3,258.47 of 9,500 (6,241.53 left). L2 (the owner reads the dashboard) and L3 to L5 are not done.
 
+### L2 and L3 (2026-10-30)
+
+**L2, dashboard against ledger.** The owner read the Cloudflare Workers AI counter after L1 and before L3: **3,670 of 10,000 neurons** against the ledger's **3,258.47** (ratio 1.13, about 412 neurons more; probe and other calls the ledger never sees, and no sign of a window that is not UTC). Inside the 25 percent band, so L3 ran in full. The dashboard has not been read after L3 (expected about 9,000 by adding the runs: 3,670 + 5,323.7).
+
+**L3, live eval `ext-5`, `clean-4`, 20 gold pages, 0 failed pages, taxonomy `23890ed8`.** Started 09:08 UTC, finished 09:18 UTC. Cache `evalcache` and results `evalruns/*.json` in the session scratchpad (they will be gone; the table below is the record). Metric version `grounded_rate=quote` (E20): the old "grounded" column in the `ext-4` table is the kept rate.
+
+| Model | Neurons this run | Precision | Recall | Quote-grounded | Kept rate | Tag agreement | Page kind | Neurons per page | Pages per day | Raw / kept items | Drops |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `qwen3-30b-a3b-fp8` | 1,206.4 | 0.68 | 0.68 | 0.93 | 0.73 | 0.63 | 0.74 | 63.5 | 150 | 67 / 49 | `quote` 5, `data_field` 6, `dependency_endpoint` 4, `duplicate` 2, `generic_name` 1 |
+| `llama-4-scout-17b-16e-instruct` | 1,922.3 | 0.61 | 0.60 | 0.97 | 0.78 | 0.58 | 0.74 | 101.2 | 94 | 59 / 46 | `quote` 2, `data_field` 6, `generic_name` 5 |
+| `mistral-small-3.1-24b-instruct` | 2,195.0 | 0.65 | 0.36 | 0.91 | 0.74 | 0.65 | 0.47 | 115.5 | 82 | 35 / 26 | `quote` 3, `page_kind` 6 |
+
+Edge precision and recall are noise (2 gold edges). Total 5,323.7 neurons; **the ledger now reads 8,582.17 of 9,500** (3,258.47 + 5,323.7, exact). No run was stopped, no 429. Mistral and Scout both say `other` with no items on several pages Qwen reads (Mistral on 9 pages including `ble-fleisch-intervention`, 8 gold documents). The 70B was not run on `ext-5` (about 3,100 neurons would have passed the cap and the `ext-4` numbers are far behind).
+
+**L4, X16 decided: Qwen3-30B** (full table and reasoning in [gaps-and-decisions.md](gaps-and-decisions.md), decision X16). No code change: `DEFAULT_LLM_MODEL` is already Qwen.
+
 ## Session hand-off (2026-10-30, opening) — resume here
 
 State: E1 to E18 are merged and released to `main` (PR #229, PR #240); the default model `@cf/qwen/qwen3-30b-a3b-fp8` is on `main` (`DEFAULT_LLM_MODEL`). No live extraction has run in production yet. Today's UTC day started with the neuron ledger at 0 of 9,500 and nothing exhausted. `GET /machine/taxonomy` answers 200 (E1 is deployed); whether the API carries the E6 stop reasons and the web carries E8 is unverified (the smoke run in L0 decides). The owner gave on 2026-10-30: (1) the go for the first live production drain (Qwen, about 40 pages, staged only), (2) decision X18 (one-call overshoot of the neuron cap), (3) the order drain first, eval second.
@@ -77,7 +93,7 @@ Aim to keep in view: the suite exists to extract the documents (nodes) and requi
 
 Next steps, in order. The chief of staff resumes at the first one that is not done:
 
-**Progress (2026-10-30, later): steps 1 to 4 are done** (plans on `main`, loop branch fast-forwarded, E19 and E20 merged into `feat/extraction`). L0 and L1 are done (see "Live runs 2026-10-30"); resume at L2 (owner reads the Cloudflare dashboard), then L3.
+**Progress (2026-10-30, later): steps 1 to 4 are done** (plans on `main`, loop branch fast-forwarded, E19 and E20 merged into `feat/extraction`). L0 to L4 are done (see "Live runs 2026-10-30" and "L2 and L3"); X16 is decided (Qwen). Resume at L5: close-out (owner reads the dashboard once more, the day's total, false-positive evidence for a possible E21, the German operator docs that still say "Grounded"), then the second release PR.
 
 1. **Plans on `main`.** This change (new chapters E19 and E20, `02-live-runs.md`, updated rollout, ledger and gaps) must be merged to `main` through a docs PR (branch `docs/extraction-live-day-plan`) before the preflight passes.
 2. **Fast-forward the loop branch** (see the header): `feat/extraction` is 48 commits behind `main`.
@@ -118,7 +134,7 @@ Working conventions that apply to every restart: GitHub Actions minutes are exha
 - [ ] The six internal caps sit at 95 percent of their free allowances, Render overrides are cleared, and the budgets route shows the new values (E11).
 - [ ] robots.txt verdicts follow RFC 9309 (longest match, `*`, `$`), the real-file fixtures pass, and the robots failures were re-pended once with counts recorded (E10).
 - [ ] The Workers AI probe is recorded: response shape, usage fields, accepted models, neurons per page, reasoning overhead, quota error body (E4).
-- [ ] The eval chose a model and prompt version, with precision, recall, grounded rate and tag agreement recorded (E5).
+- [x] The eval chose a model and prompt version, with precision, recall, grounded rate and tag agreement recorded (E5; X16 decided 2026-10-30: Qwen3-30B, `ext-5`, `clean-4`).
 - [ ] `llm_extract` completes tasks, releases on quota or budget, and never fails a page because of a limit (E6).
 - [ ] One live run produced candidates, edges and tag suggestions, stayed inside the neuron budget and the ledger cap, and triggered screenshots for pages with mentions (E7).
 - [ ] The admin shows edges, conditions and suggested tags (E8).
