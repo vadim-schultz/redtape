@@ -39,8 +39,20 @@ class _Api:
         return httpx.Response(404, text=f"unexpected {request.method} {path}")
 
     def _page(self) -> dict[str, Any]:
-        items = [{"id": str(i), "mention_count": 4} for i in self.listed]
+        items = [self._listed_item(i) for i in self.listed]
         return {"items": items, "total": len(items), "offset": 0, "limit": len(items)}
+
+    @staticmethod
+    def _listed_item(candidate_id: uuid.UUID) -> dict[str, Any]:
+        title = f"Dokument {candidate_id.int}"
+        return {
+            "id": str(candidate_id),
+            "jurisdiction_id": str(uuid.UUID(int=900)),
+            "key": f"dokument-{candidate_id.int}",
+            "title_i18n": {"de": title},
+            "roles": ["required"],
+            "mention_count": 4,
+        }
 
     def _preview(self, candidate_id: uuid.UUID) -> dict[str, Any]:
         reason = self.skip.get(candidate_id)
