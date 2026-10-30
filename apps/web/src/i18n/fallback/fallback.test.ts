@@ -67,6 +67,10 @@ const CANDIDATE_KEYS = [
   "source_role_issued",
   "checklist_title",
   "checklist_count",
+  "flow",
+  "flow_summary",
+  "flow_empty",
+  "flow_more",
   "back_to_list",
   "not_found_title",
 ];
