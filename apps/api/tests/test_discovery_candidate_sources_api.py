@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from app.models.discovery import (
     CatalogueService,
     DiscoveryArtifact,
@@ -68,12 +69,13 @@ def _row(
     return row
 
 
-def _get(client: TestClient[Litestar], key: str, **params: object):  # noqa: F811
-    return client.get(SOURCES_URL, params=params, headers={"X-API-Key": key})
+def _get(app_client: TestClient[Litestar], key: str, **params: object) -> httpx.Response:
+    return app_client.get(SOURCES_URL, params=params, headers={"X-API-Key": key})
 
 
 def test_sources_lists_a_mentioned_row_with_its_newest_snapshot_url(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """Two snapshots on one row: the newer source_url is returned with the right counts."""
     key = _issue_key(db_session)
@@ -95,7 +97,8 @@ def test_sources_lists_a_mentioned_row_with_its_newest_snapshot_url(
 
 
 def test_sources_missing_screenshot_hides_rows_that_have_a_screenshot(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """Only the row without a screenshot survives ``missing=screenshot``; without it both are listed."""
     key = _issue_key(db_session)
@@ -133,12 +136,18 @@ def test_sources_filters_by_candidate(client: TestClient[Litestar], db_session: 
 
     assert [i["catalogue_service_id"] for i in body["items"]] == [str(first.id)]
     assert str(second.id) not in str(body)
-    assert _get(client, key, candidate_id=str(uuid.uuid4())).json() == {"items": [], "total": 0, "offset": 0, "limit": 20}
+    assert _get(client, key, candidate_id=str(uuid.uuid4())).json() == {
+        "items": [],
+        "total": 0,
+        "offset": 0,
+        "limit": 20,
+    }
     assert _get(client, key, candidate_id="not-a-uuid").status_code == 422
 
 
 def test_sources_filters_by_catalogue_service_id(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """Two of three rows by repeated ``catalogue_service_id``; a non-UUID or 21 ids are a 422."""
     key = _issue_key(db_session)
@@ -154,7 +163,8 @@ def test_sources_filters_by_catalogue_service_id(
 
 
 def test_sources_omits_rows_without_a_mention_or_without_a_snapshot(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """A snapshot with no mention and a mention with no snapshot are both absent."""
     key = _issue_key(db_session)
@@ -183,7 +193,8 @@ def test_sources_pages_deterministically(client: TestClient[Litestar], db_sessio
 
 
 def test_sources_orders_by_mention_count_descending(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """The busiest row comes first."""
     key = _issue_key(db_session)
@@ -196,7 +207,8 @@ def test_sources_orders_by_mention_count_descending(
 
 
 def test_sources_rejects_an_unknown_missing_value_and_a_bad_limit(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """``missing=snapshot`` is a 422; ``limit=0`` and ``limit=101`` are rejected."""
     key = _issue_key(db_session)
@@ -215,7 +227,8 @@ def test_sources_requires_the_machine_key(client: TestClient[Litestar], db_sessi
 
 
 def test_sources_path_is_not_shadowed_by_the_candidate_id_routes(
-    client: TestClient[Litestar], db_session: Session  # noqa: F811
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     """``/sources`` is served by the listing, not read as a candidate id (which would 404)."""
     key = _issue_key(db_session)

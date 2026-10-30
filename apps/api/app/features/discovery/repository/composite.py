@@ -7,6 +7,7 @@ from app.features.discovery.repository.artifact_listing import ArtifactListingRe
 from app.features.discovery.repository.artifacts import ArtifactRepository
 from app.features.discovery.repository.budgets import BudgetRepository
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
+from app.features.discovery.repository.candidate_sources import CandidateSourceRepository
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.claims import ClaimRepository
@@ -26,6 +27,7 @@ class DiscoveryRepository(
     ClaimRepository,
     CandidateRepository,
     CandidateListingRepository,
+    CandidateSourceRepository,
     ActivityRepository,
     ArtifactListingRepository,
     CoverageRepository,

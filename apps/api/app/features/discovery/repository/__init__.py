@@ -9,6 +9,12 @@ from app.features.discovery.repository.budgets import BudgetRepository, LedgerKe
 from app.features.discovery.repository.candidate_filter import CandidateFilter
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.features.discovery.repository.candidate_sort import LEGACY_SORTS, CandidateSort, CandidateSortKey
+from app.features.discovery.repository.candidate_source_filter import CandidateSourceFilter
+from app.features.discovery.repository.candidate_sources import (
+    CandidateSourceRepository,
+    CandidateSourceRow,
+    CandidateSourceRows,
+)
 from app.features.discovery.repository.candidates import CandidateRepository
 from app.features.discovery.repository.catalogue import CatalogueRepository
 from app.features.discovery.repository.catalogue_filter import CatalogueFilter, CatalogueSortKey
@@ -34,6 +40,10 @@ __all__ = [
     "CandidateListingRepository",
     "CandidateRepository",
     "CandidateSort",
+    "CandidateSourceFilter",
+    "CandidateSourceRepository",
+    "CandidateSourceRow",
+    "CandidateSourceRows",
     "CandidateSortKey",
     "CatalogueFilter",
     "CatalogueRepository",
