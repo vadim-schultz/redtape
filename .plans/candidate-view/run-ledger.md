@@ -19,7 +19,7 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | 6. Web candidate detail | `feat/candidate-view-web-detail` | [#269](https://github.com/vadim-schultz/redtape/pull/269) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web green, ingest 1181) | not run (Actions billing, D17) | yes, 607f945 | none |
 | 7. Flow diagram | `feat/candidate-view-flow-diagram` | [#270](https://github.com/vadim-schultz/redtape/pull/270) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1180, web 722, ingest 1181) | not run (Actions billing, D17) | yes, bfecff1 | none |
 | 8. Admin documents table | `feat/candidate-view-admin-table` | [#271](https://github.com/vadim-schultz/redtape/pull/271) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1181, web green, ingest green) | not run (Actions billing, D17) | yes, 6fa692f | none; gaps recorded below |
-| 9. Catalogue vs coverage | `feat/candidate-view-catalogue-coverage` | | | | | |
+| 9. Catalogue vs coverage | `feat/candidate-view-catalogue-coverage` | [#272](https://github.com/vadim-schultz/redtape/pull/272) | pass (clean end-to-end `./ci.sh` on scratch DB: api 1185, web 763, ingest 1181) | not run (Actions billing, D17) | yes, 4462b65 | none (first implementer died on an expired auth session; a second one finished it; see notes) |
 | 10. Docs and release | `docs/candidate-view-release` | | | | | |
 
 ## Live run records
@@ -41,6 +41,9 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - **Chapter 8 gaps.** No Jurisdiction column filter (the API takes a jurisdiction UUID, so free text is unusable; the column sorts only). No Source column (the list item has no source field), so `source` stays a select in the header toolbar. `CompletenessChips` is imported from `features/candidates` through its barrel, which crosses the feature boundary in `apps/web/CLAUDE.md`; a later move to `components/` would clean it up. `min_mentions_any` and `role_all` stay in the API because `test_crawlers_docs_structure.py` pins them, though the web no longer uses them.
 - **Chapter 4 follow-up.** `_accepted()` and `CompleteChoice` are duplicated once between the admin and public candidate modules; point both at the shared versions when a third consumer appears.
 
+- **Chapter 9.** The first implementer died mid red phase (expired OAuth session) leaving uncommitted tests; a fresh implementer reviewed and completed them. The catalogue `summary` now covers the whole catalogue instead of the filtered rows (two existing assertions were updated), so the chips stay switchable under a filter. On a failed catalogue query the table shows its own error and no chips.
+- **Possible production-database contact (needs the owner's check).** During chapter 9 two `pytest` runs started from fresh shells without `DATABASE_URL` exported. `apps/api/.env` points at the Supabase production database, so both hung and were killed. It is unconfirmed whether they connected. Nothing was written on purpose and the fixtures roll back, but `Base.metadata.create_all` may have run. Later runs used a wrapper that sets the scratch URL. Suggested: check the Supabase connection log and tables for the time window around 2026-10-30 15:00 to 15:30 UTC. Worth a guard so the API tests refuse to start without an explicit scratch `DATABASE_URL`.
+
 ## Release checklist
 
 - [ ] All chapter PRs are merged into the loop branch (verified with the host, not only the implementer's word).
@@ -52,4 +55,4 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** 2026-10-30 — in progress; chapters 1, 2, 11, 3, 4, 5, 6, 7 and 8 merged and verified, LR1 blocked on the owner's API deploy.
+**Last orchestration:** 2026-10-30 — stopped before chapter 10: chapters 1 to 9 and 11 merged and verified; LR1 partial (16 screenshots), LR2 not run. Chapter 10 and the release PR wait for the owner's API deploy (chapters 1, 2, 3, 11), because chapter 10 needs the LR2 showcase list and the LR1 totals.
