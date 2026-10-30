@@ -8,8 +8,8 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 
 | Chapter | Branch | PR | Local CI | Remote CI | Merged | Blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1. Capture requeue and machine route | `feat/candidate-view-capture-requeue` | | | | | |
-| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | | | | | needs the API deployed (chapter 1) |
+| 1. Capture requeue and machine route | `feat/candidate-view-capture-requeue` | [#263](https://github.com/vadim-schultz/redtape/pull/263) | pass (`./ci.sh` on scratch DB: api 1048, web 627, ingest 1156) | not run (Actions billing, D17) | yes, 704f25b | none |
+| LR1. Screenshot collection ([02-live-runs.md](02-live-runs.md#lr1--screenshot-collection)) | n/a (live) | | | | | needs the API deployed (chapter 1); continuing with chapters that need no screenshots |
 | 2. Completeness read model | `feat/candidate-view-completeness` | | | | | |
 | 11. Manual curation tool | `feat/candidate-view-curation-tool` | | | | | |
 | 3. Public candidate API | `feat/candidate-view-public-api` | | | | | |
@@ -39,4 +39,4 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 - [ ] Release PR opened from the loop branch to `main`; remote CI run if Actions minutes are back.
 - [ ] Owner deploys API then web.
 
-**Last orchestration:** _(none yet)_ Plan created 2026-10-30.
+**Last orchestration:** 2026-10-30 — in progress; chapter 1 merged and verified, LR1 blocked on the owner's API deploy.
