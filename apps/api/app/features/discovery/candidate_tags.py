@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from typing import NamedTuple
 
 from app.config import settings
-from app.features.discovery.tags import TagSupport, aggregate_tags
+from app.features.discovery.tags import ProvenancedMention, TagSupport, aggregate_tags, curated_codes
 from app.models.discovery import DiscoveryCandidateMention
 
 
@@ -17,13 +17,22 @@ class TagSuggestions(NamedTuple):
     situations: list[TagSupport]
 
 
+def _consensus(mentions: list[ProvenancedMention]) -> list[TagSupport]:
+    tagged = [(procedure, codes) for procedure, _extractor, codes in mentions]
+    return aggregate_tags(tagged, settings.discovery_tag_min_procedures, settings.discovery_tag_min_share)
+
+
+def _axis_support(mentions: list[ProvenancedMention]) -> list[TagSupport]:
+    """Return the curated codes of one axis, else its consensus under the configured thresholds."""
+    return curated_codes(mentions) or _consensus(mentions)
+
+
 def candidate_tag_suggestions(mentions: Iterable[DiscoveryCandidateMention]) -> TagSuggestions:
-    """Aggregate the codes of ``mentions`` with the thresholds from settings."""
+    """Aggregate the codes of ``mentions``; a manual mention replaces the consensus of its axis."""
     rows = list(mentions)
-    thresholds = (settings.discovery_tag_min_procedures, settings.discovery_tag_min_share)
     return TagSuggestions(
-        aggregate_tags([(m.catalogue_service_id, m.domain_codes) for m in rows], *thresholds),
-        aggregate_tags([(m.catalogue_service_id, m.situation_codes) for m in rows], *thresholds),
+        _axis_support([(m.catalogue_service_id, m.extractor, m.domain_codes) for m in rows]),
+        _axis_support([(m.catalogue_service_id, m.extractor, m.situation_codes) for m in rows]),
     )
 
 

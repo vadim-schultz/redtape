@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from app.features.discovery.tags import TagSupport, aggregate_tags
+from app.features.discovery.tags import MANUAL_EXTRACTOR, TagSupport, aggregate_tags, curated_codes
 
 P1, P2, P3, P4, P5 = (uuid.uuid4() for _ in range(5))
 
@@ -61,3 +61,25 @@ def test_aggregate_thresholds_are_parameters_and_the_result_is_ordered() -> None
 
     assert [(e.code, e.procedures, e.accepted) for e in result] == [("a", 2, False), ("b", 1, False)]
     assert aggregate_tags(mentions, min_procedures=1, min_share=0.9)[1].accepted is False
+
+
+def test_curated_codes_take_one_procedure_and_ignore_the_extracted_consensus() -> None:
+    mentions = [(P1, "pvog_payload", ["housing"]), (P2, "pvog_payload", ["housing"]), (P3, MANUAL_EXTRACTOR, ["work"])]
+
+    assert curated_codes(mentions) == [TagSupport("work", procedures=1, share=1.0, accepted=True)]
+
+
+def test_curated_codes_union_the_manual_mentions_and_count_their_procedures() -> None:
+    mentions = [(P1, MANUAL_EXTRACTOR, ["b", "a"]), (P2, MANUAL_EXTRACTOR, ["a"]), (P2, MANUAL_EXTRACTOR, ["a"])]
+
+    assert curated_codes(mentions) == [
+        TagSupport("a", procedures=2, share=1.0, accepted=True),
+        TagSupport("b", procedures=1, share=1.0, accepted=True),
+    ]
+
+
+def test_curated_codes_are_empty_without_a_manual_mention_carrying_codes() -> None:
+    mentions = [(P1, "llm", ["housing"]), (P2, MANUAL_EXTRACTOR, None), (P3, MANUAL_EXTRACTOR, [])]
+
+    assert curated_codes(mentions) == []
+    assert curated_codes([]) == []
