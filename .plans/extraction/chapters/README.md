@@ -22,5 +22,9 @@ One executable plan per chapter. Order, dependencies and gates: [../01-rollout.m
 | E16 | [16-documents-not-data-fields.md](16-documents-not-data-fields.md) | worker (after E7) |
 | E17 | [17-price-rows-for-candidate-models.md](17-price-rows-for-candidate-models.md) | worker (after E16) |
 | E18 | [18-non-documents-and-tag-restraint.md](18-non-documents-and-tag-restraint.md) | worker (after E8) |
+| E19 | [19-neuron-overshoot.md](19-neuron-overshoot.md) | worker + docs (after E9) |
+| E20 | [20-quote-grounded-rate.md](20-quote-grounded-rate.md) | worker + docs (after E19) |
 
 Each chapter has: Goal, contract, paired TDD loops (Red, Green, Refactor), Verification (with the `gh` commands or the local drain command), and Out of scope. Remote CI is the authoritative gate when Actions minutes exist; while they are exhausted (owner decision 2026-10-28) the full local CI is the gate. The proof for each chapter is in the ledger.
+
+The live runs after E20 (drain, `ext-5` eval, decision X16) are not a chapter: they are run by the chief of staff from [../02-live-runs.md](../02-live-runs.md).

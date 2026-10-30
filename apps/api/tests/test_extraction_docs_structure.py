@@ -39,22 +39,37 @@ def test_every_relative_link_in_the_extraction_plan_folder_the_loop_document_and
     assert [link for path in documents for link in broken_links(path)] == []
 
 
-def test_the_plans_readme_lists_eighteen_extraction_chapters_and_their_state() -> None:
-    """The entry counts E1 to E18, is current, and names the release state and the pending decision."""
+def test_the_plans_readme_lists_twenty_extraction_chapters_and_their_state() -> None:
+    """The entry counts E1 to E20, is current, and names the release state and the pending decision."""
     block = _extraction_block()
-    assert "Eighteen chapters" in block and "Nine chapters" not in block and "no chapter started" not in block
+    assert (
+        "Twenty chapters" in block
+        and "Eighteen chapters" not in block
+        and "Nine chapters" not in block
+        and "no chapter started" not in block
+    )
     assert not missing_in(block, ("feat/extraction", "PR #229", "X16", "extraction-operator-checklist.md"))
     chapter_files = sorted(path.name for path in (PLAN / "chapters").glob("[0-9][0-9]-*.md"))
-    assert len(chapter_files) == 18
+    assert len(chapter_files) == 20
     index = read(PLAN / "chapters/README.md")
     assert all(f"({name})" in index for name in chapter_files)
 
 
-def test_the_rollout_table_has_eighteen_rows_none_of_them_planned() -> None:
-    """The rollout agrees with the ledger: every chapter is merged into the loop branch."""
-    rows = [line for line in read(PLAN / "01-rollout.md").splitlines() if re.match(r"\| E\d+ \|", line)]
-    assert len(rows) == 18 and not [row for row in rows if row.rstrip().endswith("| planned |")]
-    assert "Eighteen independently shippable chapters" in read(PLAN / "01-rollout.md")
+def test_the_rollout_table_has_twenty_rows_whose_status_matches_the_ledger() -> None:
+    """The rollout agrees with the ledger: a chapter is `merged` in both or `planned` in both."""
+    rollout = read(PLAN / "01-rollout.md")
+    rows = [line for line in rollout.splitlines() if re.match(r"\| E\d+ \|", line)]
+    assert len(rows) == 20 and "Twenty independently shippable chapters" in rollout
+    ledger = {
+        line.split("|")[1].strip(): line.split("|")[3].strip()
+        for line in read(PLAN / "run-ledger.md").splitlines()
+        if re.match(r"\| E\d+ \|", line)
+    }
+    for row in rows:
+        cells = [cell.strip() for cell in row.split("|")]
+        chapter, status = cells[1], cells[-2]
+        assert status in {"merged", "planned"} or status.startswith("merged"), row
+        assert ledger[chapter].startswith(status.split(" ")[0]), (chapter, status, ledger[chapter])
 
 
 def test_the_stale_version_pattern_matches_an_old_prompt_version_and_the_link_check_reports_a_missing_file(
