@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from discovery_ingest.extract.llm.evaluation.drop_reasons import (
+    GROUNDING_REASONS,
+    GUARD_REASONS,
+    UnknownDropReason,
+    quote_failures,
+    reason_class,
+)
 from discovery_ingest.extract.llm.evaluation.metrics import (
     Counts,
     document_counts,
@@ -10,6 +17,8 @@ from discovery_ingest.extract.llm.evaluation.metrics import (
     grounded_rate,
     tag_agreement,
 )
+from discovery_ingest.extract.llm.ground_state import DroppedItem
+from discovery_ingest.extract.llm.schema import DocumentItem
 
 
 def test_precision_and_recall_count_matching_slug_and_role_and_ignore_order() -> None:
@@ -69,3 +78,35 @@ def test_a_page_with_no_gold_documents_and_no_predictions_scores_as_correct_not_
     assert quiet == Counts(0, 0, 0)
     assert quiet.precision == 1.0 and quiet.recall == 1.0
     assert invented.precision == 0.0 and invented.recall == 1.0
+
+
+GUARD_NAMES = ("noise", "data_field", "generic_name", "duplicate", "dependency_duplicate", "dependency_endpoint")
+
+
+def _lost(reason: str) -> DroppedItem:
+    return DroppedItem(reason, DocumentItem(name="Reisepass", role="required", quote="Reisepass"))
+
+
+def test_quote_and_dependency_quote_are_grounding_reasons_and_the_guard_reasons_are_not() -> None:
+    """reason table · quote and dependency_quote ground; the six guard reasons and the page-kind loss do not."""
+    assert {"quote", "dependency_quote"} == GROUNDING_REASONS
+    assert {*GUARD_NAMES, "page_kind"} <= GUARD_REASONS and not GROUNDING_REASONS & GUARD_REASONS
+    assert [reason_class(reason) for reason in ("quote", "dependency_quote", *GUARD_NAMES)] == [
+        "grounding",
+        "grounding",
+        *["guard"] * len(GUARD_NAMES),
+    ]
+
+
+def test_a_reason_that_is_in_neither_class_is_refused_instead_of_counting_as_grounded() -> None:
+    """reason table · an invented reason raises, and so does counting quote failures over it (negative)."""
+    with pytest.raises(UnknownDropReason, match="invented"):
+        reason_class("invented")
+    with pytest.raises(UnknownDropReason, match="invented"):
+        quote_failures([_lost("quote"), _lost("invented")])
+
+
+def test_quote_failures_count_only_the_items_lost_to_a_quote_that_is_not_on_the_page() -> None:
+    """quote_failures · guard drops are not counted; quote drops are."""
+    lost = [_lost("quote"), _lost("data_field"), _lost("duplicate"), _lost("dependency_quote")]
+    assert quote_failures(lost) == 2 and quote_failures([]) == 0

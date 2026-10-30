@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 from discovery_ingest.extract.clean import CleanPage, clean_page
+from discovery_ingest.extract.llm.evaluation.drop_reasons import reason_class
 from discovery_ingest.extract.llm.evaluation.gold import load_gold
 from discovery_ingest.extract.llm.ground import Grounded, ground
+from discovery_ingest.extract.llm.ground_names import NAME_REJECTIONS
 from discovery_ingest.extract.llm.schema import PageExtraction
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
@@ -101,3 +104,20 @@ def test_quotes_that_lost_their_umlauts_in_the_recorded_answer_are_still_dropped
         "Antragsformular",
         "Identittsbesttigung",
     }
+
+
+GROUND_SOURCES = sorted((Path(__file__).parents[1] / "discovery_ingest/extract/llm").glob("ground*.py"))
+LITERAL_REASON = re.compile(r'(?:lose|keep_quoted|_lose_all)\([^)]*?"([a-z_]+)"')
+
+
+def _reasons_in_source() -> set[str]:
+    """Return the reason literals that the grounding code passes to ``Tally.lose`` and ``keep_quoted``."""
+    return {match for path in GROUND_SOURCES for match in LITERAL_REASON.findall(path.read_text(encoding="utf-8"))}
+
+
+def test_every_drop_reason_that_grounding_produces_is_assigned_to_a_class() -> None:
+    """recorded · reasons seen on the recorded answers, in the name rejections and in the source all have a class."""
+    seen = {reason for name in KEPT_AFTER for reason in _ground(name).diagnostics.dropped}
+    reasons = seen | {reason for reason, _ in NAME_REJECTIONS} | _reasons_in_source()
+    assert {"quote", "dependency_quote", "dependency_endpoint", "dependency_duplicate"} <= reasons
+    assert {reason: reason_class(reason) for reason in reasons}
