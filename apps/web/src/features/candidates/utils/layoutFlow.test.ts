@@ -86,11 +86,11 @@ describe("layoutFlow columns", () => {
       );
       expect(centreOf(sided).x).toBe(centreOf(full).x);
       expect(centreOf(sided).x).toBe(G.padding + COLUMN_STEP);
-      expect(
-        column(sided, "egress").every(
-          (n) => n.x === G.padding + 2 * COLUMN_STEP,
-        ),
-      ).toBe(egressCount > 0);
+      const egress = column(sided, "egress");
+      expect(egress).toHaveLength(egressCount);
+      egress.forEach((node) =>
+        expect(node.x).toBe(G.padding + 2 * COLUMN_STEP),
+      );
       expect(centreOf(sided).y).toBe(centreOf(full).y);
     },
   );
