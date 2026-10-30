@@ -6,6 +6,9 @@ import type { CandidateCard } from "../../types";
 import { CompletenessChips } from "../CompletenessChips";
 import { CandidateTagBadges } from "../CandidateTagBadges";
 
+/** Tells the item page the visitor came from the list, so Back can restore its URL state. */
+const FROM_LIST = { fromList: true } as const;
+
 export interface CandidateListCardProps {
   candidate: CandidateCard;
 }
@@ -17,7 +20,7 @@ export default function CandidateListCard({
   const { t } = useLocale();
 
   return (
-    <AppCard to={`/candidates/${candidate.id}`}>
+    <AppCard to={`/candidates/${candidate.id}`} state={FROM_LIST}>
       <Card.Title textStyle="subsectionHeader">{candidate.title}</Card.Title>
       {candidate.description ? (
         <Card.Description mt={1} lineClamp={2}>

@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { expect, it } from "vitest";
 
 import { renderWithProviders } from "../../test/renderWithProviders";
@@ -39,4 +40,40 @@ it("AppCard · a static card is not a link and has no hover motion", () => {
   expect(getComputedStyle(card).transitionDuration).not.toBe(
     "var(--chakra-durations-normal)",
   );
+});
+
+function StateProbe() {
+  return <p>{JSON.stringify(useLocation().state)}</p>;
+}
+
+function renderCardToProbe(state?: unknown) {
+  return renderWithProviders(
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <AppCard to="/x" state={state}>
+            Go
+          </AppCard>
+        }
+      />
+      <Route path="/x" element={<StateProbe />} />
+    </Routes>,
+  );
+}
+
+it("AppCard · a linked card hands its state to the destination", async () => {
+  const { user } = renderCardToProbe({ fromList: true });
+
+  await user.click(screen.getByRole("link"));
+
+  expect(screen.getByText('{"fromList":true}')).toBeInTheDocument();
+});
+
+it("AppCard · a linked card without state leaves the destination state empty", async () => {
+  const { user } = renderCardToProbe();
+
+  await user.click(screen.getByRole("link"));
+
+  expect(screen.getByText("null")).toBeInTheDocument();
 });

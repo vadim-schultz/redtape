@@ -57,7 +57,8 @@ it("candidate detail makes no screenshot request without a screenshot", async ()
     await screen.findByText("No screenshot available yet"),
   ).toBeInTheDocument();
   expect(screen.queryByRole("img")).toBeNull();
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  const urls = fetchMock.mock.calls.map(([input]) => String(input));
+  expect(urls.some((url) => url.endsWith("/screenshot"))).toBe(false);
 });
 
 it("candidate detail shows the loading skeleton", () => {
