@@ -109,12 +109,12 @@ def test_limit_keeps_the_first_pages_by_name(monkeypatch: pytest.MonkeyPatch, tm
 def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_budget_is_spent(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """eval · each call reserves first and settles after; the next page past the run budget ends the run, kept results stay."""
+    """eval · each call reserves first and settles after; once a call has reached the run budget the run ends, kept results stay."""
     write_gold(tmp_path / "gold", names=["alpha", "beta", "gamma"])
     llm = FakeLlm()
     ledger = _wire(monkeypatch, llm)
 
-    code = _eval(tmp_path, "--neuron-budget", "80")
+    code = _eval(tmp_path, "--neuron-budget", "40")
 
     report = _out(tmp_path)
     shown = capsys.readouterr().out
@@ -122,14 +122,40 @@ def test_eval_reserves_from_the_ledger_and_stops_with_a_clear_message_when_the_b
     assert ledger.actions()[:3] == ["budgets", "reserve", "adjust"]
     assert ledger.remaining == pytest.approx(9000 - cost(MODEL, 1000, 200))
     assert [page["name"] for page in report["pages"]] == ["alpha"] and report["stopped"]["reason"] == "budget"
-    assert "neuron budget of 80 is spent" in shown and "pages run 1 of 3" in shown
+    assert "neuron budget of 40 is reached" in shown and "pages run 1 of 3" in shown
+
+
+def test_the_eval_neuron_budget_help_says_the_last_call_may_pass_the_budget(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """llm eval --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
+    with pytest.raises(SystemExit):
+        main(["llm", "eval", "--help"])
+
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "Stop once this many neurons are used" in help_text and "may pass it by its own cost" in help_text
+    assert "would pass" not in help_text
+
+
+def test_the_eval_budget_stop_message_does_not_say_would_pass(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """eval · a budget spent by the last call is reported as reached, without a claim about the next page."""
+    write_gold(tmp_path / "gold", names=["alpha", "beta"])
+    _wire(monkeypatch, FakeLlm())
+
+    assert _eval(tmp_path, "--neuron-budget", "40") == 1
+
+    stopped = _out(tmp_path)["stopped"]["message"]
+    assert "neuron budget of 40 is reached" in stopped and "would pass" not in stopped
+    assert "neuron budget of 40 is reached" in capsys.readouterr().out
 
 
 def test_an_eval_run_with_the_default_budget_processes_at_least_five_long_pages_before_it_stops(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """eval · six 25,000-character pages at 8,700 tokens in and 2,500 out on the 70B model: five or more run, then the budget ends it."""
-    write_long_gold(tmp_path / "gold", count=6)
+    """eval · eight 25,000-character pages at 8,700 tokens in and 2,500 out on the 70B model: five or more run, then the budget ends it."""
+    write_long_gold(tmp_path / "gold", count=8)
     monkeypatch.setenv("LLM_MAX_TOKENS", "4000")  # the default output limit of chapter E14
     llm = FakeLlm({"Hinweis": ANSWERS["Neuigkeiten"]}, usage=(8_700, 2_500), model=LLAMA_70B)
     _wire(monkeypatch, llm)

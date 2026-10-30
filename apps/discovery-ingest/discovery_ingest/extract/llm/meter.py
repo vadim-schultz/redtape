@@ -8,6 +8,7 @@ from typing import Literal
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.budget_models import BudgetResource
 from discovery_ingest.extract.llm.client import LlmResult
+from discovery_ingest.extract.llm.ledger_reserve import reserve_up_to
 from discovery_ingest.extract.llm.prices import actual_neurons, estimate
 
 RESOURCE: BudgetResource = "neurons"
@@ -18,7 +19,7 @@ class Reservation:
     """A granted reservation; ``ledgered`` is false when only the run budget stood behind it."""
 
     model: str
-    neurons: int
+    neurons: float
     ledgered: bool
 
 
@@ -57,10 +58,10 @@ class NeuronMeter:
     def reserve(self, model: str, input_chars: int, max_tokens: int) -> Reservation | Denied | LedgerUnavailable:
         """Reserve the estimate for one call; raises :class:`UnknownModelError` for a model without a price."""
         neurons = estimate(model, input_chars, max_tokens)
-        if self._used + neurons > self._limit:
+        if self._run_budget_reached():
             return Denied("run_budget")
-        refusal = self._ledger_refusal(neurons)
-        return self._grant(model, neurons) if refusal is None else refusal
+        granted = self._ledger_grant(neurons)
+        return granted if isinstance(granted, Denied | LedgerUnavailable) else self._grant(model, granted)
 
     def settle(self, reservation: Reservation, result: LlmResult) -> None:
         """Replace the reservation by the real cost (reported neurons, else priced tokens); keep it when neither exists."""
@@ -81,20 +82,25 @@ class NeuronMeter:
         if self._use_ledger:
             self._guard.exhaust(RESOURCE)
 
+    def _run_budget_reached(self) -> bool:
+        """Whether the run has used its budget; below it a call may still go out and pass it by its own cost."""
+        return self._used >= self._limit
+
     def _correct(self, reservation: Reservation, delta: float) -> None:
         self._used += delta
         if reservation.ledgered:
             self._guard.adjust(RESOURCE, delta)
 
-    def _ledger_refusal(self, neurons: int) -> Denied | LedgerUnavailable | None:
+    def _ledger_grant(self, neurons: int) -> float | Denied | LedgerUnavailable:
+        """Return the neurons the ledger grants (the estimate, or what is left of the day), or why it did not."""
         if not self._use_ledger:
-            return None
-        answer = self._guard.reserve(RESOURCE, neurons)
-        if answer.ledger_unavailable:
+            return neurons
+        grant = reserve_up_to(self._guard, RESOURCE, neurons)
+        if grant.ledger_unavailable:
             return LedgerUnavailable()
-        return None if answer.granted else Denied("ledger")
+        return grant.amount if grant.amount > 0 else Denied("ledger")
 
-    def _grant(self, model: str, neurons: int) -> Reservation:
+    def _grant(self, model: str, neurons: float) -> Reservation:
         self._used += neurons
         return Reservation(model, neurons, ledgered=self._use_ledger)
 

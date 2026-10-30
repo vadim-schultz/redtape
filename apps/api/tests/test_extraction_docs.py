@@ -51,6 +51,14 @@ def test_the_drain_runbook_states_that_the_ledger_is_not_the_whole_meter_and_the
     assert not missing(DISCOVERY_ONLINE, ("catalogue row, the kind, the target URL", "never queues a second task"))
 
 
+def test_architecture_section_9_and_the_drain_runbook_state_that_overshoot_is_at_most_one_call() -> None:
+    """E19: a call is allowed while the run and the day are below their limits, so the last call may pass them by its own cost."""
+    architecture = REPO_ROOT / ".plans/extraction/00-architecture.md"
+    sentence = ("may pass the budget by its own cost", "at most one call")
+    assert not missing(architecture, sentence)
+    assert not missing(DISCOVERY_ONLINE, sentence)
+
+
 def test_the_workflow_docs_match_the_llm_workflow_inputs_and_the_render_gap() -> None:
     """The model input has the code default, the budget default is documented, and the unchanged render workflow is flagged."""
     workflow = read(WORKFLOWS / "discovery-llm.yml")

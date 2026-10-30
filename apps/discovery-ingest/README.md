@@ -150,7 +150,7 @@ It needs `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` (the budget ledger and `GET
 Cloudflare variables, and it never prints the token. Every call reserves neurons from the ledger first, so an eval
 cannot spend more than the day has left.
 
-- `--neuron-budget` (default 4000; use 5000 for the 70b model) ends the run before the page that would pass its reservation (up to about 900 neurons for a long page). The pages done so far are
+- `--neuron-budget` (default 4000; use 5000 for the 70b model) ends the run once the budget is reached; the last call may pass it by its own cost (up to about 900 neurons for a long page). The pages done so far are
   printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
   token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
 - `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`PROMPT_VERSION` in

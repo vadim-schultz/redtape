@@ -40,31 +40,47 @@ def _released(api: LlmApi) -> list[tuple[str, Any]]:
     return api.named("release")
 
 
-def test_a_denied_reservation_releases_this_task_and_the_unstarted_ones_and_stops_with_llm_budget(
+def test_a_day_with_few_neurons_left_lets_one_call_pass_it_then_releases_the_rest_with_llm_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """llm_extract · the ledger has too few neurons for the first call: all 3 tasks go back, the model is never called."""
+    """llm_extract · 10 neurons left: the first call reserves what is left and completes, the other 2 tasks go back."""
     api, llm = LlmApi(_tasks()), ScriptedLlm(SERVICE)
     api.ledger_remaining = 10.0
 
     report = _drain(monkeypatch, api, llm)
 
-    assert (report.stop_reason, report.released, report.succeeded) == ("llm_budget", 3, True)
-    assert (report.completed, report.failed, report.llm_calls, report.neurons_used) == (0, 0, 0, 0.0)
-    assert llm.calls == 0 and api.named("fail") == [] and "llm_budget" in str(_released(api)[0][1])
+    assert (report.stop_reason, report.completed, report.released, report.succeeded) == ("llm_budget", 1, 2, True)
+    assert report.llm_calls == 1 and api.ledger_remaining == pytest.approx(10.0 - cost(MODEL, 1000, 200))
+    assert api.named("fail") == [] and "llm_budget" in str(_released(api)[0][1])
 
 
-def test_a_run_budget_smaller_than_one_call_stops_with_llm_budget_after_the_calls_it_can_afford(
+def test_a_denied_reservation_releases_this_task_and_the_unstarted_ones_and_stops_with_llm_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """llm_extract · budget for exactly one call: the first page completes, the second is released with the rest."""
+    """llm_extract · the ledger is exhausted after the first call: the next reservation is denied, 2 tasks go back."""
+    api = LlmApi(_tasks())
+    llm = ScriptedLlm(SERVICE, on_call=lambda _call: setattr(api, "ledger_exhausted", True))
+
+    report = _drain(monkeypatch, api, llm)
+
+    assert (report.stop_reason, report.completed, report.released, report.succeeded) == ("llm_budget", 1, 2, True)
+    assert (report.failed, report.llm_calls) == (0, 1)
+    assert llm.calls == 1 and api.named("fail") == [] and "llm_budget" in str(_released(api)[0][1])
+
+
+def test_a_run_budget_that_one_call_spends_stops_with_llm_budget_after_that_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """llm_extract · the first page completes and spends the budget (it may pass it); the second is released with the rest."""
     api, llm = LlmApi(_tasks()), ScriptedLlm(SERVICE)
-    policy = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=ESTIMATE + 10)
+    policy = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=cost(MODEL, 1000, 200) - 1)
 
     report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, llm=resources(llm))
 
     assert (report.completed, report.released, report.stop_reason) == (1, 2, "llm_budget")
     assert report.neurons_used == pytest.approx(cost(MODEL, 1000, 200), abs=0.1)
+    note = str(_released(api)[0][1])
+    assert "neuron budget is reached" in note and "would pass" not in note
 
 
 def test_a_day_with_no_neurons_left_stops_with_llm_budget_before_claiming(monkeypatch: pytest.MonkeyPatch) -> None:
