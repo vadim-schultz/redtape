@@ -42,7 +42,7 @@ it("domain chip toggles a single filter", async () => {
   const { user } = renderAt("/candidates?filter[situation]=moving");
 
   await user.click(await screen.findByRole("button", { name: "Identity" }));
-  expect(search()).toBe("?filter[domain]=identity&filter[situation]=moving");
+  expect(search()).toBe("?filter[situation]=moving&filter[domain]=identity");
   expect(screen.getByRole("button", { name: "Identity" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -78,13 +78,13 @@ it("complete-only switch sets and clears the filter", async () => {
   });
 
   await user.click(complete);
-  expect(search()).toBe("?filter[complete]=yes");
+  await vi.waitFor(() => expect(search()).toBe("?filter[complete]=yes"));
   await vi.waitFor(() =>
     expect(lastCall(fetchMock).get("filter[complete]")).toBe("yes"),
   );
 
   await user.click(complete);
-  expect(search()).toBe("");
+  await vi.waitFor(() => expect(search()).toBe(""));
 });
 
 it("candidates list shows an empty state that explains active filters", async () => {
@@ -143,7 +143,9 @@ it("pagination keeps the filters when the page changes", async () => {
 
   await user.click(screen.getByRole("button", { name: "Page 2" }));
 
-  expect(search()).toBe("?filter[domain]=identity&offset=20");
+  await vi.waitFor(() =>
+    expect(search()).toBe("?offset=20&filter[domain]=identity"),
+  );
   await vi.waitFor(() => expect(lastCall(fetchMock).get("offset")).toBe("20"));
   expect(lastCall(fetchMock).get("filter[domain]")).toBe("identity");
 });

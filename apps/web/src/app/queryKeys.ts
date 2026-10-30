@@ -27,6 +27,11 @@ export const queryKeys = {
     detail: (id: string | undefined) =>
       [...queryKeys.documents.all, "detail", id] as const,
   },
+  candidates: {
+    all: ["candidates"] as const,
+    list: (query: object, locale: string) =>
+      [...queryKeys.candidates.all, "list", query, locale] as const,
+  },
   suggestions: {
     all: ["suggestions"] as const,
     list: (
