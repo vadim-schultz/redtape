@@ -376,6 +376,27 @@ def test_screenshot_answers_304_for_a_matching_etag_without_reading_the_store(
     assert _class_b_reads(db_session) == 0
 
 
+@pytest.mark.parametrize(
+    ("header", "status"),
+    [
+        ("*", 304),
+        ('W/"{sha}"', 304),
+        ('"other", "{sha}"', 304),
+        ('"other"', 200),
+        ("", 200),
+    ],
+)
+def test_screenshot_reads_every_form_of_if_none_match(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot, header: str, status: int
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+    sha = hashlib.sha256(b"new-image").hexdigest()
+
+    response = client.get(f"{URL}/{candidate_id}{SHOT}", headers={"If-None-Match": header.format(sha=sha)})
+
+    assert response.status_code == status
+
+
 def test_screenshot_sends_the_image_for_a_stale_etag(
     client: TestClient[Litestar], scene: Scene, slot: StoreSlot
 ) -> None:

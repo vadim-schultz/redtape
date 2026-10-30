@@ -4,15 +4,26 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from litestar import Controller, get
+from litestar import Controller, Response, get
+from litestar.params import Parameter
+from litestar.status_codes import HTTP_304_NOT_MODIFIED
 
 from app.features.candidates.list_query import PUBLIC_CANDIDATE_SPEC, public_filter_from
+from app.features.candidates.screenshot_service import CACHE_CONTROL, ScreenshotReply, ScreenshotService
 from app.features.candidates.service import CandidateReadService
 from app.features.discovery.repository import Page
 from app.schema.candidate import CandidateDetail, CandidateListResponse
 from app.shared.list_query import ListQuery, provide_list_query
 from app.shared.locale import ResolvedLocale
 from app.shared.paging import PageParams
+
+
+def _screenshot_response(reply: ScreenshotReply) -> Response[bytes]:
+    """Answer 304 without a body when the client copy is current, else 200 with the stored image."""
+    headers = {"ETag": reply.etag, "Cache-Control": CACHE_CONTROL}
+    if reply.data is None:
+        return Response(b"", status_code=HTTP_304_NOT_MODIFIED, headers=headers)
+    return Response(reply.data, media_type=reply.content_type, headers=headers)
 
 
 class CandidatesController(Controller):
@@ -34,3 +45,12 @@ class CandidatesController(Controller):
         self, candidate_service: CandidateReadService, locale: ResolvedLocale, candidate_id: UUID
     ) -> CandidateDetail:
         return candidate_service.candidate_detail(candidate_id, locale)
+
+    @get("/{candidate_id:uuid}/screenshot", sync_to_thread=True)
+    def candidate_screenshot(
+        self,
+        candidate_screenshot_service: ScreenshotService,
+        candidate_id: UUID,
+        if_none_match: str | None = Parameter(header="If-None-Match", default=None),
+    ) -> Response[bytes]:
+        return _screenshot_response(candidate_screenshot_service.serve(candidate_id, if_none_match))
