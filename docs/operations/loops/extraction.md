@@ -92,12 +92,12 @@ Settings, flags and stop reasons are in [`apps/discovery-ingest/README.md`](../.
 Each is also in the [ledger](../../../.plans/extraction/run-ledger.md) or in
 [`gaps-and-decisions.md`](../../../.plans/extraction/gaps-and-decisions.md). Nothing here is a reason to hold the release.
 
-- **No model is finally chosen.** `LLM_MODEL` defaults to the provisional pick `@cf/qwen/qwen3-30b-a3b-fp8` (override
-  with `LLM_MODEL`; empty means no model). On the 20 gold pages no model meets the starting targets
-  (precision 0.80, recall 0.60, grounded 0.95, tag agreement 0.60). The `ext-4` eval of 2026-10-29 gave
-  `@cf/qwen/qwen3-30b-a3b-fp8` precision 0.53 and recall 0.79, and the 70b model 0.57 and 0.51; after E18 an offline
-  replay gives Qwen precision 0.74. The provisional pick is Qwen, to be confirmed by the live `ext-5` eval, the Mistral
-  Small 3.1 and Llama 4 Scout runs, and the owner.
+- **The model is chosen (X16, 2026-10-30), but precision and the quote-grounded rate are below target.**
+  `@cf/qwen/qwen3-30b-a3b-fp8` is the default (`LLM_MODEL` overrides it; empty means no model). The live `ext-5` eval
+  on the 20 gold pages gave Qwen precision 0.68 (target 0.80), recall 0.68, quote-grounded rate 0.93 (0.95), tag
+  agreement 0.63, 63.5 neurons a page; Llama 4 Scout 0.61, 0.60, 0.97, 0.58; Mistral Small 3.1 0.65, 0.36, 0.91, 0.65.
+  The first production drain (about 3,160 neurons, 36 pages) staged 57 candidates, about 17 percent of them clearly not
+  documents. The shortfall is accepted because every candidate is human-reviewed and nothing is emitted automatically.
 - **The gold labels are drafted by Claude** and wait for the owner's review. Precision is understated where the model
   found real documents the labels lack. The gold README still shows labels written against `ext-1`; the manifest's
   `cleaned_chars` and `truncated` fields are stale.
