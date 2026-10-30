@@ -9,6 +9,7 @@ from discovery_ingest.extract.llm.evaluation.report import pages_per_day
 from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.evaluation.summary import Summary
+from discovery_ingest.extract.llm.evaluation.targets import METRIC_VERSION
 from discovery_ingest.extract.llm.ground_state import DroppedItem
 from discovery_ingest.extract.llm.schema import DependencyItem
 
@@ -26,6 +27,7 @@ def _summary(summary: Summary) -> dict[str, JsonValue]:
         "edge_precision": summary.edges.precision,
         "edge_recall": summary.edges.recall,
         "grounded_rate": summary.grounded_rate,
+        "kept_rate": summary.kept_rate,
         "tag_agreement": summary.tag_agreement,
         "cleaner_recall": summary.cleaner_recall,
         "page_kind_accuracy": summary.page_kind_accuracy,
@@ -60,6 +62,7 @@ def _page(page: PageResult) -> dict[str, JsonValue]:
         "edges": _counts(scores.edges),
         "raw_items": scores.raw_items,
         "kept_items": scores.kept_items,
+        "quote_failed_items": scores.quote_failed_items,
         "predicted_codes": list(scores.predicted_codes),
         "gold_codes": list(scores.gold_codes),
         "missing_from_cleaned_text": list(page.missing_names),
@@ -73,6 +76,7 @@ def json_report(run: EvalRun, summary: Summary, setup: EvalSetup) -> dict[str, J
         "model": setup.model,
         "prompt_version": setup.prompt_version,
         "taxonomy_digest": setup.taxonomy.digest(),
+        "metric_version": METRIC_VERSION,
         "total_pages": run.total_pages,
         "neurons_used": run.neurons_used,
         "stopped": {"reason": run.stopped.reason, "message": run.stopped.message} if run.stopped else None,
