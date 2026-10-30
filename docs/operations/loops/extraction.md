@@ -15,8 +15,9 @@ Plan suite folder: `.plans/extraction/` (architecture, rollout, decisions, chapt
    (robots.txt rules), E1 (staging groundwork), E2 (page cleaner), E3 (schema, prompt, grounding), E4 (Workers AI
    client and probe), E5 (eval harness), E6 (`llm_extract` handler), E12 to E15 (quality tuning, grounding
    normalisation, 30,000-character cap, quote shape), E7 (wiring and workflow), E16 and E17 (data-field guard, price
-   rows), E8 (admin display), E18 (non-documents and tag restraint), then E9 (docs sync, this document). Eighteen
-   chapters; E10 to E18 were added while the suite ran, from live findings recorded in the ledger.
+   rows), E8 (admin display), E18 (non-documents and tag restraint), then E9 (docs sync, this document), then E19
+   (neuron overshoot) and E20 (quote-grounded rate). Twenty chapters; E10 to E20 were added while the suite ran, from
+   live findings recorded in the ledger.
 3. Each chapter PR targets the loop branch only. The PR's GitHub Actions checks are the authoritative gate
    (`gh pr checks --watch`). **GitHub Actions minutes are exhausted until the end of October 2026** (owner decision
    2026-10-28): remote jobs fail in seconds on billing, so every chapter so far merged on the full local CI (ruff,
@@ -26,8 +27,15 @@ Plan suite folder: `.plans/extraction/` (architecture, rollout, decisions, chapt
    model run. A missing live gate never blocks a merge; record it as deferred with the step it needs.
 5. When the ledger is complete, open the release PR from the loop branch to `main`. The mid-suite release
    [PR #229](https://github.com/vadim-schultz/redtape/pull/229) (2026-10-28) already put E11, E10 and E1 to E6 on `main`.
-   **E7, E8, E9 and E12 to E18 are not on `main` yet.** Rerun remote CI on the final release PR if Actions minutes are
-   back.
+   **E7, E8, E9 and E12 to E18 reached `main` with [PR #240](https://github.com/vadim-schultz/redtape/pull/240)**
+   (2026-10-29), which left `feat/extraction` 48 commits behind `main`. **Before E19, fast-forward the loop branch**
+   (`git merge --ff-only origin/main`, push). E19, E20 and the live runs are a second release PR. Rerun remote CI on it
+   if Actions minutes are back.
+6. After E20 the chief of staff runs the live steps itself from
+   [`02-live-runs.md`](../../../.plans/extraction/02-live-runs.md) (smoke run, first live drain, comparison with the
+   Cloudflare dashboard, `ext-5` eval of three models, decision X16, close-out). They are not a chapter, so no
+   implementer is launched for them; the owner's go for the production drain (about 40 pages, staged only) was given on
+   2026-10-30.
 
 ## Operator dependencies
 
@@ -62,7 +70,7 @@ release; until then run the same drain command locally.
 
 ## What the suite delivers
 
-Built on `feat/extraction`. The code of E7 to E9 and E12 to E18 runs in production only after the final release PR.
+Built on `feat/extraction`. The code of E1 to E18 is on `main`; whether production runs it depends on the owner's deploy (API and web together). E19 and E20 are planned.
 
 | Area | Delivered (chapters) |
 | --- | --- |
@@ -99,7 +107,9 @@ Each is also in the [ledger](../../../.plans/extraction/run-ledger.md) or in
 - **The 70b model corrupts non-ASCII text** (mojibake, dropped umlauts), so its quotes fail grounding. Segment-wise
   grounding (a quote of several bullets) is measured but not built.
 - **Neurons have two meters.** The ledger does not see `llm probe`, so a provider 429 (code 4006) can come before the
-  ledger is spent. A run can also overshoot its budget slightly, because settlement corrects a real answer upward.
+  ledger is spent (it did on 2026-10-29, at a ledger reading of 5,305; the dashboard comparison in the live runbook
+  checks the cause). A run can also overshoot its budget slightly, because settlement corrects a real answer upward;
+  E19 makes that overshoot deliberate (at most one call) so a day can reach the 9,500 cap.
 - **The output limit is below the schema maximum.** 4,000 tokens do not hold 40 documents and 40 dependencies; a
   truncated answer takes the repair path and then fails the page. `LLM_MAX_TOKENS` is the lever.
 - **`discovery-render.yml` does not queue `llm_extract`.** Scheduled renders queue nothing until an operator adds

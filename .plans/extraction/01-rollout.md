@@ -1,6 +1,6 @@
 ---
 name: Extraction — Rollout
-overview: "Eighteen independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, quality tuning, grounding normalisation, a higher input cap, quote shape, data-field and non-document guards, price rows for candidate models, wiring and workflow, admin display, and docs with operator steps."
+overview: "Twenty independently shippable chapters: free-tier caps at 95 percent and a robots.txt rules fix that execute first, staging groundwork, the page cleaner, the extraction schema with grounding, the Workers AI client and probe, an eval harness that chooses the model, the llm_extract handler, quality tuning, grounding normalisation, a higher input cap, quote shape, data-field and non-document guards, price rows for candidate models, wiring and workflow, admin display, docs with operator steps, a neuron overshoot rule so a day reaches its cap, and a quote-grounded rate metric; then the live runs that finish decision X16."
 isProject: false
 ---
 
@@ -10,6 +10,8 @@ isProject: false
 
 **Loop branch:** `feat/extraction`
 **Release branch:** `main`
+
+**Where to resume (2026-10-30).** E1 to E18 are merged and released. The loop branch `feat/extraction` is 48 commits behind `main` (the release PRs and the web-gui work went to `main`): fast-forward it first (`git merge --ff-only origin/main`, push). Then run **E19**, then **E20**, then the live runs in [02-live-runs.md](02-live-runs.md) (chief of staff, not an implementer), then the second release PR. The ledger hand-off lists the same steps.
 
 **Prerequisites.** Not on `main` yet, tracked in the [crawlers ledger](../crawlers/run-ledger.md): chapters 7 (HTML parser, `MentionItem`, noise filter), 11 (emit), 14 (artifacts), 15 (Cloudflare render, stop reasons, release), 17 (decode, `after_snapshot`), 19 (screenshot enqueue), 20 (document detail page) and **23 (budget ledger)**. The extraction chapters list exactly which of these each needs, so the first ones (E1 to E3) can start as soon as crawlers chapters 7 and 23 are merged, and none of them needs live infrastructure.
 
@@ -61,6 +63,16 @@ flowchart TD
   E13 --> E14[E14 RaiseInputCap]
   E14 --> E15[E15 QuoteShape]
   E15 --> E7
+  E4 --> E19[E19 NeuronOvershoot]
+  E6 --> E19
+  E11 --> E19
+  E14 --> E19
+  E9 --> E19
+  E5 --> E20[E20 QuoteGroundedRate]
+  E16[E16 DataFields] --> E20
+  E18[E18 NonDocuments] --> E20
+  E19 --> E20
+  E20 --> L[Live runs 02-live-runs.md]
 ```
 
 E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of E1 to E9 and execute first: E10 decides which pages are fetched and rendered at all, and E11 settles the caps before the first live gate spends neurons. E5 is the gate for the model and prompt: nothing after it is built against an unmeasured model.
@@ -85,6 +97,10 @@ E1, E2, E3 and E4 are independent of each other. E10 and E11 are independent of 
 8. [chapters/08-admin-display.md](chapters/08-admin-display.md)
 8a. [chapters/18-non-documents-and-tag-restraint.md](chapters/18-non-documents-and-tag-restraint.md) (E18, added 2026-10-29 from the ext-4 eval; executes after E8)
 9. [chapters/09-docs-and-operator-steps.md](chapters/09-docs-and-operator-steps.md)
+10. [chapters/19-neuron-overshoot.md](chapters/19-neuron-overshoot.md) (E19, added 2026-10-30, owner decision X18: a day should reach the 9,500 cap; executes after E9)
+11. [chapters/20-quote-grounded-rate.md](chapters/20-quote-grounded-rate.md) (E20, added 2026-10-30: the grounded-rate target measures quotes on the page; executes after E19)
+
+The live runs after E20 are not a chapter: see **Live gates** below.
 
 ## Chapters
 
@@ -110,6 +126,12 @@ Status is `merged` into `feat/extraction`; the proof (verification, refactor out
 | E16 | Documents, not data fields: prompt rule `ext-4` (executes after E7) | worker | paired tests + CI | [16](chapters/16-documents-not-data-fields.md) | merged |
 | E17 | Price rows for Mistral Small 3.1 and Llama 4 Scout (executes after E16) | worker | paired tests + CI | [17](chapters/17-price-rows-for-candidate-models.md) | merged |
 | E18 | Non-documents and tag restraint: prompt `ext-5` and guards (executes after E8) | worker | paired tests + CI | [18](chapters/18-non-documents-and-tag-restraint.md) | merged |
+| E19 | Neuron overshoot: a day reaches its cap, overshoot at most one call (executes after E9) | worker + docs | paired tests + CI | [19](chapters/19-neuron-overshoot.md) | planned |
+| E20 | Quote-grounded rate: quote-grounded and kept rate in the eval (executes after E19) | worker + docs | paired tests + recorded answers replay + CI | [20](chapters/20-quote-grounded-rate.md) | planned |
+
+## Live gates (chief of staff)
+
+After E20 is merged the chief of staff runs [02-live-runs.md](02-live-runs.md) itself, in order: L0 smoke, L1 live drain with Qwen, L2 calibration against the Cloudflare dashboard, L3 `ext-5` eval of Qwen, Scout and Mistral, L4 the X16 decision, L5 close-out and the release PR. These are the deferred live gates of E7 and E8 and decision X16. Implementers never run them. Owner's go for the production drain: given 2026-10-30, about 40 pages.
 
 ## Per-chapter gate
 
@@ -137,3 +159,6 @@ Each chapter uses `feat/extraction-<slug>` from `feat/extraction` and opens one 
 - The eval on the gold set records precision, recall, grounded rate and tag agreement for the chosen model, and the thresholds are met or the shortfall is recorded as a decision.
 - The admin shows edges, conditions and suggested tags with support counts; nothing was emitted automatically.
 - The operator checklist is complete and the ledger records run IDs for every live gate.
+- A UTC day can spend up to the 9,500-neuron cap (E19), and the eval reports the quote-grounded rate and the kept rate separately (E20).
+- The first live drain staged real documents, edges and tag suggestions; ten read mentions, the edges and the tags were judged against their pages, and the false positives are listed in the ledger.
+- Decision X16 is final: model, prompt version and thresholds are recorded, or the shortfall and the chosen way forward.
