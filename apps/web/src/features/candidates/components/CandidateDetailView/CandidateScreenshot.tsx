@@ -24,11 +24,12 @@ function ScreenshotFrame({
 
   return (
     <Box
-      aspectRatio={16 / 10}
+      maxH="70vh"
       bg="surface.muted"
       borderWidth="1px"
       borderColor="border"
-      overflow="hidden"
+      overflowY="auto"
+      overflowX="hidden"
     >
       <img
         src={src}
@@ -37,16 +38,14 @@ function ScreenshotFrame({
         onError={onError}
         style={{
           width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "top",
+          height: "auto",
         }}
       />
     </Box>
   );
 }
 
-/** The screenshot in a fixed aspect-ratio box; a missing or failing image shows the text instead. */
+/** The screenshot in a scrollable, fixed max-height box; a missing or failing image shows the text instead. */
 export default function CandidateScreenshot({
   src,
   title,
