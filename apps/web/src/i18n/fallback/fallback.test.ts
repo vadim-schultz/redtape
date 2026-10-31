@@ -50,10 +50,8 @@ const CANDIDATE_KEYS = [
   "flag_missing",
   "from_source",
   "ingress",
-  "ingress_subtitle",
   "ingress_empty",
   "egress",
-  "egress_subtitle",
   "egress_empty",
   "optional",
   "condition_label",
@@ -152,6 +150,33 @@ describe("fallback translation bundles", () => {
     expect(candidateKeys("en")).toHaveLength(CANDIDATE_KEYS.length);
     expect(candidateKeys("de")).toEqual(candidateKeys("en"));
   });
+
+  it.each([
+    ["en", "Documents you need first", "Documents that need this one"],
+    [
+      "de",
+      "Dokumente, die du zuerst brauchst",
+      "Dokumente, die dieses Dokument brauchen",
+    ],
+  ])(
+    "candidates.ingress and candidates.egress are the plain-language headings for %s",
+    (locale, ingress, egress) => {
+      const bundle = fallbackBundle(locale);
+
+      expect(bundle["candidates.ingress"]).toBe(ingress);
+      expect(bundle["candidates.egress"]).toBe(egress);
+    },
+  );
+
+  it.each(["en", "de"])(
+    "drops the ingress_subtitle and egress_subtitle keys for %s",
+    (locale) => {
+      const bundle = fallbackBundle(locale);
+
+      expect(bundle).not.toHaveProperty("candidates.ingress_subtitle");
+      expect(bundle).not.toHaveProperty("candidates.egress_subtitle");
+    },
+  );
 
   it("has every discovery_admin.* key in both fallback bundles", () => {
     const adminKeys = (locale: string) =>
