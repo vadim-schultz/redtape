@@ -196,3 +196,32 @@ you tick a box.
       `/admin/discovery/coverage` show different top blocks. The catalogue chips filter the
       table. Coverage is unchanged.  
       Status: not yet performed.
+
+## Candidate view polish smoke checks
+
+Added once the `candidate-view-polish` suite's five chapters landed on
+`feat/plans-candidate-view-polish`; plan and decisions:
+[`.plans/candidate-view-polish/`](../../.plans/candidate-view-polish/00-architecture.md). As with
+the checks above, a person with a browser performs these; no automated implementation agent in
+this suite had one.
+
+- [ ] **Body panel boundary.** `/candidates/:id` shows a visible `surface`/`border`/shadow panel
+      around the page body, distinct from the `bg.canvas` page background behind it. The same
+      boundary appears on `/candidates`, `/documents`, and at least one admin page (for example
+      `/admin/discovery/catalogue`), in both light and dark mode. No page looks broken or
+      edge-to-edge-clipped by the new panel, including a wide table page.  
+      Status: not yet performed.
+- [ ] **Scrollable, unbannered screenshot.** On a candidate detail page backed by a source known
+      to show a cookie-consent banner, the evidence screenshot shows no banner across the top, and
+      the full captured page is reachable by scrolling vertically inside the screenshot frame
+      (not cropped to the first viewport).  
+      Status: not yet performed.
+- [ ] **Plain-language ingress/egress headings.** On `/candidates/:id`, the two neighbour section
+      headings read "Documents you need first" and "Documents that need this one" (German:
+      "Dokumente, die du zuerst brauchst" / "Dokumente, die dieses benötigen"), not "Ingress" /
+      "Egress", and there is no separate subtitle line repeating the same text underneath.  
+      Status: not yet performed.
+- [ ] **Collapsed sources accordion.** On `/candidates/:id`, the Sources section is collapsed by
+      default on first load and expands to show the procedure list (title, portal link, role
+      badge, excerpt) on click.  
+      Status: not yet performed.
