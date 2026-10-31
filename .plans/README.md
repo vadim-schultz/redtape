@@ -259,6 +259,26 @@ Status: built — all eleven chapters are merged on `feat/plans-candidate-view` 
 Operator guide and release smoke checks: [`docs/operations/candidate-view.md`](../docs/operations/candidate-view.md).
 CoS orchestration: [`docs/operations/loops/candidate-view.md`](../docs/operations/loops/candidate-view.md).
 
+### [candidate-view-polish/](candidate-view-polish/) — Evidence screenshot, headings and a sitewide body panel
+
+Five independent fixes found on review of the candidate item page: tiered, best-effort cookie-consent
+dismissal before the Cloudflare screenshot is captured (CSS hide, script-click accept, detect-and-flag —
+no new Worker/Puppeteer infra), a full-height scrollable screenshot instead of a cropped one,
+plain-language "Documents you need first"/"Documents that need this one" headings in place of
+Ingress/Egress, the sources list behind a collapsed accordion, and a `surface.base` body panel in
+`AppLayout` so every page shows a visible boundary against the canvas. Frontend plus one ingest chapter,
+five chapters, no dependencies between them.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](candidate-view-polish/00-architecture.md) | The five decisions and their file-level rationale |
+| [01-rollout.md](candidate-view-polish/01-rollout.md) | Five independent chapters, invariants, per-chapter gate |
+| [gaps-and-decisions.md](candidate-view-polish/gaps-and-decisions.md) | Settled decisions and open seams (AppLayout opt-out, CMP coverage) |
+| [chapters/](candidate-view-polish/chapters/) | One executable plan per chapter |
+
+Status: planned — documentation suite only; implementation starts with
+[chapters/01-screenshot-consent-tiering.md](candidate-view-polish/chapters/01-screenshot-consent-tiering.md).
+
 ### [discovery-layer/](discovery-layer/) — Catalogue ingest and admin pipeline
 
 Staging ingest (GovData/PVOG/FIM/LeiKa) via `apps/discovery-ingest`, machine discovery API, read-only admin at `/admin/discovery/*`, machine emit to [suggestion-interface](suggestion-interface/00-architecture.md) (`pending` only). **Loop-complete without** voting-moderation, evidence-storage, or crawlers — those suites consume or extend staging later.
