@@ -9,3 +9,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Screenshot consent tiering | `feat/candidate-view-polish-consent-tiering` | [#279](https://github.com/vadim-schultz/redtape/pull/279) | pass | not verified (CI minutes exhausted) | yes | none |
+| 2. Scrollable screenshot | `feat/candidate-view-polish-scroll-view` | [#280](https://github.com/vadim-schultz/redtape/pull/280) | pass | not verified (CI minutes exhausted) | yes | none |
