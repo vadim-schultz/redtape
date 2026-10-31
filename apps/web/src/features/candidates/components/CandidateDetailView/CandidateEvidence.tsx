@@ -1,4 +1,4 @@
-import { Heading, VStack } from "@chakra-ui/react";
+import { Accordion, Heading, Span, VStack } from "@chakra-ui/react";
 import { useId } from "react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
@@ -30,7 +30,17 @@ export default function CandidateEvidence({
         title={title}
         fetchedAt={screenshot?.fetched_at ?? null}
       />
-      <CandidateSources sources={sources} />
+      <Accordion.Root collapsible defaultValue={[]}>
+        <Accordion.Item value="sources">
+          <Accordion.ItemTrigger>
+            <Span flex="1">{t("candidates.sources")}</Span>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <CandidateSources sources={sources} />
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
     </VStack>
   );
 }
