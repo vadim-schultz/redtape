@@ -36,9 +36,13 @@ it("candidate detail renders every section for a populated candidate", async () 
   expect(
     await screen.findByRole("heading", { level: 1, name: "Passport" }),
   ).toBeInTheDocument();
-  const ingress = screen.getByRole("region", { name: "Ingress" });
+  const ingress = screen.getByRole("region", {
+    name: "Documents you need first",
+  });
   expect(within(ingress).getByText("Birth certificate")).toBeVisible();
-  const egress = screen.getByRole("region", { name: "Egress" });
+  const egress = screen.getByRole("region", {
+    name: "Documents that need this one",
+  });
   expect(within(egress).getByText("Residence permit")).toBeVisible();
   const image = screen.getByRole("img", { name: /Passport/ });
   expect(image.getAttribute("src")).toMatch(
@@ -55,7 +59,12 @@ it("item page shows the flow between the lists and the evidence", async () => {
   const names = screen
     .getAllByRole("heading", { level: 2, hidden: true })
     .map((heading) => heading.textContent);
-  const wanted = ["Ingress", "Egress", "Flow", "Evidence"];
+  const wanted = [
+    "Documents you need first",
+    "Documents that need this one",
+    "Flow",
+    "Evidence",
+  ];
   expect(names.filter((name) => wanted.includes(name ?? ""))).toEqual(wanted);
 });
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import JsonValue
 
+from discovery_ingest.browser.consent import CONSENT_ACCEPT_SCRIPT, CONSENT_HIDE_CSS
+
 Body = dict[str, JsonValue]
 GOTO_OPTIONS: dict[str, JsonValue] = {"waitUntil": "networkidle2", "timeout": 30000}
 LEAN_RESOURCE_TYPES: list[JsonValue] = ["image", "font", "media"]
@@ -20,10 +22,19 @@ def content_body(url: str, user_agent: str, *, lean: bool = False) -> Body:
 
 
 def snapshot_body(url: str, user_agent: str, formats: list[JsonValue]) -> Body:
-    """Return the ``/snapshot`` body for ``formats``; a screenshot is a full-page JPEG."""
+    """Return the ``/snapshot`` body for ``formats``; a screenshot is a full-page JPEG.
+
+    A screenshot also gets the consent-tiering fields (chapter 1): ``addStyleTag`` (tier 1,
+    always on) and ``addScriptTag`` (tier 2, best effort) on this same request, never a second call.
+    """
     body: Body = {"url": url, "gotoOptions": GOTO_OPTIONS, "userAgent": user_agent, "formats": formats}
     if "screenshot" in formats:
-        body.update(viewport=VIEWPORT, screenshotOptions=_screenshot_options("jpeg"))
+        body.update(
+            viewport=VIEWPORT,
+            screenshotOptions=_screenshot_options("jpeg"),
+            addStyleTag=[{"content": CONSENT_HIDE_CSS}],
+            addScriptTag=[{"content": CONSENT_ACCEPT_SCRIPT}],
+        )
     return body
 
 

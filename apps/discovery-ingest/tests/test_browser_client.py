@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 from collections.abc import Callable
 
 import httpx
@@ -261,6 +262,39 @@ def test_an_over_limit_screenshot_is_rejected_and_a_broken_image_is_an_error() -
     broken = httpx.Response(200, json={"success": True, "result": {"screenshot": "***", "content": "x"}})
     with pytest.raises(BrowserRequestError):
         _client(lambda request: broken).screenshot(PAGE)
+
+
+def test_screenshot_logs_when_a_consent_widget_is_still_present(caplog: pytest.LogCaptureFixture) -> None:
+    """screenshot · a leftover cookie/consent node in content logs once; the ScreenshotImage is returned as-is."""
+    caplog.set_level(logging.WARNING)
+    html = "<html><body><div class='cookie-consent-banner'>Cookies</div></body></html>"
+
+    image = _client(lambda request: _snapshot(JPEG, html=html)).screenshot(PAGE)
+
+    assert image.html == html
+    assert len(caplog.records) == 1
+    assert caplog.records[0].url == PAGE
+
+
+def test_screenshot_logs_nothing_when_no_consent_widget_is_present(caplog: pytest.LogCaptureFixture) -> None:
+    """screenshot · clean content produces no leftover-widget log record."""
+    caplog.set_level(logging.WARNING)
+
+    _client(lambda request: _snapshot(JPEG, html="<html><body><p>hi</p></body></html>")).screenshot(PAGE)
+
+    assert caplog.records == []
+
+
+def test_screenshot_tier_3_detection_ignores_unrelated_search_and_breadcrumb_nodes(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """screenshot · a search or breadcrumb node alone does not trip the narrowed cookie/consent-only flag."""
+    caplog.set_level(logging.WARNING)
+    html = "<html><body><div class='search-results'>x</div><nav class='breadcrumb'>y</nav></body></html>"
+
+    _client(lambda request: _snapshot(JPEG, html=html)).screenshot(PAGE)
+
+    assert caplog.records == []
 
 
 def test_a_reported_zero_is_kept_and_not_replaced_by_the_measured_duration() -> None:

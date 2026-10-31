@@ -42,3 +42,25 @@ it("evidence falls back when the screenshot fails to load", () => {
   expect(screen.getByText("No screenshot available yet")).toBeInTheDocument();
   expect(screen.queryByRole("img")).toBeNull();
 });
+
+it("the screenshot frame is vertically scrollable", () => {
+  renderWithProviders(
+    <CandidateScreenshot src={SRC} title="Passport" fetchedAt={null} />,
+  );
+
+  const frame = screen.getByRole("img", { name: /Passport/ }).parentElement;
+
+  expect(frame).toHaveStyle({ overflowY: "auto" });
+  expect(window.getComputedStyle(frame as Element).maxHeight).not.toBe("none");
+});
+
+it("the image renders at its natural aspect ratio", () => {
+  renderWithProviders(
+    <CandidateScreenshot src={SRC} title="Passport" fetchedAt={null} />,
+  );
+
+  const image = screen.getByRole("img", { name: /Passport/ });
+
+  expect(image).toHaveStyle({ width: "100%", height: "auto" });
+  expect(window.getComputedStyle(image).objectFit).not.toBe("cover");
+});

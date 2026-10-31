@@ -12,16 +12,14 @@ export interface NeighbourSectionProps {
   items: CandidateNeighbour[];
 }
 
-/** Heading, plain-language subtitle and empty text of each direction (D2). */
+/** Plain-language heading and empty text of each direction (D2). */
 const KEYS = {
   ingress: {
     title: "candidates.ingress",
-    subtitle: "candidates.ingress_subtitle",
     empty: "candidates.ingress_empty",
   },
   egress: {
     title: "candidates.egress",
-    subtitle: "candidates.egress_subtitle",
     empty: "candidates.egress_empty",
   },
 } as const;
@@ -60,7 +58,6 @@ export default function NeighbourSection({
       <Heading as="h2" id={headingId} textStyle="sectionHeader">
         {t(keys.title)}
       </Heading>
-      <Text color="muted">{t(keys.subtitle)}</Text>
       <NeighbourList items={items} emptyText={t(keys.empty)} />
     </VStack>
   );
