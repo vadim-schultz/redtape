@@ -14,8 +14,18 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <FloatingControls />
       <Box as="main" flex="1" bg="bg.canvas" pt="calc(44px + 32px)">
         <Container maxW="container.xl" pb={8}>
-          <ColdStartNotice />
-          {children}
+          <Box
+            data-app-panel=""
+            backgroundColor="surface"
+            borderWidth="1px"
+            borderColor="border"
+            shadow="shell"
+            borderRadius="md"
+            p={{ base: 4, md: 6 }}
+          >
+            <ColdStartNotice />
+            {children}
+          </Box>
         </Container>
       </Box>
     </VStack>
