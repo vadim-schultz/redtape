@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/plans-candidate-view-polish`
 **Release branch:** `main`
-**Release MR/PR:** _(filled when opened)_
+**Release MR/PR:** [#284](https://github.com/vadim-schultz/redtape/pull/284) — merged into `main` at `fc069b60a87dad3ebc9c89f2cbc83a48d21cbc7d`
 
 Chapter MRs merge into the loop branch only. The chapter-implementer **does not** edit this file.
 
