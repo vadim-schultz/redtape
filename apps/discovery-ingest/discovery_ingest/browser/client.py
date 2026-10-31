@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import logging
 import time
 from collections.abc import Callable
 
@@ -11,6 +12,7 @@ import httpx
 from pydantic import JsonValue
 
 from discovery_ingest.browser.classify import envelope, is_rate_limited, raise_for_response
+from discovery_ingest.browser.consent import has_leftover_consent_widget
 from discovery_ingest.browser.endpoints import Endpoint, endpoint_url
 from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize
 from discovery_ingest.browser.images import CONTENT_TYPES, image_kind
@@ -21,6 +23,7 @@ from discovery_ingest.browser.usage import parse_ms_used
 from discovery_ingest.config import BrowserSettings
 
 MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
+logger = logging.getLogger(__name__)
 
 
 class CloudflareBrowserClient:
@@ -52,7 +55,7 @@ class CloudflareBrowserClient:
     def screenshot(self, url: str) -> ScreenshotImage:
         """Return a full-page JPEG and the DOM of the same session from one ``/snapshot`` call."""
         payload, ms_used = self._call("snapshot", snapshot_body(url, self._user_agent, ["content", "screenshot"]))
-        return _screenshot_image(payload, ms_used)
+        return _screenshot_image(payload, ms_used, url)
 
     def _call(self, endpoint: Endpoint, body: Body) -> tuple[dict[str, JsonValue], int]:
         response, measured_ms = self._send(endpoint, body)
@@ -95,13 +98,19 @@ def _rendered(payload: dict[str, JsonValue], ms_used: int) -> RenderedPage:
     return RenderedPage(html, ms_used, *_target(payload))
 
 
-def _screenshot_image(payload: dict[str, JsonValue], ms_used: int) -> ScreenshotImage:
+def _screenshot_image(payload: dict[str, JsonValue], ms_used: int, url: str) -> ScreenshotImage:
     result = payload.get("result")
     fields = result if isinstance(result, dict) else {}
     data, html = _decode_image(fields.get("screenshot"), ms_used), fields.get("content")
-    return ScreenshotImage(
-        data, CONTENT_TYPES[image_kind(data)], ms_used, html if isinstance(html, str) else None, *_target(payload)
-    )
+    html_value = html if isinstance(html, str) else None
+    _flag_leftover_consent_widget(html_value, url)
+    return ScreenshotImage(data, CONTENT_TYPES[image_kind(data)], ms_used, html_value, *_target(payload))
+
+
+def _flag_leftover_consent_widget(html: str | None, url: str) -> None:
+    """Log (never raise, never block) when tiers 1-2 missed a cookie/consent widget (tier 3, D3)."""
+    if html is not None and has_leftover_consent_widget(html):
+        logger.warning("consent widget still present after screenshot capture", extra={"url": url})
 
 
 def _decode_image(encoded: JsonValue, ms_used: int) -> bytes:

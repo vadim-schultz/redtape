@@ -273,7 +273,7 @@ def test_screenshot_logs_when_a_consent_widget_is_still_present(caplog: pytest.L
 
     assert image.html == html
     assert len(caplog.records) == 1
-    assert PAGE in caplog.records[0].getMessage() or PAGE in str(caplog.records[0].__dict__.get("url", ""))
+    assert caplog.records[0].url == PAGE
 
 
 def test_screenshot_logs_nothing_when_no_consent_widget_is_present(caplog: pytest.LogCaptureFixture) -> None:
