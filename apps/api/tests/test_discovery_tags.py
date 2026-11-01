@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 from app.config import settings
-from app.features.discovery.tags import TagAxis, TagThresholds, axis_thresholds
+from app.features.discovery.tags import TagAxis, TagSupport, TagThresholds, axis_thresholds, confidence_tier
 from app.models.discovery import DiscoveryCandidateMention as Mention
 
 
@@ -33,3 +33,16 @@ def test_each_axis_reads_its_own_settings_fields(monkeypatch: pytest.MonkeyPatch
 
     assert axis_thresholds(settings, TagAxis.DOMAIN) == TagThresholds(3, 0.9)
     assert axis_thresholds(settings, TagAxis.SITUATION) == TagThresholds(1, 0.1)
+
+
+def test_confidence_tier_is_high_at_two_or_more_procedures() -> None:
+    assert confidence_tier(TagSupport("a", procedures=2, share=1.0, accepted=True)) == "high"
+
+
+def test_confidence_tier_is_low_at_exactly_one_procedure_with_a_partial_share() -> None:
+    assert confidence_tier(TagSupport("a", procedures=1, share=0.5, accepted=True)) == "low"
+
+
+def test_confidence_tier_is_high_for_a_curator_override() -> None:
+    """A curator's manual mention carries full share at one procedure — maximally confident (D5)."""
+    assert confidence_tier(TagSupport("a", procedures=1, share=1.0, accepted=True)) == "high"

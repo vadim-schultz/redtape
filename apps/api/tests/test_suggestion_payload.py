@@ -93,6 +93,22 @@ def test_rejects_oversized_code_lists() -> None:
         NewDocumentPayload.model_validate(_payload(domain_codes=codes))
 
 
+def test_accepts_a_tag_confidence_key_present_in_either_code_list() -> None:
+    payload = NewDocumentPayload.model_validate(
+        _payload(
+            domain_codes=["housing"],
+            situation_codes=["moving-house"],
+            tag_confidence={"housing": "high", "moving-house": "low"},
+        )
+    )
+    assert payload.tag_confidence == {"housing": "high", "moving-house": "low"}
+
+
+def test_rejects_a_tag_confidence_key_not_in_either_code_list() -> None:
+    with pytest.raises(ValidationError):
+        NewDocumentPayload.model_validate(_payload(domain_codes=["housing"], tag_confidence={"other": "high"}))
+
+
 def _create_request(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "kind": "new_document",

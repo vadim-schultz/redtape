@@ -31,3 +31,8 @@ def candidate_tag_suggestions(session: Session, candidate_id: UUID) -> TagSugges
 def accepted_codes(supports: Iterable[TagSupport]) -> list[str]:
     """Return the codes that meet both thresholds."""
     return [support.code for support in supports if support.accepted]
+
+
+def accepted_supports(supports: Iterable[TagSupport]) -> list[TagSupport]:
+    """Return the supports that meet both thresholds, without collapsing them to bare codes."""
+    return [support for support in supports if support.accepted]
