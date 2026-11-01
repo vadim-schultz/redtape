@@ -73,10 +73,18 @@ class Settings(BaseSettings):
         description="Daily cap on Workers AI neurons (extraction suite): 95 percent of the free 10,000.",
     )
     budget_actions_minutes_monthly: int = Field(
-        default=1_000, description="This repository's monthly GitHub Actions minutes (the free 2,000 are shared)."
+        default=2_000,
+        description=(
+            "This repository's monthly GitHub Actions minutes, assuming this repository's share of the "
+            "account-wide shared pool has grown to 2,000 (see gaps-and-decisions.md D1 — unverified)."
+        ),
     )
     actions_ci_reserve_minutes: int = Field(
-        default=600, description="Part of the monthly Actions minutes that CI keeps; drain workflows may not spend it."
+        default=1_000,
+        description=(
+            "Part of the monthly Actions minutes that CI keeps; drain workflows may not spend it. "
+            "Split evenly with the scheduled-drain cap under the new 2,000-minute budget (D1/D2)."
+        ),
     )
     db_soft_limit_bytes: int = Field(
         default=475_000_000,

@@ -114,7 +114,7 @@ def test_actions_minutes_cap_is_the_monthly_cap_minus_the_ci_reserve(db_session:
     tuned = _service(db_session, budget_actions_minutes_monthly=900, actions_ci_reserve_minutes=100)
     reserve_over = _service(db_session, budget_actions_minutes_monthly=500, actions_ci_reserve_minutes=600)
 
-    assert default.cap == 400
+    assert default.cap == 1000
     assert tuned.status(BudgetResource.ACTIONS_MINUTES, NOON).cap == 800
     assert reserve_over.status(BudgetResource.ACTIONS_MINUTES, NOON).cap == 0
     assert reserve_over.reserve(BudgetResource.ACTIONS_MINUTES, Decimal(1), NOON).granted is False
