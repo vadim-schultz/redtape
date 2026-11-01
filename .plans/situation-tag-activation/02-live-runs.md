@@ -12,21 +12,46 @@ isProject: false
 
 ## LR1 — Post-deploy precision check, split by mechanism
 
-**Not yet run — chapters 1–3 have not shipped.**
+**Run 2026-11-01, chief of staff, against production** (all three chapters merged and deployed to `main`; chapter 3's Step 0 sign-off recorded as T4). **AI first-pass hand-labelling, not a human domain expert's — same caveat as the parent suite's LR3 mapping; treat the verdict below as provisional pending human spot-check**, especially the calls marked "debatable."
 
-Once chapters 1–3 are deployed together (cheap to roll back: chapter 1's engine merge is a code-structure change with no schema/migration, the axis threshold is a plain setting, and chapter 3's mention source is purely additive), hand-label roughly 20–30 of the newly-accepted situation-tagged candidates via the admin UI. **Split the sample by which mechanism newly qualified each candidate** — relaxed threshold alone (chapter 1's A1) vs. PVOG corroboration (chapter 3's A2) — so either knob can be independently rolled back from its own sample if its precision looks bad, rather than one blended verdict forcing an all-or-nothing call.
+**Pre-agreed rollback trigger**, decided before any labelling (`gaps-and-decisions.md`, committed 2026-11-01 prior to this run): **70% per-mechanism sample precision**, below which that mechanism reverts immediately.
 
-This finally completes `situation-tag-coverage` LR4's unrun precision half (that suite's coverage half found 0 → 19 of 4,627 candidates under `min_procedures=1` but never checked whether those situations were *correct*), now against the real shipped change instead of an offline variant.
+### Sample and split
 
-**What to record:**
+Queried production directly (`discovery_candidate_mention`, situation axis) for `(candidate, code)` pairs accepted under the new `min_procedures=1` rule that would **not** have been accepted under the old `min_procedures=2` floor (i.e. `procedures = 1`), excluding candidates with a manual override (which bypass consensus in both regimes) — this is the exact "newly accepted" population, not a down-sample of a larger one:
 
-- The sample size and split (how many candidates attributed to A1 only, A2 only, or both).
-- Per-mechanism precision: of the candidates attributed to that mechanism, how many of the hand-labelled situation codes were judged correct.
-- An explicit, pre-agreed rollback trigger per mechanism (e.g. "if A1's sample precision falls below X%, revert `discovery_tag_min_procedures_situation` to 2 without waiting for a full re-run"), decided *before* labelling starts, not fitted to the numbers afterward.
-- As a side check, not a blocker: confirm whether the existing voting pipeline (`apps/api/app/features/voting/`) has ever actually promoted a suggestion via real votes in production, or has sat entirely unexercised — the frontend has zero consumers of the voting API today. This matters for how much safety net "nothing reaches the catalogue without crossing the vote threshold" actually provides right now, independent of this suite's own changes.
+- **16 total newly-accepted `(candidate, code)` pairs** — this is the entire population currently in production, smaller than the ~20–30 target because that's genuinely all there is right now, not a sampling choice.
+- **A1 (relaxed threshold alone, non-PVOG): 16 of 16.**
+- **A2 (PVOG corroboration): 0.** All 5,808 `pvog-payload` mentions in production were created 2026-10-28, before chapter 3 shipped; harvesting is additive and doesn't retroactively populate `situation_codes` on existing rows. A2 has no production candidates to sample until the PVOG crawl/harvest next runs post-chapter-3. **Not a mapping failure — a scheduling gap.** Revisit after the next PVOG harvest cycle.
 
-**Where the result goes:** record the outcome and the rollback-trigger decision in [gaps-and-decisions.md](gaps-and-decisions.md)'s D-PENDING table, and flip D-PENDING from open to settled once both mechanisms have a verdict. Then annotate `situation-tag-coverage/gaps-and-decisions.md`'s T-PENDING entry as resolved, closing the loop the parent suite left open.
+### A1 hand-labelling (16 of 16, full population)
+
+Judged against: does the situation code describe the actual personal life-event plausibly motivating this specific procedure (not just thematic/agency proximity)?
+
+| # | Candidate | Code | Procedure | Verdict |
+| --- | --- | --- | --- | --- |
+| 1–2, 4, 8, 13–14 | 6 candidates | `job-loss` | "Transferkurzarbeitergeld beantragen" (transfer short-time allowance for employees moving into a Transfergesellschaft during layoffs) | **Correct** (×6) — squarely a job-loss procedure |
+| 3, 12, 15 | 3 candidates | `moving-house` | "Vorsorgevollmacht und Betreuungsverfügung im Zentralen Vorsorgeregister registrieren lassen" (power-of-attorney/care-directive registration) | **Wrong** (×3) — no connection to moving |
+| 5–7 | 1 candidate (`4c33cd88`), 3 codes | `birth-of-child`, `death-of-relative`, `moving-house` | "Zugang zu den Stasi-Unterlagen ... zur eigenen Person, vermissten oder verstorbenen Angehörigen" (Stasi-records access for self/missing/deceased relative); all 3 codes attached to the same generic "Identitätsbestätigung" (ID-confirmation) document mention, none grounded in that excerpt's actual text | **Wrong** (×3) — `death-of-relative` is debatable (procedure title does mention deceased relatives as one of three applicant categories) but the quoted excerpt itself grounds none of the three |
+| 9, 16 | 2 candidates | `illness-care` | "Verdacht auf Nebenwirkungen ... melden" (reporting suspected adverse drug/vaccine effects) | **Wrong, debatable** (×2) — health-domain-adjacent, but this is a safety-reporting duty, not a personal illness/care-benefit situation; could reasonably be scored correct under a looser standard |
+| 10 | 1 candidate | `new-job` | "Daten für die Wissenschaft bereitstellen" (research data provision) | **Wrong** (×1) — no connection |
+| 11 | 1 candidate | `job-loss` | "Erstattung der Beiträge zur Sozialversicherung ... zum Saison-Kurzarbeitergeld" (reimbursement of social security contributions, seasonal short-time allowance) | **Wrong, debatable** (×1) — reads as an employer-side reimbursement claim, not a personal citizen job-loss situation; same job-loss family as #1 if read as citizen-facing |
+
+**Precision: 6 of 16 = 37.5%** under the strict reading above (debatable calls scored wrong). Even scoring every debatable call as correct — the most generous reading — gives **10 of 16 = 62.5%**. **Both readings fall below the 70% rollback trigger.**
+
+Methodological caveat: the 6 "correct" pairs are all one procedure (6 different document candidates attached to "Transferkurzarbeitergeld beantragen"); counting distinct *procedures* rather than `(candidate, code)` pairs, only 1 of 6 (or 2 of 6, generously) distinct procedures are correctly tagged — an even weaker signal than the pair-level number suggests.
+
+### Side check — voting pipeline
+
+Queried production directly: `suggestion` table has 2 rows, both `status='pending'`; `suggestion_vote` has **0 rows ever**. **Confirmed: the voting pipeline has never promoted anything in production** — it has sat entirely unexercised, consistent with the frontend having zero consumers of the voting API. The "nothing reaches the catalogue without crossing the vote threshold" safety net provides no actual protection today, independent of this suite's changes, because nothing has ever been voted on.
+
+### Verdict
+
+- **A1: rollback trigger hit.** 37.5–62.5% sample precision, below the pre-agreed 70% bar under every reading. **Recommend executing the pre-agreed rollback** (`discovery_tag_min_procedures_situation` back to `2`) — see `gaps-and-decisions.md` D-PENDING for the chief of staff's recommendation and open question back to the user before acting, given several of the 16 calls are genuinely debatable AI-judgment, not a human domain expert's.
+- **A2: not measurable yet.** Zero production candidates since chapter 3 shipped; revisit after the next PVOG harvest run.
+
+**Where the result goes:** recorded in [gaps-and-decisions.md](gaps-and-decisions.md)'s D-PENDING table. D-PENDING does **not** flip to settled yet — A1 has a verdict (fails) but A2 doesn't have one yet, and the rollback itself hasn't been executed pending the user's decision.
 
 ---
 
-**Status:** not started. This section will be updated in place, the same way `situation-tag-coverage/02-live-runs.md` records each run's outcome directly beneath its own heading, once chapters 1–3 are merged and deployed.
+**Status:** A1 run and verdict recorded above (rollback triggered, pending user decision). A2 blocked on the next PVOG harvest cycle — re-run this section's A2 half once PVOG mentions with `situation_codes` exist in production.
