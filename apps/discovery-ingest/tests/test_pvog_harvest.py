@@ -139,3 +139,24 @@ def test_harvester_reports_each_document_once_per_module() -> None:
     duplicated = _module("<ul><li>Reisepass</li><li>Reisepass</li></ul>")
 
     assert _titles(_payload(duplicated)) == ["Reisepass"]
+
+
+def test_harvester_attaches_the_mapped_situation_code_for_a_clean_leaf() -> None:
+    """harvester · attaches the mapped single-element situation_codes for a clean leaf."""
+    drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1180100"))
+
+    assert drafts[0].situation_codes == ["retirement"]
+
+
+def test_harvester_attaches_every_plausible_code_for_a_bundled_leaf() -> None:
+    """harvester · attaches both plausible codes for a bundled/ambiguous leaf."""
+    drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1040300"))
+
+    assert drafts[0].situation_codes == ["job-loss", "new-job"]
+
+
+def test_harvester_attaches_nothing_when_the_stashed_code_is_unmapped() -> None:
+    """harvester · attaches no situation_codes for an unmapped leaf code."""
+    drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1020200"))
+
+    assert drafts[0].situation_codes is None
