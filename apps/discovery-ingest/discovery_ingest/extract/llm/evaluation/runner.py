@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 
 from pydantic import ValidationError
 
@@ -10,12 +10,25 @@ from discovery_ingest.extract.clean import CleanPage, clean_page
 from discovery_ingest.extract.llm.client import LlmClient, LlmResult
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmError, LlmInvalidOutput, LlmQuotaExceeded
 from discovery_ingest.extract.llm.evaluation.cache import CacheEntry, CacheKey, ResultCache, text_digest
-from discovery_ingest.extract.llm.evaluation.gold import GoldPage
-from discovery_ingest.extract.llm.evaluation.page import Failure, PageContext, Reply, StopRun, refusal_stop
-from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult, Usage
-from discovery_ingest.extract.llm.evaluation.scoring import nothing_found, score_page
+from discovery_ingest.extract.llm.evaluation.gold import DocumentCase, GoldPage
+from discovery_ingest.extract.llm.evaluation.page import (
+    DocumentContext,
+    Failure,
+    PageContext,
+    Reply,
+    StopRun,
+    refusal_stop,
+)
+from discovery_ingest.extract.llm.evaluation.results import EvalRun, PageResult, PageStatus, Scores, Usage
+from discovery_ingest.extract.llm.evaluation.scoring import (
+    nothing_found,
+    nothing_found_document,
+    score_document,
+    score_page,
+)
 from discovery_ingest.extract.llm.evaluation.setup import EvalSetup
 from discovery_ingest.extract.llm.ground import ground
+from discovery_ingest.extract.llm.ground_state import Grounded
 from discovery_ingest.extract.llm.meter import NeuronMeter, Reservation
 from discovery_ingest.extract.llm.prices import actual_neurons, reserved_output_tokens
 from discovery_ingest.extract.llm.prompt import build_messages
@@ -45,48 +58,77 @@ class EvalRunner:
 
     def run(self, pages: Sequence[GoldPage]) -> EvalRun:
         """Run ``pages`` in order; a spent budget or a quota error ends the run with the pages done so far."""
+        return self._run_all(len(pages), (self._page(page) for page in pages))
+
+    def run_documents(self, cases: Sequence[DocumentCase]) -> EvalRun:
+        """Run document-level cases in order; mirrors ``run`` but scores each against its own document's text."""
+        return self._run_all(len(cases), (self._document(case) for case in cases))
+
+    def _run_all(self, total: int, results: Iterator[PageResult]) -> EvalRun:
         done: list[PageResult] = []
         stopped = None
         try:
-            done.extend(self._results(pages))  # extend appends page by page, so a stop keeps the finished pages
+            done.extend(results)  # extend appends one by one, so a stop keeps the results finished so far
         except StopRun as stop:
             stopped = stop.stopped
-        return EvalRun(tuple(done), len(pages), self._meter.used_neurons, stopped)
-
-    def _results(self, pages: Sequence[GoldPage]) -> Iterator[PageResult]:
-        for page in pages:
-            yield self._page(page)
+        return EvalRun(tuple(done), total, self._meter.used_neurons, stopped)
 
     def _page(self, gold: GoldPage) -> PageResult:
         page = PageContext(gold, clean_page(gold.html, gold.source_url, max_chars=self._setup.max_chars))
-        if not page.cleaned.text.strip():
-            return page.result("empty_page", Usage(), nothing_found(gold))
-        reply = self._cached_or_ask(page)
+        return self._run_one(
+            page.cleaned, gold.name, nothing_found(gold), page.result, page.failed, lambda e, g: score_page(gold, e, g)
+        )
+
+    def _document(self, case: DocumentCase) -> PageResult:
+        cleaned = CleanPage(
+            text=case.document_text, links=frozenset(), language=None, title=None, truncated=False, version="doc-gold-1"
+        )
+        doc = DocumentContext(case, cleaned)
+        return self._run_one(
+            doc.cleaned,
+            doc.cache_name,
+            nothing_found_document(case),
+            doc.result,
+            doc.failed,
+            lambda _extraction, grounded: score_document(case, grounded),
+        )
+
+    def _run_one(
+        self,
+        cleaned: CleanPage,
+        cache_name: str,
+        empty: Scores,
+        result: Callable[[PageStatus, Usage, Scores, str | None], PageResult],
+        failed: Callable[[Failure, Usage | None], PageResult],
+        score: Callable[[PageExtraction, Grounded], Scores],
+    ) -> PageResult:
+        """Ask (cached), parse and ground once; ``result``/``failed``/``score`` are the one thing a page and a document differ on."""
+        if not cleaned.text.strip():
+            return result("empty_page", Usage(), empty, None)
+        reply = self._cached_or_ask(cleaned, cache_name)
         if isinstance(reply, Failure):
-            return page.failed(reply)
+            return failed(reply, None)
         extraction = _parse(reply.result)
         if isinstance(extraction, Failure):
-            return page.failed(extraction, reply.usage)
-        grounded = ground(extraction, page.cleaned, self._setup.taxonomy)
-        return page.result("ok", reply.usage, score_page(gold, extraction, grounded))
+            return failed(extraction, reply.usage)
+        grounded = ground(extraction, cleaned, self._setup.taxonomy)
+        return result("ok", reply.usage, score(extraction, grounded), None)
 
-    def _cached_or_ask(self, page: PageContext) -> Reply | Failure:
-        key = self._key(page)
+    def _cached_or_ask(self, cleaned: CleanPage, cache_name: str) -> Reply | Failure:
+        key = self._key(cleaned, cache_name)
         entry = self._cache.get(key)
         if entry is not None:
             usage = Usage(entry.result.input_tokens, entry.result.output_tokens, entry.neurons, cached=True)
             return Reply(entry.result, usage)
-        reply = self._ask(page.cleaned)
+        reply = self._ask(cleaned)
         if isinstance(reply, Reply):
             self._cache.put(key, CacheEntry(reply.result, reply.usage.neurons))
         return reply
 
-    def _key(self, page: PageContext) -> CacheKey:
+    def _key(self, cleaned: CleanPage, cache_name: str) -> CacheKey:
         setup = self._setup
-        digest = text_digest(page.cleaned.text)
-        return CacheKey(
-            setup.model, setup.prompt_version, page.cleaned.version, setup.taxonomy.digest(), page.gold.name, digest
-        )
+        digest = text_digest(cleaned.text)
+        return CacheKey(setup.model, setup.prompt_version, cleaned.version, setup.taxonomy.digest(), cache_name, digest)
 
     def _ask(self, cleaned: CleanPage) -> Reply | Failure:
         reservation = self._reserve(len(cleaned.text))

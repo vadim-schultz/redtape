@@ -4,7 +4,8 @@
   "documents": [
     {
       "name": "Antrag auf Indizierung",
-      "role": "form"
+      "role": "form",
+      "document_text": "Antrag gemäß § 18 Absatz 1 Jugendschutzgesetz (JuSchG). Wir beantragen, nachfolgend näher beschriebenes Medium gemäß § 18 Absatz 1 JuSchG in die Liste jugendgefährdender Medien aufzunehmen. Objektdaten (soweit bekannt): Filmwerke, Spiele, Schriftwerke, Tonwerke, Telemedien. Mit * gekennzeichnete Felder müssen ausgefüllt werden, damit eine Bearbeitung erfolgen kann."
     }
   ],
   "dependencies": [],
