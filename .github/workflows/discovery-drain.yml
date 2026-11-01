@@ -25,7 +25,7 @@ on:
       kinds:
         description: "Comma separated task kinds to claim"
         required: false
-        default: "fetch_url,enrich_metadata,harvest_payload,extract_page"
+        default: "fetch_url,enrich_metadata,harvest_payload"
         type: string
 
 permissions:
@@ -40,14 +40,14 @@ jobs:
     name: Drain discovery tasks
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_DRAIN_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
       MAX_TASKS: ${{ inputs.max_tasks || '50' }}
       MAX_BATCHES: ${{ inputs.max_batches || '20' }}
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || vars.DISCOVERY_DRAIN_BUDGET_SECONDS || '900' }}
-      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata,harvest_payload,extract_page' }}
+      TASK_KINDS: ${{ inputs.kinds || 'fetch_url,enrich_metadata,harvest_payload' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
@@ -74,7 +74,7 @@ jobs:
           # Exit 3 means the ledger has fewer minutes left than this job may use (timeout-minutes);
           # skip the drain without failing the run. An unreachable ledger lets the drain run.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=45 || code=$?
+          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=30 || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
             echo "### Discovery drain skipped: the Actions minutes budget is used up" >> "${GITHUB_STEP_SUMMARY}"
