@@ -57,9 +57,13 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 Invalid bounds exit with code 2. An API failure exits with code 1. A drain that ends on a limit exits 0.
 
 `discovery-drain.yml` passes its inputs to the same flags. `max_tasks` defaults to 50, `max_batches` to 20 and `kinds`
-to the default kinds. The time budget is the `time_budget_seconds` input, else the repository variable
-`DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900 seconds. The daily 04:00 UTC schedule runs only when the variable
-`DISCOVERY_DRAIN_SCHEDULE` is `enabled`. See [scheduled-jobs.md](scheduled-jobs.md).
+to `fetch_url,enrich_metadata,harvest_payload` — trimmed from the CLI default above, because `extract_page` now drains
+in its own workflow (chapter 2 of `discovery-throughput`'s same-day restructuring). The time budget is the
+`time_budget_seconds` input, else the repository variable `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900 seconds. The
+daily 02:00 UTC schedule runs only when the variable `DISCOVERY_DRAIN_SCHEDULE` is `enabled`; the other four stages
+each drain on their own daily schedule, same-day: `render_page` at 03:00 UTC (`discovery-render.yml`), `extract_page`
+at 04:00 UTC (`discovery-extract.yml`), `llm_extract` at 04:30 UTC (`discovery-llm.yml`) and `capture_screenshot` at
+05:00 UTC (`discovery-screenshot.yml`). See [scheduled-jobs.md](scheduled-jobs.md).
 
 ### Task kinds and the kind filter
 
@@ -214,6 +218,13 @@ says `ledger_unavailable`.
 
 The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`, `no_documents`, `login_wall`,
 `no_content`) and shows the neuron meter next to them.
+
+**Optional situation codes.** `situation_codes` may come back as an empty list; the extraction is still staged and
+counted as `extracted`, not dropped, when every other field is usable. `domain_codes` stays required. Confirmed at
+`PageExtraction.situation_codes` in
+[`apps/discovery-ingest/discovery_ingest/extract/llm/schema.py`](../../apps/discovery-ingest/discovery_ingest/extract/llm/schema.py)
+(`default_factory=list`, no `min_length`), unlike `domain_codes` on the line above it, which keeps its required
+`Field(max_length=...)` with no default.
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
 (priority 200). `LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
