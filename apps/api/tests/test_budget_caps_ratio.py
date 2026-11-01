@@ -36,9 +36,9 @@ def test_no_cap_falls_back_below_90_percent_of_its_allowance(name: str) -> None:
 def test_the_actions_minutes_budget_stays_a_repository_share_of_the_account_pool() -> None:
     settings = Settings(_env_file=None)
 
-    assert (settings.budget_actions_minutes_monthly, settings.actions_ci_reserve_minutes) == (1_000, 600), (
-        "the 2,000 free Actions minutes are shared by every repository on the account; "
-        "1,000 is this repository's share, not 95 percent of the pool"
+    assert (settings.budget_actions_minutes_monthly, settings.actions_ci_reserve_minutes) == (2_000, 1_000), (
+        "the free Actions minutes are shared by every repository on the account; "
+        "2,000 is this repository's assumed share, split evenly between scheduled drains and CI"
     )
 
 

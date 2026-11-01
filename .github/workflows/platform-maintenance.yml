@@ -65,9 +65,9 @@ jobs:
     if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'discovery') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # Shares the group with discovery-drain.yml so two drains never overlap.
+    # Shares the group with the discovery-*.yml workflows so two drains never overlap.
     concurrency:
-      group: discovery-drain
+      group: discovery-pipeline
       cancel-in-progress: false
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}

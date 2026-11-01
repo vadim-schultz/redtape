@@ -35,13 +35,14 @@ as the equivalent local command; nothing else is blocked by it.
 | OP10 | [ ] | | Open and merge the final release PR | OP11 |
 | OP11 | [ ] | | Deploy API and web together, re-seed translations, E8 live gate | OP15 |
 | OP12 | [ ] | | Backfill and drain, once a day | OP14 |
-| OP13 | [ ] | | Queue after scheduled renders (optional) | nothing |
+| OP13 | [ ] | n/a — ships on by default (discovery-throughput chapter 2) | Queue after scheduled renders: no operator action, see Steps for the opt-out | nothing |
 | OP14 | [ ] | | Enable the schedule (optional) | nothing |
 | OP15 | [ ] | | Review the suggested tags before any emit that carries tags | the first emit with tags |
 | OP16 | [ ] | | Native review of the German admin strings | nothing |
 
 The suite's release checklist in [`run-ledger.md`](../../.plans/extraction/run-ledger.md) is complete only when OP1 to
-OP12 and OP15 are recorded with dates and run IDs or commands. OP13, OP14 and OP16 are optional.
+OP12 and OP15 are recorded with dates and run IDs or commands. OP13 ships on by default and needs no operator action
+(see Steps); OP14 and OP16 are optional.
 
 ## Reported done
 
@@ -123,9 +124,11 @@ python -m discovery_ingest llm eval --model @cf/qwen/qwen3-30b-a3b-fp8 --neuron-
 ```
 
 Write decision X16 in `gaps-and-decisions.md` (model, endpoint mode, `PROMPT_VERSION` `ext-5`, `CLEAN_VERSION`
-`clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set `LLM_MODEL` for the
-render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). `LLM_MODEL` defaults to the
-X16 choice `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to choose another model. If no model reaches the targets, record
+`clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set the repository
+variable `DISCOVERY_LLM_MODEL` (OP14). `discovery-render.yml`'s job `env` already reads that same variable
+automatically (OP13 ships on by default, see Steps), so there is nothing separate to set for the render worker.
+`LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to
+choose another model. If no model reaches the targets, record
 the shortfall and one of three decisions: accept lower recall because everything is human-reviewed, change the cleaner
 or the prompt, or fall back to hand-written extractors for the weak hosts (crawlers chapter 18). If the 70b model is
 chosen, revert the E18 code guard with the one-line change in `ground._codes`.
@@ -212,18 +215,18 @@ Requeueing the same page under the same model, prompt and cleaner versions queue
 catalogue row, the kind, the target URL and the key), so a daily `llm requeue` is safe. A new model, `PROMPT_VERSION` or
 `CLEAN_VERSION` queues the backlog again; do that deliberately, because it spends neurons.
 
-**OP13: Queue after scheduled renders (optional).** `discovery-render.yml` was not changed by the suite and sets neither
-`LLM_ENQUEUE` nor `LLM_MODEL`. To queue `llm_extract` after scheduled renders, add both to the `env` block of its
-`drain` job (without `LLM_MODEL` the default model applies; to choose one, the id is a plain value or
-`${{ vars.DISCOVERY_LLM_MODEL }}`, and an unset variable becomes an empty value, which means no model):
+**OP13: Queue after scheduled renders (on by default).** `discovery-render.yml` sets both in the `env` block of its
+`drain` job by default:
 
 ```yaml
       LLM_ENQUEUE: "true"
       LLM_MODEL: ${{ vars.DISCOVERY_LLM_MODEL }}
 ```
 
-With `LLM_ENQUEUE` on and an empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
-`llm_enqueue_failed`. A laptop render with both variables exported does the same without a workflow change.
+so scheduled renders queue `llm_extract` work automatically; no operator step is needed for this default. An unset
+`DISCOVERY_LLM_MODEL` variable becomes an empty `LLM_MODEL` value, which means no model. With `LLM_ENQUEUE` on and an
+empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
+`llm_enqueue_failed`. A laptop render with both variables exported does the same.
 
 **OP14: Enable the schedule (optional).** Only after the OP9 live gate and only if the monthly Actions allowance has room
 (crawlers S20). Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`

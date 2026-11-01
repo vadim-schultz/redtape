@@ -7,17 +7,37 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, func, select
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.task_clauses import claimable, fail_exhausted_stmt, repend_expired_stmt
+from app.features.discovery.repository.task_page_completeness import page_completeness_subquery
 from app.models.discovery import (
     DiscoveryTask,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
 
+# Admin/general task listing order (task_sort.py): priority, then created_at, then id. Unaffected by
+# page completeness — that heuristic is claim-order-only, see ``_claim_order`` below.
 QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), DiscoveryTask.id.asc())
+
+
+def _claim_order(page_completeness: ColumnElement) -> tuple[ColumnElement, ...]:
+    """Return the claim order: priority, then page-completeness-desc, then created_at, then id.
+
+    This supersedes ``discovery-operations`` decision D7's ordering clause (D5): within a priority tier,
+    the created-time tie-break now runs after a page-completeness-desc tie-break, so a page one chip from
+    done claims ahead of an older, emptier page of the same priority. D7's other guarantees — the 1-50
+    claim limit, 15-minute lease, reclaim-on-claim, idempotent catalogue upsert, fingerprint dedup — are
+    unaffected; only this ordering changes.
+    """
+    return (
+        DiscoveryTask.priority.asc(),
+        func.coalesce(page_completeness, 0).desc(),
+        DiscoveryTask.created_at.asc(),
+        DiscoveryTask.id.asc(),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,9 +95,15 @@ class TaskRepository(SessionRepository):
     def list_pending_tasks_for_claim(
         self, *, limit: int, kinds: Sequence[DiscoveryTaskKind], now: datetime
     ) -> list[DiscoveryTask]:
-        """Return up to ``limit`` tasks of the given ``kinds`` that are claimable at ``now``, in queue order."""
-        stmt = select(DiscoveryTask).where(*claimable(now), DiscoveryTask.kind.in_(kinds))
-        return list(self._session.scalars(stmt.order_by(*QUEUE_ORDER).limit(limit)).all())
+        """Return up to ``limit`` claimable ``kinds`` tasks, by priority then page-completeness-desc (D5, D6)."""
+        completeness = page_completeness_subquery()
+        stmt = (
+            select(DiscoveryTask)
+            .outerjoin(completeness, completeness.c.catalogue_service_id == DiscoveryTask.catalogue_service_id)
+            .where(*claimable(now), DiscoveryTask.kind.in_(kinds))
+        )
+        order = _claim_order(completeness.c.page_completeness)
+        return list(self._session.scalars(stmt.order_by(*order).limit(limit)).all())
 
     def get_task(self, task_id: UUID) -> DiscoveryTask | None:
         """Return the task with ``task_id``, if any."""

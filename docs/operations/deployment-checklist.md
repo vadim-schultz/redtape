@@ -84,11 +84,13 @@ variable only to tighten it.
 | `BUDGET_R2_CLASS_B_MONTHLY` | 9500000 | R2 reads a month (free tier 10 million); each presigned link reserves one |
 | `BUDGET_BROWSER_SECONDS_DAILY` | 570 | Cloudflare browser seconds a day, all runs together (free plan 600) |
 | `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day, an API variable (`llm_extract` and `llm eval` reserve from it; free plan 10,000). Cloudflare's own allocation also counts uses the ledger never sees, such as `llm probe`, so only 500 neurons a day stay unreserved; tighten it if other workloads use Workers AI |
-| `BUDGET_ACTIONS_MINUTES_MONTHLY` | 1000 | This repository's GitHub Actions minutes a month |
-| `ACTIONS_CI_RESERVE_MINUTES` | 600 | The part of those minutes that CI keeps; drains may use 400 |
+| `BUDGET_ACTIONS_MINUTES_MONTHLY` | 2000 | This repository's GitHub Actions minutes a month |
+| `ACTIONS_CI_RESERVE_MINUTES` | 1000 | The part of those minutes that CI keeps; drains may use 1000 |
 | `DISCOVERY_TAG_MIN_PROCEDURES` | 2 | Procedures that must tag a candidate with a domain or life-situation code before emit offers it |
 | `DISCOVERY_TAG_MIN_SHARE` | 0.5 | Share of a candidate's tagged procedures that must carry the code |
 | `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
+
+- [ ] Render dashboard sets `BUDGET_ACTIONS_MINUTES_MONTHLY=2000` and `ACTIONS_CI_RESERVE_MINUTES=1000` for `redtape-api`, matching the new split above. This assumes this repository's share of the account-wide shared Actions-minutes pool has grown to 2,000 (unverified — see [`discovery-throughput/gaps-and-decisions.md`](../../.plans/discovery-throughput/gaps-and-decisions.md) D1); confirm the account pool really has this headroom before relying on it.
 
 The Cloudflare Browser Run token (`CLOUDFLARE_BROWSER_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`) is deliberately
 **not a Render variable**. The API never calls Cloudflare Browser Run. The token lives in GitHub Actions secrets and
@@ -188,7 +190,7 @@ Prereqs:
 Checks:
 - [ ] Repository secrets for OpenPLZ and discovery jobs match [`scheduled-jobs.md`](scheduled-jobs.md) (`DATABASE_URL`, `DISCOVERY_API_URL` as **host root**, `DISCOVERY_API_KEY`, `FEDERAL_JURISDICTION_ID` set from live DE country row per [discovery-online-production-setup.md](discovery-online-production-setup.md) §3.1).
 - [ ] `DISCOVERY_API_KEY` was issued with `python -m scripts.issue_api_key --name discovery-scheduled-gha` and stored only in GitHub Secrets (not in git).
-- [ ] The drain workflows [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml) and [`discovery-render.yml`](../../.github/workflows/discovery-render.yml) exist on `main` (`gh workflow run` answers 404 for a workflow file that is not on `main` yet; `discovery-render.yml` and the probe workflows arrive with the release). Their schedule variables `DISCOVERY_DRAIN_SCHEDULE` and `DISCOVERY_RENDER_SCHEDULE` stay unset until [crawlers-operator-checklist.md](crawlers-operator-checklist.md) S13.
+- [ ] The five drain workflows [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml), [`discovery-render.yml`](../../.github/workflows/discovery-render.yml), [`discovery-extract.yml`](../../.github/workflows/discovery-extract.yml), [`discovery-llm.yml`](../../.github/workflows/discovery-llm.yml) and [`discovery-screenshot.yml`](../../.github/workflows/discovery-screenshot.yml) exist on `main` (`gh workflow run` answers 404 for a workflow file that is not on `main` yet; all five and the probe workflows arrive with the release). Their schedule variables `DISCOVERY_DRAIN_SCHEDULE`, `DISCOVERY_RENDER_SCHEDULE`, `DISCOVERY_EXTRACT_SCHEDULE` and `DISCOVERY_SCREENSHOT_SCHEDULE` stay unset until [crawlers-operator-checklist.md](crawlers-operator-checklist.md) S13; `DISCOVERY_LLM_SCHEDULE` additionally waits on the extraction live gate ([extraction-operator-checklist.md](extraction-operator-checklist.md) OP14).
 - [ ] Probe secrets: the five `OBJECT_STORE_*` secrets are used only by `discovery-storage-probe.yml`; `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_BROWSER_API_TOKEN` only by `discovery-render.yml` and `discovery-browser-probe.yml`.
 
 ---

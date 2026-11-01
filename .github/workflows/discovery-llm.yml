@@ -2,9 +2,9 @@ name: Discovery llm
 
 on:
   schedule:
-    # Daily 06:00 UTC. Runs only when the repository variable DISCOVERY_LLM_SCHEDULE equals "enabled" (see the job
+    # Daily 04:30 UTC. Runs only when the repository variable DISCOVERY_LLM_SCHEDULE equals "enabled" (see the job
     # condition), and then takes the model from the repository variable DISCOVERY_LLM_MODEL.
-    - cron: "0 6 * * *"
+    - cron: "30 4 * * *"
   workflow_dispatch:
     inputs:
       llm_model:
@@ -41,9 +41,9 @@ on:
 permissions:
   contents: read
 
-# The same group as discovery-drain.yml: the workflows never overlap.
+# The same group as the rest of the discovery pipeline: scheduled drains never overlap.
 concurrency:
-  group: discovery-drain
+  group: discovery-pipeline
   cancel-in-progress: false
 
 jobs:

@@ -56,13 +56,13 @@ def _index(steps: list[dict[str, Any]], needle: str) -> int:
 def test_the_job_has_a_timeout_a_budget_skip_an_always_minutes_step_and_the_shared_concurrency_group(
     document: dict[Any, Any], job: dict[str, Any]
 ) -> None:
-    """discovery-llm.yml · timeout-minutes 20, skip step before the drain, always-run minutes step last, group discovery-drain."""
+    """discovery-llm.yml · timeout-minutes 20, skip step before the drain, always-run minutes step last, group discovery-pipeline."""
     steps = job["steps"]
     check = steps[_index(steps, BUDGET_CHECK)]
     drain = _index(steps, DRAIN)
 
     assert job["timeout-minutes"] == 20
-    assert document["concurrency"] == {"group": "discovery-drain", "cancel-in-progress": False}
+    assert document["concurrency"] == {"group": "discovery-pipeline", "cancel-in-progress": False}
     assert (
         f"actions_minutes={job['timeout-minutes']}" in check["run"]
         and "--require-remaining neurons=300" in check["run"]
@@ -80,11 +80,11 @@ def test_every_step_after_the_skip_check_waits_for_it_except_the_minutes_report(
             assert "steps.budget.outputs.skip" in step["if"], step["name"]
 
 
-def test_the_schedule_is_daily_at_6_utc_and_gated_by_the_repository_variable(
+def test_the_schedule_is_daily_at_4_30_utc_and_gated_by_the_repository_variable(
     document: dict[Any, Any], job: dict[str, Any]
 ) -> None:
-    """discovery-llm.yml · cron 0 6 * * *; a scheduled run needs DISCOVERY_LLM_SCHEDULE == enabled, a manual one does not."""
-    assert document[True]["schedule"] == [{"cron": "0 6 * * *"}]
+    """discovery-llm.yml · cron 30 4 * * *; a scheduled run needs DISCOVERY_LLM_SCHEDULE == enabled, a manual one does not."""
+    assert document[True]["schedule"] == [{"cron": "30 4 * * *"}]
     assert job["if"] == "github.event_name == 'workflow_dispatch' || vars.DISCOVERY_LLM_SCHEDULE == 'enabled'"
 
 

@@ -30,7 +30,7 @@ def test_list_returns_every_resource_with_its_cap_for_the_machine_key(
     assert response.status_code == 200
     assert set(rows) == RESOURCES
     assert (rows["neurons"]["cap"], rows["neurons"]["used"], rows["neurons"]["remaining"]) == (9500, 0, 9500)
-    assert rows["actions_minutes"]["cap"] == 400
+    assert rows["actions_minutes"]["cap"] == 1000
 
 
 def test_list_requires_the_machine_key(client: TestClient[Litestar]) -> None:
