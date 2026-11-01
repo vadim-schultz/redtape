@@ -68,7 +68,7 @@ class PageExtraction(_Strict):
 
     page_kind: PageKind
     domain_codes: list[Code] = Field(max_length=MAX_DOMAIN_CODES)
-    situation_codes: list[Code] = Field(max_length=MAX_SITUATION_CODES)
+    situation_codes: list[Code] = Field(default_factory=list, max_length=MAX_SITUATION_CODES)
     documents: list[DocumentItem] = Field(max_length=MAX_DOCUMENTS)
     dependencies: list[DependencyItem] = Field(max_length=MAX_DEPENDENCIES)
 

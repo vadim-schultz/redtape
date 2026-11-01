@@ -90,10 +90,21 @@ def test_the_json_schema_lists_the_taxonomy_codes_as_enums() -> None:
     assert properties["situation_codes"]["maxItems"] == 3
 
 
-def test_the_json_schema_requires_every_top_level_field_and_forbids_extras() -> None:
+def test_the_json_schema_requires_every_top_level_field_except_situation_codes() -> None:
     schema = build_json_schema(taxonomy())
-    assert sorted(schema["required"]) == sorted(PageExtraction.model_fields)
+    assert sorted(schema["required"]) == sorted(set(PageExtraction.model_fields) - {"situation_codes"})
     assert schema["additionalProperties"] is False
+
+
+def test_situation_codes_omitted_from_the_payload_still_parses() -> None:
+    payload = {key: value for key, value in BASE.items() if key != "situation_codes"}
+    assert PageExtraction.model_validate(payload).situation_codes == []
+
+
+def test_the_json_schema_no_longer_requires_situation_codes() -> None:
+    schema = build_json_schema(taxonomy())
+    assert "situation_codes" not in schema["required"]
+    assert "domain_codes" in schema["required"]
 
 
 def test_an_empty_vocabulary_allows_no_codes_instead_of_an_empty_enum() -> None:
