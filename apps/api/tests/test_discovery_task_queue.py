@@ -13,8 +13,15 @@ from app.features.discovery.task_retry import BACKOFF, MAX_ATTEMPTS
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     CatalogueService,
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
+    DiscoveryCandidateEdge,
+    DiscoveryCandidateMention,
+    DiscoveryDocumentCandidate,
+    DiscoveryEdgeBasis,
     DiscoveryEvent,
     DiscoveryEventType,
+    DiscoveryMentionRole,
     DiscoveryTask,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -93,6 +100,73 @@ def _seed_task(
     return task
 
 
+def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) -> None:
+    """Add exactly ``count`` page-completeness chips (domain, situation, edge, snapshot, screenshot order)."""
+    owner = DiscoveryDocumentCandidate(
+        jurisdiction_id=catalogue.jurisdiction_id, key=f"k-{uuid.uuid4().hex[:8]}", title_i18n={"de": "x"}
+    )
+    other = DiscoveryDocumentCandidate(
+        jurisdiction_id=catalogue.jurisdiction_id, key=f"k-{uuid.uuid4().hex[:8]}", title_i18n={"de": "y"}
+    )
+    db_session.add_all([owner, other])
+    db_session.flush()
+    if count >= 1:
+        db_session.add(
+            DiscoveryCandidateMention(
+                candidate_id=owner.id,
+                catalogue_service_id=catalogue.id,
+                role=DiscoveryMentionRole.REQUIRED,
+                excerpt="x",
+                source_field="domain",
+                extractor="llm",
+                extractor_version="1",
+                domain_codes=["housing"],
+            )
+        )
+    if count >= 2:
+        db_session.add(
+            DiscoveryCandidateMention(
+                candidate_id=owner.id,
+                catalogue_service_id=catalogue.id,
+                role=DiscoveryMentionRole.REQUIRED,
+                excerpt="x",
+                source_field="situation",
+                extractor="llm",
+                extractor_version="1",
+                situation_codes=["moving-house"],
+            )
+        )
+    if count >= 3:
+        db_session.add(
+            DiscoveryCandidateEdge(
+                parent_candidate_id=owner.id,
+                required_candidate_id=other.id,
+                catalogue_service_id=catalogue.id,
+                excerpt="x",
+                basis=DiscoveryEdgeBasis.EXPLICIT,
+                extractor="llm",
+                extractor_version="1",
+            )
+        )
+    for index, kind in enumerate((DiscoveryArtifactKind.HTML_SNAPSHOT, DiscoveryArtifactKind.SCREENSHOT), start=4):
+        if count < index:
+            continue
+        sha = uuid.uuid4().hex + uuid.uuid4().hex
+        db_session.add(
+            DiscoveryArtifact(
+                catalogue_service_id=catalogue.id,
+                kind=kind,
+                storage_key=f"discovery/{catalogue.id}/{kind.value}/{sha}",
+                sha256=sha,
+                content_type="text/html",
+                byte_size=10,
+                source_url="https://example.gov/page",
+                fetched_at=datetime.now(UTC),
+            )
+        )
+    db_session.flush()
+
+
 def test_claim_pending_without_kinds_ignores_new_task_kinds(queue: TaskQueue, db_session: Session) -> None:
     catalogue = _catalogue(db_session)
     legacy = _seed_task(db_session, catalogue, DiscoveryTaskKind.FETCH_URL, path="fetch")
@@ -117,6 +191,38 @@ def test_claim_pending_with_kinds_returns_only_those_kinds_in_queue_order(
     claimed = queue.claim_pending(api_key=_key(db_session), limit=10, now=datetime.now(UTC), kinds=kinds)
 
     assert [t.id for t in claimed] == [urgent.id, early.id, late.id]
+
+
+def test_list_pending_tasks_for_claim_prefers_higher_completeness_within_the_same_priority(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    bare = _catalogue(db_session, external_id=f"bare-{uuid.uuid4().hex[:8]}")
+    busy = _catalogue(db_session, external_id=f"busy-{uuid.uuid4().hex[:8]}")
+    _page_chips(db_session, busy, 4)
+    older = _seed_task(db_session, bare, DiscoveryTaskKind.EXTRACT_PAGE, path="older", age_minutes=9)
+    newer = _seed_task(db_session, busy, DiscoveryTaskKind.EXTRACT_PAGE, path="newer", age_minutes=1)
+
+    claimed = queue.claim_pending(
+        api_key=_key(db_session), limit=10, now=datetime.now(UTC), kinds=(DiscoveryTaskKind.EXTRACT_PAGE,)
+    )
+
+    assert [t.id for t in claimed] == [newer.id, older.id]
+
+
+def test_list_pending_tasks_for_claim_still_respects_priority_over_completeness(
+    queue: TaskQueue, db_session: Session
+) -> None:
+    bare = _catalogue(db_session, external_id=f"urgent-bare-{uuid.uuid4().hex[:8]}")
+    done = _catalogue(db_session, external_id=f"relaxed-done-{uuid.uuid4().hex[:8]}")
+    _page_chips(db_session, done, 5)
+    urgent = _seed_task(db_session, bare, DiscoveryTaskKind.EXTRACT_PAGE, path="urgent", priority=10)
+    relaxed = _seed_task(db_session, done, DiscoveryTaskKind.EXTRACT_PAGE, path="relaxed", priority=100)
+
+    claimed = queue.claim_pending(
+        api_key=_key(db_session), limit=10, now=datetime.now(UTC), kinds=(DiscoveryTaskKind.EXTRACT_PAGE,)
+    )
+
+    assert [t.id for t in claimed] == [urgent.id, relaxed.id]
 
 
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
