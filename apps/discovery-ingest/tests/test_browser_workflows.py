@@ -53,7 +53,7 @@ def _index(steps: list[dict[str, Any]], needle: str) -> int:
 
 
 def test_the_render_workflow_is_dispatched_with_the_browser_inputs_and_a_gated_daily_schedule() -> None:
-    """render workflow · dispatch inputs and defaults; the 05:00 UTC schedule is gated by a variable."""
+    """render workflow · dispatch inputs and defaults; the 03:00 UTC schedule is gated by a variable."""
     document = _load(RENDER)
     inputs = document[True]["workflow_dispatch"]["inputs"]
 
@@ -62,9 +62,9 @@ def test_the_render_workflow_is_dispatched_with_the_browser_inputs_and_a_gated_d
         "max_batches": "40",
         "time_budget_seconds": "900",
         "browser_budget_seconds": "570",
-        "kinds": "render_page,capture_screenshot",
+        "kinds": "render_page",
     }
-    assert document[True]["schedule"] == [{"cron": "0 5 * * *"}]
+    assert document[True]["schedule"] == [{"cron": "0 3 * * *"}]
     assert "vars.DISCOVERY_RENDER_SCHEDULE == 'enabled'" in _render_job()["if"]
 
 
@@ -82,7 +82,7 @@ def test_the_render_workflow_shares_the_drain_concurrency_group_and_has_the_four
     document = _load(RENDER)
     env = _render_job()["env"]
 
-    assert document["concurrency"] == {"group": "discovery-drain", "cancel-in-progress": False}
+    assert document["concurrency"] == {"group": "discovery-pipeline", "cancel-in-progress": False}
     assert {name for name, value in env.items() if "secrets." in str(value)} == {
         "DISCOVERY_API_URL",
         "DISCOVERY_API_KEY",
