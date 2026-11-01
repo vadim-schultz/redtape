@@ -217,9 +217,9 @@ The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
 (priority 200). `LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with
-`LLM_MODEL`; an empty value means no model). `discovery-render.yml` sets neither variable, so scheduled renders queue
-nothing until an operator adds `LLM_ENQUEUE: "true"` to that job's `env` (and `LLM_MODEL` to pick another model); a
-laptop render with `LLM_ENQUEUE=true` exported does. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key
+`LLM_MODEL`; an empty value means no model). `discovery-render.yml` sets `LLM_ENQUEUE: "true"` and `LLM_MODEL` in its
+job `env` by default, so scheduled renders queue `llm_extract` work automatically; a laptop render with `LLM_ENQUEUE=true`
+exported does the same. `llm requeue` queues the backlog. A task's identity is the catalogue row, the kind, the target URL and the key
 `llm:<8 hex>` (model, `PROMPT_VERSION`, `CLEAN_VERSION`), so a re-render of the same page under the same versions never
 queues a second task.
 
