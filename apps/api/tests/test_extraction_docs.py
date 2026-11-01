@@ -59,8 +59,8 @@ def test_architecture_section_9_and_the_drain_runbook_state_that_overshoot_is_at
     assert not missing(DISCOVERY_ONLINE, sentence)
 
 
-def test_the_workflow_docs_match_the_llm_workflow_inputs_and_the_render_gap() -> None:
-    """The model input has the code default, the budget default is documented, and the unchanged render workflow is flagged."""
+def test_the_workflow_docs_match_the_llm_workflow_inputs_and_the_render_default() -> None:
+    """The model input has the code default, the budget default is documented, and the render workflow's default-on LLM_ENQUEUE is documented."""
     workflow = read(WORKFLOWS / "discovery-llm.yml")
     model = re.search(
         r'^DEFAULT_LLM_MODEL = "(@cf/[^"]+)"',
@@ -73,7 +73,7 @@ def test_the_workflow_docs_match_the_llm_workflow_inputs_and_the_render_gap() ->
     assert not missing(
         SCHEDULED_JOBS, ("`llm_model`", "`DISCOVERY_LLM_MODEL`", "`neuron_budget` (2500)", model.group(1))
     )
-    assert "LLM_ENQUEUE" not in read(WORKFLOWS / "discovery-render.yml")
+    assert "LLM_ENQUEUE" in read(WORKFLOWS / "discovery-render.yml")
     assert not missing(CHECKLIST, ("LLM_ENQUEUE", "discovery-render.yml", "`env`"))
     assert not missing(SCHEDULED_JOBS, ("`LLM_ENQUEUE:", "discovery-render.yml"))
 
