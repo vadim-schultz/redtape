@@ -5,7 +5,8 @@
     {
       "name": "Antragsformular P",
       "role": "form",
-      "condition": "für einen schriftlichen Antrag"
+      "condition": "für einen schriftlichen Antrag",
+      "document_text": "Formular P: Antrag auf Eintragung einer vorhandenen oder mehrerer vorhandener Vorsorgeangelegenheit/-en. Bitte senden Sie das ausgefüllte und unterschriebene Formular per Post an die folgende Adresse: Zentrales Vorsorgeregister, Postfach 08 01 51, 10001 Berlin. Bitte senden Sie uns keine Vorsorgeurkunde(n) zu. Zu registrierende Vorsorgeangelegenheit/-en: Vorsorgevollmacht, Betreuungsverfügung, Patientenverfügung."
     },
     {
       "name": "Zusatzformular PZ",

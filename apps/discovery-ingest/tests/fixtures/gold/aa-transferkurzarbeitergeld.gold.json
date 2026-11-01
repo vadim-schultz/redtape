@@ -4,7 +4,8 @@
   "documents": [
     {
       "name": "Formular Anzeige über Arbeitsausfall",
-      "role": "form"
+      "role": "form",
+      "document_text": "Anzeige über Arbeitsausfall in einer betriebsorganisatorisch eigenständigen Einheit (beE). Hinweis: Zutreffendes bitte ausfüllen oder auswählen. Pflichtfelder sind mit Stern * markiert. Bitte geben Sie an, wann die Verhandlungen über einen Interessenausgleich/Sozialplan aufgenommen wurden und wann die nach § 111 Abs. 1 Nr. 4 SGB III vorgeschriebene Beratung durch die Agentur für Arbeit erfolgte."
     },
     {
       "name": "Sozialplan",
@@ -33,7 +34,8 @@
     },
     {
       "name": "Formular Antrag Transferkurzarbeitergeld",
-      "role": "form"
+      "role": "form",
+      "document_text": "Antrag auf Transfer-Kurzarbeitergeld (Transfer-Kug) – Leistungsantrag. Hinweis: Zutreffendes bitte ausfüllen oder auswählen. Pflichtfelder sind mit Stern * markiert. Bitte in einfacher Ausfertigung bei der Agentur für Arbeit einreichen, in deren Bezirk die Lohnabrechnungsstelle liegt (vergleiche Bescheid zur Anzeige)."
     },
     {
       "name": "Formular Abrechnungsliste",

@@ -5,7 +5,8 @@
     {
       "name": "Schwerbehindertenausweis",
       "role": "required",
-      "condition": "sofern bei der Person eine Schwerbehinderung vorliegt"
+      "condition": "sofern bei der Person eine Schwerbehinderung vorliegt",
+      "document_text": "Schwerbehindertenausweis. Amtlicher Ausweis über die Eigenschaft als schwerbehinderter Mensch nach § 152 SGB IX. Der Ausweis ist bundeseinheitlich gestaltet und weist Name, Geburtsdatum und den Grad der Behinderung (GdB) sowie gegebenenfalls Merkzeichen aus; die Gültigkeitsdauer ist auf dem Ausweis vermerkt."
     },
     {
       "name": "Gleichstellungsbescheid",
