@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from app.features.discovery.candidate_emit_payload import SuggestedTags, new_document_payload
 from app.features.discovery.candidate_emit_skip import EmitSkip
@@ -12,7 +13,7 @@ from app.features.discovery.repository import DiscoveryRepository
 from app.models.discovery import DiscoveryDocumentCandidate
 from app.schema.suggestion.create import SuggestionCreate
 
-TagHook = Callable[[DiscoveryDocumentCandidate], SuggestedTags]
+TagHook = Callable[[Session, DiscoveryDocumentCandidate], SuggestedTags]
 
 
 class CandidateRequestBuilder:
@@ -29,7 +30,7 @@ class CandidateRequestBuilder:
             "kind": "new_document",
             "jurisdiction_id": candidate.jurisdiction_id,
             "source_url": self._source_url(candidate),
-            "payload": new_document_payload(candidate, self._tags(candidate)),
+            "payload": new_document_payload(candidate, self._tags(self._repo.session, candidate)),
         }
         try:
             return SuggestionCreate.model_validate(body)

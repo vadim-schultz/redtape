@@ -12,6 +12,11 @@ class SessionRepository:
         """Bind the repository to ``session``."""
         self._session = session
 
+    @property
+    def session(self) -> Session:
+        """Expose the bound session to feature code that needs to run a query of its own."""
+        return self._session
+
     def flush(self) -> None:
         """Flush pending changes to the database."""
         self._session.flush()

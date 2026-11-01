@@ -8,7 +8,7 @@ from sqlalchemy import ColumnElement, Select, String, cast, distinct, func, null
 from sqlalchemy.sql.expression import Subquery
 
 from app.config import settings
-from app.features.discovery.repository.candidate_completeness import TagThresholds, completeness_subquery
+from app.features.discovery.repository.candidate_completeness import completeness_subquery
 from app.features.discovery.repository.candidate_sort import SortInputs
 from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate
 
@@ -47,7 +47,7 @@ class CandidateRelations:
     @classmethod
     def with_completeness(cls) -> CandidateRelations:
         """Build the relations including the completeness read model with the settings thresholds."""
-        return cls(mention_stats(), completeness_subquery(TagThresholds.from_settings(settings)))
+        return cls(mention_stats(), completeness_subquery(settings))
 
     @classmethod
     def mentions_only(cls) -> CandidateRelations:

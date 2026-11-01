@@ -139,8 +139,10 @@ def test_candidates_list_filters_by_an_accepted_domain_and_situation(
     domain = client.get(URL, params={"filter[domain]": HOUSING}).json()
     situation = client.get(URL, params={"filter[situation]": MOVING}).json()
 
+    # Domain keeps the two-procedure floor, excluding the one-procedure candidate; situation relaxes to one
+    # procedure (situation-tag-activation D2), so the same one-procedure mention now qualifies it too.
     assert _keys_of(domain) == ["accepted"]
-    assert (_keys_of(situation), situation["total"]) == (["accepted"], 1)
+    assert (set(_keys_of(situation)), situation["total"]) == ({"accepted", "one-procedure-only"}, 2)
 
 
 @pytest.mark.parametrize("param", ["filter[domain]", "filter[situation]", "filter[complete]", "filter[nope]"])

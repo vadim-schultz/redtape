@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import NamedTuple
+from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.features.discovery.tags import ProvenancedMention, TagSupport, aggregate_tags, curated_codes
-from app.models.discovery import DiscoveryCandidateMention
+from app.features.discovery.repository.candidate_completeness_tags import candidate_axis_support
+from app.features.discovery.tags import TagAxis, TagSupport, axis_thresholds
 
 
 class TagSuggestions(NamedTuple):
@@ -17,22 +20,11 @@ class TagSuggestions(NamedTuple):
     situations: list[TagSupport]
 
 
-def _consensus(mentions: list[ProvenancedMention]) -> list[TagSupport]:
-    tagged = [(procedure, codes) for procedure, _extractor, codes in mentions]
-    return aggregate_tags(tagged, settings.discovery_tag_min_procedures, settings.discovery_tag_min_share)
-
-
-def _axis_support(mentions: list[ProvenancedMention]) -> list[TagSupport]:
-    """Return the curated codes of one axis, else its consensus under the configured thresholds."""
-    return curated_codes(mentions) or _consensus(mentions)
-
-
-def candidate_tag_suggestions(mentions: Iterable[DiscoveryCandidateMention]) -> TagSuggestions:
-    """Aggregate the codes of ``mentions``; a manual mention replaces the consensus of its axis."""
-    rows = list(mentions)
+def candidate_tag_suggestions(session: Session, candidate_id: UUID) -> TagSuggestions:
+    """Return the domain and situation support of ``candidate_id``'s mentions, each under its own thresholds."""
     return TagSuggestions(
-        _axis_support([(m.catalogue_service_id, m.extractor, m.domain_codes) for m in rows]),
-        _axis_support([(m.catalogue_service_id, m.extractor, m.situation_codes) for m in rows]),
+        candidate_axis_support(session, candidate_id, TagAxis.DOMAIN, axis_thresholds(settings, TagAxis.DOMAIN)),
+        candidate_axis_support(session, candidate_id, TagAxis.SITUATION, axis_thresholds(settings, TagAxis.SITUATION)),
     )
 
 

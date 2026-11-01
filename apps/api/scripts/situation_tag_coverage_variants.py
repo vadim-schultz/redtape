@@ -1,20 +1,27 @@
 """Coverage delta the situation axis would gain under alternative consensus thresholds (chapter 4, situation-tag-coverage).
 
-Pure, DB-free: re-runs the existing, unmodified ``aggregate_tags`` against already-exported mention data,
-so no production code changes to measure the bet LR4 needs numbers for.
+Pure, DB-free: re-runs a frozen snapshot of the old pure-Python consensus rule against already-exported
+mention data, so no production code changes to measure the bet LR4 needs numbers for. ``situation-tag-
+activation`` chapter 1 later merged that rule into the SQL engine and deleted its production copy; this
+tool keeps its own, since it exists to reproduce a point-in-time measurement, not to track the engine.
 """
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 from uuid import UUID
 
-from app.features.discovery.tags import DEFAULT_MIN_PROCEDURES, DEFAULT_MIN_SHARE, TaggedMention, aggregate_tags
+DEFAULT_MIN_PROCEDURES = 2
+DEFAULT_MIN_SHARE = 0.5
+
+ExportedMention = tuple[UUID, Sequence[str] | None]
+"""A mention as plain data: the procedure (catalogue row) it came from and the codes it carries."""
 
 
 class ThresholdVariant(NamedTuple):
-    """One situation-axis consensus rule to measure: a label plus the two ``aggregate_tags`` thresholds."""
+    """One situation-axis consensus rule to measure: a label plus the two frozen-rule thresholds."""
 
     name: str
     min_procedures: int
@@ -33,16 +40,27 @@ class VariantCoverage(NamedTuple):
     newly_covered_candidates: int
 
 
-def _covered_candidates(candidates: Mapping[UUID, list[TaggedMention]], variant: ThresholdVariant) -> set[UUID]:
+def _accepts_any_code(mentions: list[ExportedMention], min_procedures: int, min_share: float) -> bool:
+    by_code: dict[str, set[UUID]] = defaultdict(set)
+    for procedure_id, codes in mentions:
+        for code in codes or ():
+            by_code[code].add(procedure_id)
+    if not by_code:
+        return False
+    tagged = len(set().union(*by_code.values()))
+    return any(len(ids) >= min_procedures and len(ids) / tagged >= min_share for ids in by_code.values())
+
+
+def _covered_candidates(candidates: Mapping[UUID, list[ExportedMention]], variant: ThresholdVariant) -> set[UUID]:
     return {
         candidate_id
         for candidate_id, mentions in candidates.items()
-        if any(support.accepted for support in aggregate_tags(mentions, variant.min_procedures, variant.min_share))
+        if _accepts_any_code(mentions, variant.min_procedures, variant.min_share)
     }
 
 
 def situation_coverage_by_variant(
-    candidates: Mapping[UUID, list[TaggedMention]],
+    candidates: Mapping[UUID, list[ExportedMention]],
     variants: Sequence[ThresholdVariant] = (BASELINE, RELAXED_SINGLE_PROCEDURE),
 ) -> list[VariantCoverage]:
     """Return each variant's accepted-candidate count and its delta over ``BASELINE``'s covered set."""
