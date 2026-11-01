@@ -11,6 +11,7 @@ from app.features.discovery.repository.candidate_completeness import (
     completeness_order,
     completeness_subquery,
 )
+from app.features.discovery.tags import TagAxis, axis_thresholds
 from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateMention
 from app.shared.list_query import SortOrder
 from sqlalchemy import func, select
@@ -54,7 +55,7 @@ def test_a_candidate_with_nothing_is_zero(db_session: Session) -> None:
     assert (result.completeness, result.accepted_domain_codes) == (0, ())
 
 
-def test_a_single_procedure_never_reaches_the_tag_consensus(db_session: Session) -> None:
+def test_a_single_procedure_never_reaches_the_domain_consensus(db_session: Session) -> None:
     procs, subject = _subject(db_session, 1)
     world.mentioned(db_session, subject, procs, [Row(0, ["housing"])])
 
@@ -62,6 +63,16 @@ def test_a_single_procedure_never_reaches_the_tag_consensus(db_session: Session)
 
     assert result.has_domain is False
     assert result.accepted_domain_codes == ()
+
+
+def test_a_single_procedure_reaches_the_relaxed_situation_consensus(db_session: Session) -> None:
+    procs, subject = _subject(db_session, 1)
+    world.mentioned(db_session, subject, procs, [Row(0, None, ["moving-house"])])
+
+    result = world.flags_of(db_session)[subject.id]
+
+    assert result.has_situation is True
+    assert result.accepted_situation_codes == ("moving-house",)
 
 
 def test_edges_count_on_either_end(db_session: Session) -> None:
@@ -97,7 +108,7 @@ def test_completeness_order_is_completeness_then_mentions(db_session: Session) -
     world.mentioned(db_session, done, procs, [Row(0)])
     world.artifact(db_session, procs[0], SNAPSHOT)
 
-    sub = completeness_subquery(world.DEFAULTS)
+    sub = completeness_subquery(settings)
     counts = (
         select(DiscoveryCandidateMention.candidate_id, func.count().label("n"))
         .group_by(DiscoveryCandidateMention.candidate_id)
@@ -132,8 +143,14 @@ def test_one_manual_mention_on_one_procedure_is_enough(db_session: Session) -> N
 
 
 def test_the_override_is_per_axis(db_session: Session) -> None:
-    procs, subject = _subject(db_session, 1)
-    world.mentioned(db_session, subject, procs, [Row(0, ["housing"], None, "manual"), Row(0, None, ["moving-house"])])
+    procs, subject = _subject(db_session, 3)
+    rows = [
+        Row(0, ["housing"], None, "manual"),
+        Row(0, None, ["moving-house"]),
+        Row(1, None, ["birth-of-child"]),
+        Row(2, None, ["job-loss"]),
+    ]
+    world.mentioned(db_session, subject, procs, rows)
 
     result = world.flags_of(db_session)[subject.id]
 
@@ -169,5 +186,5 @@ def test_thresholds_come_from_settings(db_session: Session, monkeypatch: pytest.
     monkeypatch.setattr(settings, "discovery_tag_min_procedures", 1)
     monkeypatch.setattr(settings, "discovery_tag_min_share", 0.75)
 
-    assert TagThresholds.from_settings(settings) == TagThresholds(1, 0.75)
+    assert axis_thresholds(settings, TagAxis.DOMAIN) == TagThresholds(1, 0.75)
     assert DiscoveryRepository(db_session).completeness_for([subject.id])[subject.id].has_domain is True

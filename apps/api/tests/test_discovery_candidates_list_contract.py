@@ -187,7 +187,8 @@ def test_candidate_list_filters_by_an_accepted_domain_code(client: Client, scene
     other = _get(client, **{"filter[domain]": "identity-civil-status"})
 
     assert [item["key"] for item in domain["items"]] == ["accepted"] and domain["total"] == 1
-    assert situation == ["accepted"]
+    # Situation relaxes to one procedure (situation-tag-activation D2), so "lonely"'s single mention qualifies.
+    assert set(situation) == {"accepted", "lonely"}
     assert other["items"] == []
 
 

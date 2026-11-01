@@ -100,3 +100,46 @@ All 62 counted **unmapped** — out of scope per the scope-mismatch note above, 
 - The 43% citizen-branch unmapped share (domain-shaped buckets like taxes, IDs/certificates, legal process, consumer protection, civic engagement) confirms PVOG's `personalMatters` vocabulary is not a 1:1 substitute for the 18 situation codes — it is a differently-grained classification that happens to overlap on roughly a third of its citizen-facing leaves.
 
 **Recommendation for the human spot-check:** review the 14 "ambiguous" rows first (listed above) — that's where the mapping choice actually matters for S3's eventual precision, far more than confirming the 18 "clean" rows.
+
+## Human sign-off (2026-11-01)
+
+Reviewed by vadim.schultz. Decision, recorded as `situation-tag-coverage/gaps-and-decisions.md` T4: **widen S3 to include the 14 ambiguous rows, not just the 18 clean ones** — stay inside the 18-code situation taxonomy (no new codes, so corroboration with LLM-extracted assertions still matches on exact code string) but stop excluding a leaf just because it's ambiguous. Where a leaf is genuinely a many-to-many bundle, emit *all* plausible codes rather than dropping it.
+
+This is the table `situation-tag-activation` chapter 3's `PERSONAL_MATTER_TO_SITUATION` is now built from — a leaf code to a **non-empty list** of situation codes (not a single code), covering all 32 clean+ambiguous citizen leaves:
+
+| Code | Verdict | `situation_codes` emitted |
+| --- | --- | --- |
+| 1010100 | clean | `["birth-of-child"]` |
+| 1010200 | clean | `["birth-of-child"]` |
+| 1020100 | ambiguous | `["birth-of-child"]` |
+| 1020300 | clean | `["marriage"]` |
+| 1020400 | clean | `["separation-divorce"]` |
+| 1020500 | clean | `["separation-divorce"]` |
+| 1030100 | ambiguous | `["starting-school"]` |
+| 1030200 | ambiguous | `["studying", "new-job"]` |
+| 1030300 | clean | `["studying"]` |
+| 1040300 | ambiguous | `["job-loss", "new-job"]` |
+| 1040400 | ambiguous | `["immigration", "new-job"]` |
+| 1040500 | ambiguous | `["getting-licence"]` |
+| 1050100 | clean | `["buying-property"]` |
+| 1050200 | ambiguous | `["moving-house", "renting-home"]` |
+| 1060400 | ambiguous | `["buying-property"]` |
+| 1060600 | ambiguous | `["buying-vehicle"]` |
+| 1060700 | ambiguous | `["death-of-relative"]` |
+| 1080100 | clean | `["immigration"]` |
+| 1080200 | ambiguous | `["immigration"]` |
+| 1080300 | clean | `["naturalisation"]` |
+| 1080400 | ambiguous | `["immigration"]` |
+| 1090100 | clean | `["getting-licence"]` |
+| 1090200 | clean | `["buying-vehicle"]` |
+| 1130100 | ambiguous | `["illness-care"]` |
+| 1130200 | clean | `["illness-care"]` |
+| 1130300 | clean | `["illness-care"]` |
+| 1130400 | clean | `["illness-care"]` |
+| 1140100 | ambiguous | `["job-loss"]` |
+| 1180100 | clean | `["retirement"]` |
+| 1180200 | clean | `["retirement"]` |
+| 1190100 | clean | `["death-of-relative"]` |
+| 1190200 | clean | `["death-of-relative"]` |
+
+**Coverage after widening: 17 of 18 situation codes** get at least one PVOG leaf (up from 12). Only `going-self-employed` remains unmapped — confirmed above to have no citizen-branch leaf at all (its only PVOG analogue, `2010100`–`2010600`, sits in the out-of-scope business branch). The 24 unmapped citizen leaves and all 62 business leaves stay excluded, unchanged from the original tally.

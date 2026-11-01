@@ -27,6 +27,8 @@ class MentionDraft(BaseModel):
     extractor: str = Field(min_length=1, max_length=64)
     extractor_version: str = Field(min_length=1, max_length=32)
     official_url: str | None = Field(default=None, min_length=1, max_length=500)
+    domain_codes: list[Code] | None = Field(default=None, max_length=MAX_DOMAIN_CODES)
+    situation_codes: list[Code] | None = Field(default=None, max_length=MAX_SITUATION_CODES)
 
 
 class MentionItem(MentionDraft):
@@ -36,8 +38,6 @@ class MentionItem(MentionDraft):
     artifact_id: UUID | None = None
     condition: str | None = Field(default=None, min_length=1, max_length=MAX_CONDITION_LENGTH)
     is_optional: bool | None = None
-    domain_codes: list[Code] | None = Field(default=None, max_length=MAX_DOMAIN_CODES)
-    situation_codes: list[Code] | None = Field(default=None, max_length=MAX_SITUATION_CODES)
 
 
 class MentionsRequest(BaseModel):

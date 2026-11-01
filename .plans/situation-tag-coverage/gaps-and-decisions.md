@@ -15,6 +15,7 @@ isProject: false
 | T1 | **Closed — a free static mapping from the stored PVOG/GovData payload is rejected.** Crawlers census F4 ran against the production catalogue (520 PVOG rows, 893 GovData rows) and found the stored `raw_payload` carries no Lebenslage or category keys, only bare LeiKa identifiers. `.plans/crawlers/run-ledger.md` line 43; recorded as an open seam in `.plans/extraction/gaps-and-decisions.md` |
 | T2 | **Taxonomy growth is out of scope.** The 18 situation codes aren't missing; assignment of existing codes to documents is the problem. No pipeline exists anywhere in this repo to discover new taxonomy codes from documents, and this suite does not build one |
 | T3 | **The eval harness currently pools domain and situation Jaccard into one number.** `apps/discovery-ingest/discovery_ingest/extract/llm/evaluation/scoring.py`'s `gold_codes()` and `score_page()` concatenate `(*gold.domain_codes, *gold.situation_codes)` before scoring `tag_agreement`, so domain accuracy masks situation accuracy in every reported number. Chapter 1 splits it |
+| T4 | **Human sign-off (2026-11-01, vadim.schultz) on LR3's PVOG mapping — widen S3 to include the 14 ambiguous leaves, not just the 12 clean ones.** Reviewed [lr3-personal-matters-mapping.md](lr3-personal-matters-mapping.md) directly; decision: keep S3 within the 18-code situation taxonomy (no new codes, exact-string corroboration with LLM-extracted assertions stays intact) but stop excluding a leaf just because it's ambiguous — emit *all* plausible codes for a bundled leaf instead of dropping it (e.g. `1040300` "Jobsuche und Arbeitslosigkeit" → `["job-loss", "new-job"]`, not excluded). This raises mapped coverage from 12 to 17 of the 18 situation codes — only `going-self-employed` stays unmapped, since it has no citizen-branch PVOG leaf at all (confirmed in LR3's own tally). Detail and the full widened table: [lr3-personal-matters-mapping.md](lr3-personal-matters-mapping.md)'s sign-off section. This is the Step 0 prerequisite `situation-tag-activation` chapter 3 was blocked on — now satisfied |
 
 ## Pending decisions
 
@@ -32,7 +33,7 @@ Fill in after the live runs ([02-live-runs.md](02-live-runs.md) LR2 through LR5)
 
 | Option | Coverage | Precision signal | Verdict |
 | --- | --- | --- | --- |
-| S3 (PVOG personalMatters) | 15.3% of 118 leaves clean, 11.9% ambiguous, 72.9% unmapped against the 18 situation codes; 12/18 codes get a clean leaf ([LR3 detail](lr3-personal-matters-mapping.md)) | n/a — vocabulary mapping only, no precision check run yet | _provisional — AI first-pass mapping, pending human spot-check per LR3's caveat_ |
+| S3 (PVOG personalMatters) | 15.3% of 118 leaves clean + 11.9% ambiguous now in scope per T4's human sign-off (widened); 17/18 situation codes covered, multi-code for bundled leaves ([LR3 detail](lr3-personal-matters-mapping.md)) | n/a — vocabulary mapping only, no precision check run yet | _widened mapping human-confirmed (T4); precision still pending the post-deploy live run_ |
 | S4 (axis-aware consensus) | baseline 0 of 4,627 candidates accepted; `min_procedures=1` recovers 19 (coverage ceiling itself is 648 candidates with 2+ procedures per LR2) ([02-live-runs.md](02-live-runs.md) LR4) | **not run** — the ~20-30 hand-labelled precision check needs a human reviewer in the admin UI | _coverage confirmed, precision unchecked — cannot settle yet_ |
 | S5 (per-document classification) | situation_tag_agreement 0.40 (5 document cases) vs. 0.75 on the same 4 pages at page level ([02-live-runs.md](02-live-runs.md) LR5) | n/a — underperforms the baseline directly, as predicted | **confirmed underperforms; do not pursue** |
 
@@ -50,7 +51,7 @@ Fill in after the live runs ([02-live-runs.md](02-live-runs.md) LR2 through LR5)
 - If S4's precision check (LR4, the ~20-30 hand-labelled candidates — still not run) shows clearly wrong situations slipping past the single-page rule often enough that a human reviewer's trust in the chip erodes.
 - ~~If S5 (LR5) actually shows strong document-level signal on the 47 gold documents~~ — **did not happen**; S5 is ruled out.
 
-**Remaining before this can flip to settled:** (1) a human spot-check of the LR3 mapping, especially its 14 ambiguous rows ([lr3-personal-matters-mapping.md](lr3-personal-matters-mapping.md)); (2) the LR4 precision check — hand-label ~20-30 candidates against the `min_procedures=1` variant via the admin UI.
+**Remaining before this can flip to settled:** ~~(1) a human spot-check of the LR3 mapping, especially its 14 ambiguous rows~~ — **done, T4**; (2) the LR4 precision check — hand-label ~20-30 candidates against the `min_procedures=1` variant via the admin UI.
 
 ## Open seams
 

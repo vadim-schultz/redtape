@@ -59,6 +59,7 @@ class CandidateAdminService:
     def __init__(self, repository: DiscoveryRepository, taxonomy: TaxonomyService) -> None:
         """Bind the service to ``repository`` and the taxonomy lookups."""
         self._repo = repository
+        self._session = repository.session
         self._taxonomy = taxonomy
 
     def list_candidates(self, candidate_filter: CandidateFilter, page: Page) -> CandidateListResponse:
@@ -86,7 +87,7 @@ class CandidateAdminService:
         candidate = require_candidate(self._repo, candidate_id)
         rows = self._repo.list_candidate_mentions(candidate_id)
         mentions = [CandidateMentionRead.from_row(*row) for row in rows]
-        suggestions = candidate_tag_suggestions(row.mention for row in rows)
+        suggestions = candidate_tag_suggestions(self._session, candidate_id)
         return CandidateDetailResponse(
             candidate=CandidateRead.from_row(candidate, mention_count=len(mentions)),
             jurisdiction_name_i18n=self._repo.get_jurisdiction_name_i18n(candidate.jurisdiction_id),

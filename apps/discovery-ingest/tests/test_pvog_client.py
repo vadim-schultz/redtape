@@ -102,7 +102,7 @@ def test_pvog_client_iterates_personal_matter_codes_with_dedupe() -> None:
 
     records = list(client.iter_records(ars=FEDERAL_ARS))
 
-    ids = [row["id"] for row in records]
+    ids = [row["id"] for _code, row in records]
     assert ids == ["SHARED-LB-001", "UNIQUE-LB-002"]
 
 
@@ -118,7 +118,7 @@ def test_pvog_client_stops_at_max_pages_budget() -> None:
     records = list(client.iter_records(ars=FEDERAL_ARS, max_pages=2))
 
     assert len(records) == 1
-    assert records[0]["id"] == "PAGE-ROW-001"
+    assert records[0][1]["id"] == "PAGE-ROW-001"
 
 
 def test_pvog_client_paginates_until_service_descriptions_last() -> None:
@@ -147,7 +147,7 @@ def test_pvog_client_paginates_until_service_descriptions_last() -> None:
 
     records = list(client.iter_records(ars=FEDERAL_ARS))
 
-    assert [row["id"] for row in records] == ["PAGE-ROW-001", "PAGE-ROW-002"]
+    assert [row["id"] for _code, row in records] == ["PAGE-ROW-001", "PAGE-ROW-002"]
 
 
 def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
@@ -177,6 +177,25 @@ def test_pvog_client_fetches_full_personal_matter_vocabulary() -> None:
     codes = client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
 
     assert codes == ["LEAF_A", "LEAF_B", "LEAF_C"]
+
+
+def test_map_pvog_record_stashes_personal_matter_code_into_raw_payload() -> None:
+    """map_pvog_record · stashes the given Lebenslage code into raw_payload under a reserved key."""
+    row = _load_fixture("live_shape_row.json")
+
+    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code="1040300")
+
+    assert item.raw_payload["_personal_matter_code"] == "1040300"
+    assert row.get("_personal_matter_code") is None
+
+
+def test_map_pvog_record_leaves_raw_payload_unchanged_without_a_personal_matter_code() -> None:
+    """map_pvog_record · leaves raw_payload unchanged when no code is given."""
+    row = _load_fixture("live_shape_row.json")
+
+    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
+
+    assert "_personal_matter_code" not in item.raw_payload
 
 
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:

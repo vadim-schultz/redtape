@@ -4,27 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from app.features.discovery.tags import aggregate_tags
-from scripts.situation_tag_coverage_variants import (
-    BASELINE,
-    RELAXED_SINGLE_PROCEDURE,
-    ThresholdVariant,
-    situation_coverage_by_variant,
-)
+from scripts.situation_tag_coverage_variants import BASELINE, RELAXED_SINGLE_PROCEDURE, situation_coverage_by_variant
 
 C1, C2, C3 = (uuid.uuid4() for _ in range(3))
 P1, P2, P3 = (uuid.uuid4() for _ in range(3))
 
 
-def _accepted_candidates(candidates: dict, variant: ThresholdVariant) -> set:
-    return {
-        candidate_id
-        for candidate_id, mentions in candidates.items()
-        if any(s.accepted for s in aggregate_tags(mentions, variant.min_procedures, variant.min_share))
-    }
-
-
-def test_baseline_variant_reproduces_aggregate_tags_two_and_fifty_percent() -> None:
+def test_baseline_variant_needs_two_procedures_and_half_their_codes_to_agree() -> None:
     candidates = {
         C1: [(P1, ["birth-of-child"])],
         C2: [(P1, ["birth-of-child"]), (P2, ["birth-of-child"])],
@@ -33,8 +19,7 @@ def test_baseline_variant_reproduces_aggregate_tags_two_and_fifty_percent() -> N
 
     result = situation_coverage_by_variant(candidates, (BASELINE,))
 
-    expected = _accepted_candidates(candidates, BASELINE)
-    assert result[0].accepted_candidates == len(expected)
+    assert result[0].accepted_candidates == 1
 
 
 def test_relaxed_single_procedure_variant_covers_a_candidate_with_one_tagging_procedure() -> None:
