@@ -71,11 +71,20 @@ def test_eval_runs_every_gold_page_through_clean_client_and_grounding_and_prints
     assert all(name in shown for name in ("alpha", "beta", "gamma", "shell"))
     assert all(
         label in shown
-        for label in ("precision", "recall", "quote-grounded rate", "kept rate", "tag agreement", "neurons per page")
+        for label in (
+            "precision",
+            "recall",
+            "quote-grounded rate",
+            "kept rate",
+            "domain tag agreement",
+            "situation tag agreement",
+            "neurons per page",
+        )
     )
     assert (summary["precision"], summary["recall"], summary["grounded_rate"]) == (1.0, 0.5, 0.5)
     assert summary["kept_rate"] == 0.5
-    assert summary["tag_agreement"] == 1.0 and summary["pages_run"] == 4
+    assert summary["domain_tag_agreement"] == 1.0 and summary["situation_tag_agreement"] == 1.0
+    assert summary["pages_run"] == 4
     assert summary["neurons_per_page"] == pytest.approx(cost(MODEL, 1000, 200))
     assert (summary["input_tokens"], summary["output_tokens"]) == (3000, 600)
 

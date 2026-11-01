@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 from discovery_ingest.extract.llm.evaluation.drop_reasons import quote_failures
-from discovery_ingest.extract.llm.evaluation.gold import GoldPage
+from discovery_ingest.extract.llm.evaluation.gold import DocumentCase, GoldPage
 from discovery_ingest.extract.llm.evaluation.metrics import Counts, document_counts, edge_counts
 from discovery_ingest.extract.llm.evaluation.results import Scores
 from discovery_ingest.extract.llm.ground import NON_PROCEDURE_KINDS
 from discovery_ingest.extract.llm.ground_state import DroppedItem, Grounded
 from discovery_ingest.extract.llm.schema import DependencyItem, DocumentItem, PageExtraction
-
-
-def gold_codes(gold: GoldPage) -> tuple[str, ...]:
-    """Return the domain and situation codes of the gold labels as one tuple."""
-    return (*gold.domain_codes, *gold.situation_codes)
 
 
 def _gold_counts(gold: GoldPage) -> tuple[Counts, Counts]:
@@ -23,7 +18,26 @@ def _gold_counts(gold: GoldPage) -> tuple[Counts, Counts]:
 def nothing_found(gold: GoldPage) -> Scores:
     """Return the scores of a page where the model said nothing usable: every gold item is missed."""
     documents, edges = _gold_counts(gold)
-    return Scores(documents, edges, gold_codes=gold_codes(gold))
+    return Scores(documents, edges, gold_domain_codes=gold.domain_codes, gold_situation_codes=gold.situation_codes)
+
+
+def nothing_found_document(case: DocumentCase) -> Scores:
+    """Return the scores of a document case where the model said nothing usable: the situation axis stays empty."""
+    return Scores(Counts(0, 0, 0), Counts(0, 0, 0), gold_situation_codes=case.gold_situation_codes)
+
+
+def score_document(case: DocumentCase, grounded: Grounded) -> Scores:
+    """Return the scores of a document-level run: only the situation axis has a gold label to compare against.
+
+    No document/edge recall is measured here (a single document's own text has no gold documents or edges of its
+    own to find); the pooled counts stay zero so a document run never perturbs a page run's document/edge metrics.
+    """
+    return Scores(
+        Counts(0, 0, 0),
+        Counts(0, 0, 0),
+        predicted_situation_codes=grounded.situation_codes,
+        gold_situation_codes=case.gold_situation_codes,
+    )
 
 
 def lost_items(extraction: PageExtraction, grounded: Grounded) -> tuple[DroppedItem, ...]:
@@ -49,8 +63,10 @@ def score_page(gold: GoldPage, extraction: PageExtraction, grounded: Grounded) -
         raw_items=len(extraction.documents) + len(extraction.dependencies),
         kept_items=len(grounded.documents) + len(grounded.dependencies),
         quote_failed_items=quote_failures(dropped),
-        predicted_codes=(*grounded.domain_codes, *grounded.situation_codes),
-        gold_codes=gold_codes(gold),
+        predicted_domain_codes=grounded.domain_codes,
+        predicted_situation_codes=grounded.situation_codes,
+        gold_domain_codes=gold.domain_codes,
+        gold_situation_codes=gold.situation_codes,
         page_kind=extraction.page_kind,
         dropped=dropped,
     )

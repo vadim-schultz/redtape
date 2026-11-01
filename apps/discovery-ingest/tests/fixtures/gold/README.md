@@ -101,6 +101,29 @@ toggles on the Bundesarchiv page, an FAQ accordion on `nebenwirkungen.bund.de`);
 The snapshot id, byte size and SHA-256 of every original page are in
 `manifest.json`.
 
+## `document_text`: a document's own text, for chapter 5
+
+`GoldDocument.document_text` (chapter 5, `.plans/situation-tag-coverage/`) is the document's own text — its own
+title and purpose line, not an excerpt of the procedure page that names it — hand-authored for a small, explicitly
+bounded subset: 6 of the 47 gold documents, across 4 pages. Most of the 47 have no `document_text`; that is
+expected, not a gap to fill.
+
+| Page | Document | Source |
+| --- | --- | --- |
+| `bzkj-antrag-indizierung` | Antrag auf Indizierung | Fetched 2026-11-01 from the page's own linked PDF, `https://www.bzkj.de/resource/blob/178746/01ea65bac9e0443e11a7ae148cb733ea/formular-antrag-2021-data.pdf` (its cover page's heading and purpose line) |
+| `aa-transferkurzarbeitergeld` | Formular Anzeige über Arbeitsausfall | Fetched 2026-11-01 from `https://www.arbeitsagentur.de/datei/anzeige-arbeitsausfall_ba033185.pdf` |
+| `aa-transferkurzarbeitergeld` | Formular Antrag Transferkurzarbeitergeld | Fetched 2026-11-01 from `https://www.arbeitsagentur.de/datei/antrag-kug207_ba033195.pdf` |
+| `vorsorgeregister-registrierung` | Antragsformular P | Fetched 2026-11-01 from `https://www.vorsorgeregister.de/fileadmin/user_upload_zvr/Dokumente/Datenformulare_ZVR/Formular_P.pdf` |
+| `aa-probebeschaeftigung` | Schwerbehindertenausweis | **Hand-transcribed, not fetched.** The page names this document but links no copy of it; the ausweis itself is a standardised German ID card (§ 152 SGB IX, Schwerbehindertenausweisverordnung), so its own front-matter text is transcribed from the publicly documented standard format rather than from a specific fetched instance |
+
+Four of the five are the document's own linked PDF, downloaded and read with its own cover text (title, purpose
+line and, for the two "Formular ..." BA forms, the hint line about mandatory fields) kept, the fillable fields
+dropped — the same kind of text a document-text extraction pipeline would be left with. The fifth
+(`Schwerbehindertenausweis`) has no fetchable copy linked from its page, so it falls back to a short,
+honestly-labelled hand-transcription of what that document type's own front matter typically says, per chapter 5's
+design; this table is where that distinction is recorded, since the field itself carries no provenance marker (a
+marker inside `document_text` would leak into what the model is asked to classify).
+
 ## Personal data and trimming
 
 Before trimming, these were replaced on every page: email addresses by

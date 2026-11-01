@@ -6,10 +6,10 @@ from dataclasses import dataclass
 
 from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm.client import LlmResult
-from discovery_ingest.extract.llm.evaluation.gold import GoldPage
+from discovery_ingest.extract.llm.evaluation.gold import DocumentCase, GoldPage
 from discovery_ingest.extract.llm.evaluation.metrics import absent_names
 from discovery_ingest.extract.llm.evaluation.results import PageResult, PageStatus, Scores, Stopped, Usage
-from discovery_ingest.extract.llm.evaluation.scoring import nothing_found
+from discovery_ingest.extract.llm.evaluation.scoring import nothing_found, nothing_found_document
 from discovery_ingest.extract.llm.meter import Denied, LedgerUnavailable
 
 
@@ -83,3 +83,35 @@ class PageContext:
     def failed(self, failure: Failure, usage: Usage | None = None) -> PageResult:
         """Return the result of a page where nothing usable came back: every gold item is missed."""
         return self.result(failure.status, usage or Usage(), nothing_found(self.gold), failure.error)
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentContext:
+    """A gold document and its synthetic cleaned text (its own document_text), with the builders of its result."""
+
+    case: DocumentCase
+    cleaned: CleanPage
+
+    @property
+    def cache_name(self) -> str:
+        """Return the cache key's page name: the page and document names joined, distinct from any page-level key."""
+        return f"{self.case.page_name}::{self.case.document_name}"
+
+    def result(self, status: PageStatus, usage: Usage, scores: Scores, error: str | None = None) -> PageResult:
+        """Return the result of this document case; it has no document/edge names of its own to measure recall of."""
+        return PageResult(
+            name=self.cache_name,
+            status=status,
+            gold_kind="document",
+            cleaned_chars=len(self.cleaned.text),
+            truncated=self.cleaned.truncated,
+            gold_names=0,
+            missing_names=(),
+            usage=usage,
+            scores=scores,
+            error=error,
+        )
+
+    def failed(self, failure: Failure, usage: Usage | None = None) -> PageResult:
+        """Return the result of a document case where nothing usable came back: the situation axis stays empty."""
+        return self.result(failure.status, usage or Usage(), nothing_found_document(self.case), failure.error)

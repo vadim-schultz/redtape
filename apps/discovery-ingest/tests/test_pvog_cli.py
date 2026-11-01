@@ -110,6 +110,31 @@ def test_pvog_cli_exits_nonzero_on_400(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exit_code == 1
 
 
+def test_pvog_cli_vocabulary_prints_sorted_leaf_codes(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """pvog CLI · vocabulary prints the sorted leaf code list, one per line."""
+    monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == _bootstrap_url():
+            return httpx.Response(
+                200,
+                json=json.loads((FIXTURE_DIR / "facades_cli_single_leaf.json").read_text(encoding="utf-8")),
+            )
+        return httpx.Response(404, text="not found")
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["pvog", "vocabulary"])
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.strip().splitlines() == ["CLI_LEAF"]
+
+
 def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """pvog CLI · exits non-zero on 422 validation."""
     monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)

@@ -169,6 +169,16 @@ def test_map_pvog_record_rejects_row_without_id_and_leika() -> None:
         map_pvog_record({"name": "orphan"}, jurisdiction_id=FEDERAL_JURISDICTION)
 
 
+def test_pvog_client_fetches_full_personal_matter_vocabulary() -> None:
+    """PvogClient · fetches the bootstrap page and returns its full leaf vocabulary."""
+    pages = {_bootstrap_url(): FIXTURE_DIR / "facades_personal_matters.json"}
+    client = PvogClient(BASE, http_client=httpx.Client(transport=_fixture_transport(pages)))
+
+    codes = client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
+
+    assert codes == ["LEAF_A", "LEAF_B", "LEAF_C"]
+
+
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:
     """PvogClient · maps v7 CLI fixture row to batch upsert DTO."""
     row = _load_fixture("v7_page_cli_single.json")["serviceDescriptions"]["content"][0]

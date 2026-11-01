@@ -349,6 +349,18 @@ def _map_govdata_records(
     return items
 
 
+def _pvog_vocabulary(args: argparse.Namespace) -> int:
+    settings = load_ingest_settings()
+    pvog = PvogClient(settings.pvog_api_base_url)
+    try:
+        codes = pvog.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
+    except PvogClientError as err:
+        print(err, file=sys.stderr)
+        return 1
+    print("\n".join(codes))
+    return 0
+
+
 def _map_pvog_records(
     records: Iterator[dict[str, Any]],
     *,
@@ -367,6 +379,7 @@ _COMMANDS: dict[tuple[str, str | None], Callable[[argparse.Namespace], int]] = {
     ("govdata", "run"): _govdata_run,
     ("govdata", "fetch"): _govdata_fetch,
     ("pvog", "run"): _pvog_run,
+    ("pvog", "vocabulary"): _pvog_vocabulary,
     ("fim", "enrich"): _fim_enrich,
     ("fim", "probe"): _fim_probe,
     ("leika", "enrich"): _leika_enrich,
@@ -440,6 +453,10 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Optional cap on PVOG pagination pages per run",
+    )
+    pvog_sub.add_parser(
+        "vocabulary",
+        help="Print the full personalMatters leaf vocabulary from the v7 bootstrap tree",
     )
 
     fim = sub.add_parser("fim", help="FIM Portal enrich")

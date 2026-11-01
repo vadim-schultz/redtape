@@ -10,10 +10,11 @@ from discovery_ingest.extract.llm.evaluation.summary import Summary
 from discovery_ingest.extract.llm.evaluation.targets import (
     DAILY_NEURON_CAP,
     METRIC_VERSION,
+    MIN_DOMAIN_TAG_AGREEMENT,
     MIN_GROUNDED_RATE,
     MIN_PRECISION,
     MIN_RECALL,
-    MIN_TAG_AGREEMENT,
+    MIN_SITUATION_TAG_AGREEMENT,
 )
 
 
@@ -43,7 +44,8 @@ def _metric_rows(summary: Summary) -> Iterator[str]:
     yield f"| edge recall | {summary.edges.recall:.2f} | |"
     yield f"| quote-grounded rate | {_verdict(summary.grounded_rate, MIN_GROUNDED_RATE)} |"
     yield f"| kept rate | {summary.kept_rate:.2f} | |"
-    yield f"| tag agreement | {_verdict(summary.tag_agreement, MIN_TAG_AGREEMENT)} |"
+    yield f"| domain tag agreement | {_verdict(summary.domain_tag_agreement, MIN_DOMAIN_TAG_AGREEMENT)} |"
+    yield f"| situation tag agreement | {_verdict(summary.situation_tag_agreement, MIN_SITUATION_TAG_AGREEMENT)} |"
     yield f"| cleaner recall | {summary.cleaner_recall:.2f} | |"
     yield f"| page kind accuracy | {summary.page_kind_accuracy:.2f} | |"
     yield f"| neurons per page | {summary.neurons_per_page:.1f} | |"
