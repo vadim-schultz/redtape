@@ -33,6 +33,8 @@ Fill in after the post-deploy live run ([02-live-runs.md](02-live-runs.md)):
 
 **Remaining before this can flip to settled:** (1) chapters 1–3 shipped and deployed; ~~(2) chapter 3's Step 0 human spot-check of the LR3 mapping recorded in the parent suite's `gaps-and-decisions.md`~~ — **done, T4**; (3) the post-deploy hand-labelling run itself (~20–30 candidates via the admin UI), split by which mechanism newly qualified each one.
 
+**Pre-agreed rollback trigger (vadim.schultz, 2026-11-01, decided before labelling starts, per `02-live-runs.md`'s own requirement):** if a mechanism's hand-labelled sample precision falls below **70%**, that is the trigger to revert it immediately, without waiting for a larger re-run — A1: set `discovery_tag_min_procedures_situation` back to `2`; A2: stop emitting PVOG `situation_codes` (revert chapter 3's `_situation_codes()` to a no-op). Each mechanism is evaluated independently against this same 70% bar.
+
 **Cross-reference — supersedes the parent suite's T-PENDING resolution path.** `situation-tag-coverage/gaps-and-decisions.md`'s T-PENDING entry is annotated: "A1/A2 (this suite's axis-aware threshold and PVOG signal, equivalent to parent S4/S3) now shipping via `situation-tag-activation`; see that suite's D-PENDING for the resolution," following the `discovery-operations` D7 → `discovery-throughput` D5 cross-suite-supersession precedent. T-PENDING itself stays open in the parent suite until this suite's D-PENDING settles.
 
 ## Open seams
