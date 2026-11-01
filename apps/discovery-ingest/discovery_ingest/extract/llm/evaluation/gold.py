@@ -23,12 +23,17 @@ class _Strict(BaseModel):
 
 
 class GoldDocument(_Strict):
-    """A document a reader finds on the page; ``condition`` and ``is_optional`` document the label, scoring ignores them."""
+    """A document a reader finds on the page; ``condition`` and ``is_optional`` document the label, scoring ignores them.
+
+    ``document_text`` is the document's own text (its own title and purpose line, not an excerpt of the page that
+    names it); absent for most of the 47 gold documents, hand-authored for the small subset chapter 5 scores.
+    """
 
     name: Name
     role: Role
     condition: str | None = None
     is_optional: bool = False
+    document_text: str | None = None
 
 
 class GoldDependency(_Strict):
