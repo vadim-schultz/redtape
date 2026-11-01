@@ -2,9 +2,9 @@ name: Discovery drain
 
 on:
   schedule:
-    # Daily 04:00 UTC. Runs only when the repository variable
+    # Daily 02:00 UTC. Runs only when the repository variable
     # DISCOVERY_DRAIN_SCHEDULE equals "enabled" (see the job condition).
-    - cron: "0 4 * * *"
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       max_tasks:
@@ -32,7 +32,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: discovery-drain
+  group: discovery-pipeline
   cancel-in-progress: false
 
 jobs:
