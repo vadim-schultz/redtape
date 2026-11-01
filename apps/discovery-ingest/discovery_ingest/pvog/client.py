@@ -82,6 +82,21 @@ class PvogClient:
                     break
                 page_index += 1
 
+    def fetch_personal_matter_vocabulary(self, *, ars: str = FEDERAL_ARS) -> list[str]:
+        """Fetch the v7 facades bootstrap page and return its full leaf personalMatters vocabulary.
+
+        Sorted ascending string order, deduplicated — inherited unchanged from
+        ``_personal_matter_codes_from_facades``'s ``sorted(set(codes))``.
+        """
+        bootstrap_url = _build_v7_url(
+            self._base_url,
+            ars,
+            personal_matter=BOOTSTRAP_PERSONAL_MATTER,
+            facades=True,
+        )
+        bootstrap = self._fetch_page(bootstrap_url)
+        return _personal_matter_codes_from_facades(bootstrap)
+
     def _fetch_page(self, url: str) -> dict[str, Any]:
         if self._http_client is not None:
             response = self._http_client.get(url)
