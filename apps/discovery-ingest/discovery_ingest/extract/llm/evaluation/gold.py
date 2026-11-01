@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError
@@ -83,6 +84,33 @@ def load_gold(directory: Path, *, limit: int | None = None) -> list[GoldPage]:
         raise GoldError(f"gold set not found: {directory} is not a directory")
     names = sorted(path.name.removesuffix(GOLD_SUFFIX) for path in directory.glob(f"*{GOLD_SUFFIX}"))
     return [_read(directory, name) for name in names[:limit]]
+
+
+class DocumentCase(_Strict):
+    """One gold document scored against its own text; the gold label is the page's situation codes (X8: production
+
+    copies a page's codes onto every document it mentions, so that is the one gold label a document has today).
+    """
+
+    page_name: str
+    document_name: str
+    document_text: str
+    gold_situation_codes: tuple[Code, ...]
+
+
+def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
+    """Return one `DocumentCase` per gold document that carries its own `document_text`; the rest are simply absent."""
+    return [
+        DocumentCase(
+            page_name=page.name,
+            document_name=document.name,
+            document_text=document.document_text,
+            gold_situation_codes=page.situation_codes,
+        )
+        for page in pages
+        for document in page.documents
+        if document.document_text is not None
+    ]
 
 
 def unknown_codes(page: GoldPage, taxonomy: Taxonomy) -> list[str]:
