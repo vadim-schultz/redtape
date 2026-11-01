@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from sqlalchemy.orm import Session
+
 from app.features.discovery.candidate_tags import accepted_codes, candidate_tag_suggestions
 from app.models.discovery import DiscoveryDocumentCandidate
 
@@ -15,9 +17,9 @@ class SuggestedTags(NamedTuple):
     situation_codes: list[str]
 
 
-def suggested_tags(candidate: DiscoveryDocumentCandidate) -> SuggestedTags:
+def suggested_tags(session: Session, candidate: DiscoveryDocumentCandidate) -> SuggestedTags:
     """Return the codes its mentions agree on, or none while no code has enough support."""
-    suggestions = candidate_tag_suggestions(candidate.mentions)
+    suggestions = candidate_tag_suggestions(session, candidate.id)
     return SuggestedTags(accepted_codes(suggestions.domains), accepted_codes(suggestions.situations))
 
 

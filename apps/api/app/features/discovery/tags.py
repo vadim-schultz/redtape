@@ -1,22 +1,18 @@
-"""Tag consensus: which codes the procedures that mention a candidate agree on."""
+"""Tag consensus vocabulary: the shared types the merged SQL engine computes support against."""
 
 from __future__ import annotations
 
-from collections import defaultdict
-from collections.abc import Iterable, Sequence
+import enum
 from typing import NamedTuple
-from uuid import UUID
+
+from sqlalchemy.orm import InstrumentedAttribute
+
+from app.models.discovery import DiscoveryCandidateMention as Mention
 
 DEFAULT_MIN_PROCEDURES = 2
 DEFAULT_MIN_SHARE = 0.5
 MANUAL_EXTRACTOR = "manual"
 """The ``extractor`` of a mention written by a curator; its codes are authoritative for their axis."""
-
-TaggedMention = tuple[UUID, Sequence[str] | None]
-"""A mention as plain data: the procedure (catalogue row) it came from and the codes it carries."""
-
-ProvenancedMention = tuple[UUID, str, Sequence[str] | None]
-"""A mention as plain data: the procedure it came from, the extractor that wrote it and the codes it carries."""
 
 
 class TagSupport(NamedTuple):
@@ -28,44 +24,13 @@ class TagSupport(NamedTuple):
     accepted: bool
 
 
-def _procedures_by_code(mentions: Iterable[TaggedMention]) -> dict[str, set[UUID]]:
-    by_code: dict[str, set[UUID]] = defaultdict(set)
-    for procedure_id, codes in mentions:
-        for code in codes or ():
-            by_code[code].add(procedure_id)
-    return by_code
+class TagAxis(enum.Enum):
+    """A tag axis of a mention: the array column that carries its codes."""
 
+    DOMAIN = "domain"
+    SITUATION = "situation"
 
-def _support(code: str, procedures: int, tagged: int, min_procedures: int, min_share: float) -> TagSupport:
-    share = procedures / tagged
-    return TagSupport(code, procedures, share, procedures >= min_procedures and share >= min_share)
-
-
-def aggregate_tags(
-    mentions: Iterable[TaggedMention],
-    min_procedures: int = DEFAULT_MIN_PROCEDURES,
-    min_share: float = DEFAULT_MIN_SHARE,
-) -> list[TagSupport]:
-    """Return the support of every code, most supported first.
-
-    A code is counted once per distinct procedure, however many mentions carry it. The share divides by the
-    distinct procedures that carry any code, so untagged mentions do not dilute it. ``accepted`` needs both
-    thresholds.
-    """
-    by_code = _procedures_by_code(mentions)
-    tagged = len(set().union(*by_code.values()))
-    supports = [_support(code, len(ids), tagged, min_procedures, min_share) for code, ids in by_code.items()]
-    return sorted(supports, key=lambda support: (-support.procedures, support.code))
-
-
-def curated_codes(mentions: Iterable[ProvenancedMention]) -> list[TagSupport]:
-    """Return the codes the manual mentions carry, or nothing when no manual mention carries any.
-
-    A curator's word replaces the extracted consensus for the axis, and one procedure suffices, so every
-    curated code is accepted with a share of 1. An empty result means the consensus stays in force.
-    """
-    by_code = _procedures_by_code(
-        (procedure, codes) for procedure, extractor, codes in mentions if extractor == MANUAL_EXTRACTOR
-    )
-    supports = [TagSupport(code, len(ids), 1.0, True) for code, ids in by_code.items()]
-    return sorted(supports, key=lambda support: (-support.procedures, support.code))
+    @property
+    def column(self) -> InstrumentedAttribute[list[str] | None]:
+        """Return the mention column holding this axis' codes."""
+        return Mention.domain_codes if self is TagAxis.DOMAIN else Mention.situation_codes

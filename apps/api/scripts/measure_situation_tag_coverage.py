@@ -19,17 +19,15 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from uuid import UUID
 
-from app.features.discovery.tags import TaggedMention
-
-from scripts.situation_tag_coverage_variants import VariantCoverage, situation_coverage_by_variant
+from scripts.situation_tag_coverage_variants import ExportedMention, VariantCoverage, situation_coverage_by_variant
 
 
-def load_candidates(path: Path) -> dict[UUID, list[TaggedMention]]:
+def load_candidates(path: Path) -> dict[UUID, list[ExportedMention]]:
     """Read an export file and group its mention records by candidate id."""
     records = json.loads(path.read_text())
-    by_candidate: dict[UUID, list[TaggedMention]] = defaultdict(list)
+    by_candidate: dict[UUID, list[ExportedMention]] = defaultdict(list)
     for record in records:
-        mention: TaggedMention = (UUID(record["catalogue_service_id"]), record["situation_codes"])
+        mention: ExportedMention = (UUID(record["catalogue_service_id"]), record["situation_codes"])
         by_candidate[UUID(record["candidate_id"])].append(mention)
     return dict(by_candidate)
 
@@ -52,7 +50,7 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     """Load the export file named by ``--input``, measure coverage per variant and print the table."""
     args = _parse_args(argv)
-    candidates: Mapping[UUID, list[TaggedMention]] = load_candidates(args.input)
+    candidates: Mapping[UUID, list[ExportedMention]] = load_candidates(args.input)
     print(format_table(situation_coverage_by_variant(candidates)))
     return 0
 

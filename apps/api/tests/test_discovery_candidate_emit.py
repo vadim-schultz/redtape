@@ -297,7 +297,9 @@ def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandid
     documents = DocumentService(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
     suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
-    return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions, lambda _candidate: tags)
+    return DiscoveryCandidateEmitService(
+        DiscoveryRepository(db_session), suggestions, lambda _session, _candidate: tags
+    )
 
 
 def test_payload_carries_the_codes_the_tag_hook_returns_and_the_preview_prints_them(
