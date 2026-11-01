@@ -362,14 +362,14 @@ def _pvog_vocabulary(args: argparse.Namespace) -> int:
 
 
 def _map_pvog_records(
-    records: Iterator[dict[str, Any]],
+    records: Iterator[tuple[str, dict[str, Any]]],
     *,
     jurisdiction_id: UUID,
 ) -> list[CatalogueBatchItem]:
     items: list[CatalogueBatchItem] = []
-    for row in records:
+    for code, row in records:
         try:
-            items.append(map_pvog_record(row, jurisdiction_id=jurisdiction_id))
+            items.append(map_pvog_record(row, jurisdiction_id=jurisdiction_id, personal_matter_code=code))
         except PvogMappingError as err:
             print(f"skip row: {err}", file=sys.stderr)
     return items

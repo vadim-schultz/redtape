@@ -41,8 +41,8 @@ class PvogClient:
         *,
         ars: str = FEDERAL_ARS,
         max_pages: int | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        """Yield rows from v7 Lebenslagen tree walk and paginated search."""
+    ) -> Iterator[tuple[str, dict[str, Any]]]:
+        """Yield ``(personal_matter_code, row)`` from v7 Lebenslagen tree walk and paginated search."""
         pages_fetched = 0
         seen_lb_ids: set[str] = set()
 
@@ -77,7 +77,7 @@ class PvogClient:
                     if lb_id is None or lb_id in seen_lb_ids:
                         continue
                     seen_lb_ids.add(lb_id)
-                    yield record
+                    yield code, record
                 if is_last or not records:
                     break
                 page_index += 1
@@ -203,12 +203,21 @@ def map_pvog_record(
     row: dict[str, Any],
     *,
     jurisdiction_id: UUID,
+    personal_matter_code: str | None = None,
 ) -> CatalogueBatchItem:
-    """Map one PVOG Suchdienst row to a machine batch item."""
+    """Map one PVOG Suchdienst row to a machine batch item.
+
+    ``personal_matter_code``, when given, is stashed into the stored ``raw_payload`` under the
+    reserved ``_personal_matter_code`` key so a later harvest step can derive ``situation_codes``
+    from it (no existing PVOG field uses an underscore-prefixed key).
+    """
     external_id = _external_id_for_row(row)
     title = _title_for_row(row)
     description = _description_for_row(row)
     portal_url = _portal_url_from_row(row)
+    raw_payload = dict(row)
+    if personal_matter_code is not None:
+        raw_payload["_personal_matter_code"] = personal_matter_code
     return CatalogueBatchItem(
         source="pvog",
         external_id=external_id,
@@ -216,7 +225,7 @@ def map_pvog_record(
         title_i18n={"de": title},
         description_i18n={"de": description} if description else None,
         portal_url=portal_url,
-        raw_payload=dict(row),
+        raw_payload=raw_payload,
     )
 
 
