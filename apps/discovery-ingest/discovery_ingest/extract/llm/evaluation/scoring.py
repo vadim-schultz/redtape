@@ -11,11 +11,6 @@ from discovery_ingest.extract.llm.ground_state import DroppedItem, Grounded
 from discovery_ingest.extract.llm.schema import DependencyItem, DocumentItem, PageExtraction
 
 
-def gold_codes(gold: GoldPage) -> tuple[str, ...]:
-    """Return the domain and situation codes of the gold labels as one tuple."""
-    return (*gold.domain_codes, *gold.situation_codes)
-
-
 def _gold_counts(gold: GoldPage) -> tuple[Counts, Counts]:
     return Counts(0, 0, len(gold.documents)), Counts(0, 0, len(gold.dependencies))
 
@@ -23,7 +18,7 @@ def _gold_counts(gold: GoldPage) -> tuple[Counts, Counts]:
 def nothing_found(gold: GoldPage) -> Scores:
     """Return the scores of a page where the model said nothing usable: every gold item is missed."""
     documents, edges = _gold_counts(gold)
-    return Scores(documents, edges, gold_codes=gold_codes(gold))
+    return Scores(documents, edges, gold_domain_codes=gold.domain_codes, gold_situation_codes=gold.situation_codes)
 
 
 def lost_items(extraction: PageExtraction, grounded: Grounded) -> tuple[DroppedItem, ...]:
@@ -49,8 +44,10 @@ def score_page(gold: GoldPage, extraction: PageExtraction, grounded: Grounded) -
         raw_items=len(extraction.documents) + len(extraction.dependencies),
         kept_items=len(grounded.documents) + len(grounded.dependencies),
         quote_failed_items=quote_failures(dropped),
-        predicted_codes=(*grounded.domain_codes, *grounded.situation_codes),
-        gold_codes=gold_codes(gold),
+        predicted_domain_codes=grounded.domain_codes,
+        predicted_situation_codes=grounded.situation_codes,
+        gold_domain_codes=gold.domain_codes,
+        gold_situation_codes=gold.situation_codes,
         page_kind=extraction.page_kind,
         dropped=dropped,
     )

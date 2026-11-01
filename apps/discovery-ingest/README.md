@@ -18,7 +18,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `candidates page`, `candidates curate` | Read the source pages of a candidate; complete candidates by hand from a reviewed file; see [Curate candidates by hand](#curate-candidates-by-hand) |
 | `browser probe` | Call every Cloudflare quick action the worker uses and print a table |
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
-| `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, tag agreement and neurons per page |
+| `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, domain and situation tag agreement and neurons per page |
 | `llm requeue [--host H] [--limit N] [--dry-run]` | Queue `llm_extract` for the latest snapshot of each catalogue row under the current model, prompt and cleaner versions |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger (`--resource`, `--require-remaining RESOURCE=N` exits 3 when short, `--strict` exits 4 when the API is unreachable); add Actions minutes to it |
@@ -199,8 +199,8 @@ The manual workflow `discovery-llm-probe.yml` runs the same command.
 labels are drafted and need a human review). Each page is cleaned, sent to the model and grounded, and the table shows
 the pooled precision and recall of documents, the same for edges, the **quote-grounded rate** (the share of raw model
 items whose quote is on the page; target 0.95) and the **kept rate** (the share of raw model items the pipeline kept,
-with no target), the tag agreement, the cleaner recall, the neurons per page and the pages per day that follows from
-it. Both rates are always printed: a guard drop (`data_field`, `generic_name`, `duplicate`, `noise`, a dependency
+with no target), the domain and situation tag agreement (the two code axes scored separately, not pooled into one
+number), the cleaner recall, the neurons per page and the pages per day that follows from it. Both rates are always printed: a guard drop (`data_field`, `generic_name`, `duplicate`, `noise`, a dependency
 whose endpoint was lost) lowers the kept rate only, while a `quote` or `dependency_quote` drop lowers both. The table
 header and the JSON (`metric_version`) say `grounded_rate=quote`; the JSON `grounded_rate` is the quote-grounded rate
 and `kept_rate` is the old figure. Next to each other metric the table prints the starting target of decision X16.
