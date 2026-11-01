@@ -30,8 +30,10 @@ class Scores:
     raw_items: int = 0
     kept_items: int = 0
     quote_failed_items: int = 0
-    predicted_codes: tuple[str, ...] = ()
-    gold_codes: tuple[str, ...] = ()
+    predicted_domain_codes: tuple[str, ...] = ()
+    predicted_situation_codes: tuple[str, ...] = ()
+    gold_domain_codes: tuple[str, ...] = ()
+    gold_situation_codes: tuple[str, ...] = ()
     page_kind: str | None = None
     dropped: tuple[DroppedItem, ...] = ()
 
