@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -57,3 +57,16 @@ def axis_thresholds(settings: Settings, axis: TagAxis) -> TagThresholds:
             settings.discovery_tag_min_procedures_situation, settings.discovery_tag_min_share_situation
         )
     return TagThresholds(settings.discovery_tag_min_procedures, settings.discovery_tag_min_share)
+
+
+def confidence_tier(support: TagSupport) -> Literal["high", "low"]:
+    """Return "high" if ``support`` would clear the strict historical floor regardless of axis (D5).
+
+    A full-share acceptance (every tagged procedure agrees, including a curator's single manual
+    mention) is also "high" — maximal agreement, trivial population or not.
+    """
+    if support.procedures >= DEFAULT_MIN_PROCEDURES:
+        return "high"
+    if support.accepted and support.share == 1.0:
+        return "high"
+    return "low"
