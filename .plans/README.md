@@ -397,6 +397,26 @@ The Free plan's 2,000 Actions minutes are shared by every repository on the acco
 
 Status: shipped — all six chapters done on `chore/gha-budget`. Steps only the account owner can do (billing, external pinger, repository variables, first live runs): [`docs/operations/gha-budget.md`](../docs/operations/gha-budget.md).
 
+### [discovery-throughput/](discovery-throughput/) — Same-day drain scheduling, optional situation codes, completeness-first claims
+
+Raise the scheduled/CI Actions-minutes split from 1,000 total (400 for drains) to 2,000 total, 1,000/1,000; split
+`extract_page` and `capture_screenshot` into dedicated workflows and retime all five discovery schedules so a page
+reaches `capture_screenshot` the same day it was fetched instead of roughly two days later; make the LLM
+extractor's `situation_codes` optional so a missing classification no longer discards the whole page extraction;
+and rank task claims by page completeness (domain, situation, dependencies, snapshot, screenshot) within each
+priority tier, superseding [discovery-operations](discovery-operations/gaps-and-decisions.md) decision D7's
+ordering clause. Six chapters, no dependencies between 1–4; loop branch `feat/plans-discovery-throughput`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-throughput/00-architecture.md) | The ~2-day latency mechanism, the five-workflow target schedule, vocabulary |
+| [01-rollout.md](discovery-throughput/01-rollout.md) | Six chapters, dependency graph, invariants, execution order |
+| [gaps-and-decisions.md](discovery-throughput/gaps-and-decisions.md) | Settled decisions (D1: the 2000/1000/1000 split is unverified against the account-wide pool), open seams |
+| [chapters/](discovery-throughput/chapters/) | One executable plan per chapter |
+
+Status: planned — documentation suite only; implementation starts with
+[chapters/01-budget-reallocation.md](discovery-throughput/chapters/01-budget-reallocation.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
