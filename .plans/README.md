@@ -417,6 +417,28 @@ ordering clause. Six chapters, no dependencies between 1–4; loop branch `feat/
 Status: planned — documentation suite only; implementation starts with
 [chapters/01-budget-reallocation.md](discovery-throughput/chapters/01-budget-reallocation.md).
 
+### [situation-tag-coverage/](situation-tag-coverage/) — Closing the life-situation tag coverage gap
+
+A spike/decision suite, not a feature build: the cross-procedure consensus rule that accepts a document's
+domain and life-situation chips (extraction decision X8) is axis-blind, and a life situation is by
+definition the one procedure that triggers it, so it almost never clears the same 2-procedure bar a domain
+clears easily (6 of 58 candidates tagged by domain, 0 of 58 by situation, in the 2026-10-29 drain). Five
+independent chapters build small, tested measurement tools — splitting the eval metric by axis, a
+consensus-ceiling report, a PVOG `personalMatters` vocabulary spike, an axis-aware consensus offline tool,
+and a document-level classification eval — then one live-run sequence points them at real data to settle a
+single pending decision on which fix(es) ship.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](situation-tag-coverage/00-architecture.md) | Root cause, vocabulary, the options catalogue, why the alternatives are ruled out |
+| [01-rollout.md](situation-tag-coverage/01-rollout.md) | Five chapters, dependency graph, invariants, per-chapter gate |
+| [gaps-and-decisions.md](situation-tag-coverage/gaps-and-decisions.md) | Settled scope boundaries and the pending decision (T-PENDING) with its working hypothesis |
+| [02-live-runs.md](situation-tag-coverage/02-live-runs.md) | LR1–LR5, run once all five chapters are merged, to settle T-PENDING |
+| [chapters/](situation-tag-coverage/chapters/) | One executable plan per chapter |
+
+Status: planned — documentation suite only; implementation starts with
+[chapters/01-split-tag-agreement-by-axis.md](situation-tag-coverage/chapters/01-split-tag-agreement-by-axis.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
