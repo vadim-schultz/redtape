@@ -212,18 +212,18 @@ Requeueing the same page under the same model, prompt and cleaner versions queue
 catalogue row, the kind, the target URL and the key), so a daily `llm requeue` is safe. A new model, `PROMPT_VERSION` or
 `CLEAN_VERSION` queues the backlog again; do that deliberately, because it spends neurons.
 
-**OP13: Queue after scheduled renders (optional).** `discovery-render.yml` was not changed by the suite and sets neither
-`LLM_ENQUEUE` nor `LLM_MODEL`. To queue `llm_extract` after scheduled renders, add both to the `env` block of its
-`drain` job (without `LLM_MODEL` the default model applies; to choose one, the id is a plain value or
-`${{ vars.DISCOVERY_LLM_MODEL }}`, and an unset variable becomes an empty value, which means no model):
+**OP13: Queue after scheduled renders (on by default).** `discovery-render.yml` sets both in the `env` block of its
+`drain` job by default:
 
 ```yaml
       LLM_ENQUEUE: "true"
       LLM_MODEL: ${{ vars.DISCOVERY_LLM_MODEL }}
 ```
 
-With `LLM_ENQUEUE` on and an empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
-`llm_enqueue_failed`. A laptop render with both variables exported does the same without a workflow change.
+so scheduled renders queue `llm_extract` work automatically; no operator step is needed for this default. An unset
+`DISCOVERY_LLM_MODEL` variable becomes an empty `LLM_MODEL` value, which means no model. With `LLM_ENQUEUE` on and an
+empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
+`llm_enqueue_failed`. A laptop render with both variables exported does the same.
 
 **OP14: Enable the schedule (optional).** Only after the OP9 live gate and only if the monthly Actions allowance has room
 (crawlers S20). Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`

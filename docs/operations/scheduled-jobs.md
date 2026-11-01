@@ -67,8 +67,8 @@ scheduled run takes the model from the repository variable `DISCOVERY_LLM_MODEL`
 without failing, when the ledger has under 20 Actions minutes or under 300 neurons left. It does not claim the browser
 kinds. Its four secrets are `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` and
 `CLOUDFLARE_AI_API_TOKEN`; the Workers AI token is used only by this workflow and the probe, and is not a Render
-variable. `discovery-render.yml` is unchanged and does not queue `llm_extract`; to queue after scheduled renders add
-`LLM_ENQUEUE: "true"` (and `LLM_MODEL` for another model than the default) to its job `env` (details in [discovery-online.md](discovery-online.md) § LLM kind).
+variable. `discovery-render.yml` sets `LLM_ENQUEUE: "true"` (and `LLM_MODEL`) in its job `env` by default, so scheduled renders
+queue `llm_extract` automatically (details in [discovery-online.md](discovery-online.md) § LLM kind).
 
 **Concurrency.** All three drains share the group `discovery-drain` with `cancel-in-progress: false`, so they never overlap.
 GitHub keeps one pending run per group, so a third queued run cancels the older pending one.
