@@ -37,6 +37,12 @@ known pages, which would use most of the allowance. Run the backlog on a laptop 
 `DISCOVERY_RENDER_SCHEDULE` unset. A drain skips itself when fewer than 45 minutes (render: 30) are left in the ledger.
 Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs report nothing and cost nothing.
 
+> **2026-11, revised again:** this repository's share raised to 2,000/1,000/1,000, superseding the 2026-10-26 figures
+> above (`BUDGET_ACTIONS_MINUTES_MONTHLY=2000`, `ACTIONS_CI_RESERVE_MINUTES=1000`, a 1,000-minute drain allowance
+> across the five `discovery-*.yml` workflows). The table above stays as the record of what was true on 2026-10-26;
+> see [`discovery-throughput/gaps-and-decisions.md`](../../.plans/discovery-throughput/gaps-and-decisions.md) D1/D2
+> and [scheduled-jobs.md](scheduled-jobs.md) for the current numbers.
+
 Compare the ledger with GitHub's usage report once a month (checklist S20): `python -m discovery_ingest budget show`
 prints `actions_minutes`; GitHub shows the repository's real minutes. If CI alone approaches the reserve, lower the
 drain allowance (raise `ACTIONS_CI_RESERVE_MINUTES`), not the other way round. Raise `DISCOVERY_DRAIN_BUDGET_SECONDS`

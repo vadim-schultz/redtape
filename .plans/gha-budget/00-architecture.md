@@ -38,6 +38,11 @@ GitHub's free 2,000 minutes a month are shared by every repository on the accoun
 
 The crawl cap is the repository variable `DISCOVERY_DRAIN_BUDGET_SECONDS`, so it can be raised when other repositories use less.
 
+> **2026-11, revised again:** this repository's share raised to 2,000/1,000/1,000, superseding the 2026-10-26 figures
+> above. See [`discovery-throughput/gaps-and-decisions.md`](../discovery-throughput/gaps-and-decisions.md) D1/D2 and
+> [`docs/operations/scheduled-jobs.md`](../../docs/operations/scheduled-jobs.md) for the current numbers; this table
+> stays as the record of what was true on 2026-10-26.
+
 ## Target workflow inventory
 
 | Workflow | Trigger after this suite |

@@ -35,13 +35,14 @@ as the equivalent local command; nothing else is blocked by it.
 | OP10 | [ ] | | Open and merge the final release PR | OP11 |
 | OP11 | [ ] | | Deploy API and web together, re-seed translations, E8 live gate | OP15 |
 | OP12 | [ ] | | Backfill and drain, once a day | OP14 |
-| OP13 | [ ] | | Queue after scheduled renders (optional) | nothing |
+| OP13 | [ ] | n/a — ships on by default (discovery-throughput chapter 2) | Queue after scheduled renders: no operator action, see Steps for the opt-out | nothing |
 | OP14 | [ ] | | Enable the schedule (optional) | nothing |
 | OP15 | [ ] | | Review the suggested tags before any emit that carries tags | the first emit with tags |
 | OP16 | [ ] | | Native review of the German admin strings | nothing |
 
 The suite's release checklist in [`run-ledger.md`](../../.plans/extraction/run-ledger.md) is complete only when OP1 to
-OP12 and OP15 are recorded with dates and run IDs or commands. OP13, OP14 and OP16 are optional.
+OP12 and OP15 are recorded with dates and run IDs or commands. OP13 ships on by default and needs no operator action
+(see Steps); OP14 and OP16 are optional.
 
 ## Reported done
 
@@ -123,9 +124,11 @@ python -m discovery_ingest llm eval --model @cf/qwen/qwen3-30b-a3b-fp8 --neuron-
 ```
 
 Write decision X16 in `gaps-and-decisions.md` (model, endpoint mode, `PROMPT_VERSION` `ext-5`, `CLEAN_VERSION`
-`clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set `LLM_MODEL` for the
-render worker (OP13) and the repository variable `DISCOVERY_LLM_MODEL` (OP14). `LLM_MODEL` defaults to the
-X16 choice `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to choose another model. If no model reaches the targets, record
+`clean-4`, the four metrics, `neurons_used` of each run, the thresholds later gates use), then set the repository
+variable `DISCOVERY_LLM_MODEL` (OP14). `discovery-render.yml`'s job `env` already reads that same variable
+automatically (OP13 ships on by default, see Steps), so there is nothing separate to set for the render worker.
+`LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8`, so a drain needs no export; set it only to
+choose another model. If no model reaches the targets, record
 the shortfall and one of three decisions: accept lower recall because everything is human-reviewed, change the cleaner
 or the prompt, or fall back to hand-written extractors for the weak hosts (crawlers chapter 18). If the 70b model is
 chosen, revert the E18 code guard with the one-line change in `ground._codes`.
