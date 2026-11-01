@@ -29,7 +29,7 @@ Carried over from the parent suite (chip, axis, consensus, support, completeness
 | **Axis-aware threshold** | A `min_procedures`/`min_share` pair that differs by axis, replacing today's one flat pair applied to both — domain keeps 2/50%, situation moves to 1/50% |
 | **Confidence tier** | A computed `"high"`/`"low"` label on every accepted code: `"high"` means the code would have cleared the historical, axis-blind 2-procedure floor regardless of which axis rule is active; `"low"` means it was accepted only because the relaxed situation-axis rule let it through |
 | **Consensus engine duplication** | The pre-existing fact that the same support/acceptance formula is implemented twice — once in Python (`tags.py`/`candidate_tags.py`, single-candidate detail/emit path) and once in SQL (`candidate_completeness_tags.py`/`candidate_completeness_flags.py`, bulk listing/completeness-flag path) — both reading the same flat settings today, confirmed by direct read (§3) |
-| **PVOG situation signal** | A `situation_codes` assertion attached directly to a PVOG-sourced mention, derived from the Lebenslage `personalMatters` leaf code the discovery crawl already discards today, independent of (and corroborating alongside) the LLM-extracted page assertion |
+| **PVOG situation signal** | A `situation_codes` assertion attached directly to a PVOG-sourced mention, derived from the Lebenslage `personalMatters` leaf code the discovery crawl already discards today, independent of (and corroborating alongside) the LLM-extracted page assertion — one or two codes per mention for a bundled leaf, per the T4 widened sign-off (`situation-tag-coverage/gaps-and-decisions.md`) |
 
 ## 3. The two-engine duplication, confirmed by direct read
 
@@ -63,7 +63,7 @@ The parent suite's own options catalogue (`situation-tag-coverage/00-architectur
 | # | Option | One line | Parent reference |
 | --- | --- | --- | --- |
 | A1 | Axis-aware consensus thresholds | Trust a single confidently-grounded page assertion for situation codes (`min_procedures=1`) instead of requiring 2-procedure corroboration; domain's threshold is untouched | Parent's S4 |
-| A2 | PVOG `personalMatters` signal | Thread the Lebenslage code already live in `client.py`'s walk through to each mention, mapped to the 12 of 18 situation codes with an unambiguous leaf | Parent's S3 |
+| A2 | PVOG `personalMatters` signal | Thread the Lebenslage code already live in `client.py`'s walk through to each mention, mapped to 17 of 18 situation codes — clean and ambiguous leaves alike, multi-code for bundled ones — per the parent suite's T4 human sign-off | Parent's S3 |
 | A3 | Tag confidence tier | New in this suite, not in the parent's catalogue — a computed `"high"`/`"low"` label riding along on every accepted code, so a future review surface can see which codes only cleared the relaxed bar | — |
 
 A3 exists because A1 alone, shipped without any accompanying signal, would make every accepted situation code look equally trustworthy to a future reviewer even though some only cleared a deliberately relaxed bar. It costs nothing in behaviour — it does not gate anything — and rides on data (`TagSupport.procedures`/`.share`) the merged engine already computes.

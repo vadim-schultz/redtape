@@ -1,12 +1,12 @@
 ---
 name: "Chapter 3 — PVOG personalMatters as an independent situation signal"
-overview: "Thread the Lebenslage code PVOG's client walk already discards through to each mention, mapped against the 12 of 18 situation codes with an unambiguous leaf, so a PVOG-sourced mention can assert its own situation_codes alongside the LLM-extracted page assertion."
+overview: "Thread the Lebenslage code PVOG's client walk already discards through to each mention, mapped against 17 of 18 situation codes (clean + ambiguous leaves, multi-code for bundled ones) per the T4 human sign-off, so a PVOG-sourced mention can assert its own situation_codes alongside the LLM-extracted page assertion."
 todos:
   - id: step-0
-    content: "BLOCKING: human spot-check of lr3-personal-matters-mapping.md's 14 ambiguous + 18 clean rows, signed off in situation-tag-coverage/gaps-and-decisions.md"
-    status: pending
+    content: "DONE: human spot-check recorded as T4 in situation-tag-coverage/gaps-and-decisions.md — widen to 14 ambiguous + 18 clean rows, multi-code for bundled leaves"
+    status: done
   - id: mapping-table
-    content: "Add situation_mapping.py's PERSONAL_MATTER_TO_SITUATION table, citing the sign-off"
+    content: "Add situation_mapping.py's PERSONAL_MATTER_TO_SITUATION table (dict[str, list[str]], 32 entries), citing T4's sign-off"
     status: pending
   - id: iter-records
     content: "Change iter_records() to yield (code, record) instead of bare record"
@@ -34,37 +34,37 @@ isProject: false
 
 # Chapter 3 — PVOG `personalMatters` as an independent situation signal
 
-**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/situation-tag-activation-pvog-situation-signal` · **Status:** planned — blocked on Step 0
+**Repo:** `redtape` (`apps/discovery-ingest`) · **Branch:** `feat/situation-tag-activation-pvog-situation-signal` · **Status:** planned — unblocked
 
-**Depends on:** none in code (no dependency on chapters 1/2); **Step 0 human sign-off is a hard prerequisite, see below** · **Decisions:** D4 (`../gaps-and-decisions.md`) — no special-casing in consensus; grows out of `situation-tag-coverage` LR3/T-PENDING's S3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** none in code (no dependency on chapters 1/2) · **Decisions:** D4 (`../gaps-and-decisions.md`) — no special-casing in consensus; T4 (`situation-tag-coverage/gaps-and-decisions.md`) — the widened human sign-off this chapter's mapping table is built from; grows out of `situation-tag-coverage` LR3/T-PENDING's S3 · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-situation-tag-activation`
 
-## Blocking prerequisite — Step 0 (not a chapter task)
+## Blocking prerequisite — Step 0 (resolved)
 
-A human spot-check of `.plans/situation-tag-coverage/lr3-personal-matters-mapping.md`, specifically its 14 "ambiguous" rows and the 18 "clean" rows this chapter's mapping table is built from. Record the sign-off (or corrections) in `situation-tag-coverage/gaps-and-decisions.md` **before** this chapter is implemented. This chapter's mapping table must cite that sign-off, not the raw AI first pass — `lr3-personal-matters-mapping.md` is currently flagged as "an AI first-pass mapping, not yet human-confirmed" (`situation-tag-coverage/02-live-runs.md` LR3). Implementation does not start until this sign-off exists, regardless of where chapters 1/2 are.
+A human spot-check of `.plans/situation-tag-coverage/lr3-personal-matters-mapping.md`'s 14 "ambiguous" rows and 18 "clean" rows, recorded as T4 in `situation-tag-coverage/gaps-and-decisions.md` (2026-11-01, vadim.schultz): **widen the mapping to include the ambiguous rows**, not just the clean ones — stay inside the 18-code situation taxonomy (exact-string corroboration with LLM-extracted assertions keeps working) but emit *all* plausible codes for a bundled leaf instead of excluding it. The full widened table lives in `lr3-personal-matters-mapping.md`'s "Human sign-off" section; this chapter's mapping table cites that section, not the raw AI first pass.
 
 ## Goal
 
-A PVOG-sourced mention can assert `situation_codes`, using only the 12 situation codes with an unambiguous PVOG leaf (`birth-of-child`, `marriage`, `separation-divorce`, `studying`, `buying-property`, `immigration`, `naturalisation`, `getting-licence`, `buying-vehicle`, `illness-care`, `retirement`, `death-of-relative`). Every bundled/ambiguous leaf (notably `1040300`→`job-loss`+`new-job`, `1050200`→`moving-house`+`renting-home`) is excluded — a many-to-many leaf can't cast one clean vote.
+A PVOG-sourced mention can assert `situation_codes`, using the 17 of 18 situation codes with at least one PVOG leaf — clean *and* ambiguous leaves per T4's widened sign-off (`birth-of-child`, `marriage`, `separation-divorce`, `studying`, `buying-property`, `immigration`, `naturalisation`, `getting-licence`, `buying-vehicle`, `illness-care`, `retirement`, `death-of-relative`, `starting-school`, `new-job`, `job-loss`, `moving-house`, `renting-home`). Only `going-self-employed` has no citizen-branch PVOG leaf at all and stays unmapped. A bundled/ambiguous leaf (notably `1040300`→`job-loss`+`new-job`, `1050200`→`moving-house`+`renting-home`) emits every plausible code rather than being excluded — `situation_codes` is already `list[Code] | None` with `max_length=MAX_SITUATION_CODES` (3, `mentions.py:14`), so a two-code bundle fits with no type change; it just goes from always-one-element to sometimes-two for a PVOG-sourced mention built from one of these leaves.
 
 ## Design
 
-- New `apps/discovery-ingest/discovery_ingest/pvog/situation_mapping.py`: `PERSONAL_MATTER_TO_SITUATION: dict[str, str]`, the ≤18-entry table, docstring citing the mapping file and the Step 0 human sign-off.
+- New `apps/discovery-ingest/discovery_ingest/pvog/situation_mapping.py`: `PERSONAL_MATTER_TO_SITUATION: dict[str, list[str]]`, the 32-entry table (18 clean + 14 ambiguous leaves, per T4), every value a non-empty list of one or two of the 18 situation codes — docstring citing `lr3-personal-matters-mapping.md`'s "Human sign-off" section.
 - `apps/discovery-ingest/discovery_ingest/pvog/client.py::iter_records()`: yield `(code, record)` instead of bare `record`.
 - `apps/discovery-ingest/discovery_ingest/cli.py::_pvog_run`/`_map_pvog_records`: unpack the tuple, pass `personal_matter_code=code` through to `map_pvog_record`.
 - `apps/discovery-ingest/discovery_ingest/pvog/client.py::map_pvog_record`: add `personal_matter_code: str | None = None`; when given, stash it into the stored `raw_payload` under a reserved key (e.g. `"_personal_matter_code"`) before `dict(row)` is captured — confirmed no existing PVOG field uses an underscore-prefixed key.
 - `apps/discovery-ingest/discovery_ingest/mentions.py`: move `domain_codes`/`situation_codes` from `MentionItem` up onto the base `MentionDraft` (same `Field(default=None, max_length=...)` shape); `MentionItem` no longer redeclares them. (`_items()` in `worker/harvest.py` needs no change — `draft.model_dump()` already carries whatever fields `MentionDraft` has.)
-- `apps/discovery-ingest/discovery_ingest/harvest/pvog.py`: add `_situation_codes(raw_payload) -> list[str] | None` reading `raw_payload.get("_personal_matter_code")` through `PERSONAL_MATTER_TO_SITUATION`; thread into `_draft()` so every `MentionDraft` built from that payload carries it. Reuse the existing `EXTRACTOR = "pvog-payload"` constant as-is.
+- `apps/discovery-ingest/discovery_ingest/harvest/pvog.py`: add `_situation_codes(raw_payload) -> list[str] | None` reading `raw_payload.get("_personal_matter_code")` through `PERSONAL_MATTER_TO_SITUATION` — returns the table's full list for a mapped (clean or ambiguous) code, unchanged for a bundled leaf (e.g. `["job-loss", "new-job"]`), `None` for an unmapped code; thread into `_draft()` so every `MentionDraft` built from that payload carries it. Reuse the existing `EXTRACTOR = "pvog-payload"` constant as-is.
 - **Consensus treatment: no special-casing (D4).** A PVOG mention sits on its own real, distinct `catalogue_service_id`, so when a candidate is also mentioned by a different, LLM-extracted procedure asserting the same situation, the two together can satisfy even the unrelaxed 2-procedure bar — genuine independent corroboration, not just "one more vote under an already-loosened floor." It flows through chapter 1's merged engine completely unmodified.
 - The `seen_lb_ids` first-hit-only dedupe (open seam, carried from the parent suite, see `../gaps-and-decisions.md` Open seams) is left as-is per that seam's own disposition — not a blocker for this chapter.
 
 ## Tests
 
-- `situation_mapping.py` table completeness/shape test (≤18 entries, every value one of the 18 situation codes, every key a string PVOG leaf code).
+- `situation_mapping.py` table completeness/shape test (32 entries, every value a non-empty list drawn from the 18 situation codes with length ≤ `MAX_SITUATION_CODES`, every key a string PVOG leaf code).
 - `iter_records()` yields `(code, record)` tuples now — update existing fixture tests.
 - `map_pvog_record()` stashes `_personal_matter_code` into `raw_payload` when given, and leaves `raw_payload` unchanged when not given.
-- `harvest_pvog_payload()` attaches the right single-element `situation_codes` to a `MentionDraft` built from a payload carrying a mapped code, and attaches nothing when the stashed code isn't in the table (e.g. an ambiguous one, confirming exclusion).
+- `harvest_pvog_payload()` attaches the right single-element `situation_codes` to a `MentionDraft` built from a payload carrying a clean code, the right two-element list for a bundled/ambiguous code (e.g. `1040300` → `["job-loss", "new-job"]`), and attaches nothing when the stashed code isn't in the table at all (one of the 86 unmapped leaves).
 
 ## Verification (in addition to the usual `./ci.sh`)
 
@@ -80,10 +80,10 @@ Confirm `grep -rn "domain_codes\|situation_codes" apps/discovery-ingest/discover
 
 ## Commits
 
-- `feat(discovery-ingest): map PVOG personalMatters leaves to the 12 unambiguous situation codes`
+- `feat(discovery-ingest): map PVOG personalMatters leaves to 17 of 18 situation codes, per the T4 widened sign-off`
 - `feat(discovery-ingest): thread the PVOG Lebenslage code through iter_records to map_pvog_record`
 - `feat(discovery-ingest): attach PVOG-derived situation_codes to the base MentionDraft`
 
 ## Out of scope
 
-Fixing `seen_lb_ids` (open seam, carried from the parent suite); any `MANUAL_EXTRACTOR`-style special-casing of the PVOG mention (D4); the ambiguous/bundled leaves (`job-loss`/`new-job`, `moving-house`/`renting-home`) — excluded by design, not deferred; anything about the consensus engine itself or the confidence tier (chapters 1 and 2 respectively).
+Fixing `seen_lb_ids` (open seam, carried from the parent suite); any `MANUAL_EXTRACTOR`-style special-casing of the PVOG mention (D4); `going-self-employed` — stays unmapped, no citizen-branch PVOG leaf exists for it; any taxonomy growth beyond the existing 18 codes (T2); anything about the consensus engine itself or the confidence tier (chapters 1 and 2 respectively).

@@ -44,7 +44,7 @@ Chapter 1 must land first: chapter 2's `accepted_supports()`/`confidence_tier()`
 | --- | --- | --- | --- | --- | --- |
 | 1 | Unify the consensus engine, then make it axis-aware | api | pytest + ./ci.sh | [chapters/01-axis-aware-consensus-thresholds.md](chapters/01-axis-aware-consensus-thresholds.md) | planned |
 | 2 | Tag confidence tier on the suggestion payload | api | pytest + ./ci.sh | [chapters/02-tag-confidence-tier.md](chapters/02-tag-confidence-tier.md) | planned |
-| 3 | PVOG `personalMatters` as an independent situation signal | discovery-ingest | pytest + ./ci.sh | [chapters/03-pvog-situation-signal.md](chapters/03-pvog-situation-signal.md) | planned — blocked on Step 0 human sign-off |
+| 3 | PVOG `personalMatters` as an independent situation signal | discovery-ingest | pytest + ./ci.sh | [chapters/03-pvog-situation-signal.md](chapters/03-pvog-situation-signal.md) | planned — Step 0 sign-off recorded (T4), unblocked |
 
 ## Per-chapter gate
 
