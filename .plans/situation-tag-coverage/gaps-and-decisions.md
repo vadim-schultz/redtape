@@ -20,6 +20,8 @@ isProject: false
 
 ### T-PENDING — Which fix(es) for situation-axis coverage ship. Status: open, forcing spike: [02-live-runs.md](02-live-runs.md)
 
+**S4/S3 now shipping via `situation-tag-activation`; see that suite's [D-PENDING](../situation-tag-activation/gaps-and-decisions.md) for the resolution.** Following the `discovery-operations` D7 → `discovery-throughput` D5 cross-suite-supersession precedent, this entry stays open here until that suite's post-deploy precision check settles it.
+
 **Working hypothesis (chief of staff bet, not yet confirmed by live numbers).** Ship **S4** (make situation-axis acceptance axis-aware — trust a single confidently-grounded page assertion for situation codes instead of requiring 2-procedure corroboration, e.g. `min_procedures=1` for that axis, or an equivalent "grounded single page" rule) **plus S3** (the PVOG `personalMatters` capture) wherever S3's hand-mapping spike comes back clean, backstopped by the existing curator-override mechanism (`tags.py`'s `curated_codes`, already built — just needs prioritising via the existing `has_situation` completeness flag, `apps/api/app/features/discovery/repository/candidate_completeness_flags.py`'s `FLAG_NAMES`).
 
 Reasoning: the 2-procedure consensus rule is structurally the wrong bar for an axis whose defining property is one-procedure-per-situation (`00-architecture.md` §1). Relaxing it for situations only, backed by the page-level grounding that already exists (every situation code the model emits must come from a page the extraction pipeline already grounds against quoted text), should recover coverage without inventing new infrastructure. S3 adds an independent, deterministic second signal on PVOG rows specifically, where available. **S5** (direct per-document classification) is predicted to underperform — most documents are generic bureaucratic forms ("Antrag auf …") with no situation signal in isolation, the signal lives in the surrounding procedure narrative — but it is cheap enough against the 47 gold documents to confirm rather than assume, so it stays in the suite as a check, not because it is expected to win.
@@ -30,15 +32,25 @@ Fill in after the live runs ([02-live-runs.md](02-live-runs.md) LR2 through LR5)
 
 | Option | Coverage | Precision signal | Verdict |
 | --- | --- | --- | --- |
-| S3 (PVOG personalMatters) | _pending LR3_ | _pending LR3_ | _pending_ |
-| S4 (axis-aware consensus) | _pending LR4_ | _pending LR4_ | _pending_ |
-| S5 (per-document classification) | _pending LR5_ | _pending LR5_ | _pending_ |
+| S3 (PVOG personalMatters) | 15.3% of 118 leaves clean, 11.9% ambiguous, 72.9% unmapped against the 18 situation codes; 12/18 codes get a clean leaf ([LR3 detail](lr3-personal-matters-mapping.md)) | n/a — vocabulary mapping only, no precision check run yet | _provisional — AI first-pass mapping, pending human spot-check per LR3's caveat_ |
+| S4 (axis-aware consensus) | baseline 0 of 4,627 candidates accepted; `min_procedures=1` recovers 19 (coverage ceiling itself is 648 candidates with 2+ procedures per LR2) ([02-live-runs.md](02-live-runs.md) LR4) | **not run** — the ~20-30 hand-labelled precision check needs a human reviewer in the admin UI | _coverage confirmed, precision unchecked — cannot settle yet_ |
+| S5 (per-document classification) | situation_tag_agreement 0.40 (5 document cases) vs. 0.75 on the same 4 pages at page level ([02-live-runs.md](02-live-runs.md) LR5) | n/a — underperforms the baseline directly, as predicted | **confirmed underperforms; do not pursue** |
+
+**Where this leaves the working hypothesis, after LR1–LR5 (2026-11-01):**
+
+- **LR1** (page-level baseline) shows the model's own extraction is *not* the weak link — situation_tag_agreement (0.85) actually beats domain (0.65) at the page level.
+- **LR2** (structural ceiling) confirms the root cause decisively: 86% of all 4,627 candidates have exactly one procedure and can never clear *any* axis's consensus floor, no matter what the model says.
+- **LR4** confirms S4's coverage story directionally (0 → 19 under `min_procedures=1`) but the gain is small in absolute terms against 4,627 candidates, and **the precision half is unrun** — nobody has checked whether those 19 (or the broader relaxed set) are *correct* situations, only that they'd newly pass the count bar. S4 cannot be called settled until that human check happens.
+- **LR3** gives S3 a weaker signal than hoped: only 15.3% of the PVOG vocabulary maps cleanly, and two situation pairs (`job-loss`/`new-job`, `moving-house`/`renting-home`) are bundled under one ambiguous PVOG leaf each, so S3 alone can't disambiguate them. This was also an AI first-pass mapping, not yet human-reviewed.
+- **LR5 settles S5**: confirmed to underperform as predicted (0.40 vs. 0.75) — drop it from further consideration.
 
 **What would change this recommendation:**
 
-- If S3's hand-mapping spike (LR3) comes back mostly ambiguous or many-to-many against the 18 codes, rather than cleanly mappable.
-- If S4's precision check (LR4, the ~20-30 hand-labelled candidates) shows clearly wrong situations slipping past the single-page rule often enough that a human reviewer's trust in the chip erodes.
-- If S5 (LR5) actually shows strong document-level signal on the 47 gold documents, which would argue for spending more on direct classification than the hypothesis currently expects.
+- ~~If S3's hand-mapping spike (LR3) comes back mostly ambiguous or many-to-many against the 18 codes, rather than cleanly mappable.~~ **Partially triggered** — 11.9% ambiguous, 72.9% unmapped. S3 is weaker than hoped but not worthless (12/18 codes get a clean leaf); treat as a secondary signal, not primary.
+- If S4's precision check (LR4, the ~20-30 hand-labelled candidates — still not run) shows clearly wrong situations slipping past the single-page rule often enough that a human reviewer's trust in the chip erodes.
+- ~~If S5 (LR5) actually shows strong document-level signal on the 47 gold documents~~ — **did not happen**; S5 is ruled out.
+
+**Remaining before this can flip to settled:** (1) a human spot-check of the LR3 mapping, especially its 14 ambiguous rows ([lr3-personal-matters-mapping.md](lr3-personal-matters-mapping.md)); (2) the LR4 precision check — hand-label ~20-30 candidates against the `min_procedures=1` variant via the admin UI.
 
 ## Open seams
 
