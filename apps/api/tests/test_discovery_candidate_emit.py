@@ -372,7 +372,7 @@ def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
     return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions)
 
 
-def test_emit_payload_carries_the_codes_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
+def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
     seed_taxonomy(db_session, tags={})
     candidate, _ = _staged(db_session)
     _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
@@ -383,10 +383,12 @@ def test_emit_payload_carries_the_codes_the_mentions_agree_on(db_session: Sessio
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
     assert suggestion.payload["domain_codes"] == ["housing"]
-    assert suggestion.payload["situation_codes"] == []
+    # Situation relaxes to one procedure (situation-tag-activation D2): each disagreeing code individually
+    # clears its own bar, unlike domain which needs the two procedures to agree on the same code.
+    assert suggestion.payload["situation_codes"] == ["birth-of-child", "moving-house"]
 
 
-def test_emit_payload_has_no_codes_without_consensus(db_session: Session, api_key: ApiKey) -> None:
+def test_emit_payload_has_no_domain_codes_without_consensus(db_session: Session, api_key: ApiKey) -> None:
     seed_taxonomy(db_session, tags={})
     candidate, _ = _staged(db_session)
     _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
@@ -395,7 +397,8 @@ def test_emit_payload_has_no_codes_without_consensus(db_session: Session, api_ke
 
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == ([], [])
+    # One procedure never reaches domain's two-procedure floor, but does reach situation's relaxed one.
+    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == ([], ["moving-house"])
 
 
 def test_emit_consensus_thresholds_come_from_settings(

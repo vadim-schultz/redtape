@@ -9,8 +9,8 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.features.discovery.repository.candidate_completeness_tags import TagThresholds, candidate_axis_support
-from app.features.discovery.tags import TagAxis, TagSupport
+from app.features.discovery.repository.candidate_completeness_tags import candidate_axis_support
+from app.features.discovery.tags import TagAxis, TagSupport, axis_thresholds
 
 
 class TagSuggestions(NamedTuple):
@@ -21,11 +21,10 @@ class TagSuggestions(NamedTuple):
 
 
 def candidate_tag_suggestions(session: Session, candidate_id: UUID) -> TagSuggestions:
-    """Return the domain and situation support of ``candidate_id``'s mentions under the configured thresholds."""
-    thresholds = TagThresholds.from_settings(settings)
+    """Return the domain and situation support of ``candidate_id``'s mentions, each under its own thresholds."""
     return TagSuggestions(
-        candidate_axis_support(session, candidate_id, TagAxis.DOMAIN, thresholds),
-        candidate_axis_support(session, candidate_id, TagAxis.SITUATION, thresholds),
+        candidate_axis_support(session, candidate_id, TagAxis.DOMAIN, axis_thresholds(settings, TagAxis.DOMAIN)),
+        candidate_axis_support(session, candidate_id, TagAxis.SITUATION, axis_thresholds(settings, TagAxis.SITUATION)),
     )
 
 

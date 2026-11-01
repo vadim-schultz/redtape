@@ -12,7 +12,7 @@ from sqlalchemy.sql.expression import Subquery
 from app.config import settings
 from app.features.candidates.repository.public_filter import PublicCandidateFilter
 from app.features.discovery.repository.base import SessionRepository
-from app.features.discovery.repository.candidate_completeness import TagThresholds, completeness_subquery
+from app.features.discovery.repository.candidate_completeness import completeness_subquery
 from app.features.discovery.repository.candidate_listing import mention_count_of, mention_stats, with_stats
 from app.features.discovery.repository.task_listing import Page
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
@@ -35,7 +35,7 @@ class CardRelations:
     @classmethod
     def build(cls) -> CardRelations:
         """Build both relations with the settings thresholds."""
-        return cls(mention_stats(), completeness_subquery(TagThresholds.from_settings(settings)))
+        return cls(mention_stats(), completeness_subquery(settings))
 
     @property
     def mention_count(self) -> ColumnElement[int]:

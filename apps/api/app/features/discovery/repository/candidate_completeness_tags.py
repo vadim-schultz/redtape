@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, Float, and_, cast, distinct, func, select
@@ -11,22 +10,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import CTE, Select, Subquery
 from sqlalchemy.sql.functions import array_agg
 
-from app.config import Settings
-from app.features.discovery.tags import MANUAL_EXTRACTOR, TagAxis, TagSupport
+from app.features.discovery.tags import MANUAL_EXTRACTOR, TagAxis, TagSupport, TagThresholds
 from app.models.discovery import DiscoveryCandidateMention as Mention
-
-
-@dataclass(frozen=True)
-class TagThresholds:
-    """The two thresholds a code needs: distinct procedures, and their share of the tagged procedures."""
-
-    min_procedures: int
-    min_share: float
-
-    @classmethod
-    def from_settings(cls, source: Settings) -> TagThresholds:
-        """Read the thresholds the emit path uses from ``source``."""
-        return cls(source.discovery_tag_min_procedures, source.discovery_tag_min_share)
 
 
 def _exploded(axis: TagAxis) -> CTE:

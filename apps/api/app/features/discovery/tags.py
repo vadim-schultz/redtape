@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import enum
+from dataclasses import dataclass
 from typing import NamedTuple
 
 from sqlalchemy.orm import InstrumentedAttribute
 
+from app.config import Settings
 from app.models.discovery import DiscoveryCandidateMention as Mention
 
 DEFAULT_MIN_PROCEDURES = 2
@@ -34,3 +36,24 @@ class TagAxis(enum.Enum):
     def column(self) -> InstrumentedAttribute[list[str] | None]:
         """Return the mention column holding this axis' codes."""
         return Mention.domain_codes if self is TagAxis.DOMAIN else Mention.situation_codes
+
+
+@dataclass(frozen=True)
+class TagThresholds:
+    """The two thresholds a code needs: distinct procedures, and their share of the tagged procedures."""
+
+    min_procedures: int
+    min_share: float
+
+
+def axis_thresholds(settings: Settings, axis: TagAxis) -> TagThresholds:
+    """Return the thresholds ``axis`` reads from ``settings`` — the one place either path gets them from.
+
+    Situation relaxes to one procedure (default): structurally, a life situation recurs within one
+    procedure's mentions, not across unrelated procedures the way a domain does (decision D2).
+    """
+    if axis is TagAxis.SITUATION:
+        return TagThresholds(
+            settings.discovery_tag_min_procedures_situation, settings.discovery_tag_min_share_situation
+        )
+    return TagThresholds(settings.discovery_tag_min_procedures, settings.discovery_tag_min_share)

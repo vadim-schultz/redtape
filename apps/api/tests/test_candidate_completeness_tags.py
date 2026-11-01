@@ -23,11 +23,11 @@ import completeness_world as world
 from completeness_world import Row
 
 
-def _accepted(session: Session, rows: list[Row], thresholds: TagThresholds = world.DEFAULTS) -> tuple[set, set]:
+def _accepted(session: Session, rows: list[Row]) -> tuple[set, set]:
     procs = world.procedures(session, 6)
     subject = world.candidate(session, procs[0], "subject")
     world.mentioned(session, subject, procs, rows)
-    result = world.flags_of(session, thresholds)[subject.id]
+    result = world.flags_of(session)[subject.id]
     return set(result.accepted_domain_codes), set(result.accepted_situation_codes)
 
 
@@ -165,6 +165,21 @@ def test_candidate_axis_support_is_empty_without_a_manual_mention_carrying_codes
     assert result == [TagSupport("housing", procedures=1, share=1.0, accepted=True)]
 
 
+def test_a_single_procedure_situation_mention_is_accepted_but_an_identical_domain_one_is_not(
+    db_session: Session,
+) -> None:
+    """The actual regression this chapter exists to create (decision D2): under the default settings, a
+    one-procedure mention clears the relaxed situation floor but not the untouched domain floor.
+    """
+    rows = [Row(0, ["housing"], ["moving-house"])]
+    subject_id = _staged(db_session, rows, procs=1)
+
+    suggestions = candidate_tag_suggestions(db_session, subject_id)
+
+    assert accepted_codes(suggestions.domains) == []
+    assert accepted_codes(suggestions.situations) == ["moving-house"]
+
+
 EXTRACTED: dict[str, list[Row]] = {
     "empty": [],
     "single": [Row(0, ["a"], ["x"])],
@@ -189,17 +204,26 @@ def _single_candidate_accepted(session: Session, subject_id: uuid.UUID, threshol
     return {s.code for s in domain if s.accepted}, {s.code for s in situation if s.accepted}
 
 
+def _force_both_axes(monkeypatch: pytest.MonkeyPatch, thresholds: TagThresholds) -> None:
+    """Patch every axis' settings to ``thresholds``, so the bulk path treats both axes identically."""
+    monkeypatch.setattr(settings, "discovery_tag_min_procedures", thresholds.min_procedures)
+    monkeypatch.setattr(settings, "discovery_tag_min_share", thresholds.min_share)
+    monkeypatch.setattr(settings, "discovery_tag_min_procedures_situation", thresholds.min_procedures)
+    monkeypatch.setattr(settings, "discovery_tag_min_share_situation", thresholds.min_share)
+
+
 @pytest.mark.parametrize("thresholds", THRESHOLDS)
 @pytest.mark.parametrize("name", EXTRACTED)
 def test_candidate_axis_support_agrees_with_the_bulk_completeness_path(
-    db_session: Session, name: str, thresholds: TagThresholds
+    db_session: Session, monkeypatch: pytest.MonkeyPatch, name: str, thresholds: TagThresholds
 ) -> None:
+    _force_both_axes(monkeypatch, thresholds)
     rows = EXTRACTED[name]
     procs = world.procedures(db_session, 6)
     subject = world.candidate(db_session, procs[0], "subject")
     world.mentioned(db_session, subject, procs, rows)
 
-    bulk = world.flags_of(db_session, thresholds)[subject.id]
+    bulk = world.flags_of(db_session)[subject.id]
     single = _single_candidate_accepted(db_session, subject.id, thresholds)
 
     assert single == (set(bulk.accepted_domain_codes), set(bulk.accepted_situation_codes))
@@ -225,14 +249,13 @@ MANUAL: dict[str, list[Row]] = {
 def test_the_merged_engine_and_the_bulk_sql_agree_on_manual_fixtures(
     db_session: Session, monkeypatch: pytest.MonkeyPatch, name: str, thresholds: TagThresholds
 ) -> None:
-    monkeypatch.setattr(settings, "discovery_tag_min_procedures", thresholds.min_procedures)
-    monkeypatch.setattr(settings, "discovery_tag_min_share", thresholds.min_share)
+    _force_both_axes(monkeypatch, thresholds)
     procs = world.procedures(db_session, 6)
     subject = world.candidate(db_session, procs[0], "subject")
     world.mentioned(db_session, subject, procs, MANUAL[name])
 
     suggestions = candidate_tag_suggestions(db_session, subject.id)
-    sql = world.flags_of(db_session, thresholds)[subject.id]
+    sql = world.flags_of(db_session)[subject.id]
 
     assert set(accepted_codes(suggestions.domains)) == set(sql.accepted_domain_codes)
     assert set(accepted_codes(suggestions.situations)) == set(sql.accepted_situation_codes)

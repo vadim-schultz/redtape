@@ -11,7 +11,6 @@ from app.config import settings
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.candidate_completeness import (
     CandidateCompleteness,
-    TagThresholds,
     completeness_columns,
     completeness_subquery,
 )
@@ -24,7 +23,7 @@ class CompletenessRepository(SessionRepository):
         """Return the completeness of ``candidate_ids``, keyed by candidate id, with the settings thresholds."""
         if not candidate_ids:
             return {}
-        sub = completeness_subquery(TagThresholds.from_settings(settings))
+        sub = completeness_subquery(settings)
         stmt = select(*completeness_columns(sub)).where(sub.c.candidate_id.in_(candidate_ids))
         values = (CandidateCompleteness.from_row(row) for row in self._session.execute(stmt))
         return {value.candidate_id: value for value in values}
