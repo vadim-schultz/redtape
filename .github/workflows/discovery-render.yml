@@ -2,9 +2,9 @@ name: Discovery render
 
 on:
   schedule:
-    # Daily 05:00 UTC. Runs only when the repository variable
+    # Daily 03:00 UTC. Runs only when the repository variable
     # DISCOVERY_RENDER_SCHEDULE equals "enabled" (see the job condition).
-    - cron: "0 5 * * *"
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       max_tasks:
@@ -30,15 +30,15 @@ on:
       kinds:
         description: "Comma separated browser task kinds to claim"
         required: false
-        default: "render_page,capture_screenshot"
+        default: "render_page"
         type: string
 
 permissions:
   contents: read
 
-# The same group as discovery-drain.yml: the two workflows never overlap.
+# The same group as the rest of the discovery pipeline: scheduled drains never overlap.
 concurrency:
-  group: discovery-drain
+  group: discovery-pipeline
   cancel-in-progress: false
 
 jobs:
@@ -46,17 +46,21 @@ jobs:
     name: Drain browser tasks
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_RENDER_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
+      # Required together: prepare_llm_enqueue raises LlmSetupError if LLM_ENQUEUE is on without LLM_MODEL set
+      # (apps/discovery-ingest/discovery_ingest/worker/llm_setup.py:86-100).
+      LLM_ENQUEUE: "true"
+      LLM_MODEL: ${{ vars.DISCOVERY_LLM_MODEL }}
       MAX_TASKS: ${{ inputs.max_tasks || '5' }}
       MAX_BATCHES: ${{ inputs.max_batches || '40' }}
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '900' }}
       BROWSER_BUDGET_SECONDS: ${{ inputs.browser_budget_seconds || '570' }}
-      TASK_KINDS: ${{ inputs.kinds || 'render_page,capture_screenshot' }}
+      TASK_KINDS: ${{ inputs.kinds || 'render_page' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
@@ -84,7 +88,7 @@ jobs:
           # 30 browser seconds left today (one call reserves 30); skip the drain without failing the run. An
           # unreachable ledger lets the drain run.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource browser_seconds --require-remaining actions_minutes=30 --require-remaining browser_seconds=30 || code=$?
+          python -m discovery_ingest budget show --resource actions_minutes --resource browser_seconds --require-remaining actions_minutes=20 --require-remaining browser_seconds=30 || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
             echo "### Discovery render skipped: the Actions minutes or the browser seconds are used up" >> "${GITHUB_STEP_SUMMARY}"
