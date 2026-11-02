@@ -38,6 +38,17 @@ class RequirementRead(BaseModel):
     notes: str | None
 
 
+class TaggedTermRead(TermRead):
+    """A taxonomy term as tagged onto a published document, carrying its persisted confidence score."""
+
+    confidence: float
+
+    @classmethod
+    def from_term_read(cls, term: TermRead, confidence: float) -> TaggedTermRead:
+        """Build from a plain `TermRead` and the confidence persisted on its document link row."""
+        return cls(confidence=confidence, **term.model_dump())
+
+
 class DocumentDetail(BaseModel):
     """Full document with direct requirements."""
 
@@ -51,8 +62,8 @@ class DocumentDetail(BaseModel):
     jurisdiction_id: UUID
     requirements: list[RequirementRead] = Field(default_factory=list)
     jurisdiction_path: list[JurisdictionPathNode] = Field(default_factory=list)
-    domains: list[TermRead] = Field(default_factory=list)
-    life_situations: list[TermRead] = Field(default_factory=list)
+    domains: list[TaggedTermRead] = Field(default_factory=list)
+    life_situations: list[TaggedTermRead] = Field(default_factory=list)
 
 
 class JurisdictionPathNode(BaseModel):
@@ -73,3 +84,4 @@ class DocumentListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+    available_leaf_codes: list[str] = Field(default_factory=list)

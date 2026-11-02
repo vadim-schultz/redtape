@@ -1,12 +1,14 @@
 import { useSearchParams } from "react-router-dom";
 
-export type FilterAxis = "domain" | "situation";
+export type FilterAxis = "domain" | "situation" | "leaf";
 
 export interface DocumentFilters {
   domains: string[];
   situations: string[];
+  leaves: string[];
   toggleDomain: (code: string) => void;
   toggleSituation: (code: string) => void;
+  toggleLeaf: (code: string) => void;
   clear: () => void;
 }
 
@@ -35,8 +37,10 @@ export function useDocumentFilters(): DocumentFilters {
   return {
     domains: readCodes(params, "domain"),
     situations: readCodes(params, "situation"),
+    leaves: readCodes(params, "leaf"),
     toggleDomain: (code) => toggle("domain", code),
     toggleSituation: (code) => toggle("situation", code),
+    toggleLeaf: (code) => toggle("leaf", code),
     clear: () => setParams(new URLSearchParams()),
   };
 }

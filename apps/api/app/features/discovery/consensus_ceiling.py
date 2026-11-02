@@ -7,7 +7,14 @@ from collections.abc import Collection, Iterable
 from typing import NamedTuple
 from uuid import UUID
 
-from app.features.discovery.tags import DEFAULT_MIN_PROCEDURES
+HISTORICAL_CONSENSUS_FLOOR_PROCEDURES = 2
+"""The historical 2-procedure consensus floor this reporting tool measures candidates against.
+
+Frozen here rather than imported: ``situation-tag-hierarchy`` chapter 1 replaced the accept/reject
+floor this constant once fed (``app.features.discovery.tags``) with a continuous score, so this module
+keeps its own copy to keep reproducing the same point-in-time measurement, not to track the engine —
+the same precedent ``scripts/situation_tag_coverage_variants.py`` already set.
+"""
 
 CandidateMention = tuple[UUID, UUID]
 """A mention as plain data: the candidate it was found on and the procedure (catalogue row) that carries it."""
@@ -46,7 +53,7 @@ def consensus_ceiling(
     candidate_ids: Collection[UUID],
     mentions: Iterable[CandidateMention],
     *,
-    min_procedures: int = DEFAULT_MIN_PROCEDURES,
+    min_procedures: int = HISTORICAL_CONSENSUS_FLOOR_PROCEDURES,
 ) -> ConsensusCeiling:
     """Return how many of candidate_ids have at least min_procedures distinct procedures mentioning them."""
     counts = procedure_counts_by_candidate(mentions)

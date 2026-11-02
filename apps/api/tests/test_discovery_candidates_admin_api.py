@@ -162,11 +162,13 @@ def test_admin_candidate_detail_shows_mention_conditions_codes_and_suggested_tag
     mention = next(m for m in body["mentions"] if m["catalogue_service_id"] == str(first.id))
     assert (mention["condition"], mention["is_optional"]) == ("bei Zuzug", False)
     assert (mention["domain_codes"], mention["situation_codes"]) == (["housing"], ["moving-house"])
-    assert body["suggested_domain_codes"] == [{"code": "housing", "procedures": 2, "share": 1.0, "accepted": True}]
-    # Situation's relaxed one-procedure floor (situation-tag-activation D2) accepts birth-of-child too.
+    assert body["suggested_domain_codes"] == [
+        {"code": "housing", "procedures": 2, "share": 1.0, "score": pytest.approx(0.85)}
+    ]
+    # Both codes clear the small inclusion floor (D8: no axis-specific difference anymore).
     assert body["suggested_situation_codes"] == [
-        {"code": "moving-house", "procedures": 2, "share": 1.0, "accepted": True},
-        {"code": "birth-of-child", "procedures": 1, "share": 0.5, "accepted": True},
+        {"code": "moving-house", "procedures": 2, "share": 1.0, "score": pytest.approx(0.85)},
+        {"code": "birth-of-child", "procedures": 1, "share": 0.5, "score": pytest.approx(0.25)},
     ]
 
 

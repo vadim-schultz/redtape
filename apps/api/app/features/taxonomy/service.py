@@ -5,8 +5,16 @@ from uuid import UUID
 
 from app.features.taxonomy.repository import TaxonomyRepository, TermModel
 from app.i18n_resolution import pick_i18n
-from app.models.taxonomy import Domain, LifeSituation
-from app.schema.taxonomy.read import AxisCount, MatrixCell, MatrixResponse, TermRead, VocabularyResponse, VocabularyTerm
+from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup
+from app.schema.taxonomy.read import (
+    AxisCount,
+    LifeSituationGroupedRead,
+    MatrixCell,
+    MatrixResponse,
+    TermRead,
+    VocabularyResponse,
+    VocabularyTerm,
+)
 
 
 class TaxonomyCodeError(ValueError):
@@ -24,6 +32,20 @@ class TaxonomyService:
 
     def list_situations(self, *, locale: str, enabled_locales: set[str]) -> list[TermRead]:
         return self._list(LifeSituation, locale, enabled_locales)
+
+    def list_situation_groups(self, *, locale: str, enabled_locales: set[str]) -> list[TermRead]:
+        return self._list(LifeSituationGroup, locale, enabled_locales)
+
+    def list_situations_with_group(self, *, locale: str, enabled_locales: set[str]) -> list[LifeSituationGroupedRead]:
+        """Every situation, locale-resolved, carrying its group's stable ``code``."""
+        rows = self._repo.list_situations_with_group()
+        return [
+            LifeSituationGroupedRead(
+                **self.to_term_read(situation, locale=locale, enabled_locales=enabled_locales).model_dump(),
+                group_code=group_code,
+            )
+            for situation, group_code in rows
+        ]
 
     def resolve_domain_ids(self, codes: Sequence[str]) -> list[UUID]:
         return self._resolve(Domain, codes)
@@ -55,7 +77,9 @@ class TaxonomyService:
             domains=[AxisCount(code=c, count=n) for c, n in self._repo.domain_counts(document_ids)],
         )
 
-    def to_term_read(self, term: Domain | LifeSituation, *, locale: str, enabled_locales: Iterable[str]) -> TermRead:
+    def to_term_read(
+        self, term: Domain | LifeSituation | LifeSituationGroup, *, locale: str, enabled_locales: Iterable[str]
+    ) -> TermRead:
         enabled = set(enabled_locales)
         return TermRead(
             code=term.code,

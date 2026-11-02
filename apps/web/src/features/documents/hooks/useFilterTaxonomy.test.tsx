@@ -27,29 +27,29 @@ function renderTaxonomy() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("useFilterTaxonomy · exposes domains and situations once loaded", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(
-      async (url: string) =>
-        new Response(
-          JSON.stringify(
-            new URL(String(url)).pathname.endsWith("/domains")
-              ? [term("housing")]
-              : [term("moving")],
-          ),
-        ),
-    ),
-  );
+function respond() {
+  return vi.fn(async (url: string) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/domains"))
+      return new Response(JSON.stringify([term("housing")]));
+    if (path.endsWith("/life-situation-groups"))
+      return new Response(JSON.stringify([term("home-housing")]));
+    return new Response(JSON.stringify([term("moving")]));
+  });
+}
+
+it("useFilterTaxonomy · exposes domains, situations and groups once loaded", async () => {
+  vi.stubGlobal("fetch", respond());
 
   const { result } = renderTaxonomy();
 
   await waitFor(() => expect(result.current.domains).toHaveLength(1));
   expect(result.current.situations).toEqual([term("moving")]);
+  expect(result.current.groups).toEqual([term("home-housing")]);
   expect(result.current.isError).toBe(false);
 });
 
-it("useFilterTaxonomy · flags an error when either query fails", async () => {
+it("useFilterTaxonomy · flags an error when any query fails", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response("boom", { status: 500 })),
@@ -59,4 +59,5 @@ it("useFilterTaxonomy · flags an error when either query fails", async () => {
 
   await waitFor(() => expect(result.current.isError).toBe(true));
   expect(result.current.domains).toEqual([]);
+  expect(result.current.groups).toEqual([]);
 });

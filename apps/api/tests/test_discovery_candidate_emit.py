@@ -6,7 +6,6 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.config import settings
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_emit_payload import SuggestedTags
 from app.features.discovery.repository import DiscoveryRepository
@@ -383,12 +382,13 @@ def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session:
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
     assert suggestion.payload["domain_codes"] == ["housing"]
-    # Situation relaxes to one procedure (situation-tag-activation D2): each disagreeing code individually
-    # clears its own bar, unlike domain which needs the two procedures to agree on the same code.
     assert suggestion.payload["situation_codes"] == ["birth-of-child", "moving-house"]
 
 
-def test_emit_payload_has_no_domain_codes_without_consensus(db_session: Session, api_key: ApiKey) -> None:
+def test_emit_payload_includes_a_single_procedure_code_on_either_axis(db_session: Session, api_key: ApiKey) -> None:
+    """situation-tag-hierarchy chapter 1: the binary accept/reject gate is gone, so a single procedure's
+    code clears the small inclusion floor on either axis now — not just situation's old relaxed rule.
+    """
     seed_taxonomy(db_session, tags={})
     candidate, _ = _staged(db_session)
     _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
@@ -397,20 +397,7 @@ def test_emit_payload_has_no_domain_codes_without_consensus(db_session: Session,
 
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    # One procedure never reaches domain's two-procedure floor, but does reach situation's relaxed one.
-    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == ([], ["moving-house"])
-
-
-def test_emit_consensus_thresholds_come_from_settings(
-    db_session: Session, api_key: ApiKey, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    seed_taxonomy(db_session, tags={})
-    candidate, _ = _staged(db_session)
-    _tagged_mention(db_session, candidate, ["housing"], [], external_id="svc-a")
-    monkeypatch.setattr(settings, "discovery_tag_min_procedures", 1)
-
-    result = _default_service(db_session).emit(candidate.id, api_key)
-
-    suggestion = db_session.get(Suggestion, result.suggestion_id)
-    assert suggestion is not None
-    assert suggestion.payload["domain_codes"] == ["housing"]
+    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == (
+        ["housing"],
+        ["moving-house"],
+    )

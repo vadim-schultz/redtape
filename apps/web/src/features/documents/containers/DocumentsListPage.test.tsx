@@ -24,10 +24,17 @@ function respondWith(documents: unknown[], taxonomyStatus = 200) {
       return new Response(JSON.stringify(terms(["d1", "d2"])), {
         status: taxonomyStatus,
       });
-    if (path.endsWith("/life-situations"))
-      return new Response(JSON.stringify(terms(["s1", "s2"])), {
+    if (path.endsWith("/life-situation-groups"))
+      return new Response(JSON.stringify(terms(["g1"])), {
         status: taxonomyStatus,
       });
+    if (path.endsWith("/life-situations"))
+      return new Response(
+        JSON.stringify(
+          terms(["s1", "s2"]).map((term) => ({ ...term, group_code: "g1" })),
+        ),
+        { status: taxonomyStatus },
+      );
     return new Response(JSON.stringify({ items: [] }));
   });
 }

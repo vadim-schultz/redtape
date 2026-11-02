@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from uuid import UUID
 
+from app.features.documents.repository import TagConfidenceMaps
 from app.features.taxonomy.service import TaxonomyService
 from app.i18n_resolution import pick_i18n
 from app.models.document import Document, DocumentRequirement
@@ -15,8 +17,8 @@ from app.schema.document.read import (
     DocumentSummary,
     JurisdictionPathNode,
     RequirementRead,
+    TaggedTermRead,
 )
-from app.schema.taxonomy.read import TermRead
 
 _FIXED_KIND_LABELS = {
     JurisdictionKind.COUNTRY: "COUNTRY",
@@ -56,8 +58,10 @@ class DocumentReadMapper:
             description=pick_i18n(doc.description_i18n, locale=locales.locale, enabled=locales.enabled),
         )
 
-    def detail(self, doc: Document, path: Sequence[Jurisdiction], locales: Locales) -> DocumentDetail:
-        """Map a document, its jurisdiction path and relations to the detail view."""
+    def detail(
+        self, doc: Document, path: Sequence[Jurisdiction], locales: Locales, confidence: TagConfidenceMaps
+    ) -> DocumentDetail:
+        """Map a document, its jurisdiction path, relations and persisted tag confidence to the detail view."""
         summary = self.summary(doc, locales)
         return DocumentDetail(
             id=doc.id,
@@ -68,8 +72,8 @@ class DocumentReadMapper:
             jurisdiction_id=doc.jurisdiction_id,
             jurisdiction_path=[self.path_node(j, locales) for j in path],
             requirements=[self.requirement(edge, locales) for edge in doc.outgoing_requirements],
-            domains=self._term_reads(doc.domains, locales),
-            life_situations=self._term_reads(doc.life_situations, locales),
+            domains=self._tagged_term_reads(doc.domains, confidence.domains, locales),
+            life_situations=self._tagged_term_reads(doc.life_situations, confidence.life_situations, locales),
         )
 
     def requirement(self, edge: DocumentRequirement, locales: Locales) -> RequirementRead:
@@ -90,7 +94,13 @@ class DocumentReadMapper:
             openplz_type=jurisdiction.openplz_type,
         )
 
-    def _term_reads(self, terms: Sequence[Domain | LifeSituation], locales: Locales) -> list[TermRead]:
+    def _tagged_term_reads(
+        self, terms: Sequence[Domain | LifeSituation], confidence: dict[UUID, float], locales: Locales
+    ) -> list[TaggedTermRead]:
         return [
-            self._taxonomy.to_term_read(term, locale=locales.locale, enabled_locales=locales.enabled) for term in terms
+            TaggedTermRead.from_term_read(
+                self._taxonomy.to_term_read(term, locale=locales.locale, enabled_locales=locales.enabled),
+                confidence.get(term.id, 1.0),
+            )
+            for term in terms
         ]

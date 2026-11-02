@@ -20,7 +20,13 @@ export default function DocumentsListPage() {
     <DocumentsListView
       title={t("documents.list_title")}
       toolbar={{
-        filters: <DocumentFilters taxonomy={taxonomy} filters={filters} />,
+        filters: (
+          <DocumentFilters
+            taxonomy={taxonomy}
+            filters={filters}
+            availableLeafCodes={docsQuery.data?.available_leaf_codes}
+          />
+        ),
         onMunicipalityChange: setMunicipalityCode,
       }}
       list={{

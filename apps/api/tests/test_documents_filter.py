@@ -8,12 +8,12 @@ import pytest
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Domain, LifeSituation, document_life_situation
 from httpx import Response
 from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 URL = "/api/v1/documents"
@@ -129,6 +129,26 @@ def test_untagged_document_never_appears_when_a_filter_is_set(client: TestClient
         assert "d-untagged" not in _slugs(_get(client, params))
 
 
+def test_available_leaf_codes_is_empty_without_a_situation_filter(client: TestClient[Litestar]) -> None:
+    assert _get(client, {}).json()["available_leaf_codes"] == []
+
+
+def test_available_leaf_codes_includes_the_leaf_codes_in_scope_for_the_selected_situation(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    moving_house_id = _term(db_session, LifeSituation, "moving-house").id
+    db_session.execute(
+        update(document_life_situation)
+        .where(document_life_situation.c.life_situation_id == moving_house_id)
+        .values(pvog_leaf_code="1050200")
+    )
+    db_session.flush()
+
+    body = _get(client, {"situation": "moving-house"}).json()
+
+    assert body["available_leaf_codes"] == ["1050200"]
+
+
 def _detail(client: TestClient[Litestar], slug: str, locale: str = "en") -> dict:
     doc_id = next(i["id"] for i in _get(client, {"limit": 100}).json()["items"] if i["slug"] == slug)
     return client.get(f"{URL}/{doc_id}", headers={"Accept-Language": locale}).json()
@@ -139,8 +159,9 @@ def test_detail_includes_resolved_domains_and_life_situations(client: TestClient
 
     assert [d["code"] for d in body["domains"]] == ["housing"]
     assert [s["code"] for s in body["life_situations"]] == ["moving-house"]
-    assert set(body["domains"][0]) == {"code", "name", "description", "icon"}
+    assert set(body["domains"][0]) == {"code", "name", "description", "icon", "confidence"}
     assert body["domains"][0]["name"] != "housing"
+    assert body["domains"][0]["confidence"] == 1.0
 
 
 def test_detail_document_without_tags_returns_empty_arrays(client: TestClient[Litestar]) -> None:

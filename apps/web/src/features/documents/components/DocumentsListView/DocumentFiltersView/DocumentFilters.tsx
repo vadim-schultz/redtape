@@ -1,4 +1,4 @@
-import { Button, VStack } from "@chakra-ui/react";
+import { Button, Text, VStack } from "@chakra-ui/react";
 
 import QueryError from "../../../../../components/feedback/QueryError";
 import { useLocale } from "../../../../../contexts/LocaleContext";
@@ -6,15 +6,18 @@ import type { DocumentFilters as DocumentFiltersState } from "../../../hooks/use
 import type { FilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
 
 import FilterGroup from "./FilterGroup";
+import { LeafFacet, SituationFilterView } from "./SituationFilterView";
 
 export interface DocumentFiltersProps {
   taxonomy: FilterTaxonomy;
   filters: DocumentFiltersState;
+  availableLeafCodes?: string[];
 }
 
 export default function DocumentFilters({
   taxonomy,
   filters,
+  availableLeafCodes = [],
 }: DocumentFiltersProps) {
   const { t } = useLocale();
 
@@ -30,12 +33,19 @@ export default function DocumentFilters({
         selected={filters.domains}
         onToggle={filters.toggleDomain}
       />
-      <FilterGroup
-        heading={t("filters.situation")}
-        terms={taxonomy.situations}
-        selected={filters.situations}
-        onToggle={filters.toggleSituation}
-      />
+      <VStack align="stretch" gap={2}>
+        <Text textStyle="subsectionHeader">{t("filters.situation")}</Text>
+        <SituationFilterView
+          groups={taxonomy.groups}
+          situations={taxonomy.situations}
+          filters={filters}
+        />
+        <LeafFacet
+          codes={availableLeafCodes}
+          selected={filters.leaves}
+          onToggle={filters.toggleLeaf}
+        />
+      </VStack>
       {hasFilters ? (
         <Button alignSelf="start" variant="ghost" onClick={filters.clear}>
           {t("filters.clear")}

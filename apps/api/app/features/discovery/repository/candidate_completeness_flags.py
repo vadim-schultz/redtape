@@ -10,9 +10,7 @@ from __future__ import annotations
 from sqlalchemy import select, union
 from sqlalchemy.sql.expression import Select, Subquery
 
-from app.config import Settings
 from app.features.discovery.repository.candidate_completeness_tags import TagAxis, axis_acceptance
-from app.features.discovery.tags import axis_thresholds
 from app.models.discovery import DiscoveryArtifact as Artifact
 from app.models.discovery import DiscoveryArtifactKind
 from app.models.discovery import DiscoveryCandidateEdge as Edge
@@ -40,13 +38,10 @@ def _with_flags(stmt: Select, holders: tuple[Subquery, ...]) -> Select:
     return stmt
 
 
-def flags_subquery(settings: Settings) -> Subquery:
-    """Return one row per candidate: the flags in ``FLAG_NAMES`` order and the two accepted-code arrays.
-
-    Each axis builds its own thresholds from ``settings`` via :func:`axis_thresholds`.
-    """
-    domain = axis_acceptance(TagAxis.DOMAIN, axis_thresholds(settings, TagAxis.DOMAIN))
-    situation = axis_acceptance(TagAxis.SITUATION, axis_thresholds(settings, TagAxis.SITUATION))
+def flags_subquery() -> Subquery:
+    """Return one row per candidate: the flags in ``FLAG_NAMES`` order and the two accepted-code arrays."""
+    domain = axis_acceptance(TagAxis.DOMAIN)
+    situation = axis_acceptance(TagAxis.SITUATION)
     snapshot, screenshot = (
         _artifact_flag(DiscoveryArtifactKind.HTML_SNAPSHOT),
         _artifact_flag(DiscoveryArtifactKind.SCREENSHOT),

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -67,7 +66,8 @@ class NewDocumentPayload(BaseModel):
     official_url: str | None = None
     domain_codes: list[str] = Field(default_factory=list)
     situation_codes: list[str] = Field(default_factory=list)
-    tag_confidence: dict[str, Literal["high", "low"]] | None = None
+    tag_confidence: dict[str, float] | None = None
+    situation_leaf_codes: dict[str, str] | None = None
 
     @field_validator("title_i18n")
     @classmethod
@@ -100,6 +100,15 @@ class NewDocumentPayload(BaseModel):
         unknown = sorted(set(self.tag_confidence) - known)
         if unknown:
             raise ValueError(f"tag_confidence keys not in domain_codes/situation_codes: {unknown}")
+        return self
+
+    @model_validator(mode="after")
+    def _check_situation_leaf_codes_keys(self) -> NewDocumentPayload:
+        if self.situation_leaf_codes is None:
+            return self
+        unknown = sorted(set(self.situation_leaf_codes) - set(self.situation_codes))
+        if unknown:
+            raise ValueError(f"situation_leaf_codes keys not in situation_codes: {unknown}")
         return self
 
 

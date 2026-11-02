@@ -98,15 +98,29 @@ def test_accepts_a_tag_confidence_key_present_in_either_code_list() -> None:
         _payload(
             domain_codes=["housing"],
             situation_codes=["moving-house"],
-            tag_confidence={"housing": "high", "moving-house": "low"},
+            tag_confidence={"housing": 0.85, "moving-house": 0.25},
         )
     )
-    assert payload.tag_confidence == {"housing": "high", "moving-house": "low"}
+    assert payload.tag_confidence == {"housing": 0.85, "moving-house": 0.25}
 
 
 def test_rejects_a_tag_confidence_key_not_in_either_code_list() -> None:
     with pytest.raises(ValidationError):
-        NewDocumentPayload.model_validate(_payload(domain_codes=["housing"], tag_confidence={"other": "high"}))
+        NewDocumentPayload.model_validate(_payload(domain_codes=["housing"], tag_confidence={"other": 0.9}))
+
+
+def test_accepts_a_situation_leaf_codes_key_present_in_situation_codes() -> None:
+    payload = NewDocumentPayload.model_validate(
+        _payload(situation_codes=["moving-house"], situation_leaf_codes={"moving-house": "1050200"})
+    )
+    assert payload.situation_leaf_codes == {"moving-house": "1050200"}
+
+
+def test_rejects_a_situation_leaf_codes_key_not_in_situation_codes() -> None:
+    with pytest.raises(ValidationError):
+        NewDocumentPayload.model_validate(
+            _payload(situation_codes=["moving-house"], situation_leaf_codes={"other": "1050200"})
+        )
 
 
 def _create_request(**overrides: object) -> dict[str, object]:

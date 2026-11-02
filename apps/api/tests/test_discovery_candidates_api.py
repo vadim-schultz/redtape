@@ -349,3 +349,67 @@ def test_codes_and_condition_at_their_limits_are_accepted(
     catalogue = _catalogue(db_session)
 
     assert _post(client, key, _item(catalogue, **overrides)).status_code == 200
+
+
+PVOG_FIELDS: dict[str, object] = {
+    "source_field": "details[code=pvog]",
+    "role": "required",
+    "domain_codes": ["housing"],
+    "situation_codes": ["moving-house"],
+    "direct_domain_confidence": 0.8,
+    "direct_situation_confidence": 0.95,
+    "pvog_leaf_code": "1050100",
+}
+
+
+def test_mention_items_store_direct_confidence_and_leaf_code(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    """situation-tag-hierarchy chapter 3: a PVOG mention's direct confidence and leaf code round-trip
+    onto the stored mention, the two mention columns chapter 1 defines but left unpopulated."""
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue, **PVOG_FIELDS))
+
+    assert response.status_code == 200
+    mention = _only_mention(db_session)
+    assert (mention.direct_domain_confidence, mention.direct_situation_confidence) == (0.8, 0.95)
+    assert mention.pvog_leaf_code == "1050100"
+
+
+def test_mention_items_without_direct_confidence_or_leaf_code_stay_null(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    """An LLM-extracted mention (no PVOG fields at all) behaves exactly as before this chapter."""
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue))
+
+    assert response.status_code == 200
+    mention = _only_mention(db_session)
+    assert (mention.direct_domain_confidence, mention.direct_situation_confidence, mention.pvog_leaf_code) == (
+        None,
+        None,
+        None,
+    )
+
+
+def test_a_reposted_pvog_mention_updates_its_direct_confidence_and_leaf_code_in_place(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    _post(client, key, _item(catalogue, **PVOG_FIELDS))
+
+    replay = _post(client, key, _item(catalogue, **{**PVOG_FIELDS, "direct_situation_confidence": 0.65}))
+
+    assert replay.json()["mentions_updated"] == 1
+    mention = _only_mention(db_session)
+    assert mention.direct_situation_confidence == 0.65

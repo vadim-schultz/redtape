@@ -74,18 +74,65 @@ class DocumentService:
         rows = self._repo.list_page(offset=offset, limit=limit, **scope)
         locales = Locales(locale, enabled_locales)
         items = [self._reader.summary(row, locales) for row in rows]
-        return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+        leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, scope["situation_ids"])
+        return DocumentListResponse(
+            items=items, total=total, offset=offset, limit=limit, available_leaf_codes=leaf_codes
+        )
+
+    def available_leaf_codes(self, filters: DocumentFilters) -> list[str]:
+        """Distinct PVOG leaf codes in scope; only meaningful once exactly one situation is selected
+        (chapter 4 design) — empty for zero or several, same as an unresolvable municipality."""
+        if filters.municipality_code is not None and self._effective_jurisdiction_id(filters) is None:
+            return []
+        situation_ids = self._taxonomy.resolve_situation_ids(filters.situation_codes)
+        return self._leaf_codes_in_scope(self._effective_jurisdiction_id(filters), situation_ids)
+
+    def _leaf_codes_in_scope(self, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
+        if len(situation_ids) != 1:
+            return []
+        return self._repo.leaf_codes_in_scope(jurisdiction_id=jurisdiction_id, situation_ids=situation_ids)
 
     def create_from_suggestion(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
-        domain_ids, situation_ids = self._resolve_tags(payload)
+        domain_scores, situation_scores, situation_leaf_codes = self._resolve_tags(payload)
         document = self._build_document(payload, jurisdiction_id, slug)
-        return self._repo.add(document, domain_ids=domain_ids, situation_ids=situation_ids)
-
-    def _resolve_tags(self, payload: NewDocumentPayload) -> tuple[list[UUID], list[UUID]]:
-        return self._taxonomy.resolve_domain_ids(payload.domain_codes), self._taxonomy.resolve_situation_ids(
-            payload.situation_codes
+        return self._repo.add(
+            document,
+            domain_scores=domain_scores,
+            situation_scores=situation_scores,
+            situation_leaf_codes=situation_leaf_codes,
         )
+
+    def _resolve_tags(
+        self, payload: NewDocumentPayload
+    ) -> tuple[dict[UUID, float], dict[UUID, float], dict[UUID, str]]:
+        """Resolve each axis' codes to ids and pair them with their given confidence, defaulting to `1.0`.
+
+        A code missing from `payload.tag_confidence` (including when it's `None` entirely, e.g. a
+        hand-written admin creation) is treated as fully confident — the same default the link tables'
+        own `server_default` uses for a row written without this service at all.
+        """
+        confidence = payload.tag_confidence or {}
+        domain_ids = self._taxonomy.resolve_domain_ids(payload.domain_codes)
+        situation_ids = self._taxonomy.resolve_situation_ids(payload.situation_codes)
+        domain_scores = self._scores(payload.domain_codes, domain_ids, confidence)
+        situation_scores = self._scores(payload.situation_codes, situation_ids, confidence)
+        situation_leaf_codes = self._leaf_codes(payload.situation_codes, situation_ids, payload.situation_leaf_codes)
+        return domain_scores, situation_scores, situation_leaf_codes
+
+    def _scores(self, codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
+        return {term_id: confidence.get(code, 1.0) for code, term_id in zip(codes, ids, strict=True)}
+
+    def _leaf_codes(
+        self, codes: Sequence[str], ids: Sequence[UUID], leaf_codes: dict[str, str] | None
+    ) -> dict[UUID, str]:
+        """Resolve `payload.situation_leaf_codes` (code -> leaf code) to the term id it belongs to.
+
+        A code missing from `leaf_codes` (including when it's `None` entirely) simply has no leaf code —
+        unlike `tag_confidence`, there is no default to fall back to; the facet is optional.
+        """
+        given = leaf_codes or {}
+        return {term_id: given[code] for code, term_id in zip(codes, ids, strict=True) if code in given}
 
     def _build_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         return Document(
@@ -172,4 +219,5 @@ class DocumentService:
         if doc is None:
             return None
         path = self._repo.get_jurisdiction_path(jurisdiction_id=doc.jurisdiction_id)
-        return self._reader.detail(doc, path, Locales(locale, enabled_locales))
+        confidence = self._repo.get_tag_confidence(document_id)
+        return self._reader.detail(doc, path, Locales(locale, enabled_locales), confidence)
