@@ -455,8 +455,9 @@ seeded sample documents removed, and a refactoring-skill smell sweep. Eleven cha
 | [gaps-and-decisions.md](document-browse-confidence/gaps-and-decisions.md) | Settled decisions D1–D6, assumptions D7–D10, open seams, risks |
 | [chapters/](document-browse-confidence/chapters/) | One executable plan per chapter |
 
-Status: planned — documentation suite only; implementation starts with
-[chapters/01-candidate-tag-scores.md](document-browse-confidence/chapters/01-candidate-tag-scores.md).
+Status: shipped on the loop branch (chapters 1–10); the release PR to `main` and the live check
+([chapters/11-live-validation.md](document-browse-confidence/chapters/11-live-validation.md)) are pending.
+Operator guide: [`docs/operations/candidate-view.md`](../docs/operations/candidate-view.md).
 
 ## Conventions
 

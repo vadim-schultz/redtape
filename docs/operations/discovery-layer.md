@@ -6,6 +6,26 @@ suggestions. Canon URLs, ingest vs enrich roles, and staging contract pointers:
 [`government-data-sources.md`](../discovery/government-data-sources.md).
 Manual operator steps that unlock the live gates: [crawlers-operator-checklist.md](crawlers-operator-checklist.md).
 
+## Emit, vote and promote are dormant
+
+Since the [document-browse-confidence](../../.plans/document-browse-confidence/00-architecture.md) suite,
+emit -> vote -> promote is **dormant**. Tag confidence replaced the accept/reject gate, so publishing a
+document through it is moot: the public `/documents` list reads the staged candidates directly
+([candidate-view.md](candidate-view.md)), whether or not they were emitted. Nothing in the browse flow
+emits, votes or promotes a candidate.
+
+| Piece | State |
+| --- | --- |
+| Machine emit routes, `candidates emit`, the admin Emit panel and the emit preview | Kept and working. They create `pending` suggestions; no schedule calls them. |
+| Suggestion API, voting (`PUT`/`DELETE /api/v1/suggestions/{id}/vote`) and promotion at +3 votes | Kept and unchanged. Nobody is directed to them. |
+| Web `/suggest` (submit form) and its menu link | Removed. `/suggestions` and `/suggestions/:id` remain (the admin Emit panel links to them). |
+| `document` table, `GET /api/v1/documents`, `GET /api/v1/matrix`, web `/documents/:id` | Kept, but empty: the sample documents are gone and the list no longer reads them. |
+
+Decisions D1, D3 and the open seam S5 are in
+[gaps-and-decisions.md](../../.plans/document-browse-confidence/gaps-and-decisions.md). The sections below
+still describe the machine routes and commands accurately; read them as maintenance procedures, not as the
+publishing path.
+
 ## Production — scheduled ingest (primary)
 
 **Operators should use GitHub Actions**, not a laptop, for recurring catalogue refetch and worker drain
@@ -98,7 +118,7 @@ The staged candidates also have a **public** read-only view, outside this admin 
 
 | Web route | Behavior |
 | --- | --- |
-| `/candidates` | Lists every staged candidate, complete ones first (search, domain and situation chips, a "complete only" switch, paging). |
+| `/documents` | Lists every staged candidate as a document card with a confidence circle (search, sort, life-area, life-situation and domain chips, paging). `/candidates` redirects here. |
 | `/candidates/<candidate-id>` | Shows one candidate: tags, ingress and egress cards, the flow diagram, the screenshot and the sources. |
 
 The public API routes, the deploy order, the screenshot cadence, the showcase candidates and the
@@ -123,7 +143,6 @@ and direct navigation remains guarded. The menu also keeps these application lin
 | --- | --- |
 | **Home** | Full-width link to `/`. |
 | **Browse Documents** | Icon-only, labelled link to `/documents`. |
-| **Suggest** | Icon-only, labelled link to `/suggest`. |
 
 ## Staging vocabulary and the T4 handoff
 
@@ -134,7 +153,7 @@ Four kinds of state exist. Do not mix them up.
 | Catalogue state | `catalogue_service`, keyed by `(source, external_id)` | Current imported row. It is not a canonical document. |
 | Task history | `discovery_task` and `discovery_fetch_log` | Durable queue work (pending, claimed, completed, failed) and append-only fetch attempts. |
 | Claims | `discovery_entity` and `discovery_claim` | Staged assertions that can become suggestions. |
-| Canonical documents | the document tables | Reached only through a future moderation and promotion suite. |
+| Canonical documents | the document tables | Dormant: reached only through vote and promotion, which the browse flow no longer uses. |
 
 The admin pipeline derives a stage for each catalogue row:
 
@@ -246,10 +265,13 @@ snapshot and stages the result; it emits nothing. Architecture, decisions and th
 - **Taxonomy route.** `GET /machine/taxonomy` returns the closed vocabulary (13 domains, 18 life situations, with
   German and English names) that the worker puts in the prompt. The model tags the page, not each document; the page's
   codes are copied onto its mentions.
-- **Tag confidence score.** A candidate's suggested tags are every code whose combined confidence score — the
-  noisy-OR of its LLM-evidence curve and any direct-source confidence (a PVOG leaf, a curator's manual override) —
-  clears `MIN_SUGGESTED_SCORE` (0.05), a noise floor, not a precision claim. The candidate detail shows each code
-  with its support (`procedures`, `share`, `score`); nothing is written to a document automatically.
+- **Tag confidence score.** Every code of a candidate has a combined confidence score — the noisy-OR of its
+  LLM-evidence curve and any direct-source confidence (a PVOG leaf, a curator's manual override). The public
+  list and its chip filters use **every** score, with no floor: the score only orders and colours
+  ([candidate-view.md](candidate-view.md)). The floor `MIN_SUGGESTED_SCORE` (0.05), a noise floor and not a
+  precision claim, applies now only to the emit payload (the codes a `new_document` suggestion carries) and to the
+  completeness flags `has_domain` and `has_situation`. The admin candidate detail shows each code with its support
+  (`procedures`, `share`, `score`); nothing is written to a document automatically.
 - **Re-extraction is deliberate.** The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION`
   (`ext-5`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
   that key, so a re-render under the same versions queues no second task; only `llm requeue` after a model, prompt or
@@ -258,7 +280,7 @@ snapshot and stages the result; it emits nothing. Architecture, decisions and th
 ## Manual candidate emit
 
 Emit turns reviewed candidates into **pending** `new_document` suggestions. It is a deliberate operator action: no
-schedule calls it.
+schedule calls it. It is **dormant** in the browse flow: a candidate is listed on `/documents` without it.
 
 ```bash
 python -m discovery_ingest candidates emit --all-staged --min-mentions 3 --limit 5 --dry-run
@@ -441,8 +463,8 @@ sequence below against the target environment and record each result.
 | Pipeline + emit preview + artifacts | `/admin/discovery/pipeline/<catalogue-service-id>` |
 
 Also confirm that an unknown discovery route shows **Page not found**, that a non-allowlisted user sees
-no discovery links and the forbidden view on direct navigation, and that Home, Browse Documents, and
-Suggest keep their menu routes. Locally, use `./scripts/dev-up.sh` or a manual API and web start.
+no discovery links and the forbidden view on direct navigation, and that Home and Browse Documents
+keep their menu routes (there is no Suggest link). Locally, use `./scripts/dev-up.sh` or a manual API and web start.
 
 Admin JSON API (session JWT, allowlisted email): prefix
 `http://localhost:8000/api/v1/discovery/admin` — e.g. `GET …/catalogue`, `GET …/coverage`.
@@ -474,7 +496,8 @@ emit. Use it first; mapping code is in
 | `new_requirement` | Skipped (`unresolved_requirement_documents`) until both document UUIDs resolve. |
 
 Emit is idempotent by claim identity. A replay returns the existing suggestion and creates no
-duplicate. The suggestion stays `pending` until a future moderation suite acts on it.
+duplicate. The suggestion stays `pending` until a vote or a moderator acts on it, which the browse flow no longer
+needs (dormant).
 
 **Emit one verified row first.** Open its pipeline page, confirm T4 and the preview, emit that single
 row, and check the response counts (`created_count`, `skipped_count`, `replayed_count`) and the
