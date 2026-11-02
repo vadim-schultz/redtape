@@ -2,7 +2,7 @@
 
 Pytest fixtures shaped like `country:DE`/`state:SN`/`district:SN-146` leaked into
 production (see 20260928d_fix_jurisdiction_kind_code_dupes.py's docstring) and,
-combined with seed_documents.py flattening its own Dresden row directly under the
+combined with seed_documents.py (now seed_jurisdictions.py) flattening its own Dresden row directly under the
 region, ended up as the surviving rows once that migration deduped on (kind, code)
 by oldest `last_updated` -- picking the stale leaked/seeded rows over the actively
 reimported real ones and deleting Saxony's real district/municipality subtree.

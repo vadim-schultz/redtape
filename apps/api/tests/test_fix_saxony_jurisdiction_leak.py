@@ -108,7 +108,7 @@ def test_reverts_code_and_reraises_when_reimport_fails(db_session: Session) -> N
         repair_saxony_jurisdictions(db_session, reimport=_failing_reimport)
 
     # code must not be left null -- otherwise the next boot's lookup by
-    # (kind, code) can't find this row either, and a later seed_documents run
+    # (kind, code) can't find this row either, and a later seed_jurisdictions run
     # would silently paper over the failure by restoring it via merge.
     fake_dresden = db_session.get(Jurisdiction, FAKE_DRESDEN_ID)
     assert fake_dresden.code == DRESDEN_MUNICIPALITY_CODE
