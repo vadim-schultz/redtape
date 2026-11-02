@@ -1,23 +1,33 @@
 import { ProgressCircle } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
-import { BAND_PALETTE, bandFor, percentOf } from "../../utils/confidenceBand";
+import {
+  BAND_PALETTE,
+  bandFor,
+  percentOf,
+  type ConfidenceBand,
+} from "../../utils/confidenceBand";
 
 export interface ConfidenceCircleProps {
   confidence: number;
+}
+
+function useConfidenceLabel(band: ConfidenceBand, percent: number): string {
+  const { t } = useLocale();
+
+  return t("documents.confidence_aria", {
+    percent,
+    band: t(`documents.confidence_${band}`),
+  });
 }
 
 /** A traffic-light ring: the whole ring in the band colour, the value as the darker sector. */
 export default function ConfidenceCircle({
   confidence,
 }: ConfidenceCircleProps) {
-  const { t } = useLocale();
   const band = bandFor(confidence);
   const percent = percentOf(confidence);
-  const label = t("documents.confidence_aria", {
-    percent,
-    band: t(`documents.confidence_${band}`),
-  });
+  const label = useConfidenceLabel(band, percent);
 
   return (
     <ProgressCircle.Root

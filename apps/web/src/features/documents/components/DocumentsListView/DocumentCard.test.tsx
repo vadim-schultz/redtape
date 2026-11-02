@@ -96,3 +96,21 @@ it("DocumentCard · hover motion uses theme duration and easing tokens", async (
   expect(style.transitionDuration).toBe("var(--chakra-durations-normal)");
   expect(style.transitionTimingFunction).toBe("var(--chakra-easings-ease-out)");
 });
+
+it("DocumentCard · shows the confidence circle with the card's confidence", async () => {
+  renderWithProviders(
+    <DocumentCard document={{ ...baseDocument, confidence: 0.82 }} />,
+  );
+
+  const bar = await screen.findByRole("progressbar");
+  expect(bar).toHaveAttribute("aria-valuenow", "82");
+  expect(bar).toHaveAccessibleName("Confidence 82%, high");
+});
+
+it("DocumentCard · the circle adds no second interactive element", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("progressbar");
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(screen.queryByRole("button")).toBeNull();
+});
