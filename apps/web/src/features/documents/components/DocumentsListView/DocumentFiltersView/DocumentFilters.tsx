@@ -5,6 +5,7 @@ import { useLocale } from "../../../../../contexts/LocaleContext";
 import type { DocumentFilters as DocumentFiltersState } from "../../../hooks/useDocumentFilters";
 import type { FilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
 
+import { hasSelectedChips } from "../../../utils/hasSelectedChips";
 import FilterGroup from "./FilterGroup";
 import { SituationFilterView } from "./SituationFilterView";
 
@@ -20,8 +21,6 @@ export default function DocumentFilters({
   const { t } = useLocale();
 
   if (taxonomy.isError) return <QueryError onRetry={taxonomy.onRetry} />;
-
-  const hasFilters = filters.domains.length + filters.situations.length > 0;
 
   return (
     <VStack align="stretch" gap={4}>
@@ -39,7 +38,7 @@ export default function DocumentFilters({
           filters={filters}
         />
       </VStack>
-      {hasFilters ? (
+      {hasSelectedChips(filters) ? (
         <Button alignSelf="start" variant="ghost" onClick={filters.clear}>
           {t("filters.clear")}
         </Button>

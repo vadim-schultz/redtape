@@ -1,7 +1,5 @@
 import { useSearchParams } from "react-router-dom";
 
-export type FilterAxis = "domain" | "situation";
-
 export interface DocumentFilters {
   domains: string[];
   situations: string[];
@@ -13,7 +11,9 @@ export interface DocumentFilters {
   clearAll: () => void;
 }
 
-const FILTER_PARAMS = ["domain", "situation"];
+const FILTER_PARAMS = ["domain", "situation"] as const;
+
+export type FilterAxis = (typeof FILTER_PARAMS)[number];
 
 function readCodes(params: URLSearchParams, axis: FilterAxis): string[] {
   return [...new Set(params.getAll(axis).filter(Boolean))];
@@ -51,7 +51,7 @@ export function useDocumentFilters(): DocumentFilters {
     situations: readCodes(params, "situation"),
     toggleDomain: (code) => toggle("domain", code),
     toggleSituation: (code) => toggle("situation", code),
-    clear: () => setParams((prev) => withoutParams(prev, FILTER_PARAMS)),
+    clear: () => setParams((prev) => withoutParams(prev, [...FILTER_PARAMS])),
     clearAll: () =>
       setParams((prev) => withoutParams(prev, [...FILTER_PARAMS, "q"])),
   };

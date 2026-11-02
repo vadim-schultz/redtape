@@ -1,9 +1,10 @@
 import { VStack } from "@chakra-ui/react";
 
+import ListSearchBox from "../../../../components/data-display/ListSearchBox";
+import { useLocale } from "../../../../contexts/LocaleContext";
 import type { Term } from "../../../taxonomy/types";
 import type { CandidateList } from "../../hooks/useCandidateListState";
 import AxisFilter from "./AxisFilter";
-import CandidatesSearch from "./CandidatesSearch";
 import FilterActions from "./FilterActions";
 
 export interface CandidateTerms {
@@ -21,9 +22,15 @@ export default function CandidatesFilters({
   list,
   terms,
 }: CandidatesFiltersProps) {
+  const { t } = useLocale();
+
   return (
     <VStack align="stretch" gap={4}>
-      <CandidatesSearch value={list.state.search} onSearch={list.setSearch} />
+      <ListSearchBox
+        value={list.state.search}
+        copy={{ label: t("candidates.search_label") }}
+        onSearch={list.setSearch}
+      />
       <AxisFilter list={list} axis="domain" terms={terms.domains} />
       <AxisFilter list={list} axis="situation" terms={terms.situations} />
       <FilterActions list={list} />

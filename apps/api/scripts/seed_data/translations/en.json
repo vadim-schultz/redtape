@@ -65,10 +65,20 @@
     "no_requirements": "No requirements",
     "official_source": "Official Source",
     "empty_title": "No documents found",
-    "empty_description": "Try selecting a different location.",
+    "empty_description": "No documents have been found yet.",
+    "empty_filtered_description": "Your filters or search hide every document. Clear them to see the full list.",
     "not_found": "Document not found",
     "count_one": "{count} document",
-    "count_other": "{count} documents"
+    "count_other": "{count} documents",
+    "search_label": "Search document titles",
+    "search_placeholder": "Search by title",
+    "search_submit": "Search",
+    "sort_label": "Sort by",
+    "sort_confidence": "Confidence",
+    "sort_title": "Title",
+    "sort_newest": "Newest",
+    "sort_asc": "Ascending",
+    "sort_desc": "Descending"
   },
   "candidates": {
     "title": "Candidates",

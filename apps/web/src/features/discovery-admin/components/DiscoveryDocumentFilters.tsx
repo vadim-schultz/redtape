@@ -1,11 +1,11 @@
 import { Button, HStack } from "@chakra-ui/react";
 
+import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CandidateList } from "../hooks/useCandidateListState";
 import { DISCOVERY_SOURCES } from "../types/listValues";
 import { plainOptions } from "./columns/filterOptions";
 import FilterSelect from "./FilterSelect";
-import ListSearch from "./ListSearch";
 
 const NAMESPACE = "discovery_admin.documents";
 
@@ -66,9 +66,9 @@ export default function DiscoveryDocumentFilters({
 
   return (
     <HStack gap={3} flexWrap="wrap">
-      <ListSearch
+      <ListSearchBox
         value={list.state.search}
-        label={t(`${NAMESPACE}.filter_search`)}
+        copy={{ label: t(`${NAMESPACE}.filter_search`) }}
         onSearch={list.setSearch}
       />
       <SourceSelect list={list} />

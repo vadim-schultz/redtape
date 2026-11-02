@@ -87,7 +87,7 @@ it("DocumentsListQueryStatus · empty list renders an empty state with guidance"
 
   expect(screen.getByRole("status")).toHaveTextContent("No documents found");
   expect(
-    screen.getByText("Try selecting a different location."),
+    screen.getByText("No documents have been found yet."),
   ).toBeInTheDocument();
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });

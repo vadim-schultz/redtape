@@ -1,11 +1,11 @@
 import { VStack } from "@chakra-ui/react";
 
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
+import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { TaskList } from "../hooks/useTaskListState";
 import type { DiscoveryTaskListResponse } from "../types";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
-import ListSearch from "./ListSearch";
 
 export interface DiscoveryTasksViewProps {
   list: TaskList;
@@ -23,9 +23,9 @@ export default function DiscoveryTasksView({
 
   return (
     <VStack align="stretch" gap={4}>
-      <ListSearch
+      <ListSearchBox
         value={list.state.search}
-        label={t("discovery_admin.tasks.filter_search")}
+        copy={{ label: t("discovery_admin.tasks.filter_search") }}
         onSearch={list.setSearch}
       />
       <DiscoveryTasksTable page={page} status={status} list={list} />
