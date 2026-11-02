@@ -56,18 +56,42 @@ it("useDocumentFilters · clear removes all filters", () => {
   expect(result.current.location.search).toBe("");
 });
 
-it("useDocumentFilters · reads leaf codes from the URL", () => {
-  const { result } = renderFilters("/documents?leaf=1050200");
+it("useDocumentFilters · a toggle returns to the first page", () => {
+  const { result } = renderFilters("/documents?domain=a&offset=40&q=pass");
 
-  expect(result.current.filters.leaves).toEqual(["1050200"]);
+  act(() => result.current.filters.toggleSituation("x"));
+
+  const params = new URLSearchParams(result.current.location.search);
+  expect(params.has("offset")).toBe(false);
+  expect(params.get("q")).toBe("pass");
+  expect(params.getAll("domain")).toEqual(["a"]);
 });
 
-it("useDocumentFilters · toggleLeaf adds then removes a leaf code", () => {
-  const { result } = renderFilters("/documents");
+it("useDocumentFilters · clear drops filters and the page but keeps search and sort", () => {
+  const { result } = renderFilters(
+    "/documents?domain=a&situation=x&offset=40&q=pass&sort_by=title",
+  );
 
-  act(() => result.current.filters.toggleLeaf("1050200"));
-  expect(result.current.location.search).toBe("?leaf=1050200");
+  act(() => result.current.filters.clear());
 
-  act(() => result.current.filters.toggleLeaf("1050200"));
-  expect(result.current.location.search).toBe("");
+  const params = new URLSearchParams(result.current.location.search);
+  expect([...params.keys()].sort()).toEqual(["q", "sort_by"]);
+});
+
+it("useDocumentFilters · clearAll also removes the search term", () => {
+  const { result } = renderFilters(
+    "/documents?domain=a&offset=40&q=pass&sort_by=title",
+  );
+
+  act(() => result.current.filters.clearAll());
+
+  const params = new URLSearchParams(result.current.location.search);
+  expect([...params.keys()]).toEqual(["sort_by"]);
+});
+
+it("useDocumentFilters · the old leaf param is not a filter any more", () => {
+  const { result } = renderFilters("/documents?leaf=1050200");
+
+  expect(result.current.filters).not.toHaveProperty("leaves");
+  expect(result.current.filters).not.toHaveProperty("toggleLeaf");
 });

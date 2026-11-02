@@ -1,9 +1,8 @@
-import { Box, VStack } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
 import type { QueryStatus } from "../../../../components/feedback/queryStatus";
-import type { DocumentSummary } from "../../types";
-import { LocationPicker } from "../../../locations/components/LocationPickerView";
+import type { DocumentListResponse } from "../../types";
 
 import DocumentsListHeader from "./DocumentsListHeader";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
@@ -12,10 +11,9 @@ export interface DocumentsListViewProps {
   title: string;
   toolbar: {
     filters: ReactNode;
-    onMunicipalityChange: (municipalityCode: string | null) => void;
   };
-  list: {
-    documents: DocumentSummary[] | undefined;
+  result: {
+    page: DocumentListResponse | undefined;
     status: QueryStatus;
   };
 }
@@ -23,22 +21,16 @@ export interface DocumentsListViewProps {
 export default function DocumentsListView({
   title,
   toolbar,
-  list,
+  result,
 }: DocumentsListViewProps) {
   return (
     <Box>
       <DocumentsListHeader title={title} />
 
-      <Box mt={6}>
-        <LocationPicker onMunicipalityChange={toolbar.onMunicipalityChange} />
-      </Box>
-
       <Box mt={6}>{toolbar.filters}</Box>
 
       <Box mt={6}>
-        <VStack align="stretch" gap={3}>
-          <DocumentsListQueryStatus {...list} />
-        </VStack>
+        <DocumentsListQueryStatus {...result} />
       </Box>
     </Box>
   );

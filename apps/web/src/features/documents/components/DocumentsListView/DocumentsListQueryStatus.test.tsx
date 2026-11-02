@@ -7,9 +7,28 @@ import type { DocumentSummary } from "../../types";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 const documents: DocumentSummary[] = [
-  { id: "doc-1", slug: "doc-1-slug", title: "Residency Registration" },
-  { id: "doc-2", slug: "doc-2-slug", title: "Passport Renewal" },
+  {
+    id: "doc-1",
+    title: "Residency Registration",
+    description: null,
+    tags: [],
+    confidence: 0.5,
+  },
+  {
+    id: "doc-2",
+    title: "Passport Renewal",
+    description: null,
+    tags: [],
+    confidence: 0.5,
+  },
 ];
+
+const page = (items: DocumentSummary[]) => ({
+  items,
+  total: items.length,
+  offset: 0,
+  limit: 20,
+});
 
 it("DocumentsListQueryStatus · loading renders skeleton not cards", async () => {
   const { container } = renderWithProviders(
@@ -21,7 +40,7 @@ it("DocumentsListQueryStatus · loading renders skeleton not cards", async () =>
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={documents}
+      page={page(documents)}
     />,
   );
 
@@ -40,7 +59,7 @@ it("DocumentsListQueryStatus · error explains the failure, offers retry and sho
         error: new Error("boom"),
         onRetry,
       }}
-      documents={undefined}
+      page={undefined}
     />,
   );
 
@@ -62,7 +81,7 @@ it("DocumentsListQueryStatus · empty list renders an empty state with guidance"
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={[]}
+      page={page([])}
     />,
   );
 
@@ -83,7 +102,7 @@ it("DocumentsListQueryStatus · populated count row has no expand control", asyn
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={documents}
+      page={page(documents)}
     />,
   );
 
@@ -103,7 +122,7 @@ it("DocumentsListQueryStatus · populated list renders count and cards", async (
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={documents}
+      page={page(documents)}
     />,
   );
 
@@ -121,7 +140,7 @@ it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks 
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={documents}
+      page={page(documents)}
     />,
   );
 
@@ -142,7 +161,7 @@ it("DocumentsListQueryStatus · singular count reads naturally", async () => {
         error: undefined,
         onRetry: vi.fn(),
       }}
-      documents={[documents[0]]}
+      page={page([documents[0]])}
     />,
   );
 

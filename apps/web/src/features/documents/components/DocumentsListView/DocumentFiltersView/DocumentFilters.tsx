@@ -6,18 +6,16 @@ import type { DocumentFilters as DocumentFiltersState } from "../../../hooks/use
 import type { FilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
 
 import FilterGroup from "./FilterGroup";
-import { LeafFacet, SituationFilterView } from "./SituationFilterView";
+import { SituationFilterView } from "./SituationFilterView";
 
 export interface DocumentFiltersProps {
   taxonomy: FilterTaxonomy;
   filters: DocumentFiltersState;
-  availableLeafCodes?: string[];
 }
 
 export default function DocumentFilters({
   taxonomy,
   filters,
-  availableLeafCodes = [],
 }: DocumentFiltersProps) {
   const { t } = useLocale();
 
@@ -39,11 +37,6 @@ export default function DocumentFilters({
           groups={taxonomy.groups}
           situations={taxonomy.situations}
           filters={filters}
-        />
-        <LeafFacet
-          codes={availableLeafCodes}
-          selected={filters.leaves}
-          onToggle={filters.toggleLeaf}
         />
       </VStack>
       {hasFilters ? (

@@ -24,13 +24,14 @@ export function candidateFixture(
     title: "Passport",
     description: "Proof of identity.",
     description_source: "Apply for a passport",
-    domains: [{ code: "identity", name: "Identity" }],
-    situations: [{ code: "moving", name: "Moving" }],
+    domains: [{ code: "identity", name: "Identity", confidence: 0.8 }],
+    situations: [{ code: "moving", name: "Moving", confidence: 0.6 }],
     status: "staged",
     completeness: 5,
     complete: true,
     flags: ALL_FLAGS,
     mention_count: 3,
+    confidence: 0.8,
     ...overrides,
   };
 }

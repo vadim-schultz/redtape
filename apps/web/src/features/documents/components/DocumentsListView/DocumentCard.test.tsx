@@ -7,8 +7,10 @@ import DocumentCard from "./DocumentCard";
 
 const baseDocument: DocumentSummary = {
   id: "doc-1",
-  slug: "doc-1-slug",
   title: "Residency Registration",
+  description: null,
+  tags: [],
+  confidence: 0.5,
 };
 
 it("DocumentCard · renders title inside a card", async () => {
@@ -23,11 +25,41 @@ it("DocumentCard · renders title inside a card", async () => {
   );
 });
 
-it("DocumentCard · links to document detail path", async () => {
+it("DocumentCard · links to the candidate item page", async () => {
   renderWithProviders(<DocumentCard document={baseDocument} />);
 
   const link = await screen.findByRole("link");
-  expect(link).toHaveAttribute("href", "/documents/doc-1");
+  expect(link).toHaveAttribute("href", "/candidates/doc-1");
+});
+
+it("DocumentCard · shows its tags as plain badges, most confident first", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{
+        ...baseDocument,
+        tags: [
+          {
+            axis: "situation",
+            code: "moving",
+            name: "Moving",
+            confidence: 0.9,
+          },
+          { axis: "domain", code: "housing", name: "Housing", confidence: 0.4 },
+        ],
+      }}
+    />,
+  );
+
+  const link = await screen.findByRole("link");
+  expect(link).toHaveTextContent(/Moving.*Housing/);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+});
+
+it("DocumentCard · renders no tag row for an untagged document", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  const link = await screen.findByRole("link");
+  expect(link.querySelector(".chakra-badge")).toBeNull();
 });
 
 it("DocumentCard · omits description when document has none", async () => {
