@@ -56,7 +56,8 @@ def main() -> None:
     with SessionLocal() as session:
         seed_taxonomy(session)
         session.commit()
-    print("seed_taxonomy: 13 domains, 8 situation groups and 18 life situations upserted.")
+    counts = f"{len(DOMAINS)} domains, {len(SITUATION_GROUPS)} situation groups and {len(SITUATIONS)} life situations"
+    print(f"seed_taxonomy: {counts} upserted.")
 
 
 if __name__ == "__main__":

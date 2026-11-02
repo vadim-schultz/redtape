@@ -4,16 +4,16 @@ overview: "One explicit pass of the refactoring skill over every API and web ent
 todos:
   - id: scan-api
     content: "Scan the touched API entities against smells.md and record the report"
-    status: pending
+    status: completed
   - id: scan-web
     content: "Scan the touched web entities against smells.md and record the report"
-    status: pending
+    status: completed
   - id: apply
     content: "Apply the chosen refactorings, narrow suite green after each step"
-    status: pending
+    status: completed
   - id: record
     content: "Write the result table into this chapter"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -58,11 +58,77 @@ Scope: <method | class | module | component>
 
 ## Result
 
-_To be filled by the implementer:_ the report table per entity and the final line in the skill's form:
+Containing entity: `apps/api/app/features/discovery/repository/candidate_completeness_tags.py`, `candidate_tag_scores.py` · Scope: module
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Large module / Divergent Change | 209 lines: SQL blocks, bulk acceptance, the single-candidate Python scorer and the PVOG leaf lookup | Move Function to `candidate_axis_support.py` and `candidate_leaf_codes.py` | applied |
+| Duplicated Code | `_candidate_rows` repeated the unnest + confidence select of `exploded_codes` | reuse `exploded_codes` (`_mention_rows`) | applied |
+| Long Function | `_score_rows` loop body scored one code in 8 lines | Extract Function `_score_code` | applied |
+| Mysterious Name / hidden dependency | `candidate_completeness_flags` imported `TagAxis` through `candidate_completeness_tags`; `tagged_procedures` had no docstring | import from `app.features.discovery.tags`; docstring | applied |
+| Duplicated Code | SQL scorer vs Python scorer | none, held by the parity test | observed |
+| Duplicated Code | `code_support` and `_consensus_scores` repeat the 3-line support-join | none, two call sites | observed |
+| Large module | `candidate_completeness_tags.py` still 133 lines after the split | further split of the acceptance blocks | observed |
+
+Containing entity: `candidate_sort.ordered_by`, `candidate_completeness.completeness_order`, `candidates/repository/public_order._directed` · Scope: function
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Duplicated Code | `desc if DESC else asc` written three times | Extract Function `candidate_sort.directed` | applied |
+| Duplicated Code | same expression in `task_sort.py`, `catalogue_filter.py` | reuse `directed` | observed (files this suite did not touch) |
+
+Containing entity: `candidates/repository/public_filter.py`, `cards.py`, `list_query.py`, `service.py`, `card_builder.py` · Scope: module
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Data Clumps | `domains`/`situations` travel together | already one `PublicCandidateFilter.selected` projection and a `Selected` alias | none |
+| Primitive Obsession | CSV string for a code list | the shared list-query parser only carries `FilterValue` scalars; `_codes` splits once | observed (shared framework) |
+| Long Function / Feature Envy / Repeated Switches | none: all functions under ~8 lines, one rank table | none | none |
+
+Containing entity: `scripts/seed_jurisdictions.py`, `seed_taxonomy.py`, migration `20261102_remove_seeded_documents` · Scope: module
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Magic number | `seed_taxonomy.main` printed 13 / 8 / 18 literals | derive from `len(DOMAINS)` etc. | applied |
+| Dead Code | none found | none | none |
+
+Containing entity: `features/documents/hooks/useDocumentFilters.ts`, `useDocumentListState.ts`, `utils/*` · Scope: module
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Large module / mixed concerns | `useDocumentFilters.ts` 109 lines: hook plus seven URL helpers | Move Function to `utils/filterParams.ts` | applied |
+| Layering | `utils/hasSelectedChips.ts` imports a type from the hook | narrow the parameter type | observed (a type-only import, no cycle) |
+
+Containing entity: `DocumentFiltersView/*`, `SituationFilterView/`, `DocumentsListView/*`, `ConfidenceCircleView/`, `DocumentCard.tsx`, `utils/confidenceBand.ts` · Scope: component
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Primitive Obsession (`tone`) | `ChipTone` is a three-member union consumed in one function | none | none |
+| Duplicated Code between domain and group/situation rows | two `HStack` maps over `FilterChip`, two call sites | none (rule of three not met) | none |
+| Magic numbers | thresholds, palette and card count are named constants | none | none |
+
+Containing entity: `ListSearchBox.tsx` and its three callers in `discovery-admin` · Scope: component
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Duplicated Code | no third copy of the search box remains (`ListSearch.tsx` deleted in chapter 3) | none | none |
+
+Containing entity: `components/layout/AppMenu.tsx`, `menu/*`, `ui/MenuIconLink.tsx` · Scope: component
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Message Chains / Middle Man / Lazy Element | one delegated `closesMenu`, panel rows each own their behaviour | none | none |
+
+Containing entity: `features/candidates/*`, `features/suggestions/*` · Scope: feature
+
+| smell | evidence | chosen refactoring | action |
+| --- | --- | --- | --- |
+| Dead Code | an export scan of the touched web features found no orphaned symbol | none | none |
+| Dead Code | i18n key `candidates.not_found_title` is unused in code | delete it in 4 files | observed (`fallback.test.ts` requires it in `CANDIDATE_KEYS`; removing it needs a test change) |
 
 ```text
-Refactor gate: smells found -> <smells>, refactorings applied -> <names>.
-Narrow suite: <command>, green after each step.
+Refactor gate: smells found -> Large module / Divergent Change, Duplicated Code (x2), Long Function, Mysterious Name (hidden re-export), Magic number, mixed concerns in a hook; refactorings applied -> Move Function (x2), Extract Function (x2), reuse of exploded_codes, Replace Magic Literal.
+Narrow suite: `pytest` of the candidate scoring, completeness, browse, public, admin, emit and seed tests; `npx vitest run src/features/documents`; ruff, mypy, tsc and eslint, green after each step.
 ```
 
 ## Verification

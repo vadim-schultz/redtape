@@ -2,7 +2,14 @@ import { useSearchParams } from "react-router-dom";
 
 import type { GroupedTerm } from "../../taxonomy/types";
 import {
-  toggled,
+  FILTER_PARAMS,
+  readCodes,
+  readSelection,
+  withToggledDomain,
+  withSelection,
+  withoutParams,
+} from "../utils/filterParams";
+import {
   toggleGroupSelection,
   toggleSituationSelection,
   type GroupSelection,
@@ -21,65 +28,11 @@ export interface DocumentFilters {
   clearAll: () => void;
 }
 
-const FILTER_PARAMS = ["domain", "group", "situation"] as const;
-
-export type FilterAxis = (typeof FILTER_PARAMS)[number];
-
 type Toggle = (
   selection: GroupSelection,
   code: string,
   situations: GroupedTerm[],
 ) => GroupSelection;
-
-function readCodes(params: URLSearchParams, axis: FilterAxis): string[] {
-  return [...new Set(params.getAll(axis).filter(Boolean))];
-}
-
-function readSelection(params: URLSearchParams): GroupSelection {
-  return {
-    groups: readCodes(params, "group"),
-    situations: readCodes(params, "situation"),
-  };
-}
-
-/** A copy of `params` without `names`; any change of the filters also leaves the current page. */
-function withoutParams(
-  params: URLSearchParams,
-  names: string[],
-): URLSearchParams {
-  const next = new URLSearchParams(params);
-  [...names, "offset"].forEach((name) => next.delete(name));
-  return next;
-}
-
-function withCodes(
-  params: URLSearchParams,
-  axis: FilterAxis,
-  codes: string[],
-): URLSearchParams {
-  const next = withoutParams(params, [axis]);
-  codes.forEach((code) => next.append(axis, code));
-  return next;
-}
-
-function withSelection(
-  params: URLSearchParams,
-  selection: GroupSelection,
-): URLSearchParams {
-  const next = withCodes(params, "group", selection.groups);
-  return withCodes(next, "situation", selection.situations);
-}
-
-function withToggledDomain(
-  params: URLSearchParams,
-  code: string,
-): URLSearchParams {
-  return withCodes(
-    params,
-    "domain",
-    toggled(readCodes(params, "domain"), code),
-  );
-}
 
 /** URL search params are the single source of truth for list filters.
  *

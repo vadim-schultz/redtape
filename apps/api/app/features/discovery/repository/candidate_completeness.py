@@ -13,6 +13,7 @@ from sqlalchemy import ColumnElement, Integer, Row, cast, select
 from sqlalchemy.sql.expression import Subquery
 
 from app.features.discovery.repository.candidate_completeness_flags import FLAG_NAMES, flags_subquery
+from app.features.discovery.repository.candidate_sort import directed
 from app.shared.list_query import SortOrder
 
 __all__ = [
@@ -68,4 +69,4 @@ def completeness_order(
 ) -> Sequence[ColumnElement]:
     """Return the order-by pair ``(completeness, mention_count)`` in ``direction``."""
     pair = (sub.c.completeness, mention_count)
-    return tuple(column.desc() if direction is SortOrder.DESC else column.asc() for column in pair)
+    return tuple(directed(column, direction) for column in pair)

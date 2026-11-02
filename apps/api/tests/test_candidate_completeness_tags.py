@@ -13,10 +13,8 @@ import uuid
 
 import pytest
 from app.features.discovery.candidate_tags import candidate_tag_suggestions, usable_codes
-from app.features.discovery.repository.candidate_completeness_tags import (
-    candidate_axis_support,
-    candidate_situation_leaf_codes,
-)
+from app.features.discovery.repository.candidate_axis_support import candidate_axis_support
+from app.features.discovery.repository.candidate_leaf_codes import candidate_situation_leaf_codes
 from app.features.discovery.tags import MANUAL_EXTRACTOR, MIN_SUGGESTED_SCORE, TagAxis, TagSupport
 from sqlalchemy.orm import Session
 

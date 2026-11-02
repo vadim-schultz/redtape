@@ -78,11 +78,15 @@ def tie_break() -> Ordering:
     return (title_expression().asc(), Candidate.key.asc(), Candidate.id.asc())
 
 
+def directed(column: ColumnElement, order: SortOrder) -> ColumnElement:
+    """Return ``column`` as an order-by clause: descending for ``DESC``, else ascending."""
+    return column.desc() if order is SortOrder.DESC else column.asc()
+
+
 def ordered_by(key: CandidateSortKey, order: SortOrder, inputs: SortInputs) -> Ordering:
     """Return the order-by clauses: ``key`` in direction ``order``, then the :func:`tie_break`."""
-    primary = _PRIMARY[key](inputs)
-    directed = tuple(column.desc() if order is SortOrder.DESC else column.asc() for column in primary)
-    return (*directed, *tie_break())
+    primary = tuple(directed(column, order) for column in _PRIMARY[key](inputs))
+    return (*primary, *tie_break())
 
 
 def candidate_ordering(key: CandidateSortKey, order: SortOrder, mention_count: MentionCount) -> Ordering:
