@@ -15,6 +15,7 @@ from app.features.discovery.repository.candidate_sort import (
     MentionCount,
     Ordering,
     candidate_ordering,
+    directed,
     tie_break,
 )
 from app.shared.list_query import SortOrder
@@ -42,12 +43,8 @@ class RankColumns:
 Rank = Callable[[RankColumns, SortOrder], Ordering]
 
 
-def _directed(column: ColumnElement, order: SortOrder) -> ColumnElement:
-    return column.desc() if order is SortOrder.DESC else column.asc()
-
-
 def _by_confidence(columns: RankColumns, order: SortOrder) -> Ordering:
-    return (_directed(columns.confidence, order), *tie_break())
+    return (directed(columns.confidence, order), *tie_break())
 
 
 def _by_completeness(columns: RankColumns, order: SortOrder) -> Ordering:
