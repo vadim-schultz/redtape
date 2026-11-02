@@ -1,3 +1,3 @@
-from app.schema.taxonomy.read import TermRead
+from app.schema.taxonomy.read import LifeSituationGroupedRead, TermRead
 
-__all__ = ["TermRead"]
+__all__ = ["LifeSituationGroupedRead", "TermRead"]

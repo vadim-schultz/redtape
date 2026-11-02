@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import Column, Select, func, select
 from sqlalchemy.orm import Session
 
-from app.models.taxonomy import Domain, LifeSituation, document_domain, document_life_situation
+from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation
 
-TermModel = type[Domain] | type[LifeSituation]
+TermModel = type[Domain] | type[LifeSituation] | type[LifeSituationGroup]
 
 
 class TaxonomyRepository:
@@ -18,9 +18,18 @@ class TaxonomyRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def list_terms(self, model: TermModel) -> Sequence[Domain | LifeSituation]:
+    def list_terms(self, model: TermModel) -> Sequence[Domain | LifeSituation | LifeSituationGroup]:
         stmt = select(model).order_by(model.sort_order.asc(), model.code.asc())
-        return cast("Sequence[Domain | LifeSituation]", self._session.scalars(stmt).all())
+        return cast("Sequence[Domain | LifeSituation | LifeSituationGroup]", self._session.scalars(stmt).all())
+
+    def list_situations_with_group(self) -> Sequence[tuple[LifeSituation, str]]:
+        """Every situation alongside its group's ``code``, in the axis's own sort order."""
+        stmt = (
+            select(LifeSituation, LifeSituationGroup.code)
+            .join(LifeSituationGroup, LifeSituation.group_id == LifeSituationGroup.id)
+            .order_by(LifeSituation.sort_order.asc(), LifeSituation.code.asc())
+        )
+        return [(situation, group_code) for situation, group_code in self._session.execute(stmt).all()]
 
     def ids_for_codes(self, model: TermModel, codes: Iterable[str]) -> dict[str, UUID]:
         stmt = select(model.code, model.id).where(model.code.in_(set(codes)))
