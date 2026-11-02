@@ -7,16 +7,18 @@ import { useLocale } from "../../../contexts/LocaleContext";
 import { DocumentFilters } from "../components/DocumentsListView/DocumentFiltersView";
 import { DocumentsListView } from "../components/DocumentsListView";
 import { hasSelectedChips } from "../utils/hasSelectedChips";
+import { situationCodes } from "../utils/situationCodes";
 
 /** `/documents`: every discovered document, filtered by chips, searched, sorted and paged. */
 export default function DocumentsListPage() {
   const { t } = useLocale();
   const list = useDocumentListState();
-  const filters = useDocumentFilters();
   const taxonomy = useFilterTaxonomy();
+  const filters = useDocumentFilters(taxonomy.situations);
   const query = useDocumentsListQuery({
     domains: filters.domains,
-    situations: filters.situations,
+    // Expanded here, so the query key changes once a deep-linked group's situations load.
+    situations: situationCodes(filters, taxonomy.situations),
     query: list.state,
   });
 
