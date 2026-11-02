@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 def repo(db_session: Session) -> TaxonomyRepository:
     # tags={}: this suite only needs the vocabulary, not the document tags, which
     # reference a document graph this fixture never seeds.
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     db_session.flush()
     return TaxonomyRepository(db_session)
 

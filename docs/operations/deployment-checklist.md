@@ -29,10 +29,8 @@ Checks:
   - `{"status":"ok"}`
 - [ ] `GET /api/v1/locales` includes `de` and `en`.
 - [ ] `GET /api/v1/translations?locale=de` returns a JSON bundle (non-empty).
-- [ ] `GET /api/v1/documents` returns the MVP slice (expected 4 documents seeded).
-- [ ] `GET /api/v1/documents/{id}` returns:
-  - Localized `title` and `description`
-  - `requirements[]` (3 direct dependencies)
+- [ ] `GET /api/v1/documents` returns `200` (the sample documents are no longer seeded; `total` is `0` until a candidate is promoted).
+- [ ] `GET /api/v1/candidates` returns `200` with the discovered documents.
 - [ ] `CORS_ALLOWED_ORIGINS` in `render.yaml` still includes the Workers origin (for direct API clients). Production browser traffic should be **same-origin** via the Worker proxy, not cross-origin to Render.
 
 ### Discovery (Render environment)
@@ -175,7 +173,6 @@ Checks:
 - [ ] Opening the production URL shows no white-screen errors.
 - [ ] Locale switcher changes UI language (if implemented in the current wave).
 - [ ] Visiting `/documents` shows localized document titles.
-- [ ] Visiting `/documents/{id}` shows the dependency list.
 - [ ] Browser DevTools → Network shows same-origin API calls to `https://redtape-web.vadim-schultz.workers.dev/api/v1/…` with `200`s (not direct `redtape-api.onrender.com` from the browser).
 
 ---

@@ -8,8 +8,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from scripts.seed_documents import ID_DOC_AUSWEIS, ID_DOC_GEBURT, ID_DOC_MELDE, ID_DOC_WOHN
-
 TAXONOMY_NAMESPACE = uuid.UUID("44444444-4444-4444-4444-444444444400")
 
 
@@ -384,15 +382,4 @@ SITUATION_GROUP_CODES: dict[str, str] = {
     "naturalisation": "residence-migration",
     "illness-care": "health-care",
     "retirement": "retirement",
-}
-
-# document id -> (domain codes, life situation codes)
-DOCUMENT_TAGS: dict[uuid.UUID, tuple[tuple[str, ...], tuple[str, ...]]] = {
-    ID_DOC_MELDE: (("housing", "identity-civil-status"), ("moving-house", "immigration")),
-    ID_DOC_AUSWEIS: (("identity-civil-status",), ("immigration", "naturalisation")),
-    ID_DOC_GEBURT: (
-        ("identity-civil-status", "family-children"),
-        ("birth-of-child", "marriage", "immigration"),
-    ),
-    ID_DOC_WOHN: (("housing",), ("moving-house", "renting-home")),
 }

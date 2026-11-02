@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 def service(db_session: Session) -> TaxonomyService:
     # tags={}: this suite only resolves domain/situation codes, not documents;
     # the default tag map references a document graph this fixture never seeds.
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     db_session.flush()
     return TaxonomyService(TaxonomyRepository(db_session))
 
