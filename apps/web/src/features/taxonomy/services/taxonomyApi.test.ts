@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { fetchDomains } from "./taxonomyApi";
+import { fetchDomains, fetchLifeSituationGroups } from "./taxonomyApi";
 
 const fetchMock = vi.fn();
 
@@ -24,5 +24,14 @@ it("taxonomyApi · fetchDomains calls /api/v1/domains with locale", async () => 
   await fetchDomains("de");
 
   expect(requestedUrl().pathname).toBe("/api/v1/domains");
+  expect(fetchMock.mock.calls[0][1].headers["Accept-Language"]).toBe("de");
+});
+
+it("taxonomyApi · fetchLifeSituationGroups calls /api/v1/life-situation-groups with locale", async () => {
+  respondWith([]);
+
+  await fetchLifeSituationGroups("de");
+
+  expect(requestedUrl().pathname).toBe("/api/v1/life-situation-groups");
   expect(fetchMock.mock.calls[0][1].headers["Accept-Language"]).toBe("de");
 });

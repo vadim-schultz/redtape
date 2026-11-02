@@ -12,6 +12,7 @@ export type DocumentListResponse = {
   total: number;
   offset: number;
   limit: number;
+  available_leaf_codes?: string[];
 };
 
 export type JurisdictionPathNode = {
