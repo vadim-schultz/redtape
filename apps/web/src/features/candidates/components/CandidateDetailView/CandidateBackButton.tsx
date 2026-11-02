@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 
-/** Back to the list: history back when the list is the previous entry, else a plain link. */
+/** Back to the documents list: history back when the list is the previous entry, else a plain link. */
 export default function CandidateBackButton() {
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function CandidateBackButton() {
     );
   return (
     <Button asChild variant="ghost" size="sm" color="text.link">
-      <Link to="/candidates">{label}</Link>
+      <Link to="/documents">{label}</Link>
     </Button>
   );
 }

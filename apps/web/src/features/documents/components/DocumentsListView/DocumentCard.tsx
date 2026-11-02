@@ -12,7 +12,7 @@ export interface DocumentCardProps {
 /** One listed document: title, description, tags and confidence, linking to its item page. */
 export default function DocumentCard({ document }: DocumentCardProps) {
   return (
-    <AppCard to={`/candidates/${document.id}`}>
+    <AppCard to={`/candidates/${document.id}`} state={{ fromList: true }}>
       <Flex justify="space-between" align="flex-start" gap={3}>
         <Card.Title textStyle="subsectionHeader">{document.title}</Card.Title>
         <ConfidenceCircle confidence={document.confidence} />

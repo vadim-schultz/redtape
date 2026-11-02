@@ -35,8 +35,7 @@
   "nav": {
     "home": "Startseite",
     "browse_documents": "Dokumente durchsuchen",
-    "about": "Über uns",
-    "candidates": "Kandidaten"
+    "about": "Über uns"
   },
   "menu": {
     "profile": "Profil",
@@ -85,20 +84,8 @@
     "confidence_high": "hoch"
   },
   "candidates": {
-    "title": "Kandidaten",
-    "subtitle": "Dokumentnamen von Verfahrensseiten, sortiert danach, wie vollständig sie beschrieben sind.",
     "banner_title": "Vorläufig und ungeprüft",
     "banner_body": "Diese Kandidaten wurden automatisch aus öffentlichen Seiten gewonnen. Bisher hat sie niemand geprüft, einige können falsch sein.",
-    "search_label": "Kandidatentitel durchsuchen",
-    "filter_domain": "Lebensbereich",
-    "filter_situation": "Lebenslage",
-    "complete_only": "Nur vollständige",
-    "clear_filters": "Filter zurücksetzen",
-    "count_one": "{count} Kandidat",
-    "count_other": "{count} Kandidaten",
-    "empty_title": "Keine Kandidaten gefunden",
-    "empty_description": "Es sind noch keine Kandidaten vorhanden.",
-    "empty_filtered_description": "Deine Filter blenden alle Kandidaten aus. Setze sie zurück, um die ganze Liste zu sehen.",
     "flag_domain": "Lebensbereich",
     "flag_situation": "Lebenslage",
     "flag_edges": "Abhängigkeiten",

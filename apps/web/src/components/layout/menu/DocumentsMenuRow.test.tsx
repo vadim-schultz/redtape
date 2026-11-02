@@ -48,18 +48,18 @@ function rowOf(link: HTMLElement): HTMLElement {
   return link.parentElement as HTMLElement;
 }
 
-it("documents menu row renders browse candidates and discovery links in one container", async () => {
+it("documents menu row renders browse and discovery links in one container", async () => {
   renderRow(200);
 
   await screen.findByRole("link", { name: "Tasks" });
 
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(6);
+  expect(links).toHaveLength(5);
   expect(new Set(links.map(rowOf)).size).toBe(1);
-  expect(rowOf(links[0]).children).toHaveLength(6);
+  expect(rowOf(links[0]).children).toHaveLength(5);
 });
 
-it("documents menu row links the admin documents list as the sixth icon in the same row", async () => {
+it("documents menu row links the admin documents list as the fifth icon in the same row", async () => {
   renderRow(200);
 
   const link = await screen.findByRole("link", { name: "Documents" });
@@ -69,14 +69,14 @@ it("documents menu row links the admin documents list as the sixth icon in the s
   expect(link.textContent).toBe("");
 });
 
-it("documents menu row renders only browse and candidates when the discovery probe is hidden", async () => {
+it("documents menu row renders only browse when the discovery probe is hidden", async () => {
   const fetchMock = renderRow(403);
 
   await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   const links = screen.getAllByRole("link");
   expect(screen.queryByText("Discovery unavailable")).toBeNull();
-  expect(links).toHaveLength(2);
-  expect(rowOf(links[0]).children).toHaveLength(2);
+  expect(links).toHaveLength(1);
+  expect(rowOf(links[0]).children).toHaveLength(1);
   expect(rowOf(rowOf(links[0]))).toBe(screen.getByTestId("key-value-row"));
 });
 
@@ -86,9 +86,8 @@ it("documents menu row keeps the unavailable hint in the same row", async () => 
   const hint = await screen.findByText("Discovery unavailable");
 
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(2);
+  expect(links).toHaveLength(1);
   expect(rowOf(hint)).toBe(rowOf(links[0]));
-  expect(rowOf(links[1])).toBe(rowOf(links[0]));
 });
 
 it("every link keeps its aria-label and title", async () => {
@@ -98,7 +97,6 @@ it("every link keeps its aria-label and title", async () => {
 
   const names = [
     "Browse Documents",
-    "Candidates",
     "Catalogue",
     "Coverage",
     "Tasks",
@@ -109,31 +107,29 @@ it("every link keeps its aria-label and title", async () => {
   }
 });
 
-it("menu shows the candidates link", async () => {
+it("menu links the documents list as the single browse entry", async () => {
   renderRow(200);
 
-  const link = await screen.findByRole("link", { name: "Candidates" });
+  const link = await screen.findByRole("link", { name: "Browse Documents" });
 
-  expect(link).toHaveAttribute("href", "/candidates");
-  expect(rowOf(link)).toBe(
-    rowOf(screen.getByRole("link", { name: "Browse Documents" })),
-  );
+  expect(link).toHaveAttribute("href", "/documents");
 });
 
-it("menu shows the candidates link without waiting for the admin probe", async () => {
+it("menu has no candidates link, with or without the admin probe", async () => {
   const fetchMock = renderRow(403);
 
-  const link = screen.getByRole("link", { name: "Candidates" });
-
-  expect(link).toHaveAttribute("href", "/candidates");
   await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-  expect(screen.getByRole("link", { name: "Candidates" })).toBe(link);
+
+  expect(screen.queryByRole("link", { name: "Candidates" })).toBeNull();
+  expect(
+    screen.queryByRole("link", { name: "Browse Documents" }),
+  ).toHaveAttribute("href", "/documents");
 });
 
 it("documents menu row has no suggest link", async () => {
   renderRow(403);
 
-  await screen.findByRole("link", { name: "Candidates" });
+  await screen.findByRole("link", { name: "Browse Documents" });
 
   expect(screen.queryByRole("link", { name: "Suggest" })).toBeNull();
 });
