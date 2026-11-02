@@ -59,7 +59,6 @@ def _bearer_token(connection: ASGIConnection) -> str:
 
 def user_from_connection(connection: ASGIConnection, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser:
     """Resolve the database-backed user for a connection; shared by the dependency and by guards."""
-
     try:
         if not settings.auth_enabled:
             raise AuthError("auth_disabled")
@@ -83,7 +82,6 @@ def _api_key_value(connection: ASGIConnection) -> str:
 
 def machine_principal_from_connection(connection: ASGIConnection, api_key_service: ApiKeyService) -> MachinePrincipal:
     """Resolve the machine principal for a connection; shared by the dependency and by guards."""
-
     try:
         record = api_key_service.verify(_api_key_value(connection))
     except (AuthError, ApiKeyError) as exc:
@@ -106,7 +104,6 @@ def provide_principal(
     request: Request, jwt_verifier: JwtVerifier, user_service: UserService, api_key_service: ApiKeyService
 ) -> Principal:
     """Accept either a bearer user or an API key; refuse to guess when both are present (D8)."""
-
     has_bearer = request.headers.get("Authorization") is not None
     has_api_key = request.headers.get("X-API-Key") is not None
     if has_bearer and has_api_key:

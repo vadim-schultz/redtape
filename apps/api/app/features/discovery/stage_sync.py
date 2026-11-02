@@ -16,7 +16,6 @@ from app.models.discovery import CatalogueService
 
 def derive_stage_for(repo: DiscoveryRepository, catalogue_id: UUID) -> PipelineStage:
     """Return the stage implied by the stored tasks, fetch logs and claims."""
-
     claims = repo.list_catalogue_claims(catalogue_id)
     return derive_pipeline_stage(
         PipelineStageInput(
@@ -30,7 +29,6 @@ def derive_stage_for(repo: DiscoveryRepository, catalogue_id: UUID) -> PipelineS
 
 def advance_stage(repo: DiscoveryRepository, catalogue: CatalogueService) -> None:
     """Raise ``catalogue.pipeline_stage`` to the derived stage; never move it back."""
-
     derived = derive_stage_for(repo, catalogue.id)
     if derived.rank > PipelineStage(catalogue.pipeline_stage).rank:
         catalogue.pipeline_stage = derived.value

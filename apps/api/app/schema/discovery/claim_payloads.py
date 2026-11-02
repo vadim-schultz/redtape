@@ -32,7 +32,6 @@ class NewRequirementClaimPayload(BaseModel):
 
 def validate_claim_payload(kind: DiscoveryClaimKind, payload: dict[str, object]) -> dict[str, object]:
     """Validate and normalize a claim payload for ``kind``."""
-
     match kind:
         case DiscoveryClaimKind.METADATA:
             return MetadataClaimPayload.model_validate(payload).model_dump(exclude_none=True)

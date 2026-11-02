@@ -77,6 +77,5 @@ class JwtVerifier:
 
 def jwks_key_resolver(url: str) -> KeyResolver:
     """Production key resolver: fetches and caches the project's JWKS over HTTP."""
-
     client = PyJWKClient(url, cache_keys=True)
     return lambda token: client.get_signing_key_from_jwt(token).key
