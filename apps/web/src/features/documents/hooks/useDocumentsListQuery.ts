@@ -4,22 +4,15 @@ import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchDocuments } from "../services/documentsApi";
-import type { DocumentListResponse } from "../types";
+import type { DocumentListRequest, DocumentListResponse } from "../types";
 
-export interface DocumentsListFilters {
-  domains: string[];
-  situations: string[];
-}
-
-export function useDocumentsListQuery(
-  municipalityCode: string | null,
-  { domains, situations }: DocumentsListFilters,
-) {
+/** One page of the documents list; the previous page stays while the next loads. */
+export function useDocumentsListQuery(request: DocumentListRequest) {
   const { locale } = useLocale();
 
   return useApiQuery<DocumentListResponse>(
-    queryKeys.documents.list(municipalityCode, domains, situations, locale),
-    () => fetchDocuments({ locale, municipalityCode, domains, situations }),
+    queryKeys.documents.list(request, locale),
+    () => fetchDocuments({ locale, request }),
     { placeholderData: keepPreviousData },
   );
 }

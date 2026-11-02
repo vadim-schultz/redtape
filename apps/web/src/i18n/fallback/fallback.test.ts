@@ -27,20 +27,9 @@ function readSeed(locale: string): Record<string, string> {
 }
 
 const CANDIDATE_KEYS = [
-  "title",
-  "subtitle",
   "banner_title",
   "banner_body",
-  "search_label",
-  "filter_domain",
-  "filter_situation",
-  "complete_only",
-  "clear_filters",
-  "count_one",
-  "count_other",
-  "empty_title",
-  "empty_description",
-  "empty_filtered_description",
+  "from_source",
   "flag_domain",
   "flag_situation",
   "flag_edges",
@@ -48,7 +37,6 @@ const CANDIDATE_KEYS = [
   "flag_screenshot",
   "flag_present",
   "flag_missing",
-  "from_source",
   "ingress",
   "ingress_empty",
   "egress",
@@ -71,6 +59,25 @@ const CANDIDATE_KEYS = [
   "flow_more",
   "back_to_list",
   "not_found_title",
+];
+
+/** Strings only the retired /candidates list and its menu link read. */
+const RETIRED_CANDIDATE_KEYS = [
+  "nav.candidates",
+  ...[
+    "title",
+    "subtitle",
+    "search_label",
+    "filter_domain",
+    "filter_situation",
+    "complete_only",
+    "clear_filters",
+    "count_one",
+    "count_other",
+    "empty_title",
+    "empty_description",
+    "empty_filtered_description",
+  ].map((key) => `candidates.${key}`),
 ];
 
 describe("fallback translation bundles", () => {
@@ -138,8 +145,18 @@ describe("fallback translation bundles", () => {
     for (const key of CANDIDATE_KEYS) {
       expect(bundle[`candidates.${key}`], key).toBeTruthy();
     }
-    expect(bundle["nav.candidates"]).toBeTruthy();
   });
+
+  it.each(["en", "de"])(
+    "drops the candidates list strings and the menu link label for %s",
+    (locale) => {
+      const bundle = fallbackBundle(locale);
+
+      for (const key of RETIRED_CANDIDATE_KEYS) {
+        expect(bundle, key).not.toHaveProperty(key);
+      }
+    },
+  );
 
   it("has every candidates.* key in both fallback bundles", () => {
     const candidateKeys = (locale: string) =>

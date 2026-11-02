@@ -40,10 +40,11 @@ function LocationProbe() {
 }
 
 function Container() {
+  const taxonomy = useFilterTaxonomy();
   return (
     <DocumentFilters
-      taxonomy={useFilterTaxonomy()}
-      filters={useDocumentFilters()}
+      taxonomy={taxonomy}
+      filters={useDocumentFilters(taxonomy.situations)}
     />
   );
 }
@@ -125,12 +126,13 @@ it("DocumentFilters · taxonomy error shows compact error and no chips", async (
 
 const noopFilters = {
   domains: [],
+  groups: [],
   situations: [],
-  leaves: [],
   toggleDomain: vi.fn(),
+  toggleGroup: vi.fn(),
   toggleSituation: vi.fn(),
-  toggleLeaf: vi.fn(),
   clear: vi.fn(),
+  clearAll: vi.fn(),
 };
 
 function renderPresentational(taxonomy: {
@@ -162,23 +164,11 @@ it("DocumentFilters · expanding a situation group reveals its situation chip", 
   expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
 });
 
-it("DocumentFilters · renders a leaf facet chip when given available leaf codes", () => {
-  const props = {
-    domains,
-    situations,
-    groups,
-    isError: false,
-    onRetry: vi.fn(),
-  };
-  renderWithProviders(
-    <DocumentFilters
-      taxonomy={props}
-      filters={noopFilters}
-      availableLeafCodes={["1050200"]}
-    />,
-  );
+it("DocumentFilters · renders no facet chip beside the situations", () => {
+  renderPresentational({ isError: false, onRetry: vi.fn() });
 
-  expect(screen.getByRole("button", { name: "1050200" })).toBeInTheDocument();
+  const chips = screen.getAllByRole("button").map((b) => b.textContent);
+  expect(chips).toEqual(["Housing", "Work", "Home"]);
 });
 
 it("DocumentFilters · error flag shows retry, which calls onRetry only", async () => {
@@ -193,4 +183,50 @@ it("DocumentFilters · error flag shows retry, which calls onRetry only", async 
     /domains|life-situations|situations/.test(String(url)),
   );
   expect(taxonomyCalls).toHaveLength(0);
+});
+
+it("DocumentFilters · a group chip selects the area in the URL and expands it", async () => {
+  const { user } = renderFilters("/documents");
+
+  await user.click(await screen.findByRole("button", { name: "Home" }));
+
+  expect(screen.getByTestId("search")).toHaveTextContent("?group=home");
+  expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(screen.getByRole("button", { name: "Moving" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+it("DocumentFilters · a sub-situation of a selected group leaves exactly one state", async () => {
+  const { user } = renderFilters("/documents?group=home");
+
+  await user.click(await screen.findByRole("button", { name: "Moving" }));
+
+  expect(screen.getByTestId("search")).toHaveTextContent("?situation=moving");
+  expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+it("DocumentFilters · clear is offered for a group alone and wipes it", async () => {
+  const { user } = renderFilters("/documents?group=home");
+
+  await user.click(await screen.findByRole("button", { name: /clear/i }));
+
+  expect(screen.getByTestId("search")).toHaveTextContent("");
+});
+
+it("DocumentFilters · an unknown group in the URL is ignored with no crash", async () => {
+  renderFilters("/documents?group=nope");
+
+  expect(await screen.findByRole("button", { name: "Home" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  expect(screen.queryByRole("button", { pressed: true })).toBeNull();
 });

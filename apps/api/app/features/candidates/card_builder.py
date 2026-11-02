@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from app.features.candidates.localize import localized
-from app.features.candidates.repository import CardRow, DescriptionRow
+from app.features.candidates.repository import CandidateTagScores, CardRow, DescriptionRow, ScoredCode
 from app.features.discovery.repository.candidate_completeness import CandidateCompleteness
 from app.features.discovery.repository.candidate_completeness_flags import FLAG_NAMES
 from app.schema.candidate import CandidateCard, CandidateFlags, CandidateTag
@@ -18,10 +18,11 @@ DESCRIPTION_MAX_LENGTH = 300
 
 @dataclass(frozen=True, slots=True)
 class CardContext:
-    """What a page of cards needs besides the rows: the locale, completeness, descriptions and tag names."""
+    """What a page of cards needs besides the rows: the locale, completeness, tag scores, descriptions, names."""
 
     locale: ResolvedLocale
     completeness: Mapping[UUID, CandidateCompleteness]
+    tag_scores: Mapping[UUID, CandidateTagScores]
     descriptions: Mapping[UUID, DescriptionRow]
     domain_names: Mapping[str, str]
     situation_names: Mapping[str, str]
@@ -34,8 +35,8 @@ class CardContext:
         return row.excerpt[:DESCRIPTION_MAX_LENGTH], localized(row.procedure_title_i18n, self.locale)
 
 
-def _tags(codes: tuple[str, ...], names: Mapping[str, str]) -> list[CandidateTag]:
-    return [CandidateTag(code=code, name=names.get(code, code)) for code in codes]
+def _tags(scored: tuple[ScoredCode, ...], names: Mapping[str, str]) -> list[CandidateTag]:
+    return [CandidateTag(code=code, name=names.get(code, code), confidence=score) for code, score in scored]
 
 
 def _flags(done: CandidateCompleteness) -> CandidateFlags:
@@ -43,8 +44,9 @@ def _flags(done: CandidateCompleteness) -> CandidateFlags:
 
 
 def card_for(row: CardRow, context: CardContext) -> CandidateCard:
-    """Return the card of ``row``: localized title, best-mention description, accepted tags and the flags."""
+    """Return the card of ``row``: localized title, best-mention description, every scored tag and the flags."""
     candidate, done = row.candidate, context.completeness[row.candidate.id]
+    scores = context.tag_scores.get(candidate.id, CandidateTagScores())
     description, source = context.describe(candidate.id)
     return CandidateCard(
         id=candidate.id,
@@ -53,10 +55,11 @@ def card_for(row: CardRow, context: CardContext) -> CandidateCard:
         description=description,
         description_source=source,
         status=candidate.status,
-        domains=_tags(done.accepted_domain_codes, context.domain_names),
-        situations=_tags(done.accepted_situation_codes, context.situation_names),
+        domains=_tags(scores.domains, context.domain_names),
+        situations=_tags(scores.situations, context.situation_names),
         completeness=done.completeness,
         complete=done.complete,
         flags=_flags(done),
         mention_count=row.mention_count,
+        confidence=row.confidence,
     )

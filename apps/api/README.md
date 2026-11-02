@@ -11,8 +11,8 @@ Litestar backend for RedTape. **Wave 1** adds the read-only documents graph (jur
 ## Wave 1
 
 - Alembic: `jurisdiction`, `document`, `document_requirement`
-- Seed: `python -m scripts.seed_documents` (idempotent; stable UUIDs)
-- Seed: `python -m scripts.seed_taxonomy` (idempotent; Germany domains, life situations, document tags)
+- Seed: `python -m scripts.seed_jurisdictions` (idempotent; stable UUIDs; the DE, SN and DD jurisdictions only, no sample documents)
+- Seed: `python -m scripts.seed_taxonomy` (idempotent; Germany domains, life situation groups, life situations)
 - API: `GET /api/v1/documents`, `GET /api/v1/documents/{id}` (localized `title` / `description` / `notes`)
 - CORS: `CORS_ALLOWED_ORIGINS` (comma-separated); OpenAPI: `/schema` (Litestar default)
 
@@ -46,7 +46,7 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 alembic upgrade head
 python -m scripts.seed_i18n
-python -m scripts.seed_documents
+python -m scripts.seed_jurisdictions
 python -m scripts.seed_taxonomy
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -68,7 +68,7 @@ cp .env.example .env   # Windows: copy .env.example .env
 # set DATABASE_URL (+ optional CORS_ALLOWED_ORIGINS) in .env
 alembic upgrade head
 python -m scripts.seed_i18n
-python -m scripts.seed_documents
+python -m scripts.seed_jurisdictions
 python -m scripts.seed_taxonomy
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```

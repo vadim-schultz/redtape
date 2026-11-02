@@ -29,10 +29,9 @@ Checks:
   - `{"status":"ok"}`
 - [ ] `GET /api/v1/locales` includes `de` and `en`.
 - [ ] `GET /api/v1/translations?locale=de` returns a JSON bundle (non-empty).
-- [ ] `GET /api/v1/documents` returns the MVP slice (expected 4 documents seeded).
-- [ ] `GET /api/v1/documents/{id}` returns:
-  - Localized `title` and `description`
-  - `requirements[]` (3 direct dependencies)
+- [ ] `GET /api/v1/candidates?limit=1` returns `200` with `{items, total, offset, limit}`; the item carries `confidence` and `domains`/`situations` entries with `confidence`. This is the list behind `/documents`.
+- [ ] `GET /api/v1/candidates?sort_by=confidence&sort_order=desc&limit=5` returns `200` with `confidence` non-increasing.
+- [ ] `GET /api/v1/documents` returns `200` (dormant: the sample documents are no longer seeded and the web list no longer reads it; `total` stays `0` because nothing in the browse flow promotes a candidate).
 - [ ] `CORS_ALLOWED_ORIGINS` in `render.yaml` still includes the Workers origin (for direct API clients). Production browser traffic should be **same-origin** via the Worker proxy, not cross-origin to Render.
 
 ### Discovery (Render environment)
@@ -104,6 +103,9 @@ stays on the Workers **Free** plan (no Workers Paid, which would bill neurons).
 now returns, so a new web deploy against an old API breaks that screen. After the deploy the API seeds translations on
 boot (`apps/api/scripts/start.sh`); confirm the new keys under `discovery_admin.coverage.llm` exist. The extraction
 migration `20261029_staging_edges` is additive and was applied to production by hand on 2026-10-28.
+The document-browse-confidence release adds the data migration `20261102_remove_seeded_documents`, which deletes
+the four seeded sample documents and their three requirement rows by exact id (irreversible; a promoted document
+is kept). It runs on boot before the seed step, and `start.sh` no longer seeds documents.
 
 Checks:
 
@@ -174,8 +176,7 @@ Checks:
 - [ ] Cloudflare shows the latest commit deployed successfully.
 - [ ] Opening the production URL shows no white-screen errors.
 - [ ] Locale switcher changes UI language (if implemented in the current wave).
-- [ ] Visiting `/documents` shows localized document titles.
-- [ ] Visiting `/documents/{id}` shows the dependency list.
+- [ ] Visiting `/documents` renders candidate-backed cards with localized titles and a confidence circle; search and the confidence/title/newest sort change the order, and `/candidates` redirects to `/documents`.
 - [ ] Browser DevTools → Network shows same-origin API calls to `https://redtape-web.vadim-schultz.workers.dev/api/v1/…` with `200`s (not direct `redtape-api.onrender.com` from the browser).
 
 ---

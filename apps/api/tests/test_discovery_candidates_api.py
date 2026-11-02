@@ -227,7 +227,7 @@ LLM_FIELDS: dict[str, object] = {
 
 @pytest.fixture
 def vocabulary(db_session: Session) -> None:
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
 
 
 def _only_mention(db_session: Session) -> DiscoveryCandidateMention:

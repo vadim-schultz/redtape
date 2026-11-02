@@ -1,18 +1,24 @@
 # Candidate view: operator guide and release smoke checks
 
 The public candidate view lists the staged document candidates of the extraction suite and opens
-each one with its dependencies, a flow diagram and a screenshot of the source page. This guide
-covers the routes, the deploy order, the screenshot cadence, the hand-completed showcase
-candidates, the exposure risk and the release smoke checks. Plan and decisions:
-[`.plans/candidate-view/`](../../.plans/candidate-view/00-architecture.md).
+each one with its dependencies, a flow diagram and a screenshot of the source page. Since the
+[document-browse-confidence](../../.plans/document-browse-confidence/00-architecture.md) suite, the
+candidate API is the one document list: it backs `/documents`. This guide covers the routes, the
+browse contract, the deploy order, the screenshot cadence, the hand-completed showcase candidates,
+the exposure risk and the release smoke checks. Plans and decisions:
+[`.plans/candidate-view/`](../../.plans/candidate-view/00-architecture.md) and
+[`.plans/document-browse-confidence/`](../../.plans/document-browse-confidence/gaps-and-decisions.md).
 
 ## What it is
 
 The view is public, read-only and unreviewed. Anyone can open it without a login. It shows every
-staged or emitted candidate, ranked by completeness. It never emits, votes, moderates or edits.
+staged or emitted candidate, ranked by confidence and then completeness. It never emits, votes,
+moderates or edits. A candidate is listed whether or not it was ever emitted, voted or promoted:
+those steps are dormant (see [discovery-layer.md](discovery-layer.md#emit-vote-and-promote-are-dormant)).
 
 Completeness is five yes-or-no flags per candidate. A candidate is `complete` when all five are
-true. The list sorts by the count, highest first.
+true. The flags drive `filter[complete]`, the completeness sort, the tie-break after confidence and the
+checklist on the item page. The `/documents` card does not show them.
 
 | Flag | True when |
 | --- | --- |
@@ -29,9 +35,10 @@ The full rule, including the manual override of the tag consensus, is section 3 
 
 | Surface | Route | Behavior |
 | --- | --- | --- |
-| Web | `/candidates` | The ranked list: search, domain and situation chips, a "complete only" switch, paging. |
-| Web | `/candidates/:id` | One candidate: tags, ingress and egress cards, the flow diagram, the screenshot, the sources. |
-| API | `GET /api/v1/candidates` | `{items, total, offset, limit}`. Sort `completeness` (default), `title`, `mentions`, `created_at`. Filters `complete`, `domain`, `situation`; search `q`. |
+| Web | `/documents` | The one document list, served by `GET /api/v1/candidates`: search, sort, life-area, life-situation and domain chips, a confidence circle per card, paging. |
+| Web | `/candidates` | Redirects to `/documents`. The old filter params are dropped, not translated. |
+| Web | `/candidates/:id` | One candidate: tags, ingress and egress cards, the flow diagram, the screenshot, the sources. Cards on `/documents` link here. |
+| API | `GET /api/v1/candidates` | `{items, total, offset, limit}`. Search, sorts and filters are in the browse contract below. |
 | API | `GET /api/v1/candidates/{id}` | The detail with `ingress`, `egress`, `sources` and the `screenshot` reference. |
 | API | `GET /api/v1/candidates/{id}/screenshot` | The newest screenshot of the candidate's procedures, streamed from the object store. |
 
@@ -47,9 +54,48 @@ needs the machine key. All machine and admin routes are in the single table in
 [discovery-layer.md](discovery-layer.md#machine-and-admin-routes-added-by-the-crawl-layer). The
 admin tables are in [admin-tables.md](admin-tables.md).
 
+## Browse contract of `GET /api/v1/candidates`
+
+The list-query parser is the shared one (`apps/api/app/shared/list_query/`). An unknown filter or an
+invalid value answers 422 and names each bad parameter.
+
+| Parameter | Behavior |
+| --- | --- |
+| `q` | Case-insensitive title search over all locales. No index. |
+| `sort_by` | `confidence`, `completeness`, `mentions`, `title`, `created_at`. |
+| `sort_order` | `asc` or `desc`. Needs `sort_by`; alone it answers 422. |
+| `filter[domain]` | CSV of taxonomy codes (`a,b,c`), at most 20 codes. A candidate matches when it carries **any** of them, with **any** score. |
+| `filter[situation]` | The same rule for life situations. |
+| `filter[complete]` | `yes` or `no`, the five completeness flags. Kept for the API; the web list does not expose it. |
+| `offset`, `limit` | Paging; `limit` 1 to 100. |
+
+- Codes within one axis combine with OR, the two axes with AND. More than 20 codes, a code longer than
+  64 characters, or an unknown taxonomy code answers 422 (per code).
+- Without `sort_by` the order is confidence descending, then completeness descending, then mentions
+  descending, then a deterministic tie-break. With `sort_by` the key is applied and the same
+  tie-break follows.
+- **There is no 0.05 floor on this path.** A chip matches by the presence of a code, whatever its score.
+  `MIN_SUGGESTED_SCORE` (0.05) still applies to the dormant emit payload and to the completeness flags
+  `has_domain` and `has_situation` (open seam S2): a candidate whose only tag scores below it shows a
+  tag but no `has_*` flag.
+- `confidence` is a float in `[0, 1]` on every tag (`CandidateTag`) and on every card
+  (`CandidateCard`). The card value is the maximum tag score among the selected domain and situation
+  codes, or among all of its tags when no chip is selected. The sort uses the same SQL expression, so
+  the number on a card never disagrees with the order.
+- A card's `domains` and `situations` list every code with a score, most confident first, not only
+  the accepted ones.
+- The score is computed from the mentions on every request (grouped `best_scores` relation, three
+  times per list request; seam S3 in [gaps-and-decisions.md](../../.plans/document-browse-confidence/gaps-and-decisions.md)).
+  It mirrors the Python scorer: a manual mention replaces the consensus for its axis at `1.0`;
+  otherwise the LLM evidence curve and any direct-source confidence combine by noisy-OR.
+- The web bands the number: below 0.4 red, 0.4 up to 0.7 yellow, from 0.7 green
+  (`apps/web/src/features/documents/utils/confidenceBand.ts`).
+
 ## Deploy order
 
-1. Deploy the API first. The release has no migration.
+1. Deploy the API first. The candidate view itself had no migration. The document-browse-confidence
+   release carries one data migration that deletes the four seeded sample documents by id (see
+   [deployment-checklist.md](deployment-checklist.md)).
 2. Deploy the web second.
 
 The public pages need both. The web alone shows a failed list. The API alone has no page. After
@@ -153,8 +199,10 @@ The candidates are unreviewed model output. The 2026-10-30 drain judged 10 to 17
 false positives, for example `Bescheid`, `Kontaktformular` and annex names. The owner chose to
 show them all (decision D1 in [gaps-and-decisions.md](../../.plans/candidate-view/gaps-and-decisions.md)).
 
-- Every public page carries a "staged, unreviewed" banner (D16).
-- Ranking by completeness pushes sparse candidates down.
+- The item page `/candidates/:id` carries a "staged, unreviewed" banner (D16). The `/documents`
+  list does not: its cards show a confidence circle instead.
+- Ranking by confidence, then completeness, pushes sparse and weakly tagged candidates down. Chips
+  match by presence, so a weak candidate still appears under a chip; its red circle says so.
 - The open seam is a curation gate or a hide list. A hide list is the first follow-up. Until it
   exists, the only way to remove a false positive from the view is a database change.
 
@@ -165,16 +213,19 @@ cannot judge layout, colour or visible focus. Automated implementation agents ha
 none of these checks is done. Change a status line to the date, the person and the result when
 you tick a box.
 
-- [ ] **Showcase candidates.** The five candidates named above are at the top of `/candidates`,
-      each with five present chips. Each opens with tags on both axes, ingress and egress cards as
-      designed, the diagram and a screenshot. The roles are covered: both-sided, ingress-only,
-      egress-only, a long title (tooltip), and many neighbours or the cap note (only unit tests
-      cover this one).  
+- [ ] **Showcase candidates.** The five candidates named above are on `/documents` (search each
+      title if the default order has pushed it down). Each card shows tags and a confidence circle
+      and opens `/candidates/:id` with tags on both axes, ingress and egress cards as designed, the
+      diagram and a screenshot. The roles are covered: both-sided, ingress-only, egress-only, a
+      long title (tooltip), and many neighbours or the cap note (only unit tests cover this one).  
       Status: not yet performed.
-- [ ] **List.** `/candidates` lists candidates with complete ones first. Each card shows its
-      completeness chips. The "complete only" switch, the search, the domain and situation chips
-      and paging work, and each filter change returns to page one. The empty and error states are
-      readable.  
+- [ ] **List.** `/documents` lists candidates, the most confident first. Each card shows a
+      confidence circle in the band colour (red below 40 %, yellow up to 70 %, green from 70 %)
+      with the percentage. Search (submit-applied), the sort (confidence, title, newest, each
+      ascending or descending), the life-area, life-situation and domain chips and paging work.
+      Every change returns to page one, and a reload or a shared URL restores the same view. A
+      life-area chip is solid swiss red, a situation chip inside it a lighter red. The empty and
+      error states are readable. `/candidates` redirects to `/documents`.  
       Status: not yet performed.
 - [ ] **Detail.** `/candidates/:id` shows the title, the description with its source attribution,
       the ingress and egress cards, the flow diagram (arrows converge on the title card and
@@ -185,7 +236,9 @@ you tick a box.
       The diagram is hidden below `md` and the card lists remain. Focus rings, link names and the
       text alternative of the diagram are present.  
       Status: not yet performed.
-- [ ] **Menu.** The menu has a Candidates icon link for everyone, not only for admins.  
+- [ ] **Menu.** The menu has no Candidates and no Suggest link. Home is centred. The menu closes
+      after Home, a Documents link, the language flag or Sign out, and stays open when the colour
+      mode is switched.  
       Status: not yet performed.
 - [ ] **Admin documents table.** On `/admin/discovery/documents` the toolbar is in the table
       header, every column sorts, filters appear as removable chips and the Ready quick filter
@@ -207,7 +260,7 @@ this suite had one.
 
 - [ ] **Body panel boundary.** `/candidates/:id` shows a visible `surface`/`border`/shadow panel
       around the page body, distinct from the `bg.canvas` page background behind it. The same
-      boundary appears on `/candidates`, `/documents`, and at least one admin page (for example
+      boundary appears on `/documents`, and at least one admin page (for example
       `/admin/discovery/catalogue`), in both light and dark mode. No page looks broken or
       edge-to-edge-clipped by the new panel, including a wide table page.  
       Status: not yet performed.

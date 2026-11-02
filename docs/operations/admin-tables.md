@@ -34,8 +34,10 @@ in `apps/api/app/shared/list_query/` and the typed specs in `apps/web/src/servic
   and the tasks target column use it.
 - The catalogue list sorts by `title` and filters by pipeline `stage`. Its summary chips (total,
   source, stage) filter the table and count the whole catalogue, not the filtered rows.
-- Public `/documents` and `/suggestions` are not part of this contract. They show at most the first
-  20 rows by design (decision D11 in the plan).
+- Public pages are not part of this contract. `/suggestions` shows at most 20 rows, the first page,
+  by design (decision D11 in the plan). `/documents` is paged, searchable and sortable since the
+  [document-browse-confidence](../../.plans/document-browse-confidence/00-architecture.md) suite: see
+  [candidate-view.md](candidate-view.md).
 
 ## Components
 

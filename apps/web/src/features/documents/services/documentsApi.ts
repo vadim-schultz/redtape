@@ -1,24 +1,37 @@
 import { apiRequest } from "../../../services/api";
+import { toListParams } from "../../../services/listQuery";
+import type { CandidateListResponse } from "../../candidates/types";
+import type {
+  DocumentDetail,
+  DocumentListRequest,
+  DocumentListResponse,
+} from "../types";
+import { toDocumentListResponse } from "./documentMapper";
 
-import type { DocumentDetail, DocumentListResponse } from "../types";
+/** The selected codes of one axis as the API's CSV filter, or nothing when none. */
+function codesFilter(codes: string[]): string | undefined {
+  return codes.length > 0 ? codes.join(",") : undefined;
+}
 
+/** One page of documents: the candidate list filtered by the selected domain and situation codes. */
 export async function fetchDocuments(params: {
   locale: string;
-  municipalityCode: string | null;
-  domains: string[];
-  situations: string[];
+  request: DocumentListRequest;
 }): Promise<DocumentListResponse> {
-  const { locale, municipalityCode, domains, situations } = params;
-
-  return apiRequest<DocumentListResponse>("/api/v1/documents", {
+  const { locale, request } = params;
+  const { domains, situations, query } = request;
+  const page = await apiRequest<CandidateListResponse>("/api/v1/candidates", {
     method: "GET",
     locale,
-    query: {
-      municipality_code: municipalityCode ?? undefined,
-      domain: domains,
-      situation: situations,
-    },
+    query: toListParams({
+      ...query,
+      filters: {
+        domain: codesFilter(domains),
+        situation: codesFilter(situations),
+      },
+    }),
   });
+  return toDocumentListResponse(page);
 }
 
 export async function fetchDocumentDetail(params: {

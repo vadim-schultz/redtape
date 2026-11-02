@@ -7,6 +7,11 @@ import BrandMark from "./BrandMark";
 import { floatingSurface } from "./floatingSurface";
 import AppMenuPanel from "./menu/AppMenuPanel";
 
+/** True for clicks on a link or an element marked `data-closes-menu`. */
+const closesMenu = (target: EventTarget) =>
+  target instanceof Element &&
+  target.closest("a[href], [data-closes-menu]") !== null;
+
 /** Gothic R trigger opening the app menu key–value panel. */
 const AppMenu = () => {
   const { t } = useLocale();
@@ -29,7 +34,7 @@ const AppMenu = () => {
       </Menu.Trigger>
       <Portal>
         <Menu.Positioner>
-          <Menu.Content>
+          <Menu.Content onClick={(e) => closesMenu(e.target) && setOpen(false)}>
             <AppMenuPanel onCloseMenu={() => setOpen(false)} />
           </Menu.Content>
         </Menu.Positioner>

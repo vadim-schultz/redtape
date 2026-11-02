@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { it, expect } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -7,9 +8,16 @@ import DocumentCard from "./DocumentCard";
 
 const baseDocument: DocumentSummary = {
   id: "doc-1",
-  slug: "doc-1-slug",
   title: "Residency Registration",
+  description: null,
+  tags: [],
+  confidence: 0.5,
 };
+
+function StateProbe() {
+  const state = useLocation().state as { fromList?: boolean } | null;
+  return <p data-testid="from-list">{String(Boolean(state?.fromList))}</p>;
+}
 
 it("DocumentCard · renders title inside a card", async () => {
   renderWithProviders(<DocumentCard document={baseDocument} />);
@@ -23,11 +31,54 @@ it("DocumentCard · renders title inside a card", async () => {
   );
 });
 
-it("DocumentCard · links to document detail path", async () => {
+it("DocumentCard · links to the candidate item page", async () => {
   renderWithProviders(<DocumentCard document={baseDocument} />);
 
   const link = await screen.findByRole("link");
-  expect(link).toHaveAttribute("href", "/documents/doc-1");
+  expect(link).toHaveAttribute("href", "/candidates/doc-1");
+});
+
+it("DocumentCard · carries fromList state so the item page can return to the list", async () => {
+  const { user } = renderWithProviders(
+    <Routes>
+      <Route path="/" element={<DocumentCard document={baseDocument} />} />
+      <Route path="/candidates/:id" element={<StateProbe />} />
+    </Routes>,
+  );
+
+  await user.click(await screen.findByRole("link"));
+
+  expect(screen.getByTestId("from-list")).toHaveTextContent("true");
+});
+
+it("DocumentCard · shows its tags as plain badges, most confident first", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{
+        ...baseDocument,
+        tags: [
+          {
+            axis: "situation",
+            code: "moving",
+            name: "Moving",
+            confidence: 0.9,
+          },
+          { axis: "domain", code: "housing", name: "Housing", confidence: 0.4 },
+        ],
+      }}
+    />,
+  );
+
+  const link = await screen.findByRole("link");
+  expect(link).toHaveTextContent(/Moving.*Housing/);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+});
+
+it("DocumentCard · renders no tag row for an untagged document", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  const link = await screen.findByRole("link");
+  expect(link.querySelector(".chakra-badge")).toBeNull();
 });
 
 it("DocumentCard · omits description when document has none", async () => {
@@ -63,4 +114,22 @@ it("DocumentCard · hover motion uses theme duration and easing tokens", async (
 
   expect(style.transitionDuration).toBe("var(--chakra-durations-normal)");
   expect(style.transitionTimingFunction).toBe("var(--chakra-easings-ease-out)");
+});
+
+it("DocumentCard · shows the confidence circle with the card's confidence", async () => {
+  renderWithProviders(
+    <DocumentCard document={{ ...baseDocument, confidence: 0.82 }} />,
+  );
+
+  const bar = await screen.findByRole("progressbar");
+  expect(bar).toHaveAttribute("aria-valuenow", "82");
+  expect(bar).toHaveAccessibleName("Confidence 82%, high");
+});
+
+it("DocumentCard · the circle adds no second interactive element", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("progressbar");
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(screen.queryByRole("button")).toBeNull();
 });

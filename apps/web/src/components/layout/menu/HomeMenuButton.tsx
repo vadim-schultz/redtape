@@ -9,7 +9,7 @@ export default function HomeMenuButton() {
   const { t } = useLocale();
 
   return (
-    <Button asChild justifyContent="flex-start" variant="ghost" w="full">
+    <Button asChild justifyContent="center" variant="ghost" w="full">
       <RouterLink to="/">
         <FaHome aria-hidden="true" />
         {t("nav.home")}

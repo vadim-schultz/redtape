@@ -10,7 +10,8 @@ from __future__ import annotations
 from sqlalchemy import select, union
 from sqlalchemy.sql.expression import Select, Subquery
 
-from app.features.discovery.repository.candidate_completeness_tags import TagAxis, axis_acceptance
+from app.features.discovery.repository.candidate_completeness_tags import axis_acceptance
+from app.features.discovery.tags import TagAxis
 from app.models.discovery import DiscoveryArtifact as Artifact
 from app.models.discovery import DiscoveryArtifactKind
 from app.models.discovery import DiscoveryCandidateEdge as Edge

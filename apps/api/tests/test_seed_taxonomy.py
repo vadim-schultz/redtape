@@ -4,6 +4,8 @@ import re
 
 import pytest
 import sqlalchemy as sa
+from app.models.document import Document
+from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.taxonomy import (
     CODE_PATTERN,
     Domain,
@@ -13,7 +15,6 @@ from app.models.taxonomy import (
     document_life_situation,
 )
 from scripts.seed_data.taxonomy import DOMAINS, SITUATION_GROUP_CODES, SITUATION_GROUPS, SITUATIONS, Term, term_id
-from scripts.seed_documents import ID_DOC_GEBURT, seed_mvp_graph
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,6 @@ def _count(session: Session, table: sa.Table | type) -> int:
 
 
 def _seeded(session: Session) -> Session:
-    seed_mvp_graph(session)
     seed_taxonomy(session)
     session.flush()
     return session
@@ -147,36 +147,29 @@ def test_seed_assigns_every_situation_exactly_the_group_the_architecture_table_s
 
 def test_second_run_creates_no_duplicates(db_session: Session) -> None:
     _seeded(db_session)
-    before = [
-        _count(db_session, t)
-        for t in (Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation)
-    ]
+    before = [_count(db_session, t) for t in (Domain, LifeSituation, LifeSituationGroup)]
 
     seed_taxonomy(db_session)
     db_session.flush()
 
-    assert [
-        _count(db_session, t)
-        for t in (Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation)
-    ] == before
+    assert [_count(db_session, t) for t in (Domain, LifeSituation, LifeSituationGroup)] == before
 
 
-def test_seed_tags_geburtsurkunde_with_birth_of_child(db_session: Session) -> None:
+def test_seed_creates_and_tags_no_document(db_session: Session) -> None:
     _seeded(db_session)
 
-    codes = db_session.execute(
-        sa.select(LifeSituation.code)
-        .join(document_life_situation, document_life_situation.c.life_situation_id == LifeSituation.id)
-        .where(document_life_situation.c.document_id == ID_DOC_GEBURT)
-    ).scalars()
+    counts = [_count(db_session, t) for t in (Document, document_domain, document_life_situation)]
 
-    assert "birth-of-child" in set(codes)
+    assert counts == [0, 0, 0]
 
 
-def test_unknown_code_raises_before_writing(db_session: Session) -> None:
-    seed_mvp_graph(db_session)
+def test_seed_leaves_an_existing_document_untagged(db_session: Session) -> None:
+    country = Jurisdiction(kind=JurisdictionKind.COUNTRY, geographic_parent_id=None, code="DE")
+    db_session.add(country)
+    db_session.flush()
+    db_session.add(Document(slug="some-real-document", title_i18n={"en": "Real"}, jurisdiction_id=country.id))
+    db_session.flush()
 
-    with pytest.raises(ValueError, match="no-such-code"):
-        seed_taxonomy(db_session, tags={ID_DOC_GEBURT: (("no-such-code",), ())})
+    _seeded(db_session)
 
-    assert _count(db_session, Domain) == 0
+    assert _count(db_session, document_domain) == _count(db_session, document_life_situation) == 0

@@ -70,7 +70,7 @@ def api_key(db_session: Session) -> ApiKey:
 @pytest.fixture
 def domain_code(db_session: Session) -> str:
     # tags={}: this suite only resolves codes, not documents.
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     db_session.flush()
     return db_session.scalars(select(Domain.code)).first()
 

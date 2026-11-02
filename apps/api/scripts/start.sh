@@ -10,10 +10,10 @@ set -e
 
 alembic upgrade head
 # One-time data repair (see scripts/fix_saxony_jurisdiction_leak.py); must run
-# before seed_documents so it finds Saxony's real jurisdictions already in place.
+# before seed_jurisdictions so it finds Saxony's real jurisdictions already in place.
 python -m scripts.fix_saxony_jurisdiction_leak
 python -m scripts.seed_i18n
-python -m scripts.seed_documents
+python -m scripts.seed_jurisdictions
 python -m scripts.seed_taxonomy
 
 exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"

@@ -1,7 +1,8 @@
-/** An accepted taxonomy code with its localized name. */
+/** A scored taxonomy code with its localized name; `confidence` is its score in `[0, 1]`. */
 export type TaxonomyTag = {
   code: string;
   name: string;
+  confidence: number;
 };
 
 /** The five completeness flags of a candidate, as the public API nests them. */
@@ -15,7 +16,7 @@ export type CompletenessFlags = {
 
 export type CandidateStatus = "staged" | "emitted";
 
-/** One candidate of the ranked public list. */
+/** One candidate of the ranked public list; `confidence` is the filter-aware card confidence. */
 export type CandidateCard = {
   id: string;
   key: string;
@@ -29,6 +30,7 @@ export type CandidateCard = {
   complete: boolean;
   flags: CompletenessFlags;
   mention_count: number;
+  confidence: number;
 };
 
 export type CandidateListResponse = {
@@ -37,10 +39,5 @@ export type CandidateListResponse = {
   offset: number;
   limit: number;
 };
-
-export type CandidateSortKey =
-  "completeness" | "title" | "mentions" | "created_at";
-
-export type CandidateFilterKey = "complete" | "domain" | "situation";
 
 export * from "./detail";

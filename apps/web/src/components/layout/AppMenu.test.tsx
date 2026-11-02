@@ -263,19 +263,17 @@ it("AppMenu · anonymous user does not see discovery links", async () => {
   expect(screen.queryByRole("link", { name: "Tasks" })).not.toBeInTheDocument();
 });
 
-it("DocumentsMenuRow · uses labelled search and upward-arrow links", async () => {
+it("DocumentsMenuRow · uses a labelled search link and no suggest link", async () => {
   stubMenuRequests(200);
   await openMenu();
 
   const browse = await screen.findByRole("link", { name: "Browse Documents" });
-  const suggest = screen.getByRole("link", { name: "Suggest" });
 
   expect(browse).toHaveAttribute("href", "/documents");
   expect(browse.querySelector("svg")).toBeTruthy();
   expect(browse).not.toHaveTextContent("Browse Documents");
-  expect(suggest).toHaveAttribute("href", "/suggest");
-  expect(suggest.querySelector("svg")).toBeTruthy();
-  expect(suggest).not.toHaveTextContent("Suggest");
+  expect(screen.queryByRole("link", { name: "Suggest" })).toBeNull();
+  expect(document.querySelector('a[href="/suggest"]')).toBeNull();
 });
 
 it("AppMenu · Home button is first and navigates to /", async () => {
@@ -298,10 +296,6 @@ it("AppMenu · probe failure keeps ordinary document navigation", async () => {
   expect(
     await screen.findByRole("link", { name: "Browse Documents" }),
   ).toHaveAttribute("href", "/documents");
-  expect(screen.getByRole("link", { name: "Suggest" })).toHaveAttribute(
-    "href",
-    "/suggest",
-  );
   expect(
     screen.queryByRole("link", { name: "Catalogue" }),
   ).not.toBeInTheDocument();
@@ -340,7 +334,6 @@ it("AppMenu · shows an unavailable hint when the probe keeps returning 503", as
   expect(
     screen.getByRole("link", { name: "Browse Documents" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Suggest" })).toBeInTheDocument();
 });
 
 it("AppMenu · shows no hint for a 403 probe", async () => {
@@ -359,4 +352,72 @@ it("AppMenu · shows no hint for a 401 probe", async () => {
   await screen.findByRole("link", { name: "Browse Documents" });
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(screen.queryByText("Discovery unavailable")).not.toBeInTheDocument();
+});
+
+async function expectMenuClosed() {
+  await waitFor(() =>
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument(),
+  );
+}
+
+it("AppMenu · clicking Home closes the menu", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu();
+
+  await user.click(await screen.findByRole("link", { name: "Home" }));
+
+  await expectMenuClosed();
+});
+
+it("AppMenu · clicking a Documents row link closes the menu", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu();
+
+  await user.click(
+    await screen.findByRole("link", { name: "Browse Documents" }),
+  );
+
+  await expectMenuClosed();
+});
+
+it("AppMenu · clicking a profile sign-in link closes the menu", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu();
+
+  await user.click(
+    await screen.findByRole("link", { name: "Sign in with email" }),
+  );
+
+  await expectMenuClosed();
+});
+
+it("AppMenu · clicking a discovery admin link closes the menu", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu(
+    createFakeAuthGateway({ session: authSession }),
+  );
+
+  await user.click(await screen.findByRole("link", { name: "Catalogue" }));
+
+  await expectMenuClosed();
+});
+
+it("AppMenu · clicking Sign out closes the menu", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu(
+    createFakeAuthGateway({ session: authSession }),
+  );
+
+  await user.click(await screen.findByRole("button", { name: "Sign out" }));
+
+  await expectMenuClosed();
+});
+
+it("AppMenu · clicking the panel's plain label text keeps the menu open", async () => {
+  stubMenuRequests(200);
+  const { user } = await openMenu();
+
+  await user.click(await screen.findByText("Documents"));
+
+  expect(menuPanel()).toBeVisible();
 });

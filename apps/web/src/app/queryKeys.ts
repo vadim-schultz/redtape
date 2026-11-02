@@ -10,27 +10,13 @@ export const queryKeys = {
   },
   documents: {
     all: ["documents"] as const,
-    list: (
-      municipalityCode: string | null,
-      domains: string[],
-      situations: string[],
-      locale: string,
-    ) =>
-      [
-        ...queryKeys.documents.all,
-        "list",
-        municipalityCode,
-        domains,
-        situations,
-        locale,
-      ] as const,
+    list: (request: object, locale: string) =>
+      [...queryKeys.documents.all, "list", request, locale] as const,
     detail: (id: string | undefined) =>
       [...queryKeys.documents.all, "detail", id] as const,
   },
   candidates: {
     all: ["candidates"] as const,
-    list: (query: object, locale: string) =>
-      [...queryKeys.candidates.all, "list", query, locale] as const,
     detail: (id: string | undefined, locale: string) =>
       [...queryKeys.candidates.all, "detail", id, locale] as const,
   },

@@ -1,21 +1,19 @@
-"""Idempotent seed: Germany domains, life situations and tags on the seeded documents.
+"""Idempotent seed: Germany domains, life situation groups and life situations.
 
-Run from `apps/api` (after `seed_documents`):
+Run from `apps/api`:
   python -m scripts.seed_taxonomy
 """
 
 from __future__ import annotations
 
-import uuid
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 
 import sqlalchemy as sa
 from app.db import SessionLocal
-from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation
+from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup
 from sqlalchemy.orm import Session
 
 from scripts.seed_data.taxonomy import (
-    DOCUMENT_TAGS,
     DOMAINS,
     SITUATION_GROUP_CODES,
     SITUATION_GROUPS,
@@ -24,7 +22,6 @@ from scripts.seed_data.taxonomy import (
     term_id,
 )
 
-Tags = Mapping[uuid.UUID, tuple[tuple[str, ...], tuple[str, ...]]]
 TermModel = type[Domain] | type[LifeSituation] | type[LifeSituationGroup]
 
 
@@ -47,42 +44,20 @@ def _assign_situation_groups(session: Session) -> None:
         situation.group_id = term_id(SITUATION_GROUP_CODES[situation.code])
 
 
-def _link(session: Session, table: sa.Table, column: str, pairs: set[tuple[uuid.UUID, uuid.UUID]]) -> None:
-    existing = {(row[0], row[1]) for row in session.execute(sa.select(table.c.document_id, table.c[column]))}
-    rows = [{"document_id": doc, column: term} for doc, term in pairs - existing]
-    if rows:
-        session.execute(sa.insert(table), rows)
-
-
-def _validate_tags(tags: Tags) -> None:
-    known = {t.code for t in DOMAINS + SITUATIONS}
-    unknown = {code for domains, situations in tags.values() for code in (*domains, *situations)} - known
-    if unknown:
-        raise ValueError(f"tag map references unknown codes: {sorted(unknown)}")
-
-
-def _tag_documents(session: Session, tags: Tags) -> None:
-    domain_pairs = {(doc, term_id(c)) for doc, (domains, _) in tags.items() for c in domains}
-    situation_pairs = {(doc, term_id(c)) for doc, (_, situations) in tags.items() for c in situations}
-    _link(session, document_domain, "domain_id", domain_pairs)
-    _link(session, document_life_situation, "life_situation_id", situation_pairs)
-
-
-def seed_taxonomy(session: Session, tags: Tags = DOCUMENT_TAGS) -> None:
-    _validate_tags(tags)
+def seed_taxonomy(session: Session) -> None:
     _upsert_terms(session, LifeSituationGroup, SITUATION_GROUPS)
     _upsert_terms(session, Domain, DOMAINS)
     _upsert_terms(session, LifeSituation, SITUATIONS)
     session.flush()
     _assign_situation_groups(session)
-    _tag_documents(session, tags)
 
 
 def main() -> None:
     with SessionLocal() as session:
         seed_taxonomy(session)
         session.commit()
-    print("seed_taxonomy: 13 domains, 8 situation groups, 18 life situations and document tags upserted.")
+    counts = f"{len(DOMAINS)} domains, {len(SITUATION_GROUPS)} situation groups and {len(SITUATIONS)} life situations"
+    print(f"seed_taxonomy: {counts} upserted.")
 
 
 if __name__ == "__main__":

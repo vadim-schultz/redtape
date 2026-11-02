@@ -1,10 +1,15 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { it, expect, vi } from "vitest";
 
 import AppLayout from "../components/layout/AppLayout";
 import { createFakeAuthGateway } from "../features/auth/services/fakeAuthGateway";
 import { candidateDetailFixture } from "../test/candidateFixtures";
-import { json, stubCandidateDetailApi } from "../test/candidatesApiStub";
+import {
+  json,
+  listCalls,
+  stubCandidateDetailApi,
+  stubCandidatesApi,
+} from "../test/candidatesApiStub";
 import { renderWithProviders } from "../test/renderWithProviders";
 import App from "./App";
 
@@ -76,13 +81,16 @@ it("app · /documents still resolves", async () => {
   ).toBeInTheDocument();
 });
 
-it("app · /suggest redirects an anonymous visitor to /login", async () => {
+it("app · /suggest shows not-found, not a login redirect", async () => {
   window.localStorage.setItem("locale", "en");
   renderAppAt("/suggest", createFakeAuthGateway({ session: null }));
 
   expect(
-    await screen.findByRole("button", { name: "Send magic link" }),
+    await screen.findByRole("heading", { name: "Page not found" }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
 });
 
 it("app · /suggestions/:id needs no authentication", async () => {
@@ -97,16 +105,41 @@ it("app · /suggestions/:id needs no authentication", async () => {
   ).not.toBeInTheDocument();
 });
 
-it("app routes /candidates without a guard", async () => {
+it("app redirects /candidates to the documents list without a guard", async () => {
   window.localStorage.setItem("locale", "en");
   renderAppAt("/candidates", createFakeAuthGateway({ session: null }));
 
   expect(
-    await screen.findByRole("heading", { name: "Candidates" }),
+    await screen.findByRole("heading", { name: "Documents" }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Candidates" }),
+  ).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Send magic link" }),
   ).not.toBeInTheDocument();
+});
+
+it("app drops the old /candidates filter params instead of misreading them", async () => {
+  window.localStorage.setItem("locale", "en");
+  const fetchMock = stubCandidatesApi(() =>
+    json({ items: [], total: 0, offset: 0, limit: 20 }),
+  );
+  renderAppAt(
+    "/candidates?domain=x&complete=yes&sort_by=completeness",
+    createFakeAuthGateway({ session: null }),
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Documents" }),
+  ).toBeInTheDocument();
+  await waitFor(() => expect(listCalls(fetchMock)).not.toHaveLength(0));
+  for (const url of listCalls(fetchMock)) {
+    expect(url.search).not.toContain("domain");
+    expect(url.search).not.toContain("complete");
+    expect(url.search).not.toContain("completeness");
+  }
+  vi.unstubAllGlobals();
 });
 
 it("app routes /candidates/:id without a guard", async () => {
@@ -123,12 +156,12 @@ it("app routes /candidates/:id without a guard", async () => {
   vi.unstubAllGlobals();
 });
 
-it("app resolves /candidates/ with no id to the list", async () => {
+it("app resolves /candidates/ with no id to the documents list", async () => {
   window.localStorage.setItem("locale", "en");
   renderAppAt("/candidates/", createFakeAuthGateway({ session: null }));
 
   expect(
-    await screen.findByRole("heading", { name: "Candidates" }),
+    await screen.findByRole("heading", { name: "Documents" }),
   ).toBeInTheDocument();
 });
 
