@@ -11,15 +11,24 @@ from collections.abc import Iterable, Mapping
 
 import sqlalchemy as sa
 from app.db import SessionLocal
-from app.models.taxonomy import Domain, LifeSituation, document_domain, document_life_situation
+from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation
 from sqlalchemy.orm import Session
 
-from scripts.seed_data.taxonomy import DOCUMENT_TAGS, DOMAINS, SITUATIONS, Term, term_id
+from scripts.seed_data.taxonomy import (
+    DOCUMENT_TAGS,
+    DOMAINS,
+    SITUATION_GROUP_CODES,
+    SITUATION_GROUPS,
+    SITUATIONS,
+    Term,
+    term_id,
+)
 
 Tags = Mapping[uuid.UUID, tuple[tuple[str, ...], tuple[str, ...]]]
+TermModel = type[Domain] | type[LifeSituation] | type[LifeSituationGroup]
 
 
-def _upsert_terms(session: Session, model: type[Domain] | type[LifeSituation], terms: Iterable[Term]) -> None:
+def _upsert_terms(session: Session, model: TermModel, terms: Iterable[Term]) -> None:
     for term in terms:
         session.merge(
             model(
@@ -31,6 +40,11 @@ def _upsert_terms(session: Session, model: type[Domain] | type[LifeSituation], t
                 sort_order=term.sort_order,
             )
         )
+
+
+def _assign_situation_groups(session: Session) -> None:
+    for situation in session.scalars(sa.select(LifeSituation)):
+        situation.group_id = term_id(SITUATION_GROUP_CODES[situation.code])
 
 
 def _link(session: Session, table: sa.Table, column: str, pairs: set[tuple[uuid.UUID, uuid.UUID]]) -> None:
@@ -56,9 +70,11 @@ def _tag_documents(session: Session, tags: Tags) -> None:
 
 def seed_taxonomy(session: Session, tags: Tags = DOCUMENT_TAGS) -> None:
     _validate_tags(tags)
+    _upsert_terms(session, LifeSituationGroup, SITUATION_GROUPS)
     _upsert_terms(session, Domain, DOMAINS)
     _upsert_terms(session, LifeSituation, SITUATIONS)
     session.flush()
+    _assign_situation_groups(session)
     _tag_documents(session, tags)
 
 
@@ -66,7 +82,7 @@ def main() -> None:
     with SessionLocal() as session:
         seed_taxonomy(session)
         session.commit()
-    print("seed_taxonomy: 13 domains, 18 life situations and document tags upserted.")
+    print("seed_taxonomy: 13 domains, 8 situation groups, 18 life situations and document tags upserted.")
 
 
 if __name__ == "__main__":
