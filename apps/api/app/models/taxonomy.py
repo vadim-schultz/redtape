@@ -57,15 +57,22 @@ class LifeSituation(TaxonomyTermMixin, Base):
     group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("life_situation_group.id"), nullable=True)
 
 
-def _link_table(name: str, term: str) -> Table:
+def _link_table(name: str, term: str, *extra_columns: Column) -> Table:
     return Table(
         name,
         Base.metadata,
         Column("document_id", Uuid(as_uuid=True), ForeignKey("document.id", ondelete="CASCADE"), primary_key=True),
         Column(f"{term}_id", Uuid(as_uuid=True), ForeignKey(f"{term}.id", ondelete="CASCADE"), primary_key=True),
         Column("confidence", Float, nullable=False, server_default=text("1.0")),
+        *extra_columns,
     )
 
 
 document_domain = _link_table("document_domain", "domain")
-document_life_situation = _link_table("document_life_situation", "life_situation")
+document_life_situation = _link_table(
+    "document_life_situation",
+    "life_situation",
+    # The leaf-refinement facet is situation-only (chapter 3's own "Out of scope") — never added to
+    # document_domain, where a domain hint only ever contributes to scoring, not a browsable facet.
+    Column("pvog_leaf_code", String(64), nullable=True),
+)

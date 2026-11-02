@@ -13,7 +13,10 @@ import uuid
 
 import pytest
 from app.features.discovery.candidate_tags import candidate_tag_suggestions, usable_codes
-from app.features.discovery.repository.candidate_completeness_tags import candidate_axis_support
+from app.features.discovery.repository.candidate_completeness_tags import (
+    candidate_axis_support,
+    candidate_situation_leaf_codes,
+)
 from app.features.discovery.tags import MANUAL_EXTRACTOR, MIN_SUGGESTED_SCORE, TagAxis, TagSupport
 from sqlalchemy.orm import Session
 
@@ -202,3 +205,36 @@ def test_the_merged_engine_and_the_bulk_sql_agree_on_manual_fixtures(db_session:
 
     assert set(usable_codes(suggestions.domains)) == set(sql.accepted_domain_codes)
     assert set(usable_codes(suggestions.situations)) == set(sql.accepted_situation_codes)
+
+
+def test_candidate_situation_leaf_codes_is_empty_without_any_pvog_mention(db_session: Session) -> None:
+    subject_id = _staged(db_session, [Row(0, None, ["moving-house"])])
+
+    assert candidate_situation_leaf_codes(db_session, subject_id) == {}
+
+
+def test_candidate_situation_leaf_codes_maps_each_situation_code_to_its_leaf(db_session: Session) -> None:
+    rows = [
+        Row(0, None, ["moving-house", "renting-home"], "pvog", None, 0.65, "1050200"),
+        Row(1, None, ["retirement"], "llm"),
+    ]
+    subject_id = _staged(db_session, rows, procs=2)
+
+    assert candidate_situation_leaf_codes(db_session, subject_id) == {
+        "moving-house": "1050200",
+        "renting-home": "1050200",
+    }
+
+
+def test_candidate_situation_leaf_codes_takes_the_first_leaf_deterministically_when_leaves_disagree(
+    db_session: Session,
+) -> None:
+    """Rare: two PVOG mentions assert the same situation code with different leaves — take the first,
+    sorted, rather than an arbitrary one."""
+    rows = [
+        Row(0, None, ["illness-care"], "pvog", None, 0.65, "1130100"),
+        Row(1, None, ["illness-care"], "pvog", None, 0.95, "1130200"),
+    ]
+    subject_id = _staged(db_session, rows, procs=2)
+
+    assert candidate_situation_leaf_codes(db_session, subject_id) == {"illness-care": "1130100"}
