@@ -178,3 +178,124 @@ def test_two_unknown_codes_are_two_errors(client: TestClient[Litestar], scene: S
 
 def test_sort_order_without_sort_by_is_still_a_422(client: TestClient[Litestar]) -> None:
     assert [error["key"] for error in _errors(client, sort_order="desc")] == ["sort_order"]
+
+
+# --- card confidence --------------------------------------------------------------------------------------------
+
+
+def _confidences(body: dict) -> dict[str, float]:
+    return {item["key"]: item["confidence"] for item in body["items"]}
+
+
+def test_card_confidence_is_the_max_score_over_the_selected_codes(client: TestClient[Litestar], scene: Scene) -> None:
+    scene.scored("doc", domains={HOUSING: 0.3, IDENTITY: 0.8}, situations={MOVING: 0.6, MARRIAGE: 0.95})
+
+    housing = _confidences(_get(client, **{"filter[domain]": HOUSING}))
+    both_domains = _confidences(_get(client, **{"filter[domain]": f"{HOUSING},{IDENTITY}"}))
+    across = _confidences(_get(client, **{"filter[domain]": HOUSING, "filter[situation]": MOVING}))
+
+    assert housing == pytest.approx({"doc": 0.3})
+    assert both_domains == pytest.approx({"doc": 0.8})
+    assert across == pytest.approx({"doc": 0.6})
+
+
+def test_card_confidence_is_the_max_over_all_tags_without_a_selection(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    scene.scored("doc", domains={HOUSING: 0.3, IDENTITY: 0.8}, situations={MARRIAGE: 0.95})
+    scene.candidate("bare")
+
+    confidences = _confidences(_get(client))
+
+    assert confidences == pytest.approx({"doc": 0.95, "bare": 0.0})
+
+
+def test_detail_confidence_is_the_max_over_all_tags(client: TestClient[Litestar], scene: Scene) -> None:
+    doc = scene.scored("doc", domains={HOUSING: 0.3}, situations={MOVING: 0.7})
+    bare = scene.candidate("bare")
+
+    assert client.get(f"{URL}/{doc.id}").json()["confidence"] == pytest.approx(0.7)
+    assert client.get(f"{URL}/{bare.id}").json()["confidence"] == 0.0
+
+
+# --- confidence order -------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("order", "expected"),
+    [("desc", ["high", "mid", "low"]), ("asc", ["low", "mid", "high"])],
+)
+def test_sort_by_confidence_orders_by_the_card_confidence(
+    client: TestClient[Litestar], scene: Scene, order: str, expected: list[str]
+) -> None:
+    scene.scored("mid", domains={HOUSING: 0.5})
+    scene.scored("high", domains={HOUSING: 0.9})
+    scene.scored("low", domains={HOUSING: 0.1})
+
+    body = _get(client, sort_by="confidence", sort_order=order)
+
+    assert _keys(body) == expected
+    assert list(_confidences(body).values()) == sorted(_confidences(body).values(), reverse=order == "desc")
+
+
+def test_sort_by_confidence_follows_the_selected_codes_not_the_best_tag(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    scene.scored("best-elsewhere", domains={HOUSING: 0.3, IDENTITY: 0.9})
+    scene.scored("best-here", domains={HOUSING: 0.5})
+
+    body = _get(client, **{"filter[domain]": HOUSING, "sort_by": "confidence", "sort_order": "desc"})
+
+    assert _keys(body) == ["best-here", "best-elsewhere"]
+    assert list(_confidences(body).values()) == pytest.approx([0.5, 0.3])
+
+
+def test_equal_confidences_fall_back_to_the_deterministic_tie_break(client: TestClient[Litestar], scene: Scene) -> None:
+    for key in ("c-doc", "a-doc", "b-doc"):
+        scene.scored(key, domains={HOUSING: 0.5})
+
+    body = _get(client, sort_by="confidence", sort_order="desc")
+
+    assert _keys(body) == ["a-doc", "b-doc", "c-doc"]
+
+
+def test_the_default_order_is_confidence_before_completeness(client: TestClient[Litestar], scene: Scene) -> None:
+    scene.complete_candidate("complete")
+    scene.scored("surer", domains={HOUSING: 0.95})
+
+    body = _get(client)
+
+    assert _keys(body)[:2] == ["surer", "complete"]
+    assert _keys(body)[-1] == "complete-needs"
+
+
+def test_the_default_order_breaks_equal_confidence_by_completeness_then_mentions(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    scene.scored("a-bare", domains={HOUSING: 0.5})
+    equal = scene.scored("z-with-edge", domains={HOUSING: 0.5})
+    scene.edge(equal, scene.candidate("needed"))
+
+    assert _keys(_get(client))[:2] == ["z-with-edge", "a-bare"]
+
+
+def test_sort_by_completeness_keeps_its_own_order(client: TestClient[Litestar], scene: Scene) -> None:
+    scene.complete_candidate("complete")
+    scene.scored("surer", domains={HOUSING: 0.95})
+
+    body = _get(client, sort_by="completeness", sort_order="desc")
+
+    assert _keys(body)[0] == "complete"
+
+
+def test_sort_by_confidence_rejects_a_bad_direction_naming_sort_order(client: TestClient[Litestar]) -> None:
+    errors = _errors(client, sort_by="confidence", sort_order="sideways")
+
+    assert [error["key"] for error in errors] == ["sort_order"]
+
+
+def test_sort_by_an_unknown_key_still_lists_confidence_as_allowed(client: TestClient[Litestar]) -> None:
+    [error] = _errors(client, sort_by="secret")
+
+    assert error["key"] == "sort_by"
+    assert "confidence" in error["message"]

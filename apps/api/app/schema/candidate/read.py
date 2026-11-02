@@ -33,7 +33,7 @@ class CandidateFlags(BaseModel):
 
 
 class CandidateCard(BaseModel):
-    """One candidate in the ranked list."""
+    """One candidate in the ranked list; ``confidence`` is its best score among the selected codes, else overall."""
 
     model_config = ConfigDict(from_attributes=False)
 
@@ -49,6 +49,7 @@ class CandidateCard(BaseModel):
     complete: bool
     flags: CandidateFlags
     mention_count: int
+    confidence: float
 
 
 class CandidateListResponse(BaseModel):
