@@ -2,6 +2,7 @@ import { accent, primary } from "./palettes";
 import { badge } from "./badge";
 import { bg, surface } from "./surfaces";
 import { brand } from "./brand";
+import { chip } from "./chip";
 import { border } from "./borders";
 import { focus } from "./focus";
 import { input } from "./fields";
@@ -26,5 +27,6 @@ export const semanticColors = {
   badge,
   nav,
   brand,
+  chip,
   input,
 };

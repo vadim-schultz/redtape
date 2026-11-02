@@ -100,6 +100,45 @@ it("DocumentsListPage · passes the URL filters to the candidate API as CSV", as
   expect(params.get("filter[situation]")).toBe("s2");
 });
 
+it("DocumentsListPage · a group in the URL sends every situation code of the group", async () => {
+  renderWithProviders(<DocumentsListPage />, {
+    initialEntries: ["/documents?group=g1"],
+  });
+
+  await waitFor(() =>
+    expect(documentsCalls().at(-1)?.searchParams.get("filter[situation]")).toBe(
+      "s1,s2",
+    ),
+  );
+  expect(await pressed("G1")).toBeInTheDocument();
+});
+
+it("DocumentsListPage · an unknown group sends no situation filter and presses nothing", async () => {
+  renderWithProviders(<DocumentsListPage />, {
+    initialEntries: ["/documents?group=nope"],
+  });
+
+  await screen.findByRole("button", { name: "G1" });
+  await waitFor(() => expect(documentsCalls()).not.toHaveLength(0));
+
+  expect(screen.queryByRole("button", { pressed: true })).toBeNull();
+  expect(
+    documentsCalls().every((url) => !url.searchParams.has("filter[situation]")),
+  ).toBe(true);
+});
+
+it("DocumentsListPage · a group plus a situation in the URL sends their de-duplicated union once the taxonomy is loaded", async () => {
+  renderWithProviders(<DocumentsListPage />, {
+    initialEntries: ["/documents?group=g1&situation=s2"],
+  });
+
+  await waitFor(() =>
+    expect(documentsCalls().at(-1)?.searchParams.get("filter[situation]")).toBe(
+      "s2,s1",
+    ),
+  );
+});
+
 it("DocumentsListPage · without chips no filter reaches the API", async () => {
   renderWithProviders(<DocumentsListPage />);
 
