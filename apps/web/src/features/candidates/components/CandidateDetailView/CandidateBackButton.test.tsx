@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, expect, it } from "vitest";
 
 import {
@@ -10,33 +10,40 @@ import CandidateBackButton from "./CandidateBackButton";
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 
+function ListProbe() {
+  const { pathname, search } = useLocation();
+  return <p data-testid="list-url">{`${pathname}${search}`}</p>;
+}
+
 function renderFrom(entries: RenderWithProvidersOptions) {
   return renderWithProviders(
     <Routes>
-      <Route path="/candidates" element={<p>the list</p>} />
+      <Route path="/documents" element={<ListProbe />} />
       <Route path="/candidates/:id" element={<CandidateBackButton />} />
     </Routes>,
     entries,
   );
 }
 
-it("candidate back button goes back when the list is the previous entry", async () => {
+it("candidate back button restores the documents list with its filters when it is the previous entry", async () => {
   const { user } = renderFrom({
     initialEntries: [
-      "/candidates?q=pass",
+      "/documents?q=ausweis&domain=housing",
       { pathname: "/candidates/c1", state: { fromList: true } },
     ],
   });
 
   await user.click(screen.getByRole("button", { name: /Back to the list/ }));
 
-  expect(screen.getByText("the list")).toBeInTheDocument();
+  expect(screen.getByTestId("list-url")).toHaveTextContent(
+    "/documents?q=ausweis&domain=housing",
+  );
 });
 
-it("candidate back button links to the plain list otherwise", () => {
+it("candidate back button links to the plain documents list on a direct visit", () => {
   renderFrom({ initialEntries: ["/candidates/c1"] });
 
   expect(
     screen.getByRole("link", { name: /Back to the list/ }),
-  ).toHaveAttribute("href", "/candidates");
+  ).toHaveAttribute("href", "/documents");
 });

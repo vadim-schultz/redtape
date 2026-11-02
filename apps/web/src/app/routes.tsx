@@ -3,7 +3,6 @@ import { Navigate } from "react-router-dom";
 
 import LoadingShell from "./LoadingShell";
 import { CandidateDetailSkeleton } from "../features/candidates/components/CandidateDetailView";
-import { CandidatesListSkeleton } from "../features/candidates/components/CandidatesListView";
 import { DocumentDetailSkeleton } from "../features/documents/components/DocumentDetailView";
 import { DocumentsListSkeleton } from "../features/documents/components/DocumentsListView";
 import { SuggestionDetailSkeleton } from "../features/suggestions/components/SuggestionDetailView";
@@ -14,9 +13,6 @@ const DocumentsListPage = lazy(
 );
 const DocumentDetailPage = lazy(
   () => import("../features/documents/containers/DocumentDetailPage"),
-);
-const CandidatesListPage = lazy(
-  () => import("../features/candidates/containers/CandidatesListPage"),
 );
 const CandidateDetailPage = lazy(
   () => import("../features/candidates/containers/CandidateDetailPage"),
@@ -58,14 +54,7 @@ export const routes = [
       </Suspense>
     ),
   },
-  {
-    path: "/candidates",
-    element: (
-      <Suspense fallback={<CandidatesListSkeleton />}>
-        <CandidatesListPage />
-      </Suspense>
-    ),
-  },
+  { path: "/candidates", element: <Navigate to="/documents" replace /> },
   {
     path: "/candidates/:id",
     element: (

@@ -40,9 +40,4 @@ export type CandidateListResponse = {
   limit: number;
 };
 
-export type CandidateSortKey =
-  "completeness" | "title" | "mentions" | "created_at";
-
-export type CandidateFilterKey = "complete" | "domain" | "situation";
-
 export * from "./detail";
