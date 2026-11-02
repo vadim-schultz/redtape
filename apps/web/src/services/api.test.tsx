@@ -39,6 +39,16 @@ it("apiRequest · sends no Authorization header without a token", async () => {
   expect(requestHeaders(0).has("Authorization")).toBe(false);
 });
 
+it("apiRequest · throws ApiRequestError with status and body for a non-OK response", async () => {
+  fetchMock.mockImplementation(
+    async () => new Response("not found", { status: 404 }),
+  );
+
+  await expect(
+    apiRequest("/api/v1/documents", { locale: "en" }),
+  ).rejects.toMatchObject({ status: 404, bodyText: "not found" });
+});
+
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
