@@ -11,12 +11,13 @@ from app.models.discovery import DiscoveryCandidateStatus, DiscoveryEdgeBasis, D
 
 
 class CandidateTag(BaseModel):
-    """An accepted taxonomy code with its localized name."""
+    """A taxonomy code of a candidate with its localized name and its score in ``[0, 1]``."""
 
     model_config = ConfigDict(from_attributes=False)
 
     code: str
     name: str
+    confidence: float
 
 
 class CandidateFlags(BaseModel):
