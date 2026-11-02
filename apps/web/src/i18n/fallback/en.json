@@ -77,7 +77,11 @@
     "sort_title": "Title",
     "sort_newest": "Newest",
     "sort_asc": "Ascending",
-    "sort_desc": "Descending"
+    "sort_desc": "Descending",
+    "confidence_aria": "Confidence {percent}%, {band}",
+    "confidence_low": "low",
+    "confidence_mid": "medium",
+    "confidence_high": "high"
   },
   "candidates": {
     "banner_title": "Staged and unreviewed",
