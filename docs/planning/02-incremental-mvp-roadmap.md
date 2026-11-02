@@ -56,7 +56,9 @@ Aligns with [directions/i18n-localization/README.md](directions/i18n-localizatio
 
 ## Wave 1 — Backend (`apps/api`): skeleton to seeded graph
 
-**Status: Done.** B1–B13 all landed — see [`apps/api/app/`](../../apps/api/app/), migration [`20260506_wave1_graph.py`](../../apps/api/alembic/versions/20260506_wave1_graph.py), and [`apps/api/scripts/seed_documents.py`](../../apps/api/scripts/seed_documents.py). Live status detail: [STATUS.md](STATUS.md).
+**Update, 2026-11-02:** the web document list is now candidate-backed (the sample documents below are removed); see [STATUS.md](STATUS.md) and the [document-browse-confidence](../../.plans/document-browse-confidence/00-architecture.md) plan. The steps below are kept as history.
+
+**Status: Done.** B1–B13 all landed — see [`apps/api/app/`](../../apps/api/app/), migration [`20260506_wave1_graph.py`](../../apps/api/alembic/versions/20260506_wave1_graph.py), and [`apps/api/scripts/seed_jurisdictions.py`](../../apps/api/scripts/seed_jurisdictions.py). Live status detail: [STATUS.md](STATUS.md).
 
 | Step | Outcome | Notes |
 |------|---------|--------|

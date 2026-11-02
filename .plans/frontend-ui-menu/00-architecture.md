@@ -28,7 +28,7 @@ app uses a clearer **1 : 3** key–value row layout for panel settings.
 
 Menu panel (KeyValueRow × 4):
   Profile     | ✉  G  (or user icon when signed in)
-  Documents   | Documents link · Suggest link
+  Documents   | Documents link
   Colour mode | sun — switch — moon
   Language    | 🇬🇧  🇩🇪  (ghost; selected highlighted)
 ```
@@ -39,6 +39,7 @@ Menu panel (KeyValueRow × 4):
 | Profile row | Anonymous: `FaEnvelope` and `FaGoogle` → `/login` (UI-only; no OAuth). Authenticated: `FaRegUser` + compact sign-out (today’s account behaviour). Unconfigured: row omitted. |
 | Documents row | Links to `/documents` (the `/suggest` link was removed by [document-browse-confidence](../document-browse-confidence/chapters/06-menu-chrome.md) ch. 6). |
 | Colour row | Existing `ColorModeSwitch`; toggling does **not** close the menu. |
+| Later change | The menu has no `/suggest` or `/candidates` link, Home is centred, and the menu closes on select (links, sign-out, language flag; not the colour switch): [document-browse-confidence](../document-browse-confidence/chapters/06-menu-chrome.md) ch. 6. |
 | Language row | Inline flag ghost buttons from `useLocalesQuery`; replaces nested `LocaleSubmenu`. |
 
 ## 3. Component tree (target)

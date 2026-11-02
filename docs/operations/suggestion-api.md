@@ -6,7 +6,17 @@ one writing to `document` or `document_requirement` directly. Design and decisio
 [`gaps-and-decisions.md`](../../.plans/suggestion-interface/gaps-and-decisions.md).
 
 Suggestions always land `pending`. Nothing in this API approves, rejects, or promotes one into the
-catalogue — that's the (not yet built) `voting-moderation` suite.
+catalogue. Voting (`PUT`/`DELETE /api/v1/suggestions/{id}/vote`) is a separate route group, and a
+suggestion at +3 votes is promoted into `document`.
+
+**Dormant.** The suggestion flow is no longer part of the browse flow. The public `/documents` list reads
+the discovered candidates directly ([candidate-view.md](candidate-view.md)), so a document does not need to
+be suggested, voted and promoted to appear. The web UI no longer links to the submit form: the `/suggest`
+page and its menu link are removed, while `/suggestions` and `/suggestions/:id` remain. This API is
+unchanged and keeps working for crawlers and for the discovery emit
+([discovery-layer.md](discovery-layer.md#emit-vote-and-promote-are-dormant)). Removing it is a later
+decision (D3 and the open seam S5 in
+[`.plans/document-browse-confidence/gaps-and-decisions.md`](../../.plans/document-browse-confidence/gaps-and-decisions.md)).
 
 ## Routes
 
@@ -33,7 +43,7 @@ Errors below); send neither and you get a plain 401.
 
 - `kind` — `"new_document"` or `"new_requirement"`. Selects which shape `payload` must match.
 - Exactly one of `jurisdiction_id` (a stable jurisdiction UUID — what crawlers use) or `municipality_code`
-  (what the web picker sends) is required. Both or neither → 422.
+  (what the removed web form sent) is required. Both or neither → 422.
 - `source_url` — where the information was found. **Required for crawler (`X-API-Key`) submissions**;
   optional for human ones. Must be `http(s)`.
 - Unknown fields anywhere in the body are rejected (`extra="forbid"`), including in `payload`.

@@ -102,6 +102,14 @@ coverage pages differ. The release PR to `main` is pending; the manual smoke and
 done. Guide and smoke checks: [`candidate-view.md`](../operations/candidate-view.md); plan:
 [`.plans/candidate-view/`](../../.plans/candidate-view/00-architecture.md).
 
+**Update, 2026-11-02 — the document list is candidate-backed.** `/documents` is now served by `GET /api/v1/candidates`:
+every discovered candidate is searchable and sortable, chips filter by presence of a code, and a traffic-light
+confidence circle shows the tag confidence. `/candidates` redirects to `/documents`; emit, vote and promote are dormant,
+the `/suggest` UI is unlinked and the four sample documents are removed. Built on loop branch
+`feat/plans-document-browse-confidence` (release PR to `main` and the live check pending). Guide:
+[`candidate-view.md`](../operations/candidate-view.md); plan:
+[`.plans/document-browse-confidence/`](../../.plans/document-browse-confidence/00-architecture.md).
+
 ## Next step
 
 **Confirm the live frontend can actually talk to the live API (Wave 3, D9 smoke tests):** deploy the Worker + SPA (same-origin `/api` proxy), then click through `https://redtape-web.vadim-schultz.workers.dev` and confirm DevTools → Network shows same-origin `…/api/v1/…` requests succeeding. Re-run [deployment-checklist.md](../operations/deployment-checklist.md) against both live URLs. Until that's done, "Wave 3 complete" isn't a safe claim regardless of how complete the config looks.
