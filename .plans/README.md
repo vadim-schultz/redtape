@@ -459,6 +459,24 @@ Status: shipped on the loop branch (chapters 1–10); the release PR to `main` a
 ([chapters/11-live-validation.md](document-browse-confidence/chapters/11-live-validation.md)) are pending.
 Operator guide: [`docs/operations/candidate-view.md`](../docs/operations/candidate-view.md).
 
+### [codebase-audit/](codebase-audit/) — Smell-first audit and remediation of API, ingest and web
+
+Audit of all three code areas with the refactoring skill (2026-11-02): three correctness defects, drifted
+duplicated logic, the never-remediated `apps/discovery-ingest` (Typer CLI as a thin wrapper over a client
+facade and operations layer, modelled on `rsb-test-storage-client`), typed replacements for every `Any`,
+and pydocstyle plus `ANN401`/`TID251` gates. 25 chapters in five parallel batches; loop branch
+`feat/plans-codebase-audit`. Documentation only: nothing here changes code.
+
+| Doc | What it is |
+| --- | --- |
+| [00-audit-report.md](codebase-audit/00-audit-report.md) | Baseline, verdict, findings by ID, leave-alone list, `Any` typing design |
+| [01-rollout.md](codebase-audit/01-rollout.md) | Standard, dependency graph, touches/after table, parallel batches, finding-to-chapter map |
+| [gaps-and-decisions.md](codebase-audit/gaps-and-decisions.md) | Operator decisions U1–U5, open decisions D1–D5, open seams |
+| [run-ledger.md](codebase-audit/run-ledger.md) | Per-chapter evidence table and release gate |
+| [chapters/](codebase-audit/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. First batch: T1 step 1, T2, T3, A1–A4, B1, B6, W1, W2.
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
