@@ -1,11 +1,11 @@
 import { Stack } from "@chakra-ui/react";
 
+import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CatalogueList } from "../hooks/useCatalogueListState";
 import type { CataloguePanel } from "../hooks/useCatalogueState";
 import CatalogueServicesTable from "./CatalogueServicesTable";
 import CatalogueSummaryChips from "./CatalogueSummaryChips";
-import ListSearch from "./ListSearch";
 
 export interface CatalogueIndexPanelProps {
   panel: CataloguePanel;
@@ -24,9 +24,9 @@ export default function CatalogueIndexPanel({
       {panel.page ? (
         <CatalogueSummaryChips summary={panel.page.summary} list={list} />
       ) : null}
-      <ListSearch
+      <ListSearchBox
         value={list.state.search}
-        label={t("discovery_admin.catalogue.filter_search")}
+        copy={{ label: t("discovery_admin.catalogue.filter_search") }}
         onSearch={list.setSearch}
       />
       <CatalogueServicesTable

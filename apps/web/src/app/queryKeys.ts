@@ -10,20 +10,8 @@ export const queryKeys = {
   },
   documents: {
     all: ["documents"] as const,
-    list: (
-      municipalityCode: string | null,
-      domains: string[],
-      situations: string[],
-      locale: string,
-    ) =>
-      [
-        ...queryKeys.documents.all,
-        "list",
-        municipalityCode,
-        domains,
-        situations,
-        locale,
-      ] as const,
+    list: (request: object, locale: string) =>
+      [...queryKeys.documents.all, "list", request, locale] as const,
     detail: (id: string | undefined) =>
       [...queryKeys.documents.all, "detail", id] as const,
   },

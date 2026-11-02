@@ -126,11 +126,10 @@ it("DocumentFilters · taxonomy error shows compact error and no chips", async (
 const noopFilters = {
   domains: [],
   situations: [],
-  leaves: [],
   toggleDomain: vi.fn(),
   toggleSituation: vi.fn(),
-  toggleLeaf: vi.fn(),
   clear: vi.fn(),
+  clearAll: vi.fn(),
 };
 
 function renderPresentational(taxonomy: {
@@ -162,23 +161,11 @@ it("DocumentFilters · expanding a situation group reveals its situation chip", 
   expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
 });
 
-it("DocumentFilters · renders a leaf facet chip when given available leaf codes", () => {
-  const props = {
-    domains,
-    situations,
-    groups,
-    isError: false,
-    onRetry: vi.fn(),
-  };
-  renderWithProviders(
-    <DocumentFilters
-      taxonomy={props}
-      filters={noopFilters}
-      availableLeafCodes={["1050200"]}
-    />,
-  );
+it("DocumentFilters · renders no facet chip beside the situations", () => {
+  renderPresentational({ isError: false, onRetry: vi.fn() });
 
-  expect(screen.getByRole("button", { name: "1050200" })).toBeInTheDocument();
+  const chips = screen.getAllByRole("button").map((b) => b.textContent);
+  expect(chips).toEqual(["Housing", "Work", "Home"]);
 });
 
 it("DocumentFilters · error flag shows retry, which calls onRetry only", async () => {

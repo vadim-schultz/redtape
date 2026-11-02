@@ -1,10 +1,20 @@
+import type { ListQueryState } from "../../../services/listQuery";
 import type { TaggedTerm } from "../../taxonomy/types";
 
+export type DocumentAxis = "domain" | "situation";
+
+/** One tag of a listed document: its axis, localized name and score in `[0, 1]`. */
+export type DocumentTag = Pick<TaggedTerm, "code" | "name" | "confidence"> & {
+  axis: DocumentAxis;
+};
+
+/** One listed document (a discovered candidate); `tags` run most confident first. */
 export type DocumentSummary = {
   id: string;
-  slug: string;
   title: string;
-  description?: string | null;
+  description: string | null;
+  tags: DocumentTag[];
+  confidence: number;
 };
 
 export type DocumentListResponse = {
@@ -12,7 +22,26 @@ export type DocumentListResponse = {
   total: number;
   offset: number;
   limit: number;
-  available_leaf_codes?: string[];
+};
+
+export type DocumentSortKey = "confidence" | "title" | "created_at";
+
+/** Search, sort and page of the documents list; the taxonomy chips travel beside it. */
+export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;
+
+/** Everything one page of the documents list depends on. */
+export type DocumentListRequest = {
+  domains: string[];
+  situations: string[];
+  query: DocumentListQuery;
+};
+
+/** A document as the dormant requirement list names it. */
+export type RequiredDocument = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
 };
 
 export type JurisdictionPathNode = {
@@ -24,7 +53,7 @@ export type JurisdictionPathNode = {
 
 export type RequirementRead = {
   id: string;
-  required_document: DocumentSummary;
+  required_document: RequiredDocument;
   notes: string | null;
 };
 

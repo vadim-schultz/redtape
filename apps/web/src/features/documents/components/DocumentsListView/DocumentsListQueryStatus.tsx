@@ -1,30 +1,38 @@
-import { LuFileSearch } from "react-icons/lu";
-
-import ListQueryStatus, {
-  type ListQueryStatusConfig,
-} from "../../../../components/feedback/ListQueryStatus";
+import QueryStatusView from "../../../../components/feedback/QueryStatusView";
 import type { QueryStatus } from "../../../../components/feedback/queryStatus";
-
-import type { DocumentSummary } from "../../types";
+import { useCountLabel } from "../../../../components/feedback/useCountLabel";
+import type { DocumentListResponse } from "../../types";
 import DocumentCard from "./DocumentCard";
+import DocumentsEmptyState from "./DocumentsEmptyState";
 import DocumentsListSkeleton from "./DocumentsListSkeleton";
 
 export interface DocumentsListQueryStatusProps {
   status: QueryStatus;
-  documents: DocumentSummary[] | undefined;
+  page: DocumentListResponse | undefined;
+  onClearFilters?: () => void;
 }
 
-const config: ListQueryStatusConfig<DocumentSummary> = {
-  namespace: "documents",
-  icon: LuFileSearch,
-  getKey: (d) => d.id,
-  renderItem: (d) => <DocumentCard document={d} />,
-  renderSkeleton: () => <DocumentsListSkeleton />,
-};
-
+/** Loading, error, empty and populated states of the documents list; the count is the full result. */
 export default function DocumentsListQueryStatus({
-  documents,
   status,
+  page,
+  onClearFilters,
 }: DocumentsListQueryStatusProps) {
-  return <ListQueryStatus status={status} items={documents} config={config} />;
+  const countLabel = useCountLabel("documents");
+
+  return (
+    <QueryStatusView
+      status={status}
+      items={page?.items}
+      slots={{
+        getKey: (document) => document.id,
+        renderItem: (document) => <DocumentCard document={document} />,
+        renderSkeleton: () => <DocumentsListSkeleton />,
+        renderEmpty: () => (
+          <DocumentsEmptyState onClearFilters={onClearFilters} />
+        ),
+        countLabel: () => countLabel(page?.total ?? 0),
+      }}
+    />
+  );
 }

@@ -37,11 +37,10 @@ function filters(selected: string[] = []) {
   return {
     domains: [],
     situations: selected,
-    leaves: [],
     toggleDomain: vi.fn(),
     toggleSituation: vi.fn(),
-    toggleLeaf: vi.fn(),
     clear: vi.fn(),
+    clearAll: vi.fn(),
   };
 }
 

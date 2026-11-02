@@ -1,10 +1,12 @@
 import { Box, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import Pagination from "../../../../components/data-display/Pagination";
 import type { QueryStatus } from "../../../../components/feedback/queryStatus";
-import type { DocumentSummary } from "../../types";
-import { LocationPicker } from "../../../locations/components/LocationPickerView";
+import type { DocumentList } from "../../hooks/useDocumentListState";
+import type { DocumentListResponse } from "../../types";
 
+import DocumentListControls from "./DocumentListControls";
 import DocumentsListHeader from "./DocumentsListHeader";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
@@ -12,34 +14,39 @@ export interface DocumentsListViewProps {
   title: string;
   toolbar: {
     filters: ReactNode;
-    onMunicipalityChange: (municipalityCode: string | null) => void;
+    list: DocumentList;
   };
-  list: {
-    documents: DocumentSummary[] | undefined;
+  result: {
+    page: DocumentListResponse | undefined;
     status: QueryStatus;
+    /** Present only while chips or a search narrow the list. */
+    onClearFilters?: () => void;
   };
 }
 
+/** The documents page: heading, chips, search and sort, the cards and the pager. */
 export default function DocumentsListView({
   title,
   toolbar,
-  list,
+  result,
 }: DocumentsListViewProps) {
+  const { list } = toolbar;
+
   return (
     <Box>
       <DocumentsListHeader title={title} />
 
-      <Box mt={6}>
-        <LocationPicker onMunicipalityChange={toolbar.onMunicipalityChange} />
-      </Box>
-
-      <Box mt={6}>{toolbar.filters}</Box>
-
-      <Box mt={6}>
-        <VStack align="stretch" gap={3}>
-          <DocumentsListQueryStatus {...list} />
-        </VStack>
-      </Box>
+      <VStack align="stretch" gap={6} mt={6}>
+        {toolbar.filters}
+        <DocumentListControls list={list} />
+        <DocumentsListQueryStatus {...result} />
+        <Pagination
+          offset={list.state.offset}
+          limit={list.state.limit}
+          total={result.page?.total ?? 0}
+          onOffsetChange={list.setOffset}
+        />
+      </VStack>
     </Box>
   );
 }
