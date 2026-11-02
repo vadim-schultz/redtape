@@ -11,6 +11,46 @@ PVOG leaf at all (its only analogue is the out-of-scope business branch) and sta
 
 from __future__ import annotations
 
+PERSONAL_MATTER_CLARITY: dict[str, float] = {
+    "1010100": 0.95,  # clean: Vor der Geburt
+    "1010200": 0.95,  # clean: Nach der Geburt
+    "1020100": 0.65,  # ambiguous: Adoption und Pflegekinder
+    "1020300": 0.95,  # clean: Eheschließung
+    "1020400": 0.95,  # clean: Scheidung
+    "1020500": 0.95,  # clean: Trennung mit Kind
+    "1030100": 0.65,  # ambiguous: Schule
+    "1030200": 0.65,  # ambiguous: Berufsausbildung
+    "1030300": 0.95,  # clean: Studium
+    "1040300": 0.65,  # ambiguous: Jobsuche und Arbeitslosigkeit
+    "1040400": 0.65,  # ambiguous: Anerkennung ausländischer Berufsqualifikationen
+    "1040500": 0.65,  # ambiguous: Berufszulassungen und Berechtigungen
+    "1050100": 0.95,  # clean: Hausbau und Immobilienerwerb
+    "1050200": 0.65,  # ambiguous: Wohnen und Umzug
+    "1060400": 0.65,  # ambiguous: Grundsteuer und Grunderwerbsteuer
+    "1060600": 0.65,  # ambiguous: Fahrzeugsteuern
+    "1060700": 0.65,  # ambiguous: Erbschaftsteuer und Schenkungsteuer
+    "1080100": 0.95,  # clean: Einwanderung
+    "1080200": 0.65,  # ambiguous: Asyl
+    "1080300": 0.95,  # clean: Einbürgerung
+    "1080400": 0.65,  # ambiguous: Integration
+    "1090100": 0.95,  # clean: Führerscheine
+    "1090200": 0.95,  # clean: Fahrzeugbesitz
+    "1130100": 0.65,  # ambiguous: Gesundheitsvorsorge
+    "1130200": 0.95,  # clean: Krankheit
+    "1130300": 0.95,  # clean: Behinderung
+    "1130400": 0.95,  # clean: Pflege
+    "1140100": 0.65,  # ambiguous: Existenzsicherung und staatliche Unterstützung
+    "1180100": 0.95,  # clean: Altersvorsorge
+    "1180200": 0.95,  # clean: Rente
+    "1190100": 0.95,  # clean: Todesfall
+    "1190200": 0.95,  # clean: Erbschaft, Nachlass und Testament
+}
+"""Mapping-clarity weight per leaf, citing ``lr3-personal-matters-mapping.md``'s verdict column directly:
+``0.95`` for the 18 leaves marked "clean" (one leaf maps to one code), ``0.65`` for the 14 marked
+"ambiguous" (a many-to-many bundle). Same 32 keys as :data:`PERSONAL_MATTER_TO_SITUATION` — kept in sync
+by a key-parity test, not re-derived from the verdict column at runtime.
+"""
+
 PERSONAL_MATTER_TO_SITUATION: dict[str, list[str]] = {
     "1010100": ["birth-of-child"],
     "1010200": ["birth-of-child"],

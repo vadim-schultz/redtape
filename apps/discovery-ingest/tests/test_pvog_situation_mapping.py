@@ -1,9 +1,10 @@
-"""PERSONAL_MATTER_TO_SITUATION table shape (chapter 3, T4 widened sign-off)."""
+"""PERSONAL_MATTER_TO_SITUATION table shape (chapter 3, T4 widened sign-off) and its mapping-clarity
+weights (situation-tag-hierarchy chapter 3)."""
 
 from __future__ import annotations
 
 from discovery_ingest.mentions import MAX_SITUATION_CODES
-from discovery_ingest.pvog.situation_mapping import PERSONAL_MATTER_TO_SITUATION
+from discovery_ingest.pvog.situation_mapping import PERSONAL_MATTER_CLARITY, PERSONAL_MATTER_TO_SITUATION
 
 SITUATION_CODES = {
     "moving-house",
@@ -58,3 +59,31 @@ def test_bundled_leaves_emit_every_plausible_code() -> None:
     """Table · a bundled/ambiguous leaf emits all plausible codes, not just one."""
     assert PERSONAL_MATTER_TO_SITUATION["1040300"] == ["job-loss", "new-job"]
     assert PERSONAL_MATTER_TO_SITUATION["1050200"] == ["moving-house", "renting-home"]
+
+
+def test_clarity_table_has_exactly_the_same_keys_as_the_situation_table() -> None:
+    """Clarity · PERSONAL_MATTER_CLARITY never drifts from PERSONAL_MATTER_TO_SITUATION's key set."""
+    assert set(PERSONAL_MATTER_CLARITY) == set(PERSONAL_MATTER_TO_SITUATION)
+
+
+def test_clarity_table_values_are_one_of_the_two_reviewed_weights() -> None:
+    """Clarity · every weight is 0.95 (clean) or 0.65 (ambiguous), per lr3-personal-matters-mapping.md."""
+    assert set(PERSONAL_MATTER_CLARITY.values()) == {0.95, 0.65}
+
+
+def test_clarity_table_marks_18_clean_leaves_and_14_ambiguous_leaves() -> None:
+    """Clarity · the 18/14 clean/ambiguous split matches T4's tally exactly."""
+    clean = [code for code, weight in PERSONAL_MATTER_CLARITY.items() if weight == 0.95]
+    ambiguous = [code for code, weight in PERSONAL_MATTER_CLARITY.items() if weight == 0.65]
+    assert len(clean) == 18
+    assert len(ambiguous) == 14
+
+
+def test_clarity_table_cites_the_sign_off_verdict_for_known_clean_and_ambiguous_leaves() -> None:
+    """Clarity · spot-check a few leaves against lr3-personal-matters-mapping.md's verdict column."""
+    assert PERSONAL_MATTER_CLARITY["1010100"] == 0.95  # clean: Vor der Geburt
+    assert PERSONAL_MATTER_CLARITY["1030300"] == 0.95  # clean: Studium
+    assert PERSONAL_MATTER_CLARITY["1180100"] == 0.95  # clean: Altersvorsorge
+    assert PERSONAL_MATTER_CLARITY["1040300"] == 0.65  # ambiguous: Jobsuche und Arbeitslosigkeit
+    assert PERSONAL_MATTER_CLARITY["1050200"] == 0.65  # ambiguous: Wohnen und Umzug
+    assert PERSONAL_MATTER_CLARITY["1140100"] == 0.65  # ambiguous: Existenzsicherung
