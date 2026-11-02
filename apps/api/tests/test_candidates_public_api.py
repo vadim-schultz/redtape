@@ -31,7 +31,7 @@ INTERNALS = {"extractor", "extractor_version", "artifact_id", "catalogue_service
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     """A client with no auth patches and no token: the routes under test must be public."""
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     with TestClient(create_app()) as test_client:
         yield test_client

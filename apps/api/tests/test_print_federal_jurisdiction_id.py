@@ -10,7 +10,7 @@ import pytest
 import scripts.print_federal_jurisdiction_id as print_federal_script
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from scripts.print_federal_jurisdiction_id import main
-from scripts.seed_documents import ID_DE
+from scripts.seed_jurisdictions import ID_DE
 from sqlalchemy.orm import Session
 
 

@@ -13,7 +13,7 @@ TAXONOMY_URL = "/api/v1/discovery/machine/taxonomy"
 
 
 def test_taxonomy_route_returns_the_vocabulary_in_sort_order(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
 
     response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
 
@@ -35,7 +35,7 @@ def _in_seed_order(axis: str) -> list[str]:
 
 
 def test_taxonomy_route_requires_the_machine_key(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
 
     assert client.get(TAXONOMY_URL).status_code == 401
     assert client.get(TAXONOMY_URL, headers={"X-API-Key": "rt_wrong"}).status_code == 401

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from app.models.document import Document
+from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from scripts.seed_documents import seed_mvp_graph
-from sqlalchemy import select
+from scripts.seed_jurisdictions import seed_jurisdictions
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 
@@ -18,7 +18,7 @@ def _real_country(session: Session) -> Jurisdiction:
 def test_reuses_an_existing_country_row_instead_of_duplicating_it(db_session: Session) -> None:
     real_country = _real_country(db_session)
 
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
 
     rows = db_session.scalars(
@@ -33,7 +33,7 @@ def test_reuses_an_existing_region_row_instead_of_duplicating_it(db_session: Ses
     db_session.add(real_region)
     db_session.flush()
 
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
 
     rows = db_session.scalars(
@@ -42,10 +42,10 @@ def test_reuses_an_existing_region_row_instead_of_duplicating_it(db_session: Ses
     assert [r.id for r in rows] == [real_region.id]
 
 
-def test_documents_are_scoped_under_a_real_municipality_found_by_kind_and_code(db_session: Session) -> None:
+def test_reuses_a_real_municipality_found_by_kind_and_code(db_session: Session) -> None:
     # Shaped like the real OpenPLZ import: Dresden (a kreisfreie Stadt) is its own
     # district, and the municipality row sits under that district, not directly
-    # under the region. `seed_mvp_graph` must find it by (kind, code) rather than
+    # under the region. `seed_jurisdictions` must find it by (kind, code) rather than
     # assuming a flat region -> municipality parent chain.
     real_country = _real_country(db_session)
     real_region = Jurisdiction(kind=JurisdictionKind.REGION, geographic_parent_id=real_country.id, code="14")
@@ -67,7 +67,7 @@ def test_documents_are_scoped_under_a_real_municipality_found_by_kind_and_code(d
     db_session.add(real_dresden)
     db_session.flush()
 
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
 
     municipality_rows = db_session.scalars(
@@ -78,12 +78,9 @@ def test_documents_are_scoped_under_a_real_municipality_found_by_kind_and_code(d
     ).all()
     assert [r.id for r in municipality_rows] == [real_dresden.id]
 
-    documents = db_session.scalars(select(Document).where(Document.jurisdiction_id == real_dresden.id)).all()
-    assert len(documents) == 4
-
 
 def test_creates_its_own_placeholder_hierarchy_on_a_fresh_database(db_session: Session) -> None:
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
 
     country_rows = db_session.scalars(
@@ -93,12 +90,21 @@ def test_creates_its_own_placeholder_hierarchy_on_a_fresh_database(db_session: S
 
 
 def test_rerunning_does_not_create_duplicate_jurisdictions(db_session: Session) -> None:
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
-    seed_mvp_graph(db_session)
+    seed_jurisdictions(db_session)
     db_session.flush()
 
     country_rows = db_session.scalars(
         select(Jurisdiction).where(Jurisdiction.geographic_parent_id.is_(None), Jurisdiction.code == "DE")
     ).all()
     assert len(country_rows) == 1
+
+
+def test_creates_no_document_or_requirement_rows(db_session: Session) -> None:
+    seed_jurisdictions(db_session)
+    db_session.flush()
+
+    documents = db_session.scalar(select(func.count()).select_from(Document))
+    requirements = db_session.scalar(select(func.count()).select_from(DocumentRequirement))
+    assert (documents, requirements) == (0, 0)

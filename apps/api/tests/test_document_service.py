@@ -27,7 +27,7 @@ def jurisdiction(db_session: Session) -> Jurisdiction:
 
 @pytest.fixture
 def document_service(db_session: Session) -> DocumentService:
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return DocumentService(DocumentRepository(db_session), taxonomy)
 
