@@ -31,7 +31,12 @@ export default function ProfileMenuRow() {
       ) : (
         <HStack gap="2">
           <FaRegUser data-icon="user" aria-hidden="true" />
-          <Button size="sm" variant="ghost" onClick={() => void signOut()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            data-closes-menu
+            onClick={() => void signOut()}
+          >
             {t("auth.sign_out")}
           </Button>
         </HStack>
