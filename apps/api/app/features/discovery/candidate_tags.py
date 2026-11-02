@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.features.discovery.repository.candidate_completeness_tags import candidate_axis_support
+from app.features.discovery.repository.candidate_axis_support import candidate_axis_support
 from app.features.discovery.tags import MIN_SUGGESTED_SCORE, TagAxis, TagSupport
 
 

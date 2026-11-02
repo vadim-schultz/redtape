@@ -7,7 +7,7 @@ from typing import NamedTuple
 from sqlalchemy.orm import Session
 
 from app.features.discovery.candidate_tags import candidate_tag_suggestions, usable_codes, usable_supports
-from app.features.discovery.repository.candidate_completeness_tags import candidate_situation_leaf_codes
+from app.features.discovery.repository.candidate_leaf_codes import candidate_situation_leaf_codes
 from app.models.discovery import DiscoveryDocumentCandidate
 
 
