@@ -29,6 +29,9 @@ class MentionDraft(BaseModel):
     official_url: str | None = Field(default=None, min_length=1, max_length=500)
     domain_codes: list[Code] | None = Field(default=None, max_length=MAX_DOMAIN_CODES)
     situation_codes: list[Code] | None = Field(default=None, max_length=MAX_SITUATION_CODES)
+    direct_domain_confidence: float | None = Field(default=None)
+    direct_situation_confidence: float | None = Field(default=None)
+    pvog_leaf_code: Code | None = Field(default=None)
 
 
 class MentionItem(MentionDraft):

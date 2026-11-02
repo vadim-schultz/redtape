@@ -10,8 +10,10 @@ from app.features.documents.service import DocumentService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
+from app.models.taxonomy import document_life_situation
 from app.schema.suggestion.payload import NewDocumentPayload
 from scripts.seed_taxonomy import seed_taxonomy
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
@@ -79,6 +81,35 @@ def test_create_from_suggestion_without_tag_confidence_at_all_defaults_every_cod
     confidence = DocumentRepository(db_session).get_tag_confidence(document.id)
     assert list(confidence.domains.values()) == [pytest.approx(1.0)]
     assert list(confidence.life_situations.values()) == [pytest.approx(1.0)]
+
+
+def test_create_from_suggestion_persists_the_given_situation_leaf_codes(
+    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    payload = _payload(
+        situation_codes=["moving-house"],
+        situation_leaf_codes={"moving-house": "1050200"},
+    )
+
+    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+
+    row = db_session.execute(
+        select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
+    ).scalar_one()
+    assert row == "1050200"
+
+
+def test_create_from_suggestion_without_situation_leaf_codes_leaves_the_column_null(
+    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    payload = _payload(situation_codes=["moving-house"])
+
+    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+
+    row = db_session.execute(
+        select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
+    ).scalar_one()
+    assert row is None
 
 
 def test_get_document_detail_reads_back_the_persisted_confidence(

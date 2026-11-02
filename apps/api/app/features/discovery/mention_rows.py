@@ -52,3 +52,6 @@ def _apply_conditions(mention: DiscoveryCandidateMention, prepared: PreparedMent
     mention.is_optional = prepared.item.is_optional
     mention.domain_codes = prepared.codes.domain_codes
     mention.situation_codes = prepared.codes.situation_codes
+    mention.direct_domain_confidence = prepared.item.direct_domain_confidence
+    mention.direct_situation_confidence = prepared.item.direct_situation_confidence
+    mention.pvog_leaf_code = prepared.item.pvog_leaf_code

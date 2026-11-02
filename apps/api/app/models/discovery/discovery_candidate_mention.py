@@ -59,6 +59,7 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     situation_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
     direct_domain_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     direct_situation_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pvog_leaf_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     candidate: Mapped[DiscoveryDocumentCandidate] = relationship(
         "DiscoveryDocumentCandidate", back_populates="mentions"

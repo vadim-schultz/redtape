@@ -8,7 +8,8 @@ import pytest
 from app.features.documents.repository import DocumentRepository
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Domain, LifeSituation, document_life_situation
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
@@ -71,3 +72,36 @@ def test_add_links_only_the_given_scores_leaving_any_other_id_unlinked(
     confidence = repo.get_tag_confidence(document.id)
     assert confidence.domains == {scored.id: pytest.approx(0.9)}
     assert unscored.id not in confidence.domains
+
+
+def test_add_writes_the_given_pvog_leaf_code_per_situation_term_id(
+    db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+
+    document = repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="tagged"),
+        situation_scores={situation.id: 0.65},
+        situation_leaf_codes={situation.id: "1050200"},
+    )
+
+    row = db_session.execute(
+        select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
+    ).scalar_one()
+    assert row == "1050200"
+
+
+def test_add_without_leaf_codes_leaves_the_column_null(db_session: Session, jurisdiction: Jurisdiction) -> None:
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+
+    document = repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="untagged-leaf"),
+        situation_scores={situation.id: 1.0},
+    )
+
+    row = db_session.execute(
+        select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
+    ).scalar_one()
+    assert row is None

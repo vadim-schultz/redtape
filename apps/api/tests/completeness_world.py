@@ -33,6 +33,7 @@ class Row(NamedTuple):
 
     ``domain_confidence``/``situation_confidence`` stay ``None`` for an LLM-extracted assertion (the default,
     scored via the LLM-evidence curve); a non-``None`` value simulates a direct source (PVOG, a future vote).
+    ``leaf_code`` simulates the PVOG leaf code a direct-confidence mention stashes (chapter 3).
     """
 
     procedure: int
@@ -41,6 +42,7 @@ class Row(NamedTuple):
     extractor: str = "llm"
     domain_confidence: float | None = None
     situation_confidence: float | None = None
+    leaf_code: str | None = None
 
 
 def procedures(session: Session, count: int) -> list[CatalogueService]:
@@ -85,6 +87,7 @@ def mention(session: Session, owner: DiscoveryDocumentCandidate, procedure: Cata
             situation_codes=row.situations,
             direct_domain_confidence=row.domain_confidence,
             direct_situation_confidence=row.situation_confidence,
+            pvog_leaf_code=row.leaf_code,
         )
     )
     session.flush()

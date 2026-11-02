@@ -33,6 +33,9 @@ class CandidateMentionItem(BaseModel):
     is_optional: bool | None = None
     domain_codes: list[Code] | None = Field(default=None, max_length=MAX_DOMAIN_CODES)
     situation_codes: list[Code] | None = Field(default=None, max_length=MAX_SITUATION_CODES)
+    direct_domain_confidence: float | None = None
+    direct_situation_confidence: float | None = None
+    pvog_leaf_code: Code | None = None
 
     @model_validator(mode="after")
     def _title_has_text(self) -> Self:

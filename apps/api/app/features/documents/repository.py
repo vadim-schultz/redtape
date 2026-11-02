@@ -88,23 +88,43 @@ class DocumentRepository:
         *,
         domain_scores: dict[UUID, float] | None = None,
         situation_scores: dict[UUID, float] | None = None,
+        situation_leaf_codes: dict[UUID, str] | None = None,
     ) -> Document:
         self._session.add(document)
         self._session.flush()
         self._link_terms(document_domain.c.domain_id, document.id, domain_scores or {})
-        self._link_terms(document_life_situation.c.life_situation_id, document.id, situation_scores or {})
+        self._link_terms(
+            document_life_situation.c.life_situation_id,
+            document.id,
+            situation_scores or {},
+            leaf_codes=situation_leaf_codes or {},
+        )
         return document
 
-    def _link_terms(self, term_column: Column, document_id: UUID, scores: dict[UUID, float]) -> None:
-        """Insert one link row per ``scores`` entry, each carrying its given confidence.
+    def _link_terms(
+        self,
+        term_column: Column,
+        document_id: UUID,
+        scores: dict[UUID, float],
+        *,
+        leaf_codes: dict[UUID, str] | None = None,
+    ) -> None:
+        """Insert one link row per ``scores`` entry, each carrying its given confidence and, when given,
+        its PVOG leaf code (situation-only facet, situation-tag-hierarchy chapter 3).
 
         ``scores`` must already carry every id that is to be linked — a missing id is not defaulted here;
         that's the caller's contract, one layer up (``DocumentService._resolve_tags``).
         """
         if not scores:
             return
+        leaf_codes = leaf_codes or {}
         rows = [
-            {"document_id": document_id, term_column.name: term_id, "confidence": score}
+            {
+                "document_id": document_id,
+                term_column.name: term_id,
+                "confidence": score,
+                **({"pvog_leaf_code": leaf_codes[term_id]} if term_id in leaf_codes else {}),
+            }
             for term_id, score in scores.items()
         ]
         self._session.execute(term_column.table.insert(), rows)
