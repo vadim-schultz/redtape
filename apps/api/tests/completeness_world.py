@@ -6,10 +6,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import NamedTuple
 
-from app.config import settings
 from app.features.discovery.repository.candidate_completeness import (
     CandidateCompleteness,
-    TagThresholds,
     completeness_columns,
     completeness_subquery,
 )
@@ -29,16 +27,20 @@ from sqlalchemy.orm import Session
 
 from test_discovery_admin_api import _jurisdiction
 
-DEFAULTS = TagThresholds(min_procedures=2, min_share=0.5)
-
 
 class Row(NamedTuple):
-    """One mention of a fixture: procedure index, codes per axis and the extractor that wrote it."""
+    """One mention of a fixture: procedure index, codes per axis, the extractor, and any direct confidence.
+
+    ``domain_confidence``/``situation_confidence`` stay ``None`` for an LLM-extracted assertion (the default,
+    scored via the LLM-evidence curve); a non-``None`` value simulates a direct source (PVOG, a future vote).
+    """
 
     procedure: int
     domains: list[str] | None = None
     situations: list[str] | None = None
     extractor: str = "llm"
+    domain_confidence: float | None = None
+    situation_confidence: float | None = None
 
 
 def procedures(session: Session, count: int) -> list[CatalogueService]:
@@ -81,6 +83,8 @@ def mention(session: Session, owner: DiscoveryDocumentCandidate, procedure: Cata
             extractor_version="1",
             domain_codes=row.domains,
             situation_codes=row.situations,
+            direct_domain_confidence=row.domain_confidence,
+            direct_situation_confidence=row.situation_confidence,
         )
     )
     session.flush()
@@ -130,7 +134,7 @@ def artifact(session: Session, procedure: CatalogueService, kind: DiscoveryArtif
 
 
 def flags_of(session: Session) -> dict[uuid.UUID, CandidateCompleteness]:
-    """Run the completeness subquery under the configured settings and return its rows by candidate id."""
-    sub = completeness_subquery(settings)
+    """Run the completeness subquery and return its rows by candidate id."""
+    sub = completeness_subquery()
     rows = session.execute(select(*completeness_columns(sub))).all()
     return {row.candidate_id: CandidateCompleteness.from_row(row) for row in rows}

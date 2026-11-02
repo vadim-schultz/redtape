@@ -9,7 +9,6 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.sql.expression import Subquery
 
-from app.config import settings
 from app.features.candidates.repository.public_filter import PublicCandidateFilter
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.candidate_completeness import completeness_subquery
@@ -34,8 +33,8 @@ class CardRelations:
 
     @classmethod
     def build(cls) -> CardRelations:
-        """Build both relations with the settings thresholds."""
-        return cls(mention_stats(), completeness_subquery(settings))
+        """Build both relations."""
+        return cls(mention_stats(), completeness_subquery())
 
     @property
     def mention_count(self) -> ColumnElement[int]:

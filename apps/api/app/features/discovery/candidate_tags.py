@@ -1,4 +1,4 @@
-"""Tag suggestions of a candidate: the consensus of its mentions under the configured thresholds."""
+"""Tag suggestions of a candidate: the score of its mentions, consensus combined via noisy-OR."""
 
 from __future__ import annotations
 
@@ -8,9 +8,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.features.discovery.repository.candidate_completeness_tags import candidate_axis_support
-from app.features.discovery.tags import TagAxis, TagSupport, axis_thresholds
+from app.features.discovery.tags import MIN_SUGGESTED_SCORE, TagAxis, TagSupport
 
 
 class TagSuggestions(NamedTuple):
@@ -21,18 +20,18 @@ class TagSuggestions(NamedTuple):
 
 
 def candidate_tag_suggestions(session: Session, candidate_id: UUID) -> TagSuggestions:
-    """Return the domain and situation support of ``candidate_id``'s mentions, each under its own thresholds."""
+    """Return the domain and situation support of ``candidate_id``'s mentions."""
     return TagSuggestions(
-        candidate_axis_support(session, candidate_id, TagAxis.DOMAIN, axis_thresholds(settings, TagAxis.DOMAIN)),
-        candidate_axis_support(session, candidate_id, TagAxis.SITUATION, axis_thresholds(settings, TagAxis.SITUATION)),
+        candidate_axis_support(session, candidate_id, TagAxis.DOMAIN),
+        candidate_axis_support(session, candidate_id, TagAxis.SITUATION),
     )
 
 
-def accepted_codes(supports: Iterable[TagSupport]) -> list[str]:
-    """Return the codes that meet both thresholds."""
-    return [support.code for support in supports if support.accepted]
+def usable_codes(supports: Iterable[TagSupport]) -> list[str]:
+    """Return the codes whose score clears the inclusion floor."""
+    return [support.code for support in supports if support.score >= MIN_SUGGESTED_SCORE]
 
 
-def accepted_supports(supports: Iterable[TagSupport]) -> list[TagSupport]:
-    """Return the supports that meet both thresholds, without collapsing them to bare codes."""
-    return [support for support in supports if support.accepted]
+def usable_supports(supports: Iterable[TagSupport]) -> list[TagSupport]:
+    """Return the supports whose score clears the inclusion floor, without collapsing them to bare codes."""
+    return [support for support in supports if support.score >= MIN_SUGGESTED_SCORE]

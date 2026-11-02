@@ -246,10 +246,10 @@ snapshot and stages the result; it emits nothing. Architecture, decisions and th
 - **Taxonomy route.** `GET /machine/taxonomy` returns the closed vocabulary (13 domains, 18 life situations, with
   German and English names) that the worker puts in the prompt. The model tags the page, not each document; the page's
   codes are copied onto its mentions.
-- **Tag consensus rule.** A candidate's suggested tags are the codes that at least `DISCOVERY_TAG_MIN_PROCEDURES`
-  (default 2) procedures and at least `DISCOVERY_TAG_MIN_SHARE` (default 0.5) of the candidate's tagged procedures
-  carry. A document seen on one page stays untagged until a second page agrees. The candidate detail shows each code
-  with its support (`procedures`, `share`, `accepted`); nothing is written to a document automatically.
+- **Tag confidence score.** A candidate's suggested tags are every code whose combined confidence score — the
+  noisy-OR of its LLM-evidence curve and any direct-source confidence (a PVOG leaf, a curator's manual override) —
+  clears `MIN_SUGGESTED_SCORE` (0.05), a noise floor, not a precision claim. The candidate detail shows each code
+  with its support (`procedures`, `share`, `score`); nothing is written to a document automatically.
 - **Re-extraction is deliberate.** The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION`
   (`ext-5`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
   that key, so a re-render under the same versions queues no second task; only `llm requeue` after a model, prompt or

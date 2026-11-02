@@ -12,14 +12,11 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, Integer, Row, cast, select
 from sqlalchemy.sql.expression import Subquery
 
-from app.config import Settings
 from app.features.discovery.repository.candidate_completeness_flags import FLAG_NAMES, flags_subquery
-from app.features.discovery.repository.candidate_completeness_tags import TagThresholds
 from app.shared.list_query import SortOrder
 
 __all__ = [
     "CandidateCompleteness",
-    "TagThresholds",
     "completeness_columns",
     "completeness_order",
     "completeness_subquery",
@@ -54,13 +51,9 @@ class CandidateCompleteness:
 COLUMN_NAMES = tuple(field.name for field in fields(CandidateCompleteness))
 
 
-def completeness_subquery(settings: Settings) -> Subquery:
-    """Return one row per candidate id with the flags, ``completeness``, ``complete`` and the accepted codes.
-
-    Join it on ``candidate_id``; each axis' thresholds are read from ``settings`` and bound as parameters,
-    never read inside SQL.
-    """
-    flags = flags_subquery(settings)
+def completeness_subquery() -> Subquery:
+    """Return one row per candidate id with the flags, ``completeness``, ``complete`` and the accepted codes."""
+    flags = flags_subquery()
     total = reduce(add, (cast(flags.c[name], Integer) for name in FLAG_NAMES))
     return select(*flags.c, total.label("completeness"), (total == len(FLAG_NAMES)).label("complete")).subquery()
 

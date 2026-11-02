@@ -96,14 +96,15 @@ def test_extraction_docs_state_that_the_workers_ai_token_is_not_a_render_variabl
     assert not missing(CHECKLIST, ("Workers Free", "Do not upgrade to Workers Paid", "OP3"))
 
 
-def test_extraction_docs_describe_the_grounding_rule_and_the_tag_consensus_threshold_with_the_real_defaults() -> None:
-    """The consensus thresholds in the runbook are the Settings defaults; the grounding rule names its drops."""
-    assert not missing(DISCOVERY_LAYER, ("Grounding rule", "Tag consensus rule", "tag codes"))
-    assert not missing(DISCOVERY_LAYER, ("`DISCOVERY_TAG_MIN_PROCEDURES`", "`DISCOVERY_TAG_MIN_SHARE`"))
-    fields = Settings.model_fields
-    assert fields["discovery_tag_min_procedures"].default == 2 and fields["discovery_tag_min_share"].default == 0.5
-    assert not missing(DISCOVERY_LAYER, ("(default 2)", "(default 0.5)"))
-    assert not missing(DEPLOYMENT_CHECKLIST, ("DISCOVERY_TAG_MIN_PROCEDURES", "DISCOVERY_TAG_MIN_SHARE"))
+def test_extraction_docs_describe_the_grounding_rule_and_the_tag_confidence_floor_with_the_real_constant() -> None:
+    """The inclusion floor named in the runbook matches tags.py's own constant (situation-tag-hierarchy chapter 1)."""
+    from app.features.discovery.tags import MIN_SUGGESTED_SCORE
+
+    assert not missing(DISCOVERY_LAYER, ("Grounding rule", "Tag confidence score", "tag codes"))
+    assert not missing(DISCOVERY_LAYER, ("`MIN_SUGGESTED_SCORE`", "noisy-OR"))
+    assert MIN_SUGGESTED_SCORE == 0.05
+    assert not missing(DISCOVERY_LAYER, ("(0.05)",))
+    assert "discovery_tag_min" not in " ".join(Settings.model_fields)
 
 
 @pytest.mark.parametrize("path", EXTRACTION_DOCS, ids=lambda path: path.name)

@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from sqlalchemy.orm import Session
 
-from app.features.discovery.candidate_tags import accepted_codes, accepted_supports, candidate_tag_suggestions
-from app.features.discovery.tags import confidence_tier
+from app.features.discovery.candidate_tags import candidate_tag_suggestions, usable_codes, usable_supports
 from app.models.discovery import DiscoveryDocumentCandidate
 
 
 class SuggestedTags(NamedTuple):
-    """Domain and life-situation codes proposed for a candidate, with a confidence tier per accepted code."""
+    """Domain and life-situation codes proposed for a candidate, with a confidence score per usable code."""
 
     domain_codes: list[str]
     situation_codes: list[str]
-    tag_confidence: dict[str, Literal["high", "low"]] = {}
+    tag_confidence: dict[str, float] = {}
 
 
 def suggested_tags(session: Session, candidate: DiscoveryDocumentCandidate) -> SuggestedTags:
-    """Return the codes its mentions agree on, each tagged with its confidence tier (decision D5)."""
+    """Return the codes that clear the inclusion floor, each tagged with its combined confidence score."""
     suggestions = candidate_tag_suggestions(session, candidate.id)
-    domain_supports = accepted_supports(suggestions.domains)
-    situation_supports = accepted_supports(suggestions.situations)
-    tag_confidence = {support.code: confidence_tier(support) for support in (*domain_supports, *situation_supports)}
-    return SuggestedTags(accepted_codes(suggestions.domains), accepted_codes(suggestions.situations), tag_confidence)
+    domain_supports = usable_supports(suggestions.domains)
+    situation_supports = usable_supports(suggestions.situations)
+    tag_confidence = {support.code: support.score for support in (*domain_supports, *situation_supports)}
+    return SuggestedTags(usable_codes(suggestions.domains), usable_codes(suggestions.situations), tag_confidence)
 
 
 def new_document_payload(candidate: DiscoveryDocumentCandidate, tags: SuggestedTags) -> dict[str, object]:
