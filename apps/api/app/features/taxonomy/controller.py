@@ -7,12 +7,12 @@ from litestar.params import Parameter
 
 from app.features.documents.service import DocumentFilters, DocumentService
 from app.features.taxonomy.service import TaxonomyService
-from app.schema.taxonomy.read import MatrixResponse, TermRead
+from app.schema.taxonomy.read import LifeSituationGroupedRead, MatrixResponse, TermRead
 from app.shared.locale import ResolvedLocale
 
 
 class TaxonomyController(Controller):
-    """Read-only matrix axes: domains and life situations."""
+    """Read-only matrix axes: domains, life situations and their groups."""
 
     path = "/"
 
@@ -21,8 +21,14 @@ class TaxonomyController(Controller):
         return taxonomy_service.list_domains(locale=locale.code, enabled_locales=locale.enabled)
 
     @get("/life-situations", sync_to_thread=True)
-    def list_life_situations(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
-        return taxonomy_service.list_situations(locale=locale.code, enabled_locales=locale.enabled)
+    def list_life_situations(
+        self, taxonomy_service: TaxonomyService, locale: ResolvedLocale
+    ) -> list[LifeSituationGroupedRead]:
+        return taxonomy_service.list_situations_with_group(locale=locale.code, enabled_locales=locale.enabled)
+
+    @get("/life-situation-groups", sync_to_thread=True)
+    def list_life_situation_groups(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
+        return taxonomy_service.list_situation_groups(locale=locale.code, enabled_locales=locale.enabled)
 
     @get("/matrix", sync_to_thread=True)
     def get_matrix(

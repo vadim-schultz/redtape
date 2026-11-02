@@ -49,3 +49,18 @@ def test_life_situations_return_18_with_icon_and_code(client: TestClient[Litesta
 
     assert len(body) == 18
     assert all(item["code"] and item["icon"] for item in body)
+
+
+def test_life_situations_each_carry_a_group_code_that_resolves_to_a_real_group(client: TestClient[Litestar]) -> None:
+    situations = client.get("/api/v1/life-situations").json()
+    group_codes = {g["code"] for g in client.get("/api/v1/life-situation-groups").json()}
+
+    assert all(item["group_code"] in group_codes for item in situations)
+
+
+def test_life_situation_groups_are_returned_in_sort_order(client: TestClient[Litestar]) -> None:
+    body = client.get("/api/v1/life-situation-groups").json()
+
+    assert len(body) == 8
+    assert body[0]["code"] == "family-relationships"
+    assert set(body[0]) == {"code", "name", "description", "icon"}
