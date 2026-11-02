@@ -439,6 +439,25 @@ single pending decision on which fix(es) ship.
 Status: planned — documentation suite only; implementation starts with
 [chapters/01-split-tag-agreement-by-axis.md](situation-tag-coverage/chapters/01-split-tag-agreement-by-axis.md).
 
+### [document-browse-confidence/](document-browse-confidence/) — One searchable document list, shown by confidence
+
+Confidence replaced accept/reject tagging, so publishing a document is moot. The candidate pool becomes the
+single `/documents` list: every document searchable and sortable, chips filter by presence regardless of
+confidence, a traffic-light `ProgressCircle` shows confidence, life-area chips select in swiss red with a
+lighter red for situations inside. Also: centred Home button, menu closes on select, suggestion UI unlinked,
+seeded sample documents removed, and a refactoring-skill smell sweep. Eleven chapters; loop branch
+`feat/plans-document-browse-confidence`.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](document-browse-confidence/00-architecture.md) | Why, vocabulary, API/URL/colour/menu contracts, what stays dormant |
+| [01-rollout.md](document-browse-confidence/01-rollout.md) | Eleven chapters, dependency graph, invariants, execution order |
+| [gaps-and-decisions.md](document-browse-confidence/gaps-and-decisions.md) | Settled decisions D1–D6, assumptions D7–D10, open seams, risks |
+| [chapters/](document-browse-confidence/chapters/) | One executable plan per chapter |
+
+Status: planned — documentation suite only; implementation starts with
+[chapters/01-candidate-tag-scores.md](document-browse-confidence/chapters/01-candidate-tag-scores.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
