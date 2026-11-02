@@ -78,7 +78,11 @@
     "sort_title": "Titel",
     "sort_newest": "Neueste",
     "sort_asc": "Aufsteigend",
-    "sort_desc": "Absteigend"
+    "sort_desc": "Absteigend",
+    "confidence_aria": "Konfidenz {percent} %, {band}",
+    "confidence_low": "niedrig",
+    "confidence_mid": "mittel",
+    "confidence_high": "hoch"
   },
   "candidates": {
     "title": "Kandidaten",
