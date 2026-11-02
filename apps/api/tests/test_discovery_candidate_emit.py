@@ -304,7 +304,7 @@ def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandid
 def test_payload_carries_the_codes_the_tag_hook_returns_and_the_preview_prints_them(
     db_session: Session, api_key: ApiKey
 ) -> None:
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     candidate, _ = _staged(db_session)
     service = _tagged_service(db_session, SuggestedTags(["housing"], ["moving-house"]))
 
@@ -372,7 +372,7 @@ def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
 
 
 def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     candidate, _ = _staged(db_session)
     _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
     _tagged_mention(db_session, candidate, ["housing"], ["birth-of-child"], external_id="svc-b")
@@ -389,7 +389,7 @@ def test_emit_payload_includes_a_single_procedure_code_on_either_axis(db_session
     """situation-tag-hierarchy chapter 1: the binary accept/reject gate is gone, so a single procedure's
     code clears the small inclusion floor on either axis now — not just situation's old relaxed rule.
     """
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     candidate, _ = _staged(db_session)
     _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
 

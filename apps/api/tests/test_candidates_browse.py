@@ -22,7 +22,7 @@ MARRIAGE = "marriage"
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     """A client on the test session with the taxonomy seeded; the routes under test are public."""
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     with TestClient(create_app()) as test_client:
         yield test_client

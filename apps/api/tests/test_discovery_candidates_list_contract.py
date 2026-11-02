@@ -35,7 +35,7 @@ def scene(db_session: Session) -> Scene:
 
 @pytest.fixture
 def taxonomy(db_session: Session) -> None:
-    seed_taxonomy(db_session, tags={})
+    seed_taxonomy(db_session)
 
 
 def _named(session: Session, name: str) -> Jurisdiction:
