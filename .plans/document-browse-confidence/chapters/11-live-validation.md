@@ -4,25 +4,25 @@ overview: "After the release is deployed, check the shipped change on redtape.cc
 todos:
   - id: wait-for-deploy
     content: "Confirm chapters 1-10 are on main and deployed"
-    status: pending
+    status: completed
   - id: api-checks
     content: "Measure /api/v1/candidates latency; check filters, sort and totals"
-    status: pending
+    status: completed
   - id: ui-checks
     content: "Browse /documents in a real browser: chips, circle colours, search, sort, paging, menu"
-    status: pending
+    status: completed
   - id: seed-check
     content: "Confirm no seeded documents and the DE/SN/DD jurisdictions remain"
-    status: pending
+    status: completed
   - id: record
     content: "Write 02-live-runs.md and resolve or open S3"
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # Chapter 11 — Live validation
 
-**Repo:** `redtape` · **Branch:** none (read-only measurement, as in the earlier suites) · **Status:** planned
+**Repo:** `redtape` · **Branch:** none (read-only measurement, as in the earlier suites) · **Status:** done 2026-11-02, LR1 recorded in [../02-live-runs.md](../02-live-runs.md) (S3 became a follow-up; sign-out, admin links and touch are listed there as not checked)
 **Depends on:** the release PR merged to `main` and deployed · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-document-browse-confidence` · **Release branch:** `main`
