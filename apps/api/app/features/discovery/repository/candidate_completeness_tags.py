@@ -25,20 +25,23 @@ from app.features.discovery.tags import (
 )
 from app.models.discovery import DiscoveryCandidateMention as Mention
 
+NOISY_OR_CLAMP = 1e-9
+"""How far below ``1`` a confidence is clamped in SQL, so ``ln(1 - c)`` stays finite for a ``1.0`` source."""
+
 
 def _confidence_column(axis: TagAxis) -> ColumnElement[float]:
     """Cast the axis' direct-confidence column so it type-checks as a plain float expression."""
     return cast(axis.confidence_column, Float)
 
 
-def _exploded(axis: TagAxis) -> CTE:
+def exploded_codes(axis: TagAxis) -> CTE:
     code = func.unnest(axis.column).label("code")
     confidence = _confidence_column(axis).label("confidence")
     stmt = select(Mention.candidate_id, Mention.catalogue_service_id, Mention.extractor, confidence, code)
     return stmt.cte(f"{axis.value}_exploded")
 
 
-def _tagged(exploded: CTE) -> Subquery:
+def tagged_procedures(exploded: CTE) -> Subquery:
     tagged = func.count(distinct(exploded.c.catalogue_service_id))
     return select(exploded.c.candidate_id, tagged.label("tagged")).group_by(exploded.c.candidate_id).subquery()
 
@@ -54,23 +57,37 @@ def _llm_score_sql(procedures: ColumnElement[int], share: ColumnElement[float]) 
     return func.coalesce(capped * share, 0.0)
 
 
-def _support_rows(exploded: CTE) -> Subquery:
-    """Return one row per ``(candidate_id, code)``: whether any row carries a direct confidence, and the
-    distinct procedures of the rows that don't (its LLM-only evidence).
+def _direct_log(confidence: ColumnElement[float]) -> ColumnElement[float]:
+    """Sum ``ln(1 - c)`` over the direct confidences, the log-space product of :func:`noisy_or`.
+
+    ``c`` is clamped just below ``1`` so a source reporting ``1.0`` keeps ``ln`` finite.
+    """
+    term = func.ln(1 - func.least(confidence, 1 - NOISY_OR_CLAMP))
+    return func.coalesce(func.sum(term).filter(confidence.is_not(None)), 0.0)
+
+
+def support_rows(exploded: CTE) -> Subquery:
+    """Return one row per ``(candidate_id, code)``: whether any row carries a direct confidence, the
+    distinct procedures of the rows that don't (its LLM-only evidence), and the log-space product of the
+    direct confidences (``direct_log``).
     """
     confidence = exploded.c.confidence
     has_direct = func.bool_or(confidence.is_not(None))
     llm_procedures = func.count(distinct(exploded.c.catalogue_service_id)).filter(confidence.is_(None))
     keys = (exploded.c.candidate_id, exploded.c.code)
     cols = (*keys, has_direct.label("has_direct"), llm_procedures.label("llm_procedures"))
-    return select(*cols).group_by(*keys).subquery()
+    return select(*cols, _direct_log(confidence).label("direct_log")).group_by(*keys).subquery()
+
+
+def llm_score_of(support: Subquery, tagged: Subquery) -> ColumnElement[float]:
+    """Return the LLM-evidence score of each support row: its curve value times its share of tagged procedures."""
+    share = cast(cast(support.c.llm_procedures, Float) / cast(tagged.c.tagged, Float), Float)
+    return _llm_score_sql(support.c.llm_procedures, share)
 
 
 def _usable(support: Subquery, tagged: Subquery) -> ColumnElement[bool]:
     """Whether a code clears the inclusion floor: any direct source, or an LLM-only score above it (D9)."""
-    share = cast(cast(support.c.llm_procedures, Float) / cast(tagged.c.tagged, Float), Float)
-    llm_score = _llm_score_sql(support.c.llm_procedures, share)
-    return or_(support.c.has_direct, llm_score >= MIN_SUGGESTED_SCORE)
+    return or_(support.c.has_direct, llm_score_of(support, tagged) >= MIN_SUGGESTED_SCORE)
 
 
 def code_support(exploded: CTE) -> Select:
@@ -80,7 +97,7 @@ def code_support(exploded: CTE) -> Select:
     Python (:func:`candidate_axis_support`), where the exact score (not just whether it clears the floor)
     matters.
     """
-    support, tagged = _support_rows(exploded), _tagged(exploded)
+    support, tagged = support_rows(exploded), tagged_procedures(exploded)
     joined = support.join(tagged, tagged.c.candidate_id == support.c.candidate_id)
     cols = (support.c.candidate_id, support.c.code)
     return select(*cols, _usable(support, tagged).label("usable")).select_from(joined)
@@ -97,7 +114,7 @@ def _manual_branch(exploded: CTE) -> Select:
     return stmt.where(exploded.c.extractor == MANUAL_EXTRACTOR).group_by(exploded.c.candidate_id)
 
 
-def _manual_support(exploded: CTE) -> Select:
+def manual_support(exploded: CTE) -> Select:
     """Return one row per ``(candidate_id, code)`` manually asserted, each with its procedure count.
 
     The per-code mirror of :func:`_manual_branch`, which aggregates the same rows into one codes array.
@@ -117,7 +134,7 @@ def axis_acceptance(axis: TagAxis) -> Subquery:
 
     The codes of the manual mentions replace the consensus; ``codes`` is sorted and never empty.
     """
-    exploded = _exploded(axis)
+    exploded = exploded_codes(axis)
     manual = _manual_branch(exploded).subquery()
     consensus = _consensus(exploded).subquery()
     joined = manual.join(consensus, manual.c.candidate_id == consensus.c.candidate_id, full=True)
@@ -183,8 +200,8 @@ def candidate_axis_support(session: Session, candidate_id: UUID, axis: TagAxis) 
     A manual mention replaces the consensus entirely for the axis, the same way :func:`axis_acceptance`
     replaces it for the bulk path — its codes score ``1.0``, a full curator override.
     """
-    exploded = _exploded(axis)
-    manual_stmt = _manual_support(exploded).where(exploded.c.candidate_id == candidate_id)
+    exploded = exploded_codes(axis)
+    manual_stmt = manual_support(exploded).where(exploded.c.candidate_id == candidate_id)
     manual_rows = session.execute(manual_stmt).all()
     if manual_rows:
         return _sorted_supports([TagSupport(row.code, row.procedures, 1.0, 1.0) for row in manual_rows])
