@@ -138,3 +138,41 @@ it("theme · rejects an unregistered shell role", () => {
   expect(system.tokens.getByName("shadows.shellRaw")).toBeUndefined();
   expect(system._config.theme?.textStyles).not.toHaveProperty("tableHeaderRaw");
 });
+
+const CHIP_SUB_MODES = ["base", "_dark"] as const;
+
+it("theme · the lighter sub-selection chip text meets WCAG AA on its fill in light and dark", () => {
+  for (const key of CHIP_SUB_MODES) {
+    const bg = modeValue("colors.chip.sub.selected.bg", key);
+    const fg = modeValue("colors.chip.sub.selected.fg", key);
+
+    expect(contrast(fg, bg), key).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+it("theme · the sub-selection chip fill differs from primary.500 and from the primary solid fill", () => {
+  for (const key of CHIP_SUB_MODES) {
+    const bg = modeValue("colors.chip.sub.selected.bg", key);
+
+    expect(bg, key).not.toBe(system.token("colors.primary.500"));
+    expect(bg, key).not.toBe(modeValue("colors.primary.solid", key));
+  }
+});
+
+it("theme · the light sub-selection fill sits between primary.100 and primary.300", () => {
+  const bg = luminance(modeValue("colors.chip.sub.selected.bg", "base"));
+
+  expect(bg).toBeGreaterThanOrEqual(
+    luminance(system.token("colors.primary.300") as string),
+  );
+  expect(bg).toBeLessThanOrEqual(
+    luminance(system.token("colors.primary.100") as string),
+  );
+});
+
+it("theme · the sub-selection chip has a border role and rejects unregistered ones", () => {
+  expect(
+    system.tokens.getByName("colors.chip.sub.selected.border"),
+  ).toBeDefined();
+  expect(system.tokens.getByName("colors.chip.sub.hovered.bg")).toBeUndefined();
+});
