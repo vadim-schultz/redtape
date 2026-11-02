@@ -76,13 +76,16 @@ it("app · /documents still resolves", async () => {
   ).toBeInTheDocument();
 });
 
-it("app · /suggest redirects an anonymous visitor to /login", async () => {
+it("app · /suggest shows not-found, not a login redirect", async () => {
   window.localStorage.setItem("locale", "en");
   renderAppAt("/suggest", createFakeAuthGateway({ session: null }));
 
   expect(
-    await screen.findByRole("button", { name: "Send magic link" }),
+    await screen.findByRole("heading", { name: "Page not found" }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Send magic link" }),
+  ).not.toBeInTheDocument();
 });
 
 it("app · /suggestions/:id needs no authentication", async () => {

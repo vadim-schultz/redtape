@@ -12,16 +12,6 @@ export type NewRequirementSuggestionPayload = {
   notes_i18n?: Record<string, string> | null;
 };
 
-export type CreateSuggestionRequest = {
-  municipality_code: string;
-  payload: SuggestionPayload;
-};
-
-export type Conflict = {
-  type: "document" | "suggestion" | "document_requirement";
-  id: string;
-};
-
 export type SubmitterRead = {
   kind: "user" | "crawler";
   display_name: string | null;
