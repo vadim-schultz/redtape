@@ -1,4 +1,4 @@
-import type { Term } from "../../taxonomy/types";
+import type { TaggedTerm } from "../../taxonomy/types";
 
 export type DocumentSummary = {
   id: string;
@@ -37,6 +37,6 @@ export type DocumentDetail = {
   jurisdiction_id: string;
   jurisdiction_path: JurisdictionPathNode[];
   requirements: RequirementRead[];
-  domains?: Term[];
-  life_situations?: Term[];
+  domains?: TaggedTerm[];
+  life_situations?: TaggedTerm[];
 };

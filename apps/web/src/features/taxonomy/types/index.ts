@@ -9,3 +9,8 @@ export type Term = {
 export type GroupedTerm = Term & {
   group_code: string;
 };
+
+/** A taxonomy term as tagged onto a published document, carrying its persisted confidence. */
+export type TaggedTerm = Term & {
+  confidence: number;
+};

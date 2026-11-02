@@ -40,9 +40,23 @@ it("DocumentHeader · shows tags when the detail has them", async () => {
   renderWithProviders(
     <DocumentHeader
       title="Passport"
-      domains={[{ code: "D1", name: "Identity", description: "", icon: null }]}
+      domains={[
+        {
+          code: "D1",
+          name: "Identity",
+          description: "",
+          icon: null,
+          confidence: 1,
+        },
+      ]}
       lifeSituations={[
-        { code: "S1", name: "Moving", description: "", icon: null },
+        {
+          code: "S1",
+          name: "Moving",
+          description: "",
+          icon: null,
+          confidence: 1,
+        },
       ]}
     />,
   );
