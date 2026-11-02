@@ -61,4 +61,5 @@ def card_for(row: CardRow, context: CardContext) -> CandidateCard:
         complete=done.complete,
         flags=_flags(done),
         mention_count=row.mention_count,
+        confidence=row.confidence,
     )

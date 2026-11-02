@@ -130,7 +130,7 @@ def _keys_of(body: dict) -> list[str]:
     return [item["key"] for item in body["items"]]
 
 
-def test_candidates_list_filters_by_an_accepted_domain_and_situation(
+def test_candidates_list_filters_by_the_presence_of_a_domain_and_situation(
     client: TestClient[Litestar], scene: Scene
 ) -> None:
     scene.complete_candidate("accepted")
@@ -140,8 +140,8 @@ def test_candidates_list_filters_by_an_accepted_domain_and_situation(
     domain = client.get(URL, params={"filter[domain]": HOUSING}).json()
     situation = client.get(URL, params={"filter[situation]": MOVING}).json()
 
-    # situation-tag-hierarchy chapter 1: both axes run the same scoring engine now (D8), so the one-
-    # procedure mention clears the small inclusion floor on either axis, not just situation's.
+    # document-browse-confidence chapter 2: a chip matches by the presence of the code, whatever its score,
+    # so the one-procedure mention matches on either axis; tests/test_candidates_browse.py pins the sub-floor case.
     assert (set(_keys_of(domain)), domain["total"]) == ({"accepted", "one-procedure-only"}, 2)
     assert (set(_keys_of(situation)), situation["total"]) == ({"accepted", "one-procedure-only"}, 2)
 

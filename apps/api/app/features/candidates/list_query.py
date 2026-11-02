@@ -9,6 +9,7 @@ from app.features.candidates.repository import PublicCandidateFilter, PublicSort
 from app.shared.list_query import FilterValue, ListQuery, ListQuerySpec, SortOrder, enum_filter
 
 CODE_MAX_LENGTH = 64
+CODES_MAX_COUNT = 20
 
 
 class CompleteChoice(enum.StrEnum):
@@ -18,16 +19,30 @@ class CompleteChoice(enum.StrEnum):
     NO = "no"
 
 
-def _code_filter(raw: str) -> FilterValue:
-    """Accept a taxonomy code of 1 to 64 characters; the service checks it against the closed taxonomy."""
-    if not 1 <= len(raw) <= CODE_MAX_LENGTH:
-        raise ValueError(f"Expected 1 to {CODE_MAX_LENGTH} characters")
-    return raw
+def _checked_items(raw: str) -> list[str]:
+    """Split ``raw`` on commas into trimmed codes, each of 1 to 64 characters; at most 20 of them."""
+    items = [item.strip() for item in raw.split(",")]
+    if len(items) > CODES_MAX_COUNT:
+        raise ValueError(f"Expected at most {CODES_MAX_COUNT} codes")
+    if not all(1 <= len(item) <= CODE_MAX_LENGTH for item in items):
+        raise ValueError(f"Expected comma-separated codes of 1 to {CODE_MAX_LENGTH} characters")
+    return items
+
+
+def codes_filter(raw: str) -> FilterValue:
+    """Accept a CSV of taxonomy codes and return it trimmed and de-duplicated; the service checks the taxonomy."""
+    return ",".join(dict.fromkeys(_checked_items(raw)))
+
+
+def _codes(query: ListQuery, name: str) -> tuple[str, ...]:
+    """Return the codes of the CSV filter ``name``, or none when it is not set."""
+    value = query.filter_value(name, str)
+    return () if value is None else tuple(value.split(","))
 
 
 PUBLIC_CANDIDATE_SPEC = ListQuerySpec(
     sort_keys=frozenset(key.value for key in PublicSortKey),
-    filters={"complete": enum_filter(CompleteChoice), "domain": _code_filter, "situation": _code_filter},
+    filters={"complete": enum_filter(CompleteChoice), "domain": codes_filter, "situation": codes_filter},
 )
 
 
@@ -36,8 +51,8 @@ def public_filter_from(query: ListQuery) -> PublicCandidateFilter:
     complete = query.filter_value("complete", CompleteChoice)
     narrowed = PublicCandidateFilter(
         complete=None if complete is None else complete is CompleteChoice.YES,
-        domain=query.filter_value("domain", str),
-        situation=query.filter_value("situation", str),
+        domains=_codes(query, "domain"),
+        situations=_codes(query, "situation"),
         q=query.q,
     )
     if query.sort_by is None:

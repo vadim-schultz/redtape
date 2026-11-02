@@ -21,6 +21,8 @@ from app.features.discovery.repository.candidate_completeness_tags import (
 from app.features.discovery.tags import TagAxis
 
 MANUAL_SCORE = 1.0
+SCORES_CTE = "scored"
+"""CTE name suffix of this relation, so it can share a query with the completeness read model."""
 
 
 def _noisy_or_sql(llm_score: ColumnElement[float], direct_log: ColumnElement[float]) -> ColumnElement[float]:
@@ -45,7 +47,7 @@ def _manual_scores(exploded: CTE) -> Select:
 
 def _axis_rows(axis: TagAxis) -> Select:
     """Return ``(candidate_id, axis, code, score)`` of one axis: manual codes replace a candidate's consensus."""
-    exploded = exploded_codes(axis)
+    exploded = exploded_codes(axis, SCORES_CTE)
     manual, consensus = _manual_scores(exploded).subquery(), _consensus_scores(exploded).subquery()
     kept = select(consensus).where(consensus.c.candidate_id.not_in(select(manual.c.candidate_id)))
     both = union_all(select(manual), kept).subquery()

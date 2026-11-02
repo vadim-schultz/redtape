@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from uuid import UUID
 
 from app.features.candidates.card_builder import CardContext, card_for
@@ -24,6 +24,12 @@ def _names(terms: Sequence[TermRead]) -> dict[str, str]:
 def _ends(edges: Sequence[EdgeRow], candidate_id: UUID) -> list[UUID]:
     """Return the ids of the candidates on the far side of ``edges``."""
     return list({end.id for row in edges for end in (row.parent, row.required)} - {candidate_id})
+
+
+def _unknown_codes(key: str, codes: Sequence[str], known: Callable[[Sequence[str]], set[str]]) -> list[InvalidParam]:
+    """Return one error per code of ``codes`` that ``known`` does not recognise, in request order."""
+    recognised = known(codes) if codes else set()
+    return [InvalidParam(key, f"Unknown code: {code}") for code in codes if code not in recognised]
 
 
 class CandidateReadService:
@@ -76,8 +82,7 @@ class CandidateReadService:
 
     def _reject_unknown_codes(self, card_filter: PublicCandidateFilter) -> None:
         checks = (
-            ("filter[domain]", card_filter.domain, self._taxonomy.known_domain_codes),
-            ("filter[situation]", card_filter.situation, self._taxonomy.known_situation_codes),
+            ("filter[domain]", card_filter.domains, self._taxonomy.known_domain_codes),
+            ("filter[situation]", card_filter.situations, self._taxonomy.known_situation_codes),
         )
-        unknown = [(key, code) for key, code, known in checks if code is not None and not known([code])]
-        raise_if_any([InvalidParam(key, f"Unknown code: {code}") for key, code in unknown])
+        raise_if_any([error for key, codes, known in checks for error in _unknown_codes(key, codes, known)])
