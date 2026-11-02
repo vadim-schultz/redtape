@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { LocaleProvider, useLocale } from "../../../contexts/LocaleContext";
 import { useDomainsQuery } from "./useDomainsQuery";
+import { useLifeSituationGroupsQuery } from "./useLifeSituationGroupsQuery";
 
 const fetchMock = vi.fn();
 
@@ -45,4 +46,24 @@ it("useDomainsQuery · refetches when locale changes", async () => {
   act(() => result.current.locale.setLocale(next));
 
   await waitFor(() => expect(domainLocales()).toContain(next));
+});
+
+it("useLifeSituationGroupsQuery · fetches the 8 groups", async () => {
+  fetchMock.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify([
+          { code: "home-housing", name: "Home", description: "", icon: null },
+        ]),
+      ),
+  );
+
+  const { result } = renderHook(() => useLifeSituationGroupsQuery(), {
+    wrapper,
+  });
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  expect(result.current.data).toEqual([
+    { code: "home-housing", name: "Home", description: "", icon: null },
+  ]);
 });

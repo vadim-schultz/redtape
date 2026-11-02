@@ -1,22 +1,23 @@
 import { Wrap } from "@chakra-ui/react";
 
-import type { Term } from "../../../taxonomy/types";
+import type { TaggedTerm } from "../../../taxonomy/types";
 import { buildDocumentsHref } from "../../utils/buildDocumentsHref";
 import TagBadge from "./TagBadge";
 
 export interface DocumentTagsProps {
-  domains: Term[];
-  lifeSituations: Term[];
+  domains: TaggedTerm[];
+  lifeSituations: TaggedTerm[];
 }
 
 type Axis = "domain" | "situation";
 
-const toBadges = (axis: Axis, items: Term[]) =>
-  items.map(({ code, name }) => (
+const toBadges = (axis: Axis, items: TaggedTerm[]) =>
+  items.map(({ code, name, confidence }) => (
     <TagBadge
       key={`${axis}:${code}`}
       to={buildDocumentsHref({ [axis]: code })}
       name={name}
+      confidence={confidence}
     />
   ));
 

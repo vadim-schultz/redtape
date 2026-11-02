@@ -84,3 +84,4 @@ class DocumentListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+    available_leaf_codes: list[str] = Field(default_factory=list)

@@ -36,6 +36,21 @@ def _filter_by_terms(
     return stmt.where(select(1).where(link.c.document_id == Document.id, term_column.in_(ids)).exists())
 
 
+def _order_by(situation_ids: Sequence[UUID]) -> tuple:
+    """Slug order, unless a situation filter is active — then the highest matched confidence first
+    (situation-tag-hierarchy chapter 4; `max` across multiple selected situations is a documented
+    open seam, see `gaps-and-decisions.md`), slug still the tiebreak."""
+    if not situation_ids:
+        return (Document.slug.asc(),)
+    link = document_life_situation
+    max_confidence = (
+        select(func.max(link.c.confidence))
+        .where(link.c.document_id == Document.id, link.c.life_situation_id.in_(situation_ids))
+        .scalar_subquery()
+    )
+    return (max_confidence.desc(), Document.slug.asc())
+
+
 class DocumentRepository:
     """Persistence for documents and direct requirements."""
 
@@ -48,7 +63,7 @@ class DocumentRepository:
         domain_ids: Sequence[UUID],
         situation_ids: Sequence[UUID],
     ) -> Select[tuple[Document]]:
-        stmt = select(Document).order_by(Document.slug.asc())
+        stmt = select(Document).order_by(*_order_by(situation_ids))
         if jurisdiction_id is not None:
             stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
         stmt = _filter_by_terms(stmt, document_domain.c.domain_id, domain_ids)
@@ -140,6 +155,21 @@ class DocumentRepository:
             .where(Document.id == document_id)
         )
         return self._session.scalar(stmt)
+
+    def leaf_codes_in_scope(self, *, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
+        """Distinct non-null PVOG leaf codes among `document_life_situation` rows matching the given
+        jurisdiction/situation scope, same shape as `_base_select`/`_filter_by_terms`."""
+        link = document_life_situation
+        stmt = (
+            select(link.c.pvog_leaf_code)
+            .distinct()
+            .where(link.c.pvog_leaf_code.is_not(None), link.c.life_situation_id.in_(situation_ids))
+        )
+        if jurisdiction_id is not None:
+            stmt = stmt.where(
+                select(1).where(Document.id == link.c.document_id, Document.jurisdiction_id == jurisdiction_id).exists()
+            )
+        return sorted(self._session.scalars(stmt).all())
 
     def get_tag_confidence(self, document_id: UUID) -> TagConfidenceMaps:
         """Return the persisted confidence of every domain and life-situation tag of ``document_id``."""

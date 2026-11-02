@@ -2,14 +2,15 @@ import { screen } from "@testing-library/react";
 import { it, expect } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
-import type { Term } from "../../../taxonomy/types";
+import type { TaggedTerm } from "../../../taxonomy/types";
 import DocumentTags from "./DocumentTags";
 
-const term = (code: string, name: string): Term => ({
+const term = (code: string, name: string, confidence = 1): TaggedTerm => ({
   code,
   name,
   description: "",
   icon: null,
+  confidence,
 });
 
 const domains = [term("D1", "Identity"), term("D2", "Health")];
@@ -47,4 +48,15 @@ it("DocumentTags · renders nothing when both arrays are empty", () => {
   );
 
   expect(container.querySelector("a, ul")).not.toBeInTheDocument();
+});
+
+it("DocumentTags · threads each tag's confidence through to its badge's opacity", () => {
+  renderWithProviders(
+    <DocumentTags
+      domains={[term("D1", "Identity", 0.4)]}
+      lifeSituations={[]}
+    />,
+  );
+
+  expect(screen.getByText("Identity").closest("a")!.style.opacity).toBe("0.7");
 });

@@ -1,13 +1,13 @@
 import { Heading, Text, VStack } from "@chakra-ui/react";
 
-import type { Term } from "../../../taxonomy/types";
+import type { TaggedTerm } from "../../../taxonomy/types";
 import { DocumentTags } from "../DocumentTagsView";
 
 export interface DocumentHeaderProps {
   title: string;
   description?: string | null;
-  domains?: Term[];
-  lifeSituations?: Term[];
+  domains?: TaggedTerm[];
+  lifeSituations?: TaggedTerm[];
 }
 
 export default function DocumentHeader({

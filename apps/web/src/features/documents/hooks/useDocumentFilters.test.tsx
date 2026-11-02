@@ -55,3 +55,19 @@ it("useDocumentFilters · clear removes all filters", () => {
 
   expect(result.current.location.search).toBe("");
 });
+
+it("useDocumentFilters · reads leaf codes from the URL", () => {
+  const { result } = renderFilters("/documents?leaf=1050200");
+
+  expect(result.current.filters.leaves).toEqual(["1050200"]);
+});
+
+it("useDocumentFilters · toggleLeaf adds then removes a leaf code", () => {
+  const { result } = renderFilters("/documents");
+
+  act(() => result.current.filters.toggleLeaf("1050200"));
+  expect(result.current.location.search).toBe("?leaf=1050200");
+
+  act(() => result.current.filters.toggleLeaf("1050200"));
+  expect(result.current.location.search).toBe("");
+});

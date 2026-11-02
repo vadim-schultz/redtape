@@ -13,8 +13,15 @@ const domains = [
   { code: "housing", name: "Housing", description: "", icon: null },
   { code: "work", name: "Work", description: "", icon: null },
 ];
+const groups = [{ code: "home", name: "Home", description: "", icon: null }];
 const situations = [
-  { code: "moving", name: "Moving", description: "", icon: null },
+  {
+    code: "moving",
+    name: "Moving",
+    description: "",
+    icon: null,
+    group_code: "home",
+  },
 ];
 
 function respond(failTaxonomy: boolean) {
@@ -22,6 +29,8 @@ function respond(failTaxonomy: boolean) {
     const path = new URL(String(url)).pathname;
     if (failTaxonomy) return new Response("boom", { status: 500 });
     if (path.endsWith("/domains")) return new Response(JSON.stringify(domains));
+    if (path.endsWith("/life-situation-groups"))
+      return new Response(JSON.stringify(groups));
     return new Response(JSON.stringify(situations));
   });
 }
@@ -91,6 +100,17 @@ it("DocumentFilters · unknown code in the URL is ignored with no crash", async 
   );
 });
 
+it("DocumentFilters · a situation selected via the URL auto-expands its group", async () => {
+  renderFilters("/documents?situation=moving");
+
+  await screen.findByRole("button", { name: "Home" });
+
+  expect(screen.getByRole("button", { name: "Moving" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
 it("DocumentFilters · taxonomy error shows compact error and no chips", async () => {
   respond(true);
   renderFilters("/documents");
@@ -106,8 +126,10 @@ it("DocumentFilters · taxonomy error shows compact error and no chips", async (
 const noopFilters = {
   domains: [],
   situations: [],
+  leaves: [],
   toggleDomain: vi.fn(),
   toggleSituation: vi.fn(),
+  toggleLeaf: vi.fn(),
   clear: vi.fn(),
 };
 
@@ -115,7 +137,7 @@ function renderPresentational(taxonomy: {
   isError: boolean;
   onRetry: () => void;
 }) {
-  const props = { domains: domains, situations: situations, ...taxonomy };
+  const props = { domains, situations, groups, ...taxonomy };
   return renderWithProviders(
     <DocumentFilters taxonomy={props} filters={noopFilters} />,
   );
@@ -125,11 +147,38 @@ it("DocumentFilters · renders the terms it is given without calling an API", ()
   renderPresentational({ isError: false, onRetry: vi.fn() });
 
   expect(screen.getByRole("button", { name: "Housing" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalledWith(
     expect.stringContaining("/domains"),
     expect.anything(),
   );
+});
+
+it("DocumentFilters · expanding a situation group reveals its situation chip", async () => {
+  const { user } = renderPresentational({ isError: false, onRetry: vi.fn() });
+
+  await user.click(screen.getByRole("button", { name: "Home" }));
+
+  expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
+});
+
+it("DocumentFilters · renders a leaf facet chip when given available leaf codes", () => {
+  const props = {
+    domains,
+    situations,
+    groups,
+    isError: false,
+    onRetry: vi.fn(),
+  };
+  renderWithProviders(
+    <DocumentFilters
+      taxonomy={props}
+      filters={noopFilters}
+      availableLeafCodes={["1050200"]}
+    />,
+  );
+
+  expect(screen.getByRole("button", { name: "1050200" })).toBeInTheDocument();
 });
 
 it("DocumentFilters · error flag shows retry, which calls onRetry only", async () => {

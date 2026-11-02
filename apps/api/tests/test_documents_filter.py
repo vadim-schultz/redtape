@@ -8,12 +8,12 @@ import pytest
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Domain, LifeSituation, document_life_situation
 from httpx import Response
 from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 URL = "/api/v1/documents"
@@ -127,6 +127,26 @@ def test_no_params_returns_the_unfiltered_list(client: TestClient[Litestar]) -> 
 def test_untagged_document_never_appears_when_a_filter_is_set(client: TestClient[Litestar]) -> None:
     for params in ({"domain": "housing"}, {"situation": "moving-house"}):
         assert "d-untagged" not in _slugs(_get(client, params))
+
+
+def test_available_leaf_codes_is_empty_without_a_situation_filter(client: TestClient[Litestar]) -> None:
+    assert _get(client, {}).json()["available_leaf_codes"] == []
+
+
+def test_available_leaf_codes_includes_the_leaf_codes_in_scope_for_the_selected_situation(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    moving_house_id = _term(db_session, LifeSituation, "moving-house").id
+    db_session.execute(
+        update(document_life_situation)
+        .where(document_life_situation.c.life_situation_id == moving_house_id)
+        .values(pvog_leaf_code="1050200")
+    )
+    db_session.flush()
+
+    body = _get(client, {"situation": "moving-house"}).json()
+
+    assert body["available_leaf_codes"] == ["1050200"]
 
 
 def _detail(client: TestClient[Litestar], slug: str, locale: str = "en") -> dict:
