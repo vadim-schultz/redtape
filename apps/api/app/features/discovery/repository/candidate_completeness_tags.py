@@ -34,11 +34,12 @@ def _confidence_column(axis: TagAxis) -> ColumnElement[float]:
     return cast(axis.confidence_column, Float)
 
 
-def exploded_codes(axis: TagAxis) -> CTE:
+def exploded_codes(axis: TagAxis, name: str = "exploded") -> CTE:
+    """Return one row per mention code of ``axis``; ``name`` keeps the CTEs of two relations in one query apart."""
     code = func.unnest(axis.column).label("code")
     confidence = _confidence_column(axis).label("confidence")
     stmt = select(Mention.candidate_id, Mention.catalogue_service_id, Mention.extractor, confidence, code)
-    return stmt.cte(f"{axis.value}_exploded")
+    return stmt.cte(f"{axis.value}_{name}")
 
 
 def tagged_procedures(exploded: CTE) -> Subquery:

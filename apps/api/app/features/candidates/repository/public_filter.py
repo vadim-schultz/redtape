@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 
-from sqlalchemy import ColumnElement, String, any_, literal
+from sqlalchemy import ColumnElement, exists, literal, select
 from sqlalchemy.sql.expression import Subquery
 
 from app.features.discovery.repository.candidate_completeness import completeness_order
@@ -17,6 +17,8 @@ from app.features.discovery.repository.candidate_sort import (
     candidate_ordering,
     tie_break,
 )
+from app.features.discovery.tags import TagAxis
+from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 from app.shared.list_query import SortOrder
 
 
@@ -29,9 +31,12 @@ class PublicSortKey(enum.StrEnum):
     CREATED_AT = "created_at"
 
 
-def _accepted(code: str, accepted_codes: ColumnElement) -> ColumnElement[bool]:
-    """Return a predicate that ``code`` is one of the accepted codes array (a ``NULL`` array accepts nothing)."""
-    return literal(code, String) == any_(accepted_codes)
+def _present(scores: Subquery, axis: TagAxis, codes: tuple[str, ...]) -> ColumnElement[bool]:
+    """Return a predicate that the candidate has a score on ``axis`` for any of ``codes``, whatever its value."""
+    match = select(literal(1)).where(
+        scores.c.candidate_id == Candidate.id, scores.c.axis == axis.value, scores.c.code.in_(codes)
+    )
+    return exists(match)
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,18 +44,18 @@ class PublicCandidateFilter:
     """Optional narrowing and ordering of one public listing; the default is the ranked list."""
 
     complete: bool | None = None
-    domain: str | None = None
-    situation: str | None = None
+    domains: tuple[str, ...] = ()
+    situations: tuple[str, ...] = ()
     q: str | None = None
     sort_by: PublicSortKey = PublicSortKey.COMPLETENESS
     sort_order: SortOrder = SortOrder.DESC
 
-    def conditions(self, completeness: Subquery) -> list[ColumnElement[bool]]:
-        """Return the where-clauses of the filters that are set; codes must be accepted ones."""
+    def conditions(self, completeness: Subquery, scores: Subquery) -> list[ColumnElement[bool]]:
+        """Return the where-clauses of the filters that are set: a code matches by presence in ``scores``."""
         return [
             *when(self.complete, lambda value: completeness.c.complete.is_(value)),
-            *when(self.domain, lambda code: _accepted(code, completeness.c.accepted_domain_codes)),
-            *when(self.situation, lambda code: _accepted(code, completeness.c.accepted_situation_codes)),
+            *when(self.domains or None, lambda codes: _present(scores, TagAxis.DOMAIN, codes)),
+            *when(self.situations or None, lambda codes: _present(scores, TagAxis.SITUATION, codes)),
             *when(self.q, title_matches),
         ]
 

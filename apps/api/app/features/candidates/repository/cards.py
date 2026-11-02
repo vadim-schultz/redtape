@@ -13,6 +13,7 @@ from app.features.candidates.repository.public_filter import PublicCandidateFilt
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.candidate_completeness import completeness_subquery
 from app.features.discovery.repository.candidate_listing import mention_count_of, mention_stats, with_stats
+from app.features.discovery.repository.candidate_tag_scores import tag_scores_subquery
 from app.features.discovery.repository.task_listing import Page
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 
@@ -26,15 +27,16 @@ class CardRow(NamedTuple):
 
 @dataclass(frozen=True, slots=True)
 class CardRelations:
-    """The relations a card query joins: mention statistics and the completeness read model."""
+    """The relations a card query reads: mention statistics, the completeness read model and the tag scores."""
 
     stats: Subquery
     completeness: Subquery
+    scores: Subquery
 
     @classmethod
     def build(cls) -> CardRelations:
         """Build both relations."""
-        return cls(mention_stats(), completeness_subquery())
+        return cls(mention_stats(), completeness_subquery(), tag_scores_subquery())
 
     @property
     def mention_count(self) -> ColumnElement[int]:
@@ -54,13 +56,15 @@ class CardRepository(SessionRepository):
         """Count the candidates that match ``card_filter``."""
         relations = CardRelations.build()
         stmt = relations.join(select(func.count()).select_from(Candidate))
-        return int(self._session.scalar(stmt.where(*card_filter.conditions(relations.completeness))) or 0)
+        return int(
+            self._session.scalar(stmt.where(*card_filter.conditions(relations.completeness, relations.scores))) or 0
+        )
 
     def list_card_rows(self, card_filter: PublicCandidateFilter, page: Page) -> list[CardRow]:
         """Return one page of matching candidates in the filter's order."""
         relations = CardRelations.build()
         stmt = relations.join(select(Candidate, relations.mention_count))
-        stmt = stmt.where(*card_filter.conditions(relations.completeness))
+        stmt = stmt.where(*card_filter.conditions(relations.completeness, relations.scores))
         stmt = stmt.order_by(*card_filter.ordering(relations.completeness, relations.mention_count))
         return [CardRow(*row) for row in self._session.execute(stmt.offset(page.offset).limit(page.limit)).all()]
 
