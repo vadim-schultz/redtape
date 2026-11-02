@@ -13,7 +13,8 @@ from app.models.discovery import DiscoveryDocumentCandidate
 
 class SuggestedTags(NamedTuple):
     """Domain and life-situation codes proposed for a candidate, with a confidence score per usable code
-    and, for a situation code a PVOG mention supplied, its raw leaf code (situation-tag-hierarchy chapter 3)."""
+    and, for a situation code a PVOG mention supplied, its raw leaf code (situation-tag-hierarchy chapter 3).
+    """
 
     domain_codes: list[str]
     situation_codes: list[str]

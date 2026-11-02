@@ -29,7 +29,6 @@ class CatalogueExport(BaseModel):
 
 def load_catalogue_row(export_path: Path, catalogue_service_id: UUID) -> CatalogueExportItem | None:
     """Return the catalogue row matching ``catalogue_service_id`` or ``None``."""
-
     data = json.loads(export_path.read_text(encoding="utf-8"))
     export = CatalogueExport.model_validate(data)
     for item in export.items:

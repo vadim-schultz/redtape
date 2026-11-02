@@ -81,7 +81,8 @@ class DocumentService:
 
     def available_leaf_codes(self, filters: DocumentFilters) -> list[str]:
         """Distinct PVOG leaf codes in scope; only meaningful once exactly one situation is selected
-        (chapter 4 design) — empty for zero or several, same as an unresolvable municipality."""
+        (chapter 4 design) — empty for zero or several, same as an unresolvable municipality.
+        """
         if filters.municipality_code is not None and self._effective_jurisdiction_id(filters) is None:
             return []
         situation_ids = self._taxonomy.resolve_situation_ids(filters.situation_codes)

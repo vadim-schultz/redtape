@@ -31,7 +31,6 @@ def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.
     We only mark a row as "OpenPLZ-derived" when its existing `id` matches the expected UUID.
     This avoids accidentally deleting non-OpenPLZ data that might share schema tables.
     """
-
     if code is None:
         return None
 
@@ -50,7 +49,6 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     """
     Return (jurisdiction_ids, locality_ids) that appear to be OpenPLZ-derived.
     """
-
     openplz_jurisdiction_ids: list[uuid.UUID] = []
     jurisdiction_rows = session.execute(select(Jurisdiction.id, Jurisdiction.kind, Jurisdiction.code)).all()
     for jid, kind, code in jurisdiction_rows:
@@ -209,7 +207,6 @@ def wipe_all(session: Session, *, dry_run: bool, include_suggestions: bool) -> d
     (possible user-submitted data) aren't OpenPLZ-derived, so it's treated
     conservatively by default rather than assumed disposable.
     """
-
     suggestion_count = _count(session, Suggestion)
     _guard_suggestions_present(suggestion_count, include_suggestions)
     counts = _wipe_all_counts(session, suggestion_count=suggestion_count, include_suggestions=include_suggestions)

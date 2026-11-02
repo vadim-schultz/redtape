@@ -9,7 +9,6 @@ from discovery_ingest.schemas import CatalogueBatchItem
 
 def dedupe_batch_items(items: Sequence[CatalogueBatchItem]) -> list[CatalogueBatchItem]:
     """Return ``items`` with at most one row per ``(source, external_id)`` (last wins)."""
-
     if not items:
         raise ValueError("items must not be empty")
     by_key: dict[tuple[str, str], CatalogueBatchItem] = {}

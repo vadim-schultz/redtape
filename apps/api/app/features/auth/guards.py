@@ -26,7 +26,6 @@ def require_role(min_role: UserRole) -> Guard:
 
 def require_machine(connection: ASGIConnection, _: BaseRouteHandler) -> None:
     """Guard: only lets machine (X-API-Key) callers through; a logged-in human has the wrong kind of credential."""
-
     if connection.headers.get("X-API-Key") is None and connection.headers.get("Authorization") is not None:
         raise PermissionDeniedException("Machine credentials required")
     verify_guard_machine(connection)

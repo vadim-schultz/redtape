@@ -147,7 +147,6 @@ class OpenPLZClient:
 
         Paging query params are `page` and `pageSize` (per OpenPLZ docs).
         """
-
         page = 1
         while True:
             effective_params: dict[str, Any] = dict(params or {})

@@ -33,11 +33,24 @@ line-length = 120
 src = ["discovery_ingest", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
 ignore = ["E501"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "D"]
+# docstring baseline (T1): delete the line when its slice is done
+"discovery_ingest/worker/**" = ["D107", "D401"]  # I-S1
+"discovery_ingest/{machine_client,curation_run,emit_models,config,latest_snapshots,curation_staged,curation,enrich,curation_plan,candidates_cli,health,artifacts_cli,curation_check,budget,llm_settings,candidate_sources,capture_requeue,__init__,edges,budget_models,batch_dedup,llm_requeue,curation_command,schemas,cli,candidate_emit,requeue_common,mentions,artifacts,cli_errors,catalogue_export,budget_cli,__main__,curation_pages,curation_load}.py" = ["D107", "D401"]  # I-S2 (browser/** has no current violations, so it carries no exemption)
+"discovery_ingest/extract/{clean,clean_dom,registry,__init__,clean_meta,clean_rank,clean_cap,clean_links,clean_tags,clean_markdown,decode,base}.py" = ["D107", "D401"]  # I-S2
+"discovery_ingest/api_client.py" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
+"discovery_ingest/extract/llm/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
+"discovery_ingest/pvog/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
+"discovery_ingest/govdata/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
+"discovery_ingest/fim/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
+"discovery_ingest/leika/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3 (harvest/** has no current violations, so it carries no exemption)
 
 [tool.mypy]
 python_version = "3.11"
