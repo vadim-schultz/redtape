@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, String, Table, UniqueConstraint, Uuid, text
+from sqlalchemy import CheckConstraint, Column, Float, ForeignKey, Integer, String, Table, UniqueConstraint, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,6 +48,7 @@ def _link_table(name: str, term: str) -> Table:
         Base.metadata,
         Column("document_id", Uuid(as_uuid=True), ForeignKey("document.id", ondelete="CASCADE"), primary_key=True),
         Column(f"{term}_id", Uuid(as_uuid=True), ForeignKey(f"{term}.id", ondelete="CASCADE"), primary_key=True),
+        Column("confidence", Float, nullable=False, server_default=text("1.0")),
     )
 
 

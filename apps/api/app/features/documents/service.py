@@ -78,14 +78,26 @@ class DocumentService:
 
     def create_from_suggestion(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
-        domain_ids, situation_ids = self._resolve_tags(payload)
+        domain_scores, situation_scores = self._resolve_tags(payload)
         document = self._build_document(payload, jurisdiction_id, slug)
-        return self._repo.add(document, domain_ids=domain_ids, situation_ids=situation_ids)
+        return self._repo.add(document, domain_scores=domain_scores, situation_scores=situation_scores)
 
-    def _resolve_tags(self, payload: NewDocumentPayload) -> tuple[list[UUID], list[UUID]]:
-        return self._taxonomy.resolve_domain_ids(payload.domain_codes), self._taxonomy.resolve_situation_ids(
-            payload.situation_codes
-        )
+    def _resolve_tags(self, payload: NewDocumentPayload) -> tuple[dict[UUID, float], dict[UUID, float]]:
+        """Resolve each axis' codes to ids and pair them with their given confidence, defaulting to `1.0`.
+
+        A code missing from `payload.tag_confidence` (including when it's `None` entirely, e.g. a
+        hand-written admin creation) is treated as fully confident — the same default the link tables'
+        own `server_default` uses for a row written without this service at all.
+        """
+        confidence = payload.tag_confidence or {}
+        domain_ids = self._taxonomy.resolve_domain_ids(payload.domain_codes)
+        situation_ids = self._taxonomy.resolve_situation_ids(payload.situation_codes)
+        domain_scores = self._scores(payload.domain_codes, domain_ids, confidence)
+        situation_scores = self._scores(payload.situation_codes, situation_ids, confidence)
+        return domain_scores, situation_scores
+
+    def _scores(self, codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
+        return {term_id: confidence.get(code, 1.0) for code, term_id in zip(codes, ids, strict=True)}
 
     def _build_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         return Document(
@@ -172,4 +184,5 @@ class DocumentService:
         if doc is None:
             return None
         path = self._repo.get_jurisdiction_path(jurisdiction_id=doc.jurisdiction_id)
-        return self._reader.detail(doc, path, Locales(locale, enabled_locales))
+        confidence = self._repo.get_tag_confidence(document_id)
+        return self._reader.detail(doc, path, Locales(locale, enabled_locales), confidence)

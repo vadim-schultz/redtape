@@ -139,8 +139,9 @@ def test_detail_includes_resolved_domains_and_life_situations(client: TestClient
 
     assert [d["code"] for d in body["domains"]] == ["housing"]
     assert [s["code"] for s in body["life_situations"]] == ["moving-house"]
-    assert set(body["domains"][0]) == {"code", "name", "description", "icon"}
+    assert set(body["domains"][0]) == {"code", "name", "description", "icon", "confidence"}
     assert body["domains"][0]["name"] != "housing"
+    assert body["domains"][0]["confidence"] == 1.0
 
 
 def test_detail_document_without_tags_returns_empty_arrays(client: TestClient[Litestar]) -> None:

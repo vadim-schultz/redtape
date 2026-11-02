@@ -77,6 +77,23 @@ def test_document_tagging_with_a_domain_and_a_situation_links_both(db_session: S
     assert document.life_situations == [situation]
 
 
+def test_a_link_row_without_confidence_backfills_to_full_confidence(db_session: Session) -> None:
+    """D7: a row written without an explicit confidence (the shape of every row from before chapter 1)
+    reads back as ``1.0`` via the column's own ``server_default`` — honest, not a retroactive scoring claim.
+    """
+    document = _document(db_session)
+    domain = _term(Domain, "housing")
+    db_session.add(domain)
+    db_session.flush()
+    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id))
+
+    confidence = db_session.execute(
+        sa.select(document_domain.c.confidence).where(document_domain.c.document_id == document.id)
+    ).scalar_one()
+
+    assert confidence == 1.0
+
+
 def test_document_tagging_the_same_domain_twice_is_rejected(db_session: Session) -> None:
     document = _document(db_session)
     domain = _term(Domain, "housing")
