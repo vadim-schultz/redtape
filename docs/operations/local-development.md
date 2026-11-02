@@ -26,7 +26,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 alembic upgrade head
 python -m scripts.seed_i18n
-python -m scripts.seed_documents
+python -m scripts.seed_jurisdictions
 python -m scripts.seed_taxonomy
 cd ../..
 
@@ -112,12 +112,12 @@ script against its own throwaway `redtape_migrations` database, and CI runs it a
 ## Resetting / reseeding the local database
 
 - **Reseed only** (fast, keeps schema/data structure): re-run the seed
-  scripts — all are idempotent (`seed_i18n.py` upserts, `seed_documents.py`
+  scripts — all are idempotent (`seed_i18n.py` upserts, `seed_jurisdictions.py`
   uses `session.merge()` with stable UUIDs, `seed_taxonomy.py` upserts by code), safe to run repeatedly:
   ```bash
   cd apps/api
   python -m scripts.seed_i18n
-  python -m scripts.seed_documents
+  python -m scripts.seed_jurisdictions
   python -m scripts.seed_taxonomy
   ```
 - **Full reset** (wipes all local data, including the volume):
@@ -126,7 +126,7 @@ script against its own throwaway `redtape_migrations` database, and CI runs it a
   docker compose up -d db
   cd apps/api && alembic upgrade head
   python -m scripts.seed_i18n
-  python -m scripts.seed_documents
+  python -m scripts.seed_jurisdictions
   python -m scripts.seed_taxonomy
   ```
   If the API is already running, restart it after a full reset — its

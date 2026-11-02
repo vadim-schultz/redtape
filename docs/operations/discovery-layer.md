@@ -37,7 +37,7 @@ External portals and proxy notes:
 - Local stack per [`local-development.md`](local-development.md) (Postgres, API on port 8000, web on 5173).
 - Discovery staging migration applied: `cd apps/api && alembic upgrade head`.
 - Germany country jurisdiction available for federal ingest — the MVP seed includes
-  `11111111-1111-1111-1111-111111111101` (`python -m scripts.seed_documents` after migrations).
+  `11111111-1111-1111-1111-111111111101` (`python -m scripts.seed_jurisdictions` after migrations).
 
 ## Environment variables
 
@@ -348,7 +348,7 @@ docker compose up -d --wait db
 cd apps/api
 source .venv/bin/activate
 alembic upgrade head
-python -m scripts.seed_documents   # if jurisdictions are not already present
+python -m scripts.seed_jurisdictions   # if jurisdictions are not already present
 ```
 
 ### 2. GovData OZG ingest (fixture or export file)

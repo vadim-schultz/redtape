@@ -356,7 +356,7 @@ Use when GHA **GovData OZG catalogue fetch** fails with `discovery machine API 5
 **Leading hypothesis:** `FEDERAL_JURISDICTION_ID` in GitHub Secrets does not match any
 `jurisdiction` row in production (FK on `catalogue_service.jurisdiction_id`). Docs and fresh local
 seeds often cite `11111111-1111-1111-1111-111111111101`
-([`seed_documents.ID_DE`](../../apps/api/scripts/seed_documents.py)); after **OpenPLZ** import,
+([`seed_jurisdictions.ID_DE`](../../apps/api/scripts/seed_jurisdictions.py)); after **OpenPLZ** import,
 Germany is keyed by `(kind, code)` and gets a deterministic UUID from
 [`import_openplz_locations`](../../apps/api/scripts/import_openplz_locations.py) — **always confirm
 with SQL**, do not assume the seed placeholder.

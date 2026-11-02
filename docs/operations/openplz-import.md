@@ -65,7 +65,7 @@ The importer preloads the existing jurisdictions and localities with one query e
 python -m scripts.cleanup_openplz_data --wipe-all --dry-run
 python -m scripts.cleanup_openplz_data --wipe-all
 python -m scripts.import_openplz_locations --language de
-python -m scripts.seed_documents
+python -m scripts.seed_jurisdictions
 ```
 
 ## Scheduled updates
