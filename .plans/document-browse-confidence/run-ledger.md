@@ -18,6 +18,6 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | [05-two-stage-chips](chapters/05-two-stage-chips.md) | `feat/document-browse-confidence-two-stage-chips` | [#320](https://github.com/vadim-schultz/redtape/pull/320) | pass (temp ci.sh copy, scratch DBs; last loop sync after ch8 covered by remote CI only) | pass (web checks; api jobs path-filtered) | merged | none (query key carries expanded situation codes; useDocumentFilters takes taxonomy) |
 | [09-smell-sweep](chapters/09-smell-sweep.md) | `feat/document-browse-confidence-smell-sweep` | [#322](https://github.com/vadim-schultz/redtape/pull/322) | pass (stock ./ci.sh) | pass | merged | none |
 | [10-docs-sync](chapters/10-docs-sync.md) | `feat/document-browse-confidence-docs-sync` | [#323](https://github.com/vadim-schultz/redtape/pull/323) | pass (stock ./ci.sh) | pass | merged | none |
-| [11-live-validation](chapters/11-live-validation.md) | none (read-only) | — | — | — | not run | waits for release merge + deploy |
+| [11-live-validation](chapters/11-live-validation.md) | `docs/plans-document-browse-confidence-lr1` (docs only; checks read-only) | [#326](https://github.com/vadim-schultz/redtape/pull/326) | pass (./ci.sh) | pass | merged to `main` | none (S3 over budget → follow-up; see 02-live-runs.md) |
 
-**Last orchestration:** 2026-11-02 — chapters 1–10 merged and released; stopped before chapter 11 (live validation needs the deploy)
+**Last orchestration:** 2026-11-02 — completed: chapters 1–11 done, release #324 merged and deployed, live validation #326 merged
