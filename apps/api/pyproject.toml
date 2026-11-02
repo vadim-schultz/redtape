@@ -52,16 +52,34 @@ select = [
     "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
+    "D",   # pydocstyle
 ]
 ignore = [
     "E501", # line too long (formatter handles)
     "B008", # Litestar uses `Parameter(...)` defaults in handler signatures
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]     # allow assert in tests
+"tests/*" = ["S101", "D"]     # allow assert in tests; tests are exempt from docstrings
 "tests/test_discovery_error_responses.py" = ["F811"]  # reuses fixtures imported from sibling test modules
-"scripts/*" = ["T201"]   # allow print in scripts
+"scripts/*" = ["T201", "D100", "D101", "D102", "D103", "D107", "D200"]   # allow print in scripts; D* is slice A-S6
+# docstring baseline (T1): delete the line when its slice is done
+"app/features/discovery/**" = ["D102", "D103", "D205", "D401"]  # A-S1
+"app/features/suggestions/**" = ["D100", "D102", "D103", "D107"]  # A-S2
+"app/features/{locations,taxonomy,voting,candidates,events}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D401"]  # A-S3
+"app/features/{documents,auth}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S4
+"app/schema/discovery/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S4
+"app/schema/{auth,candidate,document,location,suggestion,taxonomy,vote}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/schema/openplz.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/models/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/shared/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/services/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/middleware/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/{db,i18n_resolution,config,__init__,url_normalization,locale_resolution,main,lifespan,routes}.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/features/__init__.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 
 [tool.mypy]
 python_version = "3.11"
