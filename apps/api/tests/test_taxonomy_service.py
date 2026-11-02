@@ -42,3 +42,19 @@ def test_unknown_domain_code_raises(service: TaxonomyService) -> None:
 def test_unknown_situation_code_raises(service: TaxonomyService) -> None:
     with pytest.raises(TaxonomyCodeError, match="no-such-code"):
         service.resolve_situation_ids(["no-such-code"])
+
+
+def test_list_situation_groups_returns_all_8_locale_resolved(service: TaxonomyService) -> None:
+    groups = service.list_situation_groups(locale="en", enabled_locales={"de", "en"})
+
+    assert len(groups) == 8
+    assert all(g.name and g.code for g in groups)
+
+
+def test_list_situations_with_group_carries_each_situations_group_code(service: TaxonomyService) -> None:
+    situations = service.list_situations_with_group(locale="en", enabled_locales={"de", "en"})
+
+    by_code = {s.code: s.group_code for s in situations}
+    assert len(situations) == 18
+    assert by_code["moving-house"] == "home-housing"
+    assert by_code["retirement"] == "retirement"

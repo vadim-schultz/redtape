@@ -23,7 +23,7 @@ from app.models.locality import Locality
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType, SuggestionEvent
 from app.models.suggestion_vote import SuggestionVote
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup
 from app.models.user import AppUser, UserRole
 
 __all__ = [
@@ -49,6 +49,7 @@ __all__ = [
     "Jurisdiction",
     "JurisdictionKind",
     "LifeSituation",
+    "LifeSituationGroup",
     "Locality",
     "Suggestion",
     "SuggestionEvent",

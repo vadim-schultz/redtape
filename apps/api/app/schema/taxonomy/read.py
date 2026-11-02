@@ -14,6 +14,12 @@ class TermRead(BaseModel):
     icon: str | None
 
 
+class LifeSituationGroupedRead(TermRead):
+    """A locale-resolved life situation, carrying its presentational group's code."""
+
+    group_code: str
+
+
 class MatrixCell(BaseModel):
     """Documents tagged with both a domain and a life situation."""
 

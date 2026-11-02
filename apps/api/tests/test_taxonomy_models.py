@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 import sqlalchemy as sa
-from app.models import Domain, LifeSituation
+from app.models import Domain, LifeSituation, LifeSituationGroup
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.taxonomy import document_domain, document_life_situation
@@ -63,6 +63,44 @@ def test_life_situation_duplicate_code_is_rejected(db_session: Session) -> None:
 
     with pytest.raises(IntegrityError):
         db_session.flush()
+
+
+def test_life_situation_group_persists_with_de_and_en_names(db_session: Session) -> None:
+    group = LifeSituationGroup(code="home-housing", name_i18n={"de": "Wohnen", "en": "Home & housing"})
+    db_session.add(group)
+    db_session.flush()
+    db_session.expire(group)
+
+    assert group.name_i18n == {"de": "Wohnen", "en": "Home & housing"}
+
+
+def test_life_situation_group_duplicate_code_is_rejected(db_session: Session) -> None:
+    db_session.add(LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"}))
+    db_session.flush()
+    db_session.add(LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"}))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+@pytest.mark.parametrize("code", ["Umzüge", "moving house", "", "Housing", "-a", "a--b"])
+def test_life_situation_group_non_kebab_or_accented_code_is_rejected(db_session: Session, code: str) -> None:
+    db_session.add(LifeSituationGroup(code=code, name_i18n={"en": code}))
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+def test_life_situation_can_be_assigned_a_group(db_session: Session) -> None:
+    group = LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"})
+    db_session.add(group)
+    db_session.flush()
+    situation = LifeSituation(code="moving-house", name_i18n={"en": "moving-house"}, group_id=group.id)
+    db_session.add(situation)
+    db_session.flush()
+    db_session.expire(situation)
+
+    assert situation.group_id == group.id
 
 
 def test_document_tagging_with_a_domain_and_a_situation_links_both(db_session: Session) -> None:

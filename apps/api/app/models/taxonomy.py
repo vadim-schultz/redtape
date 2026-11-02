@@ -32,6 +32,16 @@ class Domain(TaxonomyTermMixin, Base):
     )
 
 
+class LifeSituationGroup(TaxonomyTermMixin, Base):
+    """Presentational parent tier over the life-situation axis (~8 groups, architecture §4)."""
+
+    __tablename__ = "life_situation_group"
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_life_situation_group_code"),
+        CheckConstraint(f"code ~ '{CODE_PATTERN}'", name="ck_life_situation_group_code_kebab"),
+    )
+
+
 class LifeSituation(TaxonomyTermMixin, Base):
     """Life event that triggers a set of documents (matrix columns)."""
 
@@ -40,6 +50,11 @@ class LifeSituation(TaxonomyTermMixin, Base):
         UniqueConstraint("code", name="uq_life_situation_code"),
         CheckConstraint(f"code ~ '{CODE_PATTERN}'", name="ck_life_situation_code_kebab"),
     )
+
+    # Nullable at the schema level only so a migration can land before the seed script
+    # back-fills every row's group; a seed-integrity test, not this column, guarantees
+    # every situation ends up with exactly one group (chapter 2 design).
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("life_situation_group.id"), nullable=True)
 
 
 def _link_table(name: str, term: str) -> Table:
