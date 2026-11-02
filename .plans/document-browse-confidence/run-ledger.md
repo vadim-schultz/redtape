@@ -2,7 +2,7 @@
 
 **Loop branch:** `feat/plans-document-browse-confidence`
 **Release branch:** `main`
-**Release MR/PR:** _(filled when opened)_
+**Release MR/PR:** [#324](https://github.com/vadim-schultz/redtape/pull/324), merged into `main` 2026-11-02 (merge commit e5d980e)
 
 Chapter MRs merge into the loop branch only. The chapter-implementer **does not** edit this file.
 
@@ -19,3 +19,5 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | [09-smell-sweep](chapters/09-smell-sweep.md) | `feat/document-browse-confidence-smell-sweep` | [#322](https://github.com/vadim-schultz/redtape/pull/322) | pass (stock ./ci.sh) | pass | merged | none |
 | [10-docs-sync](chapters/10-docs-sync.md) | `feat/document-browse-confidence-docs-sync` | [#323](https://github.com/vadim-schultz/redtape/pull/323) | pass (stock ./ci.sh) | pass | merged | none |
 | [11-live-validation](chapters/11-live-validation.md) | none (read-only) | — | — | — | not run | waits for release merge + deploy |
+
+**Last orchestration:** 2026-11-02 — chapters 1–10 merged and released; stopped before chapter 11 (live validation needs the deploy)
