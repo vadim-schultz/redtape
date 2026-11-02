@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
+from app.features.documents.service import DocumentFilters, DocumentService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -110,6 +110,40 @@ def test_create_from_suggestion_without_situation_leaf_codes_leaves_the_column_n
         select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
     ).scalar_one()
     assert row is None
+
+
+def test_available_leaf_codes_is_empty_when_no_situation_is_selected(
+    document_service: DocumentService, jurisdiction: Jurisdiction
+) -> None:
+    codes = document_service.available_leaf_codes(DocumentFilters(jurisdiction_id=jurisdiction.id))
+
+    assert codes == []
+
+
+def test_available_leaf_codes_is_empty_when_two_or_more_situations_are_selected(
+    document_service: DocumentService, jurisdiction: Jurisdiction
+) -> None:
+    filters = DocumentFilters(jurisdiction_id=jurisdiction.id, situation_codes=["moving-house", "new-job"])
+
+    codes = document_service.available_leaf_codes(filters)
+
+    assert codes == []
+
+
+def test_available_leaf_codes_returns_the_distinct_set_for_exactly_one_situation(
+    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    for leaf_code in ("1050200", "1050300", "1050200"):
+        payload = _payload(
+            situation_codes=["moving-house"],
+            situation_leaf_codes={"moving-house": leaf_code},
+        )
+        document_service.create_from_suggestion(payload, jurisdiction.id, f"doc-{leaf_code}-{uuid.uuid4().hex[:6]}")
+
+    filters = DocumentFilters(jurisdiction_id=jurisdiction.id, situation_codes=["moving-house"])
+    codes = document_service.available_leaf_codes(filters)
+
+    assert codes == ["1050200", "1050300"]
 
 
 def test_get_document_detail_reads_back_the_persisted_confidence(

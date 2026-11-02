@@ -105,3 +105,92 @@ def test_add_without_leaf_codes_leaves_the_column_null(db_session: Session, juri
         select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
     ).scalar_one()
     assert row is None
+
+
+def test_leaf_codes_in_scope_returns_the_distinct_non_null_codes_for_the_given_situation(
+    db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="one"),
+        situation_scores={situation.id: 1.0},
+        situation_leaf_codes={situation.id: "1050200"},
+    )
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="two"),
+        situation_scores={situation.id: 1.0},
+        situation_leaf_codes={situation.id: "1050300"},
+    )
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="three"),
+        situation_scores={situation.id: 1.0},
+        situation_leaf_codes={situation.id: "1050200"},
+    )
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="four-no-leaf"),
+        situation_scores={situation.id: 1.0},
+    )
+
+    codes = repo.leaf_codes_in_scope(jurisdiction_id=jurisdiction.id, situation_ids=[situation.id])
+
+    assert codes == ["1050200", "1050300"]
+
+
+def test_leaf_codes_in_scope_ignores_rows_outside_the_jurisdiction(
+    db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+    other_jurisdiction = Jurisdiction(kind=JurisdictionKind.COUNTRY, name_i18n={"en": "Other"}, code="OTHER")
+    db_session.add(other_jurisdiction)
+    db_session.flush()
+    repo.add(
+        Document(jurisdiction_id=other_jurisdiction.id, slug="elsewhere"),
+        situation_scores={situation.id: 1.0},
+        situation_leaf_codes={situation.id: "1050200"},
+    )
+
+    codes = repo.leaf_codes_in_scope(jurisdiction_id=jurisdiction.id, situation_ids=[situation.id])
+
+    assert codes == []
+
+
+def test_list_page_orders_by_slug_when_no_situation_filter_is_active(
+    db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="b-low-confidence"),
+        situation_scores={situation.id: 0.1},
+    )
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="a-high-confidence"),
+        situation_scores={situation.id: 0.9},
+    )
+
+    rows = repo.list_page(jurisdiction_id=jurisdiction.id, offset=0, limit=10)
+
+    assert [row.slug for row in rows] == ["a-high-confidence", "b-low-confidence"]
+
+
+def test_list_page_orders_by_confidence_desc_when_a_situation_filter_is_active(
+    db_session: Session, jurisdiction: Jurisdiction
+) -> None:
+    """Slugs are deliberately the reverse of the confidence order, so a passing assertion can only
+    be explained by the confidence ordering actually taking effect, not the slug tiebreak."""
+    repo = _repo(db_session)
+    situation = _term(db_session, LifeSituation, "moving-house")
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="a-low-confidence"),
+        situation_scores={situation.id: 0.1},
+    )
+    repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="b-high-confidence"),
+        situation_scores={situation.id: 0.9},
+    )
+
+    rows = repo.list_page(jurisdiction_id=jurisdiction.id, offset=0, limit=10, situation_ids=[situation.id])
+
+    assert [row.slug for row in rows] == ["b-high-confidence", "a-low-confidence"]

@@ -74,7 +74,23 @@ class DocumentService:
         rows = self._repo.list_page(offset=offset, limit=limit, **scope)
         locales = Locales(locale, enabled_locales)
         items = [self._reader.summary(row, locales) for row in rows]
-        return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
+        leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, scope["situation_ids"])
+        return DocumentListResponse(
+            items=items, total=total, offset=offset, limit=limit, available_leaf_codes=leaf_codes
+        )
+
+    def available_leaf_codes(self, filters: DocumentFilters) -> list[str]:
+        """Distinct PVOG leaf codes in scope; only meaningful once exactly one situation is selected
+        (chapter 4 design) — empty for zero or several, same as an unresolvable municipality."""
+        if filters.municipality_code is not None and self._effective_jurisdiction_id(filters) is None:
+            return []
+        situation_ids = self._taxonomy.resolve_situation_ids(filters.situation_codes)
+        return self._leaf_codes_in_scope(self._effective_jurisdiction_id(filters), situation_ids)
+
+    def _leaf_codes_in_scope(self, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
+        if len(situation_ids) != 1:
+            return []
+        return self._repo.leaf_codes_in_scope(jurisdiction_id=jurisdiction_id, situation_ids=situation_ids)
 
     def create_from_suggestion(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
