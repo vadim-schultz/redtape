@@ -12,7 +12,7 @@ export interface CandidateDetailViewProps {
   screenshotUrl: string;
 }
 
-/** The public item page: back link and the unreviewed notice in every state, then the candidate. */
+/** The public item page: back link to the documents list and the unreviewed notice in every state, then the candidate. */
 export default function CandidateDetailView(props: CandidateDetailViewProps) {
   return (
     <VStack align="stretch" gap={6}>

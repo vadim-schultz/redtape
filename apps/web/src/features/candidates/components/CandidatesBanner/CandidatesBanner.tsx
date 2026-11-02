@@ -2,7 +2,7 @@ import { Alert } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 
-/** The "staged, unreviewed" notice (D16); shown above the list in every state. */
+/** The "staged, unreviewed" notice (D16); shown above the item page in every state. */
 export default function CandidatesBanner() {
   const { t } = useLocale();
 
