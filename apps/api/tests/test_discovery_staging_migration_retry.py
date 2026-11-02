@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261102_link_table_confidence"
+HEAD_REVISION = "20261102_life_situation_group"
 BUDGET_REVISION = "20261028_budget_ledger"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
@@ -153,11 +153,14 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
             conn.execute("DROP TABLE IF EXISTS discovery_budget_ledger")
             conn.execute("DROP TABLE IF EXISTS discovery_artifact")
             conn.execute("DROP TYPE IF EXISTS discovery_artifact_kind")
-            # situation-tag-hierarchy chapter 1's own two migrations stack on top of this revision gap;
-            # the mention columns vanish with the table dropped above, but document_domain/
-            # document_life_situation predate this window and are never dropped, so roll their column back too.
+            # situation-tag-hierarchy chapters 1 and 2's own three migrations stack on top of this
+            # revision gap; the mention columns vanish with the table dropped above, but
+            # document_domain/document_life_situation/life_situation predate this window and are
+            # never dropped, so roll their columns (and chapter 2's new table) back too.
             conn.execute("ALTER TABLE document_domain DROP COLUMN IF EXISTS confidence")
             conn.execute("ALTER TABLE document_life_situation DROP COLUMN IF EXISTS confidence")
+            conn.execute("ALTER TABLE life_situation DROP COLUMN IF EXISTS group_id")
+            conn.execute("DROP TABLE IF EXISTS life_situation_group")
             conn.commit()
 
         assert _alembic_version(database_url) == STAGING_REVISION
@@ -203,13 +206,14 @@ def test_staging_edges_upgrade_adds_labels_columns_and_edge_table() -> None:
 def test_staging_edges_downgrade_drops_the_additions_but_keeps_enum_labels() -> None:
     """Round trip: the downgrade removes columns, table and basis enum; labels stay (Postgres cannot drop them).
 
-    ``-3`` walks back past the two situation-tag-hierarchy chapter 1 migrations stacked on top of
-    ``staging_edges`` (mention direct-confidence, link-table confidence) to reach this revision's own step.
+    ``-4`` walks back past the three situation-tag-hierarchy migrations stacked on top of
+    ``staging_edges`` (chapter 1's mention direct-confidence and link-table confidence, chapter 2's
+    life_situation_group) to reach this revision's own step.
     """
     with _fresh_database() as database_url:
         assert _run_alembic(database_url, "upgrade", "head").returncode == 0
 
-        down = _run_alembic(database_url, "downgrade", "-3")
+        down = _run_alembic(database_url, "downgrade", "-4")
         assert down.returncode == 0, down.stdout + down.stderr
         assert _alembic_version(database_url) == BUDGET_REVISION
         assert not _table_exists(database_url, "discovery_candidate_edge")
