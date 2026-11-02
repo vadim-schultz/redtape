@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, ForeignKey, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,6 +57,8 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     is_optional: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     domain_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
     situation_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
+    direct_domain_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    direct_situation_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     candidate: Mapped[DiscoveryDocumentCandidate] = relationship(
         "DiscoveryDocumentCandidate", back_populates="mentions"

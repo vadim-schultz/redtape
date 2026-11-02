@@ -328,12 +328,12 @@ class CandidateMentionRead(BaseModel):
 
 
 class TagSupportRead(BaseModel):
-    """How many procedures carry a code, their share of the tagged procedures, and whether emit would use it."""
+    """How many procedures carry a code, their share of the tagged procedures, and its combined score."""
 
     code: str
     procedures: int
     share: float
-    accepted: bool
+    score: float
 
 
 class CandidateDetailResponse(BaseModel):

@@ -7,7 +7,7 @@ import uuid
 import pytest
 from app.config import settings
 from app.features.discovery.repository import DiscoveryRepository
-from app.features.discovery.repository.candidate_completeness import TagThresholds, completeness_subquery
+from app.features.discovery.repository.candidate_completeness import completeness_subquery
 from app.features.discovery.repository.candidate_listing import CandidateListingRepository
 from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus, DiscoveryMentionRole
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -182,12 +182,13 @@ def test_candidate_list_filters_by_an_accepted_domain_code(client: Client, scene
     lonely = scene.candidate("lonely")
     scene.mention(lonely, scene.procedure(), domains=[HOUSING], situations=[MOVING])
 
-    domain = _get(client, **{"filter[domain]": HOUSING})
+    domain = _keys(client, **{"filter[domain]": HOUSING})
     situation = _keys(client, **{"filter[situation]": MOVING})
     other = _get(client, **{"filter[domain]": "identity-civil-status"})
 
-    assert [item["key"] for item in domain["items"]] == ["accepted"] and domain["total"] == 1
-    # Situation relaxes to one procedure (situation-tag-activation D2), so "lonely"'s single mention qualifies.
+    # situation-tag-hierarchy chapter 1: both axes now run the same scoring engine (D8), so "lonely"'s
+    # single mention clears the inclusion floor on either axis, the same way.
+    assert set(domain) == {"accepted", "lonely"}
     assert set(situation) == {"accepted", "lonely"}
     assert other["items"] == []
 
@@ -219,9 +220,9 @@ def test_candidate_list_joins_the_completeness_model_only_when_it_is_needed(
     scene.candidate("anything")
     joined: list[str] = []
 
-    def spy(thresholds: TagThresholds) -> Subquery:
+    def spy() -> Subquery:
         joined.append("joined")
-        return completeness_subquery(thresholds)
+        return completeness_subquery()
 
     monkeypatch.setattr("app.features.discovery.repository.candidate_relations.completeness_subquery", spy)
 

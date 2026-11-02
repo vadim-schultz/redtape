@@ -86,8 +86,6 @@ variable only to tighten it.
 | `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day, an API variable (`llm_extract` and `llm eval` reserve from it; free plan 10,000). Cloudflare's own allocation also counts uses the ledger never sees, such as `llm probe`, so only 500 neurons a day stay unreserved; tighten it if other workloads use Workers AI |
 | `BUDGET_ACTIONS_MINUTES_MONTHLY` | 2000 | This repository's GitHub Actions minutes a month |
 | `ACTIONS_CI_RESERVE_MINUTES` | 1000 | The part of those minutes that CI keeps; drains may use 1000 |
-| `DISCOVERY_TAG_MIN_PROCEDURES` | 2 | Procedures that must tag a candidate with a domain or life-situation code before emit offers it |
-| `DISCOVERY_TAG_MIN_SHARE` | 0.5 | Share of a candidate's tagged procedures that must carry the code |
 | `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
 
 - [ ] Render dashboard sets `BUDGET_ACTIONS_MINUTES_MONTHLY=2000` and `ACTIONS_CI_RESERVE_MINUTES=1000` for `redtape-api`, matching the new split above. This assumes this repository's share of the account-wide shared Actions-minutes pool has grown to 2,000 (unverified — see [`discovery-throughput/gaps-and-decisions.md`](../../.plans/discovery-throughput/gaps-and-decisions.md) D1); confirm the account pool really has this headroom before relying on it.

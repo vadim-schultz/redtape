@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -67,7 +66,7 @@ class NewDocumentPayload(BaseModel):
     official_url: str | None = None
     domain_codes: list[str] = Field(default_factory=list)
     situation_codes: list[str] = Field(default_factory=list)
-    tag_confidence: dict[str, Literal["high", "low"]] | None = None
+    tag_confidence: dict[str, float] | None = None
 
     @field_validator("title_i18n")
     @classmethod

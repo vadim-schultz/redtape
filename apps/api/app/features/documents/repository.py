@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import Column, Select, func, select
@@ -9,6 +10,20 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.taxonomy import document_domain, document_life_situation
+
+
+@dataclass(frozen=True)
+class TagConfidenceMaps:
+    """A document's persisted tag confidence, keyed by term id, for each axis."""
+
+    domains: dict[UUID, float]
+    life_situations: dict[UUID, float]
+
+
+def _confidence_map(session: Session, term_column: Column, document_id: UUID) -> dict[UUID, float]:
+    link = term_column.table
+    stmt = select(term_column, link.c.confidence).where(link.c.document_id == document_id)
+    return dict(session.execute(stmt).tuples().all())
 
 
 def _filter_by_terms(
@@ -68,18 +83,30 @@ class DocumentRepository:
         return list(self._session.scalars(stmt).all())
 
     def add(
-        self, document: Document, *, domain_ids: Sequence[UUID] = (), situation_ids: Sequence[UUID] = ()
+        self,
+        document: Document,
+        *,
+        domain_scores: dict[UUID, float] | None = None,
+        situation_scores: dict[UUID, float] | None = None,
     ) -> Document:
         self._session.add(document)
         self._session.flush()
-        self._link_terms(document_domain.c.domain_id, document.id, domain_ids)
-        self._link_terms(document_life_situation.c.life_situation_id, document.id, situation_ids)
+        self._link_terms(document_domain.c.domain_id, document.id, domain_scores or {})
+        self._link_terms(document_life_situation.c.life_situation_id, document.id, situation_scores or {})
         return document
 
-    def _link_terms(self, term_column: Column, document_id: UUID, ids: Sequence[UUID]) -> None:
-        if not ids:
+    def _link_terms(self, term_column: Column, document_id: UUID, scores: dict[UUID, float]) -> None:
+        """Insert one link row per ``scores`` entry, each carrying its given confidence.
+
+        ``scores`` must already carry every id that is to be linked — a missing id is not defaulted here;
+        that's the caller's contract, one layer up (``DocumentService._resolve_tags``).
+        """
+        if not scores:
             return
-        rows = [{"document_id": document_id, term_column.name: term_id} for term_id in ids]
+        rows = [
+            {"document_id": document_id, term_column.name: term_id, "confidence": score}
+            for term_id, score in scores.items()
+        ]
         self._session.execute(term_column.table.insert(), rows)
 
     def get_by_id(self, document_id: UUID) -> Document | None:
@@ -93,6 +120,13 @@ class DocumentRepository:
             .where(Document.id == document_id)
         )
         return self._session.scalar(stmt)
+
+    def get_tag_confidence(self, document_id: UUID) -> TagConfidenceMaps:
+        """Return the persisted confidence of every domain and life-situation tag of ``document_id``."""
+        return TagConfidenceMaps(
+            _confidence_map(self._session, document_domain.c.domain_id, document_id),
+            _confidence_map(self._session, document_life_situation.c.life_situation_id, document_id),
+        )
 
     def get_jurisdiction_path(self, *, jurisdiction_id: UUID) -> list[Jurisdiction]:
         """Walk `geographic_parent_id` links to build a root → leaf breadcrumb."""

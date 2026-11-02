@@ -7,7 +7,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from app.config import settings
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.candidate_completeness import (
     CandidateCompleteness,
@@ -20,10 +19,10 @@ class CompletenessRepository(SessionRepository):
     """Expose the completeness read model to services."""
 
     def completeness_for(self, candidate_ids: Sequence[UUID]) -> dict[UUID, CandidateCompleteness]:
-        """Return the completeness of ``candidate_ids``, keyed by candidate id, with the settings thresholds."""
+        """Return the completeness of ``candidate_ids``, keyed by candidate id."""
         if not candidate_ids:
             return {}
-        sub = completeness_subquery(settings)
+        sub = completeness_subquery()
         stmt = select(*completeness_columns(sub)).where(sub.c.candidate_id.in_(candidate_ids))
         values = (CandidateCompleteness.from_row(row) for row in self._session.execute(stmt))
         return {value.candidate_id: value for value in values}
