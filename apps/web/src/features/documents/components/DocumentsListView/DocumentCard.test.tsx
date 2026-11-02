@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { it, expect } from "vitest";
 
 import { renderWithProviders } from "../../../../test/renderWithProviders";
@@ -12,6 +13,11 @@ const baseDocument: DocumentSummary = {
   tags: [],
   confidence: 0.5,
 };
+
+function StateProbe() {
+  const state = useLocation().state as { fromList?: boolean } | null;
+  return <p data-testid="from-list">{String(Boolean(state?.fromList))}</p>;
+}
 
 it("DocumentCard · renders title inside a card", async () => {
   renderWithProviders(<DocumentCard document={baseDocument} />);
@@ -30,6 +36,19 @@ it("DocumentCard · links to the candidate item page", async () => {
 
   const link = await screen.findByRole("link");
   expect(link).toHaveAttribute("href", "/candidates/doc-1");
+});
+
+it("DocumentCard · carries fromList state so the item page can return to the list", async () => {
+  const { user } = renderWithProviders(
+    <Routes>
+      <Route path="/" element={<DocumentCard document={baseDocument} />} />
+      <Route path="/candidates/:id" element={<StateProbe />} />
+    </Routes>,
+  );
+
+  await user.click(await screen.findByRole("link"));
+
+  expect(screen.getByTestId("from-list")).toHaveTextContent("true");
 });
 
 it("DocumentCard · shows its tags as plain badges, most confident first", async () => {

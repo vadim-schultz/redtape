@@ -11,7 +11,7 @@ export interface DocumentCardProps {
 /** One listed document: title, description and tags, linking to its item page. */
 export default function DocumentCard({ document }: DocumentCardProps) {
   return (
-    <AppCard to={`/candidates/${document.id}`}>
+    <AppCard to={`/candidates/${document.id}`} state={{ fromList: true }}>
       <Card.Title textStyle="subsectionHeader">{document.title}</Card.Title>
       {document.description ? (
         <Card.Description mt={1}>{document.description}</Card.Description>

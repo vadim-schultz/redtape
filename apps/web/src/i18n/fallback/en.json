@@ -35,8 +35,7 @@
   "nav": {
     "home": "Home",
     "browse_documents": "Browse Documents",
-    "about": "About",
-    "candidates": "Candidates"
+    "about": "About"
   },
   "menu": {
     "profile": "Profile",
@@ -81,20 +80,8 @@
     "sort_desc": "Descending"
   },
   "candidates": {
-    "title": "Candidates",
-    "subtitle": "Document names found on procedure pages, ranked by how completely they are described.",
     "banner_title": "Staged and unreviewed",
     "banner_body": "These candidates are model output from public pages. Nobody has checked them yet, and some may be wrong.",
-    "search_label": "Search candidate titles",
-    "filter_domain": "Domain",
-    "filter_situation": "Life situation",
-    "complete_only": "Complete only",
-    "clear_filters": "Clear filters",
-    "count_one": "{count} candidate",
-    "count_other": "{count} candidates",
-    "empty_title": "No candidates found",
-    "empty_description": "No candidates are staged yet.",
-    "empty_filtered_description": "Your filters hide every candidate. Clear them to see the full list.",
     "flag_domain": "Domain",
     "flag_situation": "Situation",
     "flag_edges": "Dependencies",

@@ -1,20 +1,6 @@
 import { buildApiUrl } from "../../../services/apiOrigin";
 import { apiRequest } from "../../../services/api";
-import { toListParams } from "../../../services/listQuery";
-import type { CandidateDetail, CandidateListResponse } from "../types";
-import type { CandidateListQuery } from "./candidateListQuery";
-
-/** One page of the public, ranked candidate list; needs no session. */
-export async function fetchCandidates(params: {
-  locale: string;
-  query: CandidateListQuery;
-}): Promise<CandidateListResponse> {
-  const { locale, query } = params;
-  return apiRequest<CandidateListResponse>("/api/v1/candidates", {
-    locale,
-    query: toListParams(query),
-  });
-}
+import type { CandidateDetail } from "../types";
 
 /** One candidate with its neighbours and evidence; a 404 means no such candidate. */
 export async function fetchCandidate(params: {
