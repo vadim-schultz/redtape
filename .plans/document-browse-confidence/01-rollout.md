@@ -70,7 +70,7 @@ Chapter 6 touches only the web menu and the suggestion route; it has no code dep
 | 8 | Remove seeded documents | api | pytest + `./ci.sh` | [chapters/08-remove-seeded-documents.md](chapters/08-remove-seeded-documents.md) | planned |
 | 9 | Smell sweep | api, web | `./ci.sh` | [chapters/09-smell-sweep.md](chapters/09-smell-sweep.md) | planned |
 | 10 | Docs sync | docs | docs-sync pytest + `./ci.sh` | [chapters/10-docs-sync.md](chapters/10-docs-sync.md) | planned |
-| 11 | Live validation | — | — | [chapters/11-live-validation.md](chapters/11-live-validation.md) | planned |
+| 11 | Live validation | — | — | [chapters/11-live-validation.md](chapters/11-live-validation.md) | done (LR1: [02-live-runs.md](02-live-runs.md)) |
 
 ## Per-chapter gate
 

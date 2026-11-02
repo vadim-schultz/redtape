@@ -38,11 +38,22 @@ Stated at plan approval; change them before chapter 3 starts if wrong.
 | --- | --- | --- | --- |
 | S1 | Dormant `document` API, `/documents/:id` and `/matrix` return nothing once D6 lands | Left in place | A later suite that removes the `document` read path, or promotes candidates differently |
 | S2 | Completeness flags (`has_domain`, `has_situation`) still use the accepted-code rule with the 0.05 floor, so a candidate whose only tag scores below it shows a tag but no `has_*` flag | Flags unchanged; the new card does not show them, the item page checklist does | Someone reading the checklist and the tags on the same item page and finding them inconsistent |
-| S3 | The score model is computed live from mentions on every list request, unindexed | Measured in chapter 11 | p95 of `/api/v1/candidates` above the budget set in chapter 11; then materialise `candidate_tag_scores` |
+| S3 | The score model is computed live from mentions on every list request, unindexed | **Measured 2026-11-02 ([02-live-runs.md](02-live-runs.md)): pooled p95 1.74 s over 80 requests against the 1.5 s budget (median 1.01 s, max 2.55 s); over budget, so it becomes a follow-up.** The slow tail also appears on title and `created_at` sorts, so confirm with a server-side `EXPLAIN ANALYZE` before materialising | A follow-up chapter that materialises `candidate_tag_scores` (parity-tested against the Python scorer) if the server-side measurement points at the score relation |
 | S4 | Multi-chip card confidence is `max` over the selected codes, not a combined score | Pragmatic first choice, same as situation-tag-hierarchy's open seam | Usage showing a confusing order |
 | S5 | Emit, vote, promote, the admin Emit panel and the suggestion API now have no purpose in the browse flow | Dormant and documented in chapter 10 | A removal suite; it would drop user-submitted requirement edges (`new_requirement`) and about 25 test files |
 | S6 | Seeded-document deletion is irreversible (`downgrade()` is a no-op) | User-approved (D6) | None |
 | S7 | `seed_documents.py` is renamed to `seed_jurisdictions.py`, which ripples through tests and docs | Done in chapter 8 | None |
+
+## Findings of the live run
+
+Recorded in [02-live-runs.md](02-live-runs.md) (2026-11-02), none settled as a decision here.
+
+| # | Finding | Status |
+| --- | --- | --- |
+| F1 | 4,570 of 4,666 candidates have no tag and show a 0% red circle; only 96 are tagged | Open: decide whether an untagged document shows a circle (invariant 1 stands) |
+| F2 | Title sort is German, else English, else key, not per request locale | Open: document it or make it locale-aware |
+| F3 | Circle percentage label sits outside the ring; unselected chips have no visible pill in dark mode | Open, cosmetic |
+| F4 | Sign out, admin links, touch behaviour and non-Chrome engines were not checked | Open: a signed-in or on-device pass |
 
 ## Risks
 
