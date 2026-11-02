@@ -6,7 +6,6 @@ import { CandidateDetailSkeleton } from "../features/candidates/components/Candi
 import { CandidatesListSkeleton } from "../features/candidates/components/CandidatesListView";
 import { DocumentDetailSkeleton } from "../features/documents/components/DocumentDetailView";
 import { DocumentsListSkeleton } from "../features/documents/components/DocumentsListView";
-import RequireAuth from "../features/auth/components/RequireAuth";
 import { SuggestionDetailSkeleton } from "../features/suggestions/components/SuggestionDetailView";
 import { SuggestionsListSkeleton } from "../features/suggestions/components/SuggestionsListView";
 
@@ -23,9 +22,6 @@ const CandidateDetailPage = lazy(
   () => import("../features/candidates/containers/CandidateDetailPage"),
 );
 const LoginPage = lazy(() => import("../features/auth/containers/LoginPage"));
-const SuggestPage = lazy(
-  () => import("../features/suggestions/containers/SuggestPage"),
-);
 const SuggestionsListPage = lazy(
   () => import("../features/suggestions/containers/SuggestionsListPage"),
 );
@@ -75,16 +71,6 @@ export const routes = [
     element: (
       <Suspense fallback={<CandidateDetailSkeleton />}>
         <CandidateDetailPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: "/suggest",
-    element: (
-      <Suspense fallback={<LoadingShell />}>
-        <RequireAuth>
-          <SuggestPage />
-        </RequireAuth>
       </Suspense>
     ),
   },

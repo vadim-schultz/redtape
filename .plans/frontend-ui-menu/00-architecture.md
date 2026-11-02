@@ -37,7 +37,7 @@ Menu panel (KeyValueRow × 4):
 | --- | --- |
 | Menu trigger | Top-right `IconButton` with `BrandMark`, `aria-label` = `common.menu`, `{...floatingSurface}`. No `FaBars`. No separate left home link — home via Documents row. |
 | Profile row | Anonymous: `FaEnvelope` and `FaGoogle` → `/login` (UI-only; no OAuth). Authenticated: `FaRegUser` + compact sign-out (today’s account behaviour). Unconfigured: row omitted. |
-| Documents row | Links to `/documents` and `/suggest`. |
+| Documents row | Links to `/documents` (the `/suggest` link was removed by [document-browse-confidence](../document-browse-confidence/chapters/06-menu-chrome.md) ch. 6). |
 | Colour row | Existing `ColorModeSwitch`; toggling does **not** close the menu. |
 | Language row | Inline flag ghost buttons from `useLocalesQuery`; replaces nested `LocaleSubmenu`. |
 
