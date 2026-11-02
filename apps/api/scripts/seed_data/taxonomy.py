@@ -295,6 +295,97 @@ SITUATIONS = _terms(
     ]
 )
 
+SITUATION_GROUPS = _terms(
+    [
+        (
+            "family-relationships",
+            "Familie & Beziehungen",
+            "Family & relationships",
+            "Heirat, Trennung, Geburt und Todesfall in der Familie.",
+            "Marriage, separation, birth and bereavement in the family.",
+            "users",
+        ),
+        (
+            "home-housing",
+            "Wohnen & Umzug",
+            "Home & housing",
+            "Umzug, Mietwohnung und Immobilienkauf.",
+            "Moving house, renting and buying property.",
+            "home",
+        ),
+        (
+            "work-career",
+            "Arbeit & Karriere",
+            "Work & career",
+            "Jobwechsel, Jobverlust und Selbstständigkeit.",
+            "Changing jobs, losing a job and going self-employed.",
+            "briefcase",
+        ),
+        (
+            "education",
+            "Bildung",
+            "Education",
+            "Studium und Schuleintritt.",
+            "Studying and starting school.",
+            "graduation-cap",
+        ),
+        (
+            "vehicles-travel",
+            "Fahrzeuge & Mobilität",
+            "Vehicles & travel",
+            "Fahrzeugkauf und Führerschein.",
+            "Buying a vehicle and getting a licence.",
+            "car",
+        ),
+        (
+            "residence-migration",
+            "Aufenthalt & Migration",
+            "Residence & migration",
+            "Zuzug nach Deutschland und Einbürgerung.",
+            "Moving to Germany and naturalisation.",
+            "globe",
+        ),
+        (
+            "health-care",
+            "Gesundheit & Pflege",
+            "Health & care",
+            "Krankheit und Pflegebedürftigkeit.",
+            "Illness and care needs.",
+            "stethoscope",
+        ),
+        (
+            "retirement",
+            "Renteneintritt",
+            "Retirement",
+            "Übergang in den Ruhestand.",
+            "Transition into retirement.",
+            "sunset",
+        ),
+    ]
+)
+
+# life situation code -> situation-group code (architecture §4); a pure partition of SITUATIONS.
+SITUATION_GROUP_CODES: dict[str, str] = {
+    "marriage": "family-relationships",
+    "separation-divorce": "family-relationships",
+    "birth-of-child": "family-relationships",
+    "death-of-relative": "family-relationships",
+    "moving-house": "home-housing",
+    "renting-home": "home-housing",
+    "buying-property": "home-housing",
+    "new-job": "work-career",
+    "job-loss": "work-career",
+    "going-self-employed": "work-career",
+    "studying": "education",
+    "starting-school": "education",
+    "buying-vehicle": "vehicles-travel",
+    "getting-licence": "vehicles-travel",
+    "immigration": "residence-migration",
+    "naturalisation": "residence-migration",
+    "illness-care": "health-care",
+    "retirement": "retirement",
+}
+
 # document id -> (domain codes, life situation codes)
 DOCUMENT_TAGS: dict[uuid.UUID, tuple[tuple[str, ...], tuple[str, ...]]] = {
     ID_DOC_MELDE: (("housing", "identity-civil-status"), ("moving-house", "immigration")),
