@@ -82,14 +82,26 @@ function PipelineProbe({ id }: { id?: string }) {
 }
 
 const NO_ID_CASES: Array<{ label: string; Comp: Probe; path: string }> = [
-  { label: "useDiscoveryCoverageQuery", Comp: CoverageProbe, path: COVERAGE_PATH },
+  {
+    label: "useDiscoveryCoverageQuery",
+    Comp: CoverageProbe,
+    path: COVERAGE_PATH,
+  },
   { label: "useDiscoveryBudgetsQuery", Comp: BudgetsProbe, path: BUDGETS_PATH },
 ];
 
 const LIST_CASES: Array<{ label: string; Comp: Probe; path: string }> = [
   { label: "useDiscoveryTasksQuery", Comp: TasksProbe, path: TASKS_PATH },
-  { label: "useDiscoveryCandidatesQuery", Comp: CandidatesProbe, path: CANDIDATES_PATH },
-  { label: "useDiscoveryCatalogueQuery", Comp: CatalogueProbe, path: CATALOGUE_PATH },
+  {
+    label: "useDiscoveryCandidatesQuery",
+    Comp: CandidatesProbe,
+    path: CANDIDATES_PATH,
+  },
+  {
+    label: "useDiscoveryCatalogueQuery",
+    Comp: CatalogueProbe,
+    path: CATALOGUE_PATH,
+  },
 ];
 
 const ID_CASES: Array<{ label: string; Comp: Probe; path: string }> = [

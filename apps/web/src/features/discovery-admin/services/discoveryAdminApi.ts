@@ -24,172 +24,139 @@ const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
 const ARTIFACT_PAGE_SIZE = 50;
 
+/** Locale and bearer token every discovery-admin service call needs. */
+export type AdminAuth = { locale: string; accessToken: string };
+
 /** Probe allowlist by listing tasks (server enforces admin emails). */
-export async function probeDiscoveryAdminAccess(params: {
-  locale: string;
-  accessToken: string;
-}): Promise<DiscoveryTaskListResponse> {
-  const { locale, accessToken } = params;
+export async function probeDiscoveryAdminAccess(
+  auth: AdminAuth,
+): Promise<DiscoveryTaskListResponse> {
   return apiRequest<DiscoveryTaskListResponse>(TASKS_PATH, {
-    locale,
-    accessToken,
+    ...auth,
     query: { limit: 1, offset: 0 },
   });
 }
 
 /** Paginated crawler queue; the typed query is sent in its canonical parameter shape. */
-export async function listDiscoveryTasks(params: {
-  locale: string;
-  accessToken: string;
-  query: TaskListQuery;
-}): Promise<DiscoveryTaskListResponse> {
-  const { locale, accessToken, query } = params;
+export async function listDiscoveryTasks(
+  auth: AdminAuth,
+  query: TaskListQuery,
+): Promise<DiscoveryTaskListResponse> {
   return apiRequest<DiscoveryTaskListResponse>(TASKS_PATH, {
-    locale,
-    accessToken,
+    ...auth,
     query: toListParams(query),
   });
 }
 
 /** Paginated imported catalogue rows; the typed query is sent in its canonical parameter shape. */
-export async function listDiscoveryCatalogue(params: {
-  locale: string;
-  accessToken: string;
-  query: CatalogueListQuery;
-}): Promise<CatalogueListResponse> {
-  const { locale, accessToken, query } = params;
+export async function listDiscoveryCatalogue(
+  auth: AdminAuth,
+  query: CatalogueListQuery,
+): Promise<CatalogueListResponse> {
   return apiRequest<CatalogueListResponse>(CATALOGUE_PATH, {
-    locale,
-    accessToken,
+    ...auth,
     query: toListParams(query),
   });
 }
 
 /** Coverage metrics for catalogue index chips. */
-export async function fetchDiscoveryCoverage(params: {
-  locale: string;
-  accessToken: string;
-}): Promise<DiscoveryCoverageResponse> {
-  const { locale, accessToken } = params;
-  return apiRequest<DiscoveryCoverageResponse>(COVERAGE_PATH, {
-    locale,
-    accessToken,
-  });
+export async function fetchDiscoveryCoverage(
+  auth: AdminAuth,
+): Promise<DiscoveryCoverageResponse> {
+  return apiRequest<DiscoveryCoverageResponse>(COVERAGE_PATH, auth);
 }
 
 /** Full staging slice for one catalogue service. */
-export async function fetchCataloguePipeline(params: {
-  locale: string;
-  accessToken: string;
-  catalogueId: string;
-}): Promise<CataloguePipelineResponse> {
-  const { locale, accessToken, catalogueId } = params;
+export async function fetchCataloguePipeline(
+  auth: AdminAuth,
+  catalogueId: string,
+): Promise<CataloguePipelineResponse> {
   return apiRequest<CataloguePipelineResponse>(
-    `/api/v1/discovery/admin/catalogue/${catalogueId}/pipeline`,
-    { locale, accessToken },
+    `${CATALOGUE_PATH}/${catalogueId}/pipeline`,
+    auth,
   );
 }
 
 /** Read-only preview of suggestion payloads for a catalogue service. */
-export async function fetchEmitPreview(params: {
-  locale: string;
-  accessToken: string;
-  catalogueId: string;
-}): Promise<EmitPreviewResponse> {
-  const { locale, accessToken, catalogueId } = params;
+export async function fetchEmitPreview(
+  auth: AdminAuth,
+  catalogueId: string,
+): Promise<EmitPreviewResponse> {
   return apiRequest<EmitPreviewResponse>(
-    `/api/v1/discovery/admin/catalogue/${catalogueId}/emit-preview`,
-    { locale, accessToken },
+    `${CATALOGUE_PATH}/${catalogueId}/emit-preview`,
+    auth,
   );
 }
 
 /** Paginated document candidates; the typed query is sent in its canonical parameter shape. */
-export async function listDiscoveryCandidates(params: {
-  locale: string;
-  accessToken: string;
-  query: CandidateListQuery;
-}): Promise<DiscoveryCandidateListResponse> {
-  const { locale, accessToken, query } = params;
+export async function listDiscoveryCandidates(
+  auth: AdminAuth,
+  query: CandidateListQuery,
+): Promise<DiscoveryCandidateListResponse> {
   return apiRequest<DiscoveryCandidateListResponse>(CANDIDATES_PATH, {
-    locale,
-    accessToken,
+    ...auth,
     query: toListParams(query),
   });
 }
 
 /** One candidate with its jurisdiction name, mentions and their artifact summaries. */
-export async function fetchDiscoveryCandidate(params: {
-  locale: string;
-  accessToken: string;
-  candidateId: string;
-}): Promise<DiscoveryCandidateDetailResponse> {
-  const { locale, accessToken, candidateId } = params;
+export async function fetchDiscoveryCandidate(
+  auth: AdminAuth,
+  candidateId: string,
+): Promise<DiscoveryCandidateDetailResponse> {
   return apiRequest<DiscoveryCandidateDetailResponse>(
     `${CANDIDATES_PATH}/${candidateId}`,
-    { locale, accessToken },
+    auth,
   );
 }
 
 /** Every staged edge that has the candidate as parent or as required end. */
-export async function fetchCandidateEdges(params: {
-  locale: string;
-  accessToken: string;
-  candidateId: string;
-}): Promise<DiscoveryCandidateEdgesResponse> {
-  const { locale, accessToken, candidateId } = params;
+export async function fetchCandidateEdges(
+  auth: AdminAuth,
+  candidateId: string,
+): Promise<DiscoveryCandidateEdgesResponse> {
   return apiRequest<DiscoveryCandidateEdgesResponse>(
     `${CANDIDATES_PATH}/${candidateId}/edges`,
-    { locale, accessToken },
+    auth,
   );
 }
 
 /** Read-only preview of the suggestion emitting one candidate would create. */
-export async function fetchCandidateEmitPreview(params: {
-  locale: string;
-  accessToken: string;
-  candidateId: string;
-}): Promise<CandidateEmitPreview> {
-  const { locale, accessToken, candidateId } = params;
+export async function fetchCandidateEmitPreview(
+  auth: AdminAuth,
+  candidateId: string,
+): Promise<CandidateEmitPreview> {
   return apiRequest<CandidateEmitPreview>(
     `${CANDIDATES_PATH}/${candidateId}/emit-preview`,
-    { locale, accessToken },
+    auth,
   );
 }
 
 /** Artifacts of one catalogue row, each with a short-lived presigned URL. */
-export async function listCatalogueArtifacts(params: {
-  locale: string;
-  accessToken: string;
-  catalogueId: string;
-}): Promise<DiscoveryArtifactListResponse> {
-  const { locale, accessToken, catalogueId } = params;
+export async function listCatalogueArtifacts(
+  auth: AdminAuth,
+  catalogueId: string,
+): Promise<DiscoveryArtifactListResponse> {
   return apiRequest<DiscoveryArtifactListResponse>(
     `${CATALOGUE_PATH}/${catalogueId}/artifacts`,
-    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+    { ...auth, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
   );
 }
 
 /** The evidence behind one candidate (cited artifacts and procedure screenshots), each with a presigned URL. */
-export async function listCandidateArtifacts(params: {
-  locale: string;
-  accessToken: string;
-  candidateId: string;
-}): Promise<DiscoveryArtifactListResponse> {
-  const { locale, accessToken, candidateId } = params;
+export async function listCandidateArtifacts(
+  auth: AdminAuth,
+  candidateId: string,
+): Promise<DiscoveryArtifactListResponse> {
   return apiRequest<DiscoveryArtifactListResponse>(
     `${CANDIDATES_PATH}/${candidateId}/artifacts`,
-    { locale, accessToken, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+    { ...auth, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
   );
 }
 
 /** Free-tier budgets of the current periods plus the stored-bytes figure. */
-export async function fetchDiscoveryBudgets(params: {
-  locale: string;
-  accessToken: string;
-}): Promise<DiscoveryBudgetsResponse> {
-  const { locale, accessToken } = params;
-  return apiRequest<DiscoveryBudgetsResponse>(BUDGETS_PATH, {
-    locale,
-    accessToken,
-  });
+export async function fetchDiscoveryBudgets(
+  auth: AdminAuth,
+): Promise<DiscoveryBudgetsResponse> {
+  return apiRequest<DiscoveryBudgetsResponse>(BUDGETS_PATH, auth);
 }

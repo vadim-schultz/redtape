@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider, skipToken } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  skipToken,
+} from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";

@@ -68,7 +68,9 @@ it("useApi · attaches the current session token", async () => {
 });
 
 it("useApi · sends no Authorization header when signed out", async () => {
-  const { result } = renderHook(() => useApi(), { wrapper: wrapperWith(false) });
+  const { result } = renderHook(() => useApi(), {
+    wrapper: wrapperWith(false),
+  });
 
   await act(async () => {
     await result.current.request("/api/v1/documents");

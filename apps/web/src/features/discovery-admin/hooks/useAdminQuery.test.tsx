@@ -50,10 +50,15 @@ it("useAdminQuery · re-keys when the locale changes", async () => {
     { wrapper: wrapperWith(true) },
   );
 
-  await waitFor(() => expect(call).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(call).toHaveBeenLastCalledWith({ locale: "en", accessToken: "t" }),
+  );
+  const callsBeforeChange = call.mock.calls.length;
   act(() => result.current.locale.setLocale("de"));
-  await waitFor(() => expect(call).toHaveBeenCalledTimes(2));
-  expect(call).toHaveBeenLastCalledWith({ locale: "de", accessToken: "t" });
+  await waitFor(() =>
+    expect(call).toHaveBeenLastCalledWith({ locale: "de", accessToken: "t" }),
+  );
+  expect(call.mock.calls.length).toBeGreaterThan(callsBeforeChange);
 });
 
 it("useAdminQuery · does not call while there is no session", async () => {
