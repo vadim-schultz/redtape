@@ -13,6 +13,7 @@ from app.config import settings
 from app.features.discovery.budget_resources import BudgetResource
 from app.features.discovery.budgets import BudgetService
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.tags import MIN_SUGGESTED_SCORE
 from app.main import create_app
 from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus, DiscoveryMentionRole
 from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
@@ -465,3 +466,44 @@ def test_screenshot_is_503_when_storage_is_not_configured(
 
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"].lower()
+
+
+def _tags(body: dict, key: str, axis: str) -> list[tuple[str, float]]:
+    item = next(item for item in body["items"] if item["key"] == key)
+    return [(tag["code"], round(tag["confidence"], 6)) for tag in item[axis]]
+
+
+def test_candidate_card_lists_every_tag_with_its_confidence_most_confident_first(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    owner = scene.candidate("tagged")
+    first, second = scene.procedure(), scene.procedure()
+    for procedure in (first, second):
+        scene.mention(owner, procedure, domains=[HOUSING], situations=[MOVING])
+    scene.mention(owner, first, domains=["work"])
+
+    body = client.get(URL).json()
+
+    assert _tags(body, "tagged", "domains") == [(HOUSING, 0.85), ("work", 0.25)]
+    assert _tags(body, "tagged", "situations") == [(MOVING, 0.85)]
+
+
+def test_candidate_card_keeps_a_tag_below_the_old_inclusion_floor(client: TestClient[Litestar], scene: Scene) -> None:
+    owner = scene.candidate("weak")
+    procedures = [scene.procedure() for _ in range(12)]
+    scene.mention(owner, procedures[0], domains=["rare"])
+    for procedure in procedures[1:]:
+        scene.mention(owner, procedure, domains=[HOUSING])
+
+    tags = dict(_tags(client.get(URL).json(), "weak", "domains"))
+
+    assert 0 < tags["rare"] < MIN_SUGGESTED_SCORE
+    assert tags[HOUSING] > tags["rare"]
+
+
+def test_candidate_card_without_mentions_lists_no_tags(client: TestClient[Litestar], scene: Scene) -> None:
+    scene.candidate("untagged")
+
+    body = client.get(URL).json()
+
+    assert (_tags(body, "untagged", "domains"), _tags(body, "untagged", "situations")) == ([], [])

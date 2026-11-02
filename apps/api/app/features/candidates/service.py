@@ -68,6 +68,7 @@ class CandidateReadService:
         return CardContext(
             locale=locale,
             completeness=self._repo.completeness_for(candidate_ids),
+            tag_scores=self._repo.tag_scores_for(candidate_ids),
             descriptions=self._repo.best_descriptions(candidate_ids),
             domain_names=_names(domains),
             situation_names=_names(situations),
