@@ -33,14 +33,33 @@ line-length = 120
 src = ["discovery_ingest", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D", "ANN401", "TID251"]
 ignore = ["E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+"typing_extensions.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "D"]
+"tests/*" = ["S101", "D", "ANN401", "TID251"]
+# Any gate baseline (T2): delete the line when the removing chapter lands
+"discovery_ingest/pvog/client.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/govdata/client.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/govdata/ckan.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/enrich.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/extract/llm/schema_prep.py" = ["ANN401", "TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/extract/llm/schema.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/extract/llm/payloads.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/extract/llm/cloudflare.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/extract/llm/client.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/fim/client.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/leika/client.py" = ["TID251"]  # T2 baseline, removed by I2
+"discovery_ingest/worker/enrich_metadata.py" = ["TID251"]  # T2 baseline, removed by I3
+"discovery_ingest/cli.py" = ["TID251"]  # T2 baseline, removed by I4
+"discovery_ingest/capture_requeue.py" = ["TID251"]  # T2 baseline, removed by I4
 # docstring baseline (T1): delete the line when its slice is done
 "discovery_ingest/worker/**" = ["D107", "D401"]  # I-S1
 "discovery_ingest/{machine_client,curation_run,emit_models,config,latest_snapshots,curation_staged,curation,enrich,curation_plan,candidates_cli,health,artifacts_cli,curation_check,budget,llm_settings,candidate_sources,capture_requeue,__init__,edges,budget_models,batch_dedup,llm_requeue,curation_command,schemas,cli,candidate_emit,requeue_common,mentions,artifacts,cli_errors,catalogue_export,budget_cli,__main__,curation_pages,curation_load}.py" = ["D107", "D401"]  # I-S2 (browser/** has no current violations, so it carries no exemption)
