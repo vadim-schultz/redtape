@@ -150,7 +150,7 @@ def install(monkeypatch: pytest.MonkeyPatch) -> Api:
         kwargs["transport"] = httpx.MockTransport(fake.handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
     return fake
 
 

@@ -8,8 +8,8 @@ from collections.abc import Sequence
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactRead
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.extract.base import Extractor
 from discovery_ingest.extract.registry import find_extractor
 from discovery_ingest.schemas import ClaimedTask, TaskEnqueueRequest
@@ -20,7 +20,7 @@ EXTRACT_PRIORITY = 100
 class ExtractEnqueuer:
     """An :data:`~discovery_ingest.worker.render.AfterSnapshot` hook: one task per snapshot and extractor version."""
 
-    def __init__(self, client: DiscoveryMachineClient, extractors: Sequence[Extractor]) -> None:
+    def __init__(self, client: DiscoveryIngestClient, extractors: Sequence[Extractor]) -> None:
         """Enqueue through ``client`` for pages that ``extractors`` match."""
         self._client = client
         self._extractors = extractors
@@ -31,7 +31,7 @@ class ExtractEnqueuer:
         if extractor is None:
             return
         try:
-            self._client.enqueue_task(_request(extractor, artifact))
+            self._client.tasks.enqueue(_request(extractor, artifact))
         except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError) as err:
             print(f"extract enqueue failed for {artifact.source_url}: {err}", file=sys.stderr)
 

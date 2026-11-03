@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.emit_models import MAX_EMIT_CANDIDATES, EmitItem, EmitPreview
 
 DEFAULT_EMIT_LIMIT = 10
@@ -30,11 +30,11 @@ class EmitSelection:
             )
 
 
-def select_candidate_ids(client: DiscoveryMachineClient, selection: EmitSelection) -> list[UUID]:
+def select_candidate_ids(client: DiscoveryIngestClient, selection: EmitSelection) -> list[UUID]:
     """Return the named ids, or the staged candidates with enough mentions, most mentioned first."""
     if selection.ids:
         return list(selection.ids)
-    page = client.list_staged_candidates(min_mentions=selection.min_mentions, limit=selection.limit)
+    page = client.candidates.list_staged(min_mentions=selection.min_mentions, limit=selection.limit)
     return [item.id for item in page.items]
 
 
@@ -51,22 +51,22 @@ def _emit_line(item: EmitItem) -> str:
     return f"{outcome} {item.candidate_id} {item.suggestion_id}"
 
 
-def preview_report(client: DiscoveryMachineClient, selection: EmitSelection) -> list[str]:
+def preview_report(client: DiscoveryIngestClient, selection: EmitSelection) -> list[str]:
     """Preview every selected candidate through the read-only route and describe the result."""
     ids = select_candidate_ids(client, selection)
     if not ids:
         return NOTHING_SELECTED
-    previews = [client.preview_candidate_emit(candidate_id) for candidate_id in ids]
+    previews = [client.candidates.preview_emit(candidate_id) for candidate_id in ids]
     skipped = sum(preview.skip_reason is not None for preview in previews)
     summary = f"dry run: would create {len(previews) - skipped}, skipped {skipped}"
     return [summary, *(_preview_line(preview) for preview in previews)]
 
 
-def emit_report(client: DiscoveryMachineClient, selection: EmitSelection) -> list[str]:
+def emit_report(client: DiscoveryIngestClient, selection: EmitSelection) -> list[str]:
     """Emit every selected candidate in one call and describe the result."""
     ids = select_candidate_ids(client, selection)
     if not ids:
         return NOTHING_SELECTED
-    response = client.emit_candidates(ids)
+    response = client.candidates.emit(ids)
     counts = f"created {response.created_count}, replayed {response.replayed_count}, skipped {response.skipped_count}"
     return [counts, *(_emit_line(item) for item in response.items)]

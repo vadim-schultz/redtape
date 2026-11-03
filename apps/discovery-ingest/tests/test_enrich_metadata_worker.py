@@ -9,10 +9,11 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
+from pydantic import SecretStr
 
 from run_stub import run_response
 
@@ -35,7 +36,7 @@ def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTr
         kwargs["transport"] = transport
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     monkeypatch.setattr("discovery_ingest.worker.fetcher.httpx.Client", client_factory)
 
 
@@ -108,7 +109,7 @@ def test_enrich_metadata_fetches_steckbrief_and_posts_entity_and_claim(
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
 
     assert report.completed == 1
@@ -158,7 +159,7 @@ def test_enrich_metadata_fails_task_when_steckbrief_404(monkeypatch: pytest.Monk
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
 
     assert report.failed == 1
@@ -196,7 +197,7 @@ def test_enrich_metadata_fails_task_when_steckbrief_redirect_cannot_be_followed(
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
 
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
 
     assert (report.completed, report.failed) == (0, 1)
@@ -230,7 +231,7 @@ def _drain_enrich_fail_bodies(monkeypatch: pytest.MonkeyPatch, steckbrief: Any) 
         return httpx.Response(200, json={"id": str(TASK_ID), "status": "failed", "last_error": "x"})
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
     return fail_bodies
 

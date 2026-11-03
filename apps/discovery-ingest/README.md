@@ -104,7 +104,7 @@ DELETE FROM discovery_document_candidate c WHERE c.status = 'staged'
 ## Environment
 
 `DISCOVERY_API_URL` is the **API host root** — not the machine path. The client appends
-`/api/v1/discovery/machine/...` (see [`api_client.py`](discovery_ingest/api_client.py)).
+`/api/v1/discovery/machine/...` (see [`client/`](discovery_ingest/client/)).
 
 | Variable | Required | Example |
 | --- | --- | --- |

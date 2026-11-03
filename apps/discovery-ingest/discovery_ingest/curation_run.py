@@ -6,7 +6,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import TypeVar
 
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.curation_plan import CurationPlan
 from discovery_ingest.edges import MAX_EDGE_ITEMS, EdgeItem
 from discovery_ingest.mentions import MAX_MENTION_ITEMS
@@ -40,9 +40,9 @@ class Totals:
         return bool(self.edges_skipped or self.unknown_codes)
 
 
-def _post_mentions(client: DiscoveryMachineClient, plan: CurationPlan, totals: Totals) -> None:
+def _post_mentions(client: DiscoveryIngestClient, plan: CurationPlan, totals: Totals) -> None:
     for batch in batches(plan.mentions, MAX_MENTION_ITEMS):
-        answer = client.post_mentions(batch)
+        answer = client.candidates.post_mentions(batch)
         totals.mentions_created += answer.mentions_created
         totals.mentions_updated += answer.mentions_updated
         totals.unknown_codes += answer.unknown_codes
@@ -52,18 +52,18 @@ def _skip_line(edge: EdgeItem, reason: str) -> str:
     return f"{edge.parent_title_i18n['de']!r} requires {edge.required_title_i18n['de']!r}: {reason}"
 
 
-def _post_edges(client: DiscoveryMachineClient, plan: CurationPlan, totals: Totals) -> None:
+def _post_edges(client: DiscoveryIngestClient, plan: CurationPlan, totals: Totals) -> None:
     for start, batch in zip(
         range(0, len(plan.edges), MAX_EDGE_ITEMS), batches(plan.edges, MAX_EDGE_ITEMS), strict=True
     ):
-        answer = client.post_edges(batch)
+        answer = client.candidates.post_edges(batch)
         totals.edges_created += answer.edges_created
         totals.edges_updated += answer.edges_updated
         totals.edges_skipped += answer.edges_skipped
         totals.skipped += [_skip_line(plan.edges[start + s.index], s.reason) for s in answer.skipped]
 
 
-def post_plan(client: DiscoveryMachineClient, plan: CurationPlan) -> Totals:
+def post_plan(client: DiscoveryIngestClient, plan: CurationPlan) -> Totals:
     """Post the mentions, then the edges (both ends must exist first), in batches of at most 100."""
     totals = Totals()
     _post_mentions(client, plan, totals)

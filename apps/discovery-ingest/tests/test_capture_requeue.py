@@ -16,6 +16,7 @@ from discovery_ingest.worker.capture_enqueue import (
     capture_request,
     enqueue_screenshot_for_mentions,
 )
+from pydantic import SecretStr
 
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
@@ -85,7 +86,7 @@ def _install(monkeypatch: pytest.MonkeyPatch, fake: Api) -> Api:
         kwargs["transport"] = httpx.MockTransport(fake.handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
     return fake
 
 
@@ -199,7 +200,7 @@ def test_capture_requeue_passes_chosen_service_ids_and_refuses_more_than_twenty(
 
 def test_capture_request_is_shared_with_the_extraction_hook(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
     """capture_request · the extraction hook posts exactly the request ``capture_request`` builds."""
-    from discovery_ingest.api_client import DiscoveryMachineClient
+    from discovery_ingest.client import DiscoveryIngestClient
 
     row, url = uuid.UUID(int=7), "https://portal.example/page/7"
     task = ClaimedTask.model_validate(
@@ -214,7 +215,7 @@ def test_capture_request_is_shared_with_the_extraction_hook(api: Api, monkeypatc
         }
     )
 
-    assert enqueue_screenshot_for_mentions(DiscoveryMachineClient(API_BASE, API_KEY), task) is True
+    assert enqueue_screenshot_for_mentions(DiscoveryIngestClient(API_BASE, SecretStr(API_KEY)), task) is True
 
     request = capture_request(row, url)
     assert api.enqueues == [request.model_dump(mode="json", exclude_none=True)]

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import TaskEnqueueRequest
 
 DEFAULT_LIMIT = 50
@@ -45,10 +45,10 @@ def add_requeue_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--dry-run", action="store_true", help="Count the pages; make no enqueue call")
 
 
-def enqueue_counted(client: DiscoveryMachineClient, request: TaskEnqueueRequest, counts: Counts) -> None:
+def enqueue_counted(client: DiscoveryIngestClient, request: TaskEnqueueRequest, counts: Counts) -> None:
     """Enqueue ``request`` and count the answer; the queue's identity answers ``created`` false for a known key."""
     try:
-        created = client.enqueue_task(request).created
+        created = client.tasks.enqueue(request).created
     except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError):
         counts.failed += 1
         return

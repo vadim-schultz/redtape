@@ -6,7 +6,7 @@ import argparse
 import sys
 from collections.abc import Callable
 
-from discovery_ingest.api_client import DiscoveryMachineApiError
+from discovery_ingest.client import DiscoveryMachineApiError
 
 Command = Callable[[argparse.Namespace], int]
 

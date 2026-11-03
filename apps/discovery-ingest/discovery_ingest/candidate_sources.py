@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
 
 SourceMissing = Literal["screenshot"]
+
+
+@dataclass(frozen=True, slots=True)
+class SourceQuery:
+    """One page of candidate sources; ``service_ids`` (at most 20) keep rows of those procedures, ``limit`` is at most 100."""
+
+    host: str | None
+    missing: SourceMissing | None
+    candidate_id: UUID | None
+    service_ids: Sequence[UUID]
+    offset: int
+    limit: int
 
 
 class CandidateSourceRead(BaseModel):

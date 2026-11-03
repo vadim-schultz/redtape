@@ -9,8 +9,8 @@ from uuid import UUID
 
 import httpx
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.browser.port import BrowserClient
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
@@ -65,7 +65,7 @@ def _detail_for(err: BaseException) -> str:
 class RecordedRun:
     """A run open on the machine API, closed by exactly one call to :meth:`finish`."""
 
-    def __init__(self, client: DiscoveryMachineClient, run_id: UUID) -> None:
+    def __init__(self, client: DiscoveryIngestClient, run_id: UUID) -> None:
         """Keep the client and the id of the run :func:`recorded_run` already started."""
         self._client = client
         self.run_id = run_id
@@ -74,13 +74,13 @@ class RecordedRun:
     def finish(self, body: RunFinishRequest) -> None:
         """Close the run with ``body``; mark it attempted before the call so a failed finish is never repeated."""
         self.finished = True
-        self._client.finish_run(self.run_id, body)
+        self._client.runs.finish(self.run_id, body)
 
 
 @contextmanager
-def recorded_run(client: DiscoveryMachineClient) -> Iterator[RecordedRun]:
+def recorded_run(client: DiscoveryIngestClient) -> Iterator[RecordedRun]:
     """Open a run and guarantee that it is finished, as failed when the body leaves without finishing it."""
-    run = RecordedRun(client, client.start_run())
+    run = RecordedRun(client, client.runs.start())
     try:
         yield run
     except BaseException as err:
@@ -101,7 +101,7 @@ def _finish_quietly(run: RecordedRun, body: RunFinishRequest) -> None:
 
 
 def run_recorded_drain(
-    client: DiscoveryMachineClient,
+    client: DiscoveryIngestClient,
     fetcher: PoliteUrlFetcher,
     policy: DrainPolicy,
     *,

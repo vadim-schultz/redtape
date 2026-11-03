@@ -7,8 +7,8 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.edges import EdgeItem
 from discovery_ingest.extract.llm.errors import LlmInvalidOutput
 from discovery_ingest.extract.llm.meter import NeuronMeter
@@ -35,16 +35,16 @@ from render_fakes import CATALOGUE_ID, robots_fetcher
 Outcome = tuple[str, NeuronMeter]
 
 
-def _setup(monkeypatch: pytest.MonkeyPatch, api: LlmApi) -> tuple[DiscoveryMachineClient, NeuronMeter]:
+def _setup(monkeypatch: pytest.MonkeyPatch, api: LlmApi) -> tuple[DiscoveryIngestClient, NeuronMeter]:
     client = api.client(monkeypatch)
-    return client, NeuronMeter(BudgetGuard(client), RUN_NEURONS)
+    return client, NeuronMeter(BudgetGuard(client.budget), RUN_NEURONS)
 
 
 def _run(
     monkeypatch: pytest.MonkeyPatch,
     api: LlmApi,
     llm: ScriptedLlm,
-    after: Callable[[DiscoveryMachineClient, ClaimedTask], bool] | None = None,
+    after: Callable[[DiscoveryIngestClient, ClaimedTask], bool] | None = None,
 ) -> Outcome:
     client, meter = _setup(monkeypatch, api)
     handler = LlmExtractHandler(resources(llm), meter, *([after] if after else []))
@@ -185,7 +185,7 @@ def test_the_screenshot_helper_runs_once_when_a_mention_was_posted_and_not_other
     """llm_extract · after hook once with mentions; never for no_content or an empty extraction; a False answer is counted."""
     seen: list[uuid.UUID] = []
 
-    def after(client: DiscoveryMachineClient, task: ClaimedTask) -> bool:
+    def after(client: DiscoveryIngestClient, task: ClaimedTask) -> bool:
         seen.append(task.id)
         return False
 

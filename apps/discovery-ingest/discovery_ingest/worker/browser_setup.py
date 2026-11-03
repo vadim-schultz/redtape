@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.browser.client import CloudflareBrowserClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import BrowserSettings
 from discovery_ingest.worker.storage_guard import storage_problem
 
@@ -21,7 +21,7 @@ class BrowserSetupError(Exception):
 
 
 def prepare_browser(
-    settings: BrowserSettings, user_agent: str, client: DiscoveryMachineClient
+    settings: BrowserSettings, user_agent: str, client: DiscoveryIngestClient
 ) -> CloudflareBrowserClient:
     """Return the Cloudflare client, or raise :class:`BrowserSetupError` when a browser kind cannot be drained."""
     missing = settings.missing_credentials()

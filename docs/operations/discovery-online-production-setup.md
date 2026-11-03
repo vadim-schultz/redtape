@@ -172,7 +172,7 @@ See [auth-setup.md](auth-setup.md) §7.
 
 - **Host root only** — no `/api`, `/health`, or `/api/v1/discovery/machine`.
 - Ingest client appends `/api/v1/discovery/machine/...`
-  ([`api_client.py`](../../apps/discovery-ingest/discovery_ingest/api_client.py)).
+  ([`client/`](../../apps/discovery-ingest/discovery_ingest/client/)).
 
 ### 3.2 Required for the OpenPLZ job
 

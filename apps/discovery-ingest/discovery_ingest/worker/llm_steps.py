@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TypeVar
 
-from discovery_ingest.api_client import DiscoveryMachineApiError
+from discovery_ingest.client import DiscoveryMachineApiError
 from discovery_ingest.extract.clean import CleanPage, clean_page
 from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.llm.ground_state import Grounded
@@ -31,7 +31,7 @@ def read_page(job: Job, max_chars: int) -> CleanPage:
     artifact_id = job.task.artifact_id
     if artifact_id is None:
         raise Settled(fail_permanently(job.client, job.task.id, "llm_extract task has no artifact_id"))
-    content = guarded(job, lambda: job.client.get_artifact_content(artifact_id))
+    content = guarded(job, lambda: job.client.artifacts.content(artifact_id))
     cleaned = clean_page(decode_html(content.data, content.content_type), job.task.target_url, max_chars=max_chars)
     if len(cleaned.text.strip()) < MIN_TEXT_CHARS:
         raise Settled(complete(job, "no_content"))

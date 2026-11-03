@@ -70,7 +70,7 @@ def drain_captures(
 ) -> Drained:
     """Claim one batch of ``capture_screenshot`` tasks and settle it with the handler under test."""
     client = api.client(monkeypatch)
-    spend = BrowserSpend(BrowserBudget(budget_seconds), BudgetGuard(client))
+    spend = BrowserSpend(BrowserBudget(budget_seconds), BudgetGuard(client.budget))
     policy = DrainPolicy(max_tasks=5, kinds=("capture_screenshot",), browser_budget_seconds=budget_seconds)
     handlers = {"capture_screenshot": CaptureScreenshotHandler(camera, spend)}
     ctx = DrainContext(client, robots_fetcher(robots), policy, handlers)

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
@@ -19,7 +19,7 @@ from discovery_ingest.worker.tally import Tally
 class TaskHandler(Protocol):
     """Settle one claimed task and return its outcome label (``completed``, ``failed`` or ``skipped``)."""
 
-    def __call__(self, task: ClaimedTask, *, client: DiscoveryMachineClient, fetcher: PoliteUrlFetcher) -> str:
+    def __call__(self, task: ClaimedTask, *, client: DiscoveryIngestClient, fetcher: PoliteUrlFetcher) -> str:
         """Settle ``task``; raise :class:`StopDrain` when a limit ends the drain."""
         ...
 
@@ -28,7 +28,7 @@ class TaskHandler(Protocol):
 class DrainContext:
     """Everything one drain shares across batches."""
 
-    client: DiscoveryMachineClient
+    client: DiscoveryIngestClient
     fetcher: PoliteUrlFetcher
     policy: DrainPolicy
     handlers: Mapping[str, TaskHandler]
@@ -44,7 +44,7 @@ class BatchResult:
 
 def run_batch(ctx: DrainContext, tally: Tally) -> BatchResult:
     """Claim one batch, settle every task in it, and return its size and any stop signal."""
-    items = ctx.client.claim_tasks(limit=ctx.policy.max_tasks, kinds=ctx.policy.kinds).items
+    items = ctx.client.tasks.claim(limit=ctx.policy.max_tasks, kinds=ctx.policy.kinds).items
     tally.batches += 1
     tally.claimed += len(items)
     return BatchResult(len(items), _settle(ctx, items, tally))

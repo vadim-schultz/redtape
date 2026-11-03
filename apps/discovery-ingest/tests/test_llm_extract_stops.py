@@ -6,7 +6,7 @@ from dataclasses import replace
 from typing import Any
 
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.extract.clean import clean_page
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, LlmRequestError
 from discovery_ingest.extract.llm.prices import cost, estimate, reserved_output_tokens
@@ -30,7 +30,7 @@ def _tasks(count: int = 3) -> list[dict[str, object]]:
 
 
 def _drain(monkeypatch: pytest.MonkeyPatch, api: LlmApi, llm: ScriptedLlm, *, recorded: bool = False) -> DrainReport:
-    client: DiscoveryMachineClient = api.client(monkeypatch)
+    client: DiscoveryIngestClient = api.client(monkeypatch)
     if recorded:
         return run_recorded_drain(client, robots_fetcher(), POLICY, llm=resources(llm))
     return run_worker_drain(client, robots_fetcher(), POLICY, llm=resources(llm))

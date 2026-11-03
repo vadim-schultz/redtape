@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactUpload
 from discovery_ingest.browser.errors import ScreenshotOversize
 from discovery_ingest.browser.port import BrowserClient, ScreenshotImage
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.browser_spend import BrowserSpend
 from discovery_ingest.worker.browser_steps import (
@@ -42,7 +42,7 @@ class CaptureScreenshotHandler:
         self._browser = browser
         self._spend = spend
 
-    def __call__(self, task: ClaimedTask, *, client: DiscoveryMachineClient, fetcher: PoliteUrlFetcher) -> str:
+    def __call__(self, task: ClaimedTask, *, client: DiscoveryIngestClient, fetcher: PoliteUrlFetcher) -> str:
         """Capture ``task``'s page and return ``completed`` or ``failed``; raise :class:`StopDrain` on a limit."""
         job = Job(task, client, fetcher)
         try:

@@ -6,10 +6,10 @@ import argparse
 import json
 import sys
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.budget_models import BUDGET_RESOURCES, BudgetResource, BudgetRow, is_budget_resource
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import load_ingest_settings
 
 EXIT_SHORT = 3
@@ -62,7 +62,7 @@ def register_budget_parser(sub: argparse._SubParsersAction[argparse.ArgumentPars
 
 def _guard() -> BudgetGuard:
     settings = load_ingest_settings()
-    return BudgetGuard(DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key))
+    return BudgetGuard(DiscoveryIngestClient.from_settings(settings).budget)
 
 
 def _is_short(row: BudgetRow, needed: float) -> bool:

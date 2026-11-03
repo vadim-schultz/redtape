@@ -12,9 +12,9 @@ from pathlib import Path
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import IngestSettings, load_ingest_settings
 from discovery_ingest.extract.llm.client import LlmClient
 from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
@@ -56,10 +56,10 @@ def _runtime(settings: IngestSettings, model: str, stack: ExitStack) -> EvalRunt
 
     The model's HTTP client is entered into ``stack``, so its owner closes it on every exit path.
     """
-    api = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
+    api = stack.enter_context(DiscoveryIngestClient.from_settings(settings))
     http = stack.enter_context(httpx.Client(trust_env=True))
     client = CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(MIN_INTERVAL_SECONDS))
-    return EvalRuntime(client, BudgetGuard(api), api.get_taxonomy())
+    return EvalRuntime(client, BudgetGuard(api.budget), api.candidates.taxonomy())
 
 
 class EvalCommand:
