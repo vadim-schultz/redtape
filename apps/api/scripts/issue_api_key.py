@@ -32,6 +32,7 @@ def _revoke_or_exit(service: ApiKeyService, key_prefix: str) -> None:
 
 
 def main() -> None:
+    """Issue or revoke a machine API key from the command line, committing only when the command succeeds."""
     parser = argparse.ArgumentParser(description="Issue or revoke a machine API key.")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--name", help="Issue a new key with this name, e.g. crawler-prod")

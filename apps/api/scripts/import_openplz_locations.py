@@ -1,3 +1,5 @@
+"""Import OpenPLZ countries, federal states, districts, municipalities and localities into Postgres."""
+
 from __future__ import annotations
 
 import argparse
@@ -175,6 +177,7 @@ class OpenPLZLocationsImporter:
         rate_limit_rps: float = 10.0,
         state_codes: set[str] | None = None,
     ) -> None:
+        """Open the OpenPLZ client and a database session, and bind the import options."""
         self._client = OpenPLZClient(language=language, rate_limit_rps=rate_limit_rps)
         self._touched_at = _utc_now()
         self._session = SessionLocal()
@@ -194,6 +197,7 @@ class OpenPLZLocationsImporter:
         self._municipality_id_by_code: dict[str, uuid.UUID] = {}
 
     def import_all(self) -> None:
+        """Run the whole import in one session, rolling back on a dry run, and always close the session."""
         try:
             self._db.preload()
             self._import_country()
@@ -354,6 +358,10 @@ def import_locations(
     commit_every: int = 1000,
     state_codes: set[str] | None = None,
 ) -> None:
+    """Import OpenPLZ locations for one language, optionally limited to some federal states.
+
+    A dry run parses the data and rolls everything back. A ``commit_every`` of zero or less commits only at the end.
+    """
     OpenPLZLocationsImporter(
         language=language,
         dry_run=dry_run,
@@ -364,6 +372,7 @@ def import_locations(
 
 
 def main() -> None:
+    """Parse the command-line options and import OpenPLZ locations into Postgres."""
     parser = argparse.ArgumentParser(description="Import OpenPLZ locations into Postgres.")
     parser.add_argument("--language", default="de", help="OpenPLZ language (default: de)")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, no DB commit")
