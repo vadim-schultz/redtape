@@ -12,7 +12,8 @@ from app.features.discovery.emit_preview import claim_to_suggestion_payload
 from app.features.discovery.emit_submit import idempotency_key, submit_or_skip
 from app.features.discovery.lookups import require_catalogue
 from app.features.discovery.repository import DiscoveryRepository, NewEvent
-from app.features.suggestions.service import SubmitterRef, SuggestionService
+from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.submitters import CrawlerSubmitter, Submitter
 from app.models.api_key import ApiKey
 from app.models.discovery import DiscoveryClaim, DiscoveryEntity, DiscoveryEventType
 from app.models.suggestion import SuggestionKind
@@ -43,7 +44,7 @@ class _EmitContext:
 
     entities_by_id: dict[UUID, DiscoveryEntity]
     jurisdiction_id: UUID
-    submitter: SubmitterRef
+    submitter: Submitter
 
 
 def _skipped(claim: DiscoveryClaim, reason: SkipReason | None) -> CatalogueEmitItemResult:
@@ -79,7 +80,7 @@ class DiscoveryEmitService:
         """Emit every claim of a catalogue row and record the attempt."""
         row = require_catalogue(self._repo, catalogue_id)
         entities = self._repo.list_catalogue_entities(catalogue_id)
-        context = _EmitContext({e.id: e for e in entities}, row.jurisdiction_id, SubmitterRef("crawler", api_key.id))
+        context = _EmitContext({e.id: e for e in entities}, row.jurisdiction_id, CrawlerSubmitter(api_key.id))
         claims = self._repo.list_catalogue_claims(catalogue_id)
         response = _tally([self._emit_one_claim(claim, context) for claim in claims])
         self._repo.record_event(_attempt_event(catalogue_id, response, len(claims)))
@@ -99,9 +100,7 @@ class DiscoveryEmitService:
         except EmitSkip as skip:
             return _skipped(claim, skip.reason)
 
-    def _create(
-        self, claim: DiscoveryClaim, body: dict[str, object], submitter: SubmitterRef
-    ) -> CatalogueEmitItemResult:
+    def _create(self, claim: DiscoveryClaim, body: dict[str, object], submitter: Submitter) -> CatalogueEmitItemResult:
         request = _suggestion_create_from_body(body)
         result = submit_or_skip(
             self._suggestions,

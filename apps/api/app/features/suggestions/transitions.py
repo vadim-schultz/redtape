@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Protocol
 from uuid import UUID
 
 from app.features.events.service import EventLogService
-from app.features.suggestions.handlers import KindHandler
 from app.features.suggestions.repository import SuggestionRepository
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionStatus
 from app.models.suggestion_event import EventType
@@ -22,6 +23,14 @@ class SuggestionNotFoundError(ValueError):
     """Raised when transitioning a suggestion id that does not exist."""
 
 
+class Promoter(Protocol):
+    """Creates the catalogue entity for an approved suggestion; all that approval needs from a kind."""
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        """Create the catalogue entity and return its id."""
+        ...
+
+
 def _actor_id(actor: AppUser | None) -> UUID | None:
     return actor.id if actor else None
 
@@ -32,17 +41,15 @@ class SuggestionTransitions:
     def __init__(
         self,
         repository: SuggestionRepository,
-        handlers: dict[SuggestionKind, KindHandler],
+        promoters: Mapping[SuggestionKind, Promoter],
         events: EventLogService,
     ) -> None:
-        """Bind the transitions to storage, per-kind handlers and the event log."""
+        """Bind the transitions to storage, per-kind promoters and the event log."""
         self._repo = repository
-        self._handlers = handlers
+        self._promoters = promoters
         self._events = events
 
-    def transition_to(
-        self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None, reason: str | None = None
-    ) -> Suggestion:
+    def transition_to(self, suggestion_id: UUID, new_status: SuggestionStatus, actor: AppUser | None) -> Suggestion:
         """Pending is idempotent; approved/rejected are terminal (D6)."""
         suggestion = self._get_pending(suggestion_id)
         if new_status == SuggestionStatus.PENDING:
@@ -64,7 +71,7 @@ class SuggestionTransitions:
         return suggestion
 
     def _promote_and_log(self, suggestion: Suggestion, actor: AppUser | None) -> None:
-        created_id = self._handlers[suggestion.kind].promote(suggestion)
+        created_id = self._promoters[suggestion.kind].promote(suggestion)
         data = {"created_id": str(created_id), "table": _PROMOTED_TABLE[suggestion.kind]}
         self._events.record(suggestion.id, EventType.PROMOTED, data=data, actor_user_id=_actor_id(actor))
 

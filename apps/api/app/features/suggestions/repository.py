@@ -2,34 +2,27 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
+from app.features.suggestions.filters import SuggestionFilters
 from app.models.api_key import ApiKey
-from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
+from app.models.suggestion import Suggestion, SuggestionKind, SuggestionStatus
 from app.models.user import AppUser
 
 
-def _apply(
-    stmt: Select,
-    *,
-    status: Sequence[SuggestionStatus],
-    kind: SuggestionKind | None,
-    source_type: SuggestionSource | None,
-    jurisdiction_id: UUID | None,
-) -> Select:
-    """Narrow `stmt` by each non-empty filter; a list of `(values, column)` pairs, not an if-chain."""
-    for values, column in (
-        (status, Suggestion.status),
-        ((kind,) if kind else (), Suggestion.kind),
-        ((source_type,) if source_type else (), Suggestion.source_type),
-        ((jurisdiction_id,) if jurisdiction_id else (), Suggestion.jurisdiction_id),
-    ):
-        if values:
-            stmt = stmt.where(column.in_(values))
+def _apply(stmt: Select, filters: SuggestionFilters) -> Select:
+    """Narrow `stmt` by each filter that is set; an unset axis adds no condition."""
+    if filters.status:
+        stmt = stmt.where(Suggestion.status.in_(filters.status))
+    if filters.kind is not None:
+        stmt = stmt.where(Suggestion.kind == filters.kind)
+    if filters.source_type is not None:
+        stmt = stmt.where(Suggestion.source_type == filters.source_type)
+    if filters.jurisdiction_id is not None:
+        stmt = stmt.where(Suggestion.jurisdiction_id == filters.jurisdiction_id)
     return stmt
 
 
@@ -67,36 +60,14 @@ class SuggestionRepository:
         self._session.flush()
         return suggestion
 
-    def count(
-        self,
-        *,
-        status: Sequence[SuggestionStatus] = (),
-        kind: SuggestionKind | None = None,
-        source_type: SuggestionSource | None = None,
-        jurisdiction_id: UUID | None = None,
-    ) -> int:
-        stmt = _apply(
-            select(func.count()).select_from(Suggestion),
-            status=status,
-            kind=kind,
-            source_type=source_type,
-            jurisdiction_id=jurisdiction_id,
-        )
+    def count(self, filters: SuggestionFilters) -> int:
+        """Count the suggestions matching `filters`."""
+        stmt = _apply(select(func.count()).select_from(Suggestion), filters)
         return int(self._session.scalar(stmt) or 0)
 
-    def list_page(
-        self,
-        *,
-        offset: int,
-        limit: int,
-        status: Sequence[SuggestionStatus] = (),
-        kind: SuggestionKind | None = None,
-        source_type: SuggestionSource | None = None,
-        jurisdiction_id: UUID | None = None,
-    ) -> list[tuple[Suggestion, str | None]]:
-        stmt = _apply(
-            self._with_submitter(), status=status, kind=kind, source_type=source_type, jurisdiction_id=jurisdiction_id
-        )
+    def list_page(self, filters: SuggestionFilters, *, offset: int, limit: int) -> list[tuple[Suggestion, str | None]]:
+        """One page of suggestions matching `filters`, newest first, each with its submitter's display name."""
+        stmt = _apply(self._with_submitter(), filters)
         stmt = stmt.order_by(Suggestion.created_at.desc(), Suggestion.id.desc()).offset(offset).limit(limit)
         return list(self._session.execute(stmt).tuples().all())
 

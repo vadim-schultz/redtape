@@ -72,7 +72,6 @@ convention = "pep257"
 "tests/*" = ["S101", "D", "ANN401", "TID251"]     # allow assert in tests; tests are exempt from docstrings and the Any gate
 "tests/test_discovery_error_responses.py" = ["F811"]  # reuses fixtures imported from sibling test modules
 # Any gate baseline (T2): delete the line when the removing chapter lands
-"app/features/suggestions/handlers.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B2
 "app/services/openplz_client.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
 "scripts/import_openplz_locations.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
 "app/routes.py" = ["TID251"]  # T2 baseline, removed by B1

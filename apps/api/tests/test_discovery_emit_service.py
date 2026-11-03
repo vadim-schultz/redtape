@@ -23,12 +23,12 @@ from app.features.suggestions.service import (
     CycleError,
     DuplicateSuggestionError,
     MissingSourceUrlError,
-    SubmitterRef,
     SuggestionService,
     UnknownDocumentError,
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
 )
+from app.features.suggestions.submitters import CrawlerSubmitter
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
@@ -318,7 +318,7 @@ def test_submit_or_skip_maps_each_suggestion_rule_error(exc: Exception, expected
     with pytest.raises(EmitSkip) as excinfo:
         submit_or_skip(
             stub,  # type: ignore[arg-type]
-            submitter=SubmitterRef("crawler", uuid.uuid4()),
+            submitter=CrawlerSubmitter(uuid.uuid4()),
             request=object(),  # type: ignore[arg-type]
             idempotency_key="k",
         )
@@ -334,7 +334,7 @@ def test_submit_or_skip_lets_unknown_jurisdiction_propagate() -> None:
     with pytest.raises(UnknownJurisdictionError):
         submit_or_skip(
             stub,  # type: ignore[arg-type]
-            submitter=SubmitterRef("crawler", uuid.uuid4()),
+            submitter=CrawlerSubmitter(uuid.uuid4()),
             request=object(),  # type: ignore[arg-type]
             idempotency_key="k",
         )
@@ -346,7 +346,7 @@ def test_submit_or_skip_lets_an_unexpected_value_error_propagate() -> None:
     with pytest.raises(ValueError, match="not one of ours"):
         submit_or_skip(
             stub,  # type: ignore[arg-type]
-            submitter=SubmitterRef("crawler", uuid.uuid4()),
+            submitter=CrawlerSubmitter(uuid.uuid4()),
             request=object(),  # type: ignore[arg-type]
             idempotency_key="k",
         )
@@ -357,7 +357,7 @@ def test_submit_or_skip_returns_the_submission_result_on_success() -> None:
 
     result = submit_or_skip(
         stub,  # type: ignore[arg-type]
-        submitter=SubmitterRef("crawler", uuid.uuid4()),
+        submitter=CrawlerSubmitter(uuid.uuid4()),
         request=object(),  # type: ignore[arg-type]
         idempotency_key="k",
     )
