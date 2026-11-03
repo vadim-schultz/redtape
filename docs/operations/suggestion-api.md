@@ -7,7 +7,9 @@ one writing to `document` or `document_requirement` directly. Design and decisio
 
 Suggestions always land `pending`. Nothing in this API approves, rejects, or promotes one into the
 catalogue. Voting (`PUT`/`DELETE /api/v1/suggestions/{id}/vote`) is a separate route group, and a
-suggestion at +3 votes is promoted into `document`.
+suggestion at +3 votes is promoted into `document`. A vote that crosses a threshold but loses a promotion
+race is kept and answers `409`, not 500; removing a vote from a suggestion that already has a final
+decision is `409`, and `DELETE` on an unknown suggestion is `404` (both were `204` before this chapter).
 
 **Dormant.** The suggestion flow is no longer part of the browse flow. The public `/documents` list reads
 the discovered candidates directly ([candidate-view.md](candidate-view.md)), so a document does not need to

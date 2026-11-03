@@ -47,6 +47,22 @@ class SuggestionRepository:
     def get(self, suggestion_id: UUID) -> Suggestion | None:
         return self._session.get(Suggestion, suggestion_id)
 
+    def get_for_update(self, suggestion_id: UUID) -> Suggestion | None:
+        """
+        Read and lock the row for the caller's transaction.
+
+        The caller must already be inside a transaction. Refreshes an already-loaded instance
+        held in the session's identity map, so a status changed by another transaction since it
+        was first loaded is not missed.
+        """
+        stmt = (
+            select(Suggestion)
+            .where(Suggestion.id == suggestion_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self._session.scalar(stmt)
+
     def save(self, suggestion: Suggestion) -> Suggestion:
         self._session.flush()
         return suggestion

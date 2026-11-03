@@ -8,13 +8,14 @@ from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.service import AlreadyDecidedError, SuggestionService
+from app.features.suggestions.service import AlreadyDecidedError, SuggestionNotFoundError, SuggestionService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType
 from app.models.user import AppUser
+from sqlalchemy import event, update
 from sqlalchemy.orm import Session
 
 
@@ -122,3 +123,45 @@ def test_transition_to_an_automatic_transition_logs_no_actor(
     )
     assert changed.actor_user_id is None
     assert changed.actor_api_key_id is None
+
+
+def test_transition_to_an_unknown_suggestion_raises_suggestion_not_found(service: SuggestionService) -> None:
+    assert issubclass(SuggestionNotFoundError, ValueError)
+
+    with pytest.raises(SuggestionNotFoundError):
+        service.transition_to(uuid.uuid4(), SuggestionStatus.APPROVED, actor=None)
+
+
+def test_transition_reads_the_pending_row_with_for_update(
+    db_session: Session, service: SuggestionService, pending_suggestion: Suggestion
+) -> None:
+    statements: list[str] = []
+
+    def _capture(
+        conn: object, cursor: object, statement: str, parameters: object, context: object, executemany: bool
+    ) -> None:
+        statements.append(statement)
+
+    bind = db_session.get_bind()
+    event.listen(bind, "before_cursor_execute", _capture)
+    try:
+        service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=None)
+    finally:
+        event.remove(bind, "before_cursor_execute", _capture)
+
+    assert any("SUGGESTION" in s.upper() and "FOR UPDATE" in s.upper() for s in statements)
+
+
+def test_transition_sees_a_status_changed_behind_the_identity_map(
+    db_session: Session, service: SuggestionService, pending_suggestion: Suggestion
+) -> None:
+    # Load `pending_suggestion` into the identity map holding `PENDING`, then flip the column
+    # underneath it with a Core statement so a stale read would miss the decision.
+    db_session.get(Suggestion, pending_suggestion.id)
+    db_session.execute(
+        update(Suggestion).where(Suggestion.id == pending_suggestion.id).values(status=SuggestionStatus.APPROVED)
+    )
+    db_session.flush()
+
+    with pytest.raises(AlreadyDecidedError):
+        service.transition_to(pending_suggestion.id, SuggestionStatus.REJECTED, actor=None)

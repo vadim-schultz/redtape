@@ -21,7 +21,7 @@ from app.features.suggestions.handlers import (
     UnknownTaxonomyCodeError,
 )
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.transitions import AlreadyDecidedError, SuggestionTransitions
+from app.features.suggestions.transitions import AlreadyDecidedError, SuggestionNotFoundError, SuggestionTransitions
 from app.features.taxonomy.service import TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType
@@ -40,6 +40,7 @@ __all__ = [
     "SubmissionResult",
     "SubmitterRef",
     "SuggestionFilters",
+    "SuggestionNotFoundError",
     "SuggestionService",
     "UnknownDocumentError",
     "UnknownJurisdictionError",
