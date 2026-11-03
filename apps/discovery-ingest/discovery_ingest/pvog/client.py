@@ -98,21 +98,26 @@ class PvogClient:
         return _personal_matter_codes_from_facades(bootstrap)
 
     def _fetch_page(self, url: str) -> dict[str, Any]:
-        if self._http_client is not None:
-            response = self._http_client.get(url)
-        else:
-            with httpx.Client(trust_env=True, timeout=60.0) as client:
-                response = client.get(url)
+        """GET ``url`` and return its JSON object, wrapping transport, status and JSON failures in one error type."""
         try:
+            response = self._get(url)
             response.raise_for_status()
+            payload = response.json()
         except httpx.HTTPStatusError as err:
-            raise PvogClientError(
-                f"PVOG Suchdienst HTTP {err.response.status_code}",
-            ) from err
-        payload = response.json()
+            raise PvogClientError(f"PVOG Suchdienst HTTP {err.response.status_code}") from err
+        except httpx.HTTPError as err:
+            raise PvogClientError(f"PVOG Suchdienst request failed: {type(err).__name__}: {err}") from err
+        except ValueError as err:
+            raise PvogClientError("PVOG Suchdienst returned invalid JSON") from err
         if not isinstance(payload, dict):
-            raise ValueError("expected JSON object from PVOG Suchdienst")
+            raise PvogClientError("expected JSON object from PVOG Suchdienst")
         return payload
+
+    def _get(self, url: str) -> httpx.Response:
+        if self._http_client is not None:
+            return self._http_client.get(url)
+        with httpx.Client(trust_env=True, timeout=60.0) as client:
+            return client.get(url)
 
 
 def _budget_allows_fetch(max_pages: int | None, pages_fetched: int) -> bool:

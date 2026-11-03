@@ -10,6 +10,7 @@ import httpx
 import pytest
 from discovery_ingest.pvog.client import (
     PvogClient,
+    PvogClientError,
     PvogMappingError,
     _build_v7_url,
     _parse_v7_page,
@@ -210,3 +211,45 @@ def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:
     assert item.description_i18n == {"de": "Kurzbeschreibung aus PVOG"}
     assert item.portal_url == "https://service.example.bund.de/online"
     assert item.raw_payload["id"] == "LB-LIVE-CLI-001"
+
+
+def test_pvog_client_raises_its_own_error_on_a_connection_failure() -> None:
+    """PvogClient · _fetch_page wraps a transport failure in PvogClientError, chaining the original cause."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    client = PvogClient(BASE, http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+    with pytest.raises(PvogClientError) as caught:
+        client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
+
+    assert isinstance(caught.value.__cause__, httpx.ConnectError)
+
+
+def test_pvog_client_raises_its_own_error_on_invalid_json() -> None:
+    """PvogClient · a body that is not JSON raises PvogClientError, not a bare ValueError."""
+    client = PvogClient(
+        BASE, http_client=httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="not json")))
+    )
+
+    with pytest.raises(PvogClientError, match="invalid JSON"):
+        client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
+
+
+def test_pvog_client_raises_its_own_error_on_a_non_object_payload() -> None:
+    """PvogClient · a JSON array body raises PvogClientError, not a bare ValueError."""
+    client = PvogClient(
+        BASE, http_client=httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    )
+
+    with pytest.raises(PvogClientError, match="expected JSON object"):
+        client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)
+
+
+def test_pvog_client_keeps_the_http_status_message() -> None:
+    """PvogClient · a 404 still raises PvogClientError with the same message as before."""
+    client = PvogClient(BASE, http_client=httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(404))))
+
+    with pytest.raises(PvogClientError, match="PVOG Suchdienst HTTP 404"):
+        client.fetch_personal_matter_vocabulary(ars=FEDERAL_ARS)

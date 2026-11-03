@@ -80,10 +80,16 @@ class GovDataCkanClient:
         return result
 
     def _fetch_json(self, url: str) -> dict[str, Any]:
-        response = self._get(url)
-        if response.status_code >= 400:
-            raise GovDataCkanError(f"GovData HTTP {response.status_code} for {url}")
-        payload = response.json()
+        """GET ``url`` and return its JSON object, wrapping transport, status and JSON failures in one error type."""
+        try:
+            response = self._get(url)
+            if response.status_code >= 400:
+                raise GovDataCkanError(f"GovData HTTP {response.status_code} for {url}")
+            payload = response.json()
+        except httpx.HTTPError as err:
+            raise GovDataCkanError(f"GovData request failed: {type(err).__name__}: {err}") from err
+        except ValueError as err:
+            raise GovDataCkanError(f"GovData returned invalid JSON from {url}") from err
         if not isinstance(payload, dict):
             raise GovDataCkanError(f"expected JSON object from {url}")
         return payload
