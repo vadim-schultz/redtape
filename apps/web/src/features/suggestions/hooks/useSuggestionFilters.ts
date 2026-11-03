@@ -31,7 +31,8 @@ export function useSuggestionFilters(): SuggestionFilters {
         const next = new URLSearchParams(prev);
         if (status === "pending") next.delete("status");
         else next.set("status", status);
-        if (parseKind(next.get("kind") ?? "") === undefined) next.delete("kind");
+        if (parseKind(next.get("kind") ?? "") === undefined)
+          next.delete("kind");
         return next;
       }),
   };

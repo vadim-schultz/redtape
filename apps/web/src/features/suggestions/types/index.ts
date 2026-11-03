@@ -25,7 +25,6 @@ export type SubmitterRead = {
   display_name: string | null;
 };
 
-
 export type SuggestionRead = {
   id: string;
   kind: SuggestionKind;

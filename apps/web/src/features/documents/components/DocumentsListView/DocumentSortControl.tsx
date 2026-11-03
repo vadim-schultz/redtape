@@ -7,10 +7,7 @@ import type { DocumentList } from "../../hooks/useDocumentListState";
 import { DOCUMENT_SORT_KEYS, type DocumentSortKey } from "../../types";
 
 /** Label and natural order per key; a new sort key cannot compile without both. */
-const OPTIONS: Record<
-  DocumentSortKey,
-  { label: string; order: SortOrder }
-> = {
+const OPTIONS: Record<DocumentSortKey, { label: string; order: SortOrder }> = {
   confidence: { label: "documents.sort_confidence", order: "desc" },
   title: { label: "documents.sort_title", order: "asc" },
   created_at: { label: "documents.sort_newest", order: "desc" },
