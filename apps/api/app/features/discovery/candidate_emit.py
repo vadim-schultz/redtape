@@ -6,12 +6,12 @@ from uuid import UUID
 
 from app.features.discovery.candidate_emit_payload import suggested_tags
 from app.features.discovery.candidate_emit_request import CandidateRequestBuilder, TagHook
-from app.features.discovery.candidate_emit_results import conflict_reads, emitted, idempotency_key, skipped, tally
+from app.features.discovery.candidate_emit_results import conflict_reads, emitted, skipped, tally
 from app.features.discovery.candidate_emit_skip import EmitSkip
+from app.features.discovery.emit_submit import SUGGESTION_RULE_REASONS, idempotency_key, submit_or_skip
 from app.features.discovery.lookups import require_candidate
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.suggestions.service import (
-    DuplicateSuggestionError,
     SubmissionResult,
     SubmitterRef,
     SuggestionService,
@@ -24,6 +24,7 @@ from app.schema.discovery.candidate_emit import (
     CandidateEmitPreview,
     CandidateEmitResponse,
 )
+from app.schema.discovery.emit import SkipReason
 from app.schema.suggestion.create import SuggestionCreate
 
 
@@ -49,7 +50,7 @@ class DiscoveryCandidateEmitService:
         """Emit one candidate; an unknown or unemittable one is a reported skip."""
         candidate = self._repo.get_candidate(candidate_id)
         if candidate is None:
-            return skipped(candidate_id, EmitSkip("not_found"))
+            return skipped(candidate_id, EmitSkip(SkipReason.NOT_FOUND))
         try:
             return self._emit(candidate, api_key)
         except EmitSkip as skip:
@@ -81,25 +82,21 @@ class DiscoveryCandidateEmitService:
         self._repo.flush()
 
     def _create(self, candidate: DiscoveryDocumentCandidate, api_key: ApiKey) -> SubmissionResult:
-        try:
-            return self._suggestions.create(
-                submitter=SubmitterRef("crawler", api_key.id),
-                request=self._requests.build(candidate),
-                idempotency_key=idempotency_key(candidate.id),
-            )
-        except DuplicateSuggestionError as exc:
-            raise EmitSkip("duplicate", exc.conflicts) from exc
-        except UnknownTaxonomyCodeError as exc:
-            raise EmitSkip("invalid_payload") from exc
+        return submit_or_skip(
+            self._suggestions,
+            submitter=SubmitterRef("crawler", api_key.id),
+            request=self._requests.build(candidate),
+            idempotency_key=idempotency_key("candidate-emit", candidate.id),
+        )
 
     def _previewed_request(self, candidate: DiscoveryDocumentCandidate) -> SuggestionCreate:
         if candidate.status == DiscoveryCandidateStatus.EMITTED:
-            raise EmitSkip("already_emitted")
+            raise EmitSkip(SkipReason.ALREADY_EMITTED)
         request = self._requests.build(candidate)
         try:
             conflicts = self._suggestions.preview_conflicts(request)
         except UnknownTaxonomyCodeError as exc:
-            raise EmitSkip("invalid_payload") from exc
+            raise EmitSkip(SUGGESTION_RULE_REASONS[UnknownTaxonomyCodeError]) from exc
         if conflicts:
-            raise EmitSkip("duplicate", conflicts)
+            raise EmitSkip(SkipReason.DUPLICATE, conflicts)
         return request

@@ -21,6 +21,7 @@ from app.models.discovery import (
 )
 from app.schema.candidate import CandidateFlags
 from app.schema.discovery.artifacts import ArtifactSummaryRead
+from app.schema.discovery.emit import SkipReason
 
 
 class DiscoveryTaskRead(BaseModel):
@@ -207,7 +208,7 @@ class EmitPreviewItemRead(BaseModel):
     claim_id: UUID
     kind: str
     payload: dict[str, object] | None = None
-    skip_reason: str | None = None
+    skip_reason: SkipReason | None = None
 
 
 class EmitPreviewResponse(BaseModel):

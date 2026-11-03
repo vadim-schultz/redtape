@@ -9,11 +9,6 @@ from app.schema.discovery.candidate_emit import CandidateEmitItemResult, Candida
 from app.schema.discovery.emit import tally_outcomes
 
 
-def idempotency_key(candidate_id: UUID) -> str:
-    """Return the key under which ``candidate_id`` is submitted, so a replay finds its suggestion."""
-    return f"discovery-candidate-emit:{candidate_id}"
-
-
 def conflict_reads(skip: EmitSkip) -> list[EmitConflictRead]:
     """Return the conflicts behind ``skip`` in their response shape."""
     return [EmitConflictRead(type=conflict.type, id=conflict.id) for conflict in skip.conflicts]
