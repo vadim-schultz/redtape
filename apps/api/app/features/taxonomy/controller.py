@@ -1,3 +1,5 @@
+"""Read-only HTTP endpoints for the matrix axes and the matrix counts."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -18,16 +20,19 @@ class TaxonomyController(Controller):
 
     @get("/domains", sync_to_thread=True)
     def list_domains(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
+        """List the domain terms in the requested locale."""
         return taxonomy_service.list_domains(locale=locale)
 
     @get("/life-situations", sync_to_thread=True)
     def list_life_situations(
         self, taxonomy_service: TaxonomyService, locale: ResolvedLocale
     ) -> list[LifeSituationGroupedRead]:
+        """List the life situations with their group code, in the requested locale."""
         return taxonomy_service.list_situations_with_group(locale=locale)
 
     @get("/life-situation-groups", sync_to_thread=True)
     def list_life_situation_groups(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
+        """List the life-situation group terms in the requested locale."""
         return taxonomy_service.list_situation_groups(locale=locale)
 
     @get("/matrix", sync_to_thread=True)
@@ -38,5 +43,6 @@ class TaxonomyController(Controller):
         jurisdiction_id: UUID | None = Parameter(query="jurisdiction_id", default=None),
         municipality_code: str | None = Parameter(query="municipality_code", default=None),
     ) -> MatrixResponse:
+        """Return the matrix counts over the documents in scope for the optional jurisdiction or municipality filter."""
         filters = DocumentFilters(jurisdiction_id=jurisdiction_id, municipality_code=municipality_code)
         return taxonomy_service.get_matrix(document_service.document_ids_in_scope(filters))

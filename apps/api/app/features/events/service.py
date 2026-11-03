@@ -14,6 +14,7 @@ class EventLogService:
     """Records what happened to a suggestion; append-only by construction (D7) — no update or delete method exists."""
 
     def __init__(self, repository: EventLogRepository) -> None:
+        """Bind the service to its append-only repository."""
         self._repo = repository
 
     def record(
@@ -25,6 +26,7 @@ class EventLogService:
         actor_user_id: UUID | None = None,
         actor_api_key_id: UUID | None = None,
     ) -> SuggestionEvent:
+        """Append an event of the given type for a suggestion, attributed to the acting user or API key."""
         event = SuggestionEvent(
             suggestion_id=suggestion_id,
             event_type=event_type,
@@ -35,4 +37,5 @@ class EventLogService:
         return self._repo.add(event)
 
     def list_for(self, suggestion_id: UUID) -> list[SuggestionEvent]:
+        """Return the event history of a suggestion, oldest first."""
         return self._repo.list_for(suggestion_id)

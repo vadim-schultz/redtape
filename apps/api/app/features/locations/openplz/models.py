@@ -22,6 +22,8 @@ class OpenPLZFederalState(_OpenPLZBaseModel):
 
 
 class OpenPLZFederalStateRef(_OpenPLZBaseModel):
+    """Federal state reference embedded in a district, keyed by its OpenPLZ key."""
+
     key: str
     name: str
 
@@ -37,6 +39,8 @@ class OpenPLZDistrict(_OpenPLZBaseModel):
 
 
 class OpenPLZDistrictRef(_OpenPLZBaseModel):
+    """District reference embedded in a municipality, keyed by its OpenPLZ key."""
+
     key: str
     name: str
 
@@ -55,6 +59,8 @@ class OpenPLZMunicipality(_OpenPLZBaseModel):
 
 
 class OpenPLZMunicipalityRef(_OpenPLZBaseModel):
+    """Municipality reference embedded in a locality, keyed by its OpenPLZ key."""
+
     key: str
     name: str
 

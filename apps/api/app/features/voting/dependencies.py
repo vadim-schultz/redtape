@@ -13,12 +13,14 @@ from app.features.voting.service import VoteService
 
 
 def provide_vote_repository(session: Session) -> VoteRepository:
+    """Bind a vote repository to the request session."""
     return VoteRepository(session)
 
 
 def provide_vote_service(
     vote_repository: VoteRepository, suggestion_service: SuggestionService, event_log_service: EventLogService
 ) -> VoteService:
+    """Bind the vote service to its repository, the suggestion service and the event log."""
     return VoteService(vote_repository, suggestion_service, event_log_service)
 
 

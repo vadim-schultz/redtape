@@ -43,11 +43,13 @@ class VoteService:
     """Domain logic for casting and removing a vote; the pending-only and no-self-vote rules live here."""
 
     def __init__(self, repository: VoteRepository, suggestions: SuggestionService, events: EventLogService) -> None:
+        """Bind the service to its vote repository, suggestion service and event log."""
         self._repo = repository
         self._suggestions = suggestions
         self._events = events
 
     def cast(self, *, suggestion_id: UUID, user_id: UUID, value: int) -> CastResult:
+        """Record or change a vote on a pending suggestion, then promote the suggestion if a threshold is crossed."""
         suggestion = self._get_suggestion(suggestion_id)
         self._check_pending(suggestion)
         self._check_not_self(suggestion, user_id)
@@ -57,17 +59,21 @@ class VoteService:
         return CastResult(vote=vote, promotion_blocked=blocked)
 
     def remove(self, *, suggestion_id: UUID, user_id: UUID) -> None:
+        """Delete the caller's vote on a pending suggestion; a threshold crossing is never re-evaluated here."""
         suggestion = self._get_suggestion(suggestion_id)
         self._check_pending(suggestion)
         self._repo.delete(suggestion_id=suggestion_id, user_id=user_id)
 
     def tally_for(self, suggestion_id: UUID) -> Tally:
+        """Return the vote tally of one suggestion."""
         return self._repo.tally_for(suggestion_id)
 
     def tally_for_many(self, suggestion_ids: Sequence[UUID]) -> dict[UUID, Tally]:
+        """Return the vote tally of each suggestion in one query."""
         return self._repo.tally_for_many(suggestion_ids)
 
     def my_vote(self, *, suggestion_id: UUID, user_id: UUID) -> int | None:
+        """Return the caller's vote value on a suggestion, or None if they have not voted."""
         vote = self._repo.get(suggestion_id=suggestion_id, user_id=user_id)
         return vote.value if vote else None
 

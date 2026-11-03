@@ -29,7 +29,7 @@ def _to_http(exc: Exception) -> HTTPException:
 
 
 def _blocked_response(result: CastResult) -> Response[dict[str, object]]:
-    """A kept vote whose promotion was blocked: 409, shaped like a raised `HTTPException` (C1)."""
+    """Return 409 for a kept vote whose promotion was blocked, shaped like a raised `HTTPException` (C1)."""
     body: dict[str, object] = {
         "status_code": HTTP_409_CONFLICT,
         "detail": result.promotion_blocked,
@@ -47,6 +47,7 @@ class VotingController(Controller):
     def cast(
         self, vote_service: VoteService, current_user: AppUser, suggestion_id: UUID, data: VoteCreate
     ) -> VoteRead | Response[dict[str, object]]:
+        """Cast the caller's vote; a threshold crossing that cannot promote answers 409 but keeps the vote."""
         try:
             result = vote_service.cast(suggestion_id=suggestion_id, user_id=current_user.id, value=data.value)
         except _DOMAIN_ERRORS as exc:
@@ -57,6 +58,7 @@ class VotingController(Controller):
 
     @delete("/{suggestion_id:uuid}/vote", sync_to_thread=True, status_code=HTTP_204_NO_CONTENT)
     def remove(self, vote_service: VoteService, current_user: AppUser, suggestion_id: UUID) -> None:
+        """Remove the caller's vote from a pending suggestion; domain errors map to HTTP statuses."""
         try:
             vote_service.remove(suggestion_id=suggestion_id, user_id=current_user.id)
         except _DOMAIN_ERRORS as exc:
