@@ -108,10 +108,6 @@ export default tseslint.config(
       "src/hooks/useApi.ts", // W1 moved this out of services/api.ts; still imports features/auth/contexts directly
       "src/components/layout/menu/ProfileMenuRow.tsx", // unassigned
       "src/components/layout/menu/DocumentsMenuRow.tsx", // unassigned
-      "src/features/candidates/components/CandidateDetailView/CandidateScreenshot.tsx", // W2
-      "src/features/discovery-admin/components/columns/candidateColumns.tsx", // W2
-      "src/features/discovery-admin/components/columns/taskColumns.tsx", // W2
-      "src/features/discovery-admin/components/columns/cells/CandidateReadinessCell.tsx", // W2/W4
     ],
     rules: { "no-restricted-imports": "off" },
   },
