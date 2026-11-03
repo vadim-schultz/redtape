@@ -15,14 +15,31 @@ import json
 from pathlib import Path
 
 from app.main import create_app
+from pydantic import BaseModel
 
 REGENERATE_COMMAND = "uv run python scripts/export_openapi.py"
 SNAPSHOT_PATH = Path(__file__).resolve().parents[2] / "web" / "src" / "test" / "contract" / "openapi.schemas.json"
 
 
+def _resolve_schema_forward_references() -> None:
+    """Rebuild every app.schema model so its schema does not depend on which models were used first.
+
+    A model whose annotations name a class defined later in its module stays unresolved until
+    its first use, so the rendered schema would otherwise vary with the order tests run in.
+    """
+    pending: list[type[BaseModel]] = list(BaseModel.__subclasses__())
+    while pending:
+        model = pending.pop()
+        pending.extend(model.__subclasses__())
+        if model.__module__.startswith("app.schema"):
+            model.model_rebuild(raise_errors=False)
+
+
 def render_schemas() -> str:
     """Return the component schemas as sorted, indented JSON with a trailing newline."""
-    schema = create_app().openapi_schema.to_schema()
+    app = create_app()
+    _resolve_schema_forward_references()
+    schema = app.openapi_schema.to_schema()
     return json.dumps(schema["components"]["schemas"], indent=2, sort_keys=True) + "\n"
 
 

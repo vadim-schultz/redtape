@@ -2713,7 +2713,12 @@
         "format": "uuid",
         "type": "string"
       },
-      "jurisdiction_path": {},
+      "jurisdiction_path": {
+        "items": {
+          "$ref": "#/components/schemas/JurisdictionPathNode"
+        },
+        "type": "array"
+      },
       "life_situations": {
         "items": {
           "$ref": "#/components/schemas/TaggedTermRead"
@@ -3027,6 +3032,36 @@
       "task_status"
     ],
     "title": "FetchLogAppendResponse",
+    "type": "object"
+  },
+  "JurisdictionPathNode": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "openplz_type": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code",
+      "kind",
+      "name"
+    ],
+    "title": "JurisdictionPathNode",
     "type": "object"
   },
   "LifeSituationGroupedRead": {
