@@ -75,6 +75,28 @@ def _new_document_claim(db_session: Session, catalogue_id: uuid.UUID) -> Discove
     return claim
 
 
+def _second_claim_with_same_title_and_url(db_session: Session, catalogue_id: uuid.UUID) -> DiscoveryClaim:
+    entity = DiscoveryEntity(
+        catalogue_service_id=catalogue_id,
+        canonical_url="https://example.gov/doc-2",
+        label="Doc 2",
+    )
+    db_session.add(entity)
+    db_session.flush()
+    claim = DiscoveryClaim(
+        discovery_entity_id=entity.id,
+        kind=DiscoveryClaimKind.NEW_DOCUMENT,
+        payload={
+            "title_i18n": {"de": "Ausweis"},
+            "official_url": "https://example.gov/doc",
+        },
+        payload_fingerprint="emit-test-doc-fp-2",
+    )
+    db_session.add(claim)
+    db_session.flush()
+    return claim
+
+
 def test_emit_creates_pending_new_document_suggestion_for_emit_ready_claim(
     client: TestClient[Litestar], db_session: Session
 ) -> None:
@@ -186,3 +208,25 @@ def test_emit_records_emit_attempted_discovery_event(client: TestClient[Litestar
     )
     assert len(events) == 1
     assert events[0].payload.get("created_count") == 1
+
+
+def test_post_emit_answers_200_with_a_skipped_duplicate_not_500(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    _new_document_claim(db_session, catalogue.id)
+    _second_claim_with_same_title_and_url(db_session, catalogue.id)
+    key = _issue_key(db_session)
+
+    response = client.post(
+        EMIT_URL.format(catalogue_id=catalogue.id),
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["created_count"], body["skipped_count"]) == (1, 1)
+    duplicate_items = [item for item in body["items"] if item["skip_reason"] == "duplicate"]
+    assert len(duplicate_items) == 1
+    assert duplicate_items[0]["suggestion_id"] is None
+    assert db_session.query(Suggestion).count() == 1
