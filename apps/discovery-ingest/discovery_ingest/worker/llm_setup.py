@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import ExitStack
+
 import httpx
 
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
@@ -71,15 +73,17 @@ def _taxonomy(client: DiscoveryMachineClient) -> Taxonomy:
         raise LlmSetupError(f"cannot read the taxonomy (GET /machine/taxonomy): {err}", EXIT_NOT_READY) from err
 
 
-def prepare_llm(settings: IngestSettings, client: DiscoveryMachineClient) -> LlmResources:
-    """Return the model resources, or raise :class:`LlmSetupError` when ``llm_extract`` cannot be drained."""
+def prepare_llm(settings: IngestSettings, client: DiscoveryMachineClient, stack: ExitStack) -> LlmResources:
+    """Return the model resources, or raise :class:`LlmSetupError` when ``llm_extract`` cannot be drained.
+
+    The model's HTTP client is entered into ``stack``, so its owner closes it on every exit path.
+    """
     model = _check_settings(settings)
     _check_ledger(client)
     _check_storage(client)
     taxonomy = _taxonomy(client)
-    model_client = CloudflareAiClient(
-        settings, model=model, http=httpx.Client(trust_env=True), throttle=Throttle(MIN_INTERVAL_SECONDS)
-    )
+    http = stack.enter_context(httpx.Client(trust_env=True))
+    model_client = CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(MIN_INTERVAL_SECONDS))
     return LlmResources(model_client, taxonomy, model, settings.llm_max_tokens, settings.llm_input_chars)
 
 

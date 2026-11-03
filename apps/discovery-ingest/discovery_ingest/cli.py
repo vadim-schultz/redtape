@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from collections.abc import Callable, Iterator
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -265,18 +266,23 @@ def _worker_drain(args: argparse.Namespace) -> int:
 def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
     """Prepare the browser and the model when their kinds are drained, run the recorded drain and print its report."""
     llm_enqueue = prepare_llm_enqueue(settings, client, policy)
-    browser = prepare_browser(settings, settings.user_agent, client) if policy.drains_browser_kinds else None
-    llm = prepare_llm(settings, client) if policy.drains_llm_kinds else None
-    fetcher = PoliteUrlFetcher(user_agent=settings.user_agent)
-    report = run_recorded_drain(
-        client,
-        fetcher,
-        policy,
-        browser=browser,
-        llm=llm,
-        after_extract=enqueue_screenshot_for_mentions,
-        llm_enqueue=llm_enqueue,
-    )
+    with ExitStack() as stack:
+        browser = (
+            stack.enter_context(prepare_browser(settings, settings.user_agent, client))
+            if policy.drains_browser_kinds
+            else None
+        )
+        llm = prepare_llm(settings, client, stack) if policy.drains_llm_kinds else None
+        fetcher = PoliteUrlFetcher(user_agent=settings.user_agent)
+        report = run_recorded_drain(
+            client,
+            fetcher,
+            policy,
+            browser=browser,
+            llm=llm,
+            after_extract=enqueue_screenshot_for_mentions,
+            llm_enqueue=llm_enqueue,
+        )
     print(json.dumps(report.model_dump(mode="json")))
     return 0 if report.succeeded else 1
 

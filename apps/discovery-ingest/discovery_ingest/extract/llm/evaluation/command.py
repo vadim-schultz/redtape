@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,12 +51,14 @@ def _fail(message: str, code: int = EXIT_USAGE) -> int:
     return code
 
 
-def _runtime(settings: IngestSettings, model: str) -> EvalRuntime:
-    """Build the live pieces; tests replace this function."""
+def _runtime(settings: IngestSettings, model: str, stack: ExitStack) -> EvalRuntime:
+    """Build the live pieces; tests replace this function.
+
+    The model's HTTP client is entered into ``stack``, so its owner closes it on every exit path.
+    """
     api = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
-    client = CloudflareAiClient(
-        settings, model=model, http=httpx.Client(trust_env=True), throttle=Throttle(MIN_INTERVAL_SECONDS)
-    )
+    http = stack.enter_context(httpx.Client(trust_env=True))
+    client = CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(MIN_INTERVAL_SECONDS))
     return EvalRuntime(client, BudgetGuard(api), api.get_taxonomy())
 
 
@@ -134,8 +137,9 @@ def llm_eval(args: argparse.Namespace) -> int:
     problem = startup_problem(args, settings)
     if problem:
         return _fail(problem)
-    try:
-        runtime = _runtime(settings, args.model)
-    except DiscoveryMachineApiError as err:
-        return _fail(f"the Discovery API refused the taxonomy request: {err}")
-    return EvalCommand(args, settings, runtime).run()
+    with ExitStack() as stack:
+        try:
+            runtime = _runtime(settings, args.model, stack)
+        except DiscoveryMachineApiError as err:
+            return _fail(f"the Discovery API refused the taxonomy request: {err}")
+        return EvalCommand(args, settings, runtime).run()
