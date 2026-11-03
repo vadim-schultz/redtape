@@ -1,9 +1,10 @@
-from scripts.import_openplz_locations import _municipality_roles, _should_import_state, _stable_uuid
+from scripts.import_openplz_locations import _municipality_roles, _should_import_state
+from scripts.openplz_ids import stable_uuid
 
 
 def test_stable_uuid_is_deterministic() -> None:
-    u1 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
-    u2 = _stable_uuid("jurisdiction:MUNICIPALITY:14612")
+    u1 = stable_uuid("jurisdiction:MUNICIPALITY:14612")
+    u2 = stable_uuid("jurisdiction:MUNICIPALITY:14612")
     assert u1 == u2
 
 

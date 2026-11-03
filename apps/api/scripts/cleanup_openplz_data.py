@@ -12,16 +12,11 @@ from app.models.suggestion import Suggestion
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
+from scripts.openplz_ids import country_id, locality_id, municipality_id, region_id
 
 
 class SuggestionsPresentError(RuntimeError):
     """Raised by wipe_all() when suggestion rows exist and --include-suggestions wasn't passed."""
-
-
-def _stable_uuid(key: str) -> uuid.UUID:
-    # Deterministic UUID so re-imports are idempotent.
-    return uuid.uuid5(UUID_NAMESPACE, key)
 
 
 def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.UUID | None:
@@ -35,11 +30,11 @@ def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.
         return None
 
     if kind == JurisdictionKind.COUNTRY:
-        return _stable_uuid(f"jurisdiction:COUNTRY:{code}")
+        return country_id(code)
     if kind == JurisdictionKind.REGION:
-        return _stable_uuid(f"jurisdiction:REGION:{code}")
+        return region_id(code)
     if kind == JurisdictionKind.MUNICIPALITY:
-        return _stable_uuid(f"jurisdiction:MUNICIPALITY:{code}")
+        return municipality_id(code)
 
     # Future-proofing: unknown kind.
     return None
@@ -70,7 +65,7 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     for loc_id, postal_code, name, muni_code in locality_rows:
         if muni_code is None:
             continue
-        expected_locality_id = _stable_uuid(f"locality:{muni_code}:{postal_code}:{name}")
+        expected_locality_id = locality_id(muni_code, postal_code, name)
         if loc_id == expected_locality_id:
             openplz_locality_ids.append(loc_id)
 
