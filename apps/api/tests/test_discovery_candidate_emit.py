@@ -242,6 +242,22 @@ def test_emit_preview_reports_why_a_candidate_would_be_skipped(
     assert _count(db_session, Suggestion) == 0
 
 
+def test_emit_preview_of_an_emitted_candidate_reports_already_emitted(
+    client: TestClient[Litestar],
+    db_session: Session,  # noqa: F811
+) -> None:
+    candidate, _ = _staged(db_session)
+    key = _issue_key(db_session)
+    _emit(client, key, candidate.id)
+
+    response = client.get(PREVIEW_URL.format(id=candidate.id), headers=_bearer())
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["skip_reason"] == "already_emitted"
+    assert body["suggestion"] is None
+
+
 def test_emit_preview_of_an_unknown_candidate_is_404(client: TestClient[Litestar]) -> None:  # noqa: F811
     response = client.get(PREVIEW_URL.format(id=uuid.uuid4()), headers=_bearer())
 
