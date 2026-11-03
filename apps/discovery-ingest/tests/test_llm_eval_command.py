@@ -41,7 +41,7 @@ def _wire(
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
     runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
-    monkeypatch.setattr(command, "_runtime", lambda _settings, _model: runtime)
+    monkeypatch.setattr(command, "_runtime", lambda _settings, _model, _stack: runtime)
     return ledger
 
 
@@ -391,6 +391,26 @@ def test_eval_never_prints_the_token_or_the_account_id_even_when_cloudflare_echo
     assert "<redacted>" in pages["gamma"]["error"]
     for secret in (TOKEN, ACCOUNT_ID):
         assert secret not in shown.out + shown.err + written
+
+
+def test_llm_eval_closes_its_http_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """eval · the httpx.Client the real _runtime builds is closed once the run ends."""
+    write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    _router(monkeypatch, FakeLedger(remaining=9000), _answer)
+
+    created: list[httpx.Client] = []
+    inner_factory = httpx.Client
+
+    def recording_factory(**kwargs: object) -> httpx.Client:
+        client = inner_factory(**kwargs)
+        created.append(client)
+        return client
+
+    monkeypatch.setattr(httpx, "Client", recording_factory)
+
+    assert _eval(tmp_path) == 0
+
+    assert created and all(client.is_closed for client in created)
 
 
 def test_a_credential_inside_an_error_text_is_scrubbed_at_the_command_even_when_the_client_did_not(

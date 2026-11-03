@@ -85,3 +85,28 @@ def test_govdata_cli_exits_1_when_api_returns_401(monkeypatch: pytest.MonkeyPatc
     )
 
     assert exit_code == 1
+
+
+def test_govdata_fetch_prints_the_error_and_exits_1_on_a_connection_failure(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """govdata fetch · a CKAN connection failure prints a message and exits 1, never a bare traceback."""
+    monkeypatch.setenv("DISCOVERY_API_URL", API_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(
+        [
+            "govdata",
+            "fetch",
+            "--jurisdiction-id",
+            str(FEDERAL_JURISDICTION),
+        ],
+    )
+
+    assert exit_code == 1
+    assert "govdata fetch failed" in capsys.readouterr().err

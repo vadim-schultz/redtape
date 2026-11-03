@@ -110,6 +110,25 @@ def test_pvog_cli_exits_nonzero_on_400(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exit_code == 1
 
 
+def test_pvog_vocabulary_prints_the_error_and_exits_1_on_a_connection_failure(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """pvog CLI · a PVOG connection failure prints a message and exits 1, never a bare traceback."""
+    monkeypatch.setenv("DISCOVERY_API_URL", DISCOVERY_BASE)
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["pvog", "vocabulary"])
+
+    assert exit_code == 1
+    assert capsys.readouterr().err.strip() != ""
+
+
 def test_pvog_cli_vocabulary_prints_sorted_leaf_codes(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

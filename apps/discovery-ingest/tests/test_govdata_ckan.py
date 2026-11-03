@@ -89,3 +89,45 @@ def test_ckan_client_raises_when_package_has_no_leistungen_resource() -> None:
         )
         with pytest.raises(GovDataCkanError, match="Leistungen"):
             list(scoped_client.iter_record_pages(max_pages=1))
+
+
+def _client(http_client: httpx.Client) -> GovDataCkanClient:
+    return GovDataCkanClient(CKAN_BASE, PACKAGE_ID, scope_ars="000000000000", http_client=http_client)
+
+
+def test_ckan_client_raises_its_own_error_on_a_connection_failure() -> None:
+    """GovDataCkanClient · a transport failure raises GovDataCkanError, chaining the original cause."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    client = _client(httpx.Client(transport=httpx.MockTransport(handler)))
+
+    with pytest.raises(GovDataCkanError) as caught:
+        client._fetch_package_show()
+
+    assert isinstance(caught.value.__cause__, httpx.ConnectError)
+
+
+def test_ckan_client_raises_its_own_error_on_invalid_json() -> None:
+    """GovDataCkanClient · a body that is not JSON raises GovDataCkanError, not a bare ValueError."""
+    client = _client(httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="not json"))))
+
+    with pytest.raises(GovDataCkanError, match="invalid JSON"):
+        client._fetch_package_show()
+
+
+def test_ckan_client_raises_its_own_error_on_a_non_object_payload() -> None:
+    """GovDataCkanClient · a JSON array body raises GovDataCkanError, not a bare ValueError."""
+    client = _client(httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[]))))
+
+    with pytest.raises(GovDataCkanError, match="expected JSON object"):
+        client._fetch_package_show()
+
+
+def test_ckan_client_keeps_the_http_status_message() -> None:
+    """GovDataCkanClient · a 500 still raises GovDataCkanError with the same message shape as before."""
+    client = _client(httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500))))
+
+    with pytest.raises(GovDataCkanError, match="GovData HTTP 500 for"):
+        client._fetch_package_show()

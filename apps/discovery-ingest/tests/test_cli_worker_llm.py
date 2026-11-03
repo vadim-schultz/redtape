@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.cli import _build_parser, _drain_policy, main
@@ -166,3 +167,55 @@ def test_the_drain_neuron_budget_help_says_the_last_call_may_pass_the_budget(
     help_text = " ".join(capsys.readouterr().out.split())
     assert "stops once the budget is reached" in help_text and "may pass it by its own cost" in help_text
     assert "would pass" not in help_text
+
+
+def _record_llm_http_clients(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Client]:
+    """Wrap the current (already mock-transported) httpx.Client factory to record every instance it builds."""
+    created: list[httpx.Client] = []
+    inner_factory = httpx.Client
+
+    def recording_factory(**kwargs: object) -> httpx.Client:
+        client = inner_factory(**kwargs)
+        created.append(client)
+        return client
+
+    monkeypatch.setattr("discovery_ingest.worker.llm_setup.httpx.Client", recording_factory)
+    return created
+
+
+def test_a_drain_closes_the_llm_http_client_on_success_and_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · every httpx.Client prepare_llm creates is closed, on the happy path and on a rejected token."""
+    _api(monkeypatch)
+    created = _record_llm_http_clients(monkeypatch)
+    assert main(DRAIN) == 0
+    assert created and all(client.is_closed for client in created)
+
+    api2 = _api(monkeypatch, tasks=2)
+    created = _record_llm_http_clients(monkeypatch)
+    api2.cloudflare = lambda request: failure(401, 10000, "Authentication error")
+    assert main(DRAIN) == 1
+    assert created and all(client.is_closed for client in created)
+
+
+def test_a_drain_closes_the_browser_client_when_llm_setup_refuses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · a browser client opened before llm setup refuses is still closed."""
+    api = _api(monkeypatch)
+    api.storage_enabled = True
+    monkeypatch.setenv("CLOUDFLARE_BROWSER_API_TOKEN", ACCOUNT_ID + "-browser-tok")
+    monkeypatch.delenv("CLOUDFLARE_AI_API_TOKEN")
+
+    created: list[object] = []
+    from discovery_ingest.browser.client import CloudflareBrowserClient
+
+    real_init = CloudflareBrowserClient.__init__
+
+    def recording_init(self: CloudflareBrowserClient, *args: object, **kwargs: object) -> None:
+        real_init(self, *args, **kwargs)
+        created.append(self)
+
+    monkeypatch.setattr(CloudflareBrowserClient, "__init__", recording_init)
+
+    code = main(["worker", "drain", "--kinds", "render_page,llm_extract", "--neuron-budget", "800"])
+
+    assert code == 2
+    assert created and created[0]._http.is_closed  # type: ignore[attr-defined]

@@ -297,6 +297,33 @@ def test_screenshot_tier_3_detection_ignores_unrelated_search_and_breadcrumb_nod
     assert caplog.records == []
 
 
+def test_the_browser_client_closes_only_a_client_it_created() -> None:
+    """close · a client the instance created is closed; an injected client is left open for its owner."""
+    owned = CloudflareBrowserClient(load_browser_settings(), user_agent=USER_AGENT)
+    owned.close()
+    assert owned._http.is_closed
+
+    injected_http = httpx.Client()
+    injected = CloudflareBrowserClient(load_browser_settings(), user_agent=USER_AGENT, http=injected_http)
+    injected.close()
+    assert not injected_http.is_closed
+    injected_http.close()
+
+
+def test_the_browser_client_is_a_context_manager() -> None:
+    """__enter__/__exit__ · the owned client closes on exit, including when the body raises."""
+    with CloudflareBrowserClient(load_browser_settings(), user_agent=USER_AGENT) as client:
+        http = client._http
+        assert not http.is_closed
+    assert http.is_closed
+
+    http2: httpx.Client | None = None
+    with pytest.raises(RuntimeError), CloudflareBrowserClient(load_browser_settings(), user_agent=USER_AGENT) as client:
+        http2 = client._http
+        raise RuntimeError("boom")
+    assert http2 is not None and http2.is_closed
+
+
 def test_a_reported_zero_is_kept_and_not_replaced_by_the_measured_duration() -> None:
     """render · X-Browser-Ms-Used: 0 (a cached answer) costs nothing."""
     clock = Clock()
