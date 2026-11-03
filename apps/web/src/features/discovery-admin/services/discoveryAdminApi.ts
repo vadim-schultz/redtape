@@ -22,7 +22,7 @@ const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
 const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
-const ARTIFACT_PAGE_SIZE = 50;
+const ARTIFACT_LIST_PARAMS = { offset: 0, limit: 50 };
 
 /** Locale and bearer token every discovery-admin service call needs. */
 export type AdminAuth = { locale: string; accessToken: string };
@@ -139,7 +139,7 @@ export async function listCatalogueArtifacts(
 ): Promise<DiscoveryArtifactListResponse> {
   return apiRequest<DiscoveryArtifactListResponse>(
     `${CATALOGUE_PATH}/${catalogueId}/artifacts`,
-    { ...auth, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+    { ...auth, query: ARTIFACT_LIST_PARAMS },
   );
 }
 
@@ -150,7 +150,7 @@ export async function listCandidateArtifacts(
 ): Promise<DiscoveryArtifactListResponse> {
   return apiRequest<DiscoveryArtifactListResponse>(
     `${CANDIDATES_PATH}/${candidateId}/artifacts`,
-    { ...auth, query: { offset: 0, limit: ARTIFACT_PAGE_SIZE } },
+    { ...auth, query: ARTIFACT_LIST_PARAMS },
   );
 }
 
