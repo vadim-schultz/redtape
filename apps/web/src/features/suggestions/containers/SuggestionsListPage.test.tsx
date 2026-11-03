@@ -81,6 +81,17 @@ it("SuggestionsListPage · shows an empty state for no results", async () => {
   expect(await screen.findByText("No suggestions found")).toBeInTheDocument();
 });
 
+it("SuggestionsListPage · a bad ?status= requests pending", async () => {
+  renderWithProviders(<SuggestionsListPage />, {
+    initialEntries: ["/suggestions?status=bogus"],
+  });
+
+  await waitFor(() => expect(suggestionsCalls()).not.toHaveLength(0));
+  expect(suggestionsCalls()[0].searchParams.getAll("status")).toEqual([
+    "pending",
+  ]);
+});
+
 it("SuggestionsListPage · shows a query-error state", async () => {
   fetchMock.mockResolvedValue(new Response("boom", { status: 500 }));
   renderWithProviders(<SuggestionsListPage />);

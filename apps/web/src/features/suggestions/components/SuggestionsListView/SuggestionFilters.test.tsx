@@ -52,6 +52,19 @@ it("SuggestionFilters · clicking Pending after Approved clears the status param
   expect(screen.getByTestId("search")).toHaveTextContent("");
 });
 
+it("SuggestionFilters · renders one chip per status filter in order", () => {
+  renderFilters();
+
+  const chips = screen.getAllByRole("button");
+
+  expect(chips.map((chip) => chip.textContent)).toEqual([
+    "Pending",
+    "All",
+    "Approved",
+    "Rejected",
+  ]);
+});
+
 it("SuggestionFilters · reads All from the URL", () => {
   renderFilters("/suggestions?status=all");
 

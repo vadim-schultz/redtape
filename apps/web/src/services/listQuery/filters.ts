@@ -1,9 +1,8 @@
 import type { FilterValue } from "./types";
 
-/** A filter parser accepting only the listed values; anything else is rejected. */
+/** A filter parser accepting only the listed values, typed as the union of them; anything else is rejected. */
 export function oneOfFilter<T extends string>(values: readonly T[]) {
-  return (raw: string): FilterValue | undefined =>
-    values.find((value) => value === raw);
+  return (raw: string): T | undefined => values.find((value) => value === raw);
 }
 
 /** A filter parser accepting integers of at least `minimum`; anything else is rejected. */
