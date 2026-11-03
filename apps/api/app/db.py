@@ -1,3 +1,5 @@
+"""SQLAlchemy engine and the per-request session provider."""
+
 from __future__ import annotations
 
 from collections.abc import Generator
@@ -32,6 +34,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, futu
 
 
 def provide_session() -> Generator[Session, None, None]:
+    """Yield one session per request: commit after the handler, roll back and re-raise on error, always close."""
     session: Session = SessionLocal()
     try:
         yield session

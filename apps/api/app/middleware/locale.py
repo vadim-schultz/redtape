@@ -18,6 +18,7 @@ class LocaleResolverMiddleware(AbstractMiddleware):
     scopes = {ScopeType.HTTP}
 
     async def __call__(self, scope, receive, send) -> None:
+        """Store the locale resolved from the request on `request.state` before routing continues."""
         if scope.get("state") is None:
             scope["state"] = {}
         request: Request = Request(scope, receive)

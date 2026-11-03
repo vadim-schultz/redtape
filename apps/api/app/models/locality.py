@@ -1,3 +1,5 @@
+"""ORM model mapping postal-code localities to municipality jurisdictions."""
+
 from __future__ import annotations
 
 import uuid

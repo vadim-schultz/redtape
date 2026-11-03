@@ -1,3 +1,5 @@
+"""ORM model for application users and their roles."""
+
 from __future__ import annotations
 
 import enum

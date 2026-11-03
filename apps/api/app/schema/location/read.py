@@ -1,3 +1,5 @@
+"""Response schemas for the location hierarchy endpoints."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -19,6 +21,8 @@ class LocationNode(BaseModel):
 
 
 class LocationListResponse(BaseModel):
+    """Envelope for a list of location nodes returned by the hierarchy endpoints."""
+
     model_config = ConfigDict(from_attributes=False)
 
     items: list[LocationNode] = Field(default_factory=list)

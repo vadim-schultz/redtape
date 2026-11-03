@@ -1,3 +1,5 @@
+"""ORM models for documents and their requirement edges."""
+
 from __future__ import annotations
 
 import uuid

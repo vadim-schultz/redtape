@@ -38,6 +38,7 @@ def _validate_i18n_map(value: dict[str, str], *, max_len: int) -> dict[str, str]
 
 
 def validate_url(value: str, *, field: str = "official_url") -> str:
+    """Reject URLs that exceed the length limit, are not http(s), or lack a host; return the value unchanged."""
     if len(value) > MAX_URL_LENGTH:
         raise ValueError(f"{field} exceeds {MAX_URL_LENGTH} characters")
     parsed = urlsplit(value)

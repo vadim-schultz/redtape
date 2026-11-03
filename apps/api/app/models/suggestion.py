@@ -1,3 +1,5 @@
+"""ORM model and enums for catalogue suggestions awaiting moderation."""
+
 from __future__ import annotations
 
 import enum
