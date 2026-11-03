@@ -89,7 +89,7 @@ class IngestSettings(BrowserSettings, LlmSettings):
 
 def load_ingest_settings() -> IngestSettings:
     """Load settings from environment variables."""
-    return IngestSettings()  # type: ignore[call-arg]
+    return IngestSettings()
 
 
 def load_browser_settings() -> BrowserSettings:

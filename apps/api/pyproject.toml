@@ -45,14 +45,16 @@ extend-exclude = ["alembic/**"]
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "F",   # pyflakes
-    "W",   # pycodestyle warnings
-    "I",   # isort
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "SIM", # flake8-simplify
-    "D",   # pydocstyle
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+    "D",      # pydocstyle
+    "ANN401", # no `Any` in a parameter or return annotation
+    "TID251", # banned-api: no `typing.Any` import or attribute use (see below)
 ]
 ignore = [
     "E501", # line too long (formatter handles)
@@ -62,9 +64,19 @@ ignore = [
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+"typing_extensions.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "D"]     # allow assert in tests; tests are exempt from docstrings
+"tests/*" = ["S101", "D", "ANN401", "TID251"]     # allow assert in tests; tests are exempt from docstrings and the Any gate
 "tests/test_discovery_error_responses.py" = ["F811"]  # reuses fixtures imported from sibling test modules
+# Any gate baseline (T2): delete the line when the removing chapter lands
+"app/features/suggestions/handlers.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B2
+"app/services/openplz_client.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
+"scripts/import_openplz_locations.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
+"app/routes.py" = ["TID251"]  # T2 baseline, removed by B1
+"app/features/auth/jwt.py" = ["TID251"]  # T2 baseline, removed by B3
 "scripts/*" = ["T201", "D100", "D101", "D102", "D103", "D107", "D200"]   # allow print in scripts; D* is slice A-S6
 # docstring baseline (T1): delete the line when its slice is done
 "app/features/discovery/**" = ["D102", "D103", "D205", "D401"]  # A-S1
