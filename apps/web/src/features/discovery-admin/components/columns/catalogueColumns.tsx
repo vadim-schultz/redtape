@@ -11,6 +11,7 @@ import type {
 import { localizedTitle } from "../../utils/localizedTitle";
 import { translateOrRaw } from "../../utils/translateOrRaw";
 import { headerLabels, type ColumnContext } from "./columnContext";
+import { filterCapability } from "./filterCapability";
 import { enumOptions, plainOptions } from "./filterOptions";
 
 export type CatalogueColumn = DataTableColumn<
@@ -53,12 +54,11 @@ export function catalogueColumns(context: ColumnContext): CatalogueColumn[] {
       key: "source",
       header: header("source"),
       canSort: "source",
-      filter: {
+      filter: filterCapability({
         key: "source",
-        operators: ["eq"],
         label: context.t("discovery_admin.catalogue.filter_source"),
         options: enumOptions(context.t, "source", DISCOVERY_SOURCES),
-      },
+      }),
       render: (row) =>
         translateOrRaw(
           context.t,
@@ -70,12 +70,11 @@ export function catalogueColumns(context: ColumnContext): CatalogueColumn[] {
       key: "stage",
       header: header("stage"),
       canSort: "stage",
-      filter: {
+      filter: filterCapability({
         key: "stage",
-        operators: ["eq"],
         label: context.t("discovery_admin.catalogue.filter_stage"),
         options: plainOptions(PIPELINE_STAGES),
-      },
+      }),
       render: (row) => row.pipeline_stage,
     },
   ];

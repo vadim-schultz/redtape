@@ -119,6 +119,30 @@ it("tasks target uses the bounded cell and keeps the full URL available", async 
   expect(await screen.findByRole("tooltip")).toHaveTextContent(long);
 });
 
+it("task columns declare the kind, status and source filters with the translated labels", () => {
+  const filters = taskColumns({ locale: "en", t: (key: string) => key })
+    .flatMap((column) => (column.filter ? [column.filter] : []))
+    .map(({ key, label, operators }) => ({ key, label, operators }));
+
+  expect(filters).toEqual([
+    {
+      key: "kind",
+      label: "discovery_admin.tasks.filter_kind",
+      operators: ["eq"],
+    },
+    {
+      key: "status",
+      label: "discovery_admin.tasks.filter_status",
+      operators: ["eq"],
+    },
+    {
+      key: "source",
+      label: "discovery_admin.tasks.filter_source",
+      operators: ["eq"],
+    },
+  ]);
+});
+
 it("tasks target leaves the other task cells unbounded", () => {
   renderWithProviders(<Table />);
 
