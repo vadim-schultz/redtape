@@ -51,7 +51,7 @@ def serve(monkeypatch: pytest.MonkeyPatch) -> Callable[[Handler], list[httpx.Req
             kwargs["transport"] = httpx.MockTransport(recording)
             return _REAL_HTTPX_CLIENT(**kwargs)
 
-        monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
+        monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
         return seen
 
     return install

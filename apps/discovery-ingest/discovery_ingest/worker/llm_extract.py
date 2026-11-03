@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm.ground import ground
 from discovery_ingest.extract.llm.mapping import MappingContext, to_items
@@ -19,11 +19,11 @@ from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.llm_steps import counts_note, guarded, read_page, require_documents
 from discovery_ingest.worker.tally import COMPLETED, COMPLETED_CAPTURE_ENQUEUE_FAILED
 
-AfterExtract = Callable[[DiscoveryMachineClient, ClaimedTask], bool]
+AfterExtract = Callable[[DiscoveryIngestClient, ClaimedTask], bool]
 """Runs once for a page that staged at least one mention; returns false when its follow-up could not be queued."""
 
 
-def no_after_extract(client: DiscoveryMachineClient, task: ClaimedTask) -> bool:
+def no_after_extract(client: DiscoveryIngestClient, task: ClaimedTask) -> bool:
     """The default follow-up: nothing to queue."""
     return True
 
@@ -44,7 +44,7 @@ class LlmExtractHandler:
         """How many model calls this handler has made, repair attempts included."""
         return self._caller.calls
 
-    def __call__(self, task: ClaimedTask, *, client: DiscoveryMachineClient, fetcher: PoliteUrlFetcher) -> str:
+    def __call__(self, task: ClaimedTask, *, client: DiscoveryIngestClient, fetcher: PoliteUrlFetcher) -> str:
         """Settle ``task`` as ``completed`` or ``failed``; raise :class:`StopDrain` when a limit ends the drain."""
         job = Job(task, client, fetcher)
         try:

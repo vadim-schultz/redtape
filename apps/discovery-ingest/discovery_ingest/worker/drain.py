@@ -9,9 +9,9 @@ from dataclasses import asdict
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.extract.base import Extractor
 from discovery_ingest.extract.registry import EXTRACTORS
 from discovery_ingest.schemas import DrainReport, StopReason
@@ -55,7 +55,7 @@ def _drain_batches(ctx: DrainContext, tally: Tally, clock: Callable[[], float]) 
 
 
 def run_worker_drain(
-    client: DiscoveryMachineClient,
+    client: DiscoveryIngestClient,
     fetcher: PoliteUrlFetcher,
     policy: DrainPolicy,
     *,
@@ -79,7 +79,7 @@ def run_worker_drain(
     ``llm_budget`` before it claims anything. ``after_extract`` runs for each page that staged mentions (no-op by default). ``llm_enqueue`` runs after the
     snapshot hook of every render and queues ``llm_extract``; its failures are counted in the report.
     """
-    guard = budget or BudgetGuard(client)
+    guard = budget or BudgetGuard(client.budget)
     guard.snapshot()
     spend, tally = _open_spend(policy, guard, browser), Tally()
     if policy.drains_browser_kinds and spend is None:
@@ -104,16 +104,16 @@ def _close_tally(
             part.record(tally)
 
 
-def _remaining(client: DiscoveryMachineClient, policy: DrainPolicy) -> int | None:
+def _remaining(client: DiscoveryIngestClient, policy: DrainPolicy) -> int | None:
     """Return the ready backlog for the drained kinds, or ``None`` when the summary is unavailable."""
     try:
-        return client.get_task_summary(kinds=policy.kinds).pending_ready
+        return client.tasks.summary(kinds=policy.kinds).pending_ready
     except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError):
         return None
 
 
 def _report(
-    client: DiscoveryMachineClient, policy: DrainPolicy, tally: Tally, reason: StopReason, *, error: str | None = None
+    client: DiscoveryIngestClient, policy: DrainPolicy, tally: Tally, reason: StopReason, *, error: str | None = None
 ) -> DrainReport:
     remaining = _remaining(client, policy)
     return DrainReport(

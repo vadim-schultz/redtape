@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import sys
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactRead
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.latest_snapshots import latest_snapshots
 from discovery_ingest.requeue_common import Counts, add_requeue_options, enqueue_counted
@@ -22,7 +22,7 @@ def register_requeue_parser(llm_sub: argparse._SubParsersAction[argparse.Argumen
     add_requeue_options(requeue)
 
 
-def enqueue_all(client: DiscoveryMachineClient, snapshots: list[ArtifactRead], model: str) -> Counts:
+def enqueue_all(client: DiscoveryIngestClient, snapshots: list[ArtifactRead], model: str) -> Counts:
     """Enqueue ``llm_extract`` for each snapshot; the queue's identity answers ``created`` false for a known key."""
     counts = Counts(pages=len(snapshots))
     for artifact in snapshots:
@@ -41,9 +41,9 @@ def _requeue(args: argparse.Namespace) -> int:
     if not settings.llm_model:
         print("llm requeue needs the environment variable LLM_MODEL (it keys the task)", file=sys.stderr)
         return EXIT_MISSING_MODEL
-    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
-    snapshots = latest_snapshots(client, args.host, args.limit)
-    counts = Counts(pages=len(snapshots)) if args.dry_run else enqueue_all(client, snapshots, settings.llm_model)
+    with DiscoveryIngestClient.from_settings(settings) as client:
+        snapshots = latest_snapshots(client, args.host, args.limit)
+        counts = Counts(pages=len(snapshots)) if args.dry_run else enqueue_all(client, snapshots, settings.llm_model)
     print(_report(settings.llm_model, counts, dry_run=args.dry_run))
     return 1 if counts.failed else 0
 

@@ -8,9 +8,10 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.cli import main
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
+from pydantic import SecretStr
 
 from run_stub import run_response
 
@@ -30,13 +31,13 @@ def _row(resource: str, *, used: float = 0, cap: int = 100, exhausted: bool = Fa
     }
 
 
-def _client(monkeypatch: pytest.MonkeyPatch, handler: Handler) -> DiscoveryMachineClient:
+def _client(monkeypatch: pytest.MonkeyPatch, handler: Handler) -> DiscoveryIngestClient:
     def factory(**kwargs: Any) -> httpx.Client:
         kwargs["transport"] = httpx.MockTransport(handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
-    return DiscoveryMachineClient(API_BASE, "test-machine-key")
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
+    return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
 
 def _unreachable(request: httpx.Request) -> httpx.Response:
@@ -52,7 +53,7 @@ def test_reserve_is_granted_on_200_and_denied_on_409_without_raising(monkeypatch
         answer = next(answers)
         return answer or httpx.Response(409, json={"granted": False, "remaining": 40.0})
 
-    guard = BudgetGuard(_client(monkeypatch, handler))
+    guard = BudgetGuard(_client(monkeypatch, handler).budget)
 
     granted = guard.reserve("neurons", 60)
     denied = guard.reserve("neurons", 60)
@@ -69,7 +70,7 @@ def test_reserve_is_granted_on_200_and_denied_on_409_without_raising(monkeypatch
 def test_reserve_reports_ledger_unavailable_on_a_5xx_or_a_transport_error_without_raising(
     monkeypatch: pytest.MonkeyPatch, handler: Handler
 ) -> None:
-    guard = BudgetGuard(_client(monkeypatch, handler))
+    guard = BudgetGuard(_client(monkeypatch, handler).budget)
 
     result = guard.reserve("browser_seconds", 30)
 
@@ -79,7 +80,7 @@ def test_reserve_reports_ledger_unavailable_on_a_5xx_or_a_transport_error_withou
 
 def test_remaining_reads_the_resource_and_reports_an_exhausted_period(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [_row("neurons", used=10), _row("browser_seconds", used=480, cap=480, exhausted=True)]
-    guard = BudgetGuard(_client(monkeypatch, lambda request: httpx.Response(200, json={"items": rows})))
+    guard = BudgetGuard(_client(monkeypatch, lambda request: httpx.Response(200, json={"items": rows})).budget)
 
     neurons = guard.remaining("neurons")
     browser = guard.remaining("browser_seconds")
@@ -89,7 +90,7 @@ def test_remaining_reads_the_resource_and_reports_an_exhausted_period(monkeypatc
 
 
 def test_remaining_reports_ledger_unavailable_when_the_ledger_cannot_be_read(monkeypatch: pytest.MonkeyPatch) -> None:
-    guard = BudgetGuard(_client(monkeypatch, _unreachable))
+    guard = BudgetGuard(_client(monkeypatch, _unreachable).budget)
 
     result = guard.remaining("neurons")
 
@@ -100,7 +101,7 @@ def test_a_client_error_other_than_a_denial_is_still_raised_by_the_client(monkey
     client = _client(monkeypatch, lambda request: httpx.Response(404, json={"detail": "Unknown budget resource"}))
 
     with pytest.raises(DiscoveryMachineApiError) as raised:
-        client.reserve_budget("bananas", 1)  # type: ignore[arg-type]
+        client.budget.reserve("bananas", 1)  # type: ignore[arg-type]
 
     assert raised.value.status_code == 404
 
@@ -114,11 +115,11 @@ def test_adjust_and_exhaust_are_best_effort_and_report_whether_the_ledger_took_t
         seen.append(request.url.path.rsplit("/", 2)[-1] + ":" + request.content.decode())
         return httpx.Response(200, json=_row("browser_seconds", used=5))
 
-    working = BudgetGuard(_client(monkeypatch, handler))
+    working = BudgetGuard(_client(monkeypatch, handler).budget)
 
     assert working.adjust("browser_seconds", -2.5) is True
     assert working.exhaust("browser_seconds") is True
-    broken = BudgetGuard(_client(monkeypatch, _unreachable))
+    broken = BudgetGuard(_client(monkeypatch, _unreachable).budget)
     assert broken.adjust("browser_seconds", 1) is False
     assert broken.exhaust("browser_seconds") is False
     assert seen == ['adjust:{"delta":-2.5}', "exhaust:"]

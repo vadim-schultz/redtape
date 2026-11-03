@@ -11,11 +11,12 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS, TaskEnqueueRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
+from pydantic import SecretStr
 
 from capture_fakes import FakeCamera, shot
 from render_fakes import FakeApi, robots_fetcher, task_json
@@ -29,13 +30,13 @@ _REAL_HTTPX_CLIENT = httpx.Client
 
 
 def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTransport) -> None:
-    """Patch httpx.Client for api_client and fetcher (shared httpx module binding)."""
+    """Patch httpx.Client for the ingest client and fetcher (shared httpx module binding)."""
 
     def client_factory(**kwargs: Any) -> httpx.Client:
         kwargs["transport"] = transport
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     monkeypatch.setattr("discovery_ingest.worker.fetcher.httpx.Client", client_factory)
 
 
@@ -446,9 +447,9 @@ def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.Monke
         return httpx.Response(201, json={"id": str(TASK_ID), "created": True})
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
-    result = client.enqueue_task(
+    result = client.tasks.enqueue(
         TaskEnqueueRequest(
             catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL, input_key="html@1"
         )
@@ -469,11 +470,11 @@ def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.Monke
 def test_client_enqueue_task_raises_on_an_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """A 404 from the enqueue route surfaces as DiscoveryMachineApiError."""
     _patch_httpx_client(monkeypatch, httpx.MockTransport(lambda request: httpx.Response(404, text="gone")))
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     body = TaskEnqueueRequest(catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL)
 
     with pytest.raises(DiscoveryMachineApiError) as error:
-        client.enqueue_task(body)
+        client.tasks.enqueue(body)
 
     assert error.value.status_code == 404
 

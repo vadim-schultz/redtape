@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient, _post_catalogue_batches
 from discovery_ingest.artifacts_cli import artifacts_download, artifacts_list, register_artifacts_parser
 from discovery_ingest.browser.probe_cli import browser_probe, register_browser_parser
 from discovery_ingest.budget_cli import budget_report_minutes, budget_show, register_budget_parser
@@ -20,6 +19,7 @@ from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, e
 from discovery_ingest.candidates_cli import candidates_page, register_candidates_aids
 from discovery_ingest.capture_requeue import capture_requeue, register_capture_parser
 from discovery_ingest.catalogue_export import load_catalogue_row
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
 from discovery_ingest.curation_command import candidates_curate
 from discovery_ingest.enrich import (
@@ -81,11 +81,8 @@ def _govdata_run(args: argparse.Namespace) -> int:
         print("no mappable GovData rows", file=sys.stderr)
         return 1
     try:
-        _post_catalogue_batches(
-            settings.discovery_api_url,
-            settings.discovery_api_key,
-            items,
-        )
+        with DiscoveryIngestClient.from_settings(settings) as client:
+            client.catalogue.upsert_batches(items)
     except DiscoveryMachineApiError:
         return 1
     return 0
@@ -131,11 +128,8 @@ def _govdata_fetch_pages(
         if not items:
             continue
         try:
-            _post_catalogue_batches(
-                settings.discovery_api_url,
-                settings.discovery_api_key,
-                items,
-            )
+            with DiscoveryIngestClient.from_settings(settings) as client:
+                client.catalogue.upsert_batches(items)
         except DiscoveryMachineApiError as err:
             print(err, file=sys.stderr)
             return 1
@@ -161,11 +155,8 @@ def _pvog_run(args: argparse.Namespace) -> int:
         print("no mappable PVOG rows", file=sys.stderr)
         return 1
     try:
-        _post_catalogue_batches(
-            settings.discovery_api_url,
-            settings.discovery_api_key,
-            items,
-        )
+        with DiscoveryIngestClient.from_settings(settings) as client:
+            client.catalogue.upsert_batches(items)
     except DiscoveryMachineApiError:
         return 1
     return 0
@@ -190,16 +181,16 @@ def _fim_enrich(args: argparse.Namespace) -> int:
         print(f"fim fetch failed: {err}", file=sys.stderr)
         return 1
     entity_body = fim_steckbrief_entity_request(catalogue, steckbrief, fim_base_url=settings.fim_portal_base_url)
-    api = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        entity = api.post_entity(entity_body)
-        for claim in fim_steckbrief_claim_requests(
-            catalogue,
-            steckbrief,
-            entity_id=entity.id,
-            fim_base_url=settings.fim_portal_base_url,
-        ):
-            api.post_claim(claim)
+        with DiscoveryIngestClient.from_settings(settings) as api:
+            entity = api.catalogue.upsert_entity(entity_body)
+            for claim in fim_steckbrief_claim_requests(
+                catalogue,
+                steckbrief,
+                entity_id=entity.id,
+                fim_base_url=settings.fim_portal_base_url,
+            ):
+                api.catalogue.append_claim(claim)
     except DiscoveryMachineApiError:
         return 1
     return 0
@@ -252,9 +243,9 @@ def _worker_drain(args: argparse.Namespace) -> int:
         print(f"invalid drain bounds: {err}", file=sys.stderr)
         return 2
     settings = load_ingest_settings()
-    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        return _drain_and_print(policy, settings, client)
+        with DiscoveryIngestClient.from_settings(settings) as client:
+            return _drain_and_print(policy, settings, client)
     except (BrowserSetupError, LlmSetupError) as err:
         print(err, file=sys.stderr)
         return err.exit_code
@@ -263,7 +254,7 @@ def _worker_drain(args: argparse.Namespace) -> int:
         return 1
 
 
-def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryMachineClient) -> int:
+def _drain_and_print(policy: DrainPolicy, settings: IngestSettings, client: DiscoveryIngestClient) -> int:
     """Prepare the browser and the model when their kinds are drained, run the recorded drain and print its report."""
     llm_enqueue = prepare_llm_enqueue(settings, client, policy)
     with ExitStack() as stack:
@@ -295,10 +286,10 @@ def _candidates_emit(args: argparse.Namespace) -> int:
         print(f"invalid selection: {err}", file=sys.stderr)
         return 2
     settings = load_ingest_settings()
-    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     report = preview_report if args.dry_run else emit_report
     try:
-        lines = report(client, selection)
+        with DiscoveryIngestClient.from_settings(settings) as client:
+            lines = report(client, selection)
     except DiscoveryMachineApiError as err:
         print(f"emit failed: {err}", file=sys.stderr)
         return 1
@@ -324,16 +315,16 @@ def _leika_enrich(args: argparse.Namespace) -> int:
         print(f"leika fetch failed: {err}", file=sys.stderr)
         return 1
     entity_body = leika_stammtext_entity_request(catalogue, stammtext, fim_base_url=settings.fim_portal_base_url)
-    api = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
     try:
-        entity = api.post_entity(entity_body)
-        for claim in leika_stammtext_claim_requests(
-            catalogue,
-            stammtext,
-            entity_id=entity.id,
-            fim_base_url=settings.fim_portal_base_url,
-        ):
-            api.post_claim(claim)
+        with DiscoveryIngestClient.from_settings(settings) as api:
+            entity = api.catalogue.upsert_entity(entity_body)
+            for claim in leika_stammtext_claim_requests(
+                catalogue,
+                stammtext,
+                entity_id=entity.id,
+                fim_base_url=settings.fim_portal_base_url,
+            ):
+                api.catalogue.append_claim(claim)
     except DiscoveryMachineApiError:
         return 1
     return 0

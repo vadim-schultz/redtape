@@ -55,7 +55,7 @@ class IngestSettings(BrowserSettings, LlmSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     discovery_api_url: str = Field(validation_alias="DISCOVERY_API_URL")
-    discovery_api_key: str = Field(validation_alias="DISCOVERY_API_KEY")
+    discovery_api_key: SecretStr = Field(validation_alias="DISCOVERY_API_KEY")
     govdata_ckan_base_url: str = Field(
         default="https://ckan.govdata.de/api/3/action",
         validation_alias="GOVDATA_CKAN_BASE_URL",

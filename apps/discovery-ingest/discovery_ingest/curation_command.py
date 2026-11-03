@@ -9,9 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.candidate_sources import CandidateSourceRead
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.curation import CurationFile
 from discovery_ingest.curation_check import code_problems, grounding_problems, title_problems
 from discovery_ingest.curation_load import CurationError, load_curation_file
@@ -19,7 +20,6 @@ from discovery_ingest.curation_pages import PageTexts, candidate_procedures
 from discovery_ingest.curation_plan import CurationPlan, plan_curation
 from discovery_ingest.curation_run import Totals, post_plan
 from discovery_ingest.curation_staged import StagedIndex
-from discovery_ingest.machine_client import machine_client
 
 EXIT_REFUSED = 2
 NOT_CHECKED = "warning: --no-check-pages: excerpts were not compared with the page text"
@@ -42,14 +42,14 @@ class Reads:
     procedures: dict[UUID, list[CandidateSourceRead]]
 
 
-def _read(client: DiscoveryMachineClient, file: CurationFile) -> Reads:
+def _read(client: DiscoveryIngestClient, file: CurationFile) -> Reads:
     procedures = {c.candidate_id: candidate_procedures(client, c.candidate_id) for c in file.candidates}
     return Reads(StagedIndex.fetch(client), procedures)
 
 
-def _stages(client: DiscoveryMachineClient, file: CurationFile, reads: Reads, *, check_pages: bool) -> list[Stage]:
+def _stages(client: DiscoveryIngestClient, file: CurationFile, reads: Reads, *, check_pages: bool) -> list[Stage]:
     stages: list[Stage] = [
-        lambda: code_problems(file, client.get_taxonomy()),
+        lambda: code_problems(file, client.candidates.taxonomy()),
         lambda: title_problems(file, reads.staged, reads.procedures),
     ]
     if check_pages:
@@ -79,13 +79,13 @@ def _refuse(problems: list[str]) -> int:
     return EXIT_REFUSED
 
 
-def _execute(client: DiscoveryMachineClient, plan: CurationPlan, *, dry_run: bool) -> int:
+def _execute(client: DiscoveryIngestClient, plan: CurationPlan, *, dry_run: bool) -> int:
     totals = Totals() if dry_run else post_plan(client, plan)
     _report(plan, totals, dry_run=dry_run)
     return 1 if totals.refused else 0
 
 
-def _apply(client: DiscoveryMachineClient, file: CurationFile, args: argparse.Namespace) -> int:
+def _apply(client: DiscoveryIngestClient, file: CurationFile, args: argparse.Namespace) -> int:
     reads = _read(client, file)
     if problems := _first_problems(_stages(client, file, reads, check_pages=args.check_pages)):
         return _refuse(problems)
@@ -99,7 +99,8 @@ def _curate(args: argparse.Namespace) -> int:
         file = load_curation_file(Path(args.file))
     except CurationError as err:
         return _refuse(err.problems)
-    return _apply(machine_client(), file, args)
+    with DiscoveryIngestClient.from_settings(load_ingest_settings()) as client:
+        return _apply(client, file, args)
 
 
 candidates_curate = failing_with_api_error("candidates curate", _curate)

@@ -65,6 +65,16 @@ class StoredArtifact:
 
 
 @dataclass(frozen=True, slots=True)
+class ArtifactQuery:
+    """One page of stored artifacts of ``kind``; ``host`` is the source host, any host when ``None``."""
+
+    host: str | None
+    kind: ArtifactKind
+    offset: int
+    limit: int
+
+
+@dataclass(frozen=True, slots=True)
 class ArtifactContent:
     """The stored bytes of an artifact with the ``Content-Type`` the content route answered with."""
 

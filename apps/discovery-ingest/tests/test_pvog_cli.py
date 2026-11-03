@@ -33,7 +33,7 @@ def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTr
         kwargs["transport"] = transport
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     monkeypatch.setattr("discovery_ingest.pvog.client.httpx.Client", client_factory)
 
 

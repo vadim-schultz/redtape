@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.enrich import (
     catalogue_export_item_from_machine,
     fim_steckbrief_claim_requests,
@@ -21,13 +21,13 @@ _DEFAULT_FIM_BASE = "https://fimportal.de"
 def handle_enrich_metadata(
     task: ClaimedTask,
     *,
-    client: DiscoveryMachineClient,
+    client: DiscoveryIngestClient,
     fetcher: PoliteUrlFetcher,
     fim_base_url: str = _DEFAULT_FIM_BASE,
 ) -> str:
     """Fetch steckbrief JSON and upsert entity and claims via the machine API."""
     try:
-        catalogue = client.get_catalogue(task.catalogue_service_id)
+        catalogue = client.catalogue.get(task.catalogue_service_id)
     except DiscoveryMachineApiError as err:
         return fail_permanently(client, task.id, err.detail)
 
@@ -46,18 +46,18 @@ def handle_enrich_metadata(
         return fail_permanently(client, task.id, str(err))
 
     try:
-        entity = client.post_entity(entity_body)
+        entity = client.catalogue.upsert_entity(entity_body)
         for claim in fim_steckbrief_claim_requests(
             export_row,
             steckbrief,
             entity_id=entity.id,
             fim_base_url=fim_base_url,
         ):
-            client.post_claim(claim)
+            client.catalogue.append_claim(claim)
     except DiscoveryMachineApiError as err:
         return fail_permanently(client, task.id, err.detail)
 
-    client.complete_task(task.id)
+    client.tasks.complete(task.id)
     return "completed"
 
 

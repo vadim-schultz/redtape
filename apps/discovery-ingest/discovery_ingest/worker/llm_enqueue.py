@@ -8,8 +8,8 @@ import sys
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactRead
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.extract.clean import CLEAN_VERSION
 from discovery_ingest.extract.llm.prompt import PROMPT_VERSION
 from discovery_ingest.schemas import ClaimedTask, TaskEnqueueRequest
@@ -44,7 +44,7 @@ def llm_extract_request(artifact: ArtifactRead, model: str) -> TaskEnqueueReques
 class LlmEnqueuer:
     """An :data:`~discovery_ingest.worker.render.AfterSnapshot` hook: one ``llm_extract`` per snapshot and version."""
 
-    def __init__(self, client: DiscoveryMachineClient, model: str) -> None:
+    def __init__(self, client: DiscoveryIngestClient, model: str) -> None:
         """Enqueue through ``client`` for extraction by ``model``."""
         self._client = client
         self._model = model
@@ -53,7 +53,7 @@ class LlmEnqueuer:
     def __call__(self, task: ClaimedTask, artifact: ArtifactRead) -> None:
         """Enqueue ``llm_extract`` for ``artifact``; an error is logged and counted in :attr:`failed`, never raised."""
         try:
-            self._client.enqueue_task(llm_extract_request(artifact, self._model))
+            self._client.tasks.enqueue(llm_extract_request(artifact, self._model))
         except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError) as err:
             self.failed += 1
             print(f"llm enqueue failed for {artifact.source_url}: {err}", file=sys.stderr)

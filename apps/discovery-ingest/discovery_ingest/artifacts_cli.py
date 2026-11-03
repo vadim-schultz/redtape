@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import get_args
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
-from discovery_ingest.artifacts import ArtifactKind, ArtifactRead
+from discovery_ingest.artifacts import ArtifactKind, ArtifactQuery, ArtifactRead
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import load_ingest_settings
 
 MAX_PAGE_SIZE = 100
@@ -35,17 +35,16 @@ def register_artifacts_parser(sub: argparse._SubParsersAction[argparse.ArgumentP
     download.add_argument("--out", type=Path, required=True, help="File to write; parent directories are created")
 
 
-def _client() -> DiscoveryMachineClient:
-    settings = load_ingest_settings()
-    return DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
+def _client() -> DiscoveryIngestClient:
+    return DiscoveryIngestClient.from_settings(load_ingest_settings())
 
 
-def _artifacts(client: DiscoveryMachineClient, args: argparse.Namespace) -> Iterator[ArtifactRead]:
+def _artifacts(client: DiscoveryIngestClient, args: argparse.Namespace) -> Iterator[ArtifactRead]:
     """Yield up to ``args.limit`` artifacts, one route page at a time, newest first."""
     offset = 0
     while offset < args.limit:
-        page = client.list_artifacts(
-            host=args.host, kind=args.kind, offset=offset, limit=min(MAX_PAGE_SIZE, args.limit - offset)
+        page = client.artifacts.list(
+            ArtifactQuery(host=args.host, kind=args.kind, offset=offset, limit=min(MAX_PAGE_SIZE, args.limit - offset))
         )
         yield from page.items
         offset += len(page.items)
@@ -58,13 +57,15 @@ def _line(artifact: ArtifactRead) -> str:
 
 
 def _list(args: argparse.Namespace) -> int:
-    for artifact in _artifacts(_client(), args):
-        print(_line(artifact))
+    with _client() as client:
+        for artifact in _artifacts(client, args):
+            print(_line(artifact))
     return 0
 
 
 def _download(args: argparse.Namespace) -> int:
-    content = _client().get_artifact_content(args.id)
+    with _client() as client:
+        content = client.artifacts.content(args.id)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_bytes(content.data)
     print(f"wrote {args.out} ({len(content.data)} bytes)")

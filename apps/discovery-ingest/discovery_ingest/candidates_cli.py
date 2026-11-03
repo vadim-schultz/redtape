@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.candidate_sources import CandidateSourceRead
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.curation_pages import candidate_procedures, cleaned_text
-from discovery_ingest.machine_client import machine_client
 
 REVERSAL = """\
 There is no machine delete. To undo a curation, run as the database owner, in this order:
@@ -50,7 +50,7 @@ def _line(source: CandidateSourceRead) -> str:
     return " ".join([str(source.catalogue_service_id), source.source_url, source.host, flag])
 
 
-def _write_text(client: DiscoveryMachineClient, source: CandidateSourceRead, out: Path) -> bool:
+def _write_text(client: DiscoveryIngestClient, source: CandidateSourceRead, out: Path) -> bool:
     text = cleaned_text(client, source)
     if text is None:
         print(f"no html_snapshot for {source.catalogue_service_id}", file=sys.stderr)
@@ -60,20 +60,20 @@ def _write_text(client: DiscoveryMachineClient, source: CandidateSourceRead, out
     return True
 
 
-def _write_all(client: DiscoveryMachineClient, sources: list[CandidateSourceRead], out: Path | None) -> int:
+def _write_all(client: DiscoveryIngestClient, sources: list[CandidateSourceRead], out: Path | None) -> int:
     """Write the cleaned text of every procedure when ``out`` is given; the exit code is 1 if any snapshot is missing."""
     written = [out is None or _write_text(client, source, out) for source in sources]
     return 0 if all(written) else 1
 
 
 def _page(args: argparse.Namespace) -> int:
-    client = machine_client()
-    sources = candidate_procedures(client, args.candidate_id)
-    if not sources:
-        print(f"no procedures for {args.candidate_id}", file=sys.stderr)
-        return 1
-    print("\n".join(_line(source) for source in sources))
-    return _write_all(client, sources, args.out)
+    with DiscoveryIngestClient.from_settings(load_ingest_settings()) as client:
+        sources = candidate_procedures(client, args.candidate_id)
+        if not sources:
+            print(f"no procedures for {args.candidate_id}", file=sys.stderr)
+            return 1
+        print("\n".join(_line(source) for source in sources))
+        return _write_all(client, sources, args.out)
 
 
 candidates_page = failing_with_api_error("candidates page", _page)

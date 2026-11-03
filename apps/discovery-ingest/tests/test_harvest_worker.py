@@ -10,10 +10,11 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.harvest import handle_harvest_payload
+from pydantic import SecretStr
 
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -72,7 +73,7 @@ def _run(monkeypatch: pytest.MonkeyPatch, api: Callable[[httpx.Request], httpx.R
         kwargs["transport"] = httpx.MockTransport(api)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     task = ClaimedTask(
         id=TASK_ID,
         catalogue_service_id=CATALOGUE_ID,
@@ -82,7 +83,7 @@ def _run(monkeypatch: pytest.MonkeyPatch, api: Callable[[httpx.Request], httpx.R
         priority=50,
         lease_expires_at=datetime.now(UTC),
     )
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     return handle_harvest_payload(task, client=client, fetcher=PoliteUrlFetcher(min_interval_per_host_s=0))
 
 

@@ -8,9 +8,9 @@ from itertools import islice
 from typing import Any
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
-from discovery_ingest.candidate_sources import CandidateSourceRead
+from discovery_ingest.candidate_sources import CandidateSourceRead, SourceQuery
 from discovery_ingest.cli_errors import failing_with_api_error
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import load_ingest_settings
 from discovery_ingest.requeue_common import Counts, add_requeue_options, enqueue_counted
 from discovery_ingest.worker.capture_enqueue import capture_request
@@ -53,17 +53,19 @@ def register_capture_parser(sub: argparse._SubParsersAction[argparse.ArgumentPar
     )
 
 
-def _sources(client: DiscoveryMachineClient, args: argparse.Namespace) -> Iterator[CandidateSourceRead]:
+def _sources(client: DiscoveryIngestClient, args: argparse.Namespace) -> Iterator[CandidateSourceRead]:
     """Yield the pages without a screenshot, busiest first, one route page at a time."""
     offset = 0
     while True:
-        page = client.list_candidate_sources(
-            host=args.host,
-            missing="screenshot",
-            candidate_id=None,
-            service_ids=args.service_id or [],
-            offset=offset,
-            limit=min(PAGE_SIZE, args.limit - offset),
+        page = client.candidates.list_sources(
+            SourceQuery(
+                host=args.host,
+                missing="screenshot",
+                candidate_id=None,
+                service_ids=args.service_id or [],
+                offset=offset,
+                limit=min(PAGE_SIZE, args.limit - offset),
+            )
         )
         yield from page.items
         offset += len(page.items)
@@ -71,7 +73,7 @@ def _sources(client: DiscoveryMachineClient, args: argparse.Namespace) -> Iterat
             return
 
 
-def _enqueue_all(client: DiscoveryMachineClient, sources: list[CandidateSourceRead]) -> Counts:
+def _enqueue_all(client: DiscoveryIngestClient, sources: list[CandidateSourceRead]) -> Counts:
     counts = Counts(pages=len(sources))
     for source in sources:
         enqueue_counted(client, capture_request(source.catalogue_service_id, source.source_url), counts)
@@ -85,10 +87,9 @@ def _report(counts: Counts, *, dry_run: bool) -> str:
 
 
 def _requeue(args: argparse.Namespace) -> int:
-    settings = load_ingest_settings()
-    client = DiscoveryMachineClient(settings.discovery_api_url, settings.discovery_api_key)
-    sources = list(islice(_sources(client, args), args.limit))
-    counts = Counts(pages=len(sources)) if args.dry_run else _enqueue_all(client, sources)
+    with DiscoveryIngestClient.from_settings(load_ingest_settings()) as client:
+        sources = list(islice(_sources(client, args), args.limit))
+        counts = Counts(pages=len(sources)) if args.dry_run else _enqueue_all(client, sources)
     print(_report(counts, dry_run=args.dry_run))
     return 1 if counts.failed else 0
 

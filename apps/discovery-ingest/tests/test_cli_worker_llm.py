@@ -49,7 +49,7 @@ def _nothing_was_claimed(api: LlmApi) -> bool:
 def test_default_kinds_exclude_llm_extract_and_the_dispatch_table_contains_it(monkeypatch: pytest.MonkeyPatch) -> None:
     """kinds · a plain drain never claims llm_extract; a drain of the kind has a handler for it."""
     api = LlmApi([])
-    guard = BudgetGuard(api.client(monkeypatch))
+    guard = BudgetGuard(api.client(monkeypatch).budget)
     policy = DrainPolicy(kinds=("llm_extract",), neuron_budget=800)
     drain = open_llm_drain(policy, guard, resources(ScriptedLlm(SERVICE)), no_after_extract)
     assert drain is not None

@@ -8,13 +8,13 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.cli import main
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.worker import run as run_module
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import recorded_run, run_recorded_drain
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from run_stub import run_response
 
@@ -29,7 +29,7 @@ def _patch_transport(monkeypatch: pytest.MonkeyPatch, handler: Any) -> None:
         kwargs["transport"] = transport
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     monkeypatch.setattr("discovery_ingest.worker.fetcher.httpx.Client", client_factory)
 
 
@@ -149,13 +149,13 @@ def _validation_error() -> ValidationError:
     raise AssertionError("expected a ValidationError")
 
 
-def _recorded_client(monkeypatch: pytest.MonkeyPatch, finishes: list[dict[str, object]]) -> DiscoveryMachineClient:
+def _recorded_client(monkeypatch: pytest.MonkeyPatch, finishes: list[dict[str, object]]) -> DiscoveryIngestClient:
     def handler(request: httpx.Request) -> httpx.Response:
         stub = run_response(request, finishes)
         return stub if stub is not None else httpx.Response(404)
 
     _patch_transport(monkeypatch, handler)
-    return DiscoveryMachineClient(API_BASE, "test-machine-key")
+    return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
 
 @pytest.mark.parametrize(
@@ -199,7 +199,7 @@ def test_the_original_error_wins_when_closing_the_run_also_fails(monkeypatch: py
         return httpx.Response(404)
 
     _patch_transport(monkeypatch, handler)
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
     def _raise(*_args: Any, **_kwargs: Any) -> Any:
         raise ValueError("handler bug")

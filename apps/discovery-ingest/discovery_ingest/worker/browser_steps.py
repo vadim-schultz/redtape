@@ -6,9 +6,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactUpload, StoredArtifact
 from discovery_ingest.browser.errors import BrowserRequestError
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.browser_spend import BrowserSpend
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
@@ -34,13 +34,13 @@ class Job:
     """One claimed task with the collaborators every step needs."""
 
     task: ClaimedTask
-    client: DiscoveryMachineClient
+    client: DiscoveryIngestClient
     fetcher: PoliteUrlFetcher
 
 
 def complete(job: Job, note: str | None) -> str:
     """Complete the task with an optional ``result_note`` and return the outcome label."""
-    job.client.complete_task(job.task.id, note=note)
+    job.client.tasks.complete(job.task.id, note=note)
     return "completed"
 
 
@@ -81,7 +81,7 @@ def is_login_wall(html: str | None, final_url: str | None) -> bool:
 def store(job: Job, upload: ArtifactUpload) -> StoredArtifact:
     """Upload ``upload`` for the task; a refusal that is a limit raises the exception that stops the drain."""
     try:
-        return job.client.upload_artifact(job.task.id, upload)
+        return job.client.artifacts.upload(job.task.id, upload)
     except DiscoveryMachineApiError as err:
         raise refusal_for(job, err) from err
 
