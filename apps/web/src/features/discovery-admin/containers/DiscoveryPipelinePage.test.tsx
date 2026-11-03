@@ -53,24 +53,31 @@ function meResponse(): Response {
   );
 }
 
-function stubPipelineFetch(artifacts: () => Response) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input?: unknown) => {
-      const url = String(input);
-      if (url.includes("/api/v1/me")) return meResponse();
-      if (url.includes(`/catalogue/${catalogueId}/pipeline`)) {
-        return pipelineResponse();
-      }
-      if (url.includes(`/catalogue/${catalogueId}/emit-preview`)) {
-        return new Response(JSON.stringify({ items: [] }));
-      }
-      if (url.includes(`/catalogue/${catalogueId}/artifacts`)) {
-        return artifacts();
-      }
-      return new Response("", { status: 503 });
-    }),
-  );
+function stubPipelineFetch(
+  artifacts: () => Response,
+  {
+    emitFails = false,
+    pipelineGate,
+  }: { emitFails?: boolean; pipelineGate?: Promise<unknown> } = {},
+) {
+  const fetchMock = vi.fn(async (input?: unknown) => {
+    const url = String(input);
+    if (url.includes("/api/v1/me")) return meResponse();
+    if (url.includes(`/catalogue/${catalogueId}/pipeline`)) {
+      await pipelineGate;
+      return pipelineResponse();
+    }
+    if (url.includes(`/catalogue/${catalogueId}/emit-preview`)) {
+      if (emitFails) return new Response("", { status: 500 });
+      return new Response(JSON.stringify({ items: [] }));
+    }
+    if (url.includes(`/catalogue/${catalogueId}/artifacts`)) {
+      return artifacts();
+    }
+    return new Response("", { status: 503 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
 }
 
 function renderPipelinePage() {
@@ -143,4 +150,35 @@ it("DiscoveryPipelinePage · keeps the pipeline visible when only the artifacts 
     await screen.findByRole("button", { name: "Try again" }),
   ).toBeInTheDocument();
   expect(screen.getByText("No claims to preview yet.")).toBeInTheDocument();
+});
+
+it("DiscoveryPipelinePage · keeps the pipeline visible when only the emit preview fails", async () => {
+  stubPipelineFetch(noArtifacts, { emitFails: true });
+  renderPipelinePage();
+
+  expect(await screen.findByText("Pipeline stage")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryPipelinePage · requests artifacts and emit preview while the pipeline request is pending", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const fetchMock = stubPipelineFetch(noArtifacts, { pipelineGate: gate });
+  renderPipelinePage();
+
+  await vi.waitFor(() => {
+    const urls = fetchMock.mock.calls.map(([input]) => String(input));
+    expect(
+      urls.some((u) => u.includes(`/catalogue/${catalogueId}/artifacts`)),
+    ).toBe(true);
+    expect(
+      urls.some((u) => u.includes(`/catalogue/${catalogueId}/emit-preview`)),
+    ).toBe(true);
+  });
+  release();
+  expect(await screen.findByText("Pipeline stage")).toBeInTheDocument();
 });

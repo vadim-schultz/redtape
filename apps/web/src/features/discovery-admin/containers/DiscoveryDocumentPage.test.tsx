@@ -56,6 +56,14 @@ type Extras = {
   edges?: DiscoveryCandidateEdge[];
   artifacts?: DiscoveryArtifact[];
   preview?: CandidateEmitPreview;
+  /** A secondary endpoint (by path suffix) that answers 500. */
+  failing?: "edges" | "artifacts" | "emit-preview";
+  /** When set, the failing endpoint recovers after its first failure. */
+  failOnce?: boolean;
+  /** Holds the candidate response until this promise settles. */
+  candidateGate?: Promise<unknown>;
+  /** Answers the candidate request with this status instead of the body. */
+  candidateStatus?: number;
 };
 
 function artifact(
@@ -96,9 +104,18 @@ function skippedPreview(
 
 function stubDocumentFetch(
   body: DiscoveryCandidateDetailResponse,
-  { artifacts = [], edges = [], preview = skippedPreview() }: Extras = {},
+  {
+    artifacts = [],
+    edges = [],
+    preview = skippedPreview(),
+    failing,
+    failOnce = false,
+    candidateGate,
+    candidateStatus,
+  }: Extras = {},
 ) {
   const calls: { path: string; method: string }[] = [];
+  let failed = false;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown, init?: RequestInit) => {
@@ -114,7 +131,19 @@ function stubDocumentFetch(
           }),
         );
       }
-      if (pathname.endsWith(base)) return new Response(JSON.stringify(body));
+      if (pathname.endsWith(base)) {
+        await candidateGate;
+        if (candidateStatus)
+          return new Response("", { status: candidateStatus });
+        return new Response(JSON.stringify(body));
+      }
+      const panel = (["edges", "artifacts", "emit-preview"] as const).find(
+        (suffix) => pathname.endsWith(`${base}/${suffix}`),
+      );
+      if (panel && failing === panel && (!failOnce || !failed)) {
+        failed = true;
+        return new Response("", { status: 500 });
+      }
       if (pathname.endsWith(`${base}/artifacts`)) {
         return new Response(artifactsBody(artifacts));
       }
@@ -131,7 +160,7 @@ function stubDocumentFetch(
 }
 
 function renderDocumentPage() {
-  renderWithProviders(
+  return renderWithProviders(
     <Routes>
       <Route
         path="/admin/discovery/documents/:id"
@@ -333,4 +362,113 @@ it("the document page still has no emit control", async () => {
   await screen.findByText("Requires");
   expect(screen.queryAllByRole("button")).toHaveLength(0);
   expect(calls.filter(({ method }) => method !== "GET")).toEqual([]);
+});
+
+it("DiscoveryDocumentPage · keeps the document visible when only the edges fail to load", async () => {
+  stubDocumentFetch(detail(), { failing: "edges" });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByRole("heading", { name: "Geburtsurkunde" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Mentions" })).toBeInTheDocument();
+  expect(await screen.findByText("Artifacts")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · keeps the document visible when only the emit preview fails", async () => {
+  stubDocumentFetch(detail(), { failing: "emit-preview" });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByRole("heading", { name: "Geburtsurkunde" }),
+  ).toBeInTheDocument();
+  expect(await screen.findByText("Artifacts")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · keeps the document visible when only the artifacts fail", async () => {
+  stubDocumentFetch(detail(), { failing: "artifacts" });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByRole("heading", { name: "Geburtsurkunde" }),
+  ).toBeInTheDocument();
+  expect(await screen.findByText("Artifacts")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · the retry of a failed panel refetches only that panel", async () => {
+  const calls = stubDocumentFetch(detail(), {
+    failing: "edges",
+    failOnce: true,
+  });
+  const { user } = renderDocumentPage();
+
+  await user.click(await screen.findByRole("button", { name: "Try again" }));
+  await vi.waitFor(() => {
+    const paths = calls.map(({ path }) => path);
+    expect(paths.filter((p) => p === `${base}/edges`)).toHaveLength(2);
+  });
+  const paths = calls.map(({ path }) => path);
+  expect(paths.filter((p) => p === `${base}/artifacts`)).toHaveLength(1);
+  expect(paths.filter((p) => p === `${base}/emit-preview`)).toHaveLength(1);
+  expect(paths.filter((p) => p === base)).toHaveLength(1);
+});
+
+it("DiscoveryDocumentPage · a missing candidate shows the not-found view", async () => {
+  stubDocumentFetch(detail(), { candidateStatus: 404 });
+  renderDocumentPage();
+
+  expect(await screen.findByText("Page not found")).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · a server error on the candidate shows retry", async () => {
+  stubDocumentFetch(detail(), { candidateStatus: 500 });
+  renderDocumentPage();
+
+  expect(
+    await screen.findByRole("button", { name: "Try again" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · requests the edges, artifacts and emit preview while the candidate request is still pending", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const calls = stubDocumentFetch(detail(), { candidateGate: gate });
+  renderDocumentPage();
+
+  await vi.waitFor(() => {
+    const paths = calls.map(({ path }) => path);
+    expect(paths).toContain(`${base}/edges`);
+    expect(paths).toContain(`${base}/artifacts`);
+    expect(paths).toContain(`${base}/emit-preview`);
+  });
+  release();
+  expect(
+    await screen.findByRole("heading", { name: "Geburtsurkunde" }),
+  ).toBeInTheDocument();
+});
+
+it("DiscoveryDocumentPage · each secondary endpoint is requested once", async () => {
+  const calls = stubDocumentFetch(detail());
+  renderDocumentPage();
+
+  await screen.findByRole("heading", { name: "Geburtsurkunde" });
+  await screen.findByText("Artifacts");
+  await vi.waitFor(() =>
+    expect(calls.map(({ path }) => path)).toContain(`${base}/emit-preview`),
+  );
+  const paths = calls.map(({ path }) => path);
+  expect(paths.filter((p) => p === `${base}/edges`)).toHaveLength(1);
+  expect(paths.filter((p) => p === `${base}/artifacts`)).toHaveLength(1);
+  expect(paths.filter((p) => p === `${base}/emit-preview`)).toHaveLength(1);
 });
