@@ -1,12 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { LocaleProvider } from "../contexts/LocaleContext";
-import { AuthProvider, useAuth } from "../features/auth/contexts/AuthContext";
-import { createFakeAuthGateway } from "../features/auth/services/fakeAuthGateway";
-import { apiRequest, useApi } from "./api";
+import { apiRequest } from "./api";
 
 const fetchMock = vi.fn();
 
@@ -47,43 +41,4 @@ it("apiRequest · throws ApiRequestError with status and body for a non-OK respo
   await expect(
     apiRequest("/api/v1/documents", { locale: "en" }),
   ).rejects.toMatchObject({ status: 404, bodyText: "not found" });
-});
-
-function wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const gateway = createFakeAuthGateway({
-    session: {
-      accessToken: "token-2",
-      userId: "user-1",
-      email: "ada@example.com",
-    },
-  });
-  return (
-    <QueryClientProvider client={queryClient}>
-      <LocaleProvider>
-        <AuthProvider gateway={gateway}>{children}</AuthProvider>
-      </LocaleProvider>
-    </QueryClientProvider>
-  );
-}
-
-it("useApi · attaches the current session token", async () => {
-  const { result } = renderHook(() => ({ api: useApi(), auth: useAuth() }), {
-    wrapper,
-  });
-
-  await waitFor(() => expect(result.current.auth.status).toBe("authenticated"));
-
-  await act(async () => {
-    await result.current.api.request("/api/v1/documents");
-  });
-
-  const call = fetchMock.mock.calls.find(([url]) =>
-    String(url).includes("/api/v1/documents"),
-  );
-  expect(call).toBeDefined();
-  const headers = new Headers((call as [unknown, RequestInit])[1].headers);
-  expect(headers.get("Authorization")).toBe("Bearer token-2");
 });

@@ -1,5 +1,5 @@
 import { queryKeys } from "../app/queryKeys";
-import { useApi } from "../services/api";
+import { useApi } from "./useApi";
 import { useApiQuery } from "./useApiQuery";
 
 export type LocaleRow = {
