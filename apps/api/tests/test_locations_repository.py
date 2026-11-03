@@ -9,6 +9,7 @@ from app.features.locations.repository import LocationsRepository
 from app.features.locations.service import LocationsService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
+from app.shared.locale import ResolvedLocale
 from sqlalchemy.exc import IntegrityError
 
 
@@ -91,21 +92,21 @@ def test_hierarchy_lists(db_session) -> None:
     session.commit()
 
     service = LocationsService(LocationsRepository(session))
-    enabled = {"de", "en"}
+    locale = ResolvedLocale(code="de", enabled={"de", "en"})
 
-    states = service.list_states(country_code="DE", locale="de", enabled_locales=enabled).items
+    states = service.list_states(country_code="DE", locale=locale).items
     assert len(states) == 1
     assert states[0].code == "14"
 
-    districts = service.list_districts(state_code="14", locale="de", enabled_locales=enabled).items
+    districts = service.list_districts(state_code="14", locale=locale).items
     assert len(districts) == 1
     assert districts[0].code == "146"
 
-    cities = service.list_cities(district_code="146", locale="de", enabled_locales=enabled).items
+    cities = service.list_cities(district_code="146", locale=locale).items
     assert len(cities) == 1
     assert cities[0].code == "14612"
 
-    localities = service.list_localities(municipality_code="14612", locale="de", enabled_locales=enabled).items
+    localities = service.list_localities(municipality_code="14612", locale=locale).items
     assert len(localities) == 1
     assert localities[0].code == "01001"
 

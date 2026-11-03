@@ -19,7 +19,7 @@ class LocationsController(Controller):
         locations_service: LocationsService,
         locale: ResolvedLocale,
     ) -> LocationListResponse:
-        return locations_service.list_countries(locale=locale.code, enabled_locales=locale.enabled)
+        return locations_service.list_countries(locale=locale)
 
     @get("/states", sync_to_thread=True)
     def list_states(
@@ -28,7 +28,7 @@ class LocationsController(Controller):
         locale: ResolvedLocale,
         country: str = Parameter(query="country"),
     ) -> LocationListResponse:
-        return locations_service.list_states(country_code=country, locale=locale.code, enabled_locales=locale.enabled)
+        return locations_service.list_states(country_code=country, locale=locale)
 
     @get("/districts", sync_to_thread=True)
     def list_districts(
@@ -37,9 +37,7 @@ class LocationsController(Controller):
         locale: ResolvedLocale,
         state_code: str = Parameter(query="state"),
     ) -> LocationListResponse:
-        return locations_service.list_districts(
-            state_code=state_code, locale=locale.code, enabled_locales=locale.enabled
-        )
+        return locations_service.list_districts(state_code=state_code, locale=locale)
 
     @get("/cities", sync_to_thread=True)
     def list_cities(
@@ -48,7 +46,7 @@ class LocationsController(Controller):
         locale: ResolvedLocale,
         district: str = Parameter(query="district"),
     ) -> LocationListResponse:
-        return locations_service.list_cities(district_code=district, locale=locale.code, enabled_locales=locale.enabled)
+        return locations_service.list_cities(district_code=district, locale=locale)
 
     @get("/localities", sync_to_thread=True)
     def list_localities(
@@ -57,6 +55,4 @@ class LocationsController(Controller):
         locale: ResolvedLocale,
         city: str = Parameter(query="city"),
     ) -> LocationListResponse:
-        return locations_service.list_localities(
-            municipality_code=city, locale=locale.code, enabled_locales=locale.enabled
-        )
+        return locations_service.list_localities(municipality_code=city, locale=locale)

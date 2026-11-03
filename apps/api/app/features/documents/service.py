@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.features.documents.document_read import DocumentReadMapper, Locales
+from app.features.documents.document_read import DocumentReadMapper
 from app.features.documents.repository import DocumentRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
@@ -13,6 +13,7 @@ from app.schema.document.read import (
     DocumentListResponse,
 )
 from app.schema.suggestion.payload import NewDocumentPayload
+from app.shared.locale import ResolvedLocale
 from app.url_normalization import normalize_url
 
 
@@ -72,7 +73,7 @@ class DocumentService:
         }
         total = self._repo.count(**scope)
         rows = self._repo.list_page(offset=offset, limit=limit, **scope)
-        locales = Locales(locale, enabled_locales)
+        locales = ResolvedLocale(code=locale, enabled=enabled_locales)
         items = [self._reader.summary(row, locales) for row in rows]
         leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, scope["situation_ids"])
         return DocumentListResponse(
@@ -221,4 +222,4 @@ class DocumentService:
             return None
         path = self._repo.get_jurisdiction_path(jurisdiction_id=doc.jurisdiction_id)
         confidence = self._repo.get_tag_confidence(document_id)
-        return self._reader.detail(doc, path, Locales(locale, enabled_locales), confidence)
+        return self._reader.detail(doc, path, ResolvedLocale(code=locale, enabled=enabled_locales), confidence)
