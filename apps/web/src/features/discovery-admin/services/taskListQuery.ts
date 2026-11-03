@@ -1,4 +1,5 @@
 import {
+  defineListSpec,
   oneOfFilter,
   type ListQuerySpec,
   type ListQueryState,
@@ -23,13 +24,12 @@ const SORT_KEYS = [
 ] as const satisfies readonly TaskSortKey[];
 
 /** Mirrors the API allowlist; values the API would refuse never reach a request or the URL state. */
-export const TASK_LIST_SPEC: ListQuerySpec<TaskSortKey, TaskFilterKey> = {
-  sortKeys: SORT_KEYS,
-  filters: {
-    status: oneOfFilter(TASK_STATUSES),
-    source: oneOfFilter(DISCOVERY_SOURCES),
-    kind: oneOfFilter(TASK_KINDS),
-  },
-  defaultLimit: 20,
-  maxLimit: 100,
-};
+export const TASK_LIST_SPEC: ListQuerySpec<TaskSortKey, TaskFilterKey> =
+  defineListSpec({
+    sortKeys: SORT_KEYS,
+    filters: {
+      status: oneOfFilter(TASK_STATUSES),
+      source: oneOfFilter(DISCOVERY_SOURCES),
+      kind: oneOfFilter(TASK_KINDS),
+    },
+  });

@@ -1,5 +1,6 @@
 export { minIntFilter, oneOfFilter } from "./filters";
 export { toListParams } from "./params";
+export { defineListSpec } from "./spec";
 export {
   withFilter,
   withOffset,

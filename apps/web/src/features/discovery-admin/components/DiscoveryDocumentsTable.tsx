@@ -3,7 +3,7 @@ import { LuFileText } from "react-icons/lu";
 import { toTableQuery } from "../../../hooks/toTableQuery";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { CandidateList } from "../hooks/useCandidateListState";
+import type { CandidateList } from "../types/listControllers";
 import type { DiscoveryCandidateListResponse } from "../types";
 import { candidateColumns } from "./columns/candidateColumns";
 import { candidateHref, DEFAULT_CANDIDATE_SORT } from "./columns/candidateRows";
