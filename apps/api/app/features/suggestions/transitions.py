@@ -18,6 +18,10 @@ class AlreadyDecidedError(ValueError):
     """Raised when transitioning a suggestion that is already approved or rejected (D6)."""
 
 
+class SuggestionNotFoundError(ValueError):
+    """Raised when transitioning a suggestion id that does not exist."""
+
+
 def _actor_id(actor: AppUser | None) -> UUID | None:
     return actor.id if actor else None
 
@@ -51,9 +55,10 @@ class SuggestionTransitions:
         return self._repo.save(suggestion)
 
     def _get_pending(self, suggestion_id: UUID) -> Suggestion:
-        suggestion = self._repo.get(suggestion_id)
+        """Lock the row so two concurrent decisions on the same suggestion cannot both land (C7)."""
+        suggestion = self._repo.get_for_update(suggestion_id)
         if suggestion is None:
-            raise ValueError(f"suggestion {suggestion_id} not found")
+            raise SuggestionNotFoundError(f"suggestion {suggestion_id} not found")
         if suggestion.status != SuggestionStatus.PENDING:
             raise AlreadyDecidedError(f"suggestion {suggestion_id} is already {suggestion.status}")
         return suggestion

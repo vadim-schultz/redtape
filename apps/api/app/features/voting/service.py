@@ -1,13 +1,14 @@
-"""Domain logic for casting and removing a vote."""
+"""Domain logic for casting and removing a vote, and why a threshold-crossing cast did not decide."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from app.config import settings
 from app.features.events.service import EventLogService
-from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.service import PromotionConflictError, SuggestionService
 from app.features.voting.repository import VoteRepository
 from app.features.voting.thresholds import decide_status
 from app.models.suggestion import Suggestion, SuggestionStatus
@@ -15,7 +16,7 @@ from app.models.suggestion_event import EventType
 from app.models.suggestion_vote import SuggestionVote
 from app.schema.suggestion.read import Tally
 
-__all__ = ["NotFoundError", "SelfVoteError", "SuggestionNotVotableError", "VoteService"]
+__all__ = ["CastResult", "NotFoundError", "SelfVoteError", "SuggestionNotVotableError", "VoteService"]
 
 
 class NotFoundError(ValueError):
@@ -30,6 +31,14 @@ class SelfVoteError(ValueError):
     """Raised when the caller is the suggestion's submitter (D2)."""
 
 
+@dataclass(frozen=True, slots=True)
+class CastResult:
+    """Outcome of casting a vote: the stored vote, and why the suggestion was not decided if a threshold was crossed."""
+
+    vote: SuggestionVote
+    promotion_blocked: str | None = None
+
+
 class VoteService:
     """Domain logic for casting and removing a vote; the pending-only and no-self-vote rules live here."""
 
@@ -38,16 +47,18 @@ class VoteService:
         self._suggestions = suggestions
         self._events = events
 
-    def cast(self, *, suggestion_id: UUID, user_id: UUID, value: int) -> SuggestionVote:
+    def cast(self, *, suggestion_id: UUID, user_id: UUID, value: int) -> CastResult:
         suggestion = self._get_suggestion(suggestion_id)
         self._check_pending(suggestion)
         self._check_not_self(suggestion, user_id)
         vote = self._repo.upsert(suggestion_id=suggestion_id, user_id=user_id, value=value)
         self._events.record(suggestion_id, EventType.VOTED, data={"value": value}, actor_user_id=user_id)
-        self._maybe_transition(suggestion_id)
-        return vote
+        blocked = self._maybe_transition(suggestion_id)
+        return CastResult(vote=vote, promotion_blocked=blocked)
 
     def remove(self, *, suggestion_id: UUID, user_id: UUID) -> None:
+        suggestion = self._get_suggestion(suggestion_id)
+        self._check_pending(suggestion)
         self._repo.delete(suggestion_id=suggestion_id, user_id=user_id)
 
     def tally_for(self, suggestion_id: UUID) -> Tally:
@@ -74,9 +85,19 @@ class VoteService:
         if suggestion.submitted_by_user_id == user_id:
             raise SelfVoteError("cannot vote on your own suggestion")
 
-    def _maybe_transition(self, suggestion_id: UUID) -> None:
-        """Only casting can cross a threshold (D-open-seam); `remove` never calls this."""
+    def _maybe_transition(self, suggestion_id: UUID) -> str | None:
+        """
+        Only casting can cross a threshold (D-open-seam); `remove` never calls this.
+
+        A blocked promotion is reported as data, not raised: an exception here would reach
+        `provide_session` and roll back the vote just recorded above (C1).
+        """
         score = self._repo.tally_for(suggestion_id).score
         new_status = decide_status(score, settings.vote_approve_threshold, settings.vote_reject_threshold)
-        if new_status != SuggestionStatus.PENDING:
+        if new_status == SuggestionStatus.PENDING:
+            return None
+        try:
             self._suggestions.transition_to(suggestion_id, new_status, actor=None)
+        except PromotionConflictError as exc:
+            return str(exc)
+        return None
