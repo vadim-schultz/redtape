@@ -2,7 +2,7 @@ import { Heading, Text, VStack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CompletenessFlags } from "../../types";
-import { CompletenessChips } from "../CompletenessChips";
+import { CompletenessChips } from "../../../../components/data-display/CompletenessChips";
 
 export interface CandidateChecklistProps {
   flags: CompletenessFlags;

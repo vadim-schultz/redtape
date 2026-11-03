@@ -1,7 +1,7 @@
 import { Stack, Text } from "@chakra-ui/react";
 
 import SectionCard from "../../../components/data-display/SectionCard";
-import QueryError from "../../../components/feedback/QueryError";
+import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryCandidateEdge } from "../types";
@@ -21,28 +21,27 @@ function PanelBody({ candidateId, status, edges }: DocumentEdgesPanelProps) {
     (e) => e.required_candidate_id === candidateId,
   );
 
-  if (status.isLoading) return <Text>{t("common.loading")}</Text>;
-  if (status.isError) return <QueryError onRetry={status.onRetry} />;
-  if (items.length === 0) {
-    return (
-      <Text fontSize="sm" color="muted">
-        {t("discovery_admin.document.edges.empty")}
-      </Text>
-    );
-  }
   return (
-    <>
-      <DocumentEdgeList
-        title={t("discovery_admin.document.edges.requires")}
-        edges={requires}
-        end="required"
-      />
-      <DocumentEdgeList
-        title={t("discovery_admin.document.edges.required_by")}
-        edges={requiredBy}
-        end="parent"
-      />
-    </>
+    <QueryBoundary status={status}>
+      {items.length === 0 ? (
+        <Text fontSize="sm" color="muted">
+          {t("discovery_admin.document.edges.empty")}
+        </Text>
+      ) : (
+        <>
+          <DocumentEdgeList
+            title={t("discovery_admin.document.edges.requires")}
+            edges={requires}
+            end="required"
+          />
+          <DocumentEdgeList
+            title={t("discovery_admin.document.edges.required_by")}
+            edges={requiredBy}
+            end="parent"
+          />
+        </>
+      )}
+    </QueryBoundary>
   );
 }
 

@@ -256,7 +256,7 @@ it("column filter applies and shows a removable chip", async () => {
   await waitFor(() =>
     expect(lastParams(urls).get("filter[status]")).toBe("staged"),
   );
-  expect(screen.getByText("Document status: staged")).toBeVisible();
+  expect(screen.getByText("Document status: Staged")).toBeVisible();
 
   await user.click(
     screen.getByRole("button", { name: "Remove filter Document status" }),

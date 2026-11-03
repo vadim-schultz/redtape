@@ -68,7 +68,7 @@ it("catalogue, mentions, and nested admin lists use the shared table contract (c
     "/admin/discovery/pipeline/cat-1",
   );
   expect(row.getByText("Example")).toBeInTheDocument();
-  expect(row.getByText("pvog")).toBeInTheDocument();
+  expect(row.getByText("Portalverbund")).toBeInTheDocument();
   expect(row.getByText("T3")).toBeInTheDocument();
 });
 

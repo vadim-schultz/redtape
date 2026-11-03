@@ -5,7 +5,7 @@ import type {
 import type { LocaleContextValue } from "../../../../contexts/LocaleContext";
 import type { CandidateFilterKey } from "../../types";
 import { CANDIDATE_STATUSES, MENTION_ROLES } from "../../types/listValues";
-import { plainOptions } from "./filterOptions";
+import { enumOptions } from "./filterOptions";
 
 const NAMESPACE = "discovery_admin.documents";
 const MINIMUMS = [1, 2, 5, 10];
@@ -57,7 +57,7 @@ export function candidateFilters(t: Translate) {
     status: capability({
       key: "status",
       label: text("filter_status"),
-      options: plainOptions(CANDIDATE_STATUSES),
+      options: enumOptions(t, "candidate_status", CANDIDATE_STATUSES),
     }),
     readiness: capability({
       key: "complete",

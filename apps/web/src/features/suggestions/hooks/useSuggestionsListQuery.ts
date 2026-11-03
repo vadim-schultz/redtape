@@ -25,7 +25,7 @@ export function useSuggestionsListQuery({
   const { locale } = useLocale();
 
   return useApiQuery<SuggestionListResponse>(
-    queryKeys.suggestions.list(status, kind, jurisdictionId, locale),
+    queryKeys.suggestions.list({ status, kind, jurisdictionId }, locale),
     () =>
       fetchSuggestions({
         locale,

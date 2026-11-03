@@ -1,6 +1,6 @@
 import { Stack, Text } from "@chakra-ui/react";
 
-import QueryError from "../../../components/feedback/QueryError";
+import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CandidateEmitPreview } from "../types";
@@ -15,13 +15,13 @@ export interface DocumentEmitPanelProps {
 }
 
 function PanelBody({ status, preview, suggestionId }: DocumentEmitPanelProps) {
-  const { t } = useLocale();
-
   if (suggestionId) return <DocumentEmittedState suggestionId={suggestionId} />;
-  if (status.isLoading) return <Text>{t("common.loading")}</Text>;
-  if (status.isError) return <QueryError onRetry={status.onRetry} />;
-  if (!preview) return null;
-  return <DocumentEmitPreview preview={preview} />;
+
+  return (
+    <QueryBoundary status={status}>
+      {preview ? <DocumentEmitPreview preview={preview} /> : null}
+    </QueryBoundary>
+  );
 }
 
 /** Read-only emit state of a candidate. Emitting stays a command-line operator action, so there is no button. */

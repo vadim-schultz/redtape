@@ -27,7 +27,7 @@ export function sourceGroup(
     titleKey: "group_sources",
     headerKeys: ["col_source", "col_count"],
     emptyKey: "no_sources",
-    rows: countRows(coverage.by_source as Record<string, number>),
+    rows: countRows(coverage.by_source),
   });
 }
 
