@@ -1,7 +1,7 @@
 import { Badge, Button, HStack, Stack, Text } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { CatalogueList } from "../hooks/useCatalogueListState";
+import type { CatalogueList } from "../types/listControllers";
 import type {
   CatalogueFilterKey,
   CatalogueSummaryChips as Summary,

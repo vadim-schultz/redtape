@@ -1,4 +1,5 @@
 import {
+  defineListSpec,
   minIntFilter,
   oneOfFilter,
   type ListQuerySpec,
@@ -31,7 +32,7 @@ const COMPLETE_CHOICES = ["yes", "no"] as const;
 export const CANDIDATE_LIST_SPEC: ListQuerySpec<
   CandidateSortKey,
   CandidateFilterKey
-> = {
+> = defineListSpec({
   sortKeys: SORT_KEYS,
   filters: {
     status: oneOfFilter(CANDIDATE_STATUSES),
@@ -40,6 +41,4 @@ export const CANDIDATE_LIST_SPEC: ListQuerySpec<
     min_mentions: minIntFilter(0),
     complete: oneOfFilter(COMPLETE_CHOICES),
   },
-  defaultLimit: 20,
-  maxLimit: 100,
-};
+});

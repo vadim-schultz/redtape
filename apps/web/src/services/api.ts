@@ -1,6 +1,3 @@
-import { useMemo } from "react";
-import { useAuth } from "../features/auth/contexts/AuthContext";
-import { useLocale } from "../contexts/LocaleContext";
 import { buildApiUrl } from "./apiOrigin";
 
 export type ApiError = {
@@ -77,32 +74,4 @@ export async function apiRequest<T>(
   }
 
   return (await res.json()) as T;
-}
-
-/**
- * Convenience hook: reuses the locale from LocaleProvider.
- */
-export function useApi() {
-  const { locale } = useLocale();
-  const { session } = useAuth();
-
-  type ApiRequestInit = Omit<
-    Parameters<typeof apiRequest>[1],
-    "locale" | "accessToken"
-  >;
-
-  return useMemo(() => {
-    return {
-      request: async <T>(
-        endpoint: string,
-        init?: ApiRequestInit,
-      ): Promise<T> => {
-        return apiRequest<T>(endpoint, {
-          locale,
-          accessToken: session?.accessToken,
-          ...(init ?? {}),
-        });
-      },
-    };
-  }, [locale, session?.accessToken]);
 }

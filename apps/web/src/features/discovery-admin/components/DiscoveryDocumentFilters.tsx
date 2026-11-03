@@ -2,7 +2,7 @@ import { Button, HStack } from "@chakra-ui/react";
 
 import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { CandidateList } from "../hooks/useCandidateListState";
+import type { CandidateList } from "../types/listControllers";
 import { DISCOVERY_SOURCES } from "../types/listValues";
 import { plainOptions } from "./columns/filterOptions";
 import FilterSelect from "./FilterSelect";

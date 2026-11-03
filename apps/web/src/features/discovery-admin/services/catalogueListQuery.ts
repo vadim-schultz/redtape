@@ -1,4 +1,5 @@
 import {
+  defineListSpec,
   oneOfFilter,
   type ListQuerySpec,
   type ListQueryState,
@@ -23,12 +24,10 @@ const SORT_KEYS = [
 export const CATALOGUE_LIST_SPEC: ListQuerySpec<
   CatalogueSortKey,
   CatalogueFilterKey
-> = {
+> = defineListSpec({
   sortKeys: SORT_KEYS,
   filters: {
     source: oneOfFilter(DISCOVERY_SOURCES),
     stage: oneOfFilter(PIPELINE_STAGES),
   },
-  defaultLimit: 20,
-  maxLimit: 100,
-};
+});
