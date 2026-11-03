@@ -78,6 +78,8 @@ function artifact(
     final_url: null,
     fetched_at: "2026-10-26T12:00:00Z",
     created_at: "2026-10-26T12:00:00Z",
+    storage_key: "artifacts/cat-1/art-1.html",
+    sha256: "9b2c",
     url: "https://store.example/page.html?sig=abc",
     ...overrides,
   };

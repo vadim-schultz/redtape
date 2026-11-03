@@ -12,6 +12,9 @@ export type DiscoveryArtifact = {
   final_url: string | null;
   fetched_at: string;
   created_at: string;
+  /** Where the bytes are stored; an internal key, not a link. */
+  storage_key: string;
+  sha256: string;
   url: string | null;
 };
 
