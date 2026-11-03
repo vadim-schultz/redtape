@@ -43,8 +43,7 @@ class TaskQueue:
             target_url=service.portal_url,
         )
         task = enqueue_task_if_needed(self._repo, target)
-        if task is not None:
-            advance_stage(self._repo, service)
+        advance_stage(self._repo, service)
         return task
 
     def enqueue(self, target: TaskTarget, *, priority: int = 100) -> EnqueueOutcome:

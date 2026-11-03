@@ -33,6 +33,21 @@ class PipelineStageInput:
     all_emit_claims_resolvable: bool
 
 
+def stage_input(
+    *,
+    task_count: int,
+    has_fetch_log: bool,
+    claims: list[tuple[DiscoveryClaimKind, dict[str, object]]],
+) -> PipelineStageInput:
+    """Build the stage input from a task count, a fetch-log flag and the claims' kinds and payloads."""
+    return PipelineStageInput(
+        task_count=task_count,
+        has_fetch_log=has_fetch_log,
+        claim_count=len(claims),
+        all_emit_claims_resolvable=all_emit_claims_resolvable(claims),
+    )
+
+
 def derive_pipeline_stage(data: PipelineStageInput) -> PipelineStage:
     """Return ``T0``–``T4`` using ordered rules from highest to lowest stage."""
     rules: tuple[tuple[bool, PipelineStage], ...] = (
