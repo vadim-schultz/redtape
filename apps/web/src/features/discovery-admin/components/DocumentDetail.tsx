@@ -7,19 +7,13 @@ import type { DiscoveryCandidateDetailResponse } from "../types";
 import DocumentHeader from "./DocumentHeader";
 import DocumentMentionsTable from "./DocumentMentionsTable";
 
-/** Candidate detail body: header, mentions and the emit and evidence slots. */
+/** Candidate detail body: header and mentions, then the sections the page passes in. */
 export default function DocumentDetail({
   data,
-  tags,
-  edges,
-  emit,
-  evidence,
+  children,
 }: {
   data: DiscoveryCandidateDetailResponse;
-  tags: ReactNode;
-  edges: ReactNode;
-  emit: ReactNode;
-  evidence: ReactNode;
+  children: ReactNode;
 }) {
   const { t } = useLocale();
 
@@ -32,10 +26,7 @@ export default function DocumentDetail({
       <SectionCard title={t("discovery_admin.document.mentions_title")}>
         <DocumentMentionsTable mentions={data.mentions} />
       </SectionCard>
-      {tags}
-      {edges}
-      {evidence}
-      {emit}
+      {children}
     </Stack>
   );
 }
