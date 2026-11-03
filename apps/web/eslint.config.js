@@ -105,7 +105,7 @@ export default tseslint.config(
   {
     name: "architecture-baseline",
     files: [
-      "src/services/api.ts", // W1
+      "src/hooks/useApi.ts", // W1 moved this out of services/api.ts; still imports features/auth/contexts directly
       "src/components/layout/menu/ProfileMenuRow.tsx", // unassigned
       "src/components/layout/menu/DocumentsMenuRow.tsx", // unassigned
       "src/features/candidates/components/CandidateDetailView/CandidateScreenshot.tsx", // W2
