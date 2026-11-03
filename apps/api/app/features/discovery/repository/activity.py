@@ -81,3 +81,13 @@ class ActivityRepository(SessionRepository):
             .order_by(DiscoveryFetchLog.fetched_at.asc(), DiscoveryFetchLog.id.asc())
         )
         return list(self._session.scalars(stmt).all())
+
+    def catalogue_has_fetch_log(self, catalogue_id: UUID) -> bool:
+        """Return whether any task of one catalogue row has a fetch log."""
+        stmt = select(
+            select(DiscoveryFetchLog.id)
+            .join(DiscoveryTask, DiscoveryFetchLog.discovery_task_id == DiscoveryTask.id)
+            .where(DiscoveryTask.catalogue_service_id == catalogue_id)
+            .exists()
+        )
+        return bool(self._session.scalar(stmt))

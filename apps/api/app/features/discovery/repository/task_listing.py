@@ -87,3 +87,8 @@ class TaskListingRepository(SessionRepository):
             .order_by(DiscoveryTask.created_at.asc(), DiscoveryTask.id.asc())
         )
         return list(self._session.execute(stmt).tuples().all())
+
+    def catalogue_has_tasks(self, catalogue_id: UUID) -> bool:
+        """Return whether one catalogue row has at least one task."""
+        stmt = select(select(DiscoveryTask.id).where(DiscoveryTask.catalogue_service_id == catalogue_id).exists())
+        return bool(self._session.scalar(stmt))

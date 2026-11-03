@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from app.features.discovery.pipeline import (
-    PipelineStageInput,
-    all_emit_claims_resolvable,
-    derive_pipeline_stage,
-)
+from app.features.discovery.pipeline import derive_pipeline_stage, stage_input
 from app.models.discovery import (
     DiscoveryClaim,
     DiscoveryEntity,
@@ -65,12 +61,10 @@ def event_dict(row: DiscoveryEvent) -> dict[str, object]:
 
 def stage_of(task_count: int, fetch_logs: list[DiscoveryFetchLog], claims: list[DiscoveryClaim]) -> str:
     """Derive the stage for the admin read without touching the stored row."""
-    resolvable = all_emit_claims_resolvable([(c.kind, c.payload) for c in claims])
     return derive_pipeline_stage(
-        PipelineStageInput(
+        stage_input(
             task_count=task_count,
             has_fetch_log=len(fetch_logs) > 0,
-            claim_count=len(claims),
-            all_emit_claims_resolvable=resolvable,
+            claims=[(c.kind, c.payload) for c in claims],
         )
     ).value
