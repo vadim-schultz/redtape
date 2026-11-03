@@ -13,6 +13,7 @@ import {
 import { translateOrRaw } from "../../utils/translateOrRaw";
 import TaskStatusCell from "./cells/TaskStatusCell";
 import { headerLabels, type ColumnContext } from "./columnContext";
+import { filterCapability } from "./filterCapability";
 import { enumOptions, plainOptions } from "./filterOptions";
 
 /** Width at which the target URL is clipped. */
@@ -30,15 +31,6 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
   const { locale, t } = context;
   const header = headerLabels(context, "discovery_admin.tasks");
   const none = t("discovery_admin.tasks.retry_none");
-  const filterOf = (
-    key: TaskFilterKey,
-    options: ReturnType<typeof plainOptions>,
-  ) => ({
-    key,
-    operators: ["eq"] as const,
-    label: t(`discovery_admin.tasks.filter_${key}`),
-    options,
-  });
   return [
     {
       key: "target",
@@ -55,21 +47,33 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
       key: "kind",
       header: header("kind"),
       canSort: "kind",
-      filter: filterOf("kind", plainOptions(TASK_KINDS)),
+      filter: filterCapability({
+        key: "kind",
+        label: t("discovery_admin.tasks.filter_kind"),
+        options: plainOptions(TASK_KINDS),
+      }),
       render: (task) => task.kind,
     },
     {
       key: "status",
       header: header("status"),
       canSort: "status",
-      filter: filterOf("status", enumOptions(t, "task_status", TASK_STATUSES)),
+      filter: filterCapability({
+        key: "status",
+        label: t("discovery_admin.tasks.filter_status"),
+        options: enumOptions(t, "task_status", TASK_STATUSES),
+      }),
       render: (task) => <TaskStatusCell task={task} />,
     },
     {
       key: "source",
       header: header("source"),
       canSort: "source",
-      filter: filterOf("source", enumOptions(t, "source", DISCOVERY_SOURCES)),
+      filter: filterCapability({
+        key: "source",
+        label: t("discovery_admin.tasks.filter_source"),
+        options: enumOptions(t, "source", DISCOVERY_SOURCES),
+      }),
       render: (task) =>
         translateOrRaw(
           t,

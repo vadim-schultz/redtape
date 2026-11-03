@@ -6,15 +6,13 @@ import type { CataloguePipelineResponse } from "../types";
 import { localizedTitle } from "../utils/localizedTitle";
 import PipelineTimeline from "./PipelineTimeline";
 
-/** Pipeline drill-down body: title, timeline, counts, and preview and artifacts slots. */
+/** Pipeline drill-down body: title, timeline and counts, then the sections the page passes in. */
 export default function PipelineDetail({
   data,
-  preview,
-  artifacts,
+  children,
 }: {
   data: CataloguePipelineResponse;
-  preview: ReactNode;
-  artifacts: ReactNode;
+  children: ReactNode;
 }) {
   const { locale, t } = useLocale();
   const { service, derived_stage, tasks, events } = data;
@@ -29,8 +27,7 @@ export default function PipelineDetail({
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.events_count", { count: events.length })}
       </Text>
-      {artifacts}
-      {preview}
+      {children}
     </Stack>
   );
 }
