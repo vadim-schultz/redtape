@@ -1,3 +1,5 @@
+"""Clean up OpenPLZ-derived jurisdiction and locality rows, or wipe the location tables entirely."""
+
 from __future__ import annotations
 
 import argparse
@@ -41,9 +43,7 @@ def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.
 
 
 def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
-    """
-    Return (jurisdiction_ids, locality_ids) that appear to be OpenPLZ-derived.
-    """
+    """Return the jurisdiction and locality ids whose stored id equals the deterministic OpenPLZ id."""
     openplz_jurisdiction_ids: list[uuid.UUID] = []
     jurisdiction_rows = session.execute(select(Jurisdiction.id, Jurisdiction.kind, Jurisdiction.code)).all()
     for jid, kind, code in jurisdiction_rows:
@@ -73,6 +73,10 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
 
 
 def cleanup_openplz_data(*, dry_run: bool) -> None:
+    """Delete the OpenPLZ-derived localities, municipalities, regions and countries, leaf first.
+
+    Rows whose id is not the deterministic OpenPLZ id are left alone. A dry run prints the counts and rolls back.
+    """
     session = SessionLocal()
     try:
         now = datetime.now(UTC)
@@ -224,6 +228,7 @@ def _run_wipe_all(*, dry_run: bool, include_suggestions: bool) -> None:
 
 
 def main() -> None:
+    """Parse the command-line flags and run either the wipe-all or the derived-row cleanup."""
     parser = argparse.ArgumentParser(description="Cleanup OpenPLZ-derived jurisdiction + locality data.")
     parser.add_argument(
         "--wipe-all",

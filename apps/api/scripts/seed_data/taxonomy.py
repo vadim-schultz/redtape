@@ -12,11 +12,14 @@ TAXONOMY_NAMESPACE = uuid.UUID("44444444-4444-4444-4444-444444444400")
 
 
 def term_id(code: str) -> uuid.UUID:
+    """Derive the stable UUID of a taxonomy term from its code, so reseeding updates the same row."""
     return uuid.uuid5(TAXONOMY_NAMESPACE, code)
 
 
 @dataclass(frozen=True)
 class Term:
+    """A taxonomy term (domain, situation group or life situation) with its localized texts and display order."""
+
     code: str
     name_i18n: dict[str, str]
     description_i18n: dict[str, str]
@@ -25,6 +28,7 @@ class Term:
 
     @property
     def id(self) -> uuid.UUID:
+        """Return the deterministic UUID of this term, derived from its code."""
         return term_id(self.code)
 
 

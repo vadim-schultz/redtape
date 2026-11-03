@@ -28,6 +28,7 @@ def _mentions(session: Session) -> list[tuple[uuid.UUID, uuid.UUID]]:
 
 
 def main() -> None:
+    """Print the consensus ceiling over the production discovery candidates."""
     with SessionLocal() as session:
         ceiling = consensus_ceiling(_candidate_ids(session), _mentions(session))
     print(

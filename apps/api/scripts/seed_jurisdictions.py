@@ -88,6 +88,7 @@ def seed_jurisdictions(session: Session) -> None:
 
 
 def main() -> None:
+    """Seed the DE, SN and DD jurisdictions in one transaction and print a confirmation."""
     with SessionLocal() as session:
         seed_jurisdictions(session)
         session.commit()

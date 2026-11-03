@@ -1,3 +1,5 @@
+"""Seed the supported locales and the UI translation catalogue from seed_data/translations."""
+
 from __future__ import annotations
 
 import json
@@ -32,6 +34,7 @@ def _load_nested_json(path: Path) -> dict[str, object]:
 
 
 def seed_supported_locales(session: Session) -> None:
+    """Upsert the German and English locale rows, enabling them and refreshing their names on rerun."""
     rows: list[dict[str, object]] = [
         {
             "code": "de",
@@ -66,6 +69,10 @@ def seed_supported_locales(session: Session) -> None:
 
 
 def seed_ui_translations(session: Session) -> None:
+    """Upsert every translation file, one locale per file named by its stem, flattening nested keys with dots.
+
+    Rerunning overwrites existing values in place, so the catalogue always matches the JSON files.
+    """
     root = Path(__file__).resolve().parent / "seed_data" / "translations"
     for path in sorted(root.glob("*.json")):
         locale = path.stem
@@ -89,6 +96,7 @@ def seed_ui_translations(session: Session) -> None:
 
 
 def main() -> None:
+    """Run both i18n seeds in one transaction and commit them together."""
     with SessionLocal() as session:
         seed_supported_locales(session)
         seed_ui_translations(session)

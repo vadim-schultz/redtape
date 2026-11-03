@@ -97,6 +97,11 @@ def _delete_leaked_jurisdictions(session: Session) -> None:
 
 
 def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None] = _default_reimport) -> bool:
+    """Repair the leaked Saxony Dresden rows and report whether anything was changed.
+
+    Returns False without writing when the fake Dresden row is already gone. If the reimport fails, the fake row's
+    code is restored and the error is re-raised so that the next boot retries the repair.
+    """
     if not _needs_repair(session):
         return False
 
@@ -117,6 +122,7 @@ def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None
 
 
 def main() -> None:
+    """Run the Saxony repair against the configured database and print the outcome."""
     with SessionLocal() as session:
         repaired = repair_saxony_jurisdictions(session)
     print(f"fix_saxony_jurisdiction_leak: {'repaired' if repaired else 'no-op, nothing to repair'}")
