@@ -1,3 +1,5 @@
+"""Application settings loaded from the environment and `.env`."""
+
 from __future__ import annotations
 
 from pydantic import Field, model_validator
@@ -93,6 +95,7 @@ class Settings(BaseSettings):
 
     @property
     def auth_enabled(self) -> bool:
+        """Return whether JWT auth is on: both the Supabase JWKS URL and issuer are set."""
         return self.supabase_jwks_url is not None and self.supabase_jwt_issuer is not None
 
     @property
@@ -109,11 +112,13 @@ class Settings(BaseSettings):
 
     @property
     def discovery_admin_email_set(self) -> frozenset[str]:
+        """Return the admin emails from the comma-separated setting, lowercased and without blanks."""
         parts = [segment.strip().lower() for segment in self.discovery_admin_emails.split(",")]
         return frozenset(email for email in parts if email)
 
     @property
     def discovery_enabled(self) -> bool:
+        """Return whether discovery is on: an admin email is configured or machine clients opted in."""
         return bool(self.discovery_admin_email_set) or self.discovery_machine_opt_in
 
     @model_validator(mode="after")

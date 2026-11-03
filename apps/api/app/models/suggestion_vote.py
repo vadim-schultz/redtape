@@ -1,3 +1,5 @@
+"""ORM model for suggestion votes, one per user."""
+
 from __future__ import annotations
 
 import uuid

@@ -1,3 +1,5 @@
+"""ORM model for the unified jurisdiction tree and its kind enum."""
+
 from __future__ import annotations
 
 import enum

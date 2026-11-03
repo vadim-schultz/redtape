@@ -19,6 +19,7 @@ def _shared_s3_store(config: S3Config) -> S3ObjectStore:
 
 
 def s3_config_from_settings(app_settings: Settings) -> S3Config:
+    """Map the object store settings to an S3Config; empty values become empty strings and region defaults to auto."""
     return S3Config(
         endpoint_url=app_settings.object_store_endpoint_url,
         region=app_settings.object_store_region or "auto",

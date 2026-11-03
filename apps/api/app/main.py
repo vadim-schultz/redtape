@@ -1,3 +1,5 @@
+"""Litestar application factory, the module-level `app`, and the uvicorn entry point."""
+
 from __future__ import annotations
 
 from litestar import Litestar
@@ -25,6 +27,7 @@ from app.shared.object_store.http import object_store_exception_handlers
 
 
 def create_app() -> Litestar:
+    """Build the application with every feature router, the locale middleware and the lifespan hook."""
     return Litestar(
         route_handlers=[
             health,
@@ -53,6 +56,7 @@ app = create_app()
 
 
 def run() -> None:
+    """Serve the API with uvicorn on port 8000 without auto-reload; the `redtape-api` script calls this."""
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

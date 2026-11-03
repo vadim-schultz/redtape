@@ -1,3 +1,5 @@
+"""ORM model for the append-only suggestion event log."""
+
 from __future__ import annotations
 
 import enum

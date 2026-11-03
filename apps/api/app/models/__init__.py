@@ -1,3 +1,5 @@
+"""Re-export the ORM models so callers import them from one place."""
+
 from __future__ import annotations
 
 from app.models.api_key import ApiKey
