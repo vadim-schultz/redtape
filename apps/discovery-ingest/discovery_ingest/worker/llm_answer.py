@@ -6,12 +6,12 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from discovery_ingest.extract.llm.client import LlmResult
+from discovery_ingest.extract.llm.client import ChatMessage, LlmResult
 from discovery_ingest.extract.llm.meter import Denied, LedgerUnavailable
 from discovery_ingest.extract.llm.schema import PageExtraction
 
-Messages = list[dict[str, str]]
-REPAIR_HINT = {
+Messages = list[ChatMessage]
+REPAIR_HINT: ChatMessage = {
     "role": "user",
     "content": "Your previous answer was not valid JSON for the schema. Answer again with only the JSON object.",
 }

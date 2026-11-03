@@ -13,10 +13,9 @@ from discovery_ingest.pvog.client import (
     PvogClientError,
     PvogMappingError,
     _build_v7_url,
-    _parse_v7_page,
-    _personal_matter_codes_from_facades,
     map_pvog_record,
 )
+from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "pvog"
 FEDERAL_ARS = "000000000000"
@@ -61,31 +60,31 @@ def test_personal_matter_codes_from_facades_leaf_only_sorted() -> None:
     """Facades tree · leaf codes only, sorted."""
     payload = _load_fixture("facades_personal_matters.json")
 
-    codes = _personal_matter_codes_from_facades(payload)
+    codes = PvogBootstrap.model_validate(payload).leaf_codes()
 
     assert codes == ["LEAF_A", "LEAF_B", "LEAF_C"]
 
 
 def test_personal_matter_codes_from_facades_empty_tree() -> None:
     """Facades tree · empty or missing facades returns no codes."""
-    assert _personal_matter_codes_from_facades({}) == []
-    assert _personal_matter_codes_from_facades({"facades": {}}) == []
+    assert PvogBootstrap.model_validate({}).leaf_codes() == []
+    assert PvogBootstrap.model_validate({"facades": {}}).leaf_codes() == []
 
 
 def test_v7_page_extracts_service_descriptions_content() -> None:
     """v7 page parser · reads serviceDescriptions.content."""
     payload = _load_fixture("v7_page_leaf_a.json")
 
-    records, is_last = _parse_v7_page(payload)
+    records, is_last = PvogPage.model_validate(payload).records_and_last
 
     assert len(records) == 1
-    assert records[0]["id"] == "SHARED-LB-001"
+    assert records[0].raw["id"] == "SHARED-LB-001"
     assert is_last is True
 
 
 def test_v7_page_missing_service_descriptions_returns_empty() -> None:
     """v7 page parser · missing wrapper yields no records."""
-    records, is_last = _parse_v7_page({"content": [{"id": "legacy"}]})
+    records, is_last = PvogPage.model_validate({"content": [{"id": "legacy"}]}).records_and_last
 
     assert records == []
     assert is_last is True
@@ -103,7 +102,7 @@ def test_pvog_client_iterates_personal_matter_codes_with_dedupe() -> None:
 
     records = list(client.iter_records(ars=FEDERAL_ARS))
 
-    ids = [row["id"] for _code, row in records]
+    ids = [record.raw["id"] for _code, record in records]
     assert ids == ["SHARED-LB-001", "UNIQUE-LB-002"]
 
 
@@ -119,7 +118,7 @@ def test_pvog_client_stops_at_max_pages_budget() -> None:
     records = list(client.iter_records(ars=FEDERAL_ARS, max_pages=2))
 
     assert len(records) == 1
-    assert records[0][1]["id"] == "PAGE-ROW-001"
+    assert records[0][1].raw["id"] == "PAGE-ROW-001"
 
 
 def test_pvog_client_paginates_until_service_descriptions_last() -> None:
@@ -148,13 +147,13 @@ def test_pvog_client_paginates_until_service_descriptions_last() -> None:
 
     records = list(client.iter_records(ars=FEDERAL_ARS))
 
-    assert [row["id"] for _code, row in records] == ["PAGE-ROW-001", "PAGE-ROW-002"]
+    assert [record.raw["id"] for _code, record in records] == ["PAGE-ROW-001", "PAGE-ROW-002"]
 
 
 def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
     """map_pvog_record · LeiKa id and portal URI from live v7 row."""
     row = _load_fixture("live_shape_row.json")
-    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
+    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert item.source == "pvog"
     assert item.external_id == "pvog:leika:99001040001000"
@@ -167,7 +166,7 @@ def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
 def test_map_pvog_record_rejects_row_without_id_and_leika() -> None:
     """map_pvog_record · rejects row without lb id and LeiKa key."""
     with pytest.raises(PvogMappingError, match="external id"):
-        map_pvog_record({"name": "orphan"}, jurisdiction_id=FEDERAL_JURISDICTION)
+        map_pvog_record(PvogRecord.model_validate({"name": "orphan"}), jurisdiction_id=FEDERAL_JURISDICTION)
 
 
 def test_pvog_client_fetches_full_personal_matter_vocabulary() -> None:
@@ -184,7 +183,9 @@ def test_map_pvog_record_stashes_personal_matter_code_into_raw_payload() -> None
     """map_pvog_record · stashes the given Lebenslage code into raw_payload under a reserved key."""
     row = _load_fixture("live_shape_row.json")
 
-    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code="1040300")
+    item = map_pvog_record(
+        PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code="1040300"
+    )
 
     assert item.raw_payload["_personal_matter_code"] == "1040300"
     assert row.get("_personal_matter_code") is None
@@ -194,7 +195,7 @@ def test_map_pvog_record_leaves_raw_payload_unchanged_without_a_personal_matter_
     """map_pvog_record · leaves raw_payload unchanged when no code is given."""
     row = _load_fixture("live_shape_row.json")
 
-    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
+    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert "_personal_matter_code" not in item.raw_payload
 
@@ -202,7 +203,7 @@ def test_map_pvog_record_leaves_raw_payload_unchanged_without_a_personal_matter_
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:
     """PvogClient · maps v7 CLI fixture row to batch upsert DTO."""
     row = _load_fixture("v7_page_cli_single.json")["serviceDescriptions"]["content"][0]
-    item = map_pvog_record(row, jurisdiction_id=FEDERAL_JURISDICTION)
+    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert item.source == "pvog"
     assert item.external_id == "pvog:leika:99001040001000"

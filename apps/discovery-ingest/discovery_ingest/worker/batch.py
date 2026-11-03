@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
-from discovery_ingest.schemas import ClaimedTask
+from discovery_ingest.schemas import ClaimedTask, DiscoveryTaskKind
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.release import release_tasks
@@ -31,7 +31,7 @@ class DrainContext:
     client: DiscoveryIngestClient
     fetcher: PoliteUrlFetcher
     policy: DrainPolicy
-    handlers: Mapping[str, TaskHandler]
+    handlers: Mapping[DiscoveryTaskKind, TaskHandler]
 
 
 @dataclass(frozen=True, slots=True)
