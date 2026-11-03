@@ -73,5 +73,8 @@ export async function apiRequest<T>(
     });
   }
 
+  // The one boundary cast: the body is not checked at runtime. Each wire type
+  // is guarded by the contract test against the API's OpenAPI snapshot
+  // (apps/web/src/test/contract), not by a parser here.
   return (await res.json()) as T;
 }

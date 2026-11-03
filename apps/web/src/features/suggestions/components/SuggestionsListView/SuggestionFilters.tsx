@@ -1,19 +1,13 @@
 import { HStack } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
+import { useSuggestionFilters } from "../../hooks/useSuggestionFilters";
 import {
-  useSuggestionFilters,
+  SUGGESTION_STATUS_FILTERS,
   type SuggestionStatusFilter,
-} from "../../hooks/useSuggestionFilters";
+} from "../../types";
 
 import StatusFilterChip from "./StatusFilterChip";
-
-const STATUSES: SuggestionStatusFilter[] = [
-  "pending",
-  "all",
-  "approved",
-  "rejected",
-];
 
 function labelKey(status: SuggestionStatusFilter): string {
   return status === "all" ? "filter_all" : `status_${status}`;
@@ -25,7 +19,7 @@ export default function SuggestionFilters() {
 
   return (
     <HStack role="group" aria-label={t("suggestions.list_title")} gap={2}>
-      {STATUSES.map((status) => (
+      {SUGGESTION_STATUS_FILTERS.map((status) => (
         <StatusFilterChip
           key={status}
           label={t(`suggestions.${labelKey(status)}`)}

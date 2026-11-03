@@ -4,8 +4,7 @@ import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { fetchSuggestions } from "../services/suggestionsApi";
-import type { SuggestionListResponse } from "../types";
-import type { SuggestionStatusFilter } from "./useSuggestionFilters";
+import type { SuggestionListResponse, SuggestionStatusFilter } from "../types";
 
 export interface SuggestionsListFilters {
   status: SuggestionStatusFilter;

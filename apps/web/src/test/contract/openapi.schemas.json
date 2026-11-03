@@ -1,0 +1,4332 @@
+{
+  "AdminArtifactListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AdminArtifactRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "AdminArtifactListResponse",
+    "type": "object"
+  },
+  "AdminArtifactRead": {
+    "properties": {
+      "byte_size": {
+        "type": "integer"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "content_type": {
+        "type": "string"
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "discovery_task_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "final_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryArtifactKind"
+      },
+      "sha256": {
+        "type": "string"
+      },
+      "source_url": {
+        "type": "string"
+      },
+      "storage_key": {
+        "type": "string"
+      },
+      "url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "byte_size",
+      "catalogue_service_id",
+      "content_type",
+      "created_at",
+      "fetched_at",
+      "id",
+      "kind",
+      "sha256",
+      "source_url",
+      "storage_key"
+    ],
+    "title": "AdminArtifactRead",
+    "type": "object"
+  },
+  "AdminBudgetListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/BudgetRead"
+        },
+        "type": "array"
+      },
+      "stored_bytes": {
+        "type": "integer"
+      },
+      "stored_bytes_cap": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "stored_bytes",
+      "stored_bytes_cap"
+    ],
+    "title": "AdminBudgetListResponse",
+    "type": "object"
+  },
+  "ArtifactCoverageRead": {
+    "properties": {
+      "by_kind": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/ArtifactTotalsRead"
+        },
+        "type": "object"
+      },
+      "bytes_cap": {
+        "type": "integer"
+      },
+      "total_bytes": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "by_kind",
+      "bytes_cap",
+      "total_bytes"
+    ],
+    "title": "ArtifactCoverageRead",
+    "type": "object"
+  },
+  "ArtifactListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ArtifactRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "ArtifactListResponse",
+    "type": "object"
+  },
+  "ArtifactRead": {
+    "properties": {
+      "byte_size": {
+        "type": "integer"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "content_type": {
+        "type": "string"
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "discovery_task_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "final_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryArtifactKind"
+      },
+      "sha256": {
+        "type": "string"
+      },
+      "source_url": {
+        "type": "string"
+      },
+      "storage_key": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "byte_size",
+      "catalogue_service_id",
+      "content_type",
+      "created_at",
+      "fetched_at",
+      "id",
+      "kind",
+      "sha256",
+      "source_url",
+      "storage_key"
+    ],
+    "title": "ArtifactRead",
+    "type": "object"
+  },
+  "ArtifactStatusResponse": {
+    "properties": {
+      "bytes_cap": {
+        "type": "integer"
+      },
+      "bytes_used": {
+        "type": "integer"
+      },
+      "storage_enabled": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "bytes_cap",
+      "bytes_used",
+      "storage_enabled"
+    ],
+    "title": "ArtifactStatusResponse",
+    "type": "object"
+  },
+  "ArtifactSummaryRead": {
+    "properties": {
+      "fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryArtifactKind"
+      }
+    },
+    "required": [
+      "fetched_at",
+      "id",
+      "kind"
+    ],
+    "title": "ArtifactSummaryRead",
+    "type": "object"
+  },
+  "ArtifactTotalsRead": {
+    "properties": {
+      "bytes": {
+        "type": "integer"
+      },
+      "count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "bytes",
+      "count"
+    ],
+    "title": "ArtifactTotalsRead",
+    "type": "object"
+  },
+  "ArtifactUploadForm": {
+    "properties": {
+      "fetched_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "file": {
+        "contentMediaType": "application/octet-stream",
+        "format": "binary",
+        "type": "string"
+      },
+      "final_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryArtifactKind"
+      },
+      "source_url": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "file",
+      "kind",
+      "source_url"
+    ],
+    "title": "ArtifactUploadForm",
+    "type": "object"
+  },
+  "AxisCount": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "code",
+      "count"
+    ],
+    "title": "AxisCount",
+    "type": "object"
+  },
+  "BudgetAdjustRequest": {
+    "properties": {
+      "delta": {
+        "maximum": 1000000000.0,
+        "minimum": -1000000000.0,
+        "type": "number"
+      }
+    },
+    "required": [
+      "delta"
+    ],
+    "title": "BudgetAdjustRequest",
+    "type": "object"
+  },
+  "BudgetListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/BudgetRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "BudgetListResponse",
+    "type": "object"
+  },
+  "BudgetRead": {
+    "properties": {
+      "cap": {
+        "type": "integer"
+      },
+      "exhausted": {
+        "type": "boolean"
+      },
+      "period": {
+        "type": "string"
+      },
+      "remaining": {
+        "type": "number"
+      },
+      "resource": {
+        "type": "string"
+      },
+      "used": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "cap",
+      "exhausted",
+      "period",
+      "remaining",
+      "resource",
+      "used"
+    ],
+    "title": "BudgetRead",
+    "type": "object"
+  },
+  "BudgetReserveRequest": {
+    "properties": {
+      "amount": {
+        "exclusiveMinimum": 0.0,
+        "maximum": 1000000000.0,
+        "type": "number"
+      }
+    },
+    "required": [
+      "amount"
+    ],
+    "title": "BudgetReserveRequest",
+    "type": "object"
+  },
+  "BudgetReserveResponse": {
+    "properties": {
+      "granted": {
+        "type": "boolean"
+      },
+      "remaining": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "granted",
+      "remaining"
+    ],
+    "title": "BudgetReserveResponse",
+    "type": "object"
+  },
+  "CandidateCard": {
+    "properties": {
+      "complete": {
+        "type": "boolean"
+      },
+      "completeness": {
+        "type": "integer"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "description": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description_source": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "domains": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateTag"
+        },
+        "type": "array"
+      },
+      "flags": {
+        "$ref": "#/components/schemas/CandidateFlags"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "mention_count": {
+        "type": "integer"
+      },
+      "situations": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateTag"
+        },
+        "type": "array"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "complete",
+      "completeness",
+      "confidence",
+      "domains",
+      "flags",
+      "id",
+      "key",
+      "mention_count",
+      "situations",
+      "status",
+      "title"
+    ],
+    "title": "CandidateCard",
+    "type": "object"
+  },
+  "CandidateCountsRead": {
+    "properties": {
+      "emitted": {
+        "type": "integer"
+      },
+      "mentions": {
+        "type": "integer"
+      },
+      "staged": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "emitted",
+      "mentions",
+      "staged",
+      "total"
+    ],
+    "title": "CandidateCountsRead",
+    "type": "object"
+  },
+  "CandidateDetail": {
+    "properties": {
+      "complete": {
+        "type": "boolean"
+      },
+      "completeness": {
+        "type": "integer"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "description": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description_source": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "domains": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateTag"
+        },
+        "type": "array"
+      },
+      "egress": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateNeighbour"
+        },
+        "type": "array"
+      },
+      "egress_truncated": {
+        "default": false,
+        "type": "boolean"
+      },
+      "flags": {
+        "$ref": "#/components/schemas/CandidateFlags"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "ingress": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateNeighbour"
+        },
+        "type": "array"
+      },
+      "ingress_truncated": {
+        "default": false,
+        "type": "boolean"
+      },
+      "key": {
+        "type": "string"
+      },
+      "mention_count": {
+        "type": "integer"
+      },
+      "screenshot": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CandidateScreenshot"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "situations": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateTag"
+        },
+        "type": "array"
+      },
+      "sources": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateSource"
+        },
+        "type": "array"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "complete",
+      "completeness",
+      "confidence",
+      "domains",
+      "flags",
+      "id",
+      "key",
+      "mention_count",
+      "situations",
+      "status",
+      "title"
+    ],
+    "title": "CandidateDetail",
+    "type": "object"
+  },
+  "CandidateDetailResponse": {
+    "properties": {
+      "candidate": {
+        "$ref": "#/components/schemas/CandidateRead"
+      },
+      "jurisdiction_name_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "mentions": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateMentionRead"
+        },
+        "type": "array"
+      },
+      "suggested_domain_codes": {
+        "items": {
+          "$ref": "#/components/schemas/TagSupportRead"
+        },
+        "type": "array"
+      },
+      "suggested_situation_codes": {
+        "items": {
+          "$ref": "#/components/schemas/TagSupportRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "candidate",
+      "jurisdiction_name_i18n",
+      "mentions",
+      "suggested_domain_codes",
+      "suggested_situation_codes"
+    ],
+    "title": "CandidateDetailResponse",
+    "type": "object"
+  },
+  "CandidateEdgeItem": {
+    "properties": {
+      "basis": {
+        "$ref": "#/components/schemas/DiscoveryEdgeBasis"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "condition": {
+        "maxLength": 300,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "excerpt": {
+        "type": "string"
+      },
+      "extractor": {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+      },
+      "extractor_version": {
+        "maxLength": 32,
+        "minLength": 1,
+        "type": "string"
+      },
+      "is_optional": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_title_i18n": {
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "minLength": 1,
+        "type": "array"
+      },
+      "required_title_i18n": {
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "minLength": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "basis",
+      "catalogue_service_id",
+      "excerpt",
+      "extractor",
+      "extractor_version",
+      "parent_title_i18n",
+      "required_title_i18n"
+    ],
+    "title": "CandidateEdgeItem",
+    "type": "object"
+  },
+  "CandidateEdgeListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateEdgeRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "CandidateEdgeListResponse",
+    "type": "object"
+  },
+  "CandidateEdgeRead": {
+    "properties": {
+      "basis": {
+        "$ref": "#/components/schemas/DiscoveryEdgeBasis"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "condition": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "excerpt": {
+        "type": "string"
+      },
+      "extractor": {
+        "type": "string"
+      },
+      "extractor_version": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "is_optional": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_candidate_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "parent_title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "procedure_title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "required_candidate_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "required_title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "basis",
+      "catalogue_service_id",
+      "created_at",
+      "excerpt",
+      "extractor",
+      "extractor_version",
+      "id",
+      "parent_candidate_id",
+      "parent_title_i18n",
+      "procedure_title_i18n",
+      "required_candidate_id",
+      "required_title_i18n"
+    ],
+    "title": "CandidateEdgeRead",
+    "type": "object"
+  },
+  "CandidateEdgesRequest": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateEdgeItem"
+        },
+        "maxItems": 100,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "CandidateEdgesRequest",
+    "type": "object"
+  },
+  "CandidateEdgesResponse": {
+    "properties": {
+      "edges_created": {
+        "type": "integer"
+      },
+      "edges_skipped": {
+        "type": "integer"
+      },
+      "edges_updated": {
+        "type": "integer"
+      },
+      "skipped": {
+        "items": {
+          "$ref": "#/components/schemas/EdgeSkip"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "edges_created",
+      "edges_skipped",
+      "edges_updated",
+      "skipped"
+    ],
+    "title": "CandidateEdgesResponse",
+    "type": "object"
+  },
+  "CandidateEmitItemResult": {
+    "properties": {
+      "candidate_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "conflicts": {
+        "items": {
+          "$ref": "#/components/schemas/EmitConflictRead"
+        },
+        "type": "array"
+      },
+      "replayed": {
+        "default": false,
+        "type": "boolean"
+      },
+      "skip_reason": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SkipReason"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "suggestion_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "candidate_id"
+    ],
+    "title": "CandidateEmitItemResult",
+    "type": "object"
+  },
+  "CandidateEmitPreview": {
+    "properties": {
+      "candidate_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "conflicts": {
+        "items": {
+          "$ref": "#/components/schemas/EmitConflictRead"
+        },
+        "type": "array"
+      },
+      "skip_reason": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SkipReason"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "suggestion": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SuggestionCreate"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "suggestion_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "candidate_id"
+    ],
+    "title": "CandidateEmitPreview",
+    "type": "object"
+  },
+  "CandidateEmitRequest": {
+    "properties": {
+      "candidate_ids": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "maxItems": 50,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "candidate_ids"
+    ],
+    "title": "CandidateEmitRequest",
+    "type": "object"
+  },
+  "CandidateEmitResponse": {
+    "properties": {
+      "created_count": {
+        "type": "integer"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateEmitItemResult"
+        },
+        "type": "array"
+      },
+      "replayed_count": {
+        "type": "integer"
+      },
+      "skipped_count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "created_count",
+      "items",
+      "replayed_count",
+      "skipped_count"
+    ],
+    "title": "CandidateEmitResponse",
+    "type": "object"
+  },
+  "CandidateFlags": {
+    "properties": {
+      "has_domain": {
+        "type": "boolean"
+      },
+      "has_edges": {
+        "type": "boolean"
+      },
+      "has_screenshot": {
+        "type": "boolean"
+      },
+      "has_situation": {
+        "type": "boolean"
+      },
+      "has_snapshot": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "has_domain",
+      "has_edges",
+      "has_screenshot",
+      "has_situation",
+      "has_snapshot"
+    ],
+    "title": "CandidateFlags",
+    "type": "object"
+  },
+  "CandidateListItemRead": {
+    "properties": {
+      "complete": {
+        "type": "boolean"
+      },
+      "completeness": {
+        "type": "integer"
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "flags": {
+        "$ref": "#/components/schemas/CandidateFlags"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_name_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "key": {
+        "type": "string"
+      },
+      "mention_count": {
+        "type": "integer"
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "roles": {
+        "items": {
+          "$ref": "#/components/schemas/DiscoveryMentionRole"
+        },
+        "type": "array"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+      },
+      "suggestion_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "updated_at": {
+        "format": "date-time",
+        "type": "string"
+      }
+    },
+    "required": [
+      "complete",
+      "completeness",
+      "created_at",
+      "flags",
+      "id",
+      "jurisdiction_id",
+      "jurisdiction_name_i18n",
+      "key",
+      "mention_count",
+      "roles",
+      "status",
+      "title_i18n",
+      "updated_at"
+    ],
+    "title": "CandidateListItemRead",
+    "type": "object"
+  },
+  "CandidateMentionItem": {
+    "properties": {
+      "artifact_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "condition": {
+        "maxLength": 300,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "direct_domain_confidence": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "direct_situation_confidence": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "domain_codes": {
+        "maxLength": 2,
+        "oneOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "excerpt": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "extractor": {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+      },
+      "extractor_version": {
+        "maxLength": 32,
+        "minLength": 1,
+        "type": "string"
+      },
+      "is_optional": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "official_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pvog_leaf_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "role": {
+        "$ref": "#/components/schemas/DiscoveryMentionRole"
+      },
+      "situation_codes": {
+        "maxLength": 3,
+        "oneOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_field": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title_i18n": {
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "minLength": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "excerpt",
+      "extractor",
+      "extractor_version",
+      "role",
+      "source_field",
+      "title_i18n"
+    ],
+    "title": "CandidateMentionItem",
+    "type": "object"
+  },
+  "CandidateMentionRead": {
+    "properties": {
+      "artifact": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ArtifactSummaryRead"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "artifact_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "condition": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "domain_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "excerpt": {
+        "type": "string"
+      },
+      "extractor": {
+        "type": "string"
+      },
+      "extractor_version": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "is_optional": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "portal_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "procedure_source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "procedure_title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "role": {
+        "$ref": "#/components/schemas/DiscoveryMentionRole"
+      },
+      "situation_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "source_field": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "created_at",
+      "domain_codes",
+      "excerpt",
+      "extractor",
+      "extractor_version",
+      "id",
+      "procedure_source",
+      "procedure_title_i18n",
+      "role",
+      "situation_codes",
+      "source_field"
+    ],
+    "title": "CandidateMentionRead",
+    "type": "object"
+  },
+  "CandidateMentionsRequest": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateMentionItem"
+        },
+        "maxItems": 100,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "CandidateMentionsRequest",
+    "type": "object"
+  },
+  "CandidateMentionsResponse": {
+    "properties": {
+      "candidates_created": {
+        "type": "integer"
+      },
+      "mentions_created": {
+        "type": "integer"
+      },
+      "mentions_updated": {
+        "type": "integer"
+      },
+      "unknown_codes": {
+        "default": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "candidates_created",
+      "mentions_created",
+      "mentions_updated"
+    ],
+    "title": "CandidateMentionsResponse",
+    "type": "object"
+  },
+  "CandidateNeighbour": {
+    "properties": {
+      "basis": {
+        "$ref": "#/components/schemas/DiscoveryEdgeBasis"
+      },
+      "condition": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "excerpt": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "is_optional": {
+        "type": "boolean"
+      },
+      "procedure_title": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "basis",
+      "excerpt",
+      "id",
+      "is_optional",
+      "procedure_title",
+      "title"
+    ],
+    "title": "CandidateNeighbour",
+    "type": "object"
+  },
+  "CandidateRead": {
+    "properties": {
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "key": {
+        "type": "string"
+      },
+      "mention_count": {
+        "type": "integer"
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+      },
+      "suggestion_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "updated_at": {
+        "format": "date-time",
+        "type": "string"
+      }
+    },
+    "required": [
+      "created_at",
+      "id",
+      "jurisdiction_id",
+      "key",
+      "mention_count",
+      "status",
+      "title_i18n",
+      "updated_at"
+    ],
+    "title": "CandidateRead",
+    "type": "object"
+  },
+  "CandidateScreenshot": {
+    "properties": {
+      "fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "url": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "fetched_at",
+      "url"
+    ],
+    "title": "CandidateScreenshot",
+    "type": "object"
+  },
+  "CandidateSort": {
+    "default": "mentions_desc",
+    "description": "Legacy combined ``sort`` values, kept as an alias of a key and direction.",
+    "enum": [
+      "mentions_desc",
+      "title_asc",
+      "newest"
+    ],
+    "title": "CandidateSort",
+    "type": "string"
+  },
+  "CandidateSource": {
+    "properties": {
+      "condition": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "excerpt": {
+        "type": "string"
+      },
+      "is_optional": {
+        "type": "boolean"
+      },
+      "portal_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "procedure_title": {
+        "type": "string"
+      },
+      "role": {
+        "$ref": "#/components/schemas/DiscoveryMentionRole"
+      }
+    },
+    "required": [
+      "excerpt",
+      "is_optional",
+      "procedure_title",
+      "role"
+    ],
+    "title": "CandidateSource",
+    "type": "object"
+  },
+  "CandidateSourceListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateSourceRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "CandidateSourceListResponse",
+    "type": "object"
+  },
+  "CandidateSourceRead": {
+    "properties": {
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "has_screenshot": {
+        "type": "boolean"
+      },
+      "host": {
+        "type": "string"
+      },
+      "mention_count": {
+        "type": "integer"
+      },
+      "source_url": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "has_screenshot",
+      "host",
+      "mention_count",
+      "source_url"
+    ],
+    "title": "CandidateSourceRead",
+    "type": "object"
+  },
+  "CandidateTag": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "confidence",
+      "name"
+    ],
+    "title": "CandidateTag",
+    "type": "object"
+  },
+  "CatalogueBatchItem": {
+    "properties": {
+      "description_i18n": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "external_id": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "portal_url": {
+        "maxLength": 500,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "raw_payload": {
+        "additionalProperties": {},
+        "type": "object"
+      },
+      "source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "title_i18n": {
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "minLength": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "external_id",
+      "jurisdiction_id",
+      "source",
+      "title_i18n"
+    ],
+    "title": "CatalogueBatchItem",
+    "type": "object"
+  },
+  "CatalogueBatchItemResult": {
+    "properties": {
+      "external_id": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "task_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "external_id",
+      "id",
+      "source"
+    ],
+    "title": "CatalogueBatchItemResult",
+    "type": "object"
+  },
+  "CatalogueBatchRequest": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CatalogueBatchItem"
+        },
+        "maxItems": 50,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "CatalogueBatchRequest",
+    "type": "object"
+  },
+  "CatalogueBatchResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CatalogueBatchItemResult"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "CatalogueBatchResponse",
+    "type": "object"
+  },
+  "CatalogueEmitItemResult": {
+    "properties": {
+      "claim_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "replayed": {
+        "default": false,
+        "type": "boolean"
+      },
+      "skip_reason": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SkipReason"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "suggestion_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "claim_id"
+    ],
+    "title": "CatalogueEmitItemResult",
+    "type": "object"
+  },
+  "CatalogueEmitResponse": {
+    "properties": {
+      "created_count": {
+        "type": "integer"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CatalogueEmitItemResult"
+        },
+        "type": "array"
+      },
+      "replayed_count": {
+        "type": "integer"
+      },
+      "skipped_count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "created_count",
+      "items",
+      "replayed_count",
+      "skipped_count"
+    ],
+    "title": "CatalogueEmitResponse",
+    "type": "object"
+  },
+  "CatalogueListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CatalogueServiceRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "summary": {
+        "$ref": "#/components/schemas/CatalogueSummaryChips"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "summary",
+      "total"
+    ],
+    "title": "CatalogueListResponse",
+    "type": "object"
+  },
+  "CatalogueMachineRead": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "portal_url": {
+        "maxLength": 500,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "raw_payload": {
+        "additionalProperties": {},
+        "type": "object"
+      },
+      "source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "title_i18n": {
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "minLength": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "source",
+      "title_i18n"
+    ],
+    "title": "CatalogueMachineRead",
+    "type": "object"
+  },
+  "CataloguePipelineResponse": {
+    "properties": {
+      "claims": {
+        "items": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "derived_stage": {
+        "type": "string"
+      },
+      "entities": {
+        "items": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "events": {
+        "items": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "fetch_logs": {
+        "items": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "service": {
+        "$ref": "#/components/schemas/CatalogueServiceRead"
+      },
+      "tasks": {
+        "items": {
+          "$ref": "#/components/schemas/DiscoveryTaskRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "derived_stage",
+      "service"
+    ],
+    "title": "CataloguePipelineResponse",
+    "type": "object"
+  },
+  "CatalogueServiceRead": {
+    "properties": {
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "external_id": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "pipeline_stage": {
+        "type": "string"
+      },
+      "portal_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "updated_at": {
+        "format": "date-time",
+        "type": "string"
+      }
+    },
+    "required": [
+      "created_at",
+      "external_id",
+      "id",
+      "jurisdiction_id",
+      "pipeline_stage",
+      "source",
+      "title_i18n",
+      "updated_at"
+    ],
+    "title": "CatalogueServiceRead",
+    "type": "object"
+  },
+  "CatalogueSummaryChips": {
+    "properties": {
+      "by_pipeline_stage": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "by_source": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "total"
+    ],
+    "title": "CatalogueSummaryChips",
+    "type": "object"
+  },
+  "ClaimAppendRequest": {
+    "properties": {
+      "confidence": {
+        "maximum": 1,
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "discovery_entity_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryClaimKind"
+      },
+      "payload": {
+        "additionalProperties": {},
+        "type": "object"
+      }
+    },
+    "required": [
+      "discovery_entity_id",
+      "kind"
+    ],
+    "title": "ClaimAppendRequest",
+    "type": "object"
+  },
+  "ClaimAppendResponse": {
+    "properties": {
+      "discovery_entity_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryClaimKind"
+      }
+    },
+    "required": [
+      "discovery_entity_id",
+      "id",
+      "kind"
+    ],
+    "title": "ClaimAppendResponse",
+    "type": "object"
+  },
+  "ClaimedTaskRead": {
+    "properties": {
+      "artifact_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "input_key": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryTaskKind"
+      },
+      "lease_expires_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "priority": {
+        "type": "integer"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      },
+      "target_url": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "id",
+      "kind",
+      "lease_expires_at",
+      "priority",
+      "status",
+      "target_url"
+    ],
+    "title": "ClaimedTaskRead",
+    "type": "object"
+  },
+  "DiscoveryArtifactKind": {
+    "description": "What an object-store artifact holds.",
+    "enum": [
+      "html_snapshot",
+      "screenshot"
+    ],
+    "title": "DiscoveryArtifactKind",
+    "type": "string"
+  },
+  "DiscoveryCandidateStatus": {
+    "description": "Lifecycle of a document candidate.",
+    "enum": [
+      "staged",
+      "emitted"
+    ],
+    "title": "DiscoveryCandidateStatus",
+    "type": "string"
+  },
+  "DiscoveryClaimKind": {
+    "description": "Staging claim shape before emit to suggestions.",
+    "enum": [
+      "new_document",
+      "new_requirement",
+      "metadata"
+    ],
+    "title": "DiscoveryClaimKind",
+    "type": "string"
+  },
+  "DiscoveryCoverageResponse": {
+    "properties": {
+      "artifacts": {
+        "$ref": "#/components/schemas/ArtifactCoverageRead"
+      },
+      "by_source": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "candidates": {
+        "$ref": "#/components/schemas/CandidateCountsRead"
+      },
+      "emit_ready_count": {
+        "type": "integer"
+      },
+      "failures_by_source": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "fetch_attempts_total": {
+        "type": "integer"
+      },
+      "last_successful_run": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DiscoveryRunRead"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "llm_outcomes": {
+        "$ref": "#/components/schemas/LlmOutcomesRead"
+      },
+      "stale_claims": {
+        "type": "integer"
+      },
+      "stale_runs": {
+        "type": "integer"
+      },
+      "task_counts": {
+        "$ref": "#/components/schemas/TaskCountsRead"
+      },
+      "task_counts_by_kind": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/TaskCountsRead"
+        },
+        "type": "object"
+      },
+      "tasks_failed": {
+        "type": "integer"
+      },
+      "tasks_pending": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "artifacts",
+      "candidates",
+      "emit_ready_count",
+      "fetch_attempts_total",
+      "llm_outcomes",
+      "stale_claims",
+      "stale_runs",
+      "task_counts",
+      "tasks_failed",
+      "tasks_pending"
+    ],
+    "title": "DiscoveryCoverageResponse",
+    "type": "object"
+  },
+  "DiscoveryEdgeBasis": {
+    "description": "How a staged requirement edge was found.",
+    "enum": [
+      "explicit",
+      "derived_single_issued"
+    ],
+    "title": "DiscoveryEdgeBasis",
+    "type": "string"
+  },
+  "DiscoveryMentionRole": {
+    "description": "How a procedure relates to a mentioned document.",
+    "enum": [
+      "required",
+      "form",
+      "issued"
+    ],
+    "title": "DiscoveryMentionRole",
+    "type": "string"
+  },
+  "DiscoveryRunKind": {
+    "default": "worker_drain",
+    "description": "Which operational job a run record describes.",
+    "enum": [
+      "worker_drain"
+    ],
+    "title": "DiscoveryRunKind",
+    "type": "string"
+  },
+  "DiscoveryRunRead": {
+    "properties": {
+      "claimed_count": {
+        "type": "integer"
+      },
+      "completed_count": {
+        "type": "integer"
+      },
+      "error_detail": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "failed_count": {
+        "type": "integer"
+      },
+      "finished_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "remaining_count": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "skipped_count": {
+        "type": "integer"
+      },
+      "started_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "stop_reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "claimed_count",
+      "completed_count",
+      "failed_count",
+      "id",
+      "kind",
+      "skipped_count",
+      "started_at",
+      "status"
+    ],
+    "title": "DiscoveryRunRead",
+    "type": "object"
+  },
+  "DiscoverySource": {
+    "description": "Which government or manual feed produced a catalogue row.",
+    "enum": [
+      "govdata",
+      "pvog",
+      "fim",
+      "leika",
+      "manual"
+    ],
+    "title": "DiscoverySource",
+    "type": "string"
+  },
+  "DiscoveryTaskKind": {
+    "description": "What kind of work a discovery task performs.",
+    "enum": [
+      "fetch_url",
+      "enrich_metadata",
+      "harvest_payload",
+      "extract_page",
+      "capture_screenshot",
+      "render_page",
+      "llm_extract"
+    ],
+    "title": "DiscoveryTaskKind",
+    "type": "string"
+  },
+  "DiscoveryTaskListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/DiscoveryTaskRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "DiscoveryTaskListResponse",
+    "type": "object"
+  },
+  "DiscoveryTaskRead": {
+    "properties": {
+      "attempt_count": {
+        "type": "integer"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "input_key": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryTaskKind"
+      },
+      "lease_expires_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "not_before": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "priority": {
+        "type": "integer"
+      },
+      "result_note": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source": {
+        "$ref": "#/components/schemas/DiscoverySource"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      },
+      "target_url": {
+        "type": "string"
+      },
+      "updated_at": {
+        "format": "date-time",
+        "type": "string"
+      }
+    },
+    "required": [
+      "attempt_count",
+      "catalogue_service_id",
+      "created_at",
+      "id",
+      "kind",
+      "priority",
+      "source",
+      "status",
+      "target_url",
+      "updated_at"
+    ],
+    "title": "DiscoveryTaskRead",
+    "type": "object"
+  },
+  "DiscoveryTaskStatus": {
+    "description": "Lifecycle of a queued fetch or enrich task.",
+    "enum": [
+      "pending",
+      "claimed",
+      "completed",
+      "failed"
+    ],
+    "title": "DiscoveryTaskStatus",
+    "type": "string"
+  },
+  "DocumentDetail": {
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "domains": {
+        "items": {
+          "$ref": "#/components/schemas/TaggedTermRead"
+        },
+        "type": "array"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_path": {
+        "items": {
+          "$ref": "#/components/schemas/JurisdictionPathNode"
+        },
+        "type": "array"
+      },
+      "life_situations": {
+        "items": {
+          "$ref": "#/components/schemas/TaggedTermRead"
+        },
+        "type": "array"
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "requirements": {
+        "items": {
+          "$ref": "#/components/schemas/RequirementRead"
+        },
+        "type": "array"
+      },
+      "slug": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "description",
+      "id",
+      "jurisdiction_id",
+      "slug",
+      "title"
+    ],
+    "title": "DocumentDetail",
+    "type": "object"
+  },
+  "DocumentListResponse": {
+    "properties": {
+      "available_leaf_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/DocumentSummary"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "DocumentListResponse",
+    "type": "object"
+  },
+  "DocumentSummary": {
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "slug": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "description",
+      "id",
+      "slug",
+      "title"
+    ],
+    "title": "DocumentSummary",
+    "type": "object"
+  },
+  "EdgeSkip": {
+    "properties": {
+      "index": {
+        "type": "integer"
+      },
+      "reason": {
+        "enum": [
+          "blank_excerpt",
+          "same_endpoints",
+          "unknown_parent",
+          "unknown_required"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "index",
+      "reason"
+    ],
+    "title": "EdgeSkip",
+    "type": "object"
+  },
+  "EmitConflictRead": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "type"
+    ],
+    "title": "EmitConflictRead",
+    "type": "object"
+  },
+  "EmitPreviewItemRead": {
+    "properties": {
+      "claim_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "payload": {
+        "oneOf": [
+          {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "skip_reason": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SkipReason"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "claim_id",
+      "kind"
+    ],
+    "title": "EmitPreviewItemRead",
+    "type": "object"
+  },
+  "EmitPreviewResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/EmitPreviewItemRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "EmitPreviewResponse",
+    "type": "object"
+  },
+  "EntityUpsertRequest": {
+    "properties": {
+      "canonical_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "label": {
+        "maxLength": 500,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "canonical_url",
+      "catalogue_service_id"
+    ],
+    "title": "EntityUpsertRequest",
+    "type": "object"
+  },
+  "EntityUpsertResponse": {
+    "properties": {
+      "canonical_url": {
+        "type": "string"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "created": {
+        "type": "boolean"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "canonical_url",
+      "catalogue_service_id",
+      "created",
+      "id"
+    ],
+    "title": "EntityUpsertResponse",
+    "type": "object"
+  },
+  "FetchLogAppendRequest": {
+    "properties": {
+      "byte_length": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "content_type": {
+        "maxLength": 200,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "error_message": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "http_status": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [],
+    "title": "FetchLogAppendRequest",
+    "type": "object"
+  },
+  "FetchLogAppendResponse": {
+    "properties": {
+      "discovery_task_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "task_status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      }
+    },
+    "required": [
+      "discovery_task_id",
+      "id",
+      "task_status"
+    ],
+    "title": "FetchLogAppendResponse",
+    "type": "object"
+  },
+  "JurisdictionPathNode": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "openplz_type": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code",
+      "kind",
+      "name"
+    ],
+    "title": "JurisdictionPathNode",
+    "type": "object"
+  },
+  "LifeSituationGroupedRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "group_code": {
+        "type": "string"
+      },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "description",
+      "group_code",
+      "name"
+    ],
+    "title": "LifeSituationGroupedRead",
+    "type": "object"
+  },
+  "LlmOutcomesRead": {
+    "properties": {
+      "extracted": {
+        "type": "integer"
+      },
+      "login_wall": {
+        "type": "integer"
+      },
+      "no_content": {
+        "type": "integer"
+      },
+      "no_documents": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "extracted",
+      "login_wall",
+      "no_content",
+      "no_documents"
+    ],
+    "title": "LlmOutcomesRead",
+    "type": "object"
+  },
+  "LocaleRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "completeness_pct": {
+        "type": "number"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "flag_emoji": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name_english": {
+        "type": "string"
+      },
+      "name_native": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "completeness_pct",
+      "enabled",
+      "name_english",
+      "name_native"
+    ],
+    "title": "LocaleRead",
+    "type": "object"
+  },
+  "LocationListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/LocationNode"
+        },
+        "type": "array"
+      }
+    },
+    "required": [],
+    "title": "LocationListResponse",
+    "type": "object"
+  },
+  "LocationNode": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "COUNTRY",
+          "REGION",
+          "MUNICIPALITY",
+          "LOCALITY"
+        ],
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "openplz_type": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code",
+      "kind",
+      "name"
+    ],
+    "title": "LocationNode",
+    "type": "object"
+  },
+  "MatrixCell": {
+    "properties": {
+      "count": {
+        "type": "integer"
+      },
+      "domain": {
+        "type": "string"
+      },
+      "situation": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "count",
+      "domain",
+      "situation"
+    ],
+    "title": "MatrixCell",
+    "type": "object"
+  },
+  "MatrixResponse": {
+    "properties": {
+      "cells": {
+        "items": {
+          "$ref": "#/components/schemas/MatrixCell"
+        },
+        "type": "array"
+      },
+      "domains": {
+        "items": {
+          "$ref": "#/components/schemas/AxisCount"
+        },
+        "type": "array"
+      },
+      "situations": {
+        "items": {
+          "$ref": "#/components/schemas/AxisCount"
+        },
+        "type": "array"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "cells",
+      "domains",
+      "situations",
+      "total"
+    ],
+    "title": "MatrixResponse",
+    "type": "object"
+  },
+  "NewDocumentPayload": {
+    "properties": {
+      "description_i18n": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "domain_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "situation_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "situation_leaf_codes": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "tag_confidence": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "title_i18n"
+    ],
+    "title": "NewDocumentPayload",
+    "type": "object"
+  },
+  "NewRequirementPayload": {
+    "properties": {
+      "notes_i18n": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_document_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "required_document_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "parent_document_id",
+      "required_document_id"
+    ],
+    "title": "NewRequirementPayload",
+    "type": "object"
+  },
+  "RequirementRead": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "notes": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "required_document": {
+        "$ref": "#/components/schemas/DocumentSummary"
+      }
+    },
+    "required": [
+      "id",
+      "required_document"
+    ],
+    "title": "RequirementRead",
+    "type": "object"
+  },
+  "RunFinishRequest": {
+    "properties": {
+      "claimed_count": {
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "completed_count": {
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "error_detail": {
+        "maxLength": 1000,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "failed_count": {
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "remaining_count": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "skipped_count": {
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "status": {
+        "enum": [
+          "succeeded",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "stop_reason": {
+        "enum": [
+          "queue_empty",
+          "batch_limit",
+          "time_budget",
+          "error",
+          "browser_budget",
+          "browser_quota",
+          "storage_unavailable",
+          "db_limit",
+          "llm_budget",
+          "llm_quota",
+          null
+        ],
+        "type": [
+          "null",
+          "string"
+        ]
+      }
+    },
+    "required": [
+      "claimed_count",
+      "completed_count",
+      "failed_count",
+      "skipped_count",
+      "status"
+    ],
+    "title": "RunFinishRequest",
+    "type": "object"
+  },
+  "RunRead": {
+    "properties": {
+      "finished_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "started_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "kind",
+      "started_at",
+      "status"
+    ],
+    "title": "RunRead",
+    "type": "object"
+  },
+  "RunStartRequest": {
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryRunKind"
+      }
+    },
+    "required": [],
+    "title": "RunStartRequest",
+    "type": "object"
+  },
+  "SkipReason": {
+    "description": "Why an emit item (claim or candidate) was not turned into a suggestion.",
+    "enum": [
+      "not_found",
+      "no_mentions",
+      "no_source_url",
+      "invalid_payload",
+      "duplicate",
+      "already_emitted",
+      "missing_entity",
+      "metadata_not_emitted",
+      "invalid_new_document_payload",
+      "unresolved_requirement_documents"
+    ],
+    "title": "SkipReason",
+    "type": "string"
+  },
+  "SubmitterRead": {
+    "properties": {
+      "display_name": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "enum": [
+          "user",
+          "crawler"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind"
+    ],
+    "title": "SubmitterRead",
+    "type": "object"
+  },
+  "SuggestionCreate": {
+    "properties": {
+      "jurisdiction_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/SuggestionKind"
+      },
+      "municipality_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "payload": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/NewDocumentPayload"
+          },
+          {
+            "$ref": "#/components/schemas/NewRequirementPayload"
+          }
+        ]
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "payload"
+    ],
+    "title": "SuggestionCreate",
+    "type": "object"
+  },
+  "SuggestionKind": {
+    "default": "new_document",
+    "description": "What a suggestion proposes to add to the catalogue.",
+    "enum": [
+      "new_document",
+      "new_requirement"
+    ],
+    "title": "SuggestionKind",
+    "type": "string"
+  },
+  "SuggestionListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/SuggestionRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "SuggestionListResponse",
+    "type": "object"
+  },
+  "SuggestionRead": {
+    "properties": {
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "jurisdiction_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/SuggestionKind"
+      },
+      "my_vote": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "payload": {
+        "type": "object"
+      },
+      "source_type": {
+        "$ref": "#/components/schemas/SuggestionSource"
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "status": {
+        "$ref": "#/components/schemas/SuggestionStatus"
+      },
+      "submitted_by": {
+        "$ref": "#/components/schemas/SubmitterRead"
+      },
+      "tally": {
+        "$ref": "#/components/schemas/Tally"
+      }
+    },
+    "required": [
+      "created_at",
+      "id",
+      "jurisdiction_id",
+      "kind",
+      "payload",
+      "source_type",
+      "status",
+      "submitted_by"
+    ],
+    "title": "SuggestionRead",
+    "type": "object"
+  },
+  "SuggestionSource": {
+    "description": "Who submitted a suggestion, derived from the authenticated principal.",
+    "enum": [
+      "human",
+      "crawler"
+    ],
+    "title": "SuggestionSource",
+    "type": "string"
+  },
+  "SuggestionStatus": {
+    "description": "Moderation state; this suite only ever creates `pending`.",
+    "enum": [
+      "pending",
+      "approved",
+      "rejected"
+    ],
+    "title": "SuggestionStatus",
+    "type": "string"
+  },
+  "TagSupportRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "procedures": {
+        "type": "integer"
+      },
+      "score": {
+        "type": "number"
+      },
+      "share": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "code",
+      "procedures",
+      "score",
+      "share"
+    ],
+    "title": "TagSupportRead",
+    "type": "object"
+  },
+  "TaggedTermRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "description": {
+        "type": "string"
+      },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "confidence",
+      "description",
+      "name"
+    ],
+    "title": "TaggedTermRead",
+    "type": "object"
+  },
+  "Tally": {
+    "properties": {
+      "down": {
+        "type": "integer"
+      },
+      "score": {
+        "type": "integer"
+      },
+      "up": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "down",
+      "score",
+      "up"
+    ],
+    "title": "Tally",
+    "type": "object"
+  },
+  "TaskClaimRequest": {
+    "properties": {
+      "kinds": {
+        "minLength": 1,
+        "oneOf": [
+          {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryTaskKind"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "limit": {
+        "default": 1,
+        "maximum": 50.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [],
+    "title": "TaskClaimRequest",
+    "type": "object"
+  },
+  "TaskClaimResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ClaimedTaskRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "TaskClaimResponse",
+    "type": "object"
+  },
+  "TaskCompleteRequest": {
+    "properties": {
+      "note": {
+        "maxLength": 200,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [],
+    "title": "TaskCompleteRequest",
+    "type": "object"
+  },
+  "TaskCompleteResponse": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      }
+    },
+    "required": [
+      "id",
+      "status"
+    ],
+    "title": "TaskCompleteResponse",
+    "type": "object"
+  },
+  "TaskCountsRead": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "completed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "pending": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "completed",
+      "failed",
+      "pending",
+      "total"
+    ],
+    "title": "TaskCountsRead",
+    "type": "object"
+  },
+  "TaskEnqueueRequest": {
+    "properties": {
+      "artifact_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "input_key": {
+        "maxLength": 128,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryTaskKind"
+      },
+      "priority": {
+        "default": 100,
+        "minimum": 0.0,
+        "type": "integer"
+      },
+      "target_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "kind",
+      "target_url"
+    ],
+    "title": "TaskEnqueueRequest",
+    "type": "object"
+  },
+  "TaskEnqueueResponse": {
+    "properties": {
+      "created": {
+        "type": "boolean"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "created",
+      "id"
+    ],
+    "title": "TaskEnqueueResponse",
+    "type": "object"
+  },
+  "TaskFailRequest": {
+    "properties": {
+      "error": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "retryable": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "error"
+    ],
+    "title": "TaskFailRequest",
+    "type": "object"
+  },
+  "TaskFailResponse": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "last_error": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      }
+    },
+    "required": [
+      "id",
+      "last_error",
+      "status"
+    ],
+    "title": "TaskFailResponse",
+    "type": "object"
+  },
+  "TaskReleaseRequest": {
+    "properties": {
+      "not_before": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "reason": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason"
+    ],
+    "title": "TaskReleaseRequest",
+    "type": "object"
+  },
+  "TaskReleaseResponse": {
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "last_error": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/DiscoveryTaskStatus"
+      }
+    },
+    "required": [
+      "id",
+      "last_error",
+      "status"
+    ],
+    "title": "TaskReleaseResponse",
+    "type": "object"
+  },
+  "TaskSummaryResponse": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "claimed_stale": {
+        "type": "integer"
+      },
+      "completed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "pending_delayed": {
+        "type": "integer"
+      },
+      "pending_ready": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "claimed_stale",
+      "completed",
+      "failed",
+      "pending_delayed",
+      "pending_ready"
+    ],
+    "title": "TaskSummaryResponse",
+    "type": "object"
+  },
+  "TermRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "description",
+      "name"
+    ],
+    "title": "TermRead",
+    "type": "object"
+  },
+  "TranslationBundle": {
+    "properties": {
+      "locale": {
+        "type": "string"
+      },
+      "translations": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "locale",
+      "translations"
+    ],
+    "title": "TranslationBundle",
+    "type": "object"
+  },
+  "UserRead": {
+    "properties": {
+      "display_name": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "email": {
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "role": {
+        "$ref": "#/components/schemas/UserRole"
+      }
+    },
+    "required": [
+      "email",
+      "id",
+      "role"
+    ],
+    "title": "UserRead",
+    "type": "object"
+  },
+  "UserRole": {
+    "description": "Access level granted to an app_user row.",
+    "enum": [
+      "user",
+      "moderator",
+      "admin"
+    ],
+    "title": "UserRole",
+    "type": "string"
+  },
+  "VocabularyResponse": {
+    "properties": {
+      "domains": {
+        "items": {
+          "$ref": "#/components/schemas/VocabularyTerm"
+        },
+        "type": "array"
+      },
+      "situations": {
+        "items": {
+          "$ref": "#/components/schemas/VocabularyTerm"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "domains",
+      "situations"
+    ],
+    "title": "VocabularyResponse",
+    "type": "object"
+  },
+  "VocabularyTerm": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "description_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "name_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "code",
+      "description_i18n",
+      "name_i18n"
+    ],
+    "title": "VocabularyTerm",
+    "type": "object"
+  },
+  "VoteCreate": {
+    "properties": {
+      "value": {
+        "enum": [
+          1,
+          -1
+        ],
+        "type": "integer"
+      }
+    },
+    "required": [
+      "value"
+    ],
+    "title": "VoteCreate",
+    "type": "object"
+  },
+  "VoteRead": {
+    "properties": {
+      "ok": {
+        "const": true,
+        "default": true,
+        "type": "boolean"
+      },
+      "value": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "value"
+    ],
+    "title": "VoteRead",
+    "type": "object"
+  },
+  "candidate_read_CandidateListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateCard"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "CandidateListResponse",
+    "type": "object"
+  },
+  "discovery_read_CandidateListResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateListItemRead"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "type": "integer"
+      },
+      "offset": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "limit",
+      "offset",
+      "total"
+    ],
+    "title": "CandidateListResponse",
+    "type": "object"
+  }
+}

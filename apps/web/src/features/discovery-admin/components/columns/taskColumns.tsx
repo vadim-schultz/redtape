@@ -1,10 +1,6 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
 import TruncatedText from "../../../../components/data-display/TruncatedText";
-import {
-  DISCOVERY_SOURCES,
-  TASK_KINDS,
-  TASK_STATUSES,
-} from "../../types/listValues";
+import { DISCOVERY_SOURCES, TASK_KINDS, TASK_STATUSES } from "../../types";
 import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../../types";
 import {
   formatRelativeTime,

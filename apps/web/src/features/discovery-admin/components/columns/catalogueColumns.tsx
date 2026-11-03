@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
 import TruncatedText from "../../../../components/data-display/TruncatedText";
-import { DISCOVERY_SOURCES, PIPELINE_STAGES } from "../../types/listValues";
+import { DISCOVERY_SOURCES, PIPELINE_STAGES } from "../../types";
 import type {
   CatalogueFilterKey,
   CatalogueServiceSummary,
