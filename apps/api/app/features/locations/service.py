@@ -1,3 +1,5 @@
+"""Locale-resolved location reads: each level of the OpenPLZ hierarchy as a flat list of nodes."""
+
 from __future__ import annotations
 
 from app.features.locations.repository import LocationsRepository
@@ -9,10 +11,14 @@ from app.shared.locale import ResolvedLocale
 
 
 class LocationsService:
+    """Walk the OpenPLZ jurisdiction hierarchy one level at a time, returning locale-resolved nodes."""
+
     def __init__(self, repository: LocationsRepository) -> None:
+        """Bind the service to its locations repository."""
         self._repo = repository
 
     def list_countries(self, *, locale: ResolvedLocale) -> LocationListResponse:
+        """List every country as a location node in the requested locale."""
         rows = self._repo.list_countries()
         items = [
             LocationNode(
@@ -27,6 +33,7 @@ class LocationsService:
         return LocationListResponse(items=items)
 
     def list_states(self, *, country_code: str, locale: ResolvedLocale) -> LocationListResponse:
+        """List the federal states of a country; an unknown country yields an empty list, not an error."""
         country = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.COUNTRY, code=country_code)
         if country is None or country.id is None:
             return LocationListResponse(items=[])
@@ -48,6 +55,7 @@ class LocationsService:
         return LocationListResponse(items=items)
 
     def list_districts(self, *, state_code: str, locale: ResolvedLocale) -> LocationListResponse:
+        """List the districts of a federal state; an unknown state yields an empty list."""
         state = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.REGION, code=state_code)
         if state is None:
             return LocationListResponse(items=[])
@@ -69,6 +77,7 @@ class LocationsService:
         return LocationListResponse(items=items)
 
     def list_cities(self, *, district_code: str, locale: ResolvedLocale) -> LocationListResponse:
+        """List the municipalities of a district; an unknown district yields an empty list."""
         district = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.REGION, code=district_code)
         if district is None:
             return LocationListResponse(items=[])
@@ -89,6 +98,7 @@ class LocationsService:
         return LocationListResponse(items=items)
 
     def list_localities(self, *, municipality_code: str, locale: ResolvedLocale) -> LocationListResponse:
+        """List the localities of a municipality; an unknown municipality yields an empty list."""
         city = self._repo._get_jurisdiction_by_kind_and_code(kind=JurisdictionKind.MUNICIPALITY, code=municipality_code)
         if city is None:
             return LocationListResponse(items=[])

@@ -19,18 +19,21 @@ from app.shared.object_store.http import InjectedObjectStore
 
 
 def provide_candidate_repository(session: Session) -> PublicCandidateRepository:
+    """Bind a public candidate repository to the request session."""
     return PublicCandidateRepository(session)
 
 
 def provide_candidate_service(
     candidate_repository: PublicCandidateRepository, taxonomy_service: TaxonomyService
 ) -> CandidateReadService:
+    """Bind the public candidate read service to its repository and the taxonomy service."""
     return CandidateReadService(candidate_repository, taxonomy_service)
 
 
 def provide_candidate_screenshot_service(
     candidate_repository: PublicCandidateRepository, object_store: InjectedObjectStore
 ) -> ScreenshotService:
+    """Bind the screenshot service to the candidate repository and the object store."""
     return ScreenshotService(candidate_repository, object_store)
 
 

@@ -51,7 +51,7 @@ class CardRelations:
         return func.coalesce(self.best.c.best, 0.0).label("confidence")
 
     def conditions(self, card_filter: PublicCandidateFilter) -> list[ColumnElement[bool]]:
-        """The where-clauses of ``card_filter`` over these relations."""
+        """Return the where-clauses of ``card_filter`` over these relations."""
         return card_filter.conditions(self.completeness, self.best)
 
     def cards(self) -> Select:

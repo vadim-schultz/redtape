@@ -10,10 +10,12 @@ from app.features.events.service import EventLogService
 
 
 def provide_event_log_repository(session: Session) -> EventLogRepository:
+    """Bind an event log repository to the request session."""
     return EventLogRepository(session)
 
 
 def provide_event_log_service(event_log_repository: EventLogRepository) -> EventLogService:
+    """Bind the event log service to its repository."""
     return EventLogService(event_log_repository)
 
 

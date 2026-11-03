@@ -1,3 +1,5 @@
+"""Dependency providers for the locations feature."""
+
 from __future__ import annotations
 
 from litestar.di import Provide
@@ -8,12 +10,14 @@ from app.features.locations.service import LocationsService
 
 
 def provide_locations_repository(session: Session) -> LocationsRepository:
+    """Bind a locations repository to the request session."""
     return LocationsRepository(session)
 
 
 def provide_locations_service(
     locations_repository: LocationsRepository,
 ) -> LocationsService:
+    """Bind the locations service to its repository."""
     return LocationsService(locations_repository)
 
 

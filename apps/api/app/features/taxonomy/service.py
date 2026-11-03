@@ -1,3 +1,5 @@
+"""Locale-resolved taxonomy reads, the matrix assembly, and the code-to-id resolution other features use."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
@@ -26,15 +28,19 @@ class TaxonomyService:
     """Locale-resolved taxonomy reads and code → id resolution for other features."""
 
     def __init__(self, repository: TaxonomyRepository) -> None:
+        """Bind the service to its taxonomy repository."""
         self._repo = repository
 
     def list_domains(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the domain terms in the requested locale."""
         return self._list(Domain, locale)
 
     def list_situations(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the life-situation terms in the requested locale."""
         return self._list(LifeSituation, locale)
 
     def list_situation_groups(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the life-situation group terms in the requested locale."""
         return self._list(LifeSituationGroup, locale)
 
     def list_situations_with_group(self, *, locale: ResolvedLocale) -> list[LifeSituationGroupedRead]:
@@ -49,9 +55,11 @@ class TaxonomyService:
         ]
 
     def resolve_domain_ids(self, codes: Sequence[str]) -> list[UUID]:
+        """Map domain codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
         return self._resolve(Domain, codes)
 
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
+        """Map life-situation codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
         return self._resolve(LifeSituation, codes)
 
     def vocabulary(self) -> VocabularyResponse:
@@ -79,6 +87,7 @@ class TaxonomyService:
         )
 
     def to_term_read(self, term: Domain | LifeSituation | LifeSituationGroup, *, locale: ResolvedLocale) -> TermRead:
+        """Convert a taxonomy row into a term read resolved to the locale."""
         return TermRead(
             code=term.code,
             name=pick_i18n(term.name_i18n, locale),

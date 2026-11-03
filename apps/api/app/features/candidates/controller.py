@@ -36,6 +36,7 @@ class CandidatesController(Controller):
     def list_candidates(
         self, candidate_service: CandidateReadService, page: PageParams, locale: ResolvedLocale, list_query: ListQuery
     ) -> CandidateListResponse:
+        """Page through the public candidates, ranked by completeness and filtered to the public spec."""
         return candidate_service.list_candidates(
             public_filter_from(list_query), Page(offset=page.offset, limit=page.limit), locale
         )
@@ -44,6 +45,7 @@ class CandidatesController(Controller):
     def candidate_detail(
         self, candidate_service: CandidateReadService, locale: ResolvedLocale, candidate_id: UUID
     ) -> CandidateDetail:
+        """Return the locale-resolved detail of one public candidate."""
         return candidate_service.candidate_detail(candidate_id, locale)
 
     @get("/{candidate_id:uuid}/screenshot", sync_to_thread=True)
@@ -53,4 +55,5 @@ class CandidatesController(Controller):
         candidate_id: UUID,
         if_none_match: str | None = Parameter(header="If-None-Match", default=None),
     ) -> Response[bytes]:
+        """Serve a candidate's screenshot, answering 304 when the client's ETag is current."""
         return _screenshot_response(candidate_screenshot_service.serve(candidate_id, if_none_match))
