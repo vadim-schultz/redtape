@@ -13,7 +13,8 @@ from app.config import settings
 from app.features.auth.jwt import JwtVerifier
 from app.features.auth.repository import ApiKeyRepository
 from app.features.auth.service import ApiKeyService
-from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.repository import SuggestionRepository
+from app.features.suggestions.submitters import CrawlerSubmitter
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -296,15 +297,15 @@ def test_a_concurrent_retry_resolves_to_the_original(
     db_session.commit()  # a real SAVEPOINT boundary, so the service's own rollback() below can't undo it
 
     seen = {"count": 0}
-    real_replay = SuggestionService._replay
+    real_replay = CrawlerSubmitter.find_replay
 
     def _blind_on_first_call(
-        self: SuggestionService, submitter: object, idempotency_key: str | None
+        self: CrawlerSubmitter, repo: SuggestionRepository, idempotency_key: str | None
     ) -> Suggestion | None:
         seen["count"] += 1
-        return None if seen["count"] == 1 else real_replay(self, submitter, idempotency_key)
+        return None if seen["count"] == 1 else real_replay(self, repo, idempotency_key)
 
-    monkeypatch.setattr(SuggestionService, "_replay", _blind_on_first_call)
+    monkeypatch.setattr(CrawlerSubmitter, "find_replay", _blind_on_first_call)
 
     response = client.post(
         URL,

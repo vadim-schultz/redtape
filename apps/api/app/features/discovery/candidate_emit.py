@@ -13,10 +13,10 @@ from app.features.discovery.lookups import require_candidate
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.suggestions.service import (
     SubmissionResult,
-    SubmitterRef,
     SuggestionService,
     UnknownTaxonomyCodeError,
 )
+from app.features.suggestions.submitters import CrawlerSubmitter
 from app.models.api_key import ApiKey
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryDocumentCandidate
 from app.schema.discovery.candidate_emit import (
@@ -84,7 +84,7 @@ class DiscoveryCandidateEmitService:
     def _create(self, candidate: DiscoveryDocumentCandidate, api_key: ApiKey) -> SubmissionResult:
         return submit_or_skip(
             self._suggestions,
-            submitter=SubmitterRef("crawler", api_key.id),
+            submitter=CrawlerSubmitter(api_key.id),
             request=self._requests.build(candidate),
             idempotency_key=idempotency_key("candidate-emit", candidate.id),
         )

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from litestar.params import Parameter
 
-from app.features.suggestions.service import SuggestionFilters
+from app.features.suggestions.filters import SuggestionFilters
 from app.models.suggestion import SuggestionKind, SuggestionSource, SuggestionStatus
 from app.shared.paging import PageParams
 

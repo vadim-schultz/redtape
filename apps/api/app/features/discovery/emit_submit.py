@@ -10,11 +10,11 @@ from app.features.suggestions.service import (
     DuplicateSuggestionError,
     MissingSourceUrlError,
     SubmissionResult,
-    SubmitterRef,
     SuggestionService,
     UnknownDocumentError,
     UnknownTaxonomyCodeError,
 )
+from app.features.suggestions.submitters import Submitter
 from app.schema.discovery.emit import SkipReason
 from app.schema.suggestion.create import SuggestionCreate
 
@@ -27,7 +27,7 @@ SUGGESTION_RULE_REASONS: dict[type[Exception], SkipReason] = {
 
 
 def submit_or_skip(
-    suggestions: SuggestionService, *, submitter: SubmitterRef, request: SuggestionCreate, idempotency_key: str
+    suggestions: SuggestionService, *, submitter: Submitter, request: SuggestionCreate, idempotency_key: str
 ) -> SubmissionResult:
     """Create the suggestion, or raise ``EmitSkip`` when the suggestion rules reject this one item."""
     try:
