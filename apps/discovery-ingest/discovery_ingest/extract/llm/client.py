@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Literal, Protocol, TypedDict
+
+from discovery_ingest.json_types import JsonSchema
+
+
+class ChatMessage(TypedDict):
+    """One chat message: a system or user instruction and its text."""
+
+    role: Literal["system", "user"]
+    content: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +30,6 @@ class LlmResult:
 class LlmClient(Protocol):
     """Ask a model for JSON that follows a schema; every call may raise an :class:`LlmError`."""
 
-    def extract(self, messages: Sequence[dict[str, str]], json_schema: dict[str, Any], *, max_tokens: int) -> LlmResult:
+    def extract(self, messages: Sequence[ChatMessage], json_schema: JsonSchema, *, max_tokens: int) -> LlmResult:
         """Return the model's answer to ``messages`` constrained by ``json_schema``, capped at ``max_tokens``."""
         ...

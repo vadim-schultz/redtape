@@ -9,6 +9,7 @@ import httpx
 
 from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.extract.clean import CleanPage, clean_page
+from discovery_ingest.extract.llm.client import ChatMessage
 from discovery_ingest.extract.llm.payloads import chat_body, run_body
 from discovery_ingest.extract.llm.probe_calls import ProbeClient, RawCall
 from discovery_ingest.extract.llm.probe_cost import cost_row, neurons_of
@@ -26,7 +27,7 @@ __all__ = ["ProbeReport", "run_probe"]
 
 PROBE_URL = "https://probe.invalid/page"
 VIOLATION_MAX_TOKENS = 16
-VIOLATION_MESSAGES = [{"role": "user", "content": "Extract the documents this page asks for."}]
+VIOLATION_MESSAGES: list[ChatMessage] = [{"role": "user", "content": "Extract the documents this page asks for."}]
 
 
 @dataclass(frozen=True, slots=True)

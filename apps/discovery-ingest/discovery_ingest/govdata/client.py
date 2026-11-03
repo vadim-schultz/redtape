@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
-from discovery_ingest.schemas import CatalogueBatchItem
+from pydantic import JsonValue
 
-FEDERAL_ARS = "000000000000"
+from discovery_ingest.catalogue_scope import FEDERAL_ARS
+from discovery_ingest.govdata.models import GovDataRow, OzgPage
+from discovery_ingest.schemas import CatalogueBatchItem
 
 
 class GovDataMappingError(ValueError):
@@ -19,103 +20,54 @@ class GovDataMappingError(ValueError):
 class GovDataOzgClient:
     """Load OZG export pages from JSON files."""
 
-    def __init__(self, records: list[dict[str, Any]]) -> None:
+    def __init__(self, records: list[GovDataRow]) -> None:
+        """Keep the rows of one page."""
         self.records = records
 
     @classmethod
     def from_json_file(cls, path: Path) -> GovDataOzgClient:
-        """Load a Leistungen JSON page from ``path``."""
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        content = raw.get("content")
-        if not isinstance(content, list):
+        """Load a Leistungen JSON page from ``path``; the file must hold a top-level ``content`` array."""
+        raw: JsonValue = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict) or not isinstance(raw.get("content"), list):
             raise ValueError("expected top-level 'content' array in OZG JSON")
-        records: list[dict[str, Any]] = []
-        for entry in content:
-            if isinstance(entry, dict):
-                records.append(entry)
-        return cls(records)
+        return cls(OzgPage.model_validate(raw).content)
 
 
 def map_govdata_record(
-    row: dict[str, Any],
+    row: GovDataRow,
     *,
     federal_jurisdiction_id: UUID,
 ) -> CatalogueBatchItem:
-    """Map one OZG Leistungen object to a machine batch item (public alias)."""
-    return _map_govdata_record(row, federal_jurisdiction_id=federal_jurisdiction_id)
-
-
-def _map_govdata_record(
-    row: dict[str, Any],
-    *,
-    federal_jurisdiction_id: UUID,
-) -> CatalogueBatchItem:
-    """Map one OZG Leistungen object to a machine batch item."""
+    """Map one OZG Leistungen row to a machine batch item."""
     external_id = _external_id_for_row(row)
     jurisdiction_id = _jurisdiction_id_for_row(row, federal_jurisdiction_id=federal_jurisdiction_id)
-    title = _title_for_row(row)
-    description = _description_for_row(row)
-    portal_url = _optional_str(row.get("url"))
+    title = row.title
+    if title is None:
+        raise GovDataMappingError(
+            "row has no title (leika_name, leistungsname, title, name, leika_bezeichnung, or ozg_bezeichnung)",
+        )
+    description = row.description
     return CatalogueBatchItem(
         source="govdata",
         external_id=external_id,
         jurisdiction_id=jurisdiction_id,
         title_i18n={"de": title},
         description_i18n={"de": description} if description else None,
-        portal_url=portal_url,
-        raw_payload=dict(row),
+        portal_url=row.url,
+        raw_payload=dict(row.raw),
     )
 
 
-def _external_id_for_row(row: dict[str, Any]) -> str:
-    leika_key = _optional_str(row.get("leika_key"))
-    if leika_key:
-        return f"govdata:leika:{leika_key}"
-    ozgid = _optional_str(row.get("ozgid"))
-    if ozgid:
-        return f"govdata:ozg:{ozgid}"
-    stable_id = _optional_str(row.get("id"))
-    if stable_id:
-        return f"govdata:ozg:{stable_id}"
-    raise GovDataMappingError("row has no external id (leika_key, ozgid, or id)")
+def _external_id_for_row(row: GovDataRow) -> str:
+    parts = row.external_id_parts
+    if parts is None:
+        raise GovDataMappingError("row has no external id (leika_key, ozgid, or id)")
+    namespace, value = parts
+    return f"govdata:{namespace}:{value}"
 
 
-def _jurisdiction_id_for_row(row: dict[str, Any], *, federal_jurisdiction_id: UUID) -> UUID:
-    ars = _optional_str(row.get("ars"))
+def _jurisdiction_id_for_row(row: GovDataRow, *, federal_jurisdiction_id: UUID) -> UUID:
+    ars = row.ars
     if ars is None or ars == FEDERAL_ARS:
         return federal_jurisdiction_id
     raise GovDataMappingError(f"unsupported ars jurisdiction scope: {ars}")
-
-
-def _title_for_row(row: dict[str, Any]) -> str:
-    for key in (
-        "leika_name",
-        "leistungsname",
-        "title",
-        "name",
-        "leika_bezeichnung",
-        "ozg_bezeichnung",
-    ):
-        value = _optional_str(row.get(key))
-        if value:
-            return value
-    raise GovDataMappingError(
-        "row has no title (leika_name, leistungsname, title, name, leika_bezeichnung, or ozg_bezeichnung)",
-    )
-
-
-def _description_for_row(row: dict[str, Any]) -> str | None:
-    for key in ("beschreibung", "description", "leika_bezeichnung", "ozg_bezeichnung"):
-        value = _optional_str(row.get(key))
-        if value:
-            return value
-    return None
-
-
-def _optional_str(value: object) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, str):
-        stripped = value.strip()
-        return stripped if stripped else None
-    return str(value).strip() or None

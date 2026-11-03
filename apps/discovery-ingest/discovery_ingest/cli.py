@@ -9,7 +9,6 @@ import sys
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
 from discovery_ingest.artifacts_cli import artifacts_download, artifacts_list, register_artifacts_parser
@@ -19,6 +18,7 @@ from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT, EmitSelection, e
 from discovery_ingest.candidates_cli import candidates_page, register_candidates_aids
 from discovery_ingest.capture_requeue import capture_requeue, register_capture_parser
 from discovery_ingest.catalogue_export import load_catalogue_row
+from discovery_ingest.catalogue_scope import FEDERAL_ARS
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, IngestSettings, build_user_agent, load_ingest_settings
 from discovery_ingest.curation_command import candidates_curate
@@ -36,16 +36,17 @@ from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
 from discovery_ingest.fim.keys import STECKBRIEF_KEY_PATTERN
 from discovery_ingest.fim.probe import gate_passed, probe_keys, probe_lines
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
-from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, _map_govdata_record
+from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, map_govdata_record
+from discovery_ingest.govdata.models import GovDataRow
 from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
 from discovery_ingest.llm_requeue import llm_requeue
 from discovery_ingest.pvog.client import (
-    FEDERAL_ARS,
     PvogClient,
     PvogClientError,
     PvogMappingError,
     map_pvog_record,
 )
+from discovery_ingest.pvog.models import PvogRecord
 from discovery_ingest.schemas import (
     LLM_TASK_KINDS,
     TASK_KINDS,
@@ -331,7 +332,7 @@ def _leika_enrich(args: argparse.Namespace) -> int:
 
 
 def _map_govdata_records(
-    records: list[dict[str, Any]],
+    records: list[GovDataRow],
     *,
     federal_jurisdiction_id: UUID,
 ) -> list[CatalogueBatchItem]:
@@ -339,7 +340,7 @@ def _map_govdata_records(
     for row in records:
         try:
             items.append(
-                _map_govdata_record(row, federal_jurisdiction_id=federal_jurisdiction_id),
+                map_govdata_record(row, federal_jurisdiction_id=federal_jurisdiction_id),
             )
         except GovDataMappingError as err:
             print(f"skip row: {err}", file=sys.stderr)
@@ -359,7 +360,7 @@ def _pvog_vocabulary(args: argparse.Namespace) -> int:
 
 
 def _map_pvog_records(
-    records: Iterator[tuple[str, dict[str, Any]]],
+    records: Iterator[tuple[str, PvogRecord]],
     *,
     jurisdiction_id: UUID,
 ) -> list[CatalogueBatchItem]:

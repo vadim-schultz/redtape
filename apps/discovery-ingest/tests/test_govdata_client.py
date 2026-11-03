@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, map_govdata_record
+from discovery_ingest.govdata.models import GovDataRow
 
 FIXTURE = Path(__file__).parent / "fixtures" / "govdata" / "ozg_page.json"
 FEDERAL_JURISDICTION = uuid.UUID("11111111-1111-1111-1111-111111111101")
@@ -57,7 +58,7 @@ def test_govdata_client_rejects_row_without_title() -> None:
     row = {"leika_key": "99001040001000", "ars": "000000000000", "ozgid": 1}
 
     with pytest.raises(GovDataMappingError, match="no title"):
-        map_govdata_record(row, federal_jurisdiction_id=FEDERAL_JURISDICTION)
+        map_govdata_record(GovDataRow.model_validate(row), federal_jurisdiction_id=FEDERAL_JURISDICTION)
 
 
 def test_govdata_client_uses_leika_key_when_ozgid_shared() -> None:
@@ -75,8 +76,12 @@ def test_govdata_client_uses_leika_key_when_ozgid_shared() -> None:
         "ars": "000000000000",
         "ozgid": shared_ozgid,
     }
-    id_a = map_govdata_record(row_a, federal_jurisdiction_id=FEDERAL_JURISDICTION).external_id
-    id_b = map_govdata_record(row_b, federal_jurisdiction_id=FEDERAL_JURISDICTION).external_id
+    id_a = map_govdata_record(
+        GovDataRow.model_validate(row_a), federal_jurisdiction_id=FEDERAL_JURISDICTION
+    ).external_id
+    id_b = map_govdata_record(
+        GovDataRow.model_validate(row_b), federal_jurisdiction_id=FEDERAL_JURISDICTION
+    ).external_id
 
     assert id_a == "govdata:leika:99003007001000"
     assert id_b == "govdata:leika:99003007011000"
