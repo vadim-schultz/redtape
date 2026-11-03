@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
+from uuid import UUID
+
+import httpx
+
 from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
@@ -11,6 +18,8 @@ from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.policy import DrainPolicy
+
+logger = logging.getLogger(__name__)
 
 _MAX_ERROR_DETAIL = 1000
 
@@ -44,6 +53,53 @@ def _finish_request(report: DrainReport) -> RunFinishRequest:
     return _succeeded(report) if report.succeeded else _failed(report.error or "the drain stopped on an error")
 
 
+def _detail_for(err: BaseException) -> str:
+    """Describe ``err`` for ``error_detail``: ``str(err)`` for an API error, else ``Type: message``."""
+    if isinstance(err, KeyboardInterrupt):
+        return "interrupted"
+    if isinstance(err, DiscoveryMachineApiError):
+        return str(err)
+    return f"{type(err).__name__}: {err}"
+
+
+class RecordedRun:
+    """A run open on the machine API, closed by exactly one call to :meth:`finish`."""
+
+    def __init__(self, client: DiscoveryMachineClient, run_id: UUID) -> None:
+        """Keep the client and the id of the run :func:`recorded_run` already started."""
+        self._client = client
+        self.run_id = run_id
+        self.finished = False
+
+    def finish(self, body: RunFinishRequest) -> None:
+        """Close the run with ``body``; mark it attempted before the call so a failed finish is never repeated."""
+        self.finished = True
+        self._client.finish_run(self.run_id, body)
+
+
+@contextmanager
+def recorded_run(client: DiscoveryMachineClient) -> Iterator[RecordedRun]:
+    """Open a run and guarantee that it is finished, as failed when the body leaves without finishing it."""
+    run = RecordedRun(client, client.start_run())
+    try:
+        yield run
+    except BaseException as err:
+        if not run.finished:
+            _finish_quietly(run, _failed(_detail_for(err)))
+        raise
+    else:
+        if not run.finished:
+            run.finish(_failed("the drain returned without finishing the run"))
+
+
+def _finish_quietly(run: RecordedRun, body: RunFinishRequest) -> None:
+    """Attempt one failure finish; a failure of this call itself is only logged, never raised over the caller's."""
+    try:
+        run.finish(body)
+    except (DiscoveryMachineApiError, httpx.HTTPError) as err:
+        logger.warning("could not finish run %s as failed: %s", run.run_id, err)
+
+
 def run_recorded_drain(
     client: DiscoveryMachineClient,
     fetcher: PoliteUrlFetcher,
@@ -59,8 +115,7 @@ def run_recorded_drain(
     Individual task failures stay in the report; an API failure or an infrastructure stop (``error``) marks the run
     failed. Limits (browser budget or quota, storage, database) are stops, not failures.
     """
-    run_id = client.start_run()
-    try:
+    with recorded_run(client) as run:
         report = run_worker_drain(
             client,
             fetcher,
@@ -70,8 +125,5 @@ def run_recorded_drain(
             after_extract=after_extract,
             llm_enqueue=llm_enqueue,
         )
-    except DiscoveryMachineApiError as err:
-        client.finish_run(run_id, _failed(str(err)))
-        raise
-    client.finish_run(run_id, _finish_request(report))
-    return report.model_copy(update={"run_id": run_id})
+        run.finish(_finish_request(report))
+    return report.model_copy(update={"run_id": run.run_id})
