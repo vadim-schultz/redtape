@@ -1,7 +1,11 @@
+"""Resolve the request locale from `?locale=`, `Accept-Language`, or the de-then-en fallback."""
+
 from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+
+from app.shared.locale import DEFAULT_ENABLED_LOCALES, FALLBACK_ORDER
 
 _ACCEPT_LANG_PART = re.compile(r"^\s*(?P<tag>[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)(?:\s*;\s*q=(?P<q>[0-9.]+))?\s*$")
 
@@ -28,6 +32,7 @@ def parse_accept_language(header: str | None, enabled: set[str]) -> str | None:
 
 
 def normalize_locale_tag(value: str | None) -> str | None:
+    """Return the lower-cased two-letter primary subtag of `value`, or `None` when it has none."""
     if not value:
         return None
     primary = value.strip().split("-", 1)[0].lower()
@@ -49,14 +54,14 @@ def resolve_locale(
     """
     enabled_set = set(enabled)
     if not enabled_set:
-        enabled_set = {"de", "en"}
+        enabled_set = set(DEFAULT_ENABLED_LOCALES)
 
     requested = normalize_locale_tag(query_locale) or parse_accept_language(accept_language, enabled_set)
 
     if requested and requested in enabled_set:
         return requested
 
-    for fallback in ("de", "en"):
+    for fallback in FALLBACK_ORDER:
         if fallback in enabled_set:
             return fallback
 

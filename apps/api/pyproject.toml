@@ -87,10 +87,11 @@ convention = "pep257"
 "app/schema/{auth,candidate,document,location,suggestion,taxonomy,vote}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 "app/schema/openplz.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 "app/models/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
-"app/shared/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/shared/{__init__,paging,dependencies}.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/shared/{object_store,list_query}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 "app/services/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 "app/middleware/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
-"app/{db,i18n_resolution,config,__init__,url_normalization,locale_resolution,main,lifespan,routes}.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
+"app/{db,config,__init__,url_normalization,main,lifespan}.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 "app/features/__init__.py" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S5
 
 [tool.mypy]

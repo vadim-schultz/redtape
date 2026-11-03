@@ -8,4 +8,4 @@ from app.shared.locale import ResolvedLocale
 
 def localized(values: dict[str, str] | None, locale: ResolvedLocale) -> str:
     """Return the text for the requested locale, else German, English, or any stored text."""
-    return pick_i18n(values, locale=locale.code, enabled=locale.enabled)
+    return pick_i18n(values, locale)

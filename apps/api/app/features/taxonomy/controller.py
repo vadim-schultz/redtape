@@ -18,17 +18,17 @@ class TaxonomyController(Controller):
 
     @get("/domains", sync_to_thread=True)
     def list_domains(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
-        return taxonomy_service.list_domains(locale=locale.code, enabled_locales=locale.enabled)
+        return taxonomy_service.list_domains(locale=locale)
 
     @get("/life-situations", sync_to_thread=True)
     def list_life_situations(
         self, taxonomy_service: TaxonomyService, locale: ResolvedLocale
     ) -> list[LifeSituationGroupedRead]:
-        return taxonomy_service.list_situations_with_group(locale=locale.code, enabled_locales=locale.enabled)
+        return taxonomy_service.list_situations_with_group(locale=locale)
 
     @get("/life-situation-groups", sync_to_thread=True)
     def list_life_situation_groups(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:
-        return taxonomy_service.list_situation_groups(locale=locale.code, enabled_locales=locale.enabled)
+        return taxonomy_service.list_situation_groups(locale=locale)
 
     @get("/matrix", sync_to_thread=True)
     def get_matrix(
