@@ -3,7 +3,7 @@ import { Card, HStack, Text } from "@chakra-ui/react";
 import AppCard from "../../../../components/data-display/AppCard";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { SuggestionRead } from "../../types";
-import { formatRelativeTime } from "../../utils/formatRelativeTime";
+import { formatRelativeTime } from "../../../../utils/relativeTime";
 import { suggestionTitle } from "../../utils/suggestionTitle";
 
 import SourceBadge from "./SourceBadge";

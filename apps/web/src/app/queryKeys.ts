@@ -23,17 +23,19 @@ export const queryKeys = {
   suggestions: {
     all: ["suggestions"] as const,
     list: (
-      status: string,
-      kind: string | null,
-      jurisdictionId: string | null,
+      filters: {
+        status: string;
+        kind: string | null;
+        jurisdictionId: string | null;
+      },
       locale: string,
     ) =>
       [
         ...queryKeys.suggestions.all,
         "list",
-        status,
-        kind,
-        jurisdictionId,
+        filters.status,
+        filters.kind,
+        filters.jurisdictionId,
         locale,
       ] as const,
     detail: (id: string | undefined) =>

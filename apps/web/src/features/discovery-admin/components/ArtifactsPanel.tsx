@@ -1,7 +1,7 @@
 import { Text } from "@chakra-ui/react";
 
 import SectionCard from "../../../components/data-display/SectionCard";
-import QueryError from "../../../components/feedback/QueryError";
+import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryArtifact } from "../types";
@@ -13,11 +13,11 @@ export interface ArtifactsPanelProps {
   artifacts: DiscoveryArtifact[] | undefined;
 }
 
-type PanelState = "loading" | "error" | "empty" | "unconfigured" | "ready";
+type PanelState = "empty" | "unconfigured" | "ready";
 
-function panelState({ status, artifacts }: ArtifactsPanelProps): PanelState {
-  if (status.isLoading) return "loading";
-  if (status.isError) return "error";
+function panelState({
+  artifacts,
+}: Pick<ArtifactsPanelProps, "artifacts">): PanelState {
   if (!artifacts || artifacts.length === 0) return "empty";
   if (artifacts.every((artifact) => artifact.url === null)) {
     return "unconfigured";
@@ -36,10 +36,6 @@ function Note({ messageKey }: { messageKey: string }) {
 
 function PanelBody(props: ArtifactsPanelProps) {
   switch (panelState(props)) {
-    case "loading":
-      return <ArtifactsSkeleton />;
-    case "error":
-      return <QueryError onRetry={props.status.onRetry} />;
     case "empty":
       return <Note messageKey="discovery_admin.artifacts.empty" />;
     case "unconfigured":
@@ -57,7 +53,9 @@ export default function ArtifactsPanel(props: ArtifactsPanelProps) {
 
   return (
     <SectionCard title={t("discovery_admin.artifacts.title")}>
-      <PanelBody {...props} />
+      <QueryBoundary status={props.status} loading={<ArtifactsSkeleton />}>
+        <PanelBody {...props} />
+      </QueryBoundary>
     </SectionCard>
   );
 }

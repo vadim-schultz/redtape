@@ -1,3 +1,4 @@
+import { EMPTY_VALUE } from "../../../../utils/emptyValue";
 import type { DiscoveryCoverageResponse, DiscoveryRun } from "../../types";
 import {
   countRows,
@@ -18,21 +19,21 @@ export function failureGroup(
     titleKey: "failures_by_source",
     headerKeys: ["col_source", "tasks_failed"],
     emptyKey: "no_failures",
-    rows: countRows(coverage.failures_by_source as Record<string, number>),
+    rows: countRows(coverage.failures_by_source),
   });
 }
 
 function runRows(run: DiscoveryRun, context: MetricContext): MetricRow[] {
   const finished = run.finished_at
     ? new Date(run.finished_at).toLocaleString(context.locale)
-    : "-";
+    : EMPTY_VALUE;
   return labelledRows(context, [
     ["last_run_finished", finished],
     ["last_run_claimed", run.claimed_count],
     ["last_run_completed", run.completed_count],
     ["last_run_failed", run.failed_count],
     ["last_run_skipped", run.skipped_count],
-    ["last_run_stop", run.stop_reason ?? "-"],
+    ["last_run_stop", run.stop_reason ?? EMPTY_VALUE],
   ]);
 }
 

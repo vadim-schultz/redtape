@@ -4,7 +4,7 @@ import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { CandidateList } from "../types/listControllers";
 import { DISCOVERY_SOURCES } from "../types/listValues";
-import { plainOptions } from "./columns/filterOptions";
+import { enumOptions } from "./columns/filterOptions";
 import FilterSelect from "./FilterSelect";
 
 const NAMESPACE = "discovery_admin.documents";
@@ -14,7 +14,7 @@ function SourceSelect({ list }: { list: CandidateList }) {
   const { t } = useLocale();
   const options = [
     { value: "", label: t(`${NAMESPACE}.source_all`) },
-    ...plainOptions(DISCOVERY_SOURCES),
+    ...enumOptions(t, "source", DISCOVERY_SOURCES),
   ];
 
   return (

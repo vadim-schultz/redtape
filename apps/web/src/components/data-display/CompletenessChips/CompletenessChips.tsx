@@ -1,7 +1,7 @@
 import { Stack } from "@chakra-ui/react";
 
-import { useLocale } from "../../../../contexts/LocaleContext";
-import type { CompletenessFlags } from "../../types";
+import { useLocale } from "../../../contexts/LocaleContext";
+import type { CompletenessFlags } from "./types";
 import FlagChip from "./FlagChip";
 
 export interface CompletenessChipsProps {

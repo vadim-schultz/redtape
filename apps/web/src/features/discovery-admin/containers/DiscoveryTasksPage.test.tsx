@@ -81,8 +81,8 @@ it("DiscoveryTasksPage · renders rows from mocked admin tasks API", async () =>
   expect(
     await within(table).findByText("https://example.gov/service"),
   ).toBeVisible();
-  expect(table).toHaveTextContent("pending");
-  expect(table).toHaveTextContent("govdata");
+  expect(table).toHaveTextContent("Pending");
+  expect(table).toHaveTextContent("GovData");
 });
 
 it("DiscoveryTasksPage · shows error state when query fails", async () => {
@@ -239,7 +239,7 @@ it("clearing filters restores the default result set", async () => {
   const { user } = renderPage(
     "/admin/discovery/tasks?offset=20&filter[status]=failed&filter[kind]=fetch_url",
   );
-  expect(await screen.findByText("Task status: failed")).toBeVisible();
+  expect(await screen.findByText("Task status: Failed")).toBeVisible();
   await waitFor(() => expect(urls.length).toBeGreaterThan(0));
   expect(lastUrl(urls).searchParams.get("filter[status]")).toBe("failed");
 
@@ -259,7 +259,7 @@ it("removing one applied filter keeps the others", async () => {
   const { user } = renderPage(
     "/admin/discovery/tasks?filter[status]=failed&filter[kind]=fetch_url",
   );
-  await screen.findByText("Task status: failed");
+  await screen.findByText("Task status: Failed");
 
   await user.click(
     screen.getByRole("button", { name: "Remove filter Task status" }),

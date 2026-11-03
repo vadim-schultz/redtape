@@ -9,8 +9,9 @@ import type {
   CatalogueSortKey,
 } from "../../types";
 import { localizedTitle } from "../../utils/localizedTitle";
+import { translateOrRaw } from "../../utils/translateOrRaw";
 import { headerLabels, type ColumnContext } from "./columnContext";
-import { plainOptions } from "./filterOptions";
+import { enumOptions, plainOptions } from "./filterOptions";
 
 export type CatalogueColumn = DataTableColumn<
   CatalogueServiceSummary,
@@ -56,9 +57,14 @@ export function catalogueColumns(context: ColumnContext): CatalogueColumn[] {
         key: "source",
         operators: ["eq"],
         label: context.t("discovery_admin.catalogue.filter_source"),
-        options: plainOptions(DISCOVERY_SOURCES),
+        options: enumOptions(context.t, "source", DISCOVERY_SOURCES),
       },
-      render: (row) => row.source,
+      render: (row) =>
+        translateOrRaw(
+          context.t,
+          `discovery_admin.values.source_${row.source}`,
+          row.source,
+        ),
     },
     {
       key: "stage",

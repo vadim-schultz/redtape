@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
+import { EMPTY_VALUE } from "../../../../utils/emptyValue";
 import type { DiscoveryCandidateMention } from "../../types";
 import { hostOf } from "../../utils/hostOf";
 import { localizedTitle } from "../../utils/localizedTitle";
@@ -37,7 +38,7 @@ export function mentionColumns(context: ColumnContext): MentionColumn[] {
     {
       key: "condition",
       header: header("condition"),
-      render: (m) => <LongText>{m.condition ?? "—"}</LongText>,
+      render: (m) => <LongText>{m.condition ?? EMPTY_VALUE}</LongText>,
     },
     { key: "field", header: header("field"), render: (m) => m.source_field },
     {
@@ -48,7 +49,7 @@ export function mentionColumns(context: ColumnContext): MentionColumn[] {
     {
       key: "host",
       header: header("host"),
-      render: (m) => hostOf(m.portal_url) || "—",
+      render: (m) => hostOf(m.portal_url) || EMPTY_VALUE,
     },
     {
       key: "procedure",

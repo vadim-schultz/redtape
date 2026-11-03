@@ -53,8 +53,8 @@ it("task columns render every queue field of a task", () => {
   expect(cells).toEqual([
     "https://example.gov/service",
     "fetch_url",
-    "pending",
-    "pvog",
+    "Pending",
+    "Portalverbund",
     "50",
     "2",
     "—",

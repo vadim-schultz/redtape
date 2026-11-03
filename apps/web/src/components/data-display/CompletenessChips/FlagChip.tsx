@@ -1,7 +1,7 @@
 import { Badge } from "@chakra-ui/react";
 import { LuCheck, LuMinus } from "react-icons/lu";
 
-import { useLocale } from "../../../../contexts/LocaleContext";
+import { useLocale } from "../../../contexts/LocaleContext";
 
 export interface FlagChipProps {
   label: string;

@@ -1,8 +1,8 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 
-import { renderWithProviders } from "../../../../test/renderWithProviders";
-import { ALL_FLAGS } from "../../../../test/candidateFixtures";
+import { renderWithProviders } from "../../../test/renderWithProviders";
+import { ALL_FLAGS } from "../../../test/candidateFixtures";
 import CompletenessChips from "./CompletenessChips";
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));

@@ -75,6 +75,26 @@ it("coverage renders the last successful run as labelled rows", () => {
   expect(screen.queryByText("No successful run recorded yet.")).toBeNull();
 });
 
+it("coverage · lastRunGroup shows the placeholder for a run without finish time or stop reason", () => {
+  renderSummary({
+    ...baseCoverage,
+    last_successful_run: {
+      ...finishedRun,
+      finished_at: null,
+      stop_reason: null,
+    },
+  });
+
+  expect(rowTexts("Last successful run", "Finished")).toEqual([
+    "Finished",
+    "—",
+  ]);
+  expect(rowTexts("Last successful run", "Stop reason")).toEqual([
+    "Stop reason",
+    "—",
+  ]);
+});
+
 it("coverage renders unknown source and kind keys", () => {
   renderSummary({
     ...baseCoverage,

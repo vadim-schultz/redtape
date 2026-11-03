@@ -4,7 +4,7 @@ import { useLocale } from "../../../../contexts/LocaleContext";
 import { SourceBadge } from "../SuggestionsListView";
 import { StatusBadge } from "../SuggestionsListView";
 import type { SuggestionRead } from "../../types";
-import { formatRelativeTime } from "../../utils/formatRelativeTime";
+import { formatRelativeTime } from "../../../../utils/relativeTime";
 import { suggestionTitle } from "../../utils/suggestionTitle";
 
 export interface SuggestionDetailHeaderProps {
