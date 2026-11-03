@@ -6,7 +6,7 @@ import type {
   CatalogueFilterKey,
   CatalogueSummaryChips as Summary,
 } from "../types";
-import { DISCOVERY_SOURCES, PIPELINE_STAGES } from "../types/listValues";
+import { DISCOVERY_SOURCES, PIPELINE_STAGES } from "../types";
 
 export interface CatalogueSummaryChipsProps {
   summary: Summary;

@@ -1,5 +1,21 @@
-import { describe, expectTypeOf, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
+import {
+  ARTIFACT_KINDS,
+  CANDIDATE_FILTER_KEYS,
+  CANDIDATE_SORT_KEYS,
+  CANDIDATE_STATUSES,
+  CATALOGUE_FILTER_KEYS,
+  CATALOGUE_SORT_KEYS,
+  COMPLETE_CHOICES,
+  DISCOVERY_SOURCES,
+  MENTION_ROLES,
+  PIPELINE_STAGES,
+  TASK_FILTER_KEYS,
+  TASK_KINDS,
+  TASK_SORT_KEYS,
+  TASK_STATUSES,
+} from "./values";
 import type {
   CandidateFilterKey,
   CandidateSortKey,
@@ -72,5 +88,26 @@ describe("types/values · unions are exactly today's", () => {
     expectTypeOf<SuggestionStatus>().toEqualTypeOf<
       "pending" | "approved" | "rejected"
     >();
+  });
+});
+
+describe("types/values · arrays", () => {
+  it.each([
+    ["DISCOVERY_SOURCES", DISCOVERY_SOURCES],
+    ["TASK_STATUSES", TASK_STATUSES],
+    ["TASK_KINDS", TASK_KINDS],
+    ["CANDIDATE_STATUSES", CANDIDATE_STATUSES],
+    ["MENTION_ROLES", MENTION_ROLES],
+    ["ARTIFACT_KINDS", ARTIFACT_KINDS],
+    ["PIPELINE_STAGES", PIPELINE_STAGES],
+    ["TASK_SORT_KEYS", TASK_SORT_KEYS],
+    ["TASK_FILTER_KEYS", TASK_FILTER_KEYS],
+    ["CATALOGUE_SORT_KEYS", CATALOGUE_SORT_KEYS],
+    ["CATALOGUE_FILTER_KEYS", CATALOGUE_FILTER_KEYS],
+    ["CANDIDATE_SORT_KEYS", CANDIDATE_SORT_KEYS],
+    ["CANDIDATE_FILTER_KEYS", CANDIDATE_FILTER_KEYS],
+    ["COMPLETE_CHOICES", COMPLETE_CHOICES],
+  ])("%s · no value repeats", (_name, values) => {
+    expect(new Set(values).size).toBe(values.length);
   });
 });

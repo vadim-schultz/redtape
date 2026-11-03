@@ -1,5 +1,6 @@
 import type { LocaleContextValue } from "../../../../contexts/LocaleContext";
-import { CANDIDATE_STATUSES, MENTION_ROLES } from "../../types/listValues";
+import type { CandidateFilterKey } from "../../types";
+import { CANDIDATE_STATUSES, MENTION_ROLES } from "../../types";
 import { enumOptions } from "./filterOptions";
 import { filterCapability } from "./filterCapability";
 
@@ -13,7 +14,7 @@ export function candidateFilters(t: Translate) {
   const text = (key: string, values?: Record<string, string | number>) =>
     t(`${NAMESPACE}.${key}`, values);
   return {
-    roles: filterCapability({
+    roles: filterCapability<CandidateFilterKey>({
       key: "role",
       label: text("filter_role"),
       options: MENTION_ROLES.map((role) => ({
@@ -21,7 +22,7 @@ export function candidateFilters(t: Translate) {
         label: text(`role_${role}`),
       })),
     }),
-    mentions: filterCapability({
+    mentions: filterCapability<CandidateFilterKey>({
       key: "min_mentions",
       label: text("filter_min_mentions"),
       operator: "gte",
@@ -30,12 +31,12 @@ export function candidateFilters(t: Translate) {
         label: text("min_mentions_option", { count }),
       })),
     }),
-    status: filterCapability({
+    status: filterCapability<CandidateFilterKey>({
       key: "status",
       label: text("filter_status"),
       options: enumOptions(t, "candidate_status", CANDIDATE_STATUSES),
     }),
-    readiness: filterCapability({
+    readiness: filterCapability<CandidateFilterKey>({
       key: "complete",
       label: text("filter_complete"),
       options: [

@@ -4,20 +4,19 @@ import { LuArrowDown, LuArrowUp } from "react-icons/lu";
 import type { SortOrder } from "../../../../services/listQuery";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { DocumentList } from "../../hooks/useDocumentListState";
-import type { DocumentSortKey } from "../../types";
+import { DOCUMENT_SORT_KEYS, type DocumentSortKey } from "../../types";
 
-const OPTIONS = [
-  { key: "confidence", label: "documents.sort_confidence", order: "desc" },
-  { key: "title", label: "documents.sort_title", order: "asc" },
-  { key: "created_at", label: "documents.sort_newest", order: "desc" },
-] as const satisfies readonly {
-  key: DocumentSortKey;
-  label: string;
-  order: SortOrder;
-}[];
+/** Label and natural order per key; a new sort key cannot compile without both. */
+const OPTIONS: Record<
+  DocumentSortKey,
+  { label: string; order: SortOrder }
+> = {
+  confidence: { label: "documents.sort_confidence", order: "desc" },
+  title: { label: "documents.sort_title", order: "asc" },
+  created_at: { label: "documents.sort_newest", order: "desc" },
+};
 
-const naturalOrder = (key: DocumentSortKey): SortOrder =>
-  OPTIONS.find((option) => option.key === key)?.order ?? "asc";
+const naturalOrder = (key: DocumentSortKey): SortOrder => OPTIONS[key].order;
 
 export interface DocumentSortControlProps {
   list: Pick<DocumentList, "sort" | "setSort">;
@@ -42,9 +41,9 @@ export default function DocumentSortControl({
             setSort({ sortBy, sortOrder: naturalOrder(sortBy) });
           }}
         >
-          {OPTIONS.map(({ key, label }) => (
+          {DOCUMENT_SORT_KEYS.map((key) => (
             <option key={key} value={key}>
-              {t(label)}
+              {t(OPTIONS[key].label)}
             </option>
           ))}
         </NativeSelect.Field>

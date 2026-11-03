@@ -1,21 +1,17 @@
 import type { CompletenessFlags } from "../../candidates/types";
 
+import type {
+  DiscoveryArtifactKind,
+  DiscoveryCandidateStatus,
+  DiscoveryMentionRole,
+  DiscoverySource,
+  DiscoveryTaskKind,
+  DiscoveryTaskStatus,
+} from "./values";
+
+export * from "./values";
+
 /** Discovery task queue row from the admin API. */
-
-export type DiscoveryTaskStatus =
-  "pending" | "claimed" | "completed" | "failed";
-
-export type DiscoverySource = "govdata" | "pvog" | "fim" | "leika" | "manual";
-
-export type DiscoveryTaskKind =
-  | "fetch_url"
-  | "enrich_metadata"
-  | "harvest_payload"
-  | "extract_page"
-  | "render_page"
-  | "capture_screenshot"
-  | "llm_extract";
-
 export type DiscoveryTask = {
   id: string;
   catalogue_service_id: string;
@@ -33,13 +29,6 @@ export type DiscoveryTask = {
   created_at: string;
   updated_at: string;
 };
-
-/** Public sort keys of the task queue; the table maps its columns to these. */
-export type TaskSortKey =
-  "target" | "kind" | "status" | "source" | "priority" | "attempts";
-
-/** Filter keys the task queue accepts. */
-export type TaskFilterKey = "status" | "source" | "kind";
 
 /** Paginated discovery task queue from the admin API. */
 
@@ -61,12 +50,6 @@ export type CatalogueServiceSummary = {
   created_at: string;
   updated_at: string;
 };
-
-/** Public sort keys of the catalogue index. */
-export type CatalogueSortKey = "external_id" | "title" | "source" | "stage";
-
-/** Filter keys the catalogue index accepts. */
-export type CatalogueFilterKey = "source" | "stage";
 
 export type EmitPreviewItem = {
   claim_id: string;
@@ -133,8 +116,6 @@ export type DiscoveryRun = {
   error_detail: string | null;
 };
 
-export type DiscoveryArtifactKind = "html_snapshot" | "screenshot";
-
 /** Artifact count and stored bytes of one kind. */
 export type DiscoveryArtifactTotals = { count: number; bytes: number };
 
@@ -171,24 +152,6 @@ export type DiscoveryCoverageResponse = {
   failures_by_source: Partial<Record<DiscoverySource, number>>;
   last_successful_run: DiscoveryRun | null;
 };
-
-export type DiscoveryMentionRole = "required" | "form" | "issued";
-
-export type DiscoveryCandidateStatus = "staged" | "emitted";
-
-/** Public sort keys of the candidate list; the table maps its columns to these. */
-export type CandidateSortKey =
-  | "mentions"
-  | "title"
-  | "created_at"
-  | "jurisdiction"
-  | "status"
-  | "roles"
-  | "completeness";
-
-/** Filter keys the candidate list accepts. */
-export type CandidateFilterKey =
-  "status" | "role" | "source" | "min_mentions" | "complete";
 
 /** A document candidate as the detail route returns it. */
 export type DiscoveryCandidateRecord = {

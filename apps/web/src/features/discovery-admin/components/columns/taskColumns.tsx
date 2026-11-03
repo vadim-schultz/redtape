@@ -4,7 +4,7 @@ import {
   DISCOVERY_SOURCES,
   TASK_KINDS,
   TASK_STATUSES,
-} from "../../types/listValues";
+} from "../../types";
 import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../../types";
 import {
   formatRelativeTime,
