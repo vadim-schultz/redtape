@@ -256,8 +256,7 @@
       "optional": "Optional",
       "tags": {
         "title": "Suggested tags",
-        "domains": "Domains",
-        "situations": "Life situations",
+        "categories": "Categories",
         "support": "{name} · {procedures} of {total} procedures",
         "empty": "No consensus yet.",
         "accepted": "Meets the thresholds"

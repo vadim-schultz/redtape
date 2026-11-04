@@ -256,8 +256,7 @@
       "optional": "Optional",
       "tags": {
         "title": "Vorgeschlagene Schlagwörter",
-        "domains": "Themenbereiche",
-        "situations": "Lebenslagen",
+        "categories": "Kategorien",
         "support": "{name} · {procedures} von {total} Verfahren",
         "empty": "Noch kein Konsens.",
         "accepted": "Erreicht die Schwellenwerte"

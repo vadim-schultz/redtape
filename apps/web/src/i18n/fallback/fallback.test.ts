@@ -263,7 +263,7 @@ const DOCUMENT_KEYS = [
   "documents.role_issued",
   "document.col_condition",
   "document.optional",
-  ...["title", "domains", "situations", "support", "empty", "accepted"].map(
+  ...["title", "categories", "support", "empty", "accepted"].map(
     (key) => `document.tags.${key}`,
   ),
   ...[
