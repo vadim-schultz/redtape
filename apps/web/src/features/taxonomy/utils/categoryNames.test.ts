@@ -34,3 +34,9 @@ it("categoryNamesByCode · no tree yields no names, so codes are shown instead",
   expect(categoryNamesByCode(undefined)).toEqual({});
   expect(categoryNamesByCode([])).toEqual({});
 });
+
+it("categoryNamesByCode · a malformed response yields no names instead of throwing", () => {
+  const malformed = { detail: "not a tree" } as unknown as CategoryNode[];
+
+  expect(categoryNamesByCode(malformed)).toEqual({});
+});

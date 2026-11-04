@@ -1,6 +1,7 @@
 import type { CategoryNode } from "../types";
 
 function flattenCategories(nodes: CategoryNode[]): CategoryNode[] {
+  if (!Array.isArray(nodes)) return [];
   return nodes.flatMap((node) => [node, ...flattenCategories(node.children)]);
 }
 
