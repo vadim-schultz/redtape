@@ -46,20 +46,6 @@ convention = "pep257"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "D", "ANN401", "TID251"]
-# Any gate baseline (T2): delete the line when the removing chapter lands
-"discovery_ingest/pvog/client.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/govdata/client.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/govdata/ckan.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/enrich.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/extract/llm/schema_prep.py" = ["ANN401", "TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/extract/llm/schema.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/extract/llm/payloads.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/extract/llm/cloudflare.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/extract/llm/client.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/fim/client.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/leika/client.py" = ["TID251"]  # T2 baseline, removed by I2
-"discovery_ingest/worker/enrich_metadata.py" = ["TID251"]  # T2 baseline, removed by I3
-# docstring baseline (T1): delete the line when its slice is done
 
 [tool.mypy]
 python_version = "3.11"
@@ -74,29 +60,6 @@ disallow_any_explicit = true
 [[tool.mypy.overrides]]
 module = ["httpx.*"]
 ignore_missing_imports = true
-
-# Any gate baseline (T2): one block per removing chapter; delete the whole
-# block when that chapter lands (see .plans/codebase-audit/00-audit-report.md
-# section 5).
-[[tool.mypy.overrides]]
-module = [
-    "discovery_ingest.pvog.client",
-    "discovery_ingest.govdata.client",
-    "discovery_ingest.govdata.ckan",
-    "discovery_ingest.enrich",
-    "discovery_ingest.extract.llm.schema_prep",
-    "discovery_ingest.extract.llm.schema",
-    "discovery_ingest.extract.llm.payloads",
-    "discovery_ingest.extract.llm.cloudflare",
-    "discovery_ingest.extract.llm.client",
-    "discovery_ingest.fim.client",
-    "discovery_ingest.leika.client",
-]
-disallow_any_explicit = false  # T2 baseline, removed by I2
-
-[[tool.mypy.overrides]]
-module = ["discovery_ingest.worker.enrich_metadata"]
-disallow_any_explicit = false  # T2 baseline, removed by I3
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

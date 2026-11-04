@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import any_, literal, select
 from sqlalchemy.orm import Session
 
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -35,7 +35,7 @@ class LocationsRepository:
             Jurisdiction.kind == kind,
         )
         if administrative_role is not None:
-            stmt = stmt.where(Jurisdiction.administrative_roles.any(administrative_role))
+            stmt = stmt.where(literal(administrative_role) == any_(Jurisdiction.administrative_roles))
         stmt = stmt.order_by(Jurisdiction.code.asc())
         return list(self._session.scalars(stmt).all())
 

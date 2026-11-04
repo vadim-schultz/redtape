@@ -56,7 +56,7 @@ Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committ
 - `docs/operations/gitlab-schedules.md` described a `.gitlab-ci.yml` job that never existed — there is no GitLab anywhere in this project. Renamed/rewritten as [`docs/operations/scheduled-jobs.md`](../operations/scheduled-jobs.md), describing the real GitHub Actions workflow.
 - Roadmap's I6 status was stale ("Draft") — corrected to "Done."
 - `apps/mobile/README.md` said "Wave 3" for the Flutter client; the roadmap calls it Wave 4 — mobile doc corrected to match.
-- Stale/dead files not yet cleaned up (left alone for now — hygiene, not documentation): `apps/web/src/contexts/LocaleContext.tsx.draft`, `apps/mobile/lib/providers/locale_provider.dart.draft`, unused `apps/web/src/features/locations/components/LocationPicker.tsx`.
+- Stale/dead files not yet cleaned up (left alone for now — hygiene, not documentation): `apps/mobile/lib/providers/locale_provider.dart.draft`, and `apps/web/src/features/locations/components/LocationPickerView/LocationPicker.tsx`, which nothing outside its own folder imports. (`apps/web/src/contexts/LocaleContext.tsx.draft` was removed.)
 
 **Update, 2026-09-27 — CI foundation shipped.** `apps/api` tests now run against a real Postgres service in
 both GitHub Actions and local `./ci.sh` (no more silent SQLite skip); a missing database fails the run when

@@ -71,12 +71,7 @@ convention = "pep257"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "D", "ANN401", "TID251"]     # allow assert in tests; tests are exempt from docstrings and the Any gate
 "tests/test_discovery_error_responses.py" = ["F811"]  # reuses fixtures imported from sibling test modules
-# Any gate baseline (T2): delete the line when the removing chapter lands
-"app/services/openplz_client.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
-"scripts/import_openplz_locations.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
-"app/routes.py" = ["TID251"]  # T2 baseline, removed by B1
 "scripts/*" = ["T201"]   # allow print in scripts
-# docstring baseline (T1): delete the line when its slice is done
 
 [tool.mypy]
 python_version = "3.11"
@@ -93,17 +88,12 @@ check_untyped_defs = true
 module = ["alembic.*", "litestar.*", "sqlalchemy.*", "boto3.*", "botocore.*", "moto.*"]
 ignore_missing_imports = true
 
+# BLOCKER (G2, decision for the chief of staff): scripts/object_store_probe.py:92 calls
+# Settings(_env_file=None); without the pydantic mypy plugin, mypy synthesizes Settings.__init__
+# from its fields and rejects _env_file. Remove this override once the design choice is made
+# (enable plugins = ["pydantic.mypy"], or change how the probe builds its default settings).
 [[tool.mypy.overrides]]
-module = ["scripts.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = [
-    "app.services.openplz_client",
-    "app.middleware.locale",
-    "app.features.locations.repository",
-    "app.features.documents.service",
-]
+module = ["scripts.object_store_probe"]
 ignore_errors = true
 
 [tool.pytest.ini_options]
