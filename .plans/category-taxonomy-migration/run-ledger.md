@@ -59,13 +59,18 @@
 
 ### Chapter 3 — API and backend filters
 
-- Category-tree response: pending
-- Machine taxonomy response: pending
-- Parent descendant filter test: pending
-- Subcategory exact filter test: pending
-- Unknown-code rejection: pending
-- Legacy parameter compatibility: pending
-- Matrix reference status: pending
+- Status: integrated; category API/filter commits are on the loop branch
+- Category-tree response: 12 frozen roots with localized children and German fallback
+- Machine taxonomy response: active canonical category codes with source-parent metadata; PVOG leaves excluded
+- Parent descendant filter test: pass; root selections include direct and descendant links
+- Subcategory exact filter test: pass
+- Unknown-code rejection: pass with 422 diagnostics
+- Legacy parameter compatibility: pass; conflicting group/situation mappings return diagnostics
+- Matrix reference status: endpoint remains characterized for C9 retirement
+- Paired tests: 89 Postgres-backed API tests pass; 37 web contract tests pass plus 1 expected failure
+- Static checks: API format, ruff, and mypy pass
+- Refactor gate: legacy translation is isolated in `LegacyTaxonomyAdapter`; category resolution/descendant expansion remains centralized
+- Full `./ci.sh`: known unrelated Prettier failure remains in `apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx`
 
 ### Chapter 4 — Ingest and LLM contract
 
