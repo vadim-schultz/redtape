@@ -1,0 +1,10 @@
+usage: discovery_ingest llm probe [-h] [--model MODEL] --fixture FIXTURE
+                                  [--max-neurons MAX_NEURONS]
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         A Workers AI model id (repeatable)
+  --fixture FIXTURE     Path of a rendered HTML page to clean and send
+  --max-neurons MAX_NEURONS
+                        Stop before the next model once this many neurons are computed spent
+                        (default 900)

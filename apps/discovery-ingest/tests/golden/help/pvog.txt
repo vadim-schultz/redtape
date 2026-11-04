@@ -1,0 +1,9 @@
+usage: discovery_ingest pvog [-h] {run,vocabulary} ...
+
+positional arguments:
+  {run,vocabulary}
+    run             Upsert rows from PVOG Suchdienst API
+    vocabulary      Print the full personalMatters leaf vocabulary from the v7 bootstrap tree
+
+options:
+  -h, --help        show this help message and exit

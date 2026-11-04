@@ -1,0 +1,4 @@
+usage: discovery_ingest pvog vocabulary [-h]
+
+options:
+  -h, --help  show this help message and exit

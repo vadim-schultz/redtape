@@ -130,10 +130,9 @@ def test_show_rejects_a_malformed_requirement_before_calling_the_api(
 ) -> None:
     seen = serve(_ledger)
 
-    with pytest.raises(SystemExit) as raised:
-        main(["budget", "show", "--require-remaining", flag])
+    exit_code = main(["budget", "show", "--require-remaining", flag])
 
-    assert raised.value.code == 2
+    assert exit_code == 2
     assert seen == []
 
 
@@ -155,10 +154,9 @@ def test_report_minutes_rejects_a_non_positive_count_without_calling_the_api(
 ) -> None:
     seen = serve(_ledger)
 
-    with pytest.raises(SystemExit) as raised:
-        main(["budget", "report-minutes", "--minutes", "0"])
+    exit_code = main(["budget", "report-minutes", "--minutes", "0"])
 
-    assert raised.value.code == 2
+    assert exit_code == 2
     assert seen == []
 
 

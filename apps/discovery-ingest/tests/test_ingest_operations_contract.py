@@ -64,12 +64,13 @@ def test_govdata_run_prints_each_skip_then_no_mappable_rows_and_exits_1(
 def test_govdata_run_refused_post_exits_1_silently(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """govdata run · a refused batch exits 1 and prints nothing, as before."""
+    """govdata run · a refused batch exits 1 with nothing on stdout; stderr names the command (finding C4)."""
     _patch_api(monkeypatch, lambda _request: httpx.Response(422, text="refused"))
     export = _ozg_page([MAPPABLE], tmp_path / "ozg.json")
 
     assert main(["govdata", "run", "--input", str(export), "--jurisdiction-id", JURISDICTION]) == 1
-    assert capsys.readouterr() == ("", "")
+    out, err = capsys.readouterr()
+    assert out == "" and err.startswith("govdata command failed: ")
 
 
 def test_govdata_fetch_posts_each_page_as_it_arrives(monkeypatch: pytest.MonkeyPatch) -> None:

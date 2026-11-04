@@ -154,10 +154,9 @@ def test_emit_rejects_more_ids_than_the_limit_before_any_call(api: _Api) -> None
 
 @pytest.mark.parametrize("args", [[], ["--all-staged", "--id", str(FIRST)]])
 def test_emit_needs_exactly_one_way_to_choose_candidates(api: _Api, args: list[str]) -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        _emit(*args)
+    exit_code = _emit(*args)
 
-    assert exit_info.value.code == 2
+    assert exit_code == 2
     assert api.calls == []
 
 

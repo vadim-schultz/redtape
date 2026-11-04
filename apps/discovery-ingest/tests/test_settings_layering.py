@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from discovery_ingest.browser import probe_cli
 from discovery_ingest.cli import main
 from discovery_ingest.config import (
     DEFAULT_FIM_PORTAL_URL,
@@ -17,6 +16,7 @@ from discovery_ingest.config import (
     load_bot_settings,
 )
 from discovery_ingest.llm_settings import LlmSettings
+from discovery_ingest.operations import probes
 
 PACKAGE = Path(__file__).parents[1] / "discovery_ingest"
 ENVIRON_ALLOWED = {PACKAGE / "config.py", PACKAGE / "llm_settings.py", PACKAGE / "cloudflare_account_settings.py"}
@@ -95,10 +95,10 @@ def test_fim_probe_user_agent_comes_from_bot_settings(
         def __init__(self, *, user_agent: str, **_: Any) -> None:
             agents.append(user_agent)
 
-    monkeypatch.setattr("discovery_ingest.cli.PoliteUrlFetcher", RecordingFetcher)
-    monkeypatch.setattr("discovery_ingest.cli.probe_keys", lambda *_args: [])
-    monkeypatch.setattr("discovery_ingest.cli.probe_lines", lambda _results: [])
-    monkeypatch.setattr("discovery_ingest.cli.gate_passed", lambda _results: True)
+    monkeypatch.setattr("discovery_ingest.operations.probes.PoliteUrlFetcher", RecordingFetcher)
+    monkeypatch.setattr("discovery_ingest.operations.probes.probe_keys", lambda *_args: [])
+    monkeypatch.setattr("discovery_ingest.operations.probes.probe_lines", lambda _results: [])
+    monkeypatch.setattr("discovery_ingest.operations.probes.gate_passed", lambda _results: True)
 
     assert main(["fim", "probe", "--keys", "99154021000000"]) == 0
     assert agents == ["RedtapeBot/1.0 (+https://ops.example/bot)"]
@@ -116,7 +116,7 @@ def test_browser_probe_honours_bot_contact_url(monkeypatch: pytest.MonkeyPatch) 
         seen.append(user_agent)
         raise RuntimeError("stop after the plan")
 
-    monkeypatch.setattr(probe_cli, "probe_plan", fake_plan)
+    monkeypatch.setattr(probes, "probe_plan", fake_plan)
 
     with pytest.raises(RuntimeError, match="stop after the plan"):
         main(["browser", "probe", "--url", "https://portal.example/a"])

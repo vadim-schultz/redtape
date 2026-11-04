@@ -1,0 +1,8 @@
+usage: discovery_ingest artifacts list [-h] --host HOST [--limit LIMIT]
+                                       [--kind {html_snapshot,screenshot}]
+
+options:
+  -h, --help            show this help message and exit
+  --host HOST           Source host, for example verwaltung.bund.de
+  --limit LIMIT         Maximum artifacts to print (default 20)
+  --kind {html_snapshot,screenshot}

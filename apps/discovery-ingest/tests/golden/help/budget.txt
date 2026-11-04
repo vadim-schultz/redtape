@@ -1,0 +1,9 @@
+usage: discovery_ingest budget [-h] {show,report-minutes} ...
+
+positional arguments:
+  {show,report-minutes}
+    show                Print the ledger; exit 3 when a required resource is short
+    report-minutes      Add Actions minutes spent by this run to the ledger
+
+options:
+  -h, --help            show this help message and exit

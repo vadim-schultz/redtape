@@ -1,0 +1,20 @@
+usage: discovery_ingest [-h]
+                        {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture}
+                        ...
+
+positional arguments:
+  {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture}
+    govdata             GovData OZG catalogue ingest
+    pvog                PVOG Suchdienst catalogue ingest
+    fim                 FIM Portal enrich
+    leika               LeiKa stammtext enrich
+    worker              Discovery task worker
+    candidates          Document candidates
+    budget              Free-allocation budget ledger
+    browser             Cloudflare Browser Run
+    llm                 Cloudflare Workers AI
+    artifacts           Stored page snapshots and screenshots
+    capture             Screenshots of the pages candidates were found on
+
+options:
+  -h, --help            show this help message and exit

@@ -1,0 +1,14 @@
+usage: discovery_ingest govdata fetch [-h] --jurisdiction-id JURISDICTION_ID
+                                      [--max-pages MAX_PAGES] [--page-size PAGE_SIZE]
+                                      [--max-records MAX_RECORDS]
+
+options:
+  -h, --help            show this help message and exit
+  --jurisdiction-id JURISDICTION_ID
+                        Jurisdiction UUID for federal rows (ars 000000000000)
+  --max-pages MAX_PAGES
+                        Maximum Leistungen feed pages per run (default 150)
+  --page-size PAGE_SIZE
+                        Rows per Leistungen feed page (default 100)
+  --max-records MAX_RECORDS
+                        Optional safety cap on total rows fetched

@@ -1,0 +1,13 @@
+usage: discovery_ingest browser probe [-h] [--url URL] [--error-url ERROR_URL]
+                                      [--variant {ua-echo,content,content-lean,snapshot-md,screenshot-jpeg,screenshot-png,snapshot-shot}]
+                                      [--max-browser-seconds MAX_BROWSER_SECONDS]
+
+options:
+  -h, --help            show this help message and exit
+  --url URL             A page to render with every variant (repeatable)
+  --error-url ERROR_URL
+                        A page expected to fail; contract call only
+  --variant {ua-echo,content,content-lean,snapshot-md,screenshot-jpeg,screenshot-png,snapshot-shot}
+                        Only these variants (default all)
+  --max-browser-seconds MAX_BROWSER_SECONDS
+                        Stop once this many browser seconds are spent (default 240)

@@ -1,0 +1,6 @@
+usage: discovery_ingest fim probe [-h] --keys KEYS [--base-url BASE_URL]
+
+options:
+  -h, --help           show this help message and exit
+  --keys KEYS          Comma separated 14-digit keys
+  --base-url BASE_URL  FIM Portal base URL

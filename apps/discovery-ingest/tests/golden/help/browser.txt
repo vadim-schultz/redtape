@@ -1,0 +1,8 @@
+usage: discovery_ingest browser [-h] {probe} ...
+
+positional arguments:
+  {probe}
+    probe     Call every quick action the worker uses and print a table
+
+options:
+  -h, --help  show this help message and exit

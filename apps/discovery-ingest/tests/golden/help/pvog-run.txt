@@ -1,0 +1,8 @@
+usage: discovery_ingest pvog run [-h] --jurisdiction-id JURISDICTION_ID [--max-pages MAX_PAGES]
+
+options:
+  -h, --help            show this help message and exit
+  --jurisdiction-id JURISDICTION_ID
+                        Jurisdiction UUID for federal scope (ars 000000000000)
+  --max-pages MAX_PAGES
+                        Optional cap on PVOG pagination pages per run

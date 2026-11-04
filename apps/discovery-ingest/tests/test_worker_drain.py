@@ -269,8 +269,7 @@ def test_worker_drain_rejects_non_positive_bounds_before_claiming(
 
 def test_worker_drain_rejects_non_numeric_bound(_env: None) -> None:
     """worker drain rejects a non-numeric bound at argument parsing."""
-    with pytest.raises(SystemExit):
-        main(["worker", "drain", "--max-batches", "many"])
+    assert main(["worker", "drain", "--max-batches", "many"]) == 2
 
 
 def test_worker_drain_stops_at_time_budget_without_speculative_claim(
@@ -432,10 +431,9 @@ def test_worker_drain_rejects_an_unknown_or_empty_kind_before_claiming(
     bodies: list[dict[str, object]] = []
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
 
-    with pytest.raises(SystemExit) as exit_info:
-        main(["worker", "drain", "--kinds", raw])
+    exit_code = main(["worker", "drain", "--kinds", raw])
 
-    assert exit_info.value.code == 2
+    assert exit_code == 2
     assert bodies == []
 
 

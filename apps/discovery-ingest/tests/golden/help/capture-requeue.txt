@@ -1,0 +1,10 @@
+usage: discovery_ingest capture requeue [-h] [--host HOST] [--limit LIMIT] [--dry-run]
+                                        [--service-id SERVICE_ID]
+
+options:
+  -h, --help            show this help message and exit
+  --host HOST           Only pages of this source host (default: every host)
+  --limit LIMIT         Maximum pages to queue (1-200, default 50)
+  --dry-run             Count the pages; make no enqueue call
+  --service-id SERVICE_ID
+                        Only this procedure (catalogue row UUID; repeatable, at most 20)

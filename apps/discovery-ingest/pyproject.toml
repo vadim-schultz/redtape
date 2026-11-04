@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.10,<3",
     "pydantic-settings>=2.0,<3",
     "selectolax>=1.0.2",
+    "typer>=0.12",
 ]
 
 [project.optional-dependencies]
@@ -58,8 +59,6 @@ convention = "pep257"
 "discovery_ingest/fim/client.py" = ["TID251"]  # T2 baseline, removed by I2
 "discovery_ingest/leika/client.py" = ["TID251"]  # T2 baseline, removed by I2
 "discovery_ingest/worker/enrich_metadata.py" = ["TID251"]  # T2 baseline, removed by I3
-"discovery_ingest/cli.py" = ["TID251"]  # T2 baseline, removed by I4
-"discovery_ingest/capture_requeue.py" = ["TID251"]  # T2 baseline, removed by I4
 # docstring baseline (T1): delete the line when its slice is done
 "discovery_ingest/{emit_models,config,curation,enrich,curation_plan,health,curation_check,llm_settings,__init__,edges,budget_models,batch_dedup,schemas,mentions,catalogue_export,__main__,curation_load}.py" = ["D107", "D401"]  # I-S2 (browser/** has no current violations, so it carries no exemption)
 "discovery_ingest/extract/{clean,clean_dom,registry,__init__,clean_meta,clean_rank,clean_cap,clean_links,clean_tags,clean_markdown,decode,base}.py" = ["D107", "D401"]  # I-S2
@@ -100,10 +99,6 @@ disallow_any_explicit = false  # T2 baseline, removed by I2
 [[tool.mypy.overrides]]
 module = ["discovery_ingest.worker.enrich_metadata"]
 disallow_any_explicit = false  # T2 baseline, removed by I3
-
-[[tool.mypy.overrides]]
-module = ["discovery_ingest.cli", "discovery_ingest.capture_requeue"]
-disallow_any_explicit = false  # T2 baseline, removed by I4
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

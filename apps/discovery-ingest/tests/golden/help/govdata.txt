@@ -1,0 +1,9 @@
+usage: discovery_ingest govdata [-h] {run,fetch} ...
+
+positional arguments:
+  {run,fetch}
+    run        Upsert rows from a Leistungen JSON export
+    fetch      Fetch OZG Leistungen from GovData CKAN and upsert
+
+options:
+  -h, --help   show this help message and exit

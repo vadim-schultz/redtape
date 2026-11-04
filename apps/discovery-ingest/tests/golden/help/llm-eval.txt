@@ -1,0 +1,17 @@
+usage: discovery_ingest llm eval [-h] --model MODEL [--prompt-version PROMPT_VERSION]
+                                 [--limit LIMIT] [--out OUT] [--neuron-budget NEURON_BUDGET]
+                                 [--gold-dir GOLD_DIR] [--cache-dir CACHE_DIR]
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         A Workers AI model id with a price row
+  --prompt-version PROMPT_VERSION
+                        The prompt version (default ext-5)
+  --limit LIMIT         Only the first N gold pages by name
+  --out OUT             Write the per-page results as JSON to this file
+  --neuron-budget NEURON_BUDGET
+                        Stop once this many neurons are used; the last call may pass it by its own
+                        cost (default 4000)
+  --gold-dir GOLD_DIR   Directory of the gold pages and labels
+  --cache-dir CACHE_DIR
+                        Directory of cached model answers

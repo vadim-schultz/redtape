@@ -175,10 +175,9 @@ def test_capture_requeue_rejects_a_bad_limit_before_any_call(
     api: Api, capsys: pytest.CaptureFixture[str], limit: str
 ) -> None:
     """capture requeue · 0, 201 and text are an argparse error (exit 2) with no request made."""
-    with pytest.raises(SystemExit) as stop:
-        main(["capture", "requeue", "--limit", limit])
+    exit_code = main(["capture", "requeue", "--limit", limit])
 
-    assert stop.value.code == 2 and api.requests == []
+    assert exit_code == 2 and api.requests == []
     capsys.readouterr()
 
 
@@ -190,11 +189,12 @@ def test_capture_requeue_passes_chosen_service_ids_and_refuses_more_than_twenty(
     flags = [part for value in ids for part in ("--service-id", value)]
 
     _run(capsys, *flags)
-    with pytest.raises(SystemExit) as stop:
-        main(["capture", "requeue", *[p for n in range(21) for p in ("--service-id", str(uuid.UUID(int=n + 1)))]])
+    exit_code = main(
+        ["capture", "requeue", *[p for n in range(21) for p in ("--service-id", str(uuid.UUID(int=n + 1)))]]
+    )
 
     assert api.lists[0].url.params.get_list("catalogue_service_id") == ids
-    assert stop.value.code == 2 and len(api.lists) == 1
+    assert exit_code == 2 and len(api.lists) == 1
     capsys.readouterr()
 
 
