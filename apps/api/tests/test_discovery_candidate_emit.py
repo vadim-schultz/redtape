@@ -9,8 +9,8 @@ import pytest
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_emit_payload import SuggestedTags
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
@@ -309,7 +309,7 @@ def api_key(db_session: Session) -> ApiKey:
 
 def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandidateEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
     suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(
@@ -381,7 +381,7 @@ def _tagged_mention(
 
 def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
     suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions)

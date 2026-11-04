@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import ClassVar, Generic, Literal, NamedTuple, Protocol, TypeVar
 from uuid import UUID
 
-from app.features.documents.service import DocumentService
+from app.features.documents.promotion import PromotionPort
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.slugs import pick_title, slugify
 from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
@@ -50,7 +50,7 @@ class Conflict:
 class HandlerDeps:
     """What the per-kind handlers read from the rest of the app; each handler takes what it needs."""
 
-    documents: DocumentService
+    documents: PromotionPort
     taxonomy: TaxonomyService
     suggestions: SuggestionRepository
 
@@ -174,7 +174,7 @@ class NewDocumentHandler:
         payload = NewDocumentPayload.model_validate(suggestion.payload)
         identity = _document_identity(payload)
         self._check_still_free(identity, jurisdiction_id=suggestion.jurisdiction_id)
-        document = self._documents.create_from_suggestion(payload, suggestion.jurisdiction_id, identity.slug)
+        document = self._documents.create_document(payload, suggestion.jurisdiction_id, identity.slug)
         return document.id
 
     def _check_still_free(self, identity: DocumentIdentity, *, jurisdiction_id: UUID) -> None:
@@ -213,7 +213,7 @@ class NewRequirementHandler:
             raise UnknownDocumentError(f"document {document_id} is not in this jurisdiction")
 
     def _in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> bool:
-        return self._documents.get_document_jurisdiction(document_id) == jurisdiction_id
+        return self._documents.jurisdiction_of_document(document_id) == jurisdiction_id
 
     def normalized_url(self, payload: NewRequirementPayload) -> str | None:
         """Return None: requirement edges have no URL to deduplicate on."""
@@ -222,7 +222,7 @@ class NewRequirementHandler:
     def conflicts(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
         """List the existing requirement for this edge and the pending suggestions proposing it."""
         conflicts: list[Conflict] = []
-        existing = self._documents.requirement_exists(
+        existing = self._documents.existing_requirement(
             jurisdiction_id=jurisdiction_id,
             parent_document_id=payload.parent_document_id,
             required_document_id=payload.required_document_id,
@@ -240,7 +240,7 @@ class NewRequirementHandler:
         """Create the requirement unless the edge became invalid since the suggestion was filed."""
         payload = NewRequirementPayload.model_validate(suggestion.payload)
         self._check_still_valid(payload, jurisdiction_id=suggestion.jurisdiction_id)
-        requirement = self._documents.create_requirement_from_suggestion(
+        requirement = self._documents.create_requirement(
             payload.parent_document_id, payload.required_document_id, suggestion.jurisdiction_id, payload.notes_i18n
         )
         return requirement.id
@@ -260,7 +260,7 @@ class NewRequirementHandler:
             raise PromotionConflictError("promoting this edge would create a direct cycle")
 
     def _check_no_duplicate_edge(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
-        existing = self._documents.requirement_exists(
+        existing = self._documents.existing_requirement(
             jurisdiction_id=jurisdiction_id,
             parent_document_id=payload.parent_document_id,
             required_document_id=payload.required_document_id,

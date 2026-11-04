@@ -5,6 +5,7 @@ from __future__ import annotations
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.query import provide_document_list_query
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
@@ -23,9 +24,17 @@ def provide_document_service(
     return DocumentService(document_repository, taxonomy_service)
 
 
+def provide_document_promotion(
+    document_repository: DocumentRepository,
+    taxonomy_service: TaxonomyService,
+) -> DocumentPromotion:
+    return DocumentPromotion(document_repository, taxonomy_service)
+
+
 router_dependencies = {
     **taxonomy_dependencies,
     "document_repository": Provide(provide_document_repository, sync_to_thread=False),
     "document_service": Provide(provide_document_service, sync_to_thread=False),
+    "document_promotion": Provide(provide_document_promotion, sync_to_thread=False),
     "document_query": Provide(provide_document_list_query, sync_to_thread=False),
 }

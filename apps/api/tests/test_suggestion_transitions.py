@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
@@ -42,7 +42,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 

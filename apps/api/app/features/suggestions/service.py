@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
-from app.features.documents.service import DocumentService
+from app.features.documents.promotion import PromotionPort
 from app.features.events.service import EventLogService
 from app.features.suggestions.filters import SuggestionFilters
 from app.features.suggestions.handlers import (
@@ -73,7 +73,7 @@ class SuggestionService:
     def __init__(
         self,
         repository: SuggestionRepository,
-        documents: DocumentService,
+        documents: PromotionPort,
         taxonomy: TaxonomyService,
         events: EventLogService,
     ) -> None:

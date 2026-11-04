@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
@@ -55,7 +55,7 @@ def user(db_session: Session) -> AppUser:
 
 @pytest.fixture
 def service(db_session: Session) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)

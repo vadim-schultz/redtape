@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.filters import SuggestionFilters
@@ -60,7 +60,7 @@ def api_key(db_session: Session) -> ApiKey:
 def service(db_session: Session) -> SuggestionService:
     events = EventLogService(EventLogRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
 
 

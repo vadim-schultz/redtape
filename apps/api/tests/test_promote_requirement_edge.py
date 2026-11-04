@@ -6,8 +6,8 @@ import uuid
 from collections.abc import Iterator
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.handlers import PromotionConflictError
@@ -48,8 +48,8 @@ def taxonomy_service(db_session: Session) -> TaxonomyService:
 
 
 @pytest.fixture
-def document_service(db_session: Session, taxonomy_service: TaxonomyService) -> DocumentService:
-    return DocumentService(DocumentRepository(db_session), taxonomy_service)
+def document_promotion(db_session: Session, taxonomy_service: TaxonomyService) -> DocumentPromotion:
+    return DocumentPromotion(DocumentRepository(db_session), taxonomy_service)
 
 
 @pytest.fixture
@@ -60,11 +60,11 @@ def event_log_service(db_session: Session) -> EventLogService:
 @pytest.fixture
 def service(
     db_session: Session,
-    document_service: DocumentService,
+    document_promotion: DocumentPromotion,
     taxonomy_service: TaxonomyService,
     event_log_service: EventLogService,
 ) -> SuggestionService:
-    return SuggestionService(SuggestionRepository(db_session), document_service, taxonomy_service, event_log_service)
+    return SuggestionService(SuggestionRepository(db_session), document_promotion, taxonomy_service, event_log_service)
 
 
 def _document(db_session: Session, jurisdiction: Jurisdiction, *, slug: str) -> Document:
