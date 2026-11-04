@@ -10,14 +10,13 @@ description: >-
 # Chief of staff
 
 Use this skill when the user asks to execute or coordinate a plan suite under
-[`.plans/`](../../../.plans/). The chief of staff owns orchestration,
+the current repository's `.plans/` directory. The chief of staff owns orchestration,
 integration, live gates, and the suite ledger. A `chapter-implementer` owns one
 implementation chapter in one isolated worktree.
 
-The canonical plan shape is
-[`.plans/PLAN_TEMPLATE.md`](../../../.plans/PLAN_TEMPLATE.md). Treat a
-suite's `01-rollout.md` as its execution contract, not as a list that must be
-followed serially.
+The canonical plan shape is the current repository's `.plans/PLAN_TEMPLATE.md`.
+Treat a suite's `01-rollout.md` as its execution contract, not as a list that
+must be followed serially.
 
 ## Operating contract
 
@@ -46,8 +45,9 @@ followed serially.
    chief-of-staff` work yourself. Never delegate those to a
    `chapter-implementer`.
 10. Do not let implementers edit the suite ledger, release PR, or unrelated
-    chapters. Pass [the corporate build environment](corporate-build-env.md)
-    to every implementer assignment when it applies.
+    chapters. When the current repository provides
+    `.cursor/skills/chief-of-staff/corporate-build-env.md`, pass that optional
+    block to every implementer assignment when it applies.
 
 ## Scheduling rules
 
@@ -85,9 +85,8 @@ worktree.
 
 ## Required plan metadata
 
-Every new or substantially revised suite follows
-[`.plans/PLAN_TEMPLATE.md`](../../../.plans/PLAN_TEMPLATE.md). In particular,
-`01-rollout.md` must contain:
+Every new or substantially revised suite follows the current repository's
+`.plans/PLAN_TEMPLATE.md`. In particular, `01-rollout.md` must contain:
 
 - a complete dependency graph;
 - a chapter scheduling matrix with `depends_on`, `touches`, execution owner,
