@@ -44,13 +44,16 @@
 
 ### Chapter 2 — Schema and data migration
 
-- Alembic upgrade: pending
-- Alembic downgrade/forward-only decision: pending
-- Category row count: pending
-- Document-category link count: pending
-- External PVOG classification count: pending
-- Backfill rerun is idempotent: pending
-- Old/new projection parity report: pending
+- Status: blocked before integration; implementer commit `0fad542` remains isolated on `feat/category-schema-data-migration`
+- Alembic upgrade: not verified; Docker daemon/Postgres unavailable
+- Alembic downgrade/forward-only decision: documented as additive schema downgrade plus forward-only data projection
+- Category row count: implementation reports 34 planned rows; database count pending
+- Document-category link count: pending database verification
+- External PVOG classification count: pending database verification
+- Backfill rerun is idempotent: covered by tests but not executable without Postgres
+- Old/new projection parity report: pending database verification
+- Static checks: format, ruff, and mypy pass
+- Blocker: `docker compose` cannot connect to `/var/run/docker.sock`; SQLite cannot run the project's PostgreSQL `ARRAY` migrations
 
 ### Chapter 3 — API and backend filters
 
