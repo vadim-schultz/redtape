@@ -1,3 +1,5 @@
+"""Document read use cases: paged lists, scope resolution, leaf codes and localized details."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -65,8 +67,9 @@ class DocumentService:
         )
 
     def available_leaf_codes(self, filters: DocumentFilters) -> list[str]:
-        """Distinct PVOG leaf codes in scope; only meaningful once exactly one situation is selected
-        (chapter 4 design) — empty for zero or several, same as an unresolvable municipality.
+        """Return the distinct PVOG leaf codes in scope, but only when exactly one situation is selected.
+
+        Chapter 4 design: zero or several situations, or an unresolvable municipality, give an empty list.
         """
         if filters.municipality_code is not None and self._effective_jurisdiction_id(filters) is None:
             return []

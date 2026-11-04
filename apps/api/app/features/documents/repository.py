@@ -1,3 +1,5 @@
+"""Persistence for documents, their tag links, direct requirements and the jurisdiction tree."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -37,9 +39,11 @@ def _filter_by_terms(
 
 
 def _order_by(situation_ids: Sequence[UUID]) -> tuple:
-    """Slug order, unless a situation filter is active — then the highest matched confidence first
+    """Order by slug, or by the highest matched situation confidence when a situation filter is active.
+
+    With a situation filter the highest matched confidence comes first and the slug is the tiebreak
     (situation-tag-hierarchy chapter 4; `max` across multiple selected situations is a documented
-    open seam, see `gaps-and-decisions.md`), slug still the tiebreak.
+    open seam, see `gaps-and-decisions.md`).
     """
     if not situation_ids:
         return (Document.slug.asc(),)
@@ -56,6 +60,7 @@ class DocumentRepository:
     """Persistence for documents and direct requirements."""
 
     def __init__(self, session: Session) -> None:
+        """Bind the repository to the request's database session."""
         self._session = session
 
     def _base_select(
@@ -77,10 +82,12 @@ class DocumentRepository:
         domain_ids: Sequence[UUID] = (),
         situation_ids: Sequence[UUID] = (),
     ) -> int:
+        """Count documents matching the jurisdiction and tag filters, ignoring pagination."""
         filtered = self._base_select(jurisdiction_id, domain_ids, situation_ids).order_by(None).subquery()
         return int(self._session.scalar(select(func.count()).select_from(filtered)) or 0)
 
     def ids_in_scope(self, *, jurisdiction_id: UUID | None) -> list[UUID]:
+        """Return the ids of every document in a jurisdiction, or of all documents when none is given."""
         stmt = select(Document.id)
         if jurisdiction_id is not None:
             stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
@@ -95,6 +102,7 @@ class DocumentRepository:
         domain_ids: Sequence[UUID] = (),
         situation_ids: Sequence[UUID] = (),
     ) -> list[Document]:
+        """Return one page of matching documents in the repository ordering."""
         stmt = self._base_select(jurisdiction_id, domain_ids, situation_ids).offset(offset).limit(limit)
         return list(self._session.scalars(stmt).all())
 
@@ -106,6 +114,7 @@ class DocumentRepository:
         situation_scores: dict[UUID, float] | None = None,
         situation_leaf_codes: dict[UUID, str] | None = None,
     ) -> Document:
+        """Insert a document and flush it, then link its domain and situation tags from the given scores."""
         self._session.add(document)
         self._session.flush()
         self._link_terms(document_domain.c.domain_id, document.id, domain_scores or {})
@@ -125,9 +134,9 @@ class DocumentRepository:
         *,
         leaf_codes: dict[UUID, str] | None = None,
     ) -> None:
-        """Insert one link row per ``scores`` entry, each carrying its given confidence and, when given,
-        its PVOG leaf code (situation-only facet, situation-tag-hierarchy chapter 3).
+        """Insert one link row per ``scores`` entry, carrying its confidence and any PVOG leaf code.
 
+        The PVOG leaf code is the situation-only facet (situation-tag-hierarchy chapter 3).
         ``scores`` must already carry every id that is to be linked — a missing id is not defaulted here;
         that's the caller's contract, one layer up (``DocumentService._resolve_tags``).
         """
@@ -146,6 +155,7 @@ class DocumentRepository:
         self._session.execute(term_column.table.insert(), rows)
 
     def get_by_id(self, document_id: UUID) -> Document | None:
+        """Return the document with its requirements and tags eager-loaded, or `None` when absent."""
         stmt = (
             select(Document)
             .options(
@@ -158,8 +168,9 @@ class DocumentRepository:
         return self._session.scalar(stmt)
 
     def leaf_codes_in_scope(self, *, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
-        """Distinct non-null PVOG leaf codes among `document_life_situation` rows matching the given
-        jurisdiction/situation scope, same shape as `_base_select`/`_filter_by_terms`.
+        """Return the distinct non-null PVOG leaf codes in the given jurisdiction and situation scope.
+
+        Same shape as `_base_select` and `_filter_by_terms`; the result is sorted.
         """
         link = document_life_situation
         stmt = (
@@ -204,6 +215,7 @@ class DocumentRepository:
         return list(self._session.execute(stmt).tuples().all())
 
     def jurisdiction_exists(self, jurisdiction_id: UUID) -> bool:
+        """Return whether a jurisdiction with this id exists."""
         return self._session.scalar(select(Jurisdiction.id).where(Jurisdiction.id == jurisdiction_id)) is not None
 
     def get_municipality_jurisdiction_id(self, *, municipality_code: str) -> UUID | None:
@@ -216,11 +228,13 @@ class DocumentRepository:
         return row.id if row is not None else None
 
     def get_jurisdiction_for_document(self, document_id: UUID) -> UUID | None:
+        """Return the jurisdiction id of a document, or `None` when the document does not exist."""
         return self._session.scalar(select(Document.jurisdiction_id).where(Document.id == document_id))
 
     def find_requirement(
         self, *, jurisdiction_id: UUID, parent_document_id: UUID, required_document_id: UUID
     ) -> UUID | None:
+        """Return the id of the requirement between two documents in a jurisdiction, or `None`."""
         stmt = select(DocumentRequirement.id).where(
             DocumentRequirement.jurisdiction_id == jurisdiction_id,
             DocumentRequirement.parent_document_id == parent_document_id,
@@ -229,6 +243,7 @@ class DocumentRepository:
         return self._session.scalar(stmt)
 
     def add_requirement(self, requirement: DocumentRequirement) -> DocumentRequirement:
+        """Insert a requirement and flush it so its id is available to the caller."""
         self._session.add(requirement)
         self._session.flush()
         return requirement

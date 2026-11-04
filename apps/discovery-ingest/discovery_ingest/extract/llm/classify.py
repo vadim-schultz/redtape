@@ -44,6 +44,7 @@ def error_info(response: httpx.Response) -> ErrorInfo:
 
 
 def describe(response: httpx.Response, scrub: Scrub) -> str:
+    """Render the HTTP status and each error code and message as one line, passed through ``scrub``."""
     errors = _errors(json_payload(response))
     detail = "; ".join(f"code {error.get('code')}: {error.get('message')}" for error in errors)
     return scrub(f"Cloudflare HTTP {response.status_code}" + (f" {detail}" if detail else ""))

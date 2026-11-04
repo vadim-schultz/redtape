@@ -1,3 +1,5 @@
+"""Verify Supabase access tokens against the project's JWKS, without touching the database."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -61,7 +63,10 @@ class JwtClaims(BaseModel):
 
 
 class AuthError(Exception):
+    """Raised when a credential is refused; `reason` is a stable code for logs, never a client message."""
+
     def __init__(self, reason: str) -> None:
+        """Bind the stable reason code that explains the refusal."""
         super().__init__(reason)
         self.reason = reason
 
@@ -85,6 +90,7 @@ class JwtVerifier:
     """Database-free verification of a Supabase access token against its JWKS."""
 
     def __init__(self, key_resolver: KeyResolver, issuer: str, audience: str) -> None:
+        """Bind the key resolver and the expected issuer and audience of the tokens."""
         self._key_resolver = key_resolver
         self._issuer = issuer
         self._audience = audience

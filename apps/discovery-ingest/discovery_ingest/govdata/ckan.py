@@ -32,6 +32,10 @@ class GovDataCkanClient:
         scope_ars: str | None = FEDERAL_ARS,
         http_client: httpx.Client | None = None,
     ) -> None:
+        """Bind the CKAN base URL (trailing slash stripped), the package and the optional ARS scope.
+
+        An injected ``http_client`` replaces the default transport for every request.
+        """
         self._ckan_base_url = ckan_base_url.rstrip("/")
         self._package_id = package_id
         self._scope_ars = scope_ars

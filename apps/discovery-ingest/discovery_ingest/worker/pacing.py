@@ -9,6 +9,7 @@ class HostPacer:
     """Sleep as needed so requests to one host are at least ``min_interval_s`` apart."""
 
     def __init__(self, min_interval_s: float) -> None:
+        """Bind the minimum spacing, in seconds, enforced between requests to one host."""
         self._min_interval_s = min_interval_s
         self._last_by_host: dict[str, float] = {}
 

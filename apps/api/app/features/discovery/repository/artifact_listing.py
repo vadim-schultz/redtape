@@ -51,7 +51,7 @@ def _cited_by(candidate_id: UUID) -> ColumnElement[bool]:
 
 
 def _latest_screenshot_of_each_procedure(candidate_id: UUID) -> ColumnElement[bool]:
-    """The newest screenshot of every procedure that mentions the candidate."""
+    """Match the newest screenshot of every procedure that mentions the candidate."""
     procedures = select(DiscoveryCandidateMention.catalogue_service_id).where(
         DiscoveryCandidateMention.candidate_id == candidate_id
     )

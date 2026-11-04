@@ -23,7 +23,7 @@ class LlmDrain:
     meter: NeuronMeter
 
     def handlers(self) -> Mapping[DiscoveryTaskKind, TaskHandler]:
-        """The kind-to-handler entry of this drain."""
+        """Return the kind-to-handler entry of this drain."""
         return {"llm_extract": self.handler}
 
     def record(self, tally: Tally) -> None:

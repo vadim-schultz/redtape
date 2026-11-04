@@ -54,6 +54,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         catalogue_id: UUID,
     ) -> CatalogueMachineRead:
+        """Return one catalogue row in the shape machine clients read it."""
         return discovery_machine_service.get_catalogue_for_machine(catalogue_id)
 
     @post("/catalogue/batch", sync_to_thread=True, status_code=HTTP_201_CREATED)
@@ -62,6 +63,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         data: CatalogueBatchRequest,
     ) -> CatalogueBatchResponse:
+        """Upsert a batch of catalogue rows."""
         return discovery_machine_service.batch_upsert(data)
 
     @post("/tasks", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
@@ -70,6 +72,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         data: TaskEnqueueRequest,
     ) -> Response[TaskEnqueueResponse]:
+        """Enqueue a discovery task; a repeat enqueue answers 200 instead of 201."""
         result = discovery_machine_service.enqueue_task(data)
         return Response(result, status_code=HTTP_201_CREATED if result.created else HTTP_200_OK)
 
@@ -80,6 +83,7 @@ class DiscoveryMachineController(Controller):
         machine_principal: MachinePrincipal,
         data: TaskClaimRequest,
     ) -> TaskClaimResponse:
+        """Lease pending tasks to the calling machine key for its next work."""
         return discovery_machine_service.claim_tasks(data, api_key=machine_principal.api_key)
 
     @get("/tasks/summary", sync_to_thread=True, status_code=HTTP_200_OK)
@@ -88,6 +92,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         kinds: list[DiscoveryTaskKind] | None = None,
     ) -> TaskSummaryResponse:
+        """Count the task queue for the given kinds without leasing anything."""
         return discovery_machine_service.task_summary(kinds)
 
     @post("/tasks/{task_id:uuid}/complete", sync_to_thread=True)
@@ -97,6 +102,7 @@ class DiscoveryMachineController(Controller):
         task_id: UUID,
         data: TaskCompleteRequest | None = None,
     ) -> TaskCompleteResponse:
+        """Mark a claimed task complete, optionally with a completion payload."""
         return discovery_machine_service.complete_task(task_id, data)
 
     @post("/tasks/{task_id:uuid}/release", sync_to_thread=True, status_code=HTTP_200_OK)
@@ -106,6 +112,7 @@ class DiscoveryMachineController(Controller):
         task_id: UUID,
         data: TaskReleaseRequest,
     ) -> TaskReleaseResponse:
+        """Return a claimed task to the queue so another worker can claim it."""
         return discovery_machine_service.release_task(task_id, data)
 
     @post("/tasks/{task_id:uuid}/fail", sync_to_thread=True)
@@ -115,6 +122,7 @@ class DiscoveryMachineController(Controller):
         task_id: UUID,
         data: TaskFailRequest,
     ) -> TaskFailResponse:
+        """Record that a claimed task failed, with the reason from the request."""
         return discovery_machine_service.fail_task(task_id, data)
 
     @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
@@ -124,6 +132,7 @@ class DiscoveryMachineController(Controller):
         task_id: UUID,
         data: FetchLogAppendRequest,
     ) -> FetchLogAppendResponse:
+        """Append one fetch-log entry to a task."""
         return discovery_machine_service.append_fetch_log(task_id, data)
 
     @post("/runs", sync_to_thread=True, status_code=HTTP_201_CREATED)
@@ -132,6 +141,7 @@ class DiscoveryMachineController(Controller):
         discovery_run_service: DiscoveryRunService,
         data: RunStartRequest,
     ) -> RunRead:
+        """Start a discovery run for the calling machine."""
         return discovery_run_service.start(data)
 
     @post("/runs/{run_id:uuid}/finish", sync_to_thread=True, status_code=HTTP_200_OK)
@@ -141,6 +151,7 @@ class DiscoveryMachineController(Controller):
         run_id: UUID,
         data: RunFinishRequest,
     ) -> RunRead:
+        """Close a discovery run with its outcome."""
         return discovery_run_service.finish(run_id, data)
 
     @post("/entities", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
@@ -149,6 +160,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         data: EntityUpsertRequest,
     ) -> EntityUpsertResponse:
+        """Create or update one entity from the request."""
         return discovery_machine_service.upsert_entity(data)
 
     @post("/claims", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
@@ -157,6 +169,7 @@ class DiscoveryMachineController(Controller):
         discovery_machine_service: DiscoveryMachineService,
         data: ClaimAppendRequest,
     ) -> ClaimAppendResponse:
+        """Append one claim to the staging pipeline."""
         return discovery_machine_service.append_claim(data)
 
     @post("/catalogue/{catalogue_id:uuid}/emit", sync_to_thread=True, status_code=HTTP_200_OK)
@@ -166,4 +179,5 @@ class DiscoveryMachineController(Controller):
         machine_principal: MachinePrincipal,
         catalogue_id: UUID,
     ) -> CatalogueEmitResponse:
+        """Emit the suggestions of one catalogue row under the calling machine key."""
         return discovery_emit_service.emit_catalogue(catalogue_id, api_key=machine_principal.api_key)

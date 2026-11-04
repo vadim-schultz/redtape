@@ -40,6 +40,7 @@ class DiscoveryAdminController(Controller):
         source: DiscoverySource | None = Parameter(query="source", default=None),
         kind: DiscoveryTaskKind | None = Parameter(query="kind", default=None),
     ) -> DiscoveryTaskListResponse:
+        """Page through discovery tasks, optionally narrowed by status, source or kind."""
         task_filter = task_filter_from(list_query, TaskFilter(status=status, source=source, kind=kind))
         return discovery_admin_service.list_tasks(task_filter, Page(offset=page.offset, limit=page.limit))
 
@@ -51,11 +52,13 @@ class DiscoveryAdminController(Controller):
         list_query: ListQuery,
         source: DiscoverySource | None = Parameter(query="source", default=None),
     ) -> CatalogueListResponse:
+        """Page through catalogue rows, optionally narrowed by source."""
         catalogue_filter = catalogue_filter_from(list_query, CatalogueFilter(source=source))
         return discovery_admin_service.list_catalogue(catalogue_filter, Page(offset=page.offset, limit=page.limit))
 
     @get("/coverage", sync_to_thread=True)
     def coverage(self, discovery_admin_service: DiscoveryAdminService) -> DiscoveryCoverageResponse:
+        """Report coverage counters across sources and the last successful run."""
         return discovery_admin_service.coverage()
 
     @get("/catalogue/{catalogue_id:uuid}/pipeline", sync_to_thread=True)
@@ -64,6 +67,7 @@ class DiscoveryAdminController(Controller):
         discovery_admin_service: DiscoveryAdminService,
         catalogue_id: UUID,
     ) -> CataloguePipelineResponse:
+        """Show the read-only pipeline state of one catalogue row."""
         return discovery_admin_service.catalogue_pipeline(catalogue_id)
 
     @get("/catalogue/{catalogue_id:uuid}/emit-preview", sync_to_thread=True)
@@ -72,4 +76,5 @@ class DiscoveryAdminController(Controller):
         discovery_admin_service: DiscoveryAdminService,
         catalogue_id: UUID,
     ) -> EmitPreviewResponse:
+        """Preview the suggestions an emit of one catalogue row would create, without writing."""
         return discovery_admin_service.emit_preview(catalogue_id)

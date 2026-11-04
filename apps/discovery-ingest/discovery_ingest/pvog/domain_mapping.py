@@ -1,5 +1,6 @@
-"""PVOG ``personalMatters`` leaf code to domain-axis hint, for the citizen leaves that are domain-shaped
-rather than situation-shaped.
+"""Map PVOG ``personalMatters`` leaf codes to domain-axis hints.
+
+Covers the citizen leaves that are domain-shaped rather than situation-shaped.
 
 A first pass over the 24 citizen-branch leaves ``situation-tag-activation`` chapter 3's
 ``PERSONAL_MATTER_TO_SITUATION`` leaves unmapped, recovering a ``domain_codes`` hint for the 14 that cut

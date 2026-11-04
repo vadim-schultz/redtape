@@ -1,3 +1,5 @@
+"""Route guards that enforce a minimum role or a machine credential."""
+
 from __future__ import annotations
 
 from litestar.connection import ASGIConnection
