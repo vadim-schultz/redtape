@@ -5,14 +5,14 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, get
-from litestar.params import Parameter
+from litestar.di import Provide
 
 from app.features.discovery.admin_service import DiscoveryAdminService
-from app.features.discovery.catalogue_list_query import CATALOGUE_LIST_SPEC, catalogue_filter_from
+from app.features.discovery.catalogue_list_query import CATALOGUE_LIST_SPEC, provide_catalogue_query
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
-from app.features.discovery.repository import CatalogueFilter, Page, TaskFilter
-from app.features.discovery.task_list_query import TASK_LIST_SPEC, task_filter_from
-from app.models.discovery import DiscoverySource, DiscoveryTaskKind, DiscoveryTaskStatus
+from app.features.discovery.list_query import DiscoveryListQuery
+from app.features.discovery.repository import CatalogueFilter, TaskFilter
+from app.features.discovery.task_list_query import TASK_LIST_SPEC, provide_task_query
 from app.schema.discovery.read import (
     CatalogueListResponse,
     CataloguePipelineResponse,
@@ -20,8 +20,7 @@ from app.schema.discovery.read import (
     DiscoveryTaskListResponse,
     EmitPreviewResponse,
 )
-from app.shared.list_query import ListQuery, provide_list_query
-from app.shared.paging import PageParams
+from app.shared.list_query import provide_list_query
 
 
 class DiscoveryAdminController(Controller):
@@ -30,31 +29,37 @@ class DiscoveryAdminController(Controller):
     path = "/"
     guards = DISCOVERY_ADMIN_GUARDS
 
-    @get("/tasks", sync_to_thread=True, dependencies={"list_query": provide_list_query(TASK_LIST_SPEC)})
+    @get(
+        "/tasks",
+        sync_to_thread=True,
+        dependencies={
+            "list_query": provide_list_query(TASK_LIST_SPEC),
+            "discovery_query": Provide(provide_task_query, sync_to_thread=False),
+        },
+    )
     def list_tasks(
         self,
         discovery_admin_service: DiscoveryAdminService,
-        page: PageParams,
-        list_query: ListQuery,
-        status: DiscoveryTaskStatus | None = Parameter(query="status", default=None),
-        source: DiscoverySource | None = Parameter(query="source", default=None),
-        kind: DiscoveryTaskKind | None = Parameter(query="kind", default=None),
+        discovery_query: DiscoveryListQuery[TaskFilter],
     ) -> DiscoveryTaskListResponse:
         """Page through discovery tasks, optionally narrowed by status, source or kind."""
-        task_filter = task_filter_from(list_query, TaskFilter(status=status, source=source, kind=kind))
-        return discovery_admin_service.list_tasks(task_filter, Page(offset=page.offset, limit=page.limit))
+        return discovery_admin_service.list_tasks(discovery_query.filters, discovery_query.page)
 
-    @get("/catalogue", sync_to_thread=True, dependencies={"list_query": provide_list_query(CATALOGUE_LIST_SPEC)})
+    @get(
+        "/catalogue",
+        sync_to_thread=True,
+        dependencies={
+            "list_query": provide_list_query(CATALOGUE_LIST_SPEC),
+            "discovery_query": Provide(provide_catalogue_query, sync_to_thread=False),
+        },
+    )
     def list_catalogue(
         self,
         discovery_admin_service: DiscoveryAdminService,
-        page: PageParams,
-        list_query: ListQuery,
-        source: DiscoverySource | None = Parameter(query="source", default=None),
+        discovery_query: DiscoveryListQuery[CatalogueFilter],
     ) -> CatalogueListResponse:
         """Page through catalogue rows, optionally narrowed by source."""
-        catalogue_filter = catalogue_filter_from(list_query, CatalogueFilter(source=source))
-        return discovery_admin_service.list_catalogue(catalogue_filter, Page(offset=page.offset, limit=page.limit))
+        return discovery_admin_service.list_catalogue(discovery_query.filters, discovery_query.page)
 
     @get("/coverage", sync_to_thread=True)
     def coverage(self, discovery_admin_service: DiscoveryAdminService) -> DiscoveryCoverageResponse:
