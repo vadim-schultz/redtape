@@ -77,7 +77,7 @@ class NewDocumentPayload(BaseModel):
             return value
         if "category_codes" in value:
             raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        from app.features.taxonomy.compatibility import LegacyTaxonomyAdapter
+        from app.shared.taxonomy_compatibility import LegacyTaxonomyAdapter
 
         try:
             translated = LegacyTaxonomyAdapter().translate(

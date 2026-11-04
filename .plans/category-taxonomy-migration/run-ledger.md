@@ -74,12 +74,16 @@
 
 ### Chapter 4 — Ingest and LLM contract
 
-- Mention category payload validation: pending
-- PVOG parent/leaf provenance: pending
-- LLM schema enum digest: pending
-- Unknown category handling: pending
-- Confidence parity: pending
-- Re-ingest/backfill behavior: pending
+- Status: integrated at `ab33b64` (`feat(ingest): emit category-backed PVOG and LLM mentions`, followed by test-contract corrections)
+- Mention category payload validation: canonical `category_codes` accepted; bounded legacy axis input translates once at the request boundary; stale canonical codes are counted and dropped
+- PVOG parent/leaf provenance: PVOG `v7` path, leaf, source version, and direct category confidence survive mapping and mention writes
+- LLM schema enum digest: `644ba461`; schema emits only active category codes
+- Unknown category handling: API and ingest negative-path tests cover rejection, counting, and no invented category when source mapping is absent
+- Confidence parity: Python/SQL category-score parity passes; 102 focused API tests and 94 focused ingest tests pass, with 262 ingest tests reported by the implementer
+- Re-ingest/backfill behavior: mention upsert remains idempotent; no automatic historical backfill was added because it is explicitly operator-controlled
+- Static checks: API and ingest Ruff format/check and mypy pass
+- Refactor gate: category validation, PVOG source capture, mapping, score aggregation, and compatibility translation remain named boundaries; no additional extraction justified
+- Boundary note: shared candidate score reads, promotion writers, suggestion handlers, taxonomy compatibility, and catalogue orchestration were added to C4's declared touches because they are the canonical category read/write boundary, not unrelated edits
 
 ### Chapter 5 — Frontend category browsing
 

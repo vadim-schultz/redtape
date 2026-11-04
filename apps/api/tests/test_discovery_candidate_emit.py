@@ -328,14 +328,10 @@ def test_payload_carries_the_codes_the_tag_hook_returns_and_the_preview_prints_t
     result = service.emit(candidate.id, api_key)
 
     assert preview.suggestion is not None
-    assert preview.suggestion.payload.model_dump()["domain_codes"] == ["housing"]
-    assert preview.suggestion.payload.model_dump()["situation_codes"] == ["moving-house"]
+    assert preview.suggestion.payload.model_dump()["category_codes"] == ["home-and-housing", "moving-house"]
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == (
-        ["housing"],
-        ["moving-house"],
-    )
+    assert suggestion.payload["category_codes"] == ["home-and-housing", "moving-house"]
 
 
 def test_payload_has_no_codes_when_the_tag_hook_returns_none(db_session: Session, api_key: ApiKey) -> None:
@@ -346,7 +342,7 @@ def test_payload_has_no_codes_when_the_tag_hook_returns_none(db_session: Session
 
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == ([], [])
+    assert suggestion.payload.get("category_codes", []) == []
 
 
 def test_an_unknown_code_from_the_tag_hook_skips_the_candidate_as_invalid(db_session: Session, api_key: ApiKey) -> None:
@@ -397,8 +393,11 @@ def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session:
 
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    assert suggestion.payload["domain_codes"] == ["housing"]
-    assert suggestion.payload["situation_codes"] == ["birth-of-child", "moving-house"]
+    assert suggestion.payload["category_codes"] == [
+        "home-and-housing",
+        "birth-and-parenthood",
+        "moving-house",
+    ]
 
 
 def test_emit_payload_includes_a_single_procedure_code_on_either_axis(db_session: Session, api_key: ApiKey) -> None:
@@ -413,7 +412,4 @@ def test_emit_payload_includes_a_single_procedure_code_on_either_axis(db_session
 
     suggestion = db_session.get(Suggestion, result.suggestion_id)
     assert suggestion is not None
-    assert (suggestion.payload["domain_codes"], suggestion.payload["situation_codes"]) == (
-        ["housing"],
-        ["moving-house"],
-    )
+    assert suggestion.payload["category_codes"] == ["home-and-housing", "moving-house"]

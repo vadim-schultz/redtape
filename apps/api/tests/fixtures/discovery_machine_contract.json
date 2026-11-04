@@ -950,6 +950,13 @@
       "additionalProperties": false,
       "description": "Payload for a `new_document` suggestion; pure validation, no database lookups.",
       "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
        "description_i18n": {
         "anyOf": [
          {
@@ -965,13 +972,6 @@
         "default": null,
         "title": "Description I18N"
        },
-       "domain_codes": {
-        "items": {
-         "type": "string"
-        },
-        "title": "Domain Codes",
-        "type": "array"
-       },
        "official_url": {
         "anyOf": [
          {
@@ -984,14 +984,7 @@
         "default": null,
         "title": "Official Url"
        },
-       "situation_codes": {
-        "items": {
-         "type": "string"
-        },
-        "title": "Situation Codes",
-        "type": "array"
-       },
-       "situation_leaf_codes": {
+       "pvog_leaf_codes": {
         "anyOf": [
          {
           "additionalProperties": {
@@ -1004,7 +997,7 @@
          }
         ],
         "default": null,
-        "title": "Situation Leaf Codes"
+        "title": "Pvog Leaf Codes"
        },
        "tag_confidence": {
         "anyOf": [
@@ -1517,8 +1510,100 @@
       ],
       "title": "DiscoveryMentionRole",
       "type": "string"
+     },
+     "PvogSourcePath": {
+      "description": "Captured PVOG root, parent and leaf labels for one mention.",
+      "properties": {
+       "leaf_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Code"
+       },
+       "leaf_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Label"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Code"
+       },
+       "parent_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Label"
+       },
+       "root_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Code"
+       },
+       "root_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Label"
+       },
+       "source_version": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Version"
+       }
+      },
+      "title": "PvogSourcePath",
+      "type": "object"
      }
     },
+    "additionalProperties": false,
     "description": "One occurrence of a document in a procedure.",
     "properties": {
      "artifact_id": {
@@ -1539,6 +1624,24 @@
       "title": "Catalogue Service Id",
       "type": "string"
      },
+     "category_codes": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxItems": 5,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Category Codes"
+     },
      "condition": {
       "anyOf": [
        {
@@ -1553,9 +1656,11 @@
       "default": null,
       "title": "Condition"
      },
-     "direct_domain_confidence": {
+     "direct_category_confidence": {
       "anyOf": [
        {
+        "maximum": 1,
+        "minimum": 0,
         "type": "number"
        },
        {
@@ -1563,37 +1668,7 @@
        }
       ],
       "default": null,
-      "title": "Direct Domain Confidence"
-     },
-     "direct_situation_confidence": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "default": null,
-      "title": "Direct Situation Confidence"
-     },
-     "domain_codes": {
-      "anyOf": [
-       {
-        "items": {
-         "maxLength": 64,
-         "minLength": 1,
-         "type": "string"
-        },
-        "maxItems": 2,
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "default": null,
-      "title": "Domain Codes"
+      "title": "Direct Category Confidence"
      },
      "excerpt": {
       "minLength": 1,
@@ -1652,26 +1727,33 @@
       "default": null,
       "title": "Pvog Leaf Code"
      },
-     "role": {
-      "$ref": "#/$defs/DiscoveryMentionRole"
-     },
-     "situation_codes": {
+     "pvog_mapping_version": {
       "anyOf": [
        {
-        "items": {
-         "maxLength": 64,
-         "minLength": 1,
-         "type": "string"
-        },
-        "maxItems": 3,
-        "type": "array"
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
        },
        {
         "type": "null"
        }
       ],
       "default": null,
-      "title": "Situation Codes"
+      "title": "Pvog Mapping Version"
+     },
+     "pvog_source_path": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/PvogSourcePath"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "role": {
+      "$ref": "#/$defs/DiscoveryMentionRole"
      },
      "source_field": {
       "maxLength": 200,
@@ -1706,6 +1788,7 @@
    "schema": {
     "$defs": {
      "CandidateMentionItem": {
+      "additionalProperties": false,
       "description": "One occurrence of a document in a procedure.",
       "properties": {
        "artifact_id": {
@@ -1726,6 +1809,24 @@
         "title": "Catalogue Service Id",
         "type": "string"
        },
+       "category_codes": {
+        "anyOf": [
+         {
+          "items": {
+           "maxLength": 64,
+           "minLength": 1,
+           "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Category Codes"
+       },
        "condition": {
         "anyOf": [
          {
@@ -1740,9 +1841,11 @@
         "default": null,
         "title": "Condition"
        },
-       "direct_domain_confidence": {
+       "direct_category_confidence": {
         "anyOf": [
          {
+          "maximum": 1,
+          "minimum": 0,
           "type": "number"
          },
          {
@@ -1750,37 +1853,7 @@
          }
         ],
         "default": null,
-        "title": "Direct Domain Confidence"
-       },
-       "direct_situation_confidence": {
-        "anyOf": [
-         {
-          "type": "number"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Direct Situation Confidence"
-       },
-       "domain_codes": {
-        "anyOf": [
-         {
-          "items": {
-           "maxLength": 64,
-           "minLength": 1,
-           "type": "string"
-          },
-          "maxItems": 2,
-          "type": "array"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Domain Codes"
+        "title": "Direct Category Confidence"
        },
        "excerpt": {
         "minLength": 1,
@@ -1839,26 +1912,33 @@
         "default": null,
         "title": "Pvog Leaf Code"
        },
-       "role": {
-        "$ref": "#/$defs/DiscoveryMentionRole"
-       },
-       "situation_codes": {
+       "pvog_mapping_version": {
         "anyOf": [
          {
-          "items": {
-           "maxLength": 64,
-           "minLength": 1,
-           "type": "string"
-          },
-          "maxItems": 3,
-          "type": "array"
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
          },
          {
           "type": "null"
          }
         ],
         "default": null,
-        "title": "Situation Codes"
+        "title": "Pvog Mapping Version"
+       },
+       "pvog_source_path": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/PvogSourcePath"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "role": {
+        "$ref": "#/$defs/DiscoveryMentionRole"
        },
        "source_field": {
         "maxLength": 200,
@@ -1896,6 +1976,97 @@
       ],
       "title": "DiscoveryMentionRole",
       "type": "string"
+     },
+     "PvogSourcePath": {
+      "description": "Captured PVOG root, parent and leaf labels for one mention.",
+      "properties": {
+       "leaf_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Code"
+       },
+       "leaf_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Label"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Code"
+       },
+       "parent_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Label"
+       },
+       "root_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Code"
+       },
+       "root_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Label"
+       },
+       "source_version": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Version"
+       }
+      },
+      "title": "PvogSourcePath",
+      "type": "object"
      }
     },
     "description": "Batch of mentions recorded in one transaction.",
@@ -3458,7 +3629,7 @@
    "schema": {
     "$defs": {
      "VocabularyTerm": {
-      "description": "A domain or life situation with every stored translation, for machine consumers.",
+      "description": "An active canonical category with every stored translation, for machine consumers.",
       "properties": {
        "code": {
         "title": "Code",
@@ -3471,43 +3642,67 @@
         "title": "Description I18N",
         "type": "object"
        },
+       "icon": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Icon"
+       },
        "name_i18n": {
         "additionalProperties": {
          "type": "string"
         },
         "title": "Name I18N",
         "type": "object"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Parent Code"
+       },
+       "source_parent_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Source Parent Codes",
+        "type": "array"
        }
       },
       "required": [
        "code",
+       "parent_code",
        "name_i18n",
-       "description_i18n"
+       "description_i18n",
+       "icon",
+       "source_parent_codes"
       ],
       "title": "VocabularyTerm",
       "type": "object"
      }
     },
-    "description": "Both closed vocabularies in sort order.",
+    "description": "The closed canonical category vocabulary in contract order.",
     "properties": {
-     "domains": {
+     "categories": {
       "items": {
        "$ref": "#/$defs/VocabularyTerm"
       },
-      "title": "Domains",
-      "type": "array"
-     },
-     "situations": {
-      "items": {
-       "$ref": "#/$defs/VocabularyTerm"
-      },
-      "title": "Situations",
+      "title": "Categories",
       "type": "array"
      }
     },
     "required": [
-     "domains",
-     "situations"
+     "categories"
     ],
     "title": "VocabularyResponse",
     "type": "object"
@@ -3516,7 +3711,7 @@
   "taxonomy_read.VocabularyTerm": {
    "mode": "serialization",
    "schema": {
-    "description": "A domain or life situation with every stored translation, for machine consumers.",
+    "description": "An active canonical category with every stored translation, for machine consumers.",
     "properties": {
      "code": {
       "title": "Code",
@@ -3529,18 +3724,50 @@
       "title": "Description I18N",
       "type": "object"
      },
+     "icon": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Icon"
+     },
      "name_i18n": {
       "additionalProperties": {
        "type": "string"
       },
       "title": "Name I18N",
       "type": "object"
+     },
+     "parent_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Code"
+     },
+     "source_parent_codes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Source Parent Codes",
+      "type": "array"
      }
     },
     "required": [
      "code",
      "description_i18n",
-     "name_i18n"
+     "icon",
+     "name_i18n",
+     "parent_code",
+     "source_parent_codes"
     ],
     "title": "VocabularyTerm",
     "type": "object"

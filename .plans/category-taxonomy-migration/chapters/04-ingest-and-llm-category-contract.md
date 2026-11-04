@@ -19,6 +19,8 @@ touches:
   - apps/discovery-ingest/discovery_ingest/operations/
   - apps/discovery-ingest/discovery_ingest/extract/llm/
   - apps/discovery-ingest/discovery_ingest/curation.py
+  - apps/discovery-ingest/README.md
+  - docs/operations/loops/extraction.md
   - apps/discovery-ingest/tests/
   - apps/api/tests/
 execution: chapter-implementer

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.features.discovery.candidate_emit_payload import SuggestedTags, new_document_payload
@@ -27,15 +26,15 @@ class CandidateRequestBuilder:
 
     def build(self, candidate: DiscoveryDocumentCandidate) -> SuggestionCreate:
         """Return the request for ``candidate`` or raise :exc:`EmitSkip` when it cannot form one."""
-        body = {
-            "kind": "new_document",
-            "jurisdiction_id": candidate.jurisdiction_id,
-            "source_url": self._source_url(candidate),
-            "payload": new_document_payload(candidate, self._tags(self._repo.session, candidate)),
-        }
         try:
+            body = {
+                "kind": "new_document",
+                "jurisdiction_id": candidate.jurisdiction_id,
+                "source_url": self._source_url(candidate),
+                "payload": new_document_payload(candidate, self._tags(self._repo.session, candidate)),
+            }
             return SuggestionCreate.model_validate(body)
-        except ValidationError as exc:
+        except ValueError as exc:
             raise EmitSkip(SkipReason.INVALID_PAYLOAD) from exc
 
     def _source_url(self, candidate: DiscoveryDocumentCandidate) -> str:

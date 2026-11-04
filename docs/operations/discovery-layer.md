@@ -273,7 +273,7 @@ snapshot and stages the result; it emits nothing. Architecture, decisions and th
   completeness flags `has_domain` and `has_situation`. The admin candidate detail shows each code with its support
   (`procedures`, `share`, `score`); nothing is written to a document automatically.
 - **Re-extraction is deliberate.** The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION`
-  (`ext-5`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
+  (`ext-6`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
   that key, so a re-render under the same versions queues no second task; only `llm requeue` after a model, prompt or
   cleaner change queues one. LLM mentions use a fixed `source_field`, so a re-run updates them in place.
 

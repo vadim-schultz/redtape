@@ -231,7 +231,7 @@ cannot spend more than the day has left.
   printed and written, and the exit code is 1. A spent day, a provider quota error (the ledger is told) or a rejected
   token end the run the same way. An unreadable ledger or a spent day refuses to start (exit 1).
 - `--limit N` runs the first N pages by name. `--prompt-version` must match the checkout (`PROMPT_VERSION` in
-  `extract/llm/prompt.py`, currently `ext-5`; `CLEAN_VERSION` is `clean-4`); the option names the version a result
+  `extract/llm/prompt.py`, currently `ext-6`; `CLEAN_VERSION` is `clean-4`); the option names the version a result
   belongs to, it does not select a wording and the default is the checkout's. Exit 2 means a missing variable, an unpriced model or
   a gold label outside the taxonomy.
 - `--out FILE` writes the per-page results and, for every item grounding dropped, its reason (`quote`, `duplicate`,

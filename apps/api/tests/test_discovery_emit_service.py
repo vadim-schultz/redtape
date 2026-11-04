@@ -164,7 +164,8 @@ def test_emit_catalogue_keeps_earlier_suggestions_when_a_later_insert_hits_integ
 
     assert (response.created_count, response.skipped_count, response.replayed_count) == (1, 0, 1)
     assert response.items[0].suggestion_id is not None
-    assert response.items[1].suggestion_id == replay.id
+    replayed = next(item for item in response.items if item.claim_id == later.id)
+    assert replayed.suggestion_id == replay.id
     assert _count(db_session, Suggestion) == 2
 
 

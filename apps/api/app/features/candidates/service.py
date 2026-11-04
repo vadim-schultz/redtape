@@ -97,6 +97,7 @@ class CandidateReadService:
             ("filter[situation]", card_filter.situations, self._taxonomy.known_situation_codes),
         )
         errors = [error for key, codes, known in checks for error in _unknown_codes(key, codes, known)]
+        raise_if_any(errors)
         try:
             resolved = self._taxonomy.resolve_category_filter(
                 card_filter.category_codes,

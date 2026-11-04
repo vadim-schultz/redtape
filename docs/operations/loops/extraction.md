@@ -76,7 +76,7 @@ Built on `feat/extraction`. The code of E1 to E18 is on `main`; whether producti
 | --- | --- |
 | Staging | Task kind `llm_extract`, mention role `issued`, mention condition, optional flag and tag-code columns, `discovery_candidate_edge`, `GET /machine/taxonomy`, edge routes, tag consensus aggregate (E1); migration `20261029_staging_edges` |
 | Cleaner | Deterministic page cleaner, `CLEAN_VERSION` `clean-4`, 30,000-character cap, menu and screen-reader text dropped (E2, E14, E15) |
-| Model call | Extraction schema, prompt `PROMPT_VERSION` `ext-5`, grounding with symmetric normalisation and percent repair, guards for data fields and generic names (E3, E12, E13, E16, E18); Workers AI client, neuron meter with reserve and settle on the reported `usage.neurons`, `llm probe` (E4); price rows for the candidate models (E17) |
+| Model call | Extraction schema, prompt `PROMPT_VERSION` `ext-6`, grounding with symmetric normalisation and percent repair, guards for data fields and generic names (E3, E12, E13, E16, E18); Workers AI client, neuron meter with reserve and settle on the reported `usage.neurons`, `llm probe` (E4); price rows for the candidate models (E17) |
 | Evaluation | Gold set of 20 real pages, `llm eval` with cache and per-reason drop report; the model decision X16 is open (E5) |
 | Handler | `llm_extract` with release-on-limit, stop reasons `llm_budget` and `llm_quota`, result notes (E6) |
 | Wiring | `LLM_ENQUEUE` after a stored snapshot, `llm requeue`, `discovery-llm.yml` with a gated schedule and `discovery-llm-probe.yml` (E7, E4) |
