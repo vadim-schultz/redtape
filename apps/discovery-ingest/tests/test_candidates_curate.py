@@ -100,7 +100,7 @@ def test_plan_turns_a_curated_candidate_into_one_tag_mention_and_its_edges() -> 
         "manual:tags",
         "issued",
     )
-    assert (tag.domain_codes, tag.situation_codes) == (["identity-civil-status"], ["moving-house"])
+    assert tag.category_codes == ["identity-and-documents", "moving-house"]
     assert tag.title_i18n == {"de": "Meldebescheinigung"} and tag.excerpt == EXCERPT_REQUIRES
     assert [(e.parent_title_i18n["de"], e.required_title_i18n["de"]) for e in plan.edges] == [
         ("Meldebescheinigung", "Personalausweis"),
