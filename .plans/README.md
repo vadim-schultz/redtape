@@ -477,6 +477,24 @@ and pydocstyle plus `ANN401`/`TID251` gates. 25 chapters in five parallel batche
 
 Status: planned — no chapter started. First batch: T1 step 1, T2, T3, A1–A4, B1, B6, W1, W2.
 
+### [codebase-audit-remediation/](codebase-audit-remediation/) — Post-merge audit remediation
+
+Chief-of-staff follow-up for the merged [codebase-audit](codebase-audit/) suite: close the emit-batch
+rollback seam, announce discovery-admin page loading, reject an explicit ingest `max_tasks=0`, finish
+the slipped web refactors, and record the remaining T3/G2 and C8 gates without mutating production.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](codebase-audit-remediation/00-architecture.md) | Verified findings, target state, refactor-gate scope |
+| [01-rollout.md](codebase-audit-remediation/01-rollout.md) | Parallel batches, chapter order, release gates |
+| [gaps-and-decisions.md](codebase-audit-remediation/gaps-and-decisions.md) | Settled choices, deferred seams, owners |
+| [post-implementation-review.md](codebase-audit-remediation/post-implementation-review.md) | Static review report at `main` `95a3615` |
+| [run-ledger.md](codebase-audit-remediation/run-ledger.md) | Chief-of-staff chapter and C8 evidence |
+| [chapters/](codebase-audit-remediation/chapters/) | Executable red → green → refactor plans |
+
+Status: planned — chapters 1 and 2 may run in parallel; chapter 3 records integrated evidence.
+CoS orchestration: [`docs/operations/loops/codebase-audit-remediation.md`](../docs/operations/loops/codebase-audit-remediation.md).
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
