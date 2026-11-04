@@ -11,10 +11,10 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, LlmRequestError
-from discovery_ingest.extract.llm.evaluation import command
-from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.operations import eval as evaluation
+from discovery_ingest.operations.eval import EvalRuntime
 
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold, write_long_gold
 from ledger_fakes import FakeLedger, guard_for
@@ -41,7 +41,7 @@ def _wire(
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
     runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
-    monkeypatch.setattr(command, "_runtime", lambda _settings, _model, _stack: runtime)
+    monkeypatch.setattr(evaluation, "_runtime", lambda _settings, _model, _stack: runtime)
     return ledger
 
 
@@ -140,8 +140,7 @@ def test_the_eval_neuron_budget_help_says_the_last_call_may_pass_the_budget(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """llm eval --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
-    with pytest.raises(SystemExit):
-        main(["llm", "eval", "--help"])
+    assert main(["llm", "eval", "--help"]) == 0
 
     help_text = " ".join(capsys.readouterr().out.split())
     assert "Stop once this many neurons are used" in help_text and "may pass it by its own cost" in help_text

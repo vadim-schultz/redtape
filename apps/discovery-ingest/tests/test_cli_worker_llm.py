@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 import pytest
 from discovery_ingest.budget import BudgetGuard
-from discovery_ingest.cli import _build_parser, _drain_options, main
+from discovery_ingest.cli import main
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 from discovery_ingest.worker.handler_table import handler_table
@@ -16,6 +16,7 @@ from discovery_ingest.worker.llm_drain import open_llm_drain
 from discovery_ingest.worker.llm_extract import LlmExtractHandler, no_after_extract
 from discovery_ingest.worker.policy import DrainPolicy
 
+from cli_adapters import drain_options
 from drain_deps_for import deps_for
 from llm_transport import ACCOUNT_ID, TOKEN, failure, success
 from llm_worker_fakes import MODEL, SERVICE, LlmApi, ScriptedLlm, llm_task, resources
@@ -66,11 +67,9 @@ def test_default_kinds_exclude_llm_extract_and_the_dispatch_table_contains_it(mo
 
 def test_llm_drains_claim_small_batches_by_default_and_plain_drains_keep_fifty() -> None:
     """worker drain · --max-tasks defaults to 5 for llm_extract and 50 otherwise; an explicit value wins."""
-    parser = _build_parser()
-
-    assert _drain_options(parser.parse_args(DRAIN)).policy().max_tasks == 5
-    assert _drain_options(parser.parse_args(["worker", "drain"])).policy().max_tasks == 50
-    assert _drain_options(parser.parse_args([*DRAIN, "--max-tasks", "2"])).policy().max_tasks == 2
+    assert drain_options(DRAIN).policy().max_tasks == 5
+    assert drain_options(["worker", "drain"]).policy().max_tasks == 50
+    assert drain_options([*DRAIN, "--max-tasks", "2"]).policy().max_tasks == 2
 
 
 def test_a_drain_without_the_ai_token_or_the_model_or_a_known_price_fails_before_claiming(
@@ -164,8 +163,7 @@ def test_the_drain_neuron_budget_help_says_the_last_call_may_pass_the_budget(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """worker drain --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
-    with pytest.raises(SystemExit):
-        main(["worker", "drain", "--help"])
+    assert main(["worker", "drain", "--help"]) == 0
 
     help_text = " ".join(capsys.readouterr().out.split())
     assert "stops once the budget is reached" in help_text and "may pass it by its own cost" in help_text

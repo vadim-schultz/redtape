@@ -144,7 +144,7 @@ def test_the_probe_stops_at_a_rejected_token_and_the_cli_exits_one(
         kwargs["transport"] = httpx.MockTransport(handler)
         return _REAL_HTTPX_CLIENT(**kwargs)  # type: ignore[arg-type]
 
-    monkeypatch.setattr("discovery_ingest.extract.llm.probe_cli.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.operations.probes.httpx.Client", client_factory)
     assert main(["llm", "probe", "--model", MODEL, "--fixture", str(FIXTURE)]) == 1
     assert TOKEN not in capsys.readouterr().out
 
@@ -158,7 +158,7 @@ def test_the_cli_runs_with_only_the_two_cloudflare_variables(
         kwargs["transport"] = httpx.MockTransport(_handler())
         return _REAL_HTTPX_CLIENT(**kwargs)  # type: ignore[arg-type]
 
-    monkeypatch.setattr("discovery_ingest.extract.llm.probe_cli.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.operations.probes.httpx.Client", client_factory)
 
     code = main(["llm", "probe", "--model", MODEL, "--fixture", str(FIXTURE)])
 
@@ -169,7 +169,7 @@ def test_the_cli_refuses_a_missing_fixture_or_no_model(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
     """probe · a fixture path that does not exist exits 2 before any call; so does a run without --model and with an empty LLM_MODEL."""
-    monkeypatch.setattr("discovery_ingest.extract.llm.probe_cli.httpx.Client", lambda **_kw: pytest.fail("called"))
+    monkeypatch.setattr("discovery_ingest.operations.probes.httpx.Client", lambda **_kw: pytest.fail("called"))
     monkeypatch.setenv("LLM_MODEL", "")
 
     assert main(["llm", "probe", "--model", MODEL, "--fixture", str(tmp_path / "nope.html")]) == 2

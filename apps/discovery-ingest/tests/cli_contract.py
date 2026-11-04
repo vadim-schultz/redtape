@@ -13,7 +13,6 @@ from typing import get_args
 
 import discovery_ingest
 from discovery_ingest.artifacts import ArtifactKind
-from discovery_ingest.browser.probe_plan import VARIANTS
 from discovery_ingest.candidate_emit import DEFAULT_EMIT_LIMIT
 from discovery_ingest.config import DEFAULT_FIM_PORTAL_URL
 from discovery_ingest.extract.llm.prompt import PROMPT_VERSION
@@ -86,7 +85,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(
         "fim",
         "probe",
-        (_opt("--keys", "custom", required=True), _opt("--base-url", "str", default=DEFAULT_FIM_PORTAL_URL)),
+        (_opt("--keys", "str", required=True), _opt("--base-url", "str", default=DEFAULT_FIM_PORTAL_URL)),
     ),
     CommandSpec(
         "leika",
@@ -106,7 +105,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--time-budget-seconds", "float"),
             _opt("--browser-budget-seconds", "float", default=570.0),
             _opt("--neuron-budget", "float"),
-            _opt("--kinds", "custom", default=tuple(WORKER_DEFAULT_TASK_KINDS)),
+            _opt("--kinds", "str", default=",".join(WORKER_DEFAULT_TASK_KINDS)),
         ),
     ),
     CommandSpec(
@@ -138,8 +137,8 @@ COMMANDS: tuple[CommandSpec, ...] = (
         "budget",
         "show",
         (
-            _opt("--resource", "custom", repeatable=True),
-            _opt("--require-remaining", "custom", repeatable=True),
+            _opt("--resource", "str", repeatable=True),
+            _opt("--require-remaining", "str", repeatable=True),
             _opt("--strict", FLAG),
         ),
     ),
@@ -150,7 +149,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
         (
             _opt("--url", "str", repeatable=True),
             _opt("--error-url", "str", repeatable=True),
-            _opt("--variant", "str", repeatable=True, choices=tuple(VARIANTS)),
+            _opt("--variant", "custom", repeatable=True),
             _opt("--max-browser-seconds", "float", default=240.0),
         ),
     ),

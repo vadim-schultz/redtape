@@ -114,10 +114,9 @@ def test_artifacts_list_rejects_a_missing_host_or_a_bad_limit_without_a_request(
     seen = serve(_listing(1))
     host = [] if argv == [] else ["--host", "h.example"]
 
-    with pytest.raises(SystemExit) as exit_info:
-        main(["artifacts", "list", *host, *argv])
+    exit_code = main(["artifacts", "list", *host, *argv])
 
-    assert exit_info.value.code == 2 and seen == []
+    assert exit_code == 2 and seen == []
 
 
 def test_artifacts_list_exits_1_with_the_api_message_and_prints_nothing_on_a_refusal(
@@ -166,7 +165,6 @@ def test_artifacts_download_rejects_an_id_that_is_not_a_uuid(
     """artifacts download · a malformed id exits 2 before any API call."""
     seen = serve(lambda request: httpx.Response(200, content=HTML))
 
-    with pytest.raises(SystemExit) as exit_info:
-        main(["artifacts", "download", "--id", "nope", "--out", str(tmp_path / "x.html")])
+    exit_code = main(["artifacts", "download", "--id", "nope", "--out", str(tmp_path / "x.html")])
 
-    assert exit_info.value.code == 2 and seen == []
+    assert exit_code == 2 and seen == []

@@ -29,14 +29,14 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 def test_help_exits_0_with_usage_on_stdout() -> None:
     result = _run("--help")
     assert result.returncode == 0
-    assert "usage:" in result.stdout
+    assert "usage:" in result.stdout.lower()
     assert result.stderr == ""
 
 
 def test_a_bad_value_exits_2_with_error_on_stderr_and_nothing_on_stdout() -> None:
     result = _run("worker", "drain", "--max-tasks", "x")
     assert result.returncode == 2
-    assert "error" in result.stderr
+    assert "error" in result.stderr.lower()
     assert result.stdout == ""
 
 
@@ -56,4 +56,4 @@ def test_budget_show_without_api_settings_fails_with_nothing_on_stdout() -> None
 def test_no_command_prints_help_to_stdout_and_exits_2(argv: list[str]) -> None:
     result = _run(*argv)
     assert result.returncode == 2
-    assert "usage:" in result.stdout
+    assert "usage:" in result.stdout.lower()

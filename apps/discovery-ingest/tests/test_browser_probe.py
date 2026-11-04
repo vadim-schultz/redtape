@@ -120,8 +120,8 @@ def test_probe_needs_neither_the_discovery_api_url_nor_its_key(
         kwargs["transport"] = httpx.MockTransport(lambda _request: _envelope())
         return _REAL_HTTPX_CLIENT(**kwargs)  # type: ignore[arg-type]
 
-    monkeypatch.setattr("discovery_ingest.browser.probe_cli.httpx.Client", client_factory)
-    monkeypatch.setattr("discovery_ingest.browser.probe_cli.plain_size", lambda _url: 577)
+    monkeypatch.setattr("discovery_ingest.operations.probes.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.operations.probes.plain_size", lambda _url: 577)
 
     code = main(["browser", "probe", "--url", PAGE, "--variant", "content"])
 

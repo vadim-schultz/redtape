@@ -7,6 +7,7 @@ successor alike.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -96,7 +97,7 @@ def test_defaults_match_the_contract() -> None:
 
 def test_kinds_default_is_the_worker_default_kinds() -> None:
     kinds = _option(("worker", "drain"), "--kinds").default
-    assert kinds == ("fetch_url", "enrich_metadata", "harvest_payload", "extract_page")
+    assert kinds == "fetch_url,enrich_metadata,harvest_payload,extract_page"
 
 
 @pytest.mark.parametrize(
@@ -157,23 +158,49 @@ def test_emit_needs_exactly_one_of_id_or_all_staged() -> None:
 @pytest.mark.parametrize("path", [(), *[(group,) for group in GROUPS]], ids=lambda path: " ".join(path) or "root")
 def test_no_command_prints_help_and_exits_2(path: tuple[str, ...], capsys: pytest.CaptureFixture[str]) -> None:
     assert run_cli(list(path)) == 2
-    assert "usage:" in capsys.readouterr().out
+    assert "usage:" in capsys.readouterr().out.lower()
 
 
 @pytest.mark.parametrize("spec", COMMANDS, ids=lambda spec: f"{spec.group} {spec.name}")
 def test_help_exits_0_for_every_command(spec: CommandSpec, capsys: pytest.CaptureFixture[str]) -> None:
     assert run_cli([spec.group, spec.name, "--help"]) == 0
-    assert "usage:" in capsys.readouterr().out
+    assert "usage:" in capsys.readouterr().out.lower()
+
+
+def _option_sentences(golden: str) -> list[str]:
+    """Return the help sentence of every option in an argparse golden, with its continuation lines joined."""
+    sentences: list[str] = []
+    current: list[str] | None = None
+    for line in golden.splitlines():
+        if line.startswith("  -"):
+            if current:
+                sentences.append(" ".join(current))
+            parts = re.split(r"\s{2,}", line.strip(), maxsplit=1)
+            current = [parts[1]] if len(parts) == 2 else []
+        elif current is not None and line.startswith(" " * 8) and line.strip():
+            current.append(line.strip())
+        else:
+            if current:
+                sentences.append(" ".join(current))
+            current = None
+    if current:
+        sentences.append(" ".join(current))
+    return [sentence for sentence in sentences if sentence and not sentence.startswith("show this")]
 
 
 @pytest.mark.parametrize("path", HELP_PATHS, ids=lambda path: " ".join(path) or "root")
-def test_help_matches_the_golden_file(
+def test_help_keeps_every_flag_and_help_sentence(
     path: tuple[str, ...], monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """Every flag and every option help sentence of the argparse golden appears in the help, ignoring whitespace."""
     monkeypatch.setenv("COLUMNS", "100")
     assert run_cli([*path, "--help"]) == 0
-    golden = GOLDEN_HELP / f"{'-'.join(path) or 'root'}.txt"
-    assert capsys.readouterr().out == golden.read_text(encoding="utf-8")
+    golden = (GOLDEN_HELP / f"{'-'.join(path) or 'root'}.txt").read_text(encoding="utf-8")
+    shown = re.sub(r"\s+", "", capsys.readouterr().out).lower()
+    for flag in sorted(set(re.findall(r"--[a-z][a-z-]*", golden))):
+        assert flag in shown, flag
+    for sentence in _option_sentences(golden):
+        assert re.sub(r"\s+", "", sentence).lower() in shown, sentence
 
 
 def test_the_curate_help_keeps_the_reversal_epilog(capsys: pytest.CaptureFixture[str]) -> None:
