@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C5 integrated; C5 gate repaired in `fb069c9`; C6 not started
-- Conflicts/failures: root `./ci.sh` is red in the discovery-ingest pytest phase (44 failed, 1745 passed; 11 files: LLM extract worker, stops, eval and probe; prompt version and digest gates; curate; ingest-to-API contract drift). This is C4 debt that the C4 entry did not record and that predates the C5 repair. C6 depends on C4 and must not integrate on a red root gate.
-- Current work: C5 verification is complete (web lint, format, typecheck, Vitest 1054 passing, build; API `./ci.sh` phase). Next: resolve the C4 ingest gate, then start C6.
+- Status: C1-C5 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); root `./ci.sh` green at `db2a160`; C6 not started
+- Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
+- Current work: C6 is next, since its C3, C4 and C5 dependencies are integrated and the root gate is green.
 
 ## Baseline
 
@@ -87,7 +87,8 @@
 - Refactor gate: category validation, PVOG source capture, mapping, score aggregation, and compatibility translation remain named boundaries; no additional extraction justified
 - Boundary note: shared candidate score reads, promotion writers, suggestion handlers, taxonomy compatibility, and catalogue orchestration were added to C4's declared touches because they are the canonical category read/write boundary, not unrelated edits
 - Full `./ci.sh`: API format, lint, mypy, migrations, and all 1,577 API tests pass; web lint, typecheck, and build pass, while the pre-existing Prettier failure remains in `apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx`. The two web contract tests that expect the new category fields are deferred to C5, whose declared candidate/frontend touches own that consumer cutover.
-- Discovery-ingest pytest (recorded 2026-11-04 17:27, root `./ci.sh`): 44 failed, 1745 passed across `test_api_contract`, `test_candidates_curate`, `test_cli_contract`, `test_cli_process`, `test_cli_worker_llm`, `test_extraction_prompt`, `test_llm_eval_command`, `test_llm_extract_stops`, `test_llm_extract_worker`, `test_llm_probe`, and `test_llm_wiring`. Open; not repaired by C5.
+- Discovery-ingest pytest (first recorded 2026-11-04 17:27, root `./ci.sh`): 44 failed, 1745 passed across 11 files. Repaired in `adf9435` (merge of `fix/category-c4-ingest-gate`): test fakes now answer with `category_codes` (the schema rejects legacy output, so every worker scenario settled as failed), the ingest vocabulary model matches the API contract (`is_active` and `minItems` dropped), unknown legacy codes in manual curation refuse the entry, and the prompt, eval, CLI and budget expectations match the ext-6 contract. Final: 1790 passed; ruff format, ruff check and mypy pass.
+- Root `./ci.sh` at `db2a160` (2026-11-04 20:52): API 1577 passed; web lint, format, typecheck, Vitest 1054 passed (1 expected fail), build; discovery skills; discovery-ingest 1790 passed. Exit 0.
 
 ### Chapter 5 — Frontend category browsing
 
