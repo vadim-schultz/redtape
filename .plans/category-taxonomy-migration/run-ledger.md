@@ -12,8 +12,8 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Status: C1-C4 integrated; C5 in progress
-- Conflicts/failures: C4 web consumer contract mismatches deferred to C5; unrelated web Prettier failure remains
-- Current work: C5 frontend category browsing is running from the integrated C4 loop branch; its declared consumer-contract failures are the two web candidate/detail field mismatches recorded below.
+- Conflicts/failures: C5 frontend verification is tooling-blocked; unrelated web Prettier failure remains
+- Current work: C5 is integrated; C6 is not scheduled until the frontend dependency environment is restored and C5's blocked verification can be rerun.
 
 ## Baseline
 
@@ -89,13 +89,14 @@
 
 ### Chapter 5 — Frontend category browsing
 
-- Search-first layout: pending
-- Category tree loading/error/empty states: pending
-- Red semantic chip token: pending
-- Top-level chip href: pending
-- Subcategory chip href: pending
-- No nested interactive markup: pending
-- Legacy URL behavior: pending
+- Status: integrated at `6598ba1` via merge into the loop branch; C5 implementation commit is `6598ba1`
+- Category client: canonical tree query and centralized category query key added
+- Browse/filter behavior: search-first document browsing, repeated canonical `category` parameters, root/subcategory selection, and legacy URL reads
+- Category chips: shared compact red linked chip used by document and candidate/detail surfaces; nested interactive markup removed
+- Contract cutover: candidate/detail web types and fixtures now use canonical category fields
+- Paired tests: category-tree success/failure, root/subcategory serialization, unknown-category handling, chip links/focus/non-nesting, and card navigation were added or updated
+- Refactor gate: query ownership, URL encoding, root expansion, and chip rendering are centralized; no boolean legacy/category switch or click-propagation workaround remains
+- Verification blocker: Vitest, ESLint, Prettier, TypeScript, build, and `./ci.sh` could not run in the isolated worktree because frontend dependencies were unavailable; npm install repeatedly failed with its internal “Exit handler never called” error, and the environment's certificate chain prevented alternate package-manager downloads
 
 ### Chapter 6 — Admin and suggestion cutover
 

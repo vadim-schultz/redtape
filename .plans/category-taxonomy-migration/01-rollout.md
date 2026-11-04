@@ -52,7 +52,7 @@ flowchart TD
 | C2 | Category schema and data migration | C1 | API models, migrations, seed/backfill scripts, repositories, API tests | chapter-implementer | Migration round-trip + `./ci.sh` | integrated |
 | C3 | Category API and backend filters | C2 | API taxonomy, document/candidate/discovery filters and schemas, contract fixture | chapter-implementer | API tests + `./ci.sh` | integrated |
 | C4 | Ingest and LLM category contract | C1, C3 | API discovery/suggestion contracts, discovery-ingest PVOG/LLM/curation, tests | chapter-implementer | Contract/eval tests + `./ci.sh` | integrated |
-| C5 | Frontend category browsing | C3, C4 | Web taxonomy, documents, candidates, components, translations, tests | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | in progress |
+| C5 | Frontend category browsing | C3, C4 | Web taxonomy, documents, candidates, components, translations, tests | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | integrated (tooling-blocked) |
 | C6 | Admin and suggestion contract cutover | C3, C4, C5 | API discovery/suggestions, web admin/suggestions/candidates, contract tests | chapter-implementer | Contract tests + `./ci.sh` | planned |
 | C7 | Public document metadata cleanup | C5, C6 | Public web candidate/detail surfaces, API candidate/discovery DTOs, tests | chapter-implementer | DTO/UI regression tests + `./ci.sh` | planned |
 | C8 | Accordion view and source cards | C7 | Web candidate detail, flow, source cards, translations, tests | chapter-implementer | Accessibility/component tests + `./ci.sh` | planned |
