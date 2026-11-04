@@ -14,17 +14,14 @@ from app.features.suggestions.handlers import (
     Conflict,
     CycleError,
     Dispatch,
-    HandlerDeps,
     PromotionConflictError,
     UnknownDocumentError,
     UnknownTaxonomyCodeError,
-    build_dispatch,
 )
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.submitters import MissingSourceUrlError, Submitter
 from app.features.suggestions.transitions import AlreadyDecidedError, SuggestionNotFoundError, SuggestionTransitions
-from app.features.taxonomy.service import TaxonomyService
-from app.models.suggestion import Suggestion, SuggestionStatus
+from app.models.suggestion import Suggestion, SuggestionKind, SuggestionStatus
 from app.models.suggestion_event import EventType
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
@@ -74,14 +71,16 @@ class SuggestionService:
         self,
         repository: SuggestionRepository,
         documents: PromotionPort,
-        taxonomy: TaxonomyService,
+        handlers: dict[SuggestionKind, Dispatch],
+        transitions: SuggestionTransitions,
         events: EventLogService,
     ) -> None:
+        """Bind the service to its repository, document port, per-kind handlers, transitions and event log."""
         self._repo = repository
         self._documents = documents
         self._events = events
-        self._handlers = build_dispatch(HandlerDeps(documents, taxonomy, repository))
-        self._transitions = SuggestionTransitions(repository, self._handlers, events)
+        self._handlers = handlers
+        self._transitions = transitions
 
     def create(
         self, *, submitter: Submitter, request: SuggestionCreate, idempotency_key: str | None = None

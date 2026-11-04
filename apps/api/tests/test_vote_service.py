@@ -22,6 +22,8 @@ from app.models.user import AppUser
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
+
 
 @pytest.fixture
 def jurisdiction(db_session: Session) -> Jurisdiction:
@@ -80,7 +82,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 def suggestion_service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
     documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 @pytest.fixture

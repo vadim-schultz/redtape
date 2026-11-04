@@ -14,7 +14,6 @@ from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_service import ClaimDraft, ClaimService
 from app.features.discovery.pipeline import PipelineStage
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, TaskTarget
-from app.features.discovery.service import DiscoveryMachineService
 from app.features.discovery.stage_sync import advance_stage, derive_stage_for
 from app.models.discovery import (
     CatalogueService,
@@ -31,6 +30,8 @@ from app.schema.discovery.machine import (
 )
 from sqlalchemy import event
 from sqlalchemy.orm import Session
+
+from machine_support import machine_service
 
 PORTAL = "https://example.gov/portal"
 PAYLOAD = {"title_i18n": {"de": "Ausweis"}, "official_url": "https://example.gov/doc"}
@@ -211,7 +212,7 @@ def test_batch_upsert_advances_stage_to_T1_for_item_with_portal_url(
         title_i18n={"de": "Alt"},
         portal_url=PORTAL,
     )
-    DiscoveryMachineService(repo).batch_upsert(CatalogueBatchRequest(items=[item]))
+    machine_service(repo).batch_upsert(CatalogueBatchRequest(items=[item]))
     row = db_session.query(CatalogueService).filter_by(external_id="svc-1").one()
     assert row.pipeline_stage == "T1"
 
@@ -226,7 +227,7 @@ def test_batch_upsert_without_portal_url_stays_T0(
         title_i18n={"de": "Alt"},
         portal_url=None,
     )
-    DiscoveryMachineService(repo).batch_upsert(CatalogueBatchRequest(items=[item]))
+    machine_service(repo).batch_upsert(CatalogueBatchRequest(items=[item]))
     row = db_session.query(CatalogueService).filter_by(external_id="svc-1").one()
     assert row.pipeline_stage == "T0"
 
@@ -234,7 +235,7 @@ def test_batch_upsert_without_portal_url_stays_T0(
 def test_append_fetch_log_advances_to_T2(repo: DiscoveryRepository, country: Jurisdiction, db_session: Session) -> None:
     cat = _catalogue(repo, country)
     task_id = _task(repo, cat)
-    DiscoveryMachineService(repo).append_fetch_log(task_id, FetchLogAppendRequest(http_status=200))
+    machine_service(repo).append_fetch_log(task_id, FetchLogAppendRequest(http_status=200))
     assert _stored_stage(db_session, cat.id) == "T2"
 
 
@@ -243,7 +244,7 @@ def test_append_claim_advances_to_T3_then_T4(
 ) -> None:
     cat = _catalogue(repo, country)
     entity_id = _entity_id(repo, cat)
-    service = DiscoveryMachineService(repo)
+    service = machine_service(repo)
     service.append_claim(ClaimAppendRequest(discovery_entity_id=entity_id, kind=DiscoveryClaimKind.METADATA))
     assert _stored_stage(db_session, cat.id) == "T3"
     service.append_claim(
@@ -256,8 +257,8 @@ def test_enqueue_for_service_returns_task_when_task_already_exists(
     repo: DiscoveryRepository, country: Jurisdiction
 ) -> None:
     cat = _catalogue(repo, country)
-    first = DiscoveryMachineService(repo)._queue.enqueue_for_service(cat)
-    second = DiscoveryMachineService(repo)._queue.enqueue_for_service(cat)
+    first = machine_service(repo)._queue.enqueue_for_service(cat)
+    second = machine_service(repo)._queue.enqueue_for_service(cat)
     assert first is not None
     assert second is not None
     assert second.id == first.id
@@ -311,7 +312,7 @@ def test_appending_n_claims_reads_constant_rows_per_append(
 ) -> None:
     cat = _catalogue(repo, country)
     entity_id = _entity_id(repo, cat)
-    service = DiscoveryMachineService(repo)
+    service = machine_service(repo)
     claim_rows: list[int] = []
     statement_counts: list[int] = []
     for i in range(20):

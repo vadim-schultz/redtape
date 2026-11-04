@@ -31,6 +31,8 @@ from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
+
 
 @pytest.fixture
 def country(db_session: Session) -> Jurisdiction:
@@ -90,7 +92,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
     documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:

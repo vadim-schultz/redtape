@@ -14,7 +14,6 @@ from app.features.documents.repository import DocumentRepository
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.service import SuggestionService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
@@ -33,6 +32,7 @@ from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
 from test_discovery_admin_api import ADMIN_EMAIL, _catalogue, _token
 from test_discovery_admin_api import client as client  # noqa: F401
 from test_discovery_machine_api import _issue_key
@@ -311,7 +311,7 @@ def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandid
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
-    suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(
         DiscoveryRepository(db_session), suggestions, lambda _session, _candidate: tags
     )
@@ -383,7 +383,7 @@ def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
-    suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions)
 
 

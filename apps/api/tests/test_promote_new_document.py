@@ -27,6 +27,8 @@ from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
+
 
 @pytest.fixture
 def jurisdiction(db_session: Session) -> Jurisdiction:
@@ -59,7 +61,9 @@ def service(
     taxonomy_service: TaxonomyService,
     event_log_service: EventLogService,
 ) -> SuggestionService:
-    return SuggestionService(SuggestionRepository(db_session), document_promotion, taxonomy_service, event_log_service)
+    return compose_suggestion_service(
+        SuggestionRepository(db_session), document_promotion, taxonomy_service, event_log_service
+    )
 
 
 def _suggestion(

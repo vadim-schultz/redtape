@@ -23,6 +23,8 @@ from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
+
 
 @pytest.fixture
 def country_a(db_session: Session) -> Jurisdiction:
@@ -61,7 +63,7 @@ def service(db_session: Session) -> SuggestionService:
     events = EventLogService(EventLogRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
 
 
 def _submit(

@@ -24,6 +24,8 @@ from app.url_normalization import normalize_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
+
 
 @pytest.fixture
 def country(db_session: Session) -> Jurisdiction:
@@ -58,7 +60,7 @@ def service(db_session: Session) -> SuggestionService:
     documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
 
 
 def _document(
