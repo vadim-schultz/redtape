@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+MAX_URL_LENGTH = 500
 _TRACKING_PREFIXES = ("utm_",)
 _TRACKING_EXACT = {"fbclid", "gclid"}
 
@@ -27,3 +28,15 @@ def normalize_url(url: str) -> str:
     parts = urlsplit(url)
     query = _sort_query(_strip_tracking(parts.query))
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), _trim_path(parts.path), query, ""))
+
+
+def validate_url(value: str, *, field: str = "official_url") -> str:
+    """Reject URLs that exceed the length limit, are not http(s), or lack a host; return the value unchanged."""
+    if len(value) > MAX_URL_LENGTH:
+        raise ValueError(f"{field} exceeds {MAX_URL_LENGTH} characters")
+    parsed = urlsplit(value)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"{field} must use http or https")
+    if not parsed.netloc:
+        raise ValueError(f"{field} must include a host")
+    return value

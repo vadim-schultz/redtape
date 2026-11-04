@@ -9,7 +9,7 @@ from uuid import UUID
 from litestar.datastructures import UploadFile
 from pydantic import BaseModel
 
-from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind
+from app.models.discovery import DiscoveryArtifactKind
 
 
 @dataclass
@@ -39,11 +39,6 @@ class ArtifactRead(BaseModel):
     fetched_at: datetime
     created_at: datetime
 
-    @classmethod
-    def from_row(cls, row: DiscoveryArtifact) -> ArtifactRead:
-        """Build the metadata view of ``row``."""
-        return cls.model_validate(row, from_attributes=True)
-
 
 class ArtifactSummaryRead(BaseModel):
     """The few artifact fields a mention shows next to its excerpt."""
@@ -51,11 +46,6 @@ class ArtifactSummaryRead(BaseModel):
     id: UUID
     kind: DiscoveryArtifactKind
     fetched_at: datetime
-
-    @classmethod
-    def from_row(cls, row: DiscoveryArtifact) -> ArtifactSummaryRead:
-        """Build the summary of ``row``."""
-        return cls(id=row.id, kind=row.kind, fetched_at=row.fetched_at)
 
 
 class AdminArtifactRead(ArtifactRead):

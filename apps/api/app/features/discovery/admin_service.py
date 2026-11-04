@@ -8,12 +8,14 @@ from uuid import UUID
 from app.config import settings
 from app.features.discovery.emit_preview import build_emit_preview_items
 from app.features.discovery.lookups import require_catalogue
-from app.features.discovery.pipeline_rows import (
-    claim_dict,
-    entity_dict,
-    event_dict,
-    fetch_log_dict,
-    stage_of,
+from app.features.discovery.pipeline_rows import stage_of
+from app.features.discovery.read_mappers import (
+    catalogue_read,
+    claim_row,
+    entity_row,
+    event_row,
+    fetch_log_row,
+    task_read,
 )
 from app.features.discovery.repository import (
     CatalogueFilter,
@@ -29,12 +31,10 @@ from app.schema.discovery.read import (
     CandidateCountsRead,
     CatalogueListResponse,
     CataloguePipelineResponse,
-    CatalogueServiceRead,
     CatalogueSummaryChips,
     DiscoveryCoverageResponse,
     DiscoveryRunRead,
     DiscoveryTaskListResponse,
-    DiscoveryTaskRead,
     EmitPreviewItemRead,
     EmitPreviewResponse,
     LlmOutcomesRead,
@@ -65,14 +65,14 @@ class DiscoveryAdminService:
         """Return one page of tasks matching ``task_filter`` with the total count."""
         total = self._repo.count_tasks(task_filter)
         rows = self._repo.list_tasks_page(page, task_filter)
-        items = [DiscoveryTaskRead.from_row(task, source=task_source) for task, task_source in rows]
+        items = [task_read(task, source=task_source) for task, task_source in rows]
         return DiscoveryTaskListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def list_catalogue(self, catalogue_filter: CatalogueFilter, page: Page) -> CatalogueListResponse:
         """Return one page of catalogue rows matching ``catalogue_filter`` with the summary chips of the whole catalogue."""
         total = self._repo.count_catalogue(catalogue_filter)
         rows = self._repo.list_catalogue_page(offset=page.offset, limit=page.limit, catalogue_filter=catalogue_filter)
-        items = [CatalogueServiceRead.from_row(row) for row in rows]
+        items = [catalogue_read(row) for row in rows]
         return CatalogueListResponse(
             items=items, summary=self._summary(), total=total, offset=page.offset, limit=page.limit
         )
@@ -116,13 +116,13 @@ class DiscoveryAdminService:
         fetch_logs = self._repo.list_catalogue_fetch_logs(catalogue_id)
         claims = self._repo.list_catalogue_claims(catalogue_id)
         return CataloguePipelineResponse(
-            service=CatalogueServiceRead.from_row(row),
+            service=catalogue_read(row),
             derived_stage=stage_of(len(task_rows), fetch_logs, claims),
-            tasks=[DiscoveryTaskRead.from_row(task, source=source) for task, source in task_rows],
-            fetch_logs=[fetch_log_dict(log) for log in fetch_logs],
-            entities=[entity_dict(e) for e in self._repo.list_catalogue_entities(catalogue_id)],
-            claims=[claim_dict(claim) for claim in claims],
-            events=[event_dict(e) for e in self._repo.list_catalogue_events(catalogue_id)],
+            tasks=[task_read(task, source=source) for task, source in task_rows],
+            fetch_logs=[fetch_log_row(log) for log in fetch_logs],
+            entities=[entity_row(e) for e in self._repo.list_catalogue_entities(catalogue_id)],
+            claims=[claim_row(claim) for claim in claims],
+            events=[event_row(e) for e in self._repo.list_catalogue_events(catalogue_id)],
         )
 
     def _summary(self) -> CatalogueSummaryChips:
