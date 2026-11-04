@@ -11,8 +11,9 @@
 - Implementation order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9`
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
-- Status: orchestration metadata recorded; implementation pending
-- Conflicts/failures: none recorded
+- Status: C1-C4 integrated; C5 in progress
+- Conflicts/failures: C4 web consumer contract mismatches deferred to C5; unrelated web Prettier failure remains
+- Current work: C5 frontend category browsing is running from the integrated C4 loop branch; its declared consumer-contract failures are the two web candidate/detail field mismatches recorded below.
 
 ## Baseline
 
