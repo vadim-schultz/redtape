@@ -77,9 +77,11 @@ def worker_drain(
     ] = ",".join(WORKER_DEFAULT_TASK_KINDS),
 ) -> None:
     """Claim tasks, fetch URLs, complete or fail."""
+    if max_tasks == 0:
+        fail("invalid drain bounds: max_tasks must be between 1 and 50", EXIT_USAGE)
     options = DrainOptions(
         kinds=task_kinds(kinds),
-        max_tasks=max_tasks or None,
+        max_tasks=max_tasks,
         max_batches=max_batches,
         time_budget_seconds=time_budget_seconds,
         browser_budget_seconds=browser_budget_seconds,

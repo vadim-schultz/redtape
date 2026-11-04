@@ -23,15 +23,15 @@ isProject: false
 
 ## Open decisions
 
-| ID | Topic | Default handling |
-| --- | --- | --- |
-| O1 | Remaining T3 web/API exceptions | Record each permanent exception with rationale and owner; do not delete a baseline line without evidence. |
-| O2 | `SuggestionRead.from_row` ORM import | Defer a mapper-port extraction until a suggestions chapter owns that boundary. |
-| O3 | Litestar reached through shared list-query and locale hubs | Defer domain-error and boundary splitting to a dedicated layering chapter. |
-| O4 | `DocumentService` locale data clump | Record as informational; do not expand this follow-up into a document-read redesign. |
-| O5 | `safeHttpUrl` at non-header link sites | Record as defence-in-depth risk; schedule separately unless a concrete unsafe payload is reproduced. |
-| O6 | Web `accepted` versus API `score` TagSupport drift | Keep the intentional contract gap visible; resolve with the owning tagging work. |
-| O7 | Duplicate ingest error-detail constants | Consolidate only where the remediation chapter already touches the module; otherwise record the drift risk. |
+| ID | Topic | Default handling | Owner | Next action |
+| --- | --- | --- | --- | --- |
+| O1 | Remaining T3 web/API exceptions | Record each permanent exception with rationale and owner; do not delete a baseline line without evidence. | API/web maintainers | Add the exact allow-list entry and evidence to the parent audit closeout. |
+| O2 | `SuggestionRead.from_row` ORM import | Defer a mapper-port extraction until a suggestions chapter owns that boundary. | Suggestions/API maintainer | Create a dedicated layering chapter when the suggestions read boundary changes. |
+| O3 | Litestar reached through shared list-query and locale hubs | Defer domain-error and boundary splitting to a dedicated layering chapter. | API architecture owner | Split the HTTP boundary when the next layering pass owns these hubs. |
+| O4 | `DocumentService` locale data clump | Record as informational; do not expand this follow-up into a document-read redesign. | Documents/API maintainer | Reassess during a document-read redesign; no action in this suite. |
+| O5 | `safeHttpUrl` at non-header link sites | Record as defence-in-depth risk; schedule separately unless a concrete unsafe payload is reproduced. | Web security owner | Add focused payload coverage before scheduling the shared link-site change. |
+| O6 | Web `accepted` versus API `score` TagSupport drift | Keep the intentional contract gap visible; resolve with the owning tagging work. | Tagging owner | Reconcile the contract in the next tagging change. |
+| O7 | Duplicate ingest error-detail constants | Consolidate only where the remediation chapter already touches the module; otherwise record the drift risk. | Discovery-ingest maintainer | Consolidate in the next ingest error-contract change. |
 
 ## Explicitly deferred risks
 

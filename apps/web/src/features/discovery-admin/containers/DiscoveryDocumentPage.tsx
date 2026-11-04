@@ -1,13 +1,12 @@
-import { Text } from "@chakra-ui/react";
 import { useParams } from "react-router-dom";
 
+import LoadingNote from "../../../components/feedback/LoadingNote";
 import NotFoundView from "../../../components/feedback/NotFoundView";
 import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import {
   loadingUntilData,
   toQueryStatus,
 } from "../../../components/feedback/queryStatus";
-import { useLocale } from "../../../contexts/LocaleContext";
 import { isNotFound } from "../../../services/apiErrors";
 import DocumentDetail from "../components/DocumentDetail";
 import { useDiscoveryCandidateQuery } from "../hooks/useDiscoveryCandidateQuery";
@@ -20,7 +19,6 @@ import { usePrefetchDocumentSections } from "./sectionPrefetch";
 /** Candidate drill-down at ``/admin/discovery/documents/:id``. */
 export default function DiscoveryDocumentPage() {
   const { id } = useParams();
-  const { t } = useLocale();
   const query = useDiscoveryCandidateQuery(id);
   usePrefetchDocumentSections(id);
 
@@ -29,7 +27,7 @@ export default function DiscoveryDocumentPage() {
   const status = loadingUntilData(toQueryStatus(query), data !== undefined);
 
   return (
-    <QueryBoundary status={status} loading={<Text>{t("common.loading")}</Text>}>
+    <QueryBoundary status={status} loading={<LoadingNote />}>
       {data ? (
         <DocumentDetail data={data}>
           <DocumentTagsSection data={data} />

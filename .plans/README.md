@@ -492,7 +492,7 @@ the slipped web refactors, and record the remaining T3/G2 and C8 gates without m
 | [run-ledger.md](codebase-audit-remediation/run-ledger.md) | Chief-of-staff chapter and C8 evidence |
 | [chapters/](codebase-audit-remediation/chapters/) | Executable red → green → refactor plans |
 
-Status: planned — chapters 1 and 2 may run in parallel; chapter 3 records integrated evidence.
+Status: Chapters 1–3 are integrated; C8 remains operator-blocked and the release gate is open.
 CoS orchestration: [`docs/operations/loops/codebase-audit-remediation.md`](../docs/operations/loops/codebase-audit-remediation.md).
 
 ## Conventions

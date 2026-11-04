@@ -1,6 +1,21 @@
 ---
 name: "Chapter 3 — Evidence and operations"
 overview: "Record integrated remediation evidence, update the ledgers honestly, and hand off the operator-only C8 cleanup without changing application code."
+id: C3
+depends_on:
+  - C1
+  - C2
+touches:
+  - .plans/README.md
+  - .plans/codebase-audit-remediation/01-rollout.md
+  - .plans/codebase-audit-remediation/chapters/01-runtime-correctness.md
+  - .plans/codebase-audit-remediation/chapters/02-refactoring-closure.md
+  - .plans/codebase-audit-remediation/chapters/03-evidence-and-operations.md
+  - .plans/codebase-audit-remediation/post-implementation-review.md
+  - .plans/codebase-audit-remediation/run-ledger.md
+  - .plans/codebase-audit-remediation/gaps-and-decisions.md
+  - .plans/codebase-audit/run-ledger.md
+execution: chief-of-staff
 todos:
   - id: integrated-report
     content: "Write the final post-implementation report from integrated chapter evidence."
@@ -19,7 +34,7 @@ isProject: false
 
 # Chapter 3 — Evidence and operations
 
-**Repo:** `redtape` · **Branch:** `docs/audit-remediation-evidence` · **Status:** planned  
+**Repo:** `redtape` · **Branch:** `feat/plans-codebase-audit-remediation` · **Status:** complete — C8 blocked
 **Depends on:** chapters 1 and 2 · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-codebase-audit-remediation` · **Release branch:** `main`

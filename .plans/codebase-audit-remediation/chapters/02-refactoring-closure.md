@@ -1,6 +1,17 @@
 ---
 name: "Chapter 2 — Refactoring closure"
 overview: "Give discovery-admin prefetch and hooks one query-options source of truth, remove the duplicate CompletenessChips tree, and move shared artifact timing to a neutral constants module."
+id: C2
+depends_on: []
+touches:
+  - apps/web/src/features/discovery-admin/hooks/
+  - apps/web/src/features/discovery-admin/containers/sectionPrefetch.ts
+  - apps/web/src/features/discovery-admin/constants/queryTiming.ts
+  - apps/web/src/features/discovery-admin/hooks/useDiscoveryArtifactsQuery.ts
+  - apps/web/src/components/data-display/CompletenessChips/
+  - apps/web/src/features/candidates/components/CompletenessChips/
+  - apps/web/src/architecture.test.ts
+execution: chapter-implementer
 todos:
   - id: query-options
     content: "Characterize and centralize the five secondary query-options factories."
@@ -16,7 +27,7 @@ isProject: false
 
 # Chapter 2 — Refactoring closure
 
-**Repo:** `redtape` · **Branch:** `refactor/audit-remediation-web` · **Status:** planned  
+**Repo:** `redtape` · **Branch:** `refactor/audit-remediation-web` · **Status:** integrated — web gates green
 **Depends on:** parent audit on `main` · **Architecture:** [00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-codebase-audit-remediation` · **Release branch:** `main`

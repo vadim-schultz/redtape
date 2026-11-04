@@ -41,6 +41,15 @@ Chapter PRs merge into the loop branch only. The chapter implementer does not ed
 | G1. Test gaps | | | | | planned |
 | G2. Close baselines | | | | | planned |
 
+## Remediation follow-up
+
+The post-merge remediation suite is tracked separately in
+[`.plans/codebase-audit-remediation/run-ledger.md`](../codebase-audit-remediation/run-ledger.md).
+Its Chapters 1 and 2 are locally integrated on 2026-11-04 and close verified follow-up seams R1–R5
+from the remediation review. This cross-reference does not mark any parent chapter complete:
+parent T3/G2 evidence and the remaining parent release gates are still planned until their own
+evidence is recorded.
+
 ## Baseline at audit time (2026-11-02, `main` at `0e713cc`)
 
 | Measure | `apps/api` (app + scripts) | `apps/discovery-ingest` |

@@ -1,6 +1,19 @@
 ---
 name: "Chapter 1 — Runtime correctness"
 overview: "Fix the emit-batch rollback seam, announce discovery-admin page loading, and reject an explicit worker max-tasks zero."
+id: C1
+depends_on: []
+touches:
+  - apps/api/app/features/suggestions/
+  - apps/api/tests/test_discovery_emit_service.py
+  - apps/web/src/features/discovery-admin/containers/DiscoveryDocumentPage.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryDocumentPage.test.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.test.tsx
+  - apps/discovery-ingest/discovery_ingest/cli/worker/commands.py
+  - apps/discovery-ingest/tests/test_ingest_operations_contract.py
+  - apps/discovery-ingest/tests/test_cli_worker.py
+execution: chapter-implementer
 todos:
   - id: emit-savepoint
     content: "Add paired emit tests and scope an IntegrityError rollback to one insert."
@@ -16,7 +29,7 @@ isProject: false
 
 # Chapter 1 — Runtime correctness
 
-**Repo:** `redtape` · **Branch:** `fix/audit-remediation-runtime` · **Status:** planned  
+**Repo:** `redtape` · **Branch:** `fix/audit-remediation-runtime` · **Status:** integrated — partial gates
 **Depends on:** parent audit on `main` · **Architecture:** [00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-codebase-audit-remediation` · **Release branch:** `main`

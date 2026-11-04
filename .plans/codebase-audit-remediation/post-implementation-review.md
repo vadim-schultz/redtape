@@ -46,3 +46,30 @@ red/green evidence and the chief of staff must record the final `./ci.sh` result
 [run-ledger.md](run-ledger.md). The GitHub Actions API was not independently queried during the
 review because the repository API request was forbidden.
 
+## Integrated remediation update
+
+The follow-up loop integrated Chapters 1 and 2 locally on 2026-11-04. The implementation branches
+and evidence are recorded in the [remediation ledger](run-ledger.md); no chapter PR was opened or
+production mutation performed.
+
+- **R1:** the suggestion insert now uses a nested transaction/savepoint, and the regression test
+  `test_emit_catalogue_keeps_earlier_suggestions_when_a_later_insert_hits_integrity_error` is
+  present. The API focused run passed 10 tests and skipped 19 database-backed cases because
+  PostgreSQL was unavailable, so this race is not fully runtime-verified here.
+- **R2:** both drill-down pages use `LoadingNote`; the focused web run passed 118 tests, including
+  the pending-loading assertions.
+- **R3:** the CLI preserves omitted `None` and rejects explicit zero before claiming work. Its
+  regression tests are present, but the ingest suite could not start because the configured package
+  index was unreachable.
+- **R4:** repository inspection found no remaining feature-local `CompletenessChips` path, so no
+  deletion was required in Chapter 2.
+- **R5:** the five secondary query-options factories are shared by hooks and prefetch. TypeScript,
+  ESLint, focused web tests, and the structural checks are green.
+- **R6:** parent T3/G2 evidence remains open; this follow-up records the limitation and owners but
+  does not claim the parent ledger's planned chapters are complete.
+- **R7/C8:** no production cleanup was run. C8 remains operator-blocked pending dry run, approved
+  apply, and read-only district/city checks.
+
+The integrated `./ci.sh` gate reached API formatting, lint, and mypy successfully, then stopped
+because Docker/PostgreSQL was unavailable. The release gate therefore remains open.
+

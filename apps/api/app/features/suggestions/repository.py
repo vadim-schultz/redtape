@@ -35,8 +35,9 @@ class SuggestionRepository:
 
     def add(self, suggestion: Suggestion) -> Suggestion:
         """Stage a new suggestion and flush so its generated columns are populated."""
-        self._session.add(suggestion)
-        self._session.flush()
+        with self._session.begin_nested():
+            self._session.add(suggestion)
+            self._session.flush()
         return suggestion
 
     def get(self, suggestion_id: UUID) -> Suggestion | None:
@@ -119,7 +120,3 @@ class SuggestionRepository:
             Suggestion.idempotency_key == idempotency_key,
         )
         return self._session.scalar(stmt)
-
-    def rollback(self) -> None:
-        """Discard a failed insert so the session is usable again (D8 race path)."""
-        self._session.rollback()

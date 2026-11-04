@@ -3,10 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../../auth/services/fakeAuthGateway";
-import {
-  ARTIFACT_STALE_MS,
-  useDiscoveryArtifactsQuery,
-} from "./useDiscoveryArtifactsQuery";
+import { ARTIFACT_STALE_MS } from "../constants/queryTiming";
+import { useDiscoveryArtifactsQuery } from "./useDiscoveryArtifactsQuery";
 
 const session = { accessToken: "t", userId: "u", email: "a@example.com" };
 const MINUTE_MS = 60_000;
