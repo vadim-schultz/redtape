@@ -34,7 +34,20 @@ flowchart TD
 Chapters 1 and 2 touch disjoint primary areas and may run in parallel. Chapter 3 waits for both.
 C8 has no code dependency, but the release gate waits for its operator evidence.
 
-## Parallel execution
+## Scheduling matrix
+
+| ID | Chapter | Depends on | Touches | Execution owner | Gate | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| C1 | [Runtime correctness](chapters/01-runtime-correctness.md) | `[]` after parent audit | API suggestions, discovery-admin page shells/tests, discovery-ingest worker CLI/tests | chapter-implementer | Paired red → green tests, refactor report, narrow suites, `./ci.sh` | planned |
+| C2 | [Refactoring closure](chapters/02-refactoring-closure.md) | `[]` after parent audit | discovery-admin query hooks/prefetch, query timing constants, duplicate component tree, architecture checks | chapter-implementer | Characterization checks, refactor report, narrow suites, `./ci.sh` | planned |
+| C3 | [Evidence and operations](chapters/03-evidence-and-operations.md) | `[C1, C2]` integrated | Remediation report, remediation ledger, gaps/decisions, parent-ledger cross-reference | chief-of-staff | Docs-only diff, evidence rows, C8 handoff, integrated `./ci.sh` | planned |
+| C8 | Fixture jurisdiction cleanup | `[C3]` evidence handoff | Production data and read-only endpoint checks | chief-of-staff/operator | Dry run, approved apply, district/city checks | blocked — operator |
+
+The parent audit is an external prerequisite already integrated into `main`; it is not a chapter in
+this follow-up graph. The chapter `touches` sets are the derived ownership boundaries because this
+older suite did not declare metadata in its chapter frontmatter.
+
+## Parallel batches
 
 ### Batch 1
 
@@ -50,6 +63,36 @@ shared test or plan file becomes contested.
 - [Chapter 3 — Evidence and operations](chapters/03-evidence-and-operations.md)
 
 This is a docs-only chief-of-staff chapter after chapters 1 and 2 merge.
+
+Batch 1 is safe to run concurrently because its declared source and test ownership is disjoint.
+Batch 2 is serialized behind both Batch 1 integrations because its evidence must describe the
+integrated result. C8 is intentionally not concurrent with implementation: it is an operator-owned
+production gate.
+
+## Integration order
+
+1. Integrate the completed C1 and C2 chapter branches into this loop branch one at a time, after
+   inspecting their declared file boundaries and gates. If both are clean, integrate C1 first and
+   C2 second.
+2. Run the integrated narrow checks and then execute C3 on the loop branch.
+3. Perform the C8 operator sequence only after C3 records the handoff. Keep C8 blocked when the
+   operator evidence is unavailable.
+4. Run the release gate and open the release PR from the loop branch to `main`.
+
+## Critical path and per-chapter gates
+
+The critical path is `C1 or C2 → C3 → C8 → release gate`; Batch 1 has two parallel legs, so its
+duration is the slower of C1 and C2. C3 cannot claim closure from a chapter branch that has not been
+integrated and verified.
+
+- **C1:** both happy and negative tests for emit persistence, page loading, and CLI bounds; narrow
+  API, web, and ingest checks; explicit refactor-gate outcome; local `./ci.sh`.
+- **C2:** characterization checks remain green; prefetch has no inline `queryOptions`; one
+  `CompletenessChips` tree remains; explicit refactor-gate outcome; local `./ci.sh`.
+- **C3:** only plan/docs changes; every chapter row has branch/PR, evidence, refactor, and CI
+  status; C8 remains blocked without operator evidence; integrated `./ci.sh`.
+- **C8:** dry run, approved apply, and read-only district/city endpoint checks recorded by the
+  operator.
 
 ### Operator gate
 

@@ -1,6 +1,16 @@
 ---
 name: "Chapter 3 — Evidence and operations"
 overview: "Record integrated remediation evidence, update the ledgers honestly, and hand off the operator-only C8 cleanup without changing application code."
+id: C3
+depends_on:
+  - C1
+  - C2
+touches:
+  - .plans/codebase-audit-remediation/post-implementation-review.md
+  - .plans/codebase-audit-remediation/run-ledger.md
+  - .plans/codebase-audit-remediation/gaps-and-decisions.md
+  - .plans/codebase-audit/run-ledger.md
+execution: chief-of-staff
 todos:
   - id: integrated-report
     content: "Write the final post-implementation report from integrated chapter evidence."

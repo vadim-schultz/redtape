@@ -1,6 +1,19 @@
 ---
 name: "Chapter 1 — Runtime correctness"
 overview: "Fix the emit-batch rollback seam, announce discovery-admin page loading, and reject an explicit worker max-tasks zero."
+id: C1
+depends_on: []
+touches:
+  - apps/api/app/features/suggestions/
+  - apps/api/tests/test_discovery_emit_service.py
+  - apps/web/src/features/discovery-admin/containers/DiscoveryDocumentPage.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryDocumentPage.test.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx
+  - apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.test.tsx
+  - apps/discovery-ingest/discovery_ingest/cli/worker/commands.py
+  - apps/discovery-ingest/tests/test_ingest_operations_contract.py
+  - apps/discovery-ingest/tests/test_cli_worker.py
+execution: chapter-implementer
 todos:
   - id: emit-savepoint
     content: "Add paired emit tests and scope an IntegrityError rollback to one insert."
