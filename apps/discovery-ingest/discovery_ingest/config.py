@@ -5,9 +5,11 @@ from __future__ import annotations
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from discovery_ingest.cloudflare_account_settings import CloudflareAccountSettings
 from discovery_ingest.llm_settings import LlmSettings
 
 DEFAULT_BOT_CONTACT_URL = "https://github.com/vadim-schultz/redtape"
+DEFAULT_FIM_PORTAL_URL = "https://fimportal.de"
 BOT_PRODUCT_TOKEN = "RedtapeBot"
 
 
@@ -16,7 +18,20 @@ def build_user_agent(contact_url: str) -> str:
     return f"{BOT_PRODUCT_TOKEN}/1.0 (+{contact_url})"
 
 
-class BrowserSettings(BaseSettings):
+class BotSettings(BaseSettings):
+    """The crawl bot's contact URL, which every outbound fetch identifies itself with; needs no secret."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    bot_contact_url: str = Field(default=DEFAULT_BOT_CONTACT_URL, validation_alias="BOT_CONTACT_URL")
+
+    @property
+    def user_agent(self) -> str:
+        """Identifying ``User-Agent`` carrying the configured contact URL."""
+        return build_user_agent(self.bot_contact_url)
+
+
+class BrowserSettings(CloudflareAccountSettings):
     """Cloudflare Browser Run credentials and pacing; nothing is required unless a browser kind is drained.
 
     Read from the process environment only (no dotenv file), so ``browser probe`` never touches other secrets.
@@ -24,7 +39,6 @@ class BrowserSettings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    cloudflare_account_id: str | None = Field(default=None, validation_alias="CLOUDFLARE_ACCOUNT_ID")
     cloudflare_browser_api_token: SecretStr | None = Field(
         default=None, validation_alias="CLOUDFLARE_BROWSER_API_TOKEN"
     )
@@ -49,7 +63,7 @@ class BrowserSettings(BaseSettings):
         return [name for name, value in names.items() if not value]
 
 
-class IngestSettings(BrowserSettings, LlmSettings):
+class IngestSettings(BotSettings, BrowserSettings, LlmSettings):
     """Discovery machine API, optional GovData CKAN overrides and the optional browser and Workers AI settings."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -73,18 +87,9 @@ class IngestSettings(BrowserSettings, LlmSettings):
         validation_alias="PVOG_API_BASE_URL",
     )
     fim_portal_base_url: str = Field(
-        default="https://fimportal.de",
+        default=DEFAULT_FIM_PORTAL_URL,
         validation_alias="FIM_PORTAL_BASE_URL",
     )
-    bot_contact_url: str = Field(
-        default=DEFAULT_BOT_CONTACT_URL,
-        validation_alias="BOT_CONTACT_URL",
-    )
-
-    @property
-    def user_agent(self) -> str:
-        """Identifying ``User-Agent`` carrying the configured contact URL."""
-        return build_user_agent(self.bot_contact_url)
 
 
 def load_ingest_settings() -> IngestSettings:
@@ -95,3 +100,8 @@ def load_ingest_settings() -> IngestSettings:
 def load_browser_settings() -> BrowserSettings:
     """Load only the Cloudflare browser settings from the environment."""
     return BrowserSettings()
+
+
+def load_bot_settings() -> BotSettings:
+    """Load only the bot identity from the environment; no secret is read."""
+    return BotSettings()

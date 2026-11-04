@@ -19,6 +19,7 @@ from discovery_ingest.worker.policy import DrainPolicy
 from pydantic import SecretStr
 
 from capture_fakes import FakeCamera, shot
+from drain_deps_for import deps_for
 from render_fakes import FakeApi, robots_fetcher, task_json
 from run_stub import run_response
 
@@ -278,7 +279,7 @@ def test_worker_drain_stops_at_time_budget_without_speculative_claim(
     """worker drain stops at the configured bound and reports remaining work."""
     claims, finishes = [0], []
     ticks = itertools.chain([0.0], itertools.repeat(5.0))
-    monkeypatch.setattr("discovery_ingest.worker.drain.time.monotonic", lambda: next(ticks))
+    monkeypatch.setattr("discovery_ingest.worker.drain_deps.time.monotonic", lambda: next(ticks))
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_queue_handler(_two_batches(), claims, finishes)))
 
     exit_code = main(["worker", "drain", "--max-tasks", "2", "--max-batches", "9", "--time-budget-seconds", "1"])
@@ -654,7 +655,7 @@ def test_capture_screenshot_is_dispatched_to_its_handler_and_absent_from_the_def
     api, camera = _capture_api(), FakeCamera(shot())
     policy = DrainPolicy(max_tasks=5, kinds=("capture_screenshot",), browser_budget_seconds=480)
 
-    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, browser=camera)
+    report = run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(), browser=camera), policy)
 
     assert camera.calls == [TARGET_URL] and len(api.uploads) == 1
     assert (report.completed, report.failed, report.browser_seconds_used) == (1, 0, 2.0)
@@ -667,7 +668,7 @@ def test_a_capture_screenshot_task_claimed_by_a_default_drain_is_failed_without_
     """worker drain · without a browser there is no capture handler: the task fails permanently, nothing is captured."""
     api = _capture_api()
 
-    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), DrainPolicy(max_tasks=5))
+    report = run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher()), DrainPolicy(max_tasks=5))
 
     ((_, body),) = api.named("fail")
     assert body["retryable"] is False and str(body["error"]).startswith("unsupported task kind")

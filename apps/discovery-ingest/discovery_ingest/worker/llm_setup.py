@@ -4,16 +4,13 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 
-import httpx
-
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import IngestSettings
-from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.meter import RESOURCE
 from discovery_ingest.extract.llm.prices import known_models
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.operations.models import build_model_client
 from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.policy import DrainPolicy
@@ -21,7 +18,6 @@ from discovery_ingest.worker.storage_guard import storage_problem
 
 EXIT_MISSING_SETTINGS = 2
 EXIT_NOT_READY = 1
-MIN_INTERVAL_SECONDS = 1.0
 
 
 class LlmSetupError(Exception):
@@ -82,8 +78,7 @@ def prepare_llm(settings: IngestSettings, client: DiscoveryIngestClient, stack: 
     _check_ledger(client)
     _check_storage(client)
     taxonomy = _taxonomy(client)
-    http = stack.enter_context(httpx.Client(trust_env=True))
-    model_client = CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(MIN_INTERVAL_SECONDS))
+    model_client = build_model_client(settings, model, stack)
     return LlmResources(model_client, taxonomy, model, settings.llm_max_tokens, settings.llm_input_chars)
 
 

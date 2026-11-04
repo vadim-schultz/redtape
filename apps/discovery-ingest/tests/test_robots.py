@@ -12,6 +12,7 @@ from discovery_ingest.worker.outcome import FetchFailure, FetchOutcome
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.robots import RobotsCache, RobotsUnavailableError
 
+from drain_deps_for import deps_for
 from render_fakes import FakeApi, FakeBrowser, page, robots_fetcher, task_json
 
 HOST = "https://portal.example"
@@ -110,7 +111,7 @@ def test_the_fetcher_reports_robots_disallowed_with_the_unchanged_message() -> N
 def _render(monkeypatch: pytest.MonkeyPatch, url: str) -> tuple[FakeApi, FakeBrowser]:
     api, browser = FakeApi([[task_json(uuid.uuid4(), url)]]), FakeBrowser(page("<p>x</p>"))
     policy = DrainPolicy(max_tasks=5, kinds=("render_page",), browser_budget_seconds=480)
-    run_worker_drain(api.client(monkeypatch), robots_fetcher(ALLOW_ONE_PAGE), policy, browser=browser)
+    run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(ALLOW_ONE_PAGE), browser=browser), policy)
     return api, browser
 
 

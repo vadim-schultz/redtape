@@ -10,13 +10,14 @@ from discovery_ingest.worker.capture_enqueue import enqueue_screenshot_for_menti
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from extract_fakes import ARTIFACT_ID, PAGE_URL, ExtractApi, FakeExtractor, extract_task, mention
 from render_fakes import CATALOGUE_ID, robots_fetcher
 
 
 def _drain(monkeypatch: pytest.MonkeyPatch, api: ExtractApi, *extractors: FakeExtractor) -> DrainReport:
     policy = DrainPolicy(max_tasks=5, kinds=("extract_page",))
-    return run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, extractors=extractors)
+    return run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(), extractors=extractors), policy)
 
 
 def _two_mentions(html: str, ctx: PageContext) -> list[MentionItem]:

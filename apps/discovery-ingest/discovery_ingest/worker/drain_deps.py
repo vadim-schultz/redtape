@@ -1,0 +1,45 @@
+"""Everything one worker drain is wired with, as one value instead of a long parameter list."""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+
+from discovery_ingest.browser.port import BrowserClient
+from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.config import DEFAULT_FIM_PORTAL_URL
+from discovery_ingest.extract.base import Extractor
+from discovery_ingest.extract.registry import EXTRACTORS
+from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
+from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
+from discovery_ingest.worker.llm_runtime import LlmResources
+from discovery_ingest.worker.render import AfterSnapshot
+
+
+def _monotonic() -> float:
+    """Read the monotonic clock at call time, so a test that replaces ``time.monotonic`` is honoured."""
+    return time.monotonic()
+
+
+@dataclass(frozen=True, slots=True)
+class DrainDeps:
+    """The client, the fetcher and the optional collaborators one drain uses.
+
+    ``browser`` and ``llm`` are required only when their kinds are drained; ``budget`` defaults to a guard over the
+    client's ledger; ``fim_base_url`` is the portal the enrich handler links its entities to.
+    """
+
+    client: DiscoveryIngestClient
+    fetcher: PoliteUrlFetcher
+    browser: BrowserClient | None = None
+    llm: LlmResources | None = None
+    after_extract: AfterExtract = no_after_extract
+    llm_enqueue: LlmEnqueuer | None = None
+    after_snapshot: AfterSnapshot | None = None
+    extractors: Sequence[Extractor] = field(default=EXTRACTORS)
+    budget: BudgetGuard | None = None
+    clock: Callable[[], float] = _monotonic
+    fim_base_url: str = DEFAULT_FIM_PORTAL_URL

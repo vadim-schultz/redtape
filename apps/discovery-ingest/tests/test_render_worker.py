@@ -12,6 +12,7 @@ from discovery_ingest.schemas import ClaimedTask, DrainReport
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from render_fakes import FakeApi, FakeBrowser, page, robots_fetcher, task_json
 
 URL = "https://portal.example/service/1"
@@ -34,7 +35,7 @@ def _drain(
     after = (lambda task, artifact: hook.append((task, artifact))) if hook is not None else None
     policy = DrainPolicy(max_tasks=5, kinds=("render_page",), browser_budget_seconds=budget_seconds)
     return run_worker_drain(
-        api.client(monkeypatch), robots_fetcher(robots), policy, browser=browser, after_snapshot=after
+        deps_for(api.client(monkeypatch), robots_fetcher(robots), browser=browser, after_snapshot=after), policy
     )
 
 
@@ -135,7 +136,7 @@ def test_render_page_fails_retryably_when_robots_txt_is_unavailable(monkeypatch:
     api, browser = FakeApi([_tasks(1)]), FakeBrowser()
     policy = DrainPolicy(max_tasks=5, kinds=("render_page",), browser_budget_seconds=480)
 
-    run_worker_drain(api.client(monkeypatch), robots_fetcher(robots_status=500), policy, browser=browser)
+    run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(robots_status=500), browser=browser), policy)
 
     ((_, body),) = api.named("fail")
     assert body["retryable"] is True and browser.calls == []

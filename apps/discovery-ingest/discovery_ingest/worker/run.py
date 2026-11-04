@@ -9,14 +9,10 @@ from uuid import UUID
 
 import httpx
 
-from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker.drain import run_worker_drain
-from discovery_ingest.worker.fetcher import PoliteUrlFetcher
-from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
-from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
-from discovery_ingest.worker.llm_runtime import LlmResources
+from discovery_ingest.worker.drain_deps import DrainDeps
 from discovery_ingest.worker.policy import DrainPolicy
 
 logger = logging.getLogger(__name__)
@@ -100,30 +96,13 @@ def _finish_quietly(run: RecordedRun, body: RunFinishRequest) -> None:
         logger.warning("could not finish run %s as failed: %s", run.run_id, err)
 
 
-def run_recorded_drain(
-    client: DiscoveryIngestClient,
-    fetcher: PoliteUrlFetcher,
-    policy: DrainPolicy,
-    *,
-    browser: BrowserClient | None = None,
-    llm: LlmResources | None = None,
-    after_extract: AfterExtract = no_after_extract,
-    llm_enqueue: LlmEnqueuer | None = None,
-) -> DrainReport:
+def run_recorded_drain(deps: DrainDeps, policy: DrainPolicy) -> DrainReport:
     """Drain bounded batches between a run start and a run finish.
 
     Individual task failures stay in the report; an API failure or an infrastructure stop (``error``) marks the run
     failed. Limits (browser budget or quota, storage, database) are stops, not failures.
     """
-    with recorded_run(client) as run:
-        report = run_worker_drain(
-            client,
-            fetcher,
-            policy,
-            browser=browser,
-            llm=llm,
-            after_extract=after_extract,
-            llm_enqueue=llm_enqueue,
-        )
+    with recorded_run(deps.client) as run:
+        report = run_worker_drain(deps, policy)
         run.finish(_finish_request(report))
     return report.model_copy(update={"run_id": run.run_id})

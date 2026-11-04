@@ -16,6 +16,7 @@ from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import recorded_run, run_recorded_drain
 from pydantic import SecretStr, ValidationError
 
+from drain_deps_for import deps_for
 from run_stub import run_response
 
 API_BASE = "https://redtape.test"
@@ -176,7 +177,7 @@ def test_the_run_is_finished_as_failed_when_the_drain_raises(
     monkeypatch.setattr(run_module, "run_worker_drain", _raise)
 
     with pytest.raises(type(raised)):
-        run_recorded_drain(client, PoliteUrlFetcher(), DrainPolicy())
+        run_recorded_drain(deps_for(client, PoliteUrlFetcher()), DrainPolicy())
 
     assert len(finishes) == 1
     assert finishes[0]["status"] == "failed"
@@ -207,7 +208,7 @@ def test_the_original_error_wins_when_closing_the_run_also_fails(monkeypatch: py
     monkeypatch.setattr(run_module, "run_worker_drain", _raise)
 
     with pytest.raises(ValueError, match="handler bug"):
-        run_recorded_drain(client, PoliteUrlFetcher(), DrainPolicy())
+        run_recorded_drain(deps_for(client, PoliteUrlFetcher()), DrainPolicy())
 
     assert len(finish_calls) == 1
 

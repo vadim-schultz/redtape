@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
-from discovery_ingest.enrich import (
-    catalogue_export_item_from_machine,
-    fim_steckbrief_claim_requests,
-    fim_steckbrief_entity_request,
-)
+from discovery_ingest.config import DEFAULT_FIM_PORTAL_URL
+from discovery_ingest.enrich import catalogue_export_item_from_machine
 from discovery_ingest.fim.models import Steckbrief
+from discovery_ingest.operations.enrich import FimMapping, post_enrichment
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.settle import fail_from_outcome, fail_permanently
 
-_DEFAULT_FIM_BASE = "https://fimportal.de"
+
+class EnrichMetadataHandler:
+    """The ``enrich_metadata`` task handler bound to the FIM Portal base URL of its drain."""
+
+    def __init__(self, fim_base_url: str) -> None:
+        """Keep the portal base URL the entity links are built from."""
+        self._fim_base_url = fim_base_url
+
+    def __call__(self, task: ClaimedTask, *, client: DiscoveryIngestClient, fetcher: PoliteUrlFetcher) -> str:
+        """Settle ``task`` as :func:`handle_enrich_metadata` does, with this handler's portal base URL."""
+        return handle_enrich_metadata(task, client=client, fetcher=fetcher, fim_base_url=self._fim_base_url)
 
 
 def handle_enrich_metadata(
@@ -21,7 +29,7 @@ def handle_enrich_metadata(
     *,
     client: DiscoveryIngestClient,
     fetcher: PoliteUrlFetcher,
-    fim_base_url: str = _DEFAULT_FIM_BASE,
+    fim_base_url: str = DEFAULT_FIM_PORTAL_URL,
 ) -> str:
     """Fetch steckbrief JSON and upsert entity and claims via the machine API."""
     try:
@@ -41,17 +49,8 @@ def handle_enrich_metadata(
         return fail_permanently(client, task.id, "steckbrief response is not JSON object")
 
     export_row = catalogue_export_item_from_machine(catalogue)
-    entity_body = fim_steckbrief_entity_request(export_row, steckbrief, fim_base_url=fim_base_url)
-
     try:
-        entity = client.catalogue.upsert_entity(entity_body)
-        for claim in fim_steckbrief_claim_requests(
-            export_row,
-            steckbrief,
-            entity_id=entity.id,
-            fim_base_url=fim_base_url,
-        ):
-            client.catalogue.append_claim(claim)
+        post_enrichment(FimMapping(fim_base_url), export_row, steckbrief, client)
     except DiscoveryMachineApiError as err:
         return fail_permanently(client, task.id, err.detail)
 

@@ -11,7 +11,7 @@ from discovery_ingest.browser.probe import run_probe
 from discovery_ingest.browser.probe_plan import VARIANTS, probe_plan
 from discovery_ingest.browser.probe_report import report_lines
 from discovery_ingest.browser.throttle import Throttle
-from discovery_ingest.config import DEFAULT_BOT_CONTACT_URL, build_user_agent, load_browser_settings
+from discovery_ingest.config import load_bot_settings, load_browser_settings
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 
 EXIT_REFUSED = 1
@@ -21,7 +21,7 @@ DEFAULT_MAX_BROWSER_SECONDS = 240.0
 
 def plain_size(url: str) -> int | None:
     """Return the byte size of a polite plain GET of ``url`` (no credentials involved), or ``None`` when it failed."""
-    outcome = PoliteUrlFetcher(user_agent=build_user_agent(DEFAULT_BOT_CONTACT_URL)).get(url)
+    outcome = PoliteUrlFetcher(user_agent=load_bot_settings().user_agent).get(url)
     return outcome.byte_length if not outcome.failed else None
 
 
@@ -47,7 +47,7 @@ def browser_probe(args: argparse.Namespace) -> int:
     if settings.missing_credentials():
         print(f"missing environment: {', '.join(settings.missing_credentials())}", file=sys.stderr)
         return EXIT_MISSING_SETTINGS
-    user_agent = build_user_agent(DEFAULT_BOT_CONTACT_URL)
+    user_agent = load_bot_settings().user_agent
     plan = probe_plan(args.url, args.error_url, user_agent=user_agent, variants=args.variant)
     throttle = Throttle(settings.browser_min_interval_seconds)
     with httpx.Client() as http:

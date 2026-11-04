@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 import yaml
-from discovery_ingest.cli import _build_parser, _drain_policy
+from discovery_ingest.cli import _build_parser, _drain_options
 from discovery_ingest.llm_settings import DEFAULT_LLM_MODEL
 
 NAME = "discovery-llm.yml"
@@ -122,7 +122,7 @@ def test_the_workflow_inputs_match_the_drain_flags_of_the_command_line(job: dict
     assert sorted(flags) == sorted(expected)
     assert all(env_name in env and f"${{{env_name}}}" in command for env_name in ENV_NAMES.values())
     values = [value for name in DEFAULTS for value in (f"--{name.replace('_', '-')}", DEFAULTS[name])]
-    policy = _drain_policy(_build_parser().parse_args(["worker", "drain", *values]))
+    policy = _drain_options(_build_parser().parse_args(["worker", "drain", *values])).policy()
     assert (policy.max_tasks, policy.max_batches, policy.neuron_budget) == (5, 20, 2500)
 
 
