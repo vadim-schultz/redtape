@@ -12,7 +12,6 @@ from app.features.suggestions.service import (
     MissingSourceUrlError,
     SuggestionService,
     UnknownJurisdictionError,
-    UnknownTaxonomyCodeError,
 )
 from app.features.suggestions.submitters import CrawlerSubmitter, HumanSubmitter
 from app.features.taxonomy.repository import TaxonomyRepository
@@ -201,18 +200,14 @@ def test_rejects_an_unknown_municipality_code(service: SuggestionService, user: 
         service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
-def test_rejects_an_unknown_domain_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
-    request = _request(jurisdiction=country, payload=_payload(domain_codes=["no-such-domain"]))
-
-    with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=HumanSubmitter(user.id), request=request)
+def test_rejects_an_unknown_domain_code() -> None:
+    with pytest.raises(ValidationError, match="Unknown legacy domain code"):
+        _payload(domain_codes=["no-such-domain"])
 
 
-def test_rejects_an_unknown_situation_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
-    request = _request(jurisdiction=country, payload=_payload(situation_codes=["no-such-situation"]))
-
-    with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=HumanSubmitter(user.id), request=request)
+def test_rejects_an_unknown_situation_code() -> None:
+    with pytest.raises(ValidationError, match="Unknown legacy life_situation code"):
+        _payload(situation_codes=["no-such-situation"])
 
 
 def test_accepts_known_domain_and_situation_codes(

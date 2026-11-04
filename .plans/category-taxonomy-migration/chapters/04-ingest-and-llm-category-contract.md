@@ -12,6 +12,7 @@ touches:
   - apps/api/app/features/documents/promotion.py
   - apps/api/app/features/suggestions/
   - apps/api/app/features/taxonomy/
+  - apps/api/app/shared/
   - apps/api/app/schema/discovery/
   - apps/api/app/schema/suggestion/
   - apps/discovery-ingest/discovery_ingest/mentions.py
@@ -23,6 +24,7 @@ touches:
   - docs/operations/loops/extraction.md
   - apps/discovery-ingest/tests/
   - apps/api/tests/
+  - apps/web/src/test/contract/openapi.schemas.json
 execution: chapter-implementer
 todos:
   - id: mention-contract
@@ -74,6 +76,7 @@ Change all new discovery evidence to speak one category vocabulary. PVOG and LLM
 | `apps/api/app/features/suggestions/handlers.py` | Validate canonical categories during suggestion promotion. |
 | `apps/api/app/features/taxonomy/compatibility.py` | Translate legacy axes and category scores at the compatibility boundary. |
 | `apps/api/app/features/taxonomy/service.py` | Resolve category codes used by the new evidence writers. |
+| `apps/api/app/shared/taxonomy_compatibility.py` | Host the pure compatibility adapter outside feature and schema layers. |
 | `apps/discovery-ingest/discovery_ingest/mentions.py` | Add canonical category fields to mention DTOs and preserve source metadata. |
 | `apps/discovery-ingest/discovery_ingest/pvog/models.py` | Retain PVOG path/label/version information where present. |
 | `apps/discovery-ingest/discovery_ingest/pvog/client.py` | Pass source path/context through the row mapping without changing crawl budget/dedupe semantics accidentally. |
