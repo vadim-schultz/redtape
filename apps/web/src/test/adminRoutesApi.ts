@@ -67,8 +67,7 @@ const detail = {
   candidate: { ...candidate, mention_count: 1 },
   jurisdiction_name_i18n: { en: "Germany" },
   mentions: [mention({ excerpt: "Bitte Geburtsurkunde mitbringen" })],
-  suggested_domain_codes: [],
-  suggested_situation_codes: [],
+  suggested_category_codes: [],
 };
 
 const skippedPreview = {

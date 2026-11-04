@@ -1,29 +1,27 @@
-import { Badge, Wrap } from "@chakra-ui/react";
+import { Wrap } from "@chakra-ui/react";
 
-import type { TaxonomyTag } from "../../types";
+import CategoryChip from "../../../../components/data-display/CategoryChip";
+import { buildDocumentsHref } from "../../../../components/data-display/buildDocumentsHref";
+import type { CategoryTag } from "../../types";
 
 export interface CandidateTagBadgesProps {
-  domains: TaxonomyTag[];
-  situations: TaxonomyTag[];
+  categories: CategoryTag[];
 }
 
-/** The accepted domain and situation tags of a card; plain badges, the card itself is the link. */
+/** Render canonical category links on a candidate detail header. */
 export default function CandidateTagBadges({
-  domains,
-  situations,
+  categories,
 }: CandidateTagBadgesProps) {
-  const tags = [
-    ...domains.map((tag) => ({ ...tag, axis: "domain" })),
-    ...situations.map((tag) => ({ ...tag, axis: "situation" })),
-  ];
-  if (tags.length === 0) return null;
+  if (categories.length === 0) return null;
 
   return (
     <Wrap gap={1} mt={2}>
-      {tags.map(({ axis, code, name }) => (
-        <Badge key={`${axis}:${code}`} size="sm" variant="subtle">
-          {name}
-        </Badge>
+      {categories.map((category) => (
+        <CategoryChip
+          key={category.code}
+          category={category}
+          to={buildDocumentsHref({ category: category.code })}
+        />
       ))}
     </Wrap>
   );

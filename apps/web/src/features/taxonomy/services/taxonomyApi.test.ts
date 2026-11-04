@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { fetchDomains, fetchLifeSituationGroups } from "./taxonomyApi";
+import {
+  fetchCategoryTree,
+  fetchDomains,
+  fetchLifeSituationGroups,
+} from "./taxonomyApi";
 
 const fetchMock = vi.fn();
 
@@ -34,4 +38,33 @@ it("taxonomyApi · fetchLifeSituationGroups calls /api/v1/life-situation-groups 
 
   expect(requestedUrl().pathname).toBe("/api/v1/life-situation-groups");
   expect(fetchMock.mock.calls[0][1].headers["Accept-Language"]).toBe("de");
+});
+
+it("category tree hook · returns roots and children from one query", async () => {
+  const tree = [
+    {
+      code: "home-and-housing",
+      name: "Home & housing",
+      description: "",
+      icon: "home",
+      parent_code: null,
+      children: [
+        {
+          code: "moving-house",
+          name: "Moving house",
+          description: "",
+          icon: null,
+          parent_code: "home-and-housing",
+          children: [],
+        },
+      ],
+    },
+  ];
+  respondWith(tree);
+
+  const result = await fetchCategoryTree("en");
+
+  expect(result).toEqual(tree);
+  expect(requestedUrl().pathname).toBe("/api/v1/categories");
+  expect(fetchMock.mock.calls[0][1].headers["Accept-Language"]).toBe("en");
 });

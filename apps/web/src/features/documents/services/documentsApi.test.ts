@@ -26,8 +26,7 @@ afterEach(() => {
 });
 
 const unfiltered: DocumentListRequest = {
-  domains: [],
-  situations: [],
+  categories: [],
   query: { offset: 0, limit: 20, filters: {} },
 };
 
@@ -40,12 +39,23 @@ it("documentsApi · reads the candidate list, not the document list", async () =
   expect(requestedUrl().pathname).toBe("/api/v1/candidates");
 });
 
-it("documentsApi · sends the selected codes as CSV filters", async () => {
-  await fetchWith({ domains: ["a", "b"], situations: ["x", "y"] });
+it("documentsApi · sends canonical category codes as a CSV filter", async () => {
+  await fetchWith({ categories: ["a", "b"] });
 
   const params = requestedUrl().searchParams;
-  expect(params.get("filter[domain]")).toBe("a,b");
-  expect(params.get("filter[situation]")).toBe("x,y");
+  expect(params.get("filter[category]")).toBe("a,b");
+  expect(params.has("filter[domain]")).toBe(false);
+});
+
+it("legacy URL · sends old axis aliases to the compatibility API", async () => {
+  await fetchWith({
+    legacy: { domain: ["a"], group: ["home"], situation: ["x"] },
+  });
+
+  const params = requestedUrl().searchParams;
+  expect(params.get("filter[domain]")).toBe("a");
+  expect(params.get("filter[group]")).toBe("home");
+  expect(params.get("filter[situation]")).toBe("x");
 });
 
 it("documentsApi · sends search, sort and page", async () => {
@@ -75,8 +85,8 @@ it("documentsApi · leaves out filters, search and sort that are not set", async
   expect(names).toEqual(["limit", "offset"]);
 });
 
-it("documentsApi · never sends a jurisdiction or the old repeated params", async () => {
-  await fetchWith({ domains: ["a"], situations: ["x"] });
+it("documentsApi · never sends a jurisdiction or unbracketed params", async () => {
+  await fetchWith({ categories: ["a"] });
 
   const params = requestedUrl().searchParams;
   expect(params.has("municipality_code")).toBe(false);
@@ -91,8 +101,8 @@ it("documentsApi · maps a candidate card to a document with tags and confidence
       title: "Passport",
       description: "Proof of identity.",
       confidence: 0.8,
-      domains: [{ code: "identity", name: "Identity", confidence: 0.4 }],
-      situations: [
+      categories: [
+        { code: "identity", name: "Identity", confidence: 0.4 },
         { code: "moving", name: "Moving", confidence: 0.9 },
         { code: "work", name: "Work", confidence: 0.1 },
       ],
@@ -109,16 +119,16 @@ it("documentsApi · maps a candidate card to a document with tags and confidence
       description: "Proof of identity.",
       confidence: 0.8,
       tags: [
-        { axis: "situation", code: "moving", name: "Moving", confidence: 0.9 },
-        { axis: "domain", code: "identity", name: "Identity", confidence: 0.4 },
-        { axis: "situation", code: "work", name: "Work", confidence: 0.1 },
+        { code: "moving", name: "Moving", confidence: 0.9 },
+        { code: "identity", name: "Identity", confidence: 0.4 },
+        { code: "work", name: "Work", confidence: 0.1 },
       ],
     },
   ]);
 });
 
-it("documentsApi · a card without tags maps to a document with no tags", async () => {
-  respondWith([candidateFixture({ domains: [], situations: [] })]);
+it("documentsApi · a card without categories maps to no tags", async () => {
+  respondWith([candidateFixture({ categories: [] })]);
 
   const page = await fetchWith({});
 

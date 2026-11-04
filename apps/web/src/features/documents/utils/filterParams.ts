@@ -1,21 +1,59 @@
-import { toggled, type GroupSelection } from "./groupSelection";
+import type { CategoryNode } from "../../taxonomy/types";
 
 /** The URL params the chips are stored in. */
-export const FILTER_PARAMS = ["domain", "group", "situation"] as const;
+export const FILTER_PARAMS = [
+  "category",
+  "domain",
+  "group",
+  "situation",
+] as const;
 
 /** One chip axis of the documents list URL. */
 export type FilterAxis = (typeof FILTER_PARAMS)[number];
+
+/** The compatibility axes retained while old document links are translated by the API. */
+export type LegacyFilterSelection = Pick<
+  Record<"domain" | "group" | "situation", string[]>,
+  "domain" | "group" | "situation"
+>;
+
+function toggled(codes: string[], code: string): string[] {
+  return codes.includes(code)
+    ? codes.filter((candidate) => candidate !== code)
+    : [...codes, code];
+}
 
 /** The distinct, non-empty codes of `axis` in URL order. */
 export function readCodes(params: URLSearchParams, axis: FilterAxis): string[] {
   return [...new Set(params.getAll(axis).filter(Boolean))];
 }
 
-/** The group and situation chips in effect. */
-export function readSelection(params: URLSearchParams): GroupSelection {
+function flattenCategoryCodes(nodes: CategoryNode[]): Set<string> {
+  return new Set(
+    nodes.flatMap((node) => [
+      node.code,
+      ...flattenCategoryCodes(node.children),
+    ]),
+  );
+}
+
+/** Read only category codes that exist in the loaded canonical tree. */
+export function readValidCategoryCodes(
+  params: URLSearchParams,
+  taxonomy: CategoryNode[],
+): string[] {
+  const known = flattenCategoryCodes(taxonomy);
+  return readCodes(params, "category").filter((code) => known.has(code));
+}
+
+/** Read legacy axis values so old shareable links are not silently widened. */
+export function readLegacyFilters(
+  params: URLSearchParams,
+): LegacyFilterSelection {
   return {
-    groups: readCodes(params, "group"),
-    situations: readCodes(params, "situation"),
+    domain: readCodes(params, "domain"),
+    group: readCodes(params, "group"),
+    situation: readCodes(params, "situation"),
   };
 }
 
@@ -39,23 +77,22 @@ function withCodes(
   return next;
 }
 
-/** `params` with the group and situation chips replaced by `selection`. */
-export function withSelection(
-  params: URLSearchParams,
-  selection: GroupSelection,
-): URLSearchParams {
-  const next = withCodes(params, "group", selection.groups);
-  return withCodes(next, "situation", selection.situations);
-}
-
-/** `params` with the domain `code` switched on or off. */
-export function withToggledDomain(
+/** Toggle one canonical category without adding a legacy axis alias. */
+export function withToggledCategory(
   params: URLSearchParams,
   code: string,
+  parentCode?: string | null,
 ): URLSearchParams {
+  const selected = readCodes(params, "category");
+  const next = toggled(selected, code);
+  const withoutParent =
+    parentCode && !selected.includes(code)
+      ? next.filter((candidate) => candidate !== parentCode)
+      : next;
+
   return withCodes(
     params,
-    "domain",
-    toggled(readCodes(params, "domain"), code),
+    "category",
+    withoutParent,
   );
 }

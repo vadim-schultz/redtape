@@ -1,14 +1,8 @@
-/** A scored taxonomy code with its localized name; `confidence` is its score in `[0, 1]`. */
-export type TaxonomyTag = {
-  code: string;
-  name: string;
-  confidence: number;
-};
-
+import type { CategoryTag } from "../../taxonomy/types";
 import type { CompletenessFlags } from "../../../components/data-display/CompletenessChips/types";
 
+export type { CategoryTag };
 export type { CompletenessFlags };
-
 export type CandidateStatus = "staged" | "emitted";
 
 /** One candidate of the ranked public list; `confidence` is the filter-aware card confidence. */
@@ -19,8 +13,7 @@ export type CandidateCard = {
   description: string | null;
   description_source: string | null;
   status: CandidateStatus;
-  domains: TaxonomyTag[];
-  situations: TaxonomyTag[];
+  categories: CategoryTag[];
   completeness: number;
   complete: boolean;
   flags: CompletenessFlags;

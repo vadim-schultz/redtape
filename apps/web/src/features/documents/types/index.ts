@@ -1,12 +1,7 @@
 import type { ListQueryState } from "../../../services/listQuery";
-import type { TaggedTerm } from "../../taxonomy/types";
+import type { CategoryTag } from "../../taxonomy/types";
 
-export type DocumentAxis = "domain" | "situation";
-
-/** One tag of a listed document: its axis, localized name and score in `[0, 1]`. */
-export type DocumentTag = Pick<TaggedTerm, "code" | "name" | "confidence"> & {
-  axis: DocumentAxis;
-};
+export type DocumentTag = CategoryTag;
 
 /** One listed document (a discovered candidate); `tags` run most confident first. */
 export type DocumentSummary = {
@@ -37,8 +32,12 @@ export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;
 
 /** Everything one page of the documents list depends on. */
 export type DocumentListRequest = {
-  domains: string[];
-  situations: string[];
+  categories: string[];
+  legacy?: {
+    domain: string[];
+    group: string[];
+    situation: string[];
+  };
   query: DocumentListQuery;
 };
 
@@ -72,6 +71,5 @@ export type DocumentDetail = {
   jurisdiction_id: string;
   jurisdiction_path: JurisdictionPathNode[];
   requirements: RequirementRead[];
-  domains?: TaggedTerm[];
-  life_situations?: TaggedTerm[];
+  categories?: CategoryTag[];
 };

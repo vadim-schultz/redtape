@@ -141,9 +141,10 @@
     "forbidden_body": "You don't have permission to view this page."
   },
   "filters": {
-    "domain": "Domain",
-    "situation": "Life situation",
+    "category": "Categories",
     "clear": "Clear filters",
+    "chip": "Filter by {name}",
+    "browse": "Browse categories",
     "remove_domain": "Remove domain filter: {name}",
     "remove_situation": "Remove situation filter: {name}"
   },

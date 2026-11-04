@@ -1,7 +1,6 @@
 import type { ButtonProps } from "@chakra-ui/react";
 
-/** Which filter stage a chip belongs to: a domain (`plain`), a life area (`group`) or a
- * situation inside an area (`sub`). */
+/** Which filter stage a chip belongs to: a category root (`plain`) or child (`sub`). */
 export type ChipTone = "plain" | "group" | "sub";
 
 type ChipLook = Pick<
@@ -21,8 +20,7 @@ const LIGHTER_RED: ChipLook = {
   _hover: { bg: "chip.sub.selected.bg" },
 };
 
-/** The look of a chip. `partial` marks a life area that is not selected itself but has
- * situations selected inside it. */
+/** The look of a chip. `partial` is retained for generic filter compatibility. */
 export function chipLook(
   tone: ChipTone,
   pressed: boolean,

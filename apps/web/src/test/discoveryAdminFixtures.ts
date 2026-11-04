@@ -23,8 +23,11 @@ export function mention(
     extractor_version: "1",
     condition: null,
     is_optional: null,
-    domain_codes: [],
-    situation_codes: [],
+    category_codes: [],
+    pvog_leaf_code: null,
+    direct_category_confidence: null,
+    pvog_source_path: null,
+    pvog_mapping_version: null,
     created_at: "2026-10-26T12:00:00Z",
     ...overrides,
   };

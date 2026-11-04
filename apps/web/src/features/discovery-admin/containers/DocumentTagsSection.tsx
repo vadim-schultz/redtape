@@ -12,8 +12,8 @@ export default function DocumentTagsSection({
 
   return (
     <DocumentTagsPanel
-      domains={data.suggested_domain_codes}
-      situations={data.suggested_situation_codes}
+      domains={data.suggested_category_codes}
+      situations={[]}
       {...tagNames}
     />
   );

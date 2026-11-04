@@ -47,8 +47,7 @@ function detail(
     },
     jurisdiction_name_i18n: { en: "Germany" },
     mentions,
-    suggested_domain_codes: [],
-    suggested_situation_codes: [],
+    suggested_category_codes: [],
   };
 }
 
@@ -324,7 +323,7 @@ it("document page shows the suggested tag chips and the edges of the candidate",
   stubDocumentFetch(
     {
       ...detail(),
-      suggested_domain_codes: [
+      suggested_category_codes: [
         tag({ code: "housing", procedures: 3, share: 0.75, accepted: true }),
       ],
     },

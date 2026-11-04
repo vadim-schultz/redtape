@@ -33,10 +33,9 @@ function detailWithDomain(): DiscoveryCandidateDetailResponse {
     },
     jurisdiction_name_i18n: { en: "Germany" },
     mentions: [],
-    suggested_domain_codes: [
+    suggested_category_codes: [
       tag({ code: "housing", procedures: 3, share: 0.75, accepted: true }),
     ],
-    suggested_situation_codes: [],
   };
 }
 
