@@ -76,14 +76,13 @@ def test_eval_runs_every_gold_page_through_clean_client_and_grounding_and_prints
             "recall",
             "quote-grounded rate",
             "kept rate",
-            "domain tag agreement",
-            "situation tag agreement",
+            "category tag agreement",
             "neurons per page",
         )
     )
     assert (summary["precision"], summary["recall"], summary["grounded_rate"]) == (1.0, 0.5, 0.5)
     assert summary["kept_rate"] == 0.5
-    assert summary["domain_tag_agreement"] == 1.0 and summary["situation_tag_agreement"] == 1.0
+    assert summary["category_tag_agreement"] == 1.0
     assert summary["pages_run"] == 4
     assert summary["neurons_per_page"] == pytest.approx(cost(MODEL, 1000, 200))
     assert (summary["input_tokens"], summary["output_tokens"]) == (3000, 600)
@@ -431,7 +430,7 @@ def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cle
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """eval · with no --gold-dir the 20 real pages run; the empty shell is not sent; a silent model scores recall 0."""
-    silent = {"page_kind": "other", "domain_codes": [], "situation_codes": [], "documents": [], "dependencies": []}
+    silent = {"page_kind": "other", "category_codes": [], "documents": [], "dependencies": []}
     llm = FakeLlm({"<page>": silent})
     _wire(monkeypatch, llm, vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8")))
 

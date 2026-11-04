@@ -6,7 +6,7 @@ options:
   -h, --help            show this help message and exit
   --model MODEL         A Workers AI model id with a price row
   --prompt-version PROMPT_VERSION
-                        The prompt version (default ext-5)
+                        The prompt version (default ext-6)
   --limit LIMIT         Only the first N gold pages by name
   --out OUT             Write the per-page results as JSON to this file
   --neuron-budget NEURON_BUDGET

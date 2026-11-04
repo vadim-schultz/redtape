@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
+from pydantic import BaseModel, ConfigDict, TypeAdapter, model_validator
 
 from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
 
@@ -24,15 +24,14 @@ class TaxonomyTerm(BaseModel):
     parent_code: str | None = None
     icon: str | None = None
     source_parent_codes: tuple[str, ...] = ()
-    is_active: bool = True
 
 
 class Taxonomy(BaseModel):
-    """The active canonical categories in the order the API serves them."""
+    """The active canonical categories in the order the API serves them; the endpoint serves only active ones."""
 
     model_config = ConfigDict(frozen=True)
 
-    categories: tuple[TaxonomyTerm, ...] = Field(min_length=0)
+    categories: tuple[TaxonomyTerm, ...]
 
     @model_validator(mode="before")
     @classmethod
@@ -58,13 +57,13 @@ class Taxonomy(BaseModel):
 
     @property
     def category_codes(self) -> tuple[str, ...]:
-        """Return active category codes in served order."""
-        return tuple(term.code for term in self.categories if term.is_active)
+        """Return category codes in served order."""
+        return tuple(term.code for term in self.categories)
 
     @property
     def active_categories(self) -> tuple[TaxonomyTerm, ...]:
-        """Return active category terms in served order."""
-        return tuple(term for term in self.categories if term.is_active)
+        """Return category terms in served order; every served term is active."""
+        return self.categories
 
     def digest(self) -> str:
         """Return the first eight hex characters of the vocabulary SHA-256."""

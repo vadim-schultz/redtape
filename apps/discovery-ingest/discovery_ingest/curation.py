@@ -12,6 +12,20 @@ from discovery_ingest.extract.llm.normalise import name_slug
 from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code
 from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
 
+_LEGACY_AXES: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
+    ("domain", "domain_codes"),
+    ("life_situation", "situation_codes"),
+)
+
+
+def _canonical_for_legacy(title: object, axis: Literal["domain", "life_situation"], code: str) -> tuple[str, ...]:
+    """Return the canonical categories for one legacy code; a code with none refuses the entry."""
+    categories = categories_for_legacy_codes(axis, (code,))
+    if not categories:
+        raise ValueError(f"{title!r}: unknown {axis} code {code!r}")
+    return categories
+
+
 MANUAL_EXTRACTOR = "manual"
 """The extractor name of every row the tool writes; the API's manual override keys on the same value."""
 MANUAL_VERSION = "1"
@@ -77,9 +91,12 @@ class CurationCandidate(_Strict):
             return value
         if "category_codes" in value:
             raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        categories = categories_for_legacy_codes(
-            "domain", tuple(value.get("domain_codes") or ())
-        ) + categories_for_legacy_codes("life_situation", tuple(value.get("situation_codes") or ()))
+        categories = [
+            category
+            for axis, field_name in _LEGACY_AXES
+            for code in value.get(field_name) or ()
+            for category in _canonical_for_legacy(value.get("title_de"), axis, code)
+        ]
         translated = {key: item for key, item in value.items() if key not in legacy_fields}
         translated["category_codes"] = list(dict.fromkeys(categories))
         return translated

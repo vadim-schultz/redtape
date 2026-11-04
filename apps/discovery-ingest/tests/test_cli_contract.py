@@ -79,7 +79,7 @@ def test_every_command_matches_its_contract_row(spec: CommandSpec) -> None:
 
 
 def test_defaults_match_the_contract() -> None:
-    assert _option(("llm", "eval"), "--prompt-version").default == "ext-5"
+    assert _option(("llm", "eval"), "--prompt-version").default == "ext-6"
     assert _option(("worker", "drain"), "--browser-budget-seconds").default == 570.0
     assert _option(("worker", "drain"), "--max-batches").default == 1
     assert _option(("govdata", "fetch"), "--max-pages").default == 150
