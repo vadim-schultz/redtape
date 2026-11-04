@@ -477,9 +477,27 @@ and pydocstyle plus `ANN401`/`TID251` gates. 25 chapters in five parallel batche
 
 Status: planned — no chapter started. First batch: T1 step 1, T2, T3, A1–A4, B1, B6, W1, W2.
 
+## Orchestration contract
+
+New and substantially revised suites follow [`PLAN_TEMPLATE.md`](PLAN_TEMPLATE.md). The rollout is a
+dependency-aware schedule, not a serial chapter list:
+
+- Every chapter has a stable ID, `depends_on`, repository-relative `touches`, an `execution` owner, a
+  gate, and a status.
+- `depends_on` names hard completion dependencies. `touches` identifies overlapping file ownership and
+  integration conflicts.
+- Every rollout has a `## Parallel batches` section. Chapters in one batch start concurrently when their
+  dependencies are integrated and their `touches` sets are disjoint.
+- The rollout records the critical path and the integration order for chapters that share files.
+- `execution: chapter-implementer` is for isolated implementation work. `execution: chief-of-staff` is
+  for live checks, production operations, release work, and the suite ledger.
+- A numbered execution list is only explanatory; it must not turn independent chapters into a serial
+  queue. Older suites are migrated when they are next revised.
+
 ## Conventions
 
-- **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
+- **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and
+  `isProject`. Executable chapters additionally declare `id`, `depends_on`, `touches`, and `execution`.
 - **Links.** Relative, from the plan's own folder. Source references point at real files under `apps/web/`.
 - **Status.** Recorded in the plan meta line (`**Status:** planned` until shipped).
 - **CI.** `./ci.sh` from the repo root is the gate: API ruff, mypy, pytest, then web lint, format, typecheck, **vitest**, and build (after chapter 1).
