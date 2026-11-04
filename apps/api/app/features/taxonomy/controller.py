@@ -1,4 +1,4 @@
-"""Read-only HTTP endpoints for the matrix axes and the matrix counts."""
+"""Read-only HTTP endpoints for canonical categories and legacy matrix reads."""
 
 from __future__ import annotations
 
@@ -9,14 +9,19 @@ from litestar.params import Parameter
 
 from app.features.documents.service import DocumentFilters, DocumentService
 from app.features.taxonomy.service import TaxonomyService
-from app.schema.taxonomy.read import LifeSituationGroupedRead, MatrixResponse, TermRead
+from app.schema.taxonomy.read import CategoryNodeRead, LifeSituationGroupedRead, MatrixResponse, TermRead
 from app.shared.locale import ResolvedLocale
 
 
 class TaxonomyController(Controller):
-    """Read-only matrix axes: domains, life situations and their groups."""
+    """Read canonical categories and retain the dormant legacy matrix endpoints."""
 
     path = "/"
+
+    @get("/categories", sync_to_thread=True)
+    def list_categories(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[CategoryNodeRead]:
+        """Return the active category tree in the requested locale."""
+        return taxonomy_service.list_categories(locale=locale)
 
     @get("/domains", sync_to_thread=True)
     def list_domains(self, taxonomy_service: TaxonomyService, locale: ResolvedLocale) -> list[TermRead]:

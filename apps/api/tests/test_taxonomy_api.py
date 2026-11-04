@@ -64,3 +64,50 @@ def test_life_situation_groups_are_returned_in_sort_order(client: TestClient[Lit
     assert len(body) == 8
     assert body[0]["code"] == "family-relationships"
     assert set(body[0]) == {"code", "name", "description", "icon"}
+
+
+def test_categories_return_ordered_localized_roots_and_children(client: TestClient[Litestar]) -> None:
+    de = client.get("/api/v1/categories", headers={"Accept-Language": "de"})
+    en = client.get("/api/v1/categories", headers={"Accept-Language": "en"})
+
+    assert de.status_code == en.status_code == 200
+    assert [root["code"] for root in de.json()] == [
+        "family-and-relationships",
+        "home-and-housing",
+        "work-and-employment",
+    ]
+    first = de.json()[0]
+    assert first["parent_code"] is None
+    assert first["icon"] == "users"
+    assert [child["code"] for child in first["children"]] == [
+        "birth-and-parenthood",
+        "marriage-and-partnership",
+        "separation-and-divorce",
+        "death-and-estate",
+    ]
+    assert first["children"][0]["parent_code"] == first["code"]
+    assert first["name"] != en.json()[0]["name"]
+    assert en.json()[0]["name"] == "Family & relationships"
+
+
+def test_categories_fall_back_to_german_when_requested_locale_is_missing(
+    client: TestClient[Litestar],
+) -> None:
+    de = client.get("/api/v1/categories", headers={"Accept-Language": "de"}).json()
+    fr = client.get("/api/v1/categories", headers={"Accept-Language": "fr"}).json()
+
+    assert fr == de
+
+
+def test_categories_exclude_an_inactive_parent_and_its_children(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    from app.models.taxonomy import Category
+    from sqlalchemy import update
+
+    db_session.execute(update(Category).where(Category.code == "family-and-relationships").values(is_active=False))
+    db_session.flush()
+
+    body = client.get("/api/v1/categories").json()
+
+    assert "family-and-relationships" not in {root["code"] for root in body}

@@ -19,19 +19,18 @@ def test_taxonomy_route_returns_the_vocabulary_in_sort_order(client: TestClient[
 
     assert response.status_code == 200
     body = response.json()
-    assert (len(body["domains"]), len(body["situations"])) == (13, 18)
-    first = body["domains"][0]
-    assert set(first) == {"code", "name_i18n", "description_i18n"}
+    assert len(body["categories"]) == 34
+    first = body["categories"][0]
+    assert set(first) == {"code", "parent_code", "name_i18n", "description_i18n", "icon", "source_parent_codes"}
     assert {"de", "en"} <= set(first["name_i18n"])
-    assert [t["code"] for t in body["domains"]] == _in_seed_order("domains")
-    assert [t["code"] for t in body["situations"]] == _in_seed_order("situations")
+    assert [t["code"] for t in body["categories"]] == _in_seed_order()
+    assert all(not term["code"].isdigit() for term in body["categories"])
 
 
-def _in_seed_order(axis: str) -> list[str]:
-    from scripts.seed_data.taxonomy import DOMAINS, SITUATIONS
+def _in_seed_order() -> list[str]:
+    from scripts.seed_data.taxonomy import CATEGORY_INVENTORY
 
-    terms = DOMAINS if axis == "domains" else SITUATIONS
-    return [t.code for t in sorted(terms, key=lambda t: (t.sort_order, t.code))]
+    return [term.code for term in CATEGORY_INVENTORY]
 
 
 def test_taxonomy_route_requires_the_machine_key(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
@@ -39,3 +38,15 @@ def test_taxonomy_route_requires_the_machine_key(client: TestClient[Litestar], d
 
     assert client.get(TAXONOMY_URL).status_code == 401
     assert client.get(TAXONOMY_URL, headers={"X-API-Key": "rt_wrong"}).status_code == 401
+
+
+def test_machine_taxonomy_excludes_source_only_pvog_leaf_codes(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:  # noqa: F811
+    seed_taxonomy(db_session)
+
+    response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
+
+    assert response.status_code == 200
+    assert all(not category["code"].isdigit() for category in response.json()["categories"])

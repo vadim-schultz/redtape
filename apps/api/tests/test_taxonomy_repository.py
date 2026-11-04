@@ -30,3 +30,22 @@ def test_list_situations_with_group_returns_the_right_group_code_per_situation(r
     assert len(rows) == 18
     assert by_code["moving-house"] == "home-housing"
     assert by_code["retirement"] == "retirement"
+
+
+def test_list_categories_returns_roots_and_children_in_contract_order(repo: TaxonomyRepository) -> None:
+    categories = repo.list_categories()
+
+    assert [category.code for category in categories[:3]] == [
+        "family-and-relationships",
+        "birth-and-parenthood",
+        "marriage-and-partnership",
+    ]
+    assert categories[1].parent_id == categories[0].id
+
+
+def test_category_descendants_include_the_selected_root_and_not_siblings(
+    repo: TaxonomyRepository,
+) -> None:
+    descendants = repo.category_descendant_codes(("home-and-housing",))
+
+    assert descendants == ("home-and-housing", "moving-house", "renting-home", "buying-property")

@@ -1,21 +1,29 @@
-"""Persistence for the taxonomy axes: term listing, code lookup and the matrix and axis counts."""
+"""Persistence for legacy axes, canonical categories, and matrix counts."""
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from typing import cast
 from uuid import UUID
 
 from sqlalchemy import Column, Select, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup, document_domain, document_life_situation
+from app.models.taxonomy import (
+    Category,
+    Domain,
+    LifeSituation,
+    LifeSituationGroup,
+    document_domain,
+    document_life_situation,
+)
 
 TermModel = type[Domain] | type[LifeSituation] | type[LifeSituationGroup]
 
 
 class TaxonomyRepository:
-    """Persistence for both matrix axes; the two term tables share one access path."""
+    """Persistence for legacy axes and the canonical category tree."""
 
     def __init__(self, session: Session) -> None:
         """Bind the repository to the session it queries through."""
@@ -39,6 +47,63 @@ class TaxonomyRepository:
         """Map known term codes to their ids; unknown codes are simply absent from the result."""
         stmt = select(model.code, model.id).where(model.code.in_(set(codes)))
         return {code: term_id for code, term_id in self._session.execute(stmt).all()}
+
+    def list_categories(self) -> Sequence[Category]:
+        """List active categories depth-first, ordered by each node's contract sort order."""
+        rows = list(
+            self._session.scalars(
+                select(Category).where(Category.is_active).options(selectinload(Category.external_mappings))
+            ).all()
+        )
+        by_parent: dict[UUID | None, list[Category]] = defaultdict(list)
+        active_ids = {row.id for row in rows}
+        for row in rows:
+            if row.parent_id is None or row.parent_id in active_ids:
+                by_parent[row.parent_id].append(row)
+        for children in by_parent.values():
+            children.sort(key=lambda category: (category.sort_order, category.code))
+        ordered: list[Category] = []
+
+        def visit(parent_id: UUID | None) -> None:
+            """Append a node and its active descendants in contract order."""
+            for category in by_parent[parent_id]:
+                ordered.append(category)
+                visit(category.id)
+
+        visit(None)
+        usable_count = sum(len(children) for children in by_parent.values())
+        if len(ordered) != usable_count:
+            raise ValueError("Invalid category taxonomy: active cycle cannot be served")
+        return ordered
+
+    def ids_for_category_codes(self, codes: Iterable[str]) -> dict[str, UUID]:
+        """Map active canonical category codes to ids; inactive and unknown codes are absent."""
+        requested = set(codes)
+        return {category.code: category.id for category in self.list_categories() if category.code in requested}
+
+    def category_descendant_codes(self, codes: Sequence[str]) -> tuple[str, ...]:
+        """Return selected active category codes and all active descendants in tree order."""
+        categories = self.list_categories()
+        children: dict[str, list[str]] = defaultdict(list)
+        by_id = {category.id: category.code for category in categories}
+        for category in categories:
+            if category.parent_id is not None and category.parent_id in by_id:
+                children[by_id[category.parent_id]].append(category.code)
+        selected = set(codes)
+        expanded: list[str] = []
+
+        def visit(code: str) -> None:
+            """Append ``code`` and recursively append its descendants."""
+            if code in expanded:
+                return
+            expanded.append(code)
+            for child in children[code]:
+                visit(child)
+
+        for category in categories:
+            if category.code in selected:
+                visit(category.code)
+        return tuple(expanded)
 
     def matrix_counts(self, document_ids: Sequence[UUID]) -> list[tuple[str, str, int]]:
         """Non-empty (domain code, situation code, distinct documents) rows in taxonomy order."""

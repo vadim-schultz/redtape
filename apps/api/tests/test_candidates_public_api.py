@@ -146,6 +146,43 @@ def test_candidates_list_filters_by_the_presence_of_a_domain_and_situation(
     assert (set(_keys_of(situation)), situation["total"]) == ({"accepted", "one-procedure-only"}, 2)
 
 
+def test_candidates_category_filter_returns_canonical_tags_and_confidence(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    owner = scene.candidate("canonical-tags")
+    scene.mention(owner, scene.procedure(), domains=[HOUSING], situations=[MOVING])
+
+    response = client.get(URL, params={"filter[category]": "home-and-housing"})
+
+    assert response.status_code == 200
+    [item] = response.json()["items"]
+    assert [(tag["code"], tag["confidence"]) for tag in item["categories"]] == [
+        ("home-and-housing", 0.85),
+        ("moving-house", 0.85),
+    ]
+
+
+def test_candidates_unknown_category_filter_returns_422(
+    client: TestClient[Litestar],
+) -> None:
+    response = client.get(URL, params={"filter[category]": "not-a-category"})
+
+    assert response.status_code == 422
+    assert "filter[category]" in str(response.json())
+
+
+def test_candidates_conflicting_legacy_mapping_returns_diagnostic_422(
+    client: TestClient[Litestar],
+) -> None:
+    response = client.get(
+        URL,
+        params={"filter[group]": "family-relationships", "filter[situation]": "moving-house"},
+    )
+
+    assert response.status_code == 422
+    assert "conflicting legacy taxonomy filters" in str(response.json()).lower()
+
+
 @pytest.mark.parametrize("param", ["filter[domain]", "filter[situation]", "filter[complete]", "filter[nope]"])
 def test_candidates_list_rejects_an_unknown_filter_value(client: TestClient[Litestar], param: str) -> None:
     response = client.get(URL, params={param: "nope"})
