@@ -24,7 +24,7 @@ AfterExtract = Callable[[DiscoveryIngestClient, ClaimedTask], bool]
 
 
 def no_after_extract(client: DiscoveryIngestClient, task: ClaimedTask) -> bool:
-    """The default follow-up: nothing to queue."""
+    """Report success and queue no follow-up; the default when none is wired."""
     return True
 
 

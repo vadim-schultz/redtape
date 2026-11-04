@@ -34,7 +34,7 @@ def _browser_handlers(parts: BrowserParts) -> Mapping[DiscoveryTaskKind, TaskHan
 def handler_table(
     deps: DrainDeps, browser: BrowserParts, llm_drain: LlmDrain | None
 ) -> Mapping[DiscoveryTaskKind, TaskHandler]:
-    """The plain kinds, ``extract_page`` over ``deps.extractors``, the browser kinds and ``llm_extract`` when they apply."""
+    """Map each task kind to its handler; browser and llm kinds appear only when their parts exist."""
     llm_handlers = llm_drain.handlers() if llm_drain else {}
     return {
         "fetch_url": handle_fetch_url,

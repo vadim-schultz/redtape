@@ -45,7 +45,7 @@ def _failed(detail: str) -> RunFinishRequest:
 
 
 def _finish_request(report: DrainReport) -> RunFinishRequest:
-    """A drain that ended on an infrastructure error (``error``) is a failed run; every other stop succeeded."""
+    """Map a drain report to its run-finish request; an infrastructure error (``error``) fails the run."""
     return _succeeded(report) if report.succeeded else _failed(report.error or "the drain stopped on an error")
 
 
