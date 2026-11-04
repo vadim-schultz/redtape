@@ -29,7 +29,7 @@ isProject: false
 
 # Chapter 1 — Runtime correctness
 
-**Repo:** `redtape` · **Branch:** `fix/audit-remediation-runtime` · **Status:** planned  
+**Repo:** `redtape` · **Branch:** `fix/audit-remediation-runtime` · **Status:** integrated — partial gates
 **Depends on:** parent audit on `main` · **Architecture:** [00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 **Loop branch:** `feat/plans-codebase-audit-remediation` · **Release branch:** `main`

@@ -38,9 +38,10 @@ C8 has no code dependency, but the release gate waits for its operator evidence.
 
 | ID | Chapter | Depends on | Touches | Execution owner | Gate | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| C1 | [Runtime correctness](chapters/01-runtime-correctness.md) | `[]` after parent audit | API suggestions, discovery-admin page shells/tests, discovery-ingest worker CLI/tests | chapter-implementer | Paired red → green tests, refactor report, narrow suites, `./ci.sh` | planned |
-| C2 | [Refactoring closure](chapters/02-refactoring-closure.md) | `[]` after parent audit | discovery-admin query hooks/prefetch, query timing constants, duplicate component tree, architecture checks | chapter-implementer | Characterization checks, refactor report, narrow suites, `./ci.sh` | planned |
-| C3 | [Evidence and operations](chapters/03-evidence-and-operations.md) | `[C1, C2]` integrated | Remediation report, remediation ledger, gaps/decisions, parent-ledger cross-reference | chief-of-staff | Docs-only diff, evidence rows, C8 handoff, integrated `./ci.sh` | planned |
+| C1 | [Runtime correctness](chapters/01-runtime-correctness.md) | `[]` after parent audit | API suggestions, discovery-admin page shells/tests, discovery-ingest worker CLI/tests | chapter-implementer | Paired red → green tests, refactor report, narrow suites, `./ci.sh` | integrated — partial gates |
+| C2 | [Refactoring closure](chapters/02-refactoring-closure.md) | `[]` after parent audit | discovery-admin query hooks/prefetch, query timing constants, duplicate component tree, architecture checks | chapter-implementer | Characterization checks, refactor report, narrow suites, `./ci.sh` | integrated — web gates green |
+| C3 | [Evidence and operations](chapters/03-evidence-and-operations.md) | `[C1, C2]` integrated | Remediation report, remediation ledger, gaps/decisions, parent-ledger cross-reference | chief-of-staff | Docs-only diff, evidence rows, C8 handoff, integrated `./ci.sh` | complete — C8 blocked |
+| C8 | Fixture jurisdiction cleanup | `[C3]` evidence handoff | Production data and read-only endpoint checks | chief-of-staff/operator | Dry run, approved apply, district/city checks | blocked — operator |
 | C8 | Fixture jurisdiction cleanup | `[C3]` evidence handoff | Production data and read-only endpoint checks | chief-of-staff/operator | Dry run, approved apply, district/city checks | blocked — operator |
 
 The parent audit is an external prerequisite already integrated into `main`; it is not a chapter in
@@ -105,9 +106,9 @@ the production mutation.
 
 | # | Chapter | Depends on | Layer | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [Runtime correctness](chapters/01-runtime-correctness.md) | parent audit | API, web, ingest | planned |
-| 2 | [Refactoring closure](chapters/02-refactoring-closure.md) | parent audit | web | planned |
-| 3 | [Evidence and operations](chapters/03-evidence-and-operations.md) | 1, 2 | plans and docs | planned |
+| 1 | [Runtime correctness](chapters/01-runtime-correctness.md) | parent audit | API, web, ingest | integrated — partial gates |
+| 2 | [Refactoring closure](chapters/02-refactoring-closure.md) | parent audit | web | integrated — web gates green |
+| 3 | [Evidence and operations](chapters/03-evidence-and-operations.md) | 1, 2 | plans and docs | complete — C8 blocked |
 
 ## Chief-of-staff gate
 

@@ -16,9 +16,9 @@ evidence, refactor outcomes, CI, and operator-gate status.
 
 | Chapter / gate | Branch / PR | Red → green evidence | Refactor outcome | CI / smoke | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1. Runtime correctness | | | | | planned |
-| 2. Refactoring closure | | | | | planned |
-| 3. Evidence and operations | | n/a (docs-only) | n/a | | planned |
+| 1. Runtime correctness | `fix/audit-remediation-runtime` (`56cf0a1`, `2e5d87c`, `d0c2e96`); local integration merge; no PR opened | Tests were committed before fixes. API focused suite: 10 passed, 19 DB-backed skipped without PostgreSQL. Web focused suite: 118 passed. Ingest suite blocked by the configured package-index tunnel. | Scoped nested savepoint; `LoadingNote` reuse; explicit zero guard; no further extraction needed. Pipeline locale binding restored during integration review. | API ruff format/check passed. Web `tsc`, ESLint, and IDE lints passed. `./ci.sh`/ingest verification unavailable because dependency download and DB gates were unavailable. | integrated — partial local gates |
+| 2. Refactoring closure | `refactor/audit-remediation-web` (`f62185a`); loop integration correction `bcc8db0`; no PR opened | Existing characterization suite plus focused web suite: 14 files, 118 tests passed. Structural checks confirm no inline prefetch `queryOptions` and no duplicate candidate component import path. | Five query-options sources centralized; artifact timing moved to neutral constants; duplicate tree was already absent; typed shared-hook correction added during integration; no further extraction needed. | Web `tsc`, ESLint, IDE lints, and `git diff --check` passed. Full `./ci.sh` remains pending. | integrated — local web gates green |
+| 3. Evidence and operations | loop branch `feat/plans-codebase-audit-remediation`; no PR opened | n/a (docs-only): integrated C1/C2 branch, test, and gate evidence recorded; negative checks keep R1/C8 claims bounded when runtime or operator evidence is absent. | Report/ledger separation retained; open decisions now have owners and next actions; parent handoff cross-links without closing parent rows; no documentation refactor needed beyond that split. | `git diff --check` passed. Integrated `./ci.sh` passed API format, ruff, and mypy, then stopped when Docker/PostgreSQL was unavailable. | complete — C8 blocked |
 | C8. Fixture jurisdiction cleanup | n/a (operator) | n/a | n/a | Dry run → approved apply → district/city endpoint check | blocked — operator |
 
 ## Baseline hand-off
