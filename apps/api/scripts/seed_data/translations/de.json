@@ -66,6 +66,7 @@
     "empty_title": "Keine Dokumente gefunden",
     "empty_description": "Es wurden noch keine Dokumente gefunden.",
     "empty_filtered_description": "Deine Filter oder deine Suche blenden alle Dokumente aus. Setze sie zurück, um die ganze Liste zu sehen.",
+    "empty_clear": "Filter und Suche zurücksetzen",
     "not_found": "Dokument nicht gefunden",
     "count_one": "{count} Dokument",
     "count_other": "{count} Dokumente",
@@ -141,9 +142,10 @@
     "forbidden_body": "Du hast keine Berechtigung, diese Seite anzusehen."
   },
   "filters": {
-    "domain": "Lebensbereich",
-    "situation": "Lebenslage",
+    "category": "Kategorien",
     "clear": "Filter zurücksetzen",
+    "chip": "Nach {name} filtern",
+    "browse": "Kategorien durchsuchen",
     "remove_domain": "Lebensbereich-Filter entfernen: {name}",
     "remove_situation": "Lebenslagen-Filter entfernen: {name}"
   },
