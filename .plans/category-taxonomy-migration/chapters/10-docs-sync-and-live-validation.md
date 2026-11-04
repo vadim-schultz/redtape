@@ -1,15 +1,16 @@
 ---
 name: "Chapter 10 — Docs sync and live validation"
 overview: "Synchronize category migration documentation and record read-only post-deploy evidence for taxonomy, search, chips, hidden technical metadata, accordions, sources, and PVOG provenance."
+id: C10
 depends_on:
-  - 09-legacy-retirement
+  - C9
 touches:
   - docs/
   - .plans/
   - apps/api/tests/
   - apps/web/src/
   - .github/
-execution: chapter-implementer
+execution: chief-of-staff
 todos:
   - id: docs-sync
     content: "Remove stale active matrix/domain/life-situation instructions and document the canonical category and provenance boundaries."

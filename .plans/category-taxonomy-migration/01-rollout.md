@@ -44,6 +44,48 @@ flowchart TD
   C9 --> C10[10 docs sync and live validation]
 ```
 
+## Scheduling matrix
+
+| ID | Chapter | Depends on | Touches | Execution | Gate | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| C1 | PVOG taxonomy contract | — | API seed data, discovery PVOG, ingest tests, suite artifacts | chapter-implementer | Mapping tests + artifact review | planned |
+| C2 | Category schema and data migration | C1 | API models, migrations, seed/backfill scripts, repositories, API tests | chapter-implementer | Migration round-trip + `./ci.sh` | planned |
+| C3 | Category API and backend filters | C2 | API taxonomy, document/candidate/discovery filters and schemas, contract fixture | chapter-implementer | API tests + `./ci.sh` | planned |
+| C4 | Ingest and LLM category contract | C1, C3 | API discovery/suggestion contracts, discovery-ingest PVOG/LLM/curation, tests | chapter-implementer | Contract/eval tests + `./ci.sh` | planned |
+| C5 | Frontend category browsing | C3, C4 | Web taxonomy, documents, candidates, components, translations, tests | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
+| C6 | Admin and suggestion contract cutover | C3, C4, C5 | API discovery/suggestions, web admin/suggestions/candidates, contract tests | chapter-implementer | Contract tests + `./ci.sh` | planned |
+| C7 | Public document metadata cleanup | C5, C6 | Public web candidate/detail surfaces, API candidate/discovery DTOs, tests | chapter-implementer | DTO/UI regression tests + `./ci.sh` | planned |
+| C8 | Accordion view and source cards | C7 | Web candidate detail, flow, source cards, translations, tests | chapter-implementer | Accessibility/component tests + `./ci.sh` | planned |
+| C9 | Legacy taxonomy retirement | C8 | API/web legacy taxonomy, migrations, contracts, docs, suite ledger | chapter-implementer | Reference scan + migration gate + `./ci.sh` | planned |
+| C10 | Docs sync and live validation | C9 | Active docs, validation tests, deployed-app evidence, suite ledger | chief-of-staff | Link/contract/reference checks + read-only live validation | planned |
+
+## Parallel batches
+
+The dependency graph and declared file ownership permit one chapter per batch:
+
+| Batch | Chapters | Why this is safe |
+| --- | --- | --- |
+| B1 | C1 | No prerequisite; freezes the vocabulary consumed by every later chapter. |
+| B2 | C2 | C1 is integrated; schema and backfill depend on the frozen artifact and share seed files with C1. |
+| B3 | C3 | C2 is integrated; API filters depend on target persistence. |
+| B4 | C4 | C1 and C3 are integrated; ingest contracts share API discovery and PVOG boundaries with prerequisites. |
+| B5 | C5 | C3 and C4 are integrated; frontend clients depend on the final API and machine vocabulary. |
+| B6 | C6 | C3–C5 are integrated; admin and suggestion DTOs overlap shared candidate contracts. |
+| B7 | C7 | C5 and C6 are integrated; public DTO and detail cleanup shares candidate surfaces with C6. |
+| B8 | C8 | C7 is integrated; accordion composition depends on the cleaned public detail surface. |
+| B9 | C9 | C8 is integrated; retirement is a final compatibility and parity gate. |
+| B10 | C10 | C9 is integrated; documentation and live validation are chief-of-staff-owned release evidence. |
+
+No intentional concurrency reduction is recorded: there are no independent ready chapters after applying both `depends_on` and `touches`.
+
+## Integration order and critical path
+
+Integrate completed work into `feat/plans-category-taxonomy-migration` in this order:
+
+`C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
+
+The critical path is the same ten-chapter chain. A failed chapter blocks only its declared dependents; no unrelated chapter can currently be scheduled because every later chapter depends on the preceding contract surface.
+
 ## Execution order
 
 1. Chapter 1 freezes the product vocabulary, PVOG snapshot, source mapping, and old-code crosswalk. It is the only chapter allowed to settle names and category membership.

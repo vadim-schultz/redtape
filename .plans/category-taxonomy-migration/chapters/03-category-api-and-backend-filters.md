@@ -1,8 +1,9 @@
 ---
 name: "Chapter 3 — Category API and backend filters"
 overview: "Expose the category tree and machine vocabulary, make category filtering authoritative in the backend, and provide a compatibility bridge for old axis parameters."
+id: C3
 depends_on:
-  - 02-category-schema-and-data-migration
+  - C2
 touches:
   - apps/api/app/features/taxonomy/
   - apps/api/app/features/documents/

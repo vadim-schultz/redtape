@@ -1,9 +1,10 @@
 ---
 name: "Chapter 4 — Ingest and LLM category contract"
 overview: "Move PVOG, LLM, manual curation, and discovery mention evidence from two taxonomy axes to canonical category codes without losing source or confidence."
+id: C4
 depends_on:
-  - 01-pvog-taxonomy-contract
-  - 03-category-api-and-backend-filters
+  - C1
+  - C3
 touches:
   - apps/api/app/models/discovery/
   - apps/api/app/features/discovery/

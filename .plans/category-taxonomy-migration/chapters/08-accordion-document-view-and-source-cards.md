@@ -1,8 +1,9 @@
 ---
 name: "Chapter 8 — Accordion document view and source cards"
 overview: "Present every document-detail section as an accessible accordion item and render sources as visually subordinate cards, with the requested initial expansion state."
+id: C8
 depends_on:
-  - 07-public-document-metadata-cleanup
+  - C7
 touches:
   - apps/web/src/features/candidates/components/CandidateDetailView/
   - apps/web/src/features/candidates/components/FlowDiagram/

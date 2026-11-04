@@ -1,9 +1,10 @@
 ---
 name: "Chapter 7 — Remove public staging and completeness metadata"
 overview: "Remove the staged/unreviewed notice and completeness section from the document experience while retaining only the progress-circle confidence signal and any private ranking inputs still required."
+id: C7
 depends_on:
-  - 05-frontend-category-browsing
-  - 06-admin-and-suggestion-contract-cutover
+  - C5
+  - C6
 touches:
   - apps/web/src/features/candidates/
   - apps/web/src/features/documents/components/ConfidenceCircleView/

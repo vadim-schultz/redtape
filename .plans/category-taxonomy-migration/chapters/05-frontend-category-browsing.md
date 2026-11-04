@@ -1,9 +1,10 @@
 ---
 name: "Chapter 5 — Frontend category browsing and linked chips"
 overview: "Replace dual-axis browse controls with search-first category navigation and compact red category chips that link to canonical filtered results."
+id: C5
 depends_on:
-  - 03-category-api-and-backend-filters
-  - 04-ingest-and-llm-category-contract
+  - C3
+  - C4
 touches:
   - apps/web/src/features/taxonomy/
   - apps/web/src/features/documents/

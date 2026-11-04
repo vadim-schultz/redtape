@@ -3,6 +3,17 @@
 **Suite:** [00-architecture.md](00-architecture.md) · [01-rollout.md](01-rollout.md)
 **Purpose:** Record implementation and post-deploy evidence. This file is a ledger template; no production checks are implied by its creation.
 
+## Orchestration
+
+- Loop branch: `feat/plans-category-taxonomy-migration`
+- Release branch: `main`
+- Local CI: `./ci.sh`
+- Implementation order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9`
+- Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
+- Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
+- Status: orchestration metadata recorded; implementation pending
+- Conflicts/failures: none recorded
+
 ## Baseline
 
 | Check | Expected evidence | Recorded |

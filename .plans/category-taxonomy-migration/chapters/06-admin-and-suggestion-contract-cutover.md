@@ -1,10 +1,11 @@
 ---
 name: "Chapter 6 — Admin and suggestion contract cutover"
 overview: "Move discovery-admin, manual curation, candidate detail, and suggestion contracts to canonical category codes while keeping internal completeness behavior isolated for the next chapter."
+id: C6
 depends_on:
-  - 03-category-api-and-backend-filters
-  - 04-ingest-and-llm-category-contract
-  - 05-frontend-category-browsing
+  - C3
+  - C4
+  - C5
 touches:
   - apps/api/app/features/discovery/
   - apps/api/app/features/suggestions/

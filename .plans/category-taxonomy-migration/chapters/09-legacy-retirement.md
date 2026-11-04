@@ -1,8 +1,9 @@
 ---
 name: "Chapter 9 — Legacy taxonomy retirement"
 overview: "Retire the old domain/life-situation axes and dormant matrix aggregation only after all category parity, compatibility, and provenance gates pass."
+id: C9
 depends_on:
-  - 08-accordion-document-view-and-source-cards
+  - C8
 touches:
   - apps/api/app/models/taxonomy.py
   - apps/api/app/models/document.py
