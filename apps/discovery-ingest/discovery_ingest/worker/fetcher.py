@@ -51,6 +51,7 @@ class PoliteUrlFetcher:
         max_bytes: int = DEFAULT_MAX_BYTES,
         resolver: HostResolver | None = None,
     ) -> None:
+        """Bind the request timeout, pacing, identity, byte cap and DNS resolver, plus an optional injected client."""
         self._max_bytes = max_bytes
         self._resolver: HostResolver = resolver or SystemResolver()
         self._user_agent = user_agent

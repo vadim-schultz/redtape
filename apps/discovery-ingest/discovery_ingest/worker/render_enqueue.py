@@ -14,7 +14,7 @@ from discovery_ingest.worker.outcome import FetchOutcome
 
 
 def _earns_a_render(outcome: FetchOutcome) -> bool:
-    """A 200 ``text/html`` page whose final URL is not a login URL; the plain fetch stays the gate (D19)."""
+    """Decide whether a 200 ``text/html`` page with a non-login final URL earns a render; the plain fetch stays the gate (D19)."""
     is_html = (outcome.content_type or "").lower().startswith("text/html")
     final = outcome.final_url
     return outcome.http_status == 200 and is_html and final is not None and not url_looks_like_login(final)
