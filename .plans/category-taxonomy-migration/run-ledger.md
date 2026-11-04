@@ -30,11 +30,17 @@
 
 ### Chapter 1 — PVOG taxonomy contract
 
-- Vocabulary artifact: pending
-- PVOG tree/source version: pending
-- Root/subcategory review: pending
-- Old-code crosswalk coverage: pending
-- Ambiguous/unmapped review list: pending
+- Status: integrated at `769019c` (`feat(taxonomy): add the PVOG-grounded category vocabulary`)
+- Vocabulary artifact: `category-contract-v1`; 12 roots and 22 subcategories, 34 categories total
+- PVOG tree/source version: PVOG `v7`; 118 total leaves, 56 citizen leaves, 62 business leaves
+- Root/subcategory review: recorded in `.plans/category-taxonomy-migration/category-contract-v1.json`
+- Old-code crosswalk coverage: 31 entries covering 13 domain and 18 life-situation codes
+- Ambiguous/unmapped review list: 14 PVOG review leaves and 10 citizen source-only leaves; business leaves remain excluded
+- Score-combination rule: `max`
+- Paired tests: taxonomy integrity/cycle rejection, PVOG path preservation/missing-parent handling, and crosswalk target/duplicate rejection pass
+- Narrow checks: API checks pass; PVOG tests, format, lint, and targeted mypy pass; full ingest mypy is blocked by missing `typer`
+- Full CI: `./ci.sh` blocked by unavailable Docker; remote web build failed
+- Refactor gate: mixed contract loading/validation and mapping concerns were extracted into typed contract and PVOG mapping loaders; no unresolved integration conflict
 
 ### Chapter 2 — Schema and data migration
 
