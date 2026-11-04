@@ -13,8 +13,7 @@ from llm_fakes import taxonomy
 DOCUMENT = {"name": "Personalausweis", "role": "required", "quote": "Bitte bringen Sie Ihren Personalausweis mit."}
 BASE: dict[str, Any] = {
     "page_kind": "service",
-    "domain_codes": ["housing"],
-    "situation_codes": [],
+    "category_codes": ["home-and-housing"],
     "documents": [DOCUMENT],
     "dependencies": [],
 }
@@ -57,8 +56,7 @@ def test_extra_fields_are_rejected_at_every_level() -> None:
         _with(documents=[_document(condition="x" * 301)]),
         _with(documents=[_document(role="optional")]),
         _with(page_kind="article"),
-        _with(domain_codes=["housing", "housing", "housing"]),
-        _with(situation_codes=["a", "b", "c", "d"]),
+        _with(category_codes=["home-and-housing"] * 6),
         {key: value for key, value in BASE.items() if key != "documents"},
     ],
     ids=[
@@ -71,8 +69,7 @@ def test_extra_fields_are_rejected_at_every_level() -> None:
         "long-condition",
         "bad-role",
         "bad-page-kind",
-        "domain-count",
-        "situation-count",
+        "category-count",
         "missing-field",
     ],
 )
@@ -84,34 +81,36 @@ def test_out_of_range_extractions_are_rejected(payload: dict[str, Any]) -> None:
 def test_the_json_schema_lists_the_taxonomy_codes_as_enums() -> None:
     schema = build_json_schema(taxonomy())
     properties = schema["properties"]
-    assert properties["domain_codes"]["items"]["enum"] == ["housing", "identity-civil-status"]
-    assert properties["situation_codes"]["items"]["enum"] == ["moving-house", "birth-of-child"]
-    assert properties["domain_codes"]["maxItems"] == 2
-    assert properties["situation_codes"]["maxItems"] == 3
+    assert properties["category_codes"]["items"]["enum"] == [
+        "home-and-housing",
+        "identity-and-documents",
+        "moving-house",
+        "birth-and-parenthood",
+    ]
+    assert properties["category_codes"]["maxItems"] == 5
 
 
-def test_the_json_schema_requires_every_top_level_field_except_situation_codes() -> None:
+def test_the_json_schema_requires_every_top_level_field_except_category_codes() -> None:
     schema = build_json_schema(taxonomy())
-    assert sorted(schema["required"]) == sorted(set(PageExtraction.model_fields) - {"situation_codes"})
+    assert "category_codes" not in schema["required"]
     assert schema["additionalProperties"] is False
 
 
-def test_situation_codes_omitted_from_the_payload_still_parses() -> None:
-    payload = {key: value for key, value in BASE.items() if key != "situation_codes"}
-    assert PageExtraction.model_validate(payload).situation_codes == []
+def test_category_codes_omitted_from_the_payload_still_parses() -> None:
+    payload = {key: value for key, value in BASE.items() if key != "category_codes"}
+    assert PageExtraction.model_validate(payload).category_codes == []
 
 
-def test_the_json_schema_no_longer_requires_situation_codes() -> None:
+def test_the_json_schema_does_not_require_category_codes() -> None:
     schema = build_json_schema(taxonomy())
-    assert "situation_codes" not in schema["required"]
-    assert "domain_codes" in schema["required"]
+    assert "category_codes" not in schema["required"]
 
 
 def test_an_empty_vocabulary_allows_no_codes_instead_of_an_empty_enum() -> None:
-    schema = build_json_schema(taxonomy().model_copy(update={"domains": ()}))
-    domains = schema["properties"]["domain_codes"]
-    assert "enum" not in domains["items"]
-    assert domains["maxItems"] == 0
+    schema = build_json_schema(taxonomy().model_copy(update={"categories": ()}))
+    categories = schema["properties"]["category_codes"]
+    assert "enum" not in categories["items"]
+    assert categories["maxItems"] == 0
 
 
 def test_strings_are_stripped() -> None:

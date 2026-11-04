@@ -10,6 +10,10 @@ def _term(code: str, name_de: str, name_en: str) -> TaxonomyTerm:
 
 
 PROBE_TAXONOMY = Taxonomy(
-    domains=(_term("housing", "Wohnen", "Housing"), _term("identity-civil-status", "Identität", "Identity")),
-    situations=(_term("moving-house", "Umzug", "Moving house"), _term("birth-of-child", "Geburt", "Birth of a child")),
+    categories=(
+        _term("home-and-housing", "Wohnen", "Home and housing"),
+        _term("moving-house", "Umzug", "Moving house"),
+        _term("identity-and-documents", "Identität", "Identity and documents"),
+        _term("birth-and-parenthood", "Geburt", "Birth of a child"),
+    ),
 )

@@ -249,7 +249,8 @@ def test_mention_items_store_condition_optional_flag_and_codes(
     mention = _only_mention(db_session)
     assert mention.role is DiscoveryMentionRole.ISSUED
     assert (mention.condition, mention.is_optional) == ("bei Zuzug aus dem Ausland", True)
-    assert (mention.domain_codes, mention.situation_codes) == (["housing"], ["moving-house", "birth-of-child"])
+    assert mention.category_codes == ["home-and-housing", "moving-house", "birth-and-parenthood"]
+    assert mention.situation_codes is None
 
 
 def test_unknown_codes_are_dropped_and_counted_and_valid_codes_are_kept(
@@ -259,16 +260,16 @@ def test_unknown_codes_are_dropped_and_counted_and_valid_codes_are_kept(
 ) -> None:
     key = _issue_key(db_session)
     catalogue = _catalogue(db_session)
-    item = _item(catalogue, **{**LLM_FIELDS, "domain_codes": ["housing", "no-such"], "situation_codes": ["nope"]})
+    item = _item(catalogue, source_field="llm", category_codes=["home-and-housing", "stale-code"])
 
-    response = _post(client, key, item, _item(catalogue, source_field="llm2", domain_codes=["also-missing"]))
+    response = _post(client, key, item, _item(catalogue, source_field="llm2", category_codes=["stale-code"]))
 
     assert response.status_code == 200
-    assert response.json()["unknown_codes"] == 3
+    assert response.json()["unknown_codes"] == 2
     assert _count(db_session, DiscoveryCandidateMention) == 2
     stored = {m.source_field: m for m in db_session.scalars(select(DiscoveryCandidateMention))}
-    assert (stored["llm"].domain_codes, stored["llm"].situation_codes) == (["housing"], [])
-    assert stored["llm2"].domain_codes == []
+    assert stored["llm"].category_codes == ["home-and-housing"]
+    assert stored["llm2"].category_codes == []
 
 
 def test_a_reposted_llm_mention_updates_in_place_instead_of_adding_a_row(
@@ -284,8 +285,8 @@ def test_a_reposted_llm_mention_updates_in_place_instead_of_adding_a_row(
 
     assert replay.json()["mentions_updated"] == 1
     mention = _only_mention(db_session)
-    assert (mention.condition, mention.domain_codes) == (None, [])
-    assert mention.situation_codes == ["moving-house", "birth-of-child"]
+    assert (mention.condition, mention.category_codes) == (None, ["moving-house", "birth-and-parenthood"])
+    assert mention.situation_codes is None
 
 
 def test_items_without_the_new_fields_behave_exactly_as_before(
@@ -315,11 +316,11 @@ def test_items_without_the_new_fields_behave_exactly_as_before(
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"domain_codes": ["a", "b", "c"]},
-        {"situation_codes": ["a", "b", "c", "d"]},
+        {"category_codes": ["a", "b", "c", "d", "e", "f"]},
+        {"category_codes": ["moving-house", "birth-and-parenthood", "renting-home", "a", "b", "c"]},
         {"condition": "x" * 301},
     ],
-    ids=["three-domains", "four-situations", "long-condition"],
+    ids=["six-categories", "six-categories-with-known-values", "long-condition"],
 )
 def test_too_many_codes_or_a_long_condition_is_a_422_and_writes_nothing(
     client: TestClient[Litestar],  # noqa: F811
@@ -337,8 +338,12 @@ def test_too_many_codes_or_a_long_condition_is_a_422_and_writes_nothing(
 
 @pytest.mark.parametrize(
     "overrides",
-    [{"domain_codes": ["a", "b"]}, {"situation_codes": ["a", "b", "c"]}, {"condition": "x" * 300}],
-    ids=["two-domains", "three-situations", "300-condition"],
+    [
+        {"category_codes": ["home-and-housing", "moving-house"]},
+        {"category_codes": ["moving-house", "birth-and-parenthood", "renting-home"]},
+        {"condition": "x" * 300},
+    ],
+    ids=["two-categories", "three-categories", "300-condition"],
 )
 def test_codes_and_condition_at_their_limits_are_accepted(
     client: TestClient[Litestar],  # noqa: F811
@@ -354,10 +359,8 @@ def test_codes_and_condition_at_their_limits_are_accepted(
 PVOG_FIELDS: dict[str, object] = {
     "source_field": "details[code=pvog]",
     "role": "required",
-    "domain_codes": ["housing"],
-    "situation_codes": ["moving-house"],
-    "direct_domain_confidence": 0.8,
-    "direct_situation_confidence": 0.95,
+    "category_codes": ["home-and-housing", "moving-house"],
+    "direct_category_confidence": 0.95,
     "pvog_leaf_code": "1050100",
 }
 
@@ -376,7 +379,8 @@ def test_mention_items_store_direct_confidence_and_leaf_code(
 
     assert response.status_code == 200
     mention = _only_mention(db_session)
-    assert (mention.direct_domain_confidence, mention.direct_situation_confidence) == (0.8, 0.95)
+    assert mention.direct_category_confidence == 0.95
+    assert mention.direct_situation_confidence is None
     assert mention.pvog_leaf_code == "1050100"
 
 
@@ -392,8 +396,7 @@ def test_mention_items_without_direct_confidence_or_leaf_code_stay_null(
 
     assert response.status_code == 200
     mention = _only_mention(db_session)
-    assert (mention.direct_domain_confidence, mention.direct_situation_confidence, mention.pvog_leaf_code) == (
-        None,
+    assert (mention.direct_category_confidence, mention.pvog_leaf_code) == (
         None,
         None,
     )
@@ -408,8 +411,8 @@ def test_a_reposted_pvog_mention_updates_its_direct_confidence_and_leaf_code_in_
     catalogue = _catalogue(db_session)
     _post(client, key, _item(catalogue, **PVOG_FIELDS))
 
-    replay = _post(client, key, _item(catalogue, **{**PVOG_FIELDS, "direct_situation_confidence": 0.65}))
+    replay = _post(client, key, _item(catalogue, **{**PVOG_FIELDS, "direct_category_confidence": 0.65}))
 
     assert replay.json()["mentions_updated"] == 1
     mention = _only_mention(db_session)
-    assert mention.direct_situation_confidence == 0.65
+    assert mention.direct_category_confidence == 0.65

@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.candidates.repository.tag_scores import TagScoreRepository
 from app.features.discovery.candidate_tags import candidate_tag_suggestions, usable_codes
 from app.features.discovery.repository.candidate_axis_support import candidate_axis_support
 from app.features.discovery.repository.candidate_leaf_codes import candidate_situation_leaf_codes
@@ -127,6 +128,32 @@ def test_a_direct_confidence_mention_combines_with_llm_evidence_via_noisy_or(db_
 
     assert both > llm_only
     assert both > direct_only
+
+
+def test_category_score_matches_the_sql_aggregation_and_keeps_the_existing_curve(db_session: Session) -> None:
+    """Canonical category evidence uses the same Python and SQL score as the legacy axes."""
+    subject_id = _staged(
+        db_session,
+        [Row(0, ["moving-house"]), Row(1, ["moving-house"])],
+        procs=2,
+    )
+
+    python_score = candidate_axis_support(db_session, subject_id, TagAxis.CATEGORY)
+    sql_score = TagScoreRepository(db_session).tag_scores_for([subject_id])[subject_id].categories
+
+    assert python_score == [TagSupport("moving-house", 2, 1.0, pytest.approx(0.85))]
+    assert [(row.code, row.score) for row in sql_score] == [("moving-house", pytest.approx(0.85))]
+
+
+def test_category_score_keeps_a_low_share_assertion_below_the_existing_floor(db_session: Session) -> None:
+    """A thin canonical category assertion remains noise-suppressed by the existing confidence curve."""
+    other_rows = [Row(i, ["other"]) for i in range(1, 11)]
+    subject_id = _staged(db_session, [Row(0, ["moving-house"]), *other_rows], procs=11)
+
+    support = candidate_axis_support(db_session, subject_id, TagAxis.CATEGORY)
+
+    moving_house = next(item for item in support if item.code == "moving-house")
+    assert moving_house.score < MIN_SUGGESTED_SCORE
 
 
 def test_a_single_low_share_llm_mention_scores_below_the_inclusion_floor(db_session: Session) -> None:

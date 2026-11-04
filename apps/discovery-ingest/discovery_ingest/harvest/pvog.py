@@ -17,8 +17,12 @@ from discovery_ingest.harvest.modules import MODULE_SELECTORS, Found, Module, Mo
 from discovery_ingest.harvest.noise import is_noise
 from discovery_ingest.harvest.text import plain_text
 from discovery_ingest.mentions import MentionDraft
-from discovery_ingest.pvog.domain_mapping import PERSONAL_MATTER_DOMAIN_CLARITY, PERSONAL_MATTER_TO_DOMAIN
-from discovery_ingest.pvog.situation_mapping import PERSONAL_MATTER_CLARITY, PERSONAL_MATTER_TO_SITUATION
+from discovery_ingest.pvog.category_mapping import (
+    PVOG_CATEGORY_MAPPING_VERSION,
+    PvogCategoryEvidence,
+    category_evidence_for_path,
+)
+from discovery_ingest.pvog.models import PvogSourcePath
 
 EXTRACTOR = "pvog-payload"
 EXTRACTOR_VERSION = "1"
@@ -52,27 +56,45 @@ def _leaf_code(raw_payload: dict[str, object]) -> str | None:
 
 @dataclass(frozen=True, slots=True)
 class LeafHints:
-    """The mapping hints one PVOG Lebenslage leaf carries onto every mention drafted from its payload."""
+    """The canonical evidence one PVOG path carries onto every drafted mention."""
 
-    situation_codes: list[str] | None
-    situation_confidence: float | None
-    domain_codes: list[str] | None
-    domain_confidence: float | None
+    category_codes: list[str] | None
+    category_confidence: float | None
     leaf_code: str | None
+    source_path: PvogSourcePath | None
+    mapping_version: str | None
 
     @classmethod
     def from_payload(cls, raw_payload: dict[str, object]) -> LeafHints:
-        """Read the stashed leaf code once and consult the four mapping tables for it; no code means no hints."""
+        """Read the stashed PVOG path and map it through the frozen crosswalk."""
         code = _leaf_code(raw_payload)
-        if code is None:
-            return cls(None, None, None, None, None)
+        source_path = _source_path(raw_payload)
+        if source_path is None:
+            return cls(None, None, code, None, None)
+        evidence = category_evidence_for_path(source_path)
         return cls(
-            situation_codes=PERSONAL_MATTER_TO_SITUATION.get(code),
-            situation_confidence=PERSONAL_MATTER_CLARITY.get(code),
-            domain_codes=PERSONAL_MATTER_TO_DOMAIN.get(code),
-            domain_confidence=PERSONAL_MATTER_DOMAIN_CLARITY.get(code),
-            leaf_code=code,
+            *_evidence_fields(evidence), code or source_path.leaf_code, source_path, PVOG_CATEGORY_MAPPING_VERSION
         )
+
+
+def _source_path(raw_payload: dict[str, object]) -> PvogSourcePath | None:
+    """Parse the captured PVOG path without turning malformed source data into a category."""
+    raw_path = raw_payload.get("_pvog_source_path")
+    if not isinstance(raw_path, dict):
+        return None
+    try:
+        path = PvogSourcePath.model_validate(raw_path)
+    except ValueError:
+        return None
+    leaf_code = _leaf_code(raw_payload)
+    return path if leaf_code in {None, path.leaf_code} else None
+
+
+def _evidence_fields(evidence: PvogCategoryEvidence | None) -> tuple[list[str] | None, float | None]:
+    """Return mention fields for mapped evidence, or empty category fields for source-only paths."""
+    if evidence is None:
+        return None, None
+    return list(evidence.category_codes), evidence.confidence
 
 
 class PvogDrafter:
@@ -98,11 +120,11 @@ class PvogDrafter:
             extractor=EXTRACTOR,
             extractor_version=EXTRACTOR_VERSION,
             official_url=item.official_url,
-            situation_codes=self._hints.situation_codes,
-            direct_situation_confidence=self._hints.situation_confidence,
-            domain_codes=self._hints.domain_codes,
-            direct_domain_confidence=self._hints.domain_confidence,
+            category_codes=self._hints.category_codes,
+            direct_category_confidence=self._hints.category_confidence,
             pvog_leaf_code=self._hints.leaf_code,
+            pvog_source_path=self._hints.source_path,
+            pvog_mapping_version=self._hints.mapping_version,
         )
 
 

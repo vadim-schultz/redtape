@@ -106,7 +106,7 @@ def _answer(documents: int, dependencies: int, quote_length: int) -> str:
     quote = "Bitte legen Sie " + "x" * (quote_length - 16)
     document = {"name": "Meldebescheinigung", "role": "required", "quote": quote, "url": None, "condition": None}
     dependency = {"parent": "Antrag", "requires": "Meldebescheinigung", "quote": quote, "condition": None}
-    answer = {"page_kind": "service", "domain_codes": ["housing"], "situation_codes": []}
+    answer = {"page_kind": "service", "category_codes": ["home-and-housing"]}
     answer |= {"documents": [document] * documents, "dependencies": [dependency] * dependencies}
     return json.dumps(PageExtraction.model_validate(answer).model_dump(mode="json"), ensure_ascii=False)
 

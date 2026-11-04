@@ -137,7 +137,14 @@ class PvogSource:
         skipped: list[str] = []
         for code, row in self._walk.iter_records(ars=FEDERAL_ARS, max_pages=self._max_pages):
             try:
-                items.append(map_pvog_record(row, jurisdiction_id=self._jurisdiction_id, personal_matter_code=code))
+                items.append(
+                    map_pvog_record(
+                        row,
+                        jurisdiction_id=self._jurisdiction_id,
+                        personal_matter_code=code,
+                        personal_matter_path=row.source_path,
+                    )
+                )
             except PvogMappingError as err:
                 skipped.append(str(err))
         yield SourceBatch(items=items, skipped=skipped)

@@ -12,6 +12,14 @@ MODULES: dict[str, dict[str, object]] = json.loads(FIXTURES.read_text(encoding="
 
 
 def _payload(*modules: dict[str, object], **extra: object) -> dict[str, object]:
+    if (leaf_code := extra.get("_personal_matter_code")) is not None:
+        extra["_pvog_source_path"] = {
+            "root_code": "1",
+            "root_label": "Lebenslagen für Bürgerinnen und Bürger",
+            "parent_code": str(leaf_code)[:3],
+            "leaf_code": leaf_code,
+            "source_version": "v7",
+        }
     return {"details": list(modules), **extra}
 
 
@@ -141,73 +149,69 @@ def test_harvester_reports_each_document_once_per_module() -> None:
     assert _titles(_payload(duplicated)) == ["Reisepass"]
 
 
-def test_harvester_attaches_the_mapped_situation_code_for_a_clean_leaf() -> None:
-    """harvester · attaches the mapped single-element situation_codes for a clean leaf."""
+def test_harvester_attaches_the_mapped_category_code_for_a_clean_leaf() -> None:
+    """harvester · attaches the mapped single-element category code for a clean leaf."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1180100"))
 
-    assert drafts[0].situation_codes == ["retirement"]
+    assert drafts[0].category_codes == ["retirement"]
 
 
-def test_harvester_attaches_every_plausible_code_for_a_bundled_leaf() -> None:
-    """harvester · attaches both plausible codes for a bundled/ambiguous leaf."""
+def test_harvester_attaches_every_plausible_category_for_a_bundled_leaf() -> None:
+    """harvester · attaches both plausible categories for a bundled/ambiguous leaf."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1040300"))
 
-    assert drafts[0].situation_codes == ["job-loss", "new-job"]
+    assert drafts[0].category_codes == ["job-loss", "new-job"]
 
 
 def test_harvester_attaches_nothing_when_the_stashed_code_is_unmapped() -> None:
-    """harvester · attaches no situation_codes for an unmapped leaf code."""
+    """harvester · attaches no category_codes for an unmapped leaf code."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1170100"))
 
-    assert drafts[0].situation_codes is None
+    assert drafts[0].category_codes is None
 
 
 def test_harvester_attaches_the_clean_leafs_mapping_clarity_confidence_and_leaf_code() -> None:
-    """harvester · a clean leaf carries direct_situation_confidence=0.95 and its own pvog_leaf_code."""
+    """harvester · a clean leaf carries direct_category_confidence=0.95 and its own pvog_leaf_code."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1180100"))
 
-    assert drafts[0].situation_codes == ["retirement"]
-    assert drafts[0].direct_situation_confidence == 0.95
+    assert drafts[0].category_codes == ["retirement"]
+    assert drafts[0].direct_category_confidence == 0.95
     assert drafts[0].pvog_leaf_code == "1180100"
-    assert drafts[0].domain_codes is None
-    assert drafts[0].direct_domain_confidence is None
+    assert drafts[0].pvog_source_path is not None
+    assert drafts[0].pvog_mapping_version == "category-contract-v1"
 
 
-def test_harvester_attaches_0_65_confidence_on_both_codes_of_an_ambiguous_bundled_leaf() -> None:
-    """harvester · an ambiguous bundled leaf carries 0.65 on both emitted situation codes."""
+def test_harvester_attaches_0_65_confidence_on_both_categories_of_an_ambiguous_bundled_leaf() -> None:
+    """harvester · an ambiguous bundled leaf carries 0.65 on both emitted category codes."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1040300"))
 
-    assert drafts[0].situation_codes == ["job-loss", "new-job"]
-    assert drafts[0].direct_situation_confidence == 0.65
+    assert drafts[0].category_codes == ["job-loss", "new-job"]
+    assert drafts[0].direct_category_confidence == 0.65
     assert drafts[0].pvog_leaf_code == "1040300"
 
 
-def test_harvester_attaches_a_domain_hint_only_leaf_with_no_situation_codes_at_all() -> None:
-    """harvester · a domain-hint-only leaf carries direct_domain_confidence=0.8 and no situation codes."""
+def test_harvester_attaches_the_canonical_category_for_a_former_domain_hint_leaf() -> None:
+    """harvester · a formerly domain-only leaf carries canonical category evidence."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1020200"))
 
-    assert drafts[0].situation_codes is None
-    assert drafts[0].direct_situation_confidence is None
-    assert drafts[0].domain_codes == ["family-children"]
-    assert drafts[0].direct_domain_confidence == 0.8
+    assert drafts[0].category_codes == ["family-and-relationships"]
+    assert drafts[0].direct_category_confidence == 0.8
     assert drafts[0].pvog_leaf_code == "1020200"
 
 
-def test_harvester_attaches_nothing_on_either_axis_for_a_leaf_in_neither_table() -> None:
-    """harvester · a leaf in neither table carries nothing on either axis, as today."""
+def test_harvester_attaches_no_category_for_a_source_only_leaf() -> None:
+    """harvester · a source-only leaf carries no canonical category."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"], _personal_matter_code="1170100"))
 
-    assert drafts[0].situation_codes is None
-    assert drafts[0].direct_situation_confidence is None
-    assert drafts[0].domain_codes is None
-    assert drafts[0].direct_domain_confidence is None
+    assert drafts[0].category_codes is None
+    assert drafts[0].direct_category_confidence is None
     assert drafts[0].pvog_leaf_code == "1170100"
 
 
-def test_harvester_attaches_no_leaf_code_when_the_payload_has_none() -> None:
-    """harvester · without a stashed leaf code, every new field stays unset, as before this chapter."""
+def test_harvester_attaches_no_pvog_evidence_when_the_payload_has_none() -> None:
+    """harvester · without a stashed leaf code, every PVOG field stays unset."""
     drafts = harvest_pvog_payload(_payload(MODULES["lieferengpass"]))
 
     assert drafts[0].pvog_leaf_code is None
-    assert drafts[0].direct_situation_confidence is None
-    assert drafts[0].direct_domain_confidence is None
+    assert drafts[0].direct_category_confidence is None
+    assert drafts[0].category_codes is None

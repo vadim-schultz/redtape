@@ -26,7 +26,7 @@ def _taxonomy() -> Taxonomy:
 
 
 def _ground(documents: list[dict[str, Any]], text: str = TEXT, links: tuple[str, ...] = ()) -> Grounded:
-    payload = {"page_kind": "service", "domain_codes": [], "situation_codes": [], "documents": documents}
+    payload = {"page_kind": "service", "category_codes": [], "documents": documents}
     extraction = PageExtraction.model_validate({**payload, "dependencies": []})
     return ground(extraction, page(text, links=links), _taxonomy())
 

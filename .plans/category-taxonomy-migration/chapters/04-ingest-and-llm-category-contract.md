@@ -8,10 +8,15 @@ depends_on:
 touches:
   - apps/api/app/models/discovery/
   - apps/api/app/features/discovery/
+  - apps/api/app/features/candidates/repository/
+  - apps/api/app/features/documents/promotion.py
+  - apps/api/app/features/suggestions/
+  - apps/api/app/features/taxonomy/
   - apps/api/app/schema/discovery/
   - apps/api/app/schema/suggestion/
   - apps/discovery-ingest/discovery_ingest/mentions.py
   - apps/discovery-ingest/discovery_ingest/pvog/
+  - apps/discovery-ingest/discovery_ingest/operations/
   - apps/discovery-ingest/discovery_ingest/extract/llm/
   - apps/discovery-ingest/discovery_ingest/curation.py
   - apps/discovery-ingest/tests/
@@ -20,16 +25,16 @@ execution: chapter-implementer
 todos:
   - id: mention-contract
     content: "Add canonical category codes to mention, candidate, suggestion, and curation contracts with compatibility handling."
-    status: pending
+    status: complete
   - id: pvog-harvest
     content: "Carry PVOG source path/leaf provenance and map source evidence to canonical categories."
-    status: pending
+    status: complete
   - id: llm-contract
     content: "Replace LLM dual-axis enums and grounding with the category vocabulary."
-    status: pending
+    status: complete
   - id: tests
     content: "Update mapping, schema, fixture, evaluation, unknown-code, and confidence parity tests."
-    status: pending
+    status: complete
 ---
 
 # Chapter 4 — Ingest and LLM category contract
@@ -62,12 +67,18 @@ Change all new discovery evidence to speak one category vocabulary. PVOG and LLM
 | `apps/api/app/schema/suggestion/payload.py` | Replace dual-axis suggestion fields with category fields while keeping a bounded compatibility reader if required. |
 | `apps/api/app/features/discovery/tags.py` | Apply the existing score model to category evidence without axis-specific thresholds. |
 | `apps/api/app/features/discovery/repository/candidate_tag_scores.py` | Key score aggregation by category code and preserve parity with the Python scorer. |
+| `apps/api/app/features/candidates/repository/tag_scores.py` | Expose category scores to candidate reads. |
+| `apps/api/app/features/documents/promotion.py` | Persist canonical category scores when a suggestion becomes a document. |
+| `apps/api/app/features/suggestions/handlers.py` | Validate canonical categories during suggestion promotion. |
+| `apps/api/app/features/taxonomy/compatibility.py` | Translate legacy axes and category scores at the compatibility boundary. |
+| `apps/api/app/features/taxonomy/service.py` | Resolve category codes used by the new evidence writers. |
 | `apps/discovery-ingest/discovery_ingest/mentions.py` | Add canonical category fields to mention DTOs and preserve source metadata. |
 | `apps/discovery-ingest/discovery_ingest/pvog/models.py` | Retain PVOG path/label/version information where present. |
 | `apps/discovery-ingest/discovery_ingest/pvog/client.py` | Pass source path/context through the row mapping without changing crawl budget/dedupe semantics accidentally. |
 | `apps/discovery-ingest/discovery_ingest/pvog/situation_mapping.py` | Replace old situation mapping output with category mapping from the chapter 1 artifact. |
 | `apps/discovery-ingest/discovery_ingest/pvog/domain_mapping.py` | Remove old domain output after all entries have a category disposition. |
 | `apps/discovery-ingest/discovery_ingest/harvest/pvog.py` | Draft category codes, direct confidence, and PVOG external classification together. |
+| `apps/discovery-ingest/discovery_ingest/operations/catalogue.py` | Route mapped GovData and PVOG batches through the canonical catalogue contract. |
 | `apps/discovery-ingest/discovery_ingest/extract/llm/schema.py` | Replace `domain_codes`/`situation_codes` schema fields and enums with bounded `category_codes`. |
 | `apps/discovery-ingest/discovery_ingest/extract/llm/taxonomy.py` | Read the category machine vocabulary and calculate a category digest. |
 | `apps/discovery-ingest/discovery_ingest/extract/llm/mapping.py` | Map grounded category output into mention payloads. |

@@ -36,15 +36,18 @@ class TagSupport(NamedTuple):
 
 
 class TagAxis(enum.Enum):
-    """A tag axis of a mention: the array column of codes and the column of direct-source confidence."""
+    """A compatibility axis or the canonical category collection of a mention."""
 
     DOMAIN = "domain"
     SITUATION = "situation"
+    CATEGORY = "category"
 
     @property
     def column(self) -> InstrumentedAttribute[list[str] | None]:
         """Return the mention column holding this axis' codes."""
-        return Mention.domain_codes if self is TagAxis.DOMAIN else Mention.situation_codes
+        if self is TagAxis.SITUATION:
+            return Mention.situation_codes
+        return Mention.domain_codes
 
     @property
     def confidence_column(self) -> InstrumentedAttribute[float | None]:
@@ -54,7 +57,9 @@ class TagAxis(enum.Enum):
         a non-``NULL`` value means the mention supplies its own fixed confidence directly (a PVOG leaf today,
         a vote-backed estimate in future), independent of how many other procedures agree.
         """
-        return Mention.direct_domain_confidence if self is TagAxis.DOMAIN else Mention.direct_situation_confidence
+        if self is TagAxis.SITUATION:
+            return Mention.direct_situation_confidence
+        return Mention.direct_domain_confidence
 
 
 def llm_evidence_score(procedures: int, share: float) -> float:

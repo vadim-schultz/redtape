@@ -1,10 +1,8 @@
 {
   "page_kind": "service",
-  "domain_codes": [
-    "identity-civil-status"
-  ],
-  "situation_codes": [
-    "death-of-relative"
+  "category_codes": [
+    "identity-and-documents",
+    "death-and-estate"
   ],
   "documents": [
     {

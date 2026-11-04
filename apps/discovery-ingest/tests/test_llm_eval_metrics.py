@@ -105,31 +105,23 @@ def test_tag_agreement_is_the_mean_jaccard_and_treats_empty_against_empty_as_agr
     assert tag_agreement([]) == 1.0
 
 
-def _code_result(
-    predicted_domain: tuple[str, ...],
-    gold_domain: tuple[str, ...],
-    predicted_situation: tuple[str, ...],
-    gold_situation: tuple[str, ...],
-) -> PageResult:
+def _code_result(predicted: tuple[str, ...], gold: tuple[str, ...]) -> PageResult:
     scores = Scores(
         Counts(0, 0, 0),
         Counts(0, 0, 0),
-        predicted_domain_codes=predicted_domain,
-        gold_domain_codes=gold_domain,
-        predicted_situation_codes=predicted_situation,
-        gold_situation_codes=gold_situation,
+        predicted_category_codes=predicted,
+        gold_category_codes=gold,
     )
     return PageResult("page", "ok", "service", 100, False, 0, (), Usage(), scores)
 
 
-def test_summarise_reports_domain_and_situation_tag_agreement_as_two_separate_numbers() -> None:
-    """summarise · domain agrees fully, situation disagrees fully; the two axes must not be pooled into one number."""
-    page = _code_result(("housing",), ("housing",), (), ("birth-of-child",))
+def test_summarise_reports_canonical_category_agreement() -> None:
+    """summarise · category agreement is computed on one canonical vocabulary."""
+    page = _code_result(("moving-house",), ("birth-and-parenthood",))
 
     summary = summarise((page,))
 
-    assert summary.domain_tag_agreement == 1.0
-    assert summary.situation_tag_agreement == 0.0
+    assert summary.category_tag_agreement == 0.0
 
 
 def test_a_page_with_no_gold_documents_and_no_predictions_scores_as_correct_not_as_a_division_by_zero() -> None:

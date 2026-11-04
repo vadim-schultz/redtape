@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import ColumnElement, Float, cast, distinct, func, or_, select
+from sqlalchemy import ColumnElement, Float, cast, distinct, func, or_, select, union_all
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.sql.expression import CTE, Select, Subquery
 from sqlalchemy.sql.functions import array_agg
@@ -28,10 +28,27 @@ def _confidence_column(axis: TagAxis) -> ColumnElement[float]:
 
 def exploded_codes(axis: TagAxis, name: str = "exploded") -> CTE:
     """Return one row per mention code of ``axis``; ``name`` keeps the CTEs of two relations in one query apart."""
+    if axis is TagAxis.CATEGORY:
+        return _category_codes(name)
     code = func.unnest(axis.column).label("code")
     confidence = _confidence_column(axis).label("confidence")
     stmt = select(Mention.candidate_id, Mention.catalogue_service_id, Mention.extractor, confidence, code)
     return stmt.cte(f"{axis.value}_{name}")
+
+
+def _category_codes(name: str) -> CTE:
+    """Explode canonical codes plus legacy axis arrays during the compatibility window."""
+    rows = [
+        select(
+            Mention.candidate_id,
+            Mention.catalogue_service_id,
+            Mention.extractor,
+            _confidence_column(axis).label("confidence"),
+            func.unnest(axis.column).label("code"),
+        )
+        for axis in (TagAxis.DOMAIN, TagAxis.SITUATION)
+    ]
+    return union_all(*rows).cte(f"{TagAxis.CATEGORY.value}_{name}")
 
 
 def tagged_procedures(exploded: CTE) -> Subquery:

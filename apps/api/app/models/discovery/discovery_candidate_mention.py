@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy import Enum as SAEnum
@@ -16,6 +16,18 @@ from app.models.discovery.mixins import CreatedAtMixin
 if TYPE_CHECKING:
     from app.models.discovery.catalogue_service import CatalogueService
     from app.models.discovery.discovery_document_candidate import DiscoveryDocumentCandidate
+
+
+class PvogSourcePathData(TypedDict, total=False):
+    """Typed PVOG path fields retained with a mention during the storage transition."""
+
+    root_code: str
+    root_label: str
+    parent_code: str
+    parent_label: str
+    leaf_code: str
+    leaf_label: str
+    source_version: str
 
 
 class DiscoveryCandidateMention(CreatedAtMixin, Base):
@@ -65,3 +77,47 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
         "DiscoveryDocumentCandidate", back_populates="mentions"
     )
     catalogue_service: Mapped[CatalogueService] = relationship("CatalogueService")
+
+    @property
+    def category_codes(self) -> list[str] | None:
+        """Return canonical categories during the compatibility storage window."""
+        return self.domain_codes
+
+    @category_codes.setter
+    def category_codes(self, value: list[str] | None) -> None:
+        """Store canonical categories in the legacy array until the storage cutover."""
+        self.domain_codes = value
+
+    @property
+    def direct_category_confidence(self) -> float | None:
+        """Return the strongest direct category confidence during the transition."""
+        values = [
+            value for value in (self.direct_domain_confidence, self.direct_situation_confidence) if value is not None
+        ]
+        return max(values, default=None)
+
+    @direct_category_confidence.setter
+    def direct_category_confidence(self, value: float | None) -> None:
+        """Store canonical direct confidence in the legacy confidence slot."""
+        self.direct_domain_confidence = value
+        self.direct_situation_confidence = None
+
+    @property
+    def pvog_source_path(self) -> PvogSourcePathData | None:
+        """Return captured PVOG path metadata carried through the current request."""
+        return getattr(self, "_pvog_source_path", None)
+
+    @pvog_source_path.setter
+    def pvog_source_path(self, value: PvogSourcePathData | None) -> None:
+        """Keep PVOG path metadata available to the current evidence pipeline."""
+        self._pvog_source_path = value
+
+    @property
+    def pvog_mapping_version(self) -> str | None:
+        """Return the frozen mapping version carried through the current request."""
+        return getattr(self, "_pvog_mapping_version", None)
+
+    @pvog_mapping_version.setter
+    def pvog_mapping_version(self, value: str | None) -> None:
+        """Keep the frozen mapping version available to the current evidence pipeline."""
+        self._pvog_mapping_version = value

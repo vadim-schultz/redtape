@@ -56,5 +56,6 @@ def _axis_rows(axis: TagAxis) -> Select:
 
 
 def tag_scores_subquery() -> Subquery:
-    """Return ``(candidate_id, axis, code, score)`` for every code of every candidate on both axes."""
-    return union_all(*(_axis_rows(axis) for axis in TagAxis)).subquery()
+    """Return ``(candidate_id, axis, code, score)`` for every compatibility and category code."""
+    axes = (TagAxis.DOMAIN, TagAxis.SITUATION, TagAxis.CATEGORY)
+    return union_all(*(_axis_rows(axis) for axis in axes)).subquery()

@@ -491,11 +491,11 @@ def _small_taxonomy() -> Taxonomy:
     def term(code: str) -> dict[str, object]:
         return {"code": code, "name_i18n": {"de": code, "en": code}, "description_i18n": {"de": "d", "en": "d"}}
 
-    return Taxonomy.model_validate({"domains": [term("DOM_A"), term("DOM_B")], "situations": [term("SIT_X")]})
+    return Taxonomy.model_validate({"categories": [term("moving-house"), term("retirement")]})
 
 
 def test_build_json_schema_golden_for_a_small_taxonomy() -> None:
-    """build_json_schema · the full schema for a two-domain, one-situation taxonomy matches the golden file."""
+    """build_json_schema · the full schema for a two-category taxonomy matches the golden file."""
     golden = json.loads((FIXTURES / "llm" / "page_extraction_schema_small.json").read_text(encoding="utf-8"))
 
     assert build_json_schema(_small_taxonomy()) == golden
