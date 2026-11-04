@@ -43,7 +43,9 @@ def test_script_revoke_marks_the_key_revoked(
 ) -> None:
     key = ApiKeyService(ApiKeyRepository(db_session)).issue("crawler-prod")
     prefix = key.removeprefix("rt_")[:8]
-    monkeypatch.setattr("sys.argv", ["issue_api_key.py", "--revoke", prefix])
+    # `--revoke=PREFIX` keeps the prefix as the option's value: a token_urlsafe prefix may start with `-`,
+    # which argparse would otherwise read as a flag.
+    monkeypatch.setattr("sys.argv", ["issue_api_key.py", f"--revoke={prefix}"])
 
     main()
 
