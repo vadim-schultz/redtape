@@ -32,8 +32,7 @@ LABELS: dict[str, dict[str, Any]] = {
 ANSWERS: dict[str, dict[str, Any]] = {
     "Reisepass": {
         "page_kind": "service",
-        "domain_codes": ["housing"],
-        "situation_codes": [],
+        "category_codes": ["home-and-housing"],
         "documents": [
             {"name": "Reisepass", "role": "required", "quote": "Ihren Reisepass"},
             {"name": "Phantom", "role": "required", "quote": "this sentence is not on the page"},
@@ -42,15 +41,13 @@ ANSWERS: dict[str, dict[str, Any]] = {
     },
     "BundID": {
         "page_kind": "login_or_error",
-        "domain_codes": [],
-        "situation_codes": [],
+        "category_codes": [],
         "documents": [],
         "dependencies": [],
     },
     "Neuigkeiten": {
         "page_kind": "other",
-        "domain_codes": [],
-        "situation_codes": [],
+        "category_codes": [],
         "documents": [],
         "dependencies": [],
     },

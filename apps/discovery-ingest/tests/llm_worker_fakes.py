@@ -32,11 +32,10 @@ SHELL_HTML = "<html lang='de'><body><div id='app'></div></body></html>"
 def answer(
     *documents: dict[str, str], page_kind: str = "service", dependencies: Sequence[dict[str, str]] = ()
 ) -> dict[str, Any]:
-    """A model answer that tags the page ``housing`` and lists ``documents`` and ``dependencies``."""
+    """A model answer that tags the page ``home-and-housing`` and lists ``documents`` and ``dependencies``."""
     return {
         "page_kind": page_kind,
-        "domain_codes": ["housing"],
-        "situation_codes": [],
+        "category_codes": ["home-and-housing"],
         "documents": list(documents),
         "dependencies": list(dependencies),
     }
