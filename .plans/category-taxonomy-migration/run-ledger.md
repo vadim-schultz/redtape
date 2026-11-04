@@ -84,6 +84,7 @@
 - Static checks: API and ingest Ruff format/check and mypy pass
 - Refactor gate: category validation, PVOG source capture, mapping, score aggregation, and compatibility translation remain named boundaries; no additional extraction justified
 - Boundary note: shared candidate score reads, promotion writers, suggestion handlers, taxonomy compatibility, and catalogue orchestration were added to C4's declared touches because they are the canonical category read/write boundary, not unrelated edits
+- Full `./ci.sh`: API format, lint, mypy, migrations, and all 1,577 API tests pass; web lint, typecheck, and build pass, while the pre-existing Prettier failure remains in `apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx`. The two web contract tests that expect the new category fields are deferred to C5, whose declared candidate/frontend touches own that consumer cutover.
 
 ### Chapter 5 — Frontend category browsing
 
