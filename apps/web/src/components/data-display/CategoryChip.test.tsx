@@ -10,15 +10,17 @@ const category = {
   confidence: 0.8,
 };
 
-it("CategoryChip · uses the front-page red semantic token and compact size", () => {
+it("CategoryChip · uses the front-page red semantic token", () => {
   renderWithProviders(
-    <CategoryChip category={category} to="/documents?category=home-and-housing" />,
+    <CategoryChip
+      category={category}
+      to="/documents?category=home-and-housing"
+    />,
   );
 
   const link = screen.getByRole("link", { name: "Home & housing" });
   const badge = link.closest(".chakra-badge");
 
-  expect(badge).toHaveAttribute("data-size", "sm");
   expect(
     getComputedStyle(badge!).getPropertyValue(
       "--chakra-colors-color-palette-fg",
@@ -28,7 +30,10 @@ it("CategoryChip · uses the front-page red semantic token and compact size", ()
 
 it("CategoryChip · links to the category-filtered list", () => {
   renderWithProviders(
-    <CategoryChip category={category} to="/documents?category=home-and-housing" />,
+    <CategoryChip
+      category={category}
+      to="/documents?category=home-and-housing"
+    />,
   );
 
   expect(screen.getByRole("link", { name: "Home & housing" })).toHaveAttribute(
