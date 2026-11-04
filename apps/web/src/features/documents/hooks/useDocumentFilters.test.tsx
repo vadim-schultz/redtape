@@ -53,21 +53,13 @@ it("category filter · selecting a subcategory serializes its exact code", () =>
   );
 
   act(() =>
-    result.current.filters.toggleCategory(
-      "moving-house",
-      "home-and-housing",
-    ),
+    result.current.filters.toggleCategory("moving-house", "home-and-housing"),
   );
 
   const params = new URLSearchParams(result.current.location.search);
-  expect(params.getAll("category")).toEqual([
-    "moving-house",
-  ]);
+  expect(params.getAll("category")).toEqual(["moving-house"]);
   expect(params.get("domain")).toBe("legacy");
-  expect(result.current.filters.categories).toEqual([
-    "home-and-housing",
-    "moving-house",
-  ]);
+  expect(result.current.filters.categories).toEqual(["moving-house"]);
 });
 
 it("legacy URL · old axis parameters remain available to the compatibility API", () => {

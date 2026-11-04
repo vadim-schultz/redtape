@@ -28,7 +28,7 @@ export default function DocumentsEmptyState({
         ),
         action: filtered ? (
           <Button variant="outline" onClick={onClearFilters}>
-            {t("filters.clear")}
+            {t("documents.empty_clear")}
           </Button>
         ) : undefined,
       }}

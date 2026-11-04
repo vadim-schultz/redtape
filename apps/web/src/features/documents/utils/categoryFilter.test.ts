@@ -1,10 +1,7 @@
 import { expect, it } from "vitest";
 
 import type { CategoryNode } from "../../taxonomy/types";
-import {
-  readValidCategoryCodes,
-  withToggledCategory,
-} from "./filterParams";
+import { readValidCategoryCodes, withToggledCategory } from "./filterParams";
 
 const tree: CategoryNode[] = [
   {
@@ -27,10 +24,7 @@ const tree: CategoryNode[] = [
 ];
 
 it("category filter · selecting a root serializes one category code", () => {
-  const params = withToggledCategory(
-    new URLSearchParams(),
-    "home-and-housing",
-  );
+  const params = withToggledCategory(new URLSearchParams(), "home-and-housing");
 
   expect(params.toString()).toBe("category=home-and-housing");
 });

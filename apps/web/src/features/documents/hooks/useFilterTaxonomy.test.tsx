@@ -23,19 +23,20 @@ afterEach(() => vi.unstubAllGlobals());
 it("category tree hook · returns roots and children from one query", async () => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      new Response(
-        JSON.stringify([
-          {
-            code: "home-and-housing",
-            name: "Home & housing",
-            description: "",
-            icon: "home",
-            parent_code: null,
-            children: [],
-          },
-        ]),
-      ),
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify([
+            {
+              code: "home-and-housing",
+              name: "Home & housing",
+              description: "",
+              icon: "home",
+              parent_code: null,
+              children: [],
+            },
+          ]),
+        ),
     ),
   );
 

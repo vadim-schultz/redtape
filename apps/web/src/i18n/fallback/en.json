@@ -66,6 +66,7 @@
     "empty_title": "No documents found",
     "empty_description": "No documents have been found yet.",
     "empty_filtered_description": "Your filters or search hide every document. Clear them to see the full list.",
+    "empty_clear": "Clear filters and search",
     "not_found": "Document not found",
     "count_one": "{count} document",
     "count_other": "{count} documents",

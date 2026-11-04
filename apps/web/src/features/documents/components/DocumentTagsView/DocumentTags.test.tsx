@@ -47,7 +47,9 @@ it("DocumentTags · renders nothing when categories are empty", () => {
 
 it("DocumentTags · threads each tag's confidence through to its badge's opacity", () => {
   renderWithProviders(
-    <DocumentTags categories={[category("identity-and-documents", "Identity", 0.4)]} />,
+    <DocumentTags
+      categories={[category("identity-and-documents", "Identity", 0.4)]}
+    />,
   );
 
   expect(screen.getByText("Identity").closest("a")!.style.opacity).toBe("0.7");
