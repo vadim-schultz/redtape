@@ -182,3 +182,23 @@ it("DiscoveryPipelinePage · requests artifacts and emit preview while the pipel
   release();
   expect(await screen.findByText("Pipeline stage")).toBeInTheDocument();
 });
+
+it("DiscoveryPipelinePage · announces loading while the pipeline request is pending", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const fetchMock = stubPipelineFetch(noArtifacts, { pipelineGate: gate });
+  renderPipelinePage();
+
+  await vi.waitFor(() =>
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes(`/catalogue/${catalogueId}/pipeline`),
+      ),
+    ).toBe(true),
+  );
+  expect(screen.getByRole("status")).toBeInTheDocument();
+  expect(screen.queryByText("Pipeline stage")).not.toBeInTheDocument();
+  release();
+});

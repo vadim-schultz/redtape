@@ -1,6 +1,7 @@
 import { Text } from "@chakra-ui/react";
 import { useParams } from "react-router-dom";
 
+import LoadingNote from "../../../components/feedback/LoadingNote";
 import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
@@ -21,7 +22,7 @@ export default function DiscoveryPipelinePage() {
   return (
     <QueryBoundary
       status={toQueryStatus(query)}
-      loading={<Text>{t("common.loading")}</Text>}
+      loading={<LoadingNote />}
     >
       {data ? (
         <PipelineDetail data={data}>
