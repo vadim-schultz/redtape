@@ -130,14 +130,13 @@ class SuggestionService:
     def _insert(self, row: Suggestion, submitter: Submitter, idempotency_key: str | None) -> SubmissionResult:
         try:
             suggestion = self._repo.add(row)
-            self._log_submitted(suggestion, submitter)
-            return SubmissionResult(suggestion, replayed=False)
         except IntegrityError:
-            self._repo.rollback()
             existing = submitter.find_replay(self._repo, idempotency_key)
             if existing is None:
                 raise
             return SubmissionResult(existing, replayed=True)
+        self._log_submitted(suggestion, submitter)
+        return SubmissionResult(suggestion, replayed=False)
 
     def _log_submitted(self, suggestion: Suggestion, submitter: Submitter) -> None:
         actor = submitter.event_actor()
