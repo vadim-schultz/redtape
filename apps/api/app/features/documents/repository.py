@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
 from sqlalchemy import Column, ColumnElement, Select, func, or_, select
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import document_domain, document_life_situation
+from app.models.taxonomy import Category, document_category, document_domain, document_life_situation
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,7 @@ class TagConfidenceMaps:
 
     domains: dict[UUID, float]
     life_situations: dict[UUID, float]
+    categories: dict[UUID, float] = field(default_factory=dict)
 
 
 def _confidence_map(session: Session, term_column: Column, document_id: UUID) -> dict[UUID, float]:
@@ -113,6 +114,7 @@ class DocumentRepository:
         domain_scores: dict[UUID, float] | None = None,
         situation_scores: dict[UUID, float] | None = None,
         situation_leaf_codes: dict[UUID, str] | None = None,
+        category_scores: dict[str, float] | None = None,
     ) -> Document:
         """Insert a document and flush it, then link its domain and situation tags from the given scores."""
         self._session.add(document)
@@ -124,7 +126,31 @@ class DocumentRepository:
             situation_scores or {},
             leaf_codes=situation_leaf_codes or {},
         )
+        self._link_categories(document.id, category_scores or {})
         return document
+
+    def _link_categories(self, document_id: UUID, scores: dict[str, float]) -> None:
+        """Link canonical category codes when a caller is already on the target write path."""
+        if not scores:
+            return
+        ids = self._session.execute(select(Category.code, Category.id).where(Category.code.in_(set(scores)))).all()
+        known = {code: category_id for code, category_id in ids}
+        unknown = sorted(set(scores) - known.keys())
+        if unknown:
+            raise ValueError(f"Unknown category code(s): {', '.join(unknown)}")
+        self._session.execute(
+            document_category.insert(),
+            [
+                {
+                    "document_id": document_id,
+                    "category_id": known[code],
+                    "confidence": confidence,
+                    "source": "promotion",
+                    "provenance": {"source": "category_code_promotion"},
+                }
+                for code, confidence in scores.items()
+            ],
+        )
 
     def _link_terms(
         self,
@@ -162,6 +188,7 @@ class DocumentRepository:
                 selectinload(Document.outgoing_requirements).selectinload(DocumentRequirement.required_document),
                 selectinload(Document.domains),
                 selectinload(Document.life_situations),
+                selectinload(Document.categories),
             )
             .where(Document.id == document_id)
         )
@@ -189,6 +216,7 @@ class DocumentRepository:
         return TagConfidenceMaps(
             _confidence_map(self._session, document_domain.c.domain_id, document_id),
             _confidence_map(self._session, document_life_situation.c.life_situation_id, document_id),
+            _confidence_map(self._session, document_category.c.category_id, document_id),
         )
 
     def get_jurisdiction_path(self, *, jurisdiction_id: UUID) -> list[Jurisdiction]:

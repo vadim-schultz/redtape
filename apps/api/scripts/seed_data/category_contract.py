@@ -11,6 +11,7 @@ from scripts.seed_data.category_types import (
     CategoryDefinition,
     LegacyAxis,
     LegacyMapping,
+    PvogLeafMapping,
     TaxonomyContractError,
     _ContractPayload,
 )
@@ -22,7 +23,13 @@ _ARTIFACT_PATH = (
 )
 
 
-def _load_contract() -> tuple[str, str, tuple[CategoryDefinition, ...], tuple[LegacyMapping, ...]]:
+def _load_contract() -> tuple[
+    str,
+    str,
+    tuple[CategoryDefinition, ...],
+    tuple[LegacyMapping, ...],
+    tuple[PvogLeafMapping, ...],
+]:
     """Load the checked-in contract artifact."""
     payload = TypeAdapter(_ContractPayload).validate_json(_ARTIFACT_PATH.read_bytes())
     categories = tuple(
@@ -49,7 +56,17 @@ def _load_contract() -> tuple[str, str, tuple[CategoryDefinition, ...], tuple[Le
         )
         for mapping in payload.legacy_crosswalk
     )
-    return payload.artifact_version, payload.pvog_source_version, categories, mappings
+    leaf_mappings = tuple(
+        PvogLeafMapping(
+            leaf_code=mapping.leaf_code,
+            category_codes=mapping.category_codes,
+            confidence=mapping.confidence,
+            state=mapping.state,
+            reason=mapping.reason,
+        )
+        for mapping in payload.pvog_leaf_mappings
+    )
+    return payload.artifact_version, payload.pvog_source_version, categories, mappings, leaf_mappings
 
 
 (
@@ -57,6 +74,7 @@ def _load_contract() -> tuple[str, str, tuple[CategoryDefinition, ...], tuple[Le
     PVOG_SOURCE_VERSION,
     CATEGORY_INVENTORY,
     LEGACY_CROSSWALK,
+    PVOG_LEAF_MAPPINGS,
 ) = _load_contract()
 
 
@@ -135,4 +153,26 @@ def validate_legacy_crosswalk(
         raise TaxonomyContractError(f"crosswalk coverage mismatch: missing={missing}, extra={extra}")
 
 
+def validate_pvog_leaf_mappings(
+    mappings: Sequence[PvogLeafMapping],
+    categories: Sequence[CategoryDefinition],
+) -> None:
+    """Reject duplicate leaf mappings, unknown targets, invalid scores, or missing reasons."""
+    active_codes = {category.code for category in categories if category.is_active}
+    seen: set[str] = set()
+    for mapping in mappings:
+        if mapping.leaf_code in seen:
+            raise TaxonomyContractError(f"duplicate PVOG leaf mapping: {mapping.leaf_code}")
+        seen.add(mapping.leaf_code)
+        if not mapping.category_codes:
+            raise TaxonomyContractError(f"PVOG leaf mapping has no target: {mapping.leaf_code}")
+        if any(target not in active_codes for target in mapping.category_codes):
+            raise TaxonomyContractError(f"unknown target in PVOG leaf mapping: {mapping.leaf_code}")
+        if not 0 <= mapping.confidence <= 1:
+            raise TaxonomyContractError(f"invalid PVOG leaf confidence: {mapping.leaf_code}")
+        if not mapping.reason.strip():
+            raise TaxonomyContractError(f"PVOG leaf mapping has no reason: {mapping.leaf_code}")
+
+
 validate_category_inventory(CATEGORY_INVENTORY)
+validate_pvog_leaf_mappings(PVOG_LEAF_MAPPINGS, CATEGORY_INVENTORY)

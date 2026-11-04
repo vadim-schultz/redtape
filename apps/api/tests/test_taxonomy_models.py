@@ -4,10 +4,11 @@ import uuid
 
 import pytest
 import sqlalchemy as sa
-from app.models import Domain, LifeSituation, LifeSituationGroup
+from app.models import Category, Domain, LifeSituation, LifeSituationGroup
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import document_domain, document_life_situation
+from app.models.taxonomy import category_external_mapping, document_domain, document_life_situation
+from scripts.seed_data.taxonomy import CATEGORY_INVENTORY, TaxonomyContractError, validate_category_inventory
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -167,3 +168,50 @@ def test_deleting_a_linked_domain_cascades_its_links(db_session: Session) -> Non
 
     assert _count(db_session, document_domain) == 0
     assert db_session.get(Document, document.id) is not None
+
+
+def test_category_seeds_roots_and_children_with_stable_ids(db_session: Session) -> None:
+    """Category · seed roots and children, then update rows in place on rerun."""
+    from scripts.seed_taxonomy import seed_taxonomy
+
+    seed_taxonomy(db_session)
+    db_session.flush()
+    root = db_session.execute(sa.select(Category).where(Category.code == "family-and-relationships")).scalar_one()
+    child = db_session.execute(sa.select(Category).where(Category.code == "birth-and-parenthood")).scalar_one()
+    root_id, child_id = root.id, child.id
+
+    root.name_i18n = {"de": "Familie & Beziehungen", "en": "Family & relationships"}
+    seed_taxonomy(db_session)
+    db_session.flush()
+
+    assert db_session.get(Category, root_id) is root
+    assert db_session.get(Category, child_id) is child
+    assert child.parent_id == root_id
+    assert _count(db_session, Category) == len(CATEGORY_INVENTORY)
+    assert _count(db_session, category_external_mapping) > 0
+
+
+def test_category_duplicate_code_missing_parent_or_cycle_is_rejected() -> None:
+    """Category · duplicate code, missing parent, or cycle is rejected."""
+    from dataclasses import replace
+
+    root = next(category for category in CATEGORY_INVENTORY if category.parent_code is None)
+    child = next(category for category in CATEGORY_INVENTORY if category.parent_code == root.code)
+
+    with pytest.raises(TaxonomyContractError, match="duplicate"):
+        validate_category_inventory((*CATEGORY_INVENTORY, root))
+    with pytest.raises(TaxonomyContractError, match="unknown parent"):
+        validate_category_inventory(
+            (
+                replace(child, parent_code="missing-parent"),
+                *(category for category in CATEGORY_INVENTORY if category.code != child.code),
+            )
+        )
+    with pytest.raises(TaxonomyContractError, match="cycle"):
+        validate_category_inventory(
+            (
+                replace(root, parent_code=child.code),
+                replace(child, parent_code=root.code),
+                *(category for category in CATEGORY_INVENTORY if category.code not in {root.code, child.code}),
+            )
+        )

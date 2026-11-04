@@ -8,7 +8,7 @@ import pytest
 from app.features.documents.repository import DocumentRepository
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation, document_life_situation
+from app.models.taxonomy import Category, Domain, LifeSituation, document_category, document_life_situation
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,37 @@ def test_add_without_scores_links_nothing(db_session: Session, jurisdiction: Jur
     confidence = repo.get_tag_confidence(document.id)
 
     assert (confidence.domains, confidence.life_situations) == ({}, {})
+
+
+def test_add_writes_resolved_canonical_category_scores(db_session: Session, jurisdiction: Jurisdiction) -> None:
+    """Repository · write canonical category links when category codes are resolved upstream."""
+    db_session.add(Category(code="home-and-housing", name_i18n={"en": "Home & housing"}))
+    db_session.flush()
+    repo = _repo(db_session)
+
+    document = repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="canonical-tagged"),
+        category_scores={"home-and-housing": 0.84},
+    )
+
+    row = db_session.execute(
+        select(document_category.c.confidence, document_category.c.source).where(
+            document_category.c.document_id == document.id
+        )
+    ).one()
+    assert row[0] == pytest.approx(0.84)
+    assert row[1] == "promotion"
+
+
+def test_add_rejects_an_unknown_canonical_category_code(db_session: Session, jurisdiction: Jurisdiction) -> None:
+    """Repository · reject unknown canonical category codes instead of silently dropping them."""
+    repo = _repo(db_session)
+
+    with pytest.raises(ValueError, match="Unknown category code"):
+        repo.add(
+            Document(jurisdiction_id=jurisdiction.id, slug="invalid-canonical-tag"),
+            category_scores={"does-not-exist": 0.84},
+        )
 
 
 def test_add_writes_the_given_confidence_per_term_id(db_session: Session, jurisdiction: Jurisdiction) -> None:

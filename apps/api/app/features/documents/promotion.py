@@ -22,8 +22,15 @@ class PromotionPort(Protocol):
         """Ids of documents in the jurisdiction that already hold the slug or the normalized URL."""
         ...
 
-    def create_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
-        """Persist the document an approved `new_document` suggestion describes."""
+    def create_document(
+        self,
+        payload: NewDocumentPayload,
+        jurisdiction_id: UUID,
+        slug: str,
+        *,
+        category_scores: dict[str, float] | None = None,
+    ) -> Document:
+        """Persist the document and any already-resolved canonical category scores."""
         ...
 
     def create_requirement(
@@ -65,8 +72,15 @@ class DocumentPromotion:
             jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized_url
         )
 
-    def create_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
-        """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
+    def create_document(
+        self,
+        payload: NewDocumentPayload,
+        jurisdiction_id: UUID,
+        slug: str,
+        *,
+        category_scores: dict[str, float] | None = None,
+    ) -> Document:
+        """Build and persist a document; `slug` is never recomputed."""
         domain_scores, situation_scores, situation_leaf_codes = self._resolve_tags(payload)
         document = self._build_document(payload, jurisdiction_id, slug)
         return self._repo.add(
@@ -74,6 +88,7 @@ class DocumentPromotion:
             domain_scores=domain_scores,
             situation_scores=situation_scores,
             situation_leaf_codes=situation_leaf_codes,
+            category_scores=category_scores,
         )
 
     def create_requirement(

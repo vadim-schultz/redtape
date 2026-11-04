@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.models.base import Base
 from app.models.jurisdiction import Jurisdiction
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Category, DocumentExternalClassification, Domain, LifeSituation
 from app.url_normalization import normalize_url
 
 
@@ -54,6 +54,12 @@ class Document(Base):
     )
     domains: Mapped[list[Domain]] = relationship("Domain", secondary="document_domain")
     life_situations: Mapped[list[LifeSituation]] = relationship("LifeSituation", secondary="document_life_situation")
+    categories: Mapped[list[Category]] = relationship("Category", secondary="document_category")
+    external_classifications: Mapped[list[DocumentExternalClassification]] = relationship(
+        "DocumentExternalClassification",
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
 
     @validates("official_url")
     def _sync_normalized_url(self, _key: str, value: str | None) -> str | None:
