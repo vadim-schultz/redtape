@@ -1,0 +1,190 @@
+"""Write the discovery machine contract fixture that the ingest contract tests compare against.
+
+Run from ``apps/api``::
+
+    uv run python -m scripts.export_machine_contract
+
+The fixture holds the machine routes from the OpenAPI document, the JSON Schema of every model that
+the ingest package mirrors (request models in validation mode, response models in serialization
+mode), the value lists of the wire enums, and the field names of the artifact upload form.
+``tests/test_machine_contract_fixture.py`` fails when the committed file is stale.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import json
+from enum import StrEnum
+from pathlib import Path
+from typing import Literal, get_args
+
+from app.features.discovery.budget_resources import BudgetResource
+from app.main import create_app
+from app.models.discovery import (
+    LEGACY_TASK_KINDS,
+    DiscoveryArtifactKind,
+    DiscoveryClaimKind,
+    DiscoveryEdgeBasis,
+    DiscoveryMentionRole,
+    DiscoveryRunKind,
+    DiscoverySource,
+    DiscoveryTaskKind,
+    DiscoveryTaskStatus,
+)
+from app.schema.discovery import (
+    artifacts,
+    budgets,
+    candidate_edges,
+    candidate_emit,
+    candidate_sources,
+    candidates,
+    machine,
+    read,
+)
+from app.schema.taxonomy import read as taxonomy_read
+from pydantic import BaseModel
+
+REGENERATE_COMMAND = "python -m scripts.export_machine_contract"
+FIXTURE_PATH = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "discovery_machine_contract.json"
+MACHINE_PREFIX = "/api/v1/discovery/machine"
+HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete"})
+
+Mode = Literal["validation", "serialization"]
+
+MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
+    # Requests the ingest package sends: validated by the API.
+    "machine.CatalogueBatchItem": (machine.CatalogueBatchItem, "validation"),
+    "machine.CatalogueBatchRequest": (machine.CatalogueBatchRequest, "validation"),
+    "machine.EntityUpsertRequest": (machine.EntityUpsertRequest, "validation"),
+    "machine.ClaimAppendRequest": (machine.ClaimAppendRequest, "validation"),
+    "machine.TaskClaimRequest": (machine.TaskClaimRequest, "validation"),
+    "machine.TaskEnqueueRequest": (machine.TaskEnqueueRequest, "validation"),
+    "machine.FetchLogAppendRequest": (machine.FetchLogAppendRequest, "validation"),
+    "machine.RunFinishRequest": (machine.RunFinishRequest, "validation"),
+    "machine.RunStartRequest": (machine.RunStartRequest, "validation"),
+    "machine.TaskCompleteRequest": (machine.TaskCompleteRequest, "validation"),
+    "machine.TaskReleaseRequest": (machine.TaskReleaseRequest, "validation"),
+    "machine.TaskFailRequest": (machine.TaskFailRequest, "validation"),
+    "candidates.CandidateMentionItem": (candidates.CandidateMentionItem, "validation"),
+    "candidates.CandidateMentionsRequest": (candidates.CandidateMentionsRequest, "validation"),
+    "candidate_edges.CandidateEdgeItem": (candidate_edges.CandidateEdgeItem, "validation"),
+    "candidate_edges.CandidateEdgesRequest": (candidate_edges.CandidateEdgesRequest, "validation"),
+    "candidate_emit.CandidateEmitRequest": (candidate_emit.CandidateEmitRequest, "validation"),
+    "budgets.BudgetReserveRequest": (budgets.BudgetReserveRequest, "validation"),
+    "budgets.BudgetAdjustRequest": (budgets.BudgetAdjustRequest, "validation"),
+    # Responses the ingest package validates: serialized by the API.
+    "machine.CatalogueMachineRead": (machine.CatalogueMachineRead, "serialization"),
+    "machine.EntityUpsertResponse": (machine.EntityUpsertResponse, "serialization"),
+    "machine.ClaimAppendResponse": (machine.ClaimAppendResponse, "serialization"),
+    "machine.TaskClaimResponse": (machine.TaskClaimResponse, "serialization"),
+    "machine.ClaimedTaskRead": (machine.ClaimedTaskRead, "serialization"),
+    "machine.TaskSummaryResponse": (machine.TaskSummaryResponse, "serialization"),
+    "machine.TaskEnqueueResponse": (machine.TaskEnqueueResponse, "serialization"),
+    "machine.RunRead": (machine.RunRead, "serialization"),
+    "artifacts.ArtifactRead": (artifacts.ArtifactRead, "serialization"),
+    "artifacts.ArtifactListResponse": (artifacts.ArtifactListResponse, "serialization"),
+    "artifacts.ArtifactStatusResponse": (artifacts.ArtifactStatusResponse, "serialization"),
+    "candidates.CandidateMentionsResponse": (candidates.CandidateMentionsResponse, "serialization"),
+    "candidate_edges.CandidateEdgesResponse": (candidate_edges.CandidateEdgesResponse, "serialization"),
+    "candidate_edges.EdgeSkip": (candidate_edges.EdgeSkip, "serialization"),
+    "candidate_emit.CandidateEmitResponse": (candidate_emit.CandidateEmitResponse, "serialization"),
+    "candidate_emit.CandidateEmitItemResult": (candidate_emit.CandidateEmitItemResult, "serialization"),
+    "candidate_emit.EmitConflictRead": (candidate_emit.EmitConflictRead, "serialization"),
+    "candidate_emit.CandidateEmitPreview": (candidate_emit.CandidateEmitPreview, "serialization"),
+    "read.CandidateListResponse": (read.CandidateListResponse, "serialization"),
+    "read.CandidateListItemRead": (read.CandidateListItemRead, "serialization"),
+    "budgets.BudgetRead": (budgets.BudgetRead, "serialization"),
+    "budgets.BudgetListResponse": (budgets.BudgetListResponse, "serialization"),
+    "budgets.BudgetReserveResponse": (budgets.BudgetReserveResponse, "serialization"),
+    "candidate_sources.CandidateSourceRead": (candidate_sources.CandidateSourceRead, "serialization"),
+    "candidate_sources.CandidateSourceListResponse": (candidate_sources.CandidateSourceListResponse, "serialization"),
+    "taxonomy_read.VocabularyTerm": (taxonomy_read.VocabularyTerm, "serialization"),
+    "taxonomy_read.VocabularyResponse": (taxonomy_read.VocabularyResponse, "serialization"),
+}
+"""Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
+
+
+def _values(enum_cls: type[StrEnum]) -> list[str]:
+    """Return the member values of a string enum in declaration order."""
+    return [str(member.value) for member in enum_cls]
+
+
+ENUMS: dict[str, list[str]] = {
+    "DiscoverySource": _values(DiscoverySource),
+    "DiscoveryTaskKind": _values(DiscoveryTaskKind),
+    "DiscoveryTaskStatus": _values(DiscoveryTaskStatus),
+    "DiscoveryClaimKind": _values(DiscoveryClaimKind),
+    "DiscoveryMentionRole": _values(DiscoveryMentionRole),
+    "DiscoveryArtifactKind": _values(DiscoveryArtifactKind),
+    "DiscoveryEdgeBasis": _values(DiscoveryEdgeBasis),
+    "DiscoveryRunKind": _values(DiscoveryRunKind),
+    "BudgetResource": _values(BudgetResource),
+    "LEGACY_TASK_KINDS": [str(kind.value) for kind in LEGACY_TASK_KINDS],
+    "StopReason": list(get_args(machine.StopReason)),
+    "EdgeSkipReason": list(get_args(candidate_edges.EdgeSkipReason)),
+}
+"""Value lists of the wire enums, in the order the API declares them."""
+
+FORMS: dict[str, list[str]] = {
+    "ArtifactUploadForm": [field.name for field in dataclasses.fields(artifacts.ArtifactUploadForm)],
+}
+"""Field names of multipart form dataclasses, which have no Pydantic schema."""
+
+
+def exported_schema(key: str) -> dict[str, object]:
+    """Return the JSON Schema of the model named ``key`` in its wire mode; unknown keys raise ``KeyError``.
+
+    A serialized response always carries every field, defaulted ones included, so in serialization
+    mode every top-level property is marked required. Pydantic only does this for models that opt in
+    through ``json_schema_serialization_defaults_required``, and the API models do not.
+    """
+    model, mode = MODELS[key]
+    schema = model.model_json_schema(mode=mode)
+    if mode == "serialization":
+        properties = schema.get("properties", {})
+        if isinstance(properties, dict):
+            schema["required"] = sorted(properties)
+    return schema
+
+
+def machine_routes() -> list[dict[str, str]]:
+    """Return every method and path under the machine prefix, from the generated OpenAPI document."""
+    paths = create_app().openapi_schema.to_schema()["paths"]
+    routes = [
+        {"method": method.upper(), "path": path}
+        for path, operations in paths.items()
+        if path.startswith(MACHINE_PREFIX)
+        for method in operations
+        if method in HTTP_METHODS
+    ]
+    return sorted(routes, key=lambda route: (route["path"], route["method"]))
+
+
+def contract_document() -> dict[str, object]:
+    """Assemble the fixture document from the routes, models, enums and forms."""
+    models: dict[str, object] = {
+        key: {"mode": mode, "schema": exported_schema(key)} for key, (_model, mode) in MODELS.items()
+    }
+    return {
+        "generated_by": REGENERATE_COMMAND,
+        "routes": machine_routes(),
+        "models": models,
+        "enums": ENUMS,
+        "forms": FORMS,
+    }
+
+
+def render_contract() -> str:
+    """Return the fixture as stable, indented JSON with a trailing newline."""
+    return json.dumps(contract_document(), indent=1, sort_keys=True) + "\n"
+
+
+def main() -> None:
+    """Write the fixture file and print its path."""
+    FIXTURE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    FIXTURE_PATH.write_text(render_contract(), encoding="utf-8")
+    print(f"wrote {FIXTURE_PATH}")
+
+
+if __name__ == "__main__":
+    main()
