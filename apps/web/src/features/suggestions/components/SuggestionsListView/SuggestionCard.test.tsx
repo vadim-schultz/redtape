@@ -16,8 +16,7 @@ const newDocumentSuggestion: SuggestionRead = {
   payload: {
     title_i18n: { en: "Residency permit" },
     official_url: "https://example.gov",
-    domain_codes: [],
-    situation_codes: [],
+    category_codes: [],
   },
   source_url: null,
   submitted_by: { kind: "user", display_name: "Ada" },
