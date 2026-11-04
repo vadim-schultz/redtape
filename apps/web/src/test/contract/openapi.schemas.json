@@ -2080,8 +2080,7 @@
     "properties": {
       "claims": {
         "items": {
-          "additionalProperties": {},
-          "type": "object"
+          "$ref": "#/components/schemas/ClaimRow"
         },
         "type": "array"
       },
@@ -2090,22 +2089,19 @@
       },
       "entities": {
         "items": {
-          "additionalProperties": {},
-          "type": "object"
+          "$ref": "#/components/schemas/PipelineEntityRow"
         },
         "type": "array"
       },
       "events": {
         "items": {
-          "additionalProperties": {},
-          "type": "object"
+          "$ref": "#/components/schemas/EventRow"
         },
         "type": "array"
       },
       "fetch_logs": {
         "items": {
-          "additionalProperties": {},
-          "type": "object"
+          "$ref": "#/components/schemas/FetchLogRow"
         },
         "type": "array"
       },
@@ -2259,6 +2255,74 @@
       "kind"
     ],
     "title": "ClaimAppendResponse",
+    "type": "object"
+  },
+  "ClaimRow": {
+    "properties": {
+      "confidence": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "discovery_entity_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryClaimKind"
+      },
+      "payload": {
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "created_at",
+      "discovery_entity_id",
+      "id",
+      "kind",
+      "payload"
+    ],
+    "title": "ClaimRow",
     "type": "object"
   },
   "ClaimedTaskRead": {
@@ -2432,6 +2496,20 @@
       "derived_single_issued"
     ],
     "title": "DiscoveryEdgeBasis",
+    "type": "string"
+  },
+  "DiscoveryEventType": {
+    "description": "Append-only lineage event labels.",
+    "enum": [
+      "catalogue_upserted",
+      "task_enqueued",
+      "task_claimed",
+      "fetch_logged",
+      "claim_recorded",
+      "emit_attempted",
+      "task_released"
+    ],
+    "title": "DiscoveryEventType",
     "type": "string"
   },
   "DiscoveryMentionRole": {
@@ -2964,6 +3042,81 @@
     "title": "EntityUpsertResponse",
     "type": "object"
   },
+  "EventRow": {
+    "properties": {
+      "catalogue_service_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "discovery_task_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "event_type": {
+        "$ref": "#/components/schemas/DiscoveryEventType"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "payload": {
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "created_at",
+      "event_type",
+      "id",
+      "payload"
+    ],
+    "title": "EventRow",
+    "type": "object"
+  },
   "FetchLogAppendRequest": {
     "properties": {
       "byte_length": {
@@ -3032,6 +3185,69 @@
       "task_status"
     ],
     "title": "FetchLogAppendResponse",
+    "type": "object"
+  },
+  "FetchLogRow": {
+    "properties": {
+      "byte_length": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "content_type": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "discovery_task_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "error_message": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "http_status": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "discovery_task_id",
+      "fetched_at",
+      "id"
+    ],
+    "title": "FetchLogRow",
     "type": "object"
   },
   "JurisdictionPathNode": {
@@ -3367,6 +3583,43 @@
       "required_document_id"
     ],
     "title": "NewRequirementPayload",
+    "type": "object"
+  },
+  "PipelineEntityRow": {
+    "properties": {
+      "canonical_url": {
+        "type": "string"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "created_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "label": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "canonical_url",
+      "catalogue_service_id",
+      "created_at",
+      "id"
+    ],
+    "title": "PipelineEntityRow",
     "type": "object"
   },
   "RequirementRead": {

@@ -75,7 +75,6 @@ convention = "pep257"
 "app/services/openplz_client.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
 "scripts/import_openplz_locations.py" = ["ANN401", "TID251"]  # T2 baseline, removed by B6
 "app/routes.py" = ["TID251"]  # T2 baseline, removed by B1
-"app/features/auth/jwt.py" = ["TID251"]  # T2 baseline, removed by B3
 "scripts/*" = ["T201"]   # allow print in scripts
 # docstring baseline (T1): delete the line when its slice is done
 "app/features/discovery/**" = ["D102", "D103", "D205", "D401"]  # A-S1

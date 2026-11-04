@@ -47,16 +47,19 @@ class DocumentService:
         if filters.municipality_code is not None and jurisdiction_id is None:
             return DocumentListResponse(items=[], total=0, offset=offset, limit=limit)
 
-        scope = {
-            "jurisdiction_id": jurisdiction_id,
-            "domain_ids": self._taxonomy.resolve_domain_ids(filters.domain_codes),
-            "situation_ids": self._taxonomy.resolve_situation_ids(filters.situation_codes),
-        }
-        total = self._repo.count(**scope)
-        rows = self._repo.list_page(offset=offset, limit=limit, **scope)
+        domain_ids = self._taxonomy.resolve_domain_ids(filters.domain_codes)
+        situation_ids = self._taxonomy.resolve_situation_ids(filters.situation_codes)
+        total = self._repo.count(jurisdiction_id=jurisdiction_id, domain_ids=domain_ids, situation_ids=situation_ids)
+        rows = self._repo.list_page(
+            offset=offset,
+            limit=limit,
+            jurisdiction_id=jurisdiction_id,
+            domain_ids=domain_ids,
+            situation_ids=situation_ids,
+        )
         locales = ResolvedLocale(code=locale, enabled=enabled_locales)
         items = [self._reader.summary(row, locales) for row in rows]
-        leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, scope["situation_ids"])
+        leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, situation_ids)
         return DocumentListResponse(
             items=items, total=total, offset=offset, limit=limit, available_leaf_codes=leaf_codes
         )
