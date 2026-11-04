@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from app.db import SessionLocal
@@ -11,7 +12,7 @@ from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from scripts.openplz_ids import country_id, locality_id, municipality_id, region_id
@@ -19,6 +20,13 @@ from scripts.openplz_ids import country_id, locality_id, municipality_id, region
 
 class SuggestionsPresentError(RuntimeError):
     """Raised by wipe_all() when suggestion rows exist and --include-suggestions wasn't passed."""
+
+
+_ID_FACTORIES: dict[JurisdictionKind, Callable[[str], uuid.UUID]] = {
+    JurisdictionKind.COUNTRY: country_id,
+    JurisdictionKind.REGION: region_id,
+    JurisdictionKind.MUNICIPALITY: municipality_id,
+}
 
 
 def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.UUID | None:
@@ -31,15 +39,9 @@ def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.
     if code is None:
         return None
 
-    if kind == JurisdictionKind.COUNTRY:
-        return country_id(code)
-    if kind == JurisdictionKind.REGION:
-        return region_id(code)
-    if kind == JurisdictionKind.MUNICIPALITY:
-        return municipality_id(code)
-
-    # Future-proofing: unknown kind.
-    return None
+    # Future-proofing: a kind without a deterministic id factory yields None.
+    factory = _ID_FACTORIES.get(kind)
+    return factory(code) if factory is not None else None
 
 
 def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
@@ -134,19 +136,29 @@ def cleanup_openplz_data(*, dry_run: bool) -> None:
         # Use a transaction: if something goes wrong, rollback to keep DB consistent.
         # (SQLAlchemy session is already transactional; commit only at end.)
         if locality_ids:
-            session.execute(Locality.__table__.delete().where(Locality.id.in_(locality_ids)))
+            session.execute(
+                delete(Locality).where(Locality.id.in_(locality_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_localities={len(locality_ids)}")
 
         if muni_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(muni_ids)))
+            session.execute(
+                delete(Jurisdiction).where(Jurisdiction.id.in_(muni_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_municipalities={len(muni_ids)}")
 
         if region_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(region_ids)))
+            session.execute(
+                delete(Jurisdiction).where(Jurisdiction.id.in_(region_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_regions={len(region_ids)}")
 
         if country_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(country_ids)))
+            session.execute(
+                delete(Jurisdiction)
+                .where(Jurisdiction.id.in_(country_ids))
+                .execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_countries={len(country_ids)}")
 
         session.commit()
@@ -160,14 +172,16 @@ def _count(session: Session, model) -> int:
 
 
 def _delete_all(session: Session, model) -> None:
-    session.execute(model.__table__.delete())
+    session.execute(delete(model).execution_options(synchronize_session=False))
 
 
 def _delete_jurisdictions_leaf_first(session: Session) -> None:
     # geographic_parent_id is a non-deferrable RESTRICT self-FK, so children
     # must go before parents -- a single bulk DELETE can't guarantee that.
     for kind in (JurisdictionKind.MUNICIPALITY, JurisdictionKind.REGION, JurisdictionKind.COUNTRY):
-        session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.kind == kind))
+        session.execute(
+            delete(Jurisdiction).where(Jurisdiction.kind == kind).execution_options(synchronize_session=False)
+        )
 
 
 def _guard_suggestions_present(suggestion_count: int, include_suggestions: bool) -> None:

@@ -22,7 +22,7 @@ from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from scripts.import_openplz_locations import import_locations
@@ -56,13 +56,21 @@ def _needs_repair(session: Session) -> bool:
 def _exempt_fake_dresden_from_unique_index(session: Session) -> None:
     # uq_jurisdiction_kind_code only applies WHERE code IS NOT NULL, so this lets
     # the reimport recreate the real (kind, code) row without colliding.
-    session.execute(Jurisdiction.__table__.update().where(Jurisdiction.id == FAKE_DRESDEN_ID).values(code=None))
+    session.execute(
+        update(Jurisdiction)
+        .where(Jurisdiction.id == FAKE_DRESDEN_ID)
+        .values(code=None)
+        .execution_options(synchronize_session=False)
+    )
     session.commit()
 
 
 def _restore_fake_dresden_code(session: Session) -> None:
     session.execute(
-        Jurisdiction.__table__.update().where(Jurisdiction.id == FAKE_DRESDEN_ID).values(code=DRESDEN_MUNICIPALITY_CODE)
+        update(Jurisdiction)
+        .where(Jurisdiction.id == FAKE_DRESDEN_ID)
+        .values(code=DRESDEN_MUNICIPALITY_CODE)
+        .execution_options(synchronize_session=False)
     )
     session.commit()
 
@@ -78,7 +86,12 @@ def _real_dresden_id(session: Session) -> uuid.UUID:
 
 def _repoint_fake_dresden_references(session: Session, real_dresden_id: uuid.UUID) -> None:
     for model, column in _JURISDICTION_REFERENCES:
-        session.execute(model.__table__.update().where(column == FAKE_DRESDEN_ID).values({column.key: real_dresden_id}))
+        session.execute(
+            update(model)
+            .where(column == FAKE_DRESDEN_ID)
+            .values({column.key: real_dresden_id})
+            .execution_options(synchronize_session=False)
+        )
 
 
 def _delete_rows_referencing(session: Session, jurisdiction_id: uuid.UUID) -> None:
@@ -86,14 +99,18 @@ def _delete_rows_referencing(session: Session, jurisdiction_id: uuid.UUID) -> No
     # FAKE_DRESDEN_ID, which stands in for a real place), so anything
     # referencing them is leaked garbage too -- delete it, don't repoint it.
     for model, column in _JURISDICTION_REFERENCES:
-        session.execute(model.__table__.delete().where(column == jurisdiction_id))
+        session.execute(delete(model).where(column == jurisdiction_id).execution_options(synchronize_session=False))
 
 
 def _delete_leaked_jurisdictions(session: Session) -> None:
-    session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == FAKE_DRESDEN_ID))
+    session.execute(
+        delete(Jurisdiction).where(Jurisdiction.id == FAKE_DRESDEN_ID).execution_options(synchronize_session=False)
+    )
     for leaked_id in (LEAKED_MUNICIPALITY_ID, LEAKED_DISTRICT_ID):
         _delete_rows_referencing(session, leaked_id)
-        session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == leaked_id))
+        session.execute(
+            delete(Jurisdiction).where(Jurisdiction.id == leaked_id).execution_options(synchronize_session=False)
+        )
 
 
 def repair_saxony_jurisdictions(session: Session, *, reimport: Callable[[], None] = _default_reimport) -> bool:

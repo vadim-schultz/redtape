@@ -23,7 +23,7 @@ def _mentions(session: Session) -> list[tuple[uuid.UUID, uuid.UUID]]:
     return list(
         session.execute(
             sa.select(DiscoveryCandidateMention.candidate_id, DiscoveryCandidateMention.catalogue_service_id)
-        )
+        ).tuples()
     )
 
 

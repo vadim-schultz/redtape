@@ -6,7 +6,6 @@ import argparse
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
 
 from app.db import SessionLocal
 from app.features.locations.openplz.client import OpenPLZClient
@@ -131,20 +130,50 @@ class _OpenPLZLocationsDbOps:
         """Load existing jurisdictions and localities so upserts compare in memory."""
         self._known = KnownRows.load(self._session)
 
-    def upsert_jurisdiction(self, **kwargs: Any) -> JurisdictionRow:
+    def upsert_jurisdiction(
+        self,
+        *,
+        jurisdiction_id: uuid.UUID,
+        kind: JurisdictionKind,
+        geographic_parent_id: uuid.UUID | None,
+        code: str,
+        openplz_type: str | None,
+        name_de: str,
+        administrative_roles: list[str],
+        postal_code: str | None = None,
+        multiple_postal_codes: bool = False,
+    ) -> JurisdictionRow:
         return upsert_jurisdiction(
             self._session,
             touched_at=self._touched_at,
             known=self._known,
-            **kwargs,
+            jurisdiction_id=jurisdiction_id,
+            kind=kind,
+            geographic_parent_id=geographic_parent_id,
+            code=code,
+            openplz_type=openplz_type,
+            name_de=name_de,
+            administrative_roles=administrative_roles,
+            postal_code=postal_code,
+            multiple_postal_codes=multiple_postal_codes,
         )
 
-    def upsert_locality(self, **kwargs: Any) -> LocalityRow:
+    def upsert_locality(
+        self,
+        *,
+        locality_id: uuid.UUID,
+        municipality_id: uuid.UUID,
+        postal_code: str,
+        name: str,
+    ) -> LocalityRow:
         return upsert_locality(
             self._session,
             touched_at=self._touched_at,
             known=self._known,
-            **kwargs,
+            locality_id=locality_id,
+            municipality_id=municipality_id,
+            postal_code=postal_code,
+            name=name,
         )
 
     def maybe_commit(self, stats: _ImportStats) -> None:
@@ -248,7 +277,7 @@ class OpenPLZLocationsImporter:
             raise RuntimeError("Country parent id is not set.")
 
         try:
-            state = self._db.upsert_jurisdiction(
+            region = self._db.upsert_jurisdiction(
                 jurisdiction_id=region_id(state_code),
                 kind=JurisdictionKind.REGION,
                 geographic_parent_id=self._country_id,
@@ -268,14 +297,14 @@ class OpenPLZLocationsImporter:
         # Ensure the parent jurisdiction exists before inserting districts.
         self._session.flush()
         self._bump_and_maybe_commit()
-        state_id = state.id
+        state_id = region.id
         self._import_districts_for_state(state_code=state_code, state_id=state_id)
 
     def _import_districts_for_state(self, *, state_code: str, state_id: uuid.UUID) -> None:
         for district in self._client.districts(state_code):
             district_code = district.key
             try:
-                district = self._db.upsert_jurisdiction(
+                district_row = self._db.upsert_jurisdiction(
                     jurisdiction_id=region_id(district_code),
                     kind=JurisdictionKind.REGION,
                     geographic_parent_id=state_id,
@@ -294,7 +323,7 @@ class OpenPLZLocationsImporter:
             # Ensure the district exists before inserting its municipalities.
             self._session.flush()
             self._bump_and_maybe_commit()
-            district_id = district.id
+            district_id = district_row.id
 
             self._import_municipalities_for_district(
                 district_code=district_code,
@@ -305,7 +334,7 @@ class OpenPLZLocationsImporter:
         for muni in self._client.municipalities(district_code):
             muni_code = muni.key
             try:
-                muni = self._db.upsert_jurisdiction(
+                muni_row = self._db.upsert_jurisdiction(
                     jurisdiction_id=municipality_id(muni_code),
                     kind=JurisdictionKind.MUNICIPALITY,
                     geographic_parent_id=district_id,
@@ -321,7 +350,7 @@ class OpenPLZLocationsImporter:
                     f"Failed to upsert MUNICIPALITY code={muni_code!r} "
                     f"expected_parent_district_id={district_id} error={e}"
                 ) from e
-            muni_id = muni.id
+            muni_id = muni_row.id
             self._municipality_id_by_code[muni_code] = muni_id
             self._bump_and_maybe_commit()
 

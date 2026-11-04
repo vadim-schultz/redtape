@@ -22,13 +22,14 @@ from __future__ import annotations
 
 import argparse
 import uuid
+from typing import Required, TypedDict
 
 from app.db import SessionLocal
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 LEAKED_DISTRICT_CODE = "146"
@@ -42,7 +43,14 @@ _JURISDICTION_REFERENCES = (
     (Locality, Locality.municipality_id),
 )
 
-RowReport = dict[str, bool | uuid.UUID | str | dict[str, int]]
+
+class RowReport(TypedDict, total=False):
+    """What the dry-run report records for one leaked row; `id`, `code` and `references` are present only when found."""
+
+    found: Required[bool]
+    id: uuid.UUID
+    code: str | None
+    references: dict[str, int]
 
 
 class UnexpectedReferencesError(RuntimeError):
@@ -99,7 +107,7 @@ def remove_leaked_jurisdictions(session: Session, *, apply: bool) -> dict[str, R
         return report
 
     for label, info in report.items():
-        if info["found"] and any(info["references"].values()):  # type: ignore[union-attr]
+        if info["found"] and any(info["references"].values()):
             raise UnexpectedReferencesError(
                 f"refusing to delete leaked {label} jurisdiction {info['id']}: still referenced by {info['references']}"
             )
@@ -109,7 +117,9 @@ def remove_leaked_jurisdictions(session: Session, *, apply: bool) -> dict[str, R
     for label in ("municipality", "district"):
         info = report[label]
         if info["found"]:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id == info["id"]))
+            session.execute(
+                delete(Jurisdiction).where(Jurisdiction.id == info["id"]).execution_options(synchronize_session=False)
+            )
     session.commit()
     return report
 
