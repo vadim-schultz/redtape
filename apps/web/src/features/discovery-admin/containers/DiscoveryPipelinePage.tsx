@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import LoadingNote from "../../../components/feedback/LoadingNote";
 import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
+import { useLocale } from "../../../contexts/LocaleContext";
 import PipelineDetail from "../components/PipelineDetail";
 import { useDiscoveryPipelineQuery } from "../hooks/useDiscoveryPipelineQuery";
 import PipelineArtifactsSection from "./PipelineArtifactsSection";
@@ -13,6 +14,7 @@ import { usePrefetchPipelineSections } from "./sectionPrefetch";
 /** Pipeline drill-down at ``/admin/discovery/pipeline/:id``. */
 export default function DiscoveryPipelinePage() {
   const { id } = useParams();
+  const { t } = useLocale();
   const query = useDiscoveryPipelineQuery(id);
   usePrefetchPipelineSections(id);
   const { data } = query;
