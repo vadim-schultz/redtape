@@ -8,6 +8,30 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
+from scripts.seed_data.category_contract import (
+    CATEGORY_CONTRACT_VERSION,
+    CATEGORY_INVENTORY,
+    LEGACY_CROSSWALK,
+    PVOG_SOURCE_VERSION,
+    CategoryDefinition,
+    LegacyMapping,
+    TaxonomyContractError,
+    validate_category_inventory,
+    validate_legacy_crosswalk,
+)
+
+__all__ = [
+    "CATEGORY_CONTRACT_VERSION",
+    "CATEGORY_INVENTORY",
+    "LEGACY_CROSSWALK",
+    "PVOG_SOURCE_VERSION",
+    "CategoryDefinition",
+    "LegacyMapping",
+    "TaxonomyContractError",
+    "validate_category_inventory",
+    "validate_legacy_crosswalk",
+]
+
 TAXONOMY_NAMESPACE = uuid.UUID("44444444-4444-4444-4444-444444444400")
 
 
@@ -387,3 +411,11 @@ SITUATION_GROUP_CODES: dict[str, str] = {
     "illness-care": "health-care",
     "retirement": "retirement",
 }
+
+validate_category_inventory(CATEGORY_INVENTORY)
+validate_legacy_crosswalk(
+    LEGACY_CROSSWALK,
+    CATEGORY_INVENTORY,
+    expected_sources={("domain", term.code) for term in DOMAINS}
+    | {("life_situation", term.code) for term in SITUATIONS},
+)

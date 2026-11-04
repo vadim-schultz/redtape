@@ -1,4 +1,4 @@
-"""PVOG ``personalMatters`` leaf code to situation code mapping.
+"""PVOG leaf-to-category evidence from the frozen taxonomy contract.
 
 Built from the human sign-off in ``.plans/situation-tag-coverage/lr3-personal-matters-mapping.md``'s
 "Human sign-off" section (recorded as decision T4 in that suite's ``gaps-and-decisions.md``): widen the
@@ -10,6 +10,26 @@ PVOG leaf at all (its only analogue is the out-of-scope business branch) and sta
 """
 
 from __future__ import annotations
+
+from discovery_ingest.pvog.category_mapping import (
+    PERSONAL_MATTER_CATEGORY_CONFIDENCE,
+    PERSONAL_MATTER_TO_CATEGORY,
+    PVOG_CATEGORY_MAPPING_VERSION,
+    CategoryEvidenceState,
+    PvogCategoryEvidence,
+    category_evidence_for_path,
+)
+
+__all__ = [
+    "CategoryEvidenceState",
+    "PERSONAL_MATTER_CATEGORY_CONFIDENCE",
+    "PERSONAL_MATTER_CLARITY",
+    "PERSONAL_MATTER_TO_CATEGORY",
+    "PERSONAL_MATTER_TO_SITUATION",
+    "PVOG_CATEGORY_MAPPING_VERSION",
+    "PvogCategoryEvidence",
+    "category_evidence_for_path",
+]
 
 PERSONAL_MATTER_CLARITY: dict[str, float] = {
     "1010100": 0.95,  # clean: Vor der Geburt

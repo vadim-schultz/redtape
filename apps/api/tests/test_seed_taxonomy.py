@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 import pytest
 import sqlalchemy as sa
@@ -14,7 +15,19 @@ from app.models.taxonomy import (
     document_domain,
     document_life_situation,
 )
-from scripts.seed_data.taxonomy import DOMAINS, SITUATION_GROUP_CODES, SITUATION_GROUPS, SITUATIONS, Term, term_id
+from scripts.seed_data.taxonomy import (
+    CATEGORY_INVENTORY,
+    DOMAINS,
+    LEGACY_CROSSWALK,
+    SITUATION_GROUP_CODES,
+    SITUATION_GROUPS,
+    SITUATIONS,
+    TaxonomyContractError,
+    Term,
+    term_id,
+    validate_category_inventory,
+    validate_legacy_crosswalk,
+)
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy.orm import Session
 
@@ -173,3 +186,52 @@ def test_seed_leaves_an_existing_document_untagged(db_session: Session) -> None:
     _seeded(db_session)
 
     assert _count(db_session, document_domain) == _count(db_session, document_life_situation) == 0
+
+
+def test_taxonomy_every_active_subcategory_has_one_active_root() -> None:
+    """Taxonomy · every active subcategory has one active root."""
+    validate_category_inventory(CATEGORY_INVENTORY)
+
+    active = {category.code: category for category in CATEGORY_INVENTORY if category.is_active}
+    for category in active.values():
+        if category.parent_code is None:
+            continue
+        parent = active[category.parent_code]
+        assert parent.parent_code is None
+
+
+def test_taxonomy_duplicate_or_cyclic_category_inventory_is_rejected() -> None:
+    """Taxonomy · duplicate or cyclic category inventory is rejected."""
+    root = next(category for category in CATEGORY_INVENTORY if category.parent_code is None)
+    child = next(category for category in CATEGORY_INVENTORY if category.parent_code == root.code)
+    duplicate = (*CATEGORY_INVENTORY, root)
+    cyclic = (
+        replace(root, parent_code=child.code),
+        replace(child, parent_code=root.code),
+        *(category for category in CATEGORY_INVENTORY if category.code not in {root.code, child.code}),
+    )
+
+    with pytest.raises(TaxonomyContractError, match="duplicate"):
+        validate_category_inventory(duplicate)
+    with pytest.raises(TaxonomyContractError, match="cycle"):
+        validate_category_inventory(cyclic)
+
+
+def test_crosswalk_every_legacy_domain_and_situation_code_has_a_disposition() -> None:
+    """Crosswalk · every legacy domain and situation code has a disposition."""
+    validate_legacy_crosswalk(LEGACY_CROSSWALK, CATEGORY_INVENTORY)
+
+    expected = {("domain", term.code) for term in DOMAINS} | {("life_situation", term.code) for term in SITUATIONS}
+    assert {(mapping.axis, mapping.source_code) for mapping in LEGACY_CROSSWALK} == expected
+
+
+def test_crosswalk_unknown_target_or_duplicate_conflicting_mapping_is_rejected() -> None:
+    """Crosswalk · unknown target or duplicate conflicting mapping is rejected."""
+    mapped = next(mapping for mapping in LEGACY_CROSSWALK if mapping.state == "mapped")
+    unknown_target = replace(mapped, target_codes=("not-a-category",))
+    conflicting = (*LEGACY_CROSSWALK, replace(mapped, target_codes=()))
+
+    with pytest.raises(TaxonomyContractError, match="unknown target"):
+        validate_legacy_crosswalk((*LEGACY_CROSSWALK, unknown_target), CATEGORY_INVENTORY)
+    with pytest.raises(TaxonomyContractError, match="conflicting duplicate"):
+        validate_legacy_crosswalk(conflicting, CATEGORY_INVENTORY)

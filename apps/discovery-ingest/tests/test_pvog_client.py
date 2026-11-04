@@ -15,7 +15,8 @@ from discovery_ingest.pvog.client import (
     _build_v7_url,
     map_pvog_record,
 )
-from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
+from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord, PvogSourcePath
+from discovery_ingest.pvog.situation_mapping import category_evidence_for_path
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "pvog"
 FEDERAL_ARS = "000000000000"
@@ -198,6 +199,74 @@ def test_map_pvog_record_leaves_raw_payload_unchanged_without_a_personal_matter_
     item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert "_personal_matter_code" not in item.raw_payload
+
+
+def test_pvog_bootstrap_path_preserves_root_parent_leaf_and_source_version() -> None:
+    """PVOG · bootstrap path preserves root, parent, leaf and source version."""
+    payload = {
+        "sourceVersion": "v7",
+        "facades": {
+            "personalMatters": [
+                {
+                    "code": "ROOT",
+                    "label": "Root",
+                    "children": [
+                        {
+                            "code": "PARENT",
+                            "label": "Parent",
+                            "children": [{"code": "LEAF", "label": "Leaf"}],
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+    bootstrap = PvogBootstrap.model_validate(payload)
+
+    assert bootstrap.path_for("LEAF") == PvogSourcePath(
+        root_code="ROOT",
+        root_label="Root",
+        parent_code="PARENT",
+        parent_label="Parent",
+        leaf_code="LEAF",
+        leaf_label="Leaf",
+        source_version="v7",
+    )
+    pages = {
+        _bootstrap_url(): payload,
+        _search_url("LEAF"): {
+            "serviceDescriptions": {
+                "content": [{"id": "LEAF-ROW", "title": "Leaf service"}],
+                "last": True,
+            }
+        },
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = pages.get(str(request.url))
+        return httpx.Response(200, json=response) if response is not None else httpx.Response(404)
+
+    client = PvogClient(BASE, http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    records = list(client.iter_records(ars=FEDERAL_ARS))
+    item = map_pvog_record(records[0][1], jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code=records[0][0])
+
+    assert [code for code, _record in records] == ["LEAF"]
+    assert item.raw_payload["_pvog_source_path"] == bootstrap.path_for("LEAF").as_raw()
+
+
+def test_pvog_missing_parent_metadata_does_not_invent_a_product_category() -> None:
+    """PVOG · missing parent metadata retains the leaf fact without a category hint."""
+    path = PvogSourcePath(
+        root_code=None,
+        root_label=None,
+        parent_code=None,
+        parent_label=None,
+        leaf_code="1010100",
+        leaf_label=None,
+        source_version="v7",
+    )
+
+    assert category_evidence_for_path(path) is None
 
 
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:

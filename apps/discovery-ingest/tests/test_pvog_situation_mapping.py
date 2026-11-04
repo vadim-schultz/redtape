@@ -4,7 +4,14 @@ weights (situation-tag-hierarchy chapter 3)."""
 from __future__ import annotations
 
 from discovery_ingest.mentions import MAX_SITUATION_CODES
-from discovery_ingest.pvog.situation_mapping import PERSONAL_MATTER_CLARITY, PERSONAL_MATTER_TO_SITUATION
+from discovery_ingest.pvog.models import PvogSourcePath
+from discovery_ingest.pvog.situation_mapping import (
+    PERSONAL_MATTER_CATEGORY_CONFIDENCE,
+    PERSONAL_MATTER_CLARITY,
+    PERSONAL_MATTER_TO_CATEGORY,
+    PERSONAL_MATTER_TO_SITUATION,
+    category_evidence_for_path,
+)
 
 SITUATION_CODES = {
     "moving-house",
@@ -87,3 +94,41 @@ def test_clarity_table_cites_the_sign_off_verdict_for_known_clean_and_ambiguous_
     assert PERSONAL_MATTER_CLARITY["1040300"] == 0.65  # ambiguous: Jobsuche und Arbeitslosigkeit
     assert PERSONAL_MATTER_CLARITY["1050200"] == 0.65  # ambiguous: Wohnen und Umzug
     assert PERSONAL_MATTER_CLARITY["1140100"] == 0.65  # ambiguous: Existenzsicherung
+
+
+def test_category_mapping_preserves_source_leaf_and_maps_to_product_categories() -> None:
+    """Category mapping · a known complete PVOG path emits canonical evidence."""
+    path = PvogSourcePath(
+        root_code="1",
+        root_label="Lebenslagen für Bürgerinnen und Bürger",
+        parent_code="118",
+        parent_label="Altersvorsorge und Ruhestand",
+        leaf_code="1180100",
+        leaf_label="Altersvorsorge",
+        source_version="v7",
+    )
+
+    evidence = category_evidence_for_path(path)
+
+    assert evidence is not None
+    assert evidence.category_codes == ("retirement",)
+    assert evidence.leaf_code == "1180100"
+    assert evidence.source_path == path
+    assert evidence.confidence == PERSONAL_MATTER_CATEGORY_CONFIDENCE["1180100"]
+    assert PERSONAL_MATTER_TO_CATEGORY["1180100"] == ("retirement",)
+    assert "1180100" not in evidence.category_codes
+
+
+def test_category_mapping_does_not_invent_category_for_an_unmapped_leaf() -> None:
+    """Category mapping · a source-only leaf has no canonical category evidence."""
+    path = PvogSourcePath(
+        root_code="1",
+        root_label="Lebenslagen für Bürgerinnen und Bürger",
+        parent_code="117",
+        parent_label="Umwelt und Klima",
+        leaf_code="1170100",
+        leaf_label="Klima, Natur und Arten",
+        source_version="v7",
+    )
+
+    assert category_evidence_for_path(path) is None

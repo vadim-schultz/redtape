@@ -12,7 +12,7 @@ from pydantic import BaseModel, JsonValue
 
 from discovery_ingest.catalogue_scope import FEDERAL_ARS
 from discovery_ingest.page_budget import PageBudget
-from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
+from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord, PvogSourcePath
 from discovery_ingest.schemas import CatalogueBatchItem
 
 BOOTSTRAP_PERSONAL_MATTER = "Geburt"
@@ -64,6 +64,7 @@ class PvogClient:
             return
         bootstrap = self._fetch_page(bootstrap_url, PvogBootstrap)
         budget.spend_page()
+        paths = bootstrap.leaf_paths()
 
         for code in bootstrap.leaf_codes():
             page_index = 0
@@ -85,6 +86,9 @@ class PvogClient:
                     if lb_id is None or lb_id in seen_lb_ids:
                         continue
                     seen_lb_ids.add(lb_id)
+                    path = paths.get(code)
+                    if path is not None:
+                        record.attach_source_path(path)
                     yield code, record
                 if is_last or not records:
                     break
@@ -151,6 +155,7 @@ def map_pvog_record(
     *,
     jurisdiction_id: UUID,
     personal_matter_code: str | None = None,
+    personal_matter_path: PvogSourcePath | None = None,
 ) -> CatalogueBatchItem:
     """Map one PVOG Suchdienst row to a machine batch item.
 
@@ -165,6 +170,11 @@ def map_pvog_record(
     raw_payload: dict[str, object] = dict(record.raw)
     if personal_matter_code is not None:
         raw_payload["_personal_matter_code"] = personal_matter_code
+    source_path = personal_matter_path or record.source_path
+    if source_path is not None:
+        if personal_matter_code is not None and source_path.leaf_code not in {None, personal_matter_code}:
+            raise PvogMappingError("personal matter code does not match its PVOG source path")
+        raw_payload["_pvog_source_path"] = source_path.as_raw()
     return CatalogueBatchItem(
         source="pvog",
         external_id=external_id,
