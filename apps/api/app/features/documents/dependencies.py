@@ -14,6 +14,7 @@ from app.features.taxonomy.service import TaxonomyService
 
 
 def provide_document_repository(session: Session) -> DocumentRepository:
+    """Build the document repository on the request's database session."""
     return DocumentRepository(session)
 
 
@@ -21,6 +22,7 @@ def provide_document_service(
     document_repository: DocumentRepository,
     taxonomy_service: TaxonomyService,
 ) -> DocumentService:
+    """Build the document service on the repository and the taxonomy lookups."""
     return DocumentService(document_repository, taxonomy_service)
 
 
@@ -28,6 +30,7 @@ def provide_document_promotion(
     document_repository: DocumentRepository,
     taxonomy_service: TaxonomyService,
 ) -> DocumentPromotion:
+    """Build the promotion workflow on the repository and the taxonomy lookups."""
     return DocumentPromotion(document_repository, taxonomy_service)
 
 

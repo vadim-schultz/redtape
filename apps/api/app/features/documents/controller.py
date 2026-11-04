@@ -1,3 +1,5 @@
+"""HTTP endpoints for the read-only document catalog."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -21,6 +23,7 @@ class DocumentsController(Controller):
     def list_documents(
         self, document_service: DocumentService, locale: ResolvedLocale, document_query: DocumentListQuery
     ) -> DocumentListResponse:
+        """Return one page of localized documents; an unknown taxonomy code is a 422, not an empty page."""
         try:
             return document_service.list_documents(
                 locale=locale.code,
@@ -36,6 +39,7 @@ class DocumentsController(Controller):
     def get_document(
         self, document_service: DocumentService, locale: ResolvedLocale, document_id: UUID
     ) -> DocumentDetail:
+        """Return one localized document, or 404 when no document has this id."""
         detail = document_service.get_document_detail(
             document_id=document_id, locale=locale.code, enabled_locales=locale.enabled
         )
