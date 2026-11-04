@@ -6,11 +6,13 @@ on:
     paths:
       - "apps/discovery-ingest/**"
       - "apps/api/tests/fixtures/steckbrief_key_cases.json"
+      - "apps/api/tests/fixtures/discovery_machine_contract.json"
       - ".github/workflows/discovery-ingest-ci.yml"
   pull_request:
     paths:
       - "apps/discovery-ingest/**"
       - "apps/api/tests/fixtures/steckbrief_key_cases.json"
+      - "apps/api/tests/fixtures/discovery_machine_contract.json"
       - ".github/workflows/discovery-ingest-ci.yml"
 
 concurrency:

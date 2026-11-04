@@ -215,10 +215,10 @@ class RunFinishRequest(BaseModel):
     """Report that closes a worker run."""
 
     status: Literal["succeeded", "failed"]
-    claimed_count: int
-    completed_count: int
-    failed_count: int
-    skipped_count: int
-    remaining_count: int | None = None
+    claimed_count: int = Field(ge=0)
+    completed_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    skipped_count: int = Field(ge=0)
+    remaining_count: int | None = Field(default=None, ge=0)
     stop_reason: StopReason | None = None
-    error_detail: str | None = None
+    error_detail: str | None = Field(default=None, max_length=1000)
