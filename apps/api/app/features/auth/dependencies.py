@@ -1,3 +1,5 @@
+"""Dependency providers that resolve the user or machine principal of each request."""
+
 from __future__ import annotations
 
 import functools
@@ -21,18 +23,22 @@ logger = logging.getLogger(__name__)
 
 
 def provide_user_repository(session: Session) -> UserRepository:
+    """Build the user repository on the request's database session."""
     return UserRepository(session)
 
 
 def provide_user_service(user_repository: UserRepository) -> UserService:
+    """Build the user service on the request's user repository."""
     return UserService(user_repository)
 
 
 def provide_api_key_repository(session: Session) -> ApiKeyRepository:
+    """Build the API-key repository on the request's database session."""
     return ApiKeyRepository(session)
 
 
 def provide_api_key_service(api_key_repository: ApiKeyRepository) -> ApiKeyService:
+    """Build the API-key service on the request's API-key repository."""
     return ApiKeyService(api_key_repository)
 
 
@@ -47,6 +53,7 @@ def default_jwt_verifier() -> JwtVerifier:
 
 
 def provide_jwt_verifier() -> JwtVerifier:
+    """Return the process-wide JWT verifier, built once from settings."""
     return default_jwt_verifier()
 
 
@@ -92,6 +99,7 @@ def user_from_connection(connection: ASGIConnection, jwt_verifier: JwtVerifier, 
 
 
 def provide_current_user(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser:
+    """Return the signed-in user for this request; refuse with 401 when the token is missing or invalid."""
     return user_from_connection(request, jwt_verifier, user_service)
 
 
@@ -120,10 +128,12 @@ def machine_principal_from_connection(connection: ASGIConnection, api_key_servic
 
 
 def provide_machine_principal(request: Request, api_key_service: ApiKeyService) -> MachinePrincipal:
+    """Return the API-key principal for this request; refuse with 401 when the key is missing or invalid."""
     return machine_principal_from_connection(request, api_key_service)
 
 
 def provide_optional_user(request: Request, jwt_verifier: JwtVerifier, user_service: UserService) -> AppUser | None:
+    """Return the signed-in user when auth is enabled and a bearer token is sent, otherwise `None`."""
     if not settings.auth_enabled or request.headers.get("Authorization") is None:
         return None
     return user_from_connection(request, jwt_verifier, user_service)
