@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import Column, Select, func, select
+from sqlalchemy import Column, ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.document import Document, DocumentRequirement
@@ -207,12 +207,23 @@ class DocumentRepository:
         path.reverse()
         return path
 
-    def list_slugs_and_urls(self, jurisdiction_id: UUID) -> list[tuple[UUID, str, str | None]]:
-        """`(id, slug, official_url)` for every document in a jurisdiction; input to duplicate matching."""
-        stmt = select(Document.id, Document.slug, Document.official_url).where(
-            Document.jurisdiction_id == jurisdiction_id
+    def find_conflicting_document_ids(
+        self, *, jurisdiction_id: UUID, slug: str, normalized_url: str | None
+    ) -> list[UUID]:
+        """Ids of documents in the jurisdiction whose slug or stored normalized URL equals the candidate's.
+
+        The URL arm is left out when the candidate has no normalized URL, so a URL-less candidate matches on the
+        slug alone. Ordered by ``created_at, id`` for stability; callers only test membership.
+        """
+        clash: ColumnElement[bool] = Document.slug == slug
+        if normalized_url is not None:
+            clash = or_(clash, Document.normalized_url == normalized_url)
+        stmt = (
+            select(Document.id)
+            .where(Document.jurisdiction_id == jurisdiction_id, clash)
+            .order_by(Document.created_at, Document.id)
         )
-        return list(self._session.execute(stmt).tuples().all())
+        return list(self._session.scalars(stmt))
 
     def jurisdiction_exists(self, jurisdiction_id: UUID) -> bool:
         """Return whether a jurisdiction with this id exists."""
