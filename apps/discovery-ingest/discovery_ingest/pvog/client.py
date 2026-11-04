@@ -11,6 +11,7 @@ import httpx
 from pydantic import BaseModel, JsonValue
 
 from discovery_ingest.catalogue_scope import FEDERAL_ARS
+from discovery_ingest.page_budget import PageBudget
 from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
 from discovery_ingest.schemas import CatalogueBatchItem
 
@@ -46,8 +47,11 @@ class PvogClient:
         ars: str = FEDERAL_ARS,
         max_pages: int | None = None,
     ) -> Iterator[tuple[str, PvogRecord]]:
-        """Yield ``(personal_matter_code, record)`` from the v7 Lebenslagen tree walk and paginated search."""
-        pages_fetched = 0
+        """Yield ``(personal_matter_code, record)`` from the v7 Lebenslagen tree walk and paginated search.
+
+        ``max_pages`` caps every GET, the bootstrap page included.
+        """
+        budget = PageBudget(max_pages=max_pages)
         seen_lb_ids: set[str] = set()
 
         bootstrap_url = _build_v7_url(
@@ -56,15 +60,15 @@ class PvogClient:
             personal_matter=BOOTSTRAP_PERSONAL_MATTER,
             facades=True,
         )
-        if max_pages is not None and pages_fetched >= max_pages:
+        if budget.exhausted:
             return
         bootstrap = self._fetch_page(bootstrap_url, PvogBootstrap)
-        pages_fetched += 1
+        budget.spend_page()
 
         for code in bootstrap.leaf_codes():
             page_index = 0
             while True:
-                if max_pages is not None and pages_fetched >= max_pages:
+                if budget.exhausted:
                     return
                 search_url = _build_v7_url(
                     self._base_url,
@@ -74,7 +78,7 @@ class PvogClient:
                     page=page_index,
                 )
                 page = self._fetch_page(search_url, PvogPage)
-                pages_fetched += 1
+                budget.spend_page()
                 records, is_last = page.records_and_last
                 for record in records:
                     lb_id = record.dedupe_id

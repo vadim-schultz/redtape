@@ -11,6 +11,7 @@ from discovery_ingest.schemas import DrainReport
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from extract_fakes import ExtractApi, FakeExtractor, extract_task
 from render_fakes import FakeApi, FakeBrowser, page, robots_fetcher, task_json
 
@@ -22,7 +23,7 @@ def _render(monkeypatch: pytest.MonkeyPatch, api: FakeApi, *extractors: FakeExtr
     browser = FakeBrowser(*[page() for _ in range(tasks)])
     policy = DrainPolicy(max_tasks=5, kinds=("render_page",), browser_budget_seconds=480.0)
     client = api.client(monkeypatch)
-    return run_worker_drain(client, robots_fetcher(), policy, browser=browser, extractors=extractors)
+    return run_worker_drain(deps_for(client, robots_fetcher(), browser=browser, extractors=extractors), policy)
 
 
 def _enqueues(api: FakeApi) -> list[dict[str, object]]:

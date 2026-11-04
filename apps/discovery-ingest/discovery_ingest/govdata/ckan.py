@@ -10,6 +10,7 @@ from pydantic import JsonValue
 
 from discovery_ingest.catalogue_scope import FEDERAL_ARS
 from discovery_ingest.govdata.models import CkanPackage, CkanPackageShow, GovDataRow, OzgPage
+from discovery_ingest.page_budget import PageBudget
 
 LEISTUNGEN_RESOURCE_ID = "4b4fc7a2-8776-484d-834f-185590b181db"
 DEFAULT_PAGE_SIZE = 100
@@ -44,27 +45,22 @@ class GovDataCkanClient:
         max_records: int | None = None,
     ) -> Iterator[list[GovDataRow]]:
         """Yield each page of Leistungen rows (empty list ends pagination)."""
-        if max_pages < 1:
+        budget = PageBudget(max_pages=max_pages, max_records=max_records)
+        if budget.exhausted:
             return
         feed_template = self._leistungen_feed_template_url()
-        total_records = 0
-        for page_index in range(max_pages):
+        page_index = 0
+        while not budget.exhausted:
             page_url = _page_url(feed_template, page=page_index, size=page_size)
-            records = OzgPage.model_validate(self._fetch_json(page_url)).content
-            if not records:
+            fetched = OzgPage.model_validate(self._fetch_json(page_url)).content
+            budget.spend_page()
+            kept = budget.admit(fetched)
+            if not kept:
                 break
-            if max_records is not None:
-                remaining = max_records - total_records
-                if remaining <= 0:
-                    break
-                if len(records) > remaining:
-                    records = records[:remaining]
-            total_records += len(records)
-            yield records
-            if max_records is not None and total_records >= max_records:
+            yield kept
+            if len(fetched) < page_size:
                 break
-            if len(records) < page_size:
-                break
+            page_index += 1
 
     def _leistungen_feed_template_url(self) -> str:
         package = self._fetch_package_show()

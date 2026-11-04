@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
 
+from discovery_ingest.cloudflare_account_settings import CloudflareAccountSettings
 from discovery_ingest.extract.clean import DEFAULT_MAX_CHARS
 
 DEFAULT_MAX_TOKENS = 4000
@@ -14,7 +15,7 @@ DEFAULT_LLM_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
 """The choice of decision X16 (Qwen3-30B, 2026-10-30); ``LLM_MODEL`` overrides it and an empty ``LLM_MODEL`` means no model."""
 
 
-class LlmSettings(BaseSettings):
+class LlmSettings(CloudflareAccountSettings):
     """Cloudflare Workers AI credentials and call limits, read from the process environment only.
 
     The token is a custom token with only the Workers AI permission; it is never a Render variable.
@@ -22,7 +23,6 @@ class LlmSettings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    cloudflare_account_id: str | None = Field(default=None, validation_alias="CLOUDFLARE_ACCOUNT_ID")
     cloudflare_ai_api_token: SecretStr | None = Field(default=None, validation_alias="CLOUDFLARE_AI_API_TOKEN")
     llm_model: str = Field(default=DEFAULT_LLM_MODEL, validation_alias="LLM_MODEL")
     llm_max_tokens: int = Field(default=DEFAULT_MAX_TOKENS, gt=0, validation_alias="LLM_MAX_TOKENS")

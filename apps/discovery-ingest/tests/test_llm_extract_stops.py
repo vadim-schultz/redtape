@@ -15,6 +15,7 @@ from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
 
+from drain_deps_for import deps_for
 from eval_fakes import long_page_html
 from extract_fakes import PAGE_URL
 from llm_worker_fakes import MODEL, PAGE_HTML, SERVICE, LlmApi, ScriptedLlm, llm_task, resources
@@ -32,8 +33,8 @@ def _tasks(count: int = 3) -> list[dict[str, object]]:
 def _drain(monkeypatch: pytest.MonkeyPatch, api: LlmApi, llm: ScriptedLlm, *, recorded: bool = False) -> DrainReport:
     client: DiscoveryIngestClient = api.client(monkeypatch)
     if recorded:
-        return run_recorded_drain(client, robots_fetcher(), POLICY, llm=resources(llm))
-    return run_worker_drain(client, robots_fetcher(), POLICY, llm=resources(llm))
+        return run_recorded_drain(deps_for(client, robots_fetcher(), llm=resources(llm)), POLICY)
+    return run_worker_drain(deps_for(client, robots_fetcher(), llm=resources(llm)), POLICY)
 
 
 def _released(api: LlmApi) -> list[tuple[str, Any]]:
@@ -75,7 +76,7 @@ def test_a_run_budget_that_one_call_spends_stops_with_llm_budget_after_that_call
     api, llm = LlmApi(_tasks()), ScriptedLlm(SERVICE)
     policy = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=cost(MODEL, 1000, 200) - 1)
 
-    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, llm=resources(llm))
+    report = run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(), llm=resources(llm)), policy)
 
     assert (report.completed, report.released, report.stop_reason) == (1, 2, "llm_budget")
     assert report.neurons_used == pytest.approx(cost(MODEL, 1000, 200), abs=0.1)
@@ -202,7 +203,7 @@ def test_the_drain_requires_llm_resources_for_the_llm_kind(monkeypatch: pytest.M
     api = LlmApi(_tasks())
 
     with pytest.raises(ValueError, match="LLM resources"):
-        run_worker_drain(api.client(monkeypatch), robots_fetcher(), POLICY)
+        run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher()), POLICY)
 
     assert api.batches
 
@@ -216,7 +217,7 @@ def test_a_drain_with_a_2500_neuron_budget_completes_three_long_pages_before_it_
     policy = DrainPolicy(max_tasks=5, kinds=("llm_extract",), neuron_budget=2500)
 
     report = run_worker_drain(
-        api.client(monkeypatch), robots_fetcher(), policy, llm=replace(resources(llm), max_tokens=4000)
+        deps_for(api.client(monkeypatch), robots_fetcher(), llm=replace(resources(llm), max_tokens=4000)), policy
     )
 
     assert report.completed >= 3 and report.stop_reason == "llm_budget"

@@ -15,6 +15,7 @@ from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 from pydantic import SecretStr
 
+from drain_deps_for import deps_for
 from run_stub import run_response
 
 API_BASE = "https://redtape.test"
@@ -110,7 +111,7 @@ def test_enrich_metadata_fetches_steckbrief_and_posts_entity_and_claim(
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
     client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
-    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    report = run_worker_drain(deps_for(client, PoliteUrlFetcher(min_interval_per_host_s=0)), DrainPolicy(max_tasks=1))
 
     assert report.completed == 1
     entity_posts = [p for p in posts if p[1].endswith("/entities")]
@@ -160,7 +161,7 @@ def test_enrich_metadata_fails_task_when_steckbrief_404(monkeypatch: pytest.Monk
     _patch_httpx_client(monkeypatch, httpx.MockTransport(combined_handler))
 
     client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
-    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    report = run_worker_drain(deps_for(client, PoliteUrlFetcher(min_interval_per_host_s=0)), DrainPolicy(max_tasks=1))
 
     assert report.failed == 1
     assert len(fail_calls) == 1
@@ -198,7 +199,7 @@ def test_enrich_metadata_fails_task_when_steckbrief_redirect_cannot_be_followed(
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
 
     client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
-    report = run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    report = run_worker_drain(deps_for(client, PoliteUrlFetcher(min_interval_per_host_s=0)), DrainPolicy(max_tasks=1))
 
     assert (report.completed, report.failed) == (0, 1)
     assert "Location" in str(fail_calls[0]["error"])
@@ -232,7 +233,7 @@ def _drain_enrich_fail_bodies(monkeypatch: pytest.MonkeyPatch, steckbrief: Any) 
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
     client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
-    run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    run_worker_drain(deps_for(client, PoliteUrlFetcher(min_interval_per_host_s=0)), DrainPolicy(max_tasks=1))
     return fail_bodies
 
 

@@ -9,15 +9,12 @@ from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
-import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import IngestSettings, load_ingest_settings
 from discovery_ingest.extract.llm.client import LlmClient
-from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.evaluation.arguments import register_eval_parser, startup_problem
 from discovery_ingest.extract.llm.evaluation.cache import ResultCache
 from discovery_ingest.extract.llm.evaluation.gold import GoldError, GoldPage, load_gold, unknown_codes
@@ -29,12 +26,12 @@ from discovery_ingest.extract.llm.evaluation.summary import summarise
 from discovery_ingest.extract.llm.meter import NeuronMeter, open_neuron_meter
 from discovery_ingest.extract.llm.redaction import scrub, secrets_of
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.operations.models import build_model_client
 
 __all__ = ["EvalRuntime", "llm_eval", "register_eval_parser"]
 
 EXIT_STOPPED = 1
 EXIT_USAGE = 2
-MIN_INTERVAL_SECONDS = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,8 +54,7 @@ def _runtime(settings: IngestSettings, model: str, stack: ExitStack) -> EvalRunt
     The model's HTTP client is entered into ``stack``, so its owner closes it on every exit path.
     """
     api = stack.enter_context(DiscoveryIngestClient.from_settings(settings))
-    http = stack.enter_context(httpx.Client(trust_env=True))
-    client = CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(MIN_INTERVAL_SECONDS))
+    client = build_model_client(settings, model, stack)
     return EvalRuntime(client, BudgetGuard(api.budget), api.candidates.taxonomy())
 
 

@@ -27,7 +27,7 @@ from discovery_ingest.fim.models import Stammtext, Steckbrief
 from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, map_govdata_record
 from discovery_ingest.govdata.models import GovDataRow
-from discovery_ingest.leika.client import LeikaClientError, LeikaStammtextClient
+from discovery_ingest.leika.client import FixtureStammtextSource, LeikaClientError
 from discovery_ingest.pvog.client import PvogClient, PvogClientError, PvogMappingError, map_pvog_record
 from discovery_ingest.pvog.models import PvogRecord
 from discovery_ingest.schemas import TASK_KINDS, WORKER_DEFAULT_TASK_KINDS, CatalogueBatchItem
@@ -36,6 +36,7 @@ from discovery_ingest.worker.llm_drain import open_llm_drain
 from discovery_ingest.worker.llm_extract import no_after_extract
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from llm_transport import ACCOUNT_ID, TOKEN
 from llm_worker_fakes import MODEL, SERVICE, LlmApi, ScriptedLlm, resources
 
@@ -468,17 +469,17 @@ def test_steckbrief_from_missing_body_is_none() -> None:
 
 def test_fixture_key_mismatch_raises_fim_client_error_and_leika_mismatch_raises_leika_error(tmp_path: Path) -> None:
     """Fixture clients · a fixture whose key does not match the request raises the client's error."""
-    from discovery_ingest.fim.client import FimClientError, FimSteckbriefClient
+    from discovery_ingest.fim.client import FimClientError, FixtureSteckbriefSource
 
     steckbrief = tmp_path / "steckbrief.json"
     steckbrief.write_text(json.dumps({"leistungsschluessel": "AAA"}), encoding="utf-8")
-    fim = FimSteckbriefClient.from_json_file(steckbrief, base_url=FIM_BASE)
+    fim = FixtureSteckbriefSource.from_json_file(steckbrief)
     with pytest.raises(FimClientError, match="does not match"):
         fim.fetch_steckbrief("BBB")
 
     stammtext = tmp_path / "stammtext.json"
     stammtext.write_text(json.dumps({"redaktion_id": "R", "leistung_id": "L"}), encoding="utf-8")
-    leika = LeikaStammtextClient.from_json_file(stammtext, base_url=FIM_BASE)
+    leika = FixtureStammtextSource.from_json_file(stammtext)
     with pytest.raises(LeikaClientError, match="fixture segments do not match"):
         leika.fetch_stammtext("R", "OTHER")
 
@@ -570,14 +571,14 @@ def test_every_task_kind_has_a_handler_when_all_parts_exist(monkeypatch: pytest.
     )
     assert drain is not None
 
-    table = handler_table((), (object(), object(), lambda task, artifact: None), drain)  # type: ignore[arg-type]
+    table = handler_table(deps_for(None, None, extractors=()), (object(), object(), lambda task, artifact: None), drain)  # type: ignore[arg-type]
 
     assert set(table) == set(TASK_KINDS)
 
 
 def test_default_table_covers_worker_default_kinds() -> None:
     """handler_table · the worker default kinds always have a handler, even with no browser and no LLM."""
-    table = handler_table((), (None, None, lambda task, artifact: None), None)
+    table = handler_table(deps_for(None, None, extractors=()), (None, None, lambda task, artifact: None), None)
 
     assert set(WORKER_DEFAULT_TASK_KINDS) <= set(table)
 
