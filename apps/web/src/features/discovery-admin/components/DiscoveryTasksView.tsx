@@ -3,7 +3,7 @@ import { VStack } from "@chakra-ui/react";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import ListSearchBox from "../../../components/data-display/ListSearchBox";
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { TaskList } from "../hooks/useTaskListState";
+import type { TaskList } from "../types/listControllers";
 import type { DiscoveryTaskListResponse } from "../types";
 import DiscoveryTasksTable from "./DiscoveryTasksTable";
 

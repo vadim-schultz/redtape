@@ -10,7 +10,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import { createFakeAuthGateway } from "../services/fakeAuthGateway";
 import type { AuthSession } from "../services/authGateway";
-import RequireAuth from "./RequireAuth";
+import RequireAuth, { guardOutcome } from "./RequireAuth";
 
 const session: AuthSession = {
   accessToken: "token-1",
@@ -118,4 +118,40 @@ it("RequireAuth · unconfigured shows the not-found view", async () => {
   await waitFor(() =>
     expect(screen.getByText("Page not found")).toBeInTheDocument(),
   );
+});
+
+it("guardOutcome · loading waits", () => {
+  expect(guardOutcome("loading", undefined, "user")).toBe("wait");
+});
+
+it("guardOutcome · anonymous logs in", () => {
+  expect(guardOutcome("anonymous", undefined, "user")).toBe("login");
+});
+
+it("guardOutcome · unconfigured is hidden", () => {
+  expect(guardOutcome("unconfigured", undefined, "user")).toBe("hidden");
+});
+
+it("guardOutcome · a moderator passes a moderator route", () => {
+  expect(guardOutcome("authenticated", "moderator", "moderator")).toBe("allow");
+});
+
+it("guardOutcome · an admin passes a moderator route", () => {
+  expect(guardOutcome("authenticated", "admin", "moderator")).toBe("allow");
+});
+
+it("guardOutcome · a user passes a user route", () => {
+  expect(guardOutcome("authenticated", "user", "user")).toBe("allow");
+});
+
+it("guardOutcome · a user is forbidden from a moderator route", () => {
+  expect(guardOutcome("authenticated", "user", "moderator")).toBe("forbidden");
+});
+
+it("guardOutcome · an unknown role string waits", () => {
+  expect(guardOutcome("authenticated", "superuser", "user")).toBe("wait");
+});
+
+it("guardOutcome · authenticated without a role waits", () => {
+  expect(guardOutcome("authenticated", undefined, "user")).toBe("wait");
 });

@@ -7,6 +7,7 @@ import binascii
 import logging
 import time
 from collections.abc import Callable
+from types import TracebackType
 
 import httpx
 from pydantic import JsonValue
@@ -43,9 +44,25 @@ class CloudflareBrowserClient:
         self._user_agent = user_agent
         self._interval = settings.browser_min_interval_seconds
         self._timeout = settings.browser_request_timeout_seconds
+        self._owns_http = http is None
         self._http = http or httpx.Client(trust_env=True)
         self._throttle = throttle or Throttle(self._interval)
         self._clock = clock
+
+    def close(self) -> None:
+        """Close the HTTP client this instance created; leave an injected client for its owner to close."""
+        if self._owns_http:
+            self._http.close()
+
+    def __enter__(self) -> CloudflareBrowserClient:
+        """Return ``self`` for use as a context manager."""
+        return self
+
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: TracebackType | None
+    ) -> None:
+        """Close the owned HTTP client, whether or not the body raised."""
+        self.close()
 
     def render(self, url: str) -> RenderedPage:
         """Return the rendered DOM of ``url`` with the target's status and final URL from ``meta``."""

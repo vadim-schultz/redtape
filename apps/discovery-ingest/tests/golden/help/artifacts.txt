@@ -1,0 +1,9 @@
+usage: discovery_ingest artifacts [-h] {list,download} ...
+
+positional arguments:
+  {list,download}
+    list           Print id, kind, size and source url of stored artifacts of a host
+    download       Write the stored bytes of one artifact to a file
+
+options:
+  -h, --help       show this help message and exit

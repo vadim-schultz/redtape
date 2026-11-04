@@ -46,3 +46,14 @@ class ClaimRepository(SessionRepository):
             .order_by(DiscoveryClaim.created_at.asc(), DiscoveryClaim.id.asc())
         )
         return list(self._session.scalars(stmt).all())
+
+    def catalogue_claim_kinds_and_payloads(
+        self, catalogue_id: UUID
+    ) -> list[tuple[DiscoveryClaimKind, dict[str, object]]]:
+        """Return the kind and payload of every claim of one catalogue row, unordered."""
+        stmt = (
+            select(DiscoveryClaim.kind, DiscoveryClaim.payload)
+            .join(DiscoveryEntity, DiscoveryClaim.discovery_entity_id == DiscoveryEntity.id)
+            .where(DiscoveryEntity.catalogue_service_id == catalogue_id)
+        )
+        return [(kind, payload) for kind, payload in self._session.execute(stmt).tuples().all()]

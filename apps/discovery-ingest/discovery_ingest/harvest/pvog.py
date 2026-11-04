@@ -11,6 +11,8 @@ Rules (bump ``EXTRACTOR_VERSION`` and the API's ``PVOG_HARVESTER_VERSION`` on an
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from discovery_ingest.harvest.modules import MODULE_SELECTORS, Found, Module, ModuleSelector, selected_modules
 from discovery_ingest.harvest.noise import is_noise
 from discovery_ingest.harvest.text import plain_text
@@ -42,119 +44,69 @@ def _leaf_code(raw_payload: dict[str, object]) -> str | None:
     """Return the stashed Lebenslage code itself, or ``None`` when the payload has none.
 
     Reads ``raw_payload["_personal_matter_code"]`` (stashed by
-    :func:`discovery_ingest.pvog.client.map_pvog_record`) — exposed under its own name since it is no
-    longer only an internal stash feeding :func:`_situation_codes`; it is now a value other code
-    (:class:`MentionDraft`'s own ``pvog_leaf_code``) reads directly.
+    :func:`discovery_ingest.pvog.client.map_pvog_record`).
     """
     code = raw_payload.get("_personal_matter_code")
     return code if isinstance(code, str) else None
 
 
-def _situation_codes(raw_payload: dict[str, object]) -> list[str] | None:
-    """Return the mapped situation codes for the stashed Lebenslage code, or ``None`` if unmapped.
+@dataclass(frozen=True, slots=True)
+class LeafHints:
+    """The mapping hints one PVOG Lebenslage leaf carries onto every mention drafted from its payload."""
 
-    Reads the leaf code through :data:`PERSONAL_MATTER_TO_SITUATION` — the table's full list for a
-    mapped (clean or ambiguous) code, unchanged for a bundled leaf.
-    """
-    code = _leaf_code(raw_payload)
-    if code is None:
-        return None
-    return PERSONAL_MATTER_TO_SITUATION.get(code)
+    situation_codes: list[str] | None
+    situation_confidence: float | None
+    domain_codes: list[str] | None
+    domain_confidence: float | None
+    leaf_code: str | None
 
-
-def _situation_confidence(raw_payload: dict[str, object]) -> float | None:
-    """Return the leaf's mapping-clarity weight, or ``None`` when it is not situation-mapped."""
-    code = _leaf_code(raw_payload)
-    if code is None:
-        return None
-    return PERSONAL_MATTER_CLARITY.get(code)
-
-
-def _domain_codes(raw_payload: dict[str, object]) -> list[str] | None:
-    """Return the recovered domain-axis hint for the stashed leaf code, or ``None`` if unmapped."""
-    code = _leaf_code(raw_payload)
-    if code is None:
-        return None
-    return PERSONAL_MATTER_TO_DOMAIN.get(code)
-
-
-def _domain_confidence(raw_payload: dict[str, object]) -> float | None:
-    """Return the leaf's flat domain-hint clarity weight, or ``None`` when it has no domain hint."""
-    code = _leaf_code(raw_payload)
-    if code is None:
-        return None
-    return PERSONAL_MATTER_DOMAIN_CLARITY.get(code)
-
-
-def _draft(
-    module: Module,
-    selector: ModuleSelector,
-    item: Found,
-    locale: str,
-    *,
-    situation_codes: list[str] | None,
-    situation_confidence: float | None,
-    domain_codes: list[str] | None,
-    domain_confidence: float | None,
-    leaf_code: str | None,
-) -> MentionDraft:
-    return MentionDraft(
-        title_i18n={locale: item.title},
-        role=selector.role,
-        excerpt=_excerpt(module, item.title),
-        source_field=f"details[code={module.code}]",
-        extractor=EXTRACTOR,
-        extractor_version=EXTRACTOR_VERSION,
-        official_url=item.official_url,
-        situation_codes=situation_codes,
-        direct_situation_confidence=situation_confidence,
-        domain_codes=domain_codes,
-        direct_domain_confidence=domain_confidence,
-        pvog_leaf_code=leaf_code,
-    )
-
-
-def _module_drafts(
-    module: Module,
-    locale: str,
-    *,
-    situation_codes: list[str] | None,
-    situation_confidence: float | None,
-    domain_codes: list[str] | None,
-    domain_confidence: float | None,
-    leaf_code: str | None,
-) -> list[MentionDraft]:
-    selector = MODULE_SELECTORS[module.code]
-    found = dict.fromkeys(item for item in selector.strategy(module) if not is_noise(item.title))
-    return [
-        _draft(
-            module,
-            selector,
-            item,
-            locale,
-            situation_codes=situation_codes,
-            situation_confidence=situation_confidence,
-            domain_codes=domain_codes,
-            domain_confidence=domain_confidence,
-            leaf_code=leaf_code,
+    @classmethod
+    def from_payload(cls, raw_payload: dict[str, object]) -> LeafHints:
+        """Read the stashed leaf code once and consult the four mapping tables for it; no code means no hints."""
+        code = _leaf_code(raw_payload)
+        if code is None:
+            return cls(None, None, None, None, None)
+        return cls(
+            situation_codes=PERSONAL_MATTER_TO_SITUATION.get(code),
+            situation_confidence=PERSONAL_MATTER_CLARITY.get(code),
+            domain_codes=PERSONAL_MATTER_TO_DOMAIN.get(code),
+            domain_confidence=PERSONAL_MATTER_DOMAIN_CLARITY.get(code),
+            leaf_code=code,
         )
-        for item in found
-    ]
+
+
+class PvogDrafter:
+    """Draft the mentions of one payload's modules, each carrying the same leaf hints."""
+
+    def __init__(self, locale: str, hints: LeafHints) -> None:
+        """Keep the payload locale and the leaf hints every draft carries."""
+        self._locale = locale
+        self._hints = hints
+
+    def module_drafts(self, module: Module) -> list[MentionDraft]:
+        """Return the drafts of one selected module, one per distinct non-noise fragment, in document order."""
+        selector = MODULE_SELECTORS[module.code]
+        found = dict.fromkeys(item for item in selector.strategy(module) if not is_noise(item.title))
+        return [self._draft(module, selector, item) for item in found]
+
+    def _draft(self, module: Module, selector: ModuleSelector, item: Found) -> MentionDraft:
+        return MentionDraft(
+            title_i18n={self._locale: item.title},
+            role=selector.role,
+            excerpt=_excerpt(module, item.title),
+            source_field=f"details[code={module.code}]",
+            extractor=EXTRACTOR,
+            extractor_version=EXTRACTOR_VERSION,
+            official_url=item.official_url,
+            situation_codes=self._hints.situation_codes,
+            direct_situation_confidence=self._hints.situation_confidence,
+            domain_codes=self._hints.domain_codes,
+            direct_domain_confidence=self._hints.domain_confidence,
+            pvog_leaf_code=self._hints.leaf_code,
+        )
 
 
 def harvest_pvog_payload(raw_payload: dict[str, object]) -> list[MentionDraft]:
     """Return the document mentions in ``raw_payload.details``, in module and document order."""
-    locale = _locale(raw_payload)
-    return [
-        draft
-        for module in selected_modules(raw_payload)
-        for draft in _module_drafts(
-            module,
-            locale,
-            situation_codes=_situation_codes(raw_payload),
-            situation_confidence=_situation_confidence(raw_payload),
-            domain_codes=_domain_codes(raw_payload),
-            domain_confidence=_domain_confidence(raw_payload),
-            leaf_code=_leaf_code(raw_payload),
-        )
-    ]
+    drafter = PvogDrafter(_locale(raw_payload), LeafHints.from_payload(raw_payload))
+    return [draft for module in selected_modules(raw_payload) for draft in drafter.module_drafts(module)]

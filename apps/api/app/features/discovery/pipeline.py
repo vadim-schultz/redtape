@@ -20,7 +20,6 @@ class PipelineStage(StrEnum):
     @property
     def rank(self) -> int:
         """Return the numeric position of the stage (``T0`` is 0)."""
-
         return int(self.value[1:])
 
 
@@ -34,9 +33,23 @@ class PipelineStageInput:
     all_emit_claims_resolvable: bool
 
 
+def stage_input(
+    *,
+    task_count: int,
+    has_fetch_log: bool,
+    claims: list[tuple[DiscoveryClaimKind, dict[str, object]]],
+) -> PipelineStageInput:
+    """Build the stage input from a task count, a fetch-log flag and the claims' kinds and payloads."""
+    return PipelineStageInput(
+        task_count=task_count,
+        has_fetch_log=has_fetch_log,
+        claim_count=len(claims),
+        all_emit_claims_resolvable=all_emit_claims_resolvable(claims),
+    )
+
+
 def derive_pipeline_stage(data: PipelineStageInput) -> PipelineStage:
     """Return ``T0``–``T4`` using ordered rules from highest to lowest stage."""
-
     rules: tuple[tuple[bool, PipelineStage], ...] = (
         (data.claim_count > 0 and data.all_emit_claims_resolvable, PipelineStage.T4),
         (data.claim_count > 0, PipelineStage.T3),
@@ -51,7 +64,6 @@ def derive_pipeline_stage(data: PipelineStageInput) -> PipelineStage:
 
 def claim_emit_resolvable(kind: DiscoveryClaimKind, payload: dict[str, object]) -> bool:
     """Return whether a claim can produce a suggestion payload without stubs."""
-
     match kind:
         case DiscoveryClaimKind.METADATA:
             return False
@@ -67,7 +79,6 @@ def all_emit_claims_resolvable(
     claims: list[tuple[DiscoveryClaimKind, dict[str, object]]],
 ) -> bool:
     """Return whether every emit-eligible claim is resolvable."""
-
     emit_claims = [
         (kind, payload)
         for kind, payload in claims

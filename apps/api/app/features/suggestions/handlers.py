@@ -1,18 +1,21 @@
-"""Per-kind suggestion behaviour: validation, URL derivation, and duplicate lookup."""
+"""Per-kind suggestion behaviour: validation, URL derivation, duplicate lookup, and promotion."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, NamedTuple, Protocol
+from typing import ClassVar, Generic, Literal, NamedTuple, Protocol, TypeVar
 from uuid import UUID
 
-from app.features.documents.service import DocumentService
+from app.features.documents.promotion import PromotionPort
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.slugs import pick_title, slugify
 from app.features.taxonomy.service import TaxonomyCodeError, TaxonomyService
 from app.models.suggestion import Suggestion, SuggestionKind
 from app.schema.suggestion.payload import NewDocumentPayload, NewRequirementPayload
 from app.url_normalization import normalize_url
+
+SuggestionPayload = NewDocumentPayload | NewRequirementPayload
+PayloadT = TypeVar("PayloadT", bound=NewDocumentPayload | NewRequirementPayload)
 
 
 class UnknownTaxonomyCodeError(ValueError):
@@ -31,6 +34,10 @@ class PromotionConflictError(ValueError):
     """Raised when a competing suggestion won the race to promote onto the same slug or URL."""
 
 
+class PayloadKindMismatchError(ValueError):
+    """Raised when a payload reaches the handler of a different kind than its own."""
+
+
 @dataclass(frozen=True)
 class Conflict:
     """A catalogue entity that already matches an incoming suggestion (D4)."""
@@ -39,20 +46,87 @@ class Conflict:
     id: UUID
 
 
-class KindHandler(Protocol):
-    """Per-kind behaviour a `SuggestionService` dispatches to."""
+@dataclass(frozen=True)
+class HandlerDeps:
+    """What the per-kind handlers read from the rest of the app; each handler takes what it needs."""
 
-    def __init__(
-        self, documents: DocumentService, taxonomy: TaxonomyService, suggestions: SuggestionRepository
-    ) -> None: ...
+    documents: PromotionPort
+    taxonomy: TaxonomyService
+    suggestions: SuggestionRepository
 
-    def validate(self, payload: Any, *, jurisdiction_id: UUID) -> None: ...
 
-    def normalized_url(self, payload: Any) -> str | None: ...
+class KindHandler(Protocol[PayloadT]):
+    """Per-kind behaviour for one payload type; `KindDispatch` adapts it to the payload union."""
 
-    def conflicts(self, payload: Any, *, jurisdiction_id: UUID) -> list[Conflict]: ...
+    @property
+    def payload_type(self) -> type[PayloadT]:
+        """The payload class this handler accepts."""
+        ...
 
-    def promote(self, suggestion: Suggestion) -> UUID: ...
+    def validate(self, payload: PayloadT, *, jurisdiction_id: UUID) -> None:
+        """Raise when the payload does not fit the jurisdiction or the catalogue."""
+        ...
+
+    def normalized_url(self, payload: PayloadT) -> str | None:
+        """Return the normalized URL the suggestion is deduplicated on, if it has one."""
+        ...
+
+    def conflicts(self, payload: PayloadT, *, jurisdiction_id: UUID) -> list[Conflict]:
+        """Catalogue entities and pending suggestions this payload would duplicate."""
+        ...
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        """Create the catalogue entity for an approved suggestion and return its id."""
+        ...
+
+
+class Dispatch(Protocol):
+    """Per-kind behaviour over the whole payload union, as `SuggestionService` sees it."""
+
+    def validate(self, payload: SuggestionPayload, *, jurisdiction_id: UUID) -> None:
+        """Raise when the payload does not fit the jurisdiction or the catalogue."""
+        ...
+
+    def normalized_url(self, payload: SuggestionPayload) -> str | None:
+        """Return the normalized URL the suggestion is deduplicated on, if it has one."""
+        ...
+
+    def conflicts(self, payload: SuggestionPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
+        """Catalogue entities and pending suggestions this payload would duplicate."""
+        ...
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        """Create the catalogue entity for an approved suggestion and return its id."""
+        ...
+
+
+class KindDispatch(Generic[PayloadT]):
+    """The one place the payload union is narrowed: check the kind once, then forward to the handler."""
+
+    def __init__(self, handler: KindHandler[PayloadT]) -> None:
+        """Wrap one typed handler; the dispatch narrows incoming payloads to its payload type."""
+        self._handler = handler
+
+    def validate(self, payload: SuggestionPayload, *, jurisdiction_id: UUID) -> None:
+        """Narrow the payload and validate it."""
+        self._handler.validate(self._narrow(payload), jurisdiction_id=jurisdiction_id)
+
+    def normalized_url(self, payload: SuggestionPayload) -> str | None:
+        """Narrow the payload and derive its normalized URL."""
+        return self._handler.normalized_url(self._narrow(payload))
+
+    def conflicts(self, payload: SuggestionPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
+        """Narrow the payload and look up its duplicates."""
+        return self._handler.conflicts(self._narrow(payload), jurisdiction_id=jurisdiction_id)
+
+    def promote(self, suggestion: Suggestion) -> UUID:
+        """Promote the stored suggestion; its payload is re-read by the handler."""
+        return self._handler.promote(suggestion)
+
+    def _narrow(self, payload: SuggestionPayload) -> PayloadT:
+        if not isinstance(payload, self._handler.payload_type):
+            raise PayloadKindMismatchError(f"payload {type(payload).__name__} does not match this kind")
+        return payload
 
 
 class DocumentIdentity(NamedTuple):
@@ -70,14 +144,16 @@ def _document_identity(payload: NewDocumentPayload) -> DocumentIdentity:
 class NewDocumentHandler:
     """Behaviour for `new_document` suggestions (chapters 3-4)."""
 
-    def __init__(
-        self, documents: DocumentService, taxonomy: TaxonomyService, suggestions: SuggestionRepository
-    ) -> None:
-        self._documents = documents
-        self._taxonomy = taxonomy
-        self._suggestions = suggestions
+    payload_type: ClassVar[type[NewDocumentPayload]] = NewDocumentPayload
+
+    def __init__(self, deps: HandlerDeps) -> None:
+        """Bind the document port, taxonomy service and suggestion repository from the shared deps."""
+        self._documents = deps.documents
+        self._taxonomy = deps.taxonomy
+        self._suggestions = deps.suggestions
 
     def validate(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID) -> None:
+        """Check that every domain and situation code exists; the jurisdiction is not used here."""
         try:
             self._taxonomy.resolve_domain_ids(payload.domain_codes)
             self._taxonomy.resolve_situation_ids(payload.situation_codes)
@@ -85,19 +161,22 @@ class NewDocumentHandler:
             raise UnknownTaxonomyCodeError(str(exc)) from exc
 
     def normalized_url(self, payload: NewDocumentPayload) -> str | None:
+        """Return the normalized official URL, if the payload has one."""
         return _document_identity(payload).normalized_url
 
     def conflicts(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
+        """Documents sharing the slug or URL, and pending suggestions sharing the URL."""
         identity = _document_identity(payload)
         document_ids = self._conflicting_documents(identity, jurisdiction_id)
         pending_ids = self._pending_with_url(jurisdiction_id, identity.normalized_url)
         return [Conflict("document", i) for i in document_ids] + [Conflict("suggestion", i) for i in pending_ids]
 
     def promote(self, suggestion: Suggestion) -> UUID:
+        """Create the document unless its slug or URL was taken since the suggestion was filed."""
         payload = NewDocumentPayload.model_validate(suggestion.payload)
         identity = _document_identity(payload)
         self._check_still_free(identity, jurisdiction_id=suggestion.jurisdiction_id)
-        document = self._documents.create_from_suggestion(payload, suggestion.jurisdiction_id, identity.slug)
+        document = self._documents.create_document(payload, suggestion.jurisdiction_id, identity.slug)
         return document.id
 
     def _check_still_free(self, identity: DocumentIdentity, *, jurisdiction_id: UUID) -> None:
@@ -118,13 +197,15 @@ class NewDocumentHandler:
 class NewRequirementHandler:
     """Behaviour for `new_requirement` suggestions (chapter 8)."""
 
-    def __init__(
-        self, documents: DocumentService, taxonomy: TaxonomyService, suggestions: SuggestionRepository
-    ) -> None:
-        self._documents = documents
-        self._suggestions = suggestions
+    payload_type: ClassVar[type[NewRequirementPayload]] = NewRequirementPayload
+
+    def __init__(self, deps: HandlerDeps) -> None:
+        """Bind the document port and suggestion repository; requirement edges need no taxonomy."""
+        self._documents = deps.documents
+        self._suggestions = deps.suggestions
 
     def validate(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
+        """Check both documents are in the jurisdiction and the edge does not close a cycle."""
         self._check_in_scope(payload.parent_document_id, jurisdiction_id)
         self._check_in_scope(payload.required_document_id, jurisdiction_id)
         if self._documents.requires_directly(payload.required_document_id, payload.parent_document_id):
@@ -135,14 +216,16 @@ class NewRequirementHandler:
             raise UnknownDocumentError(f"document {document_id} is not in this jurisdiction")
 
     def _in_scope(self, document_id: UUID, jurisdiction_id: UUID) -> bool:
-        return self._documents.get_document_jurisdiction(document_id) == jurisdiction_id
+        return self._documents.jurisdiction_of_document(document_id) == jurisdiction_id
 
     def normalized_url(self, payload: NewRequirementPayload) -> str | None:
+        """Return None: requirement edges have no URL to deduplicate on."""
         return None
 
     def conflicts(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> list[Conflict]:
+        """List the existing requirement for this edge and the pending suggestions proposing it."""
         conflicts: list[Conflict] = []
-        existing = self._documents.requirement_exists(
+        existing = self._documents.existing_requirement(
             jurisdiction_id=jurisdiction_id,
             parent_document_id=payload.parent_document_id,
             required_document_id=payload.required_document_id,
@@ -157,9 +240,10 @@ class NewRequirementHandler:
         return conflicts + [Conflict("suggestion", i) for i in pending_ids]
 
     def promote(self, suggestion: Suggestion) -> UUID:
+        """Create the requirement unless the edge became invalid since the suggestion was filed."""
         payload = NewRequirementPayload.model_validate(suggestion.payload)
         self._check_still_valid(payload, jurisdiction_id=suggestion.jurisdiction_id)
-        requirement = self._documents.create_requirement_from_suggestion(
+        requirement = self._documents.create_requirement(
             payload.parent_document_id, payload.required_document_id, suggestion.jurisdiction_id, payload.notes_i18n
         )
         return requirement.id
@@ -179,7 +263,7 @@ class NewRequirementHandler:
             raise PromotionConflictError("promoting this edge would create a direct cycle")
 
     def _check_no_duplicate_edge(self, payload: NewRequirementPayload, *, jurisdiction_id: UUID) -> None:
-        existing = self._documents.requirement_exists(
+        existing = self._documents.existing_requirement(
             jurisdiction_id=jurisdiction_id,
             parent_document_id=payload.parent_document_id,
             required_document_id=payload.required_document_id,
@@ -188,7 +272,15 @@ class NewRequirementHandler:
             raise PromotionConflictError(f"requirement edge {existing} already exists")
 
 
-KIND_HANDLERS: dict[SuggestionKind, type[KindHandler]] = {
+KIND_HANDLERS: dict[SuggestionKind, type[NewDocumentHandler] | type[NewRequirementHandler]] = {
     SuggestionKind.NEW_DOCUMENT: NewDocumentHandler,
     SuggestionKind.NEW_REQUIREMENT: NewRequirementHandler,
 }
+
+
+def build_dispatch(deps: HandlerDeps) -> dict[SuggestionKind, Dispatch]:
+    """One dispatch per kind. Wired by hand: each kind keeps its own payload type, which a loop over `KIND_HANDLERS` would erase."""
+    return {
+        SuggestionKind.NEW_DOCUMENT: KindDispatch(NewDocumentHandler(deps)),
+        SuggestionKind.NEW_REQUIREMENT: KindDispatch(NewRequirementHandler(deps)),
+    }

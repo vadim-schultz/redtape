@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import httpx
+from contextlib import ExitStack
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.config import IngestSettings
-from discovery_ingest.extract.llm.cloudflare import CloudflareAiClient
 from discovery_ingest.extract.llm.meter import RESOURCE
 from discovery_ingest.extract.llm.prices import known_models
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.operations.models import build_model_client
 from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.policy import DrainPolicy
@@ -19,7 +18,6 @@ from discovery_ingest.worker.storage_guard import storage_problem
 
 EXIT_MISSING_SETTINGS = 2
 EXIT_NOT_READY = 1
-MIN_INTERVAL_SECONDS = 1.0
 
 
 class LlmSetupError(Exception):
@@ -50,41 +48,42 @@ def _check_settings(settings: IngestSettings) -> str:
     return settings.llm_model
 
 
-def _check_ledger(client: DiscoveryMachineClient) -> None:
-    if BudgetGuard(client).remaining(RESOURCE).ledger_unavailable:
+def _check_ledger(client: DiscoveryIngestClient) -> None:
+    if BudgetGuard(client.budget).remaining(RESOURCE).ledger_unavailable:
         raise LlmSetupError(
             "cannot read the neuron budget ledger (GET /machine/budgets); llm_extract will not spend without it",
             EXIT_NOT_READY,
         )
 
 
-def _check_storage(client: DiscoveryMachineClient) -> None:
+def _check_storage(client: DiscoveryIngestClient) -> None:
     problem = storage_problem(client, "an extraction has no snapshots to read")
     if problem is not None:
         raise LlmSetupError(problem, EXIT_NOT_READY)
 
 
-def _taxonomy(client: DiscoveryMachineClient) -> Taxonomy:
+def _taxonomy(client: DiscoveryIngestClient) -> Taxonomy:
     try:
-        return client.get_taxonomy()
+        return client.candidates.taxonomy()
     except DiscoveryMachineApiError as err:
         raise LlmSetupError(f"cannot read the taxonomy (GET /machine/taxonomy): {err}", EXIT_NOT_READY) from err
 
 
-def prepare_llm(settings: IngestSettings, client: DiscoveryMachineClient) -> LlmResources:
-    """Return the model resources, or raise :class:`LlmSetupError` when ``llm_extract`` cannot be drained."""
+def prepare_llm(settings: IngestSettings, client: DiscoveryIngestClient, stack: ExitStack) -> LlmResources:
+    """Return the model resources, or raise :class:`LlmSetupError` when ``llm_extract`` cannot be drained.
+
+    The model's HTTP client is entered into ``stack``, so its owner closes it on every exit path.
+    """
     model = _check_settings(settings)
     _check_ledger(client)
     _check_storage(client)
     taxonomy = _taxonomy(client)
-    model_client = CloudflareAiClient(
-        settings, model=model, http=httpx.Client(trust_env=True), throttle=Throttle(MIN_INTERVAL_SECONDS)
-    )
+    model_client = build_model_client(settings, model, stack)
     return LlmResources(model_client, taxonomy, model, settings.llm_max_tokens, settings.llm_input_chars)
 
 
 def prepare_llm_enqueue(
-    settings: IngestSettings, client: DiscoveryMachineClient, policy: DrainPolicy
+    settings: IngestSettings, client: DiscoveryIngestClient, policy: DrainPolicy
 ) -> LlmEnqueuer | None:
     """Return the ``llm_extract`` enqueue hook, or ``None`` when ``LLM_ENQUEUE`` is off or no page is rendered.
 

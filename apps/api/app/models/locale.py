@@ -1,3 +1,5 @@
+"""ORM models for supported locales and UI translations."""
+
 from __future__ import annotations
 
 from datetime import datetime

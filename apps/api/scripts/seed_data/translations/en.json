@@ -154,6 +154,19 @@
     "auth_unconfigured_body": "Configure Supabase before trying again.",
     "disabled_title": "Discovery admin is disabled",
     "disabled_body": "Discovery administration is not configured on this deployment. Check the deployment configuration, then try again.",
+    "values": {
+      "source_govdata": "GovData",
+      "source_pvog": "Portalverbund",
+      "source_fim": "FIM",
+      "source_leika": "LeiKa",
+      "source_manual": "Manual",
+      "task_status_pending": "Pending",
+      "task_status_claimed": "Claimed",
+      "task_status_completed": "Completed",
+      "task_status_failed": "Failed",
+      "candidate_status_staged": "Staged",
+      "candidate_status_emitted": "Emitted"
+    },
     "tasks": {
       "filter_status": "Task status",
       "filter_source": "Task source",

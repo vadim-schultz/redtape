@@ -1,0 +1,6 @@
+usage: discovery_ingest artifacts download [-h] --id ID --out OUT
+
+options:
+  -h, --help  show this help message and exit
+  --id ID     Artifact id from `artifacts list`
+  --out OUT   File to write; parent directories are created

@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
 
 import httpx
 
 from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.extract.llm.classify import error_for
-from discovery_ingest.extract.llm.client import LlmResult
+from discovery_ingest.extract.llm.client import ChatMessage, LlmResult
 from discovery_ingest.extract.llm.endpoints import endpoint_url
 from discovery_ingest.extract.llm.envelope import read_result
 from discovery_ingest.extract.llm.errors import LlmRequestError
-from discovery_ingest.extract.llm.payloads import run_body
+from discovery_ingest.extract.llm.payloads import Body, run_body
 from discovery_ingest.extract.llm.schema_prep import prepare_schema
+from discovery_ingest.json_types import JsonSchema
 from discovery_ingest.llm_settings import LlmSettings
 
 DEFAULT_MIN_INTERVAL_SECONDS = 1.0
@@ -41,7 +41,7 @@ class CloudflareAiClient:
         self._http = http or httpx.Client(trust_env=True)
         self._throttle = throttle or Throttle(DEFAULT_MIN_INTERVAL_SECONDS)
 
-    def extract(self, messages: Sequence[dict[str, str]], json_schema: dict[str, Any], *, max_tokens: int) -> LlmResult:
+    def extract(self, messages: Sequence[ChatMessage], json_schema: JsonSchema, *, max_tokens: int) -> LlmResult:
         """Return the model's JSON answer and usage, or raise the :class:`LlmError` the response stands for."""
         body = run_body(messages, prepare_schema(json_schema), max_tokens)
         response = self._post(body)
@@ -49,7 +49,7 @@ class CloudflareAiClient:
             raise error_for(response, self._scrub)
         return read_result(response, self._model)
 
-    def _post(self, body: dict[str, Any]) -> httpx.Response:
+    def _post(self, body: Body) -> httpx.Response:
         with self._throttle:
             try:
                 return self._http.post(

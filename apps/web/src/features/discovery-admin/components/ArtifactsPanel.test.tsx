@@ -26,6 +26,8 @@ function artifact(overrides: Partial<DiscoveryArtifact>): DiscoveryArtifact {
     final_url: "https://www.example.gov/service?x=1",
     fetched_at: "2026-10-26T12:00:00Z",
     created_at: "2026-10-26T12:00:00Z",
+    storage_key: "artifacts/cat-1/art-1.png",
+    sha256: "3f1a",
     url: "https://store.example/shot.png?sig=abc",
     ...overrides,
   };

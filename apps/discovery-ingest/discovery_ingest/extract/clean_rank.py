@@ -43,7 +43,7 @@ def _lacks_sentence(line: str, text: str) -> bool:
 
 
 def _is_bare(line: str) -> bool:
-    """A line without sentence text: a heading, a bullet that is no sentence, or a label of fewer than four words.
+    """Return whether a line is bare: a heading, a bullet that is no sentence, or a label of fewer than four words.
 
     A line that carries a file size (``(PDF, 105 KB``) names a document to download, so it is content.
     """

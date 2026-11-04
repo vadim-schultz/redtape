@@ -63,6 +63,7 @@ class SuggestionRead(BaseModel):
 
     @classmethod
     def from_row(cls, suggestion: Suggestion, *, submitter_display_name: str | None) -> SuggestionRead:
+        """Build the read model from a suggestion row; the submitter shows only its kind and display name (D7)."""
         submitted_by = SubmitterRead(
             kind=_SUBMITTER_KIND[suggestion.source_type], display_name=submitter_display_name or None
         )

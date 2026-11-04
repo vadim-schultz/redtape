@@ -1,3 +1,5 @@
+"""Route guards that enforce a minimum role or a machine credential."""
+
 from __future__ import annotations
 
 from litestar.connection import ASGIConnection
@@ -26,7 +28,6 @@ def require_role(min_role: UserRole) -> Guard:
 
 def require_machine(connection: ASGIConnection, _: BaseRouteHandler) -> None:
     """Guard: only lets machine (X-API-Key) callers through; a logged-in human has the wrong kind of credential."""
-
     if connection.headers.get("X-API-Key") is None and connection.headers.get("Authorization") is not None:
         raise PermissionDeniedException("Machine credentials required")
     verify_guard_machine(connection)

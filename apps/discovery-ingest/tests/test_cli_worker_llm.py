@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 from discovery_ingest.budget import BudgetGuard
-from discovery_ingest.cli import _build_parser, _drain_policy, main
+from discovery_ingest.cli import main
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 from discovery_ingest.worker.handler_table import handler_table
@@ -15,6 +16,8 @@ from discovery_ingest.worker.llm_drain import open_llm_drain
 from discovery_ingest.worker.llm_extract import LlmExtractHandler, no_after_extract
 from discovery_ingest.worker.policy import DrainPolicy
 
+from cli_adapters import drain_options
+from drain_deps_for import deps_for
 from llm_transport import ACCOUNT_ID, TOKEN, failure, success
 from llm_worker_fakes import MODEL, SERVICE, LlmApi, ScriptedLlm, llm_task, resources
 
@@ -48,25 +51,25 @@ def _nothing_was_claimed(api: LlmApi) -> bool:
 def test_default_kinds_exclude_llm_extract_and_the_dispatch_table_contains_it(monkeypatch: pytest.MonkeyPatch) -> None:
     """kinds · a plain drain never claims llm_extract; a drain of the kind has a handler for it."""
     api = LlmApi([])
-    guard = BudgetGuard(api.client(monkeypatch))
+    guard = BudgetGuard(api.client(monkeypatch).budget)
     policy = DrainPolicy(kinds=("llm_extract",), neuron_budget=800)
     drain = open_llm_drain(policy, guard, resources(ScriptedLlm(SERVICE)), no_after_extract)
     assert drain is not None
 
-    table = handler_table((), (None, None, lambda task, artifact: None), drain)
+    table = handler_table(deps_for(None, None, extractors=()), (None, None, lambda task, artifact: None), drain)
 
     assert "llm_extract" not in WORKER_DEFAULT_TASK_KINDS
     assert isinstance(table["llm_extract"], LlmExtractHandler)
-    assert "llm_extract" not in handler_table((), (None, None, lambda task, artifact: None), None)
+    assert "llm_extract" not in handler_table(
+        deps_for(None, None, extractors=()), (None, None, lambda task, artifact: None), None
+    )
 
 
 def test_llm_drains_claim_small_batches_by_default_and_plain_drains_keep_fifty() -> None:
     """worker drain · --max-tasks defaults to 5 for llm_extract and 50 otherwise; an explicit value wins."""
-    parser = _build_parser()
-
-    assert _drain_policy(parser.parse_args(DRAIN)).max_tasks == 5
-    assert _drain_policy(parser.parse_args(["worker", "drain"])).max_tasks == 50
-    assert _drain_policy(parser.parse_args([*DRAIN, "--max-tasks", "2"])).max_tasks == 2
+    assert drain_options(DRAIN).policy().max_tasks == 5
+    assert drain_options(["worker", "drain"]).policy().max_tasks == 50
+    assert drain_options([*DRAIN, "--max-tasks", "2"]).policy().max_tasks == 2
 
 
 def test_a_drain_without_the_ai_token_or_the_model_or_a_known_price_fails_before_claiming(
@@ -160,9 +163,60 @@ def test_the_drain_neuron_budget_help_says_the_last_call_may_pass_the_budget(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """worker drain --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
-    with pytest.raises(SystemExit):
-        main(["worker", "drain", "--help"])
+    assert main(["worker", "drain", "--help"]) == 0
 
     help_text = " ".join(capsys.readouterr().out.split())
     assert "stops once the budget is reached" in help_text and "may pass it by its own cost" in help_text
     assert "would pass" not in help_text
+
+
+def _record_llm_http_clients(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Client]:
+    """Wrap the current (already mock-transported) httpx.Client factory to record every instance it builds."""
+    created: list[httpx.Client] = []
+    inner_factory = httpx.Client
+
+    def recording_factory(**kwargs: object) -> httpx.Client:
+        client = inner_factory(**kwargs)
+        created.append(client)
+        return client
+
+    monkeypatch.setattr("discovery_ingest.operations.models.httpx.Client", recording_factory)
+    return created
+
+
+def test_a_drain_closes_the_llm_http_client_on_success_and_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · every httpx.Client prepare_llm creates is closed, on the happy path and on a rejected token."""
+    _api(monkeypatch)
+    created = _record_llm_http_clients(monkeypatch)
+    assert main(DRAIN) == 0
+    assert created and all(client.is_closed for client in created)
+
+    api2 = _api(monkeypatch, tasks=2)
+    created = _record_llm_http_clients(monkeypatch)
+    api2.cloudflare = lambda request: failure(401, 10000, "Authentication error")
+    assert main(DRAIN) == 1
+    assert created and all(client.is_closed for client in created)
+
+
+def test_a_drain_closes_the_browser_client_when_llm_setup_refuses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """worker drain · a browser client opened before llm setup refuses is still closed."""
+    api = _api(monkeypatch)
+    api.storage_enabled = True
+    monkeypatch.setenv("CLOUDFLARE_BROWSER_API_TOKEN", ACCOUNT_ID + "-browser-tok")
+    monkeypatch.delenv("CLOUDFLARE_AI_API_TOKEN")
+
+    created: list[object] = []
+    from discovery_ingest.browser.client import CloudflareBrowserClient
+
+    real_init = CloudflareBrowserClient.__init__
+
+    def recording_init(self: CloudflareBrowserClient, *args: object, **kwargs: object) -> None:
+        real_init(self, *args, **kwargs)
+        created.append(self)
+
+    monkeypatch.setattr(CloudflareBrowserClient, "__init__", recording_init)
+
+    code = main(["worker", "drain", "--kinds", "render_page,llm_extract", "--neuron-budget", "800"])
+
+    assert code == 2
+    assert created and created[0]._http.is_closed  # type: ignore[attr-defined]

@@ -1,0 +1,6 @@
+usage: discovery_ingest candidates page [-h] --candidate-id CANDIDATE_ID [--out OUT]
+
+options:
+  -h, --help            show this help message and exit
+  --candidate-id CANDIDATE_ID
+  --out OUT             Directory for <catalogue_service_id>.txt files

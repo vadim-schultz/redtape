@@ -1,3 +1,5 @@
+"""ORM model for machine API keys; only a hash and a short prefix are stored."""
+
 from __future__ import annotations
 
 import uuid

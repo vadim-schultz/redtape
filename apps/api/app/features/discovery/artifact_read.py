@@ -7,13 +7,13 @@ from uuid import UUID
 
 from app.features.discovery.errors import ArtifactNotFoundError
 from app.features.discovery.lookups import require_artifact, require_candidate, require_catalogue
+from app.features.discovery.read_mappers import artifact_read
 from app.features.discovery.repository import ArtifactFilter, DiscoveryRepository, Page
 from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind
 from app.schema.discovery.artifacts import (
     AdminArtifactListResponse,
     AdminArtifactRead,
     ArtifactListResponse,
-    ArtifactRead,
     ArtifactStatusResponse,
 )
 from app.shared.object_store import ObjectNotFoundError, ObjectStore, ObjectStoreMeter, noop_meter
@@ -61,7 +61,7 @@ class ArtifactReadService:
     def list_artifacts(self, artifact_filter: ArtifactFilter, page: Page) -> ArtifactListResponse:
         """Return one page of artifact metadata matching ``artifact_filter``."""
         rows, total = self._page_of(artifact_filter, page)
-        items = [ArtifactRead.from_row(row) for row in rows]
+        items = [artifact_read(row) for row in rows]
         return ArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
 
     def list_for_catalogue(self, catalogue_id: UUID, page: Page) -> AdminArtifactListResponse:
@@ -100,7 +100,7 @@ class ArtifactReadService:
             self._presign_meter("class_b", urls)
 
     def _with_url(self, row: DiscoveryArtifact) -> AdminArtifactRead:
-        return AdminArtifactRead(**ArtifactRead.from_row(row).model_dump(), url=self._presign(row))
+        return AdminArtifactRead(**artifact_read(row).model_dump(), url=self._presign(row))
 
     def _presign(self, row: DiscoveryArtifact) -> str | None:
         if self._store is None:

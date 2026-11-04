@@ -101,10 +101,24 @@ DELETE FROM discovery_document_candidate c WHERE c.status = 'staged'
   AND NOT EXISTS (SELECT 1 FROM discovery_candidate_mention m WHERE m.candidate_id = c.id);
 ```
 
+## CLI notes
+
+The command line is a Typer app (`discovery_ingest/cli/`, one sub-app per command group). Command names, flags,
+defaults, exit codes and the stdout formats the workflows read are unchanged. What differs:
+
+- `--help` uses Typer's layout (`Usage:` and option panels); each option's wording is kept. Do not parse help text.
+- Invalid values print Typer's message on stderr (for example `Invalid value for '--jurisdiction-id': ...`); the exit code stays 2.
+- Long options must be spelled out: `--max-t` is no longer accepted for `--max-tasks` (exit 2).
+- A group run alone (for example `worker`) prints that group's help and exits 2; it used to print the top-level help.
+- When the API refuses `govdata run`, `pvog run`, `fim enrich` or `leika enrich`, stderr now starts with
+  `<label> command failed: ...` (exit 1, stdout unchanged).
+- Shell completion options (`--install-completion`, `--show-completion`) are not exposed.
+- `python -m discovery_ingest` remains the only entry point. The one new runtime dependency is `typer>=0.12`.
+
 ## Environment
 
 `DISCOVERY_API_URL` is the **API host root** — not the machine path. The client appends
-`/api/v1/discovery/machine/...` (see [`api_client.py`](discovery_ingest/api_client.py)).
+`/api/v1/discovery/machine/...` (see [`client/`](discovery_ingest/client/)).
 
 | Variable | Required | Example |
 | --- | --- | --- |

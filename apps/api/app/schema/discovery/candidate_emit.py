@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.schema.discovery.emit import EmitCounts, EmitOutcome
+from app.schema.discovery.emit import EmitCounts, EmitOutcome, SkipReason
 from app.schema.suggestion.create import SuggestionCreate
 
 MAX_EMIT_CANDIDATES = 50
@@ -44,5 +44,5 @@ class CandidateEmitPreview(BaseModel):
     candidate_id: UUID
     suggestion: SuggestionCreate | None = None
     suggestion_id: UUID | None = None
-    skip_reason: str | None = None
+    skip_reason: SkipReason | None = None
     conflicts: list[EmitConflictRead] = Field(default_factory=list)

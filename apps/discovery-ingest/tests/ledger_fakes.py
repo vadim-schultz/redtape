@@ -7,8 +7,9 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.client import DiscoveryIngestClient
+from pydantic import SecretStr
 
 _REAL_HTTPX_CLIENT = httpx.Client
 
@@ -69,5 +70,5 @@ def guard_for(monkeypatch: pytest.MonkeyPatch, ledger: FakeLedger) -> BudgetGuar
         kwargs["transport"] = httpx.MockTransport(ledger)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
-    return BudgetGuard(DiscoveryMachineClient("https://redtape.test", "test-machine-key"))
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
+    return BudgetGuard(DiscoveryIngestClient("https://redtape.test", SecretStr("test-machine-key")).budget)

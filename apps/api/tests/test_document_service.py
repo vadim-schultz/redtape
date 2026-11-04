@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentFilters, DocumentService
 from app.features.taxonomy.repository import TaxonomyRepository
@@ -32,14 +33,21 @@ def document_service(db_session: Session) -> DocumentService:
     return DocumentService(DocumentRepository(db_session), taxonomy)
 
 
+@pytest.fixture
+def document_promotion(db_session: Session) -> DocumentPromotion:
+    seed_taxonomy(db_session)
+    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
+    return DocumentPromotion(DocumentRepository(db_session), taxonomy)
+
+
 def _payload(**overrides: object) -> NewDocumentPayload:
     base: dict[str, object] = {"title_i18n": {"en": "Residency permit"}}
     base.update(overrides)
     return NewDocumentPayload.model_validate(base)
 
 
-def test_create_from_suggestion_persists_the_given_tag_confidence(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+def test_create_document_persists_the_given_tag_confidence(
+    document_promotion: DocumentPromotion, db_session: Session, jurisdiction: Jurisdiction
 ) -> None:
     payload = _payload(
         domain_codes=["housing"],
@@ -47,51 +55,51 @@ def test_create_from_suggestion_persists_the_given_tag_confidence(
         tag_confidence={"housing": 0.73, "moving-house": 0.42},
     )
 
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     confidence = DocumentRepository(db_session).get_tag_confidence(document.id)
     assert list(confidence.domains.values()) == [pytest.approx(0.73)]
     assert list(confidence.life_situations.values()) == [pytest.approx(0.42)]
 
 
-def test_create_from_suggestion_defaults_a_code_missing_from_tag_confidence_to_full_confidence(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+def test_create_document_defaults_a_code_missing_from_tag_confidence_to_full_confidence(
+    document_promotion: DocumentPromotion, db_session: Session, jurisdiction: Jurisdiction
 ) -> None:
     payload = _payload(
         domain_codes=["housing", "work-employment"],
         tag_confidence={"housing": 0.5},
     )
 
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     confidence = DocumentRepository(db_session).get_tag_confidence(document.id)
     assert sorted(confidence.domains.values()) == [pytest.approx(0.5), pytest.approx(1.0)]
 
 
-def test_create_from_suggestion_without_tag_confidence_at_all_defaults_every_code_to_full_confidence(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+def test_create_document_without_tag_confidence_at_all_defaults_every_code_to_full_confidence(
+    document_promotion: DocumentPromotion, db_session: Session, jurisdiction: Jurisdiction
 ) -> None:
     """A `NewDocumentPayload` authored without `tag_confidence` (e.g. a hand-written admin creation) is
     treated as fully confident — the same default the link tables' own `server_default` uses.
     """
     payload = _payload(domain_codes=["housing"], situation_codes=["moving-house"])
 
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     confidence = DocumentRepository(db_session).get_tag_confidence(document.id)
     assert list(confidence.domains.values()) == [pytest.approx(1.0)]
     assert list(confidence.life_situations.values()) == [pytest.approx(1.0)]
 
 
-def test_create_from_suggestion_persists_the_given_situation_leaf_codes(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+def test_create_document_persists_the_given_situation_leaf_codes(
+    document_promotion: DocumentPromotion, db_session: Session, jurisdiction: Jurisdiction
 ) -> None:
     payload = _payload(
         situation_codes=["moving-house"],
         situation_leaf_codes={"moving-house": "1050200"},
     )
 
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     row = db_session.execute(
         select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
@@ -99,12 +107,12 @@ def test_create_from_suggestion_persists_the_given_situation_leaf_codes(
     assert row == "1050200"
 
 
-def test_create_from_suggestion_without_situation_leaf_codes_leaves_the_column_null(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+def test_create_document_without_situation_leaf_codes_leaves_the_column_null(
+    document_promotion: DocumentPromotion, db_session: Session, jurisdiction: Jurisdiction
 ) -> None:
     payload = _payload(situation_codes=["moving-house"])
 
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     row = db_session.execute(
         select(document_life_situation.c.pvog_leaf_code).where(document_life_situation.c.document_id == document.id)
@@ -131,14 +139,17 @@ def test_available_leaf_codes_is_empty_when_two_or_more_situations_are_selected(
 
 
 def test_available_leaf_codes_returns_the_distinct_set_for_exactly_one_situation(
-    document_service: DocumentService, db_session: Session, jurisdiction: Jurisdiction
+    document_service: DocumentService,
+    document_promotion: DocumentPromotion,
+    db_session: Session,
+    jurisdiction: Jurisdiction,
 ) -> None:
     for leaf_code in ("1050200", "1050300", "1050200"):
         payload = _payload(
             situation_codes=["moving-house"],
             situation_leaf_codes={"moving-house": leaf_code},
         )
-        document_service.create_from_suggestion(payload, jurisdiction.id, f"doc-{leaf_code}-{uuid.uuid4().hex[:6]}")
+        document_promotion.create_document(payload, jurisdiction.id, f"doc-{leaf_code}-{uuid.uuid4().hex[:6]}")
 
     filters = DocumentFilters(jurisdiction_id=jurisdiction.id, situation_codes=["moving-house"])
     codes = document_service.available_leaf_codes(filters)
@@ -147,10 +158,10 @@ def test_available_leaf_codes_returns_the_distinct_set_for_exactly_one_situation
 
 
 def test_get_document_detail_reads_back_the_persisted_confidence(
-    document_service: DocumentService, jurisdiction: Jurisdiction
+    document_service: DocumentService, document_promotion: DocumentPromotion, jurisdiction: Jurisdiction
 ) -> None:
     payload = _payload(domain_codes=["housing"], tag_confidence={"housing": 0.73})
-    document = document_service.create_from_suggestion(payload, jurisdiction.id, "residency-permit")
+    document = document_promotion.create_document(payload, jurisdiction.id, "residency-permit")
 
     detail = document_service.get_document_detail(document_id=document.id, locale="en", enabled_locales={"en"})
 

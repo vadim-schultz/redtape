@@ -1,3 +1,5 @@
+"""Locale-resolved taxonomy reads, the matrix assembly, and the code-to-id resolution other features use."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
@@ -15,6 +17,7 @@ from app.schema.taxonomy.read import (
     VocabularyResponse,
     VocabularyTerm,
 )
+from app.shared.locale import ResolvedLocale
 
 
 class TaxonomyCodeError(ValueError):
@@ -25,32 +28,38 @@ class TaxonomyService:
     """Locale-resolved taxonomy reads and code → id resolution for other features."""
 
     def __init__(self, repository: TaxonomyRepository) -> None:
+        """Bind the service to its taxonomy repository."""
         self._repo = repository
 
-    def list_domains(self, *, locale: str, enabled_locales: set[str]) -> list[TermRead]:
-        return self._list(Domain, locale, enabled_locales)
+    def list_domains(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the domain terms in the requested locale."""
+        return self._list(Domain, locale)
 
-    def list_situations(self, *, locale: str, enabled_locales: set[str]) -> list[TermRead]:
-        return self._list(LifeSituation, locale, enabled_locales)
+    def list_situations(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the life-situation terms in the requested locale."""
+        return self._list(LifeSituation, locale)
 
-    def list_situation_groups(self, *, locale: str, enabled_locales: set[str]) -> list[TermRead]:
-        return self._list(LifeSituationGroup, locale, enabled_locales)
+    def list_situation_groups(self, *, locale: ResolvedLocale) -> list[TermRead]:
+        """List the life-situation group terms in the requested locale."""
+        return self._list(LifeSituationGroup, locale)
 
-    def list_situations_with_group(self, *, locale: str, enabled_locales: set[str]) -> list[LifeSituationGroupedRead]:
+    def list_situations_with_group(self, *, locale: ResolvedLocale) -> list[LifeSituationGroupedRead]:
         """Every situation, locale-resolved, carrying its group's stable ``code``."""
         rows = self._repo.list_situations_with_group()
         return [
             LifeSituationGroupedRead(
-                **self.to_term_read(situation, locale=locale, enabled_locales=enabled_locales).model_dump(),
+                **self.to_term_read(situation, locale=locale).model_dump(),
                 group_code=group_code,
             )
             for situation, group_code in rows
         ]
 
     def resolve_domain_ids(self, codes: Sequence[str]) -> list[UUID]:
+        """Map domain codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
         return self._resolve(Domain, codes)
 
     def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
+        """Map life-situation codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
         return self._resolve(LifeSituation, codes)
 
     def vocabulary(self) -> VocabularyResponse:
@@ -77,14 +86,12 @@ class TaxonomyService:
             domains=[AxisCount(code=c, count=n) for c, n in self._repo.domain_counts(document_ids)],
         )
 
-    def to_term_read(
-        self, term: Domain | LifeSituation | LifeSituationGroup, *, locale: str, enabled_locales: Iterable[str]
-    ) -> TermRead:
-        enabled = set(enabled_locales)
+    def to_term_read(self, term: Domain | LifeSituation | LifeSituationGroup, *, locale: ResolvedLocale) -> TermRead:
+        """Convert a taxonomy row into a term read resolved to the locale."""
         return TermRead(
             code=term.code,
-            name=pick_i18n(term.name_i18n, locale=locale, enabled=enabled),
-            description=pick_i18n(term.description_i18n, locale=locale, enabled=enabled),
+            name=pick_i18n(term.name_i18n, locale),
+            description=pick_i18n(term.description_i18n, locale),
             icon=term.icon,
         )
 
@@ -94,9 +101,9 @@ class TaxonomyService:
             for t in self._repo.list_terms(model)
         ]
 
-    def _list(self, model: TermModel, locale: str, enabled_locales: Iterable[str]) -> list[TermRead]:
+    def _list(self, model: TermModel, locale: ResolvedLocale) -> list[TermRead]:
         terms = self._repo.list_terms(model)
-        return [self.to_term_read(term, locale=locale, enabled_locales=enabled_locales) for term in terms]
+        return [self.to_term_read(term, locale=locale) for term in terms]
 
     def _resolve(self, model: TermModel, codes: Sequence[str]) -> list[UUID]:
         ids = self._repo.ids_for_codes(model, codes)

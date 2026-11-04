@@ -10,8 +10,9 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactUpload
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
+from pydantic import SecretStr
 
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -20,13 +21,13 @@ Handler = Callable[[httpx.Request], httpx.Response]
 FETCHED_AT = datetime(2026, 10, 27, 9, 30, tzinfo=UTC)
 
 
-def _client(monkeypatch: pytest.MonkeyPatch, handler: Handler) -> DiscoveryMachineClient:
+def _client(monkeypatch: pytest.MonkeyPatch, handler: Handler) -> DiscoveryIngestClient:
     def factory(**kwargs: Any) -> httpx.Client:
         kwargs["transport"] = httpx.MockTransport(handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
-    return DiscoveryMachineClient(API_BASE, "test-machine-key")
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
+    return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
 
 def _artifact_json() -> dict[str, object]:
@@ -67,8 +68,8 @@ def test_release_posts_the_reason_and_the_optional_not_before(monkeypatch: pytes
         return httpx.Response(200, json={"id": str(TASK_ID), "status": "pending", "last_error": "x"})
 
     client = _client(monkeypatch, handler)
-    client.release_task(TASK_ID, "browser_quota")
-    client.release_task(TASK_ID, "browser_quota", not_before=FETCHED_AT)
+    client.tasks.release(TASK_ID, "browser_quota")
+    client.tasks.release(TASK_ID, "browser_quota", not_before=FETCHED_AT)
 
     assert bodies == [{"reason": "browser_quota"}, {"reason": "browser_quota", "not_before": FETCHED_AT.isoformat()}]
 
@@ -78,7 +79,7 @@ def test_release_of_a_task_that_is_not_claimed_raises_the_api_error(monkeypatch:
     client = _client(monkeypatch, lambda request: httpx.Response(409, text="task is not claimed"))
 
     with pytest.raises(DiscoveryMachineApiError) as caught:
-        client.release_task(TASK_ID, "x")
+        client.tasks.release(TASK_ID, "x")
 
     assert caught.value.status_code == 409
 
@@ -92,8 +93,8 @@ def test_complete_sends_the_note_only_when_given(monkeypatch: pytest.MonkeyPatch
         return httpx.Response(200, json={"id": str(TASK_ID), "status": "completed"})
 
     client = _client(monkeypatch, handler)
-    client.complete_task(TASK_ID)
-    client.complete_task(TASK_ID, note="login_wall")
+    client.tasks.complete(TASK_ID)
+    client.tasks.complete(TASK_ID, note="login_wall")
 
     assert seen[0] == b"" and json.loads(seen[1]) == {"note": "login_wall"}
 
@@ -108,8 +109,8 @@ def test_upload_sends_a_multipart_form_and_reports_created_or_existing(monkeypat
         return httpx.Response(next(statuses), json=_artifact_json())
 
     client = _client(monkeypatch, handler)
-    created = client.upload_artifact(TASK_ID, _upload())
-    existing = client.upload_artifact(TASK_ID, _upload(final_url=None))
+    created = client.artifacts.upload(TASK_ID, _upload())
+    existing = client.artifacts.upload(TASK_ID, _upload(final_url=None))
 
     first = requests[0]
     assert first.url.path.endswith(f"/machine/tasks/{TASK_ID}/artifacts")
@@ -137,7 +138,7 @@ def test_upload_raises_the_api_error_for_a_storage_problem(
     client = _client(monkeypatch, lambda request: httpx.Response(status, text=detail))
 
     with pytest.raises(DiscoveryMachineApiError) as caught:
-        client.upload_artifact(TASK_ID, _upload())
+        client.artifacts.upload(TASK_ID, _upload())
 
     assert (caught.value.status_code, caught.value.is_database_limit) == (status, False)
 
@@ -147,7 +148,7 @@ def test_artifact_status_reads_the_storage_flag(monkeypatch: pytest.MonkeyPatch)
     body = {"storage_enabled": True, "bytes_used": 10, "bytes_cap": 100}
     client = _client(monkeypatch, lambda request: httpx.Response(200, json=body))
 
-    status = client.get_artifact_status()
+    status = client.artifacts.status()
 
     assert (status.storage_enabled, status.bytes_used, status.bytes_cap) == (True, 10, 100)
 
@@ -161,7 +162,7 @@ def test_get_artifact_content_returns_the_bytes_and_the_content_type(monkeypatch
         seen.append(request)
         return httpx.Response(200, content=b"<p>x</p>", headers={"content-type": "text/html; charset=utf-8"})
 
-    content = _client(monkeypatch, handler).get_artifact_content(artifact_id)
+    content = _client(monkeypatch, handler).artifacts.content(artifact_id)
 
     assert (content.data, content.content_type) == (b"<p>x</p>", "text/html; charset=utf-8")
     assert seen[0].url == httpx.URL(f"{API_BASE}/api/v1/discovery/machine/artifacts/{artifact_id}/content")
@@ -176,6 +177,6 @@ def test_get_artifact_content_raises_when_the_artifact_or_the_store_is_unavailab
     client = _client(monkeypatch, lambda request: httpx.Response(status, text="no"))
 
     with pytest.raises(DiscoveryMachineApiError) as error:
-        client.get_artifact_content(uuid.uuid4())
+        client.artifacts.content(uuid.uuid4())
 
     assert error.value.status_code == status

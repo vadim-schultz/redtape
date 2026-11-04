@@ -76,6 +76,7 @@ class FetchAbort(Exception):
     """A fetch that must stop with a failure outcome."""
 
     def __init__(self, message: str, failure: FetchFailure, *, http_status: int | None = None) -> None:
+        """Bind the message, the failure category and the optional HTTP status the outcome reports."""
         super().__init__(message)
         self.message = message
         self.failure = failure

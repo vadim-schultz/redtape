@@ -1,0 +1,3668 @@
+{
+ "enums": {
+  "BudgetResource": [
+   "r2_class_a",
+   "r2_class_b",
+   "browser_seconds",
+   "neurons",
+   "actions_minutes"
+  ],
+  "DiscoveryArtifactKind": [
+   "html_snapshot",
+   "screenshot"
+  ],
+  "DiscoveryClaimKind": [
+   "new_document",
+   "new_requirement",
+   "metadata"
+  ],
+  "DiscoveryEdgeBasis": [
+   "explicit",
+   "derived_single_issued"
+  ],
+  "DiscoveryMentionRole": [
+   "required",
+   "form",
+   "issued"
+  ],
+  "DiscoveryRunKind": [
+   "worker_drain"
+  ],
+  "DiscoverySource": [
+   "govdata",
+   "pvog",
+   "fim",
+   "leika",
+   "manual"
+  ],
+  "DiscoveryTaskKind": [
+   "fetch_url",
+   "enrich_metadata",
+   "harvest_payload",
+   "extract_page",
+   "capture_screenshot",
+   "render_page",
+   "llm_extract"
+  ],
+  "DiscoveryTaskStatus": [
+   "pending",
+   "claimed",
+   "completed",
+   "failed"
+  ],
+  "EdgeSkipReason": [
+   "blank_excerpt",
+   "same_endpoints",
+   "unknown_parent",
+   "unknown_required"
+  ],
+  "LEGACY_TASK_KINDS": [
+   "fetch_url",
+   "enrich_metadata"
+  ],
+  "StopReason": [
+   "queue_empty",
+   "batch_limit",
+   "time_budget",
+   "error",
+   "browser_budget",
+   "browser_quota",
+   "storage_unavailable",
+   "db_limit",
+   "llm_budget",
+   "llm_quota"
+  ]
+ },
+ "forms": {
+  "ArtifactUploadForm": [
+   "file",
+   "kind",
+   "source_url",
+   "final_url",
+   "fetched_at"
+  ]
+ },
+ "generated_by": "python -m scripts.export_machine_contract",
+ "models": {
+  "artifacts.ArtifactListResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ArtifactRead": {
+      "description": "Artifact metadata; the bytes stay in the object store.",
+      "properties": {
+       "byte_size": {
+        "title": "Byte Size",
+        "type": "integer"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "content_type": {
+        "title": "Content Type",
+        "type": "string"
+       },
+       "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+       },
+       "discovery_task_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Discovery Task Id"
+       },
+       "fetched_at": {
+        "format": "date-time",
+        "title": "Fetched At",
+        "type": "string"
+       },
+       "final_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Final Url"
+       },
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "kind": {
+        "$ref": "#/$defs/DiscoveryArtifactKind"
+       },
+       "sha256": {
+        "title": "Sha256",
+        "type": "string"
+       },
+       "source_url": {
+        "title": "Source Url",
+        "type": "string"
+       },
+       "storage_key": {
+        "title": "Storage Key",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "catalogue_service_id",
+       "discovery_task_id",
+       "kind",
+       "storage_key",
+       "sha256",
+       "content_type",
+       "byte_size",
+       "source_url",
+       "final_url",
+       "fetched_at",
+       "created_at"
+      ],
+      "title": "ArtifactRead",
+      "type": "object"
+     },
+     "DiscoveryArtifactKind": {
+      "description": "What an object-store artifact holds.",
+      "enum": [
+       "html_snapshot",
+       "screenshot"
+      ],
+      "title": "DiscoveryArtifactKind",
+      "type": "string"
+     }
+    },
+    "description": "One page of artifact metadata.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ArtifactRead"
+      },
+      "title": "Items",
+      "type": "array"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "integer"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "items",
+     "limit",
+     "offset",
+     "total"
+    ],
+    "title": "ArtifactListResponse",
+    "type": "object"
+   }
+  },
+  "artifacts.ArtifactRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoveryArtifactKind": {
+      "description": "What an object-store artifact holds.",
+      "enum": [
+       "html_snapshot",
+       "screenshot"
+      ],
+      "title": "DiscoveryArtifactKind",
+      "type": "string"
+     }
+    },
+    "description": "Artifact metadata; the bytes stay in the object store.",
+    "properties": {
+     "byte_size": {
+      "title": "Byte Size",
+      "type": "integer"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "content_type": {
+      "title": "Content Type",
+      "type": "string"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "discovery_task_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discovery Task Id"
+     },
+     "fetched_at": {
+      "format": "date-time",
+      "title": "Fetched At",
+      "type": "string"
+     },
+     "final_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Final Url"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryArtifactKind"
+     },
+     "sha256": {
+      "title": "Sha256",
+      "type": "string"
+     },
+     "source_url": {
+      "title": "Source Url",
+      "type": "string"
+     },
+     "storage_key": {
+      "title": "Storage Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "byte_size",
+     "catalogue_service_id",
+     "content_type",
+     "created_at",
+     "discovery_task_id",
+     "fetched_at",
+     "final_url",
+     "id",
+     "kind",
+     "sha256",
+     "source_url",
+     "storage_key"
+    ],
+    "title": "ArtifactRead",
+    "type": "object"
+   }
+  },
+  "artifacts.ArtifactStatusResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Whether an upload would be accepted right now, with the byte accounting behind the answer.",
+    "properties": {
+     "bytes_cap": {
+      "title": "Bytes Cap",
+      "type": "integer"
+     },
+     "bytes_used": {
+      "title": "Bytes Used",
+      "type": "integer"
+     },
+     "storage_enabled": {
+      "title": "Storage Enabled",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "bytes_cap",
+     "bytes_used",
+     "storage_enabled"
+    ],
+    "title": "ArtifactStatusResponse",
+    "type": "object"
+   }
+  },
+  "budgets.BudgetAdjustRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "A signed correction once the real cost is known.",
+    "properties": {
+     "delta": {
+      "anyOf": [
+       {
+        "maximum": 1000000000.0,
+        "minimum": -1000000000.0,
+        "type": "number"
+       },
+       {
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+        "type": "string"
+       }
+      ],
+      "title": "Delta"
+     }
+    },
+    "required": [
+     "delta"
+    ],
+    "title": "BudgetAdjustRequest",
+    "type": "object"
+   }
+  },
+  "budgets.BudgetListResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "BudgetRead": {
+      "description": "One resource in its current period.",
+      "properties": {
+       "cap": {
+        "title": "Cap",
+        "type": "integer"
+       },
+       "exhausted": {
+        "title": "Exhausted",
+        "type": "boolean"
+       },
+       "period": {
+        "title": "Period",
+        "type": "string"
+       },
+       "remaining": {
+        "title": "Remaining",
+        "type": "number"
+       },
+       "resource": {
+        "title": "Resource",
+        "type": "string"
+       },
+       "used": {
+        "title": "Used",
+        "type": "number"
+       }
+      },
+      "required": [
+       "resource",
+       "period",
+       "cap",
+       "used",
+       "remaining",
+       "exhausted"
+      ],
+      "title": "BudgetRead",
+      "type": "object"
+     }
+    },
+    "description": "Every resource in its current period.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/BudgetRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "BudgetListResponse",
+    "type": "object"
+   }
+  },
+  "budgets.BudgetRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One resource in its current period.",
+    "properties": {
+     "cap": {
+      "title": "Cap",
+      "type": "integer"
+     },
+     "exhausted": {
+      "title": "Exhausted",
+      "type": "boolean"
+     },
+     "period": {
+      "title": "Period",
+      "type": "string"
+     },
+     "remaining": {
+      "title": "Remaining",
+      "type": "number"
+     },
+     "resource": {
+      "title": "Resource",
+      "type": "string"
+     },
+     "used": {
+      "title": "Used",
+      "type": "number"
+     }
+    },
+    "required": [
+     "cap",
+     "exhausted",
+     "period",
+     "remaining",
+     "resource",
+     "used"
+    ],
+    "title": "BudgetRead",
+    "type": "object"
+   }
+  },
+  "budgets.BudgetReserveRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Capacity a worker wants to spend.",
+    "properties": {
+     "amount": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "maximum": 1000000000.0,
+        "type": "number"
+       },
+       {
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+        "type": "string"
+       }
+      ],
+      "title": "Amount"
+     }
+    },
+    "required": [
+     "amount"
+    ],
+    "title": "BudgetReserveRequest",
+    "type": "object"
+   }
+  },
+  "budgets.BudgetReserveResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Whether the reservation was granted and what is left of the period.",
+    "properties": {
+     "granted": {
+      "title": "Granted",
+      "type": "boolean"
+     },
+     "remaining": {
+      "title": "Remaining",
+      "type": "number"
+     }
+    },
+    "required": [
+     "granted",
+     "remaining"
+    ],
+    "title": "BudgetReserveResponse",
+    "type": "object"
+   }
+  },
+  "candidate_edges.CandidateEdgeItem": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryEdgeBasis": {
+      "description": "How a staged requirement edge was found.",
+      "enum": [
+       "explicit",
+       "derived_single_issued"
+      ],
+      "title": "DiscoveryEdgeBasis",
+      "type": "string"
+     }
+    },
+    "description": "One ``parent requires required`` edge stated by a procedure.",
+    "properties": {
+     "basis": {
+      "$ref": "#/$defs/DiscoveryEdgeBasis"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "condition": {
+      "anyOf": [
+       {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Condition"
+     },
+     "excerpt": {
+      "title": "Excerpt",
+      "type": "string"
+     },
+     "extractor": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Extractor",
+      "type": "string"
+     },
+     "extractor_version": {
+      "maxLength": 32,
+      "minLength": 1,
+      "title": "Extractor Version",
+      "type": "string"
+     },
+     "is_optional": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Is Optional"
+     },
+     "parent_title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Parent Title I18N",
+      "type": "object"
+     },
+     "required_title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Required Title I18N",
+      "type": "object"
+     }
+    },
+    "required": [
+     "catalogue_service_id",
+     "parent_title_i18n",
+     "required_title_i18n",
+     "basis",
+     "excerpt",
+     "extractor",
+     "extractor_version"
+    ],
+    "title": "CandidateEdgeItem",
+    "type": "object"
+   }
+  },
+  "candidate_edges.CandidateEdgesRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "CandidateEdgeItem": {
+      "description": "One ``parent requires required`` edge stated by a procedure.",
+      "properties": {
+       "basis": {
+        "$ref": "#/$defs/DiscoveryEdgeBasis"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "condition": {
+        "anyOf": [
+         {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Condition"
+       },
+       "excerpt": {
+        "title": "Excerpt",
+        "type": "string"
+       },
+       "extractor": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Extractor",
+        "type": "string"
+       },
+       "extractor_version": {
+        "maxLength": 32,
+        "minLength": 1,
+        "title": "Extractor Version",
+        "type": "string"
+       },
+       "is_optional": {
+        "anyOf": [
+         {
+          "type": "boolean"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Is Optional"
+       },
+       "parent_title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "minProperties": 1,
+        "title": "Parent Title I18N",
+        "type": "object"
+       },
+       "required_title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "minProperties": 1,
+        "title": "Required Title I18N",
+        "type": "object"
+       }
+      },
+      "required": [
+       "catalogue_service_id",
+       "parent_title_i18n",
+       "required_title_i18n",
+       "basis",
+       "excerpt",
+       "extractor",
+       "extractor_version"
+      ],
+      "title": "CandidateEdgeItem",
+      "type": "object"
+     },
+     "DiscoveryEdgeBasis": {
+      "description": "How a staged requirement edge was found.",
+      "enum": [
+       "explicit",
+       "derived_single_issued"
+      ],
+      "title": "DiscoveryEdgeBasis",
+      "type": "string"
+     }
+    },
+    "description": "Batch of edges; each item is settled on its own.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CandidateEdgeItem"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "CandidateEdgesRequest",
+    "type": "object"
+   }
+  },
+  "candidate_edges.CandidateEdgesResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "EdgeSkip": {
+      "description": "Why the item at ``index`` was not recorded.",
+      "properties": {
+       "index": {
+        "title": "Index",
+        "type": "integer"
+       },
+       "reason": {
+        "enum": [
+         "blank_excerpt",
+         "same_endpoints",
+         "unknown_parent",
+         "unknown_required"
+        ],
+        "title": "Reason",
+        "type": "string"
+       }
+      },
+      "required": [
+       "index",
+       "reason"
+      ],
+      "title": "EdgeSkip",
+      "type": "object"
+     }
+    },
+    "description": "What an edge batch created, updated or skipped.",
+    "properties": {
+     "edges_created": {
+      "title": "Edges Created",
+      "type": "integer"
+     },
+     "edges_skipped": {
+      "title": "Edges Skipped",
+      "type": "integer"
+     },
+     "edges_updated": {
+      "title": "Edges Updated",
+      "type": "integer"
+     },
+     "skipped": {
+      "items": {
+       "$ref": "#/$defs/EdgeSkip"
+      },
+      "title": "Skipped",
+      "type": "array"
+     }
+    },
+    "required": [
+     "edges_created",
+     "edges_skipped",
+     "edges_updated",
+     "skipped"
+    ],
+    "title": "CandidateEdgesResponse",
+    "type": "object"
+   }
+  },
+  "candidate_edges.EdgeSkip": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Why the item at ``index`` was not recorded.",
+    "properties": {
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "reason": {
+      "enum": [
+       "blank_excerpt",
+       "same_endpoints",
+       "unknown_parent",
+       "unknown_required"
+      ],
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "index",
+     "reason"
+    ],
+    "title": "EdgeSkip",
+    "type": "object"
+   }
+  },
+  "candidate_emit.CandidateEmitItemResult": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "EmitConflictRead": {
+      "description": "A catalogue entity or pending suggestion that a candidate would duplicate.",
+      "properties": {
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "type": {
+        "title": "Type",
+        "type": "string"
+       }
+      },
+      "required": [
+       "type",
+       "id"
+      ],
+      "title": "EmitConflictRead",
+      "type": "object"
+     },
+     "SkipReason": {
+      "description": "Why an emit item (claim or candidate) was not turned into a suggestion.",
+      "enum": [
+       "not_found",
+       "no_mentions",
+       "no_source_url",
+       "invalid_payload",
+       "duplicate",
+       "already_emitted",
+       "missing_entity",
+       "metadata_not_emitted",
+       "invalid_new_document_payload",
+       "unresolved_requirement_documents"
+      ],
+      "title": "SkipReason",
+      "type": "string"
+     }
+    },
+    "description": "Outcome of emitting one candidate.",
+    "properties": {
+     "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+     },
+     "conflicts": {
+      "items": {
+       "$ref": "#/$defs/EmitConflictRead"
+      },
+      "title": "Conflicts",
+      "type": "array"
+     },
+     "replayed": {
+      "default": false,
+      "title": "Replayed",
+      "type": "boolean"
+     },
+     "skip_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/SkipReason"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "suggestion_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Suggestion Id"
+     }
+    },
+    "required": [
+     "candidate_id",
+     "conflicts",
+     "replayed",
+     "skip_reason",
+     "suggestion_id"
+    ],
+    "title": "CandidateEmitItemResult",
+    "type": "object"
+   }
+  },
+  "candidate_emit.CandidateEmitPreview": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "EmitConflictRead": {
+      "description": "A catalogue entity or pending suggestion that a candidate would duplicate.",
+      "properties": {
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "type": {
+        "title": "Type",
+        "type": "string"
+       }
+      },
+      "required": [
+       "type",
+       "id"
+      ],
+      "title": "EmitConflictRead",
+      "type": "object"
+     },
+     "NewDocumentPayload": {
+      "additionalProperties": false,
+      "description": "Payload for a `new_document` suggestion; pure validation, no database lookups.",
+      "properties": {
+       "description_i18n": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "string"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Description I18N"
+       },
+       "domain_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Domain Codes",
+        "type": "array"
+       },
+       "official_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Official Url"
+       },
+       "situation_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Situation Codes",
+        "type": "array"
+       },
+       "situation_leaf_codes": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "string"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Situation Leaf Codes"
+       },
+       "tag_confidence": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "number"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Tag Confidence"
+       },
+       "title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "title": "Title I18N",
+        "type": "object"
+       }
+      },
+      "required": [
+       "title_i18n"
+      ],
+      "title": "NewDocumentPayload",
+      "type": "object"
+     },
+     "NewRequirementPayload": {
+      "additionalProperties": false,
+      "description": "Payload for a `new_requirement` suggestion; pure validation, no database lookups.",
+      "properties": {
+       "notes_i18n": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "string"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Notes I18N"
+       },
+       "parent_document_id": {
+        "format": "uuid",
+        "title": "Parent Document Id",
+        "type": "string"
+       },
+       "required_document_id": {
+        "format": "uuid",
+        "title": "Required Document Id",
+        "type": "string"
+       }
+      },
+      "required": [
+       "parent_document_id",
+       "required_document_id"
+      ],
+      "title": "NewRequirementPayload",
+      "type": "object"
+     },
+     "SkipReason": {
+      "description": "Why an emit item (claim or candidate) was not turned into a suggestion.",
+      "enum": [
+       "not_found",
+       "no_mentions",
+       "no_source_url",
+       "invalid_payload",
+       "duplicate",
+       "already_emitted",
+       "missing_entity",
+       "metadata_not_emitted",
+       "invalid_new_document_payload",
+       "unresolved_requirement_documents"
+      ],
+      "title": "SkipReason",
+      "type": "string"
+     },
+     "SuggestionCreate": {
+      "additionalProperties": false,
+      "description": "`POST /api/v1/suggestions` body; `payload`'s shape is discriminated on `kind`.",
+      "properties": {
+       "jurisdiction_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Jurisdiction Id"
+       },
+       "kind": {
+        "$ref": "#/$defs/SuggestionKind",
+        "default": "new_document"
+       },
+       "municipality_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Municipality Code"
+       },
+       "payload": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/NewDocumentPayload"
+         },
+         {
+          "$ref": "#/$defs/NewRequirementPayload"
+         }
+        ],
+        "title": "Payload"
+       },
+       "source_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Url"
+       }
+      },
+      "required": [
+       "payload"
+      ],
+      "title": "SuggestionCreate",
+      "type": "object"
+     },
+     "SuggestionKind": {
+      "description": "What a suggestion proposes to add to the catalogue.",
+      "enum": [
+       "new_document",
+       "new_requirement"
+      ],
+      "title": "SuggestionKind",
+      "type": "string"
+     }
+    },
+    "description": "The suggestion an emit would create, or why it would be skipped; nothing is written.",
+    "properties": {
+     "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+     },
+     "conflicts": {
+      "items": {
+       "$ref": "#/$defs/EmitConflictRead"
+      },
+      "title": "Conflicts",
+      "type": "array"
+     },
+     "skip_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/SkipReason"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "suggestion": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/SuggestionCreate"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "suggestion_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Suggestion Id"
+     }
+    },
+    "required": [
+     "candidate_id",
+     "conflicts",
+     "skip_reason",
+     "suggestion",
+     "suggestion_id"
+    ],
+    "title": "CandidateEmitPreview",
+    "type": "object"
+   }
+  },
+  "candidate_emit.CandidateEmitRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Candidates to emit in one call.",
+    "properties": {
+     "candidate_ids": {
+      "items": {
+       "format": "uuid",
+       "type": "string"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Candidate Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "candidate_ids"
+    ],
+    "title": "CandidateEmitRequest",
+    "type": "object"
+   }
+  },
+  "candidate_emit.CandidateEmitResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "CandidateEmitItemResult": {
+      "description": "Outcome of emitting one candidate.",
+      "properties": {
+       "candidate_id": {
+        "format": "uuid",
+        "title": "Candidate Id",
+        "type": "string"
+       },
+       "conflicts": {
+        "items": {
+         "$ref": "#/$defs/EmitConflictRead"
+        },
+        "title": "Conflicts",
+        "type": "array"
+       },
+       "replayed": {
+        "default": false,
+        "title": "Replayed",
+        "type": "boolean"
+       },
+       "skip_reason": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/SkipReason"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "suggestion_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Suggestion Id"
+       }
+      },
+      "required": [
+       "candidate_id"
+      ],
+      "title": "CandidateEmitItemResult",
+      "type": "object"
+     },
+     "EmitConflictRead": {
+      "description": "A catalogue entity or pending suggestion that a candidate would duplicate.",
+      "properties": {
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "type": {
+        "title": "Type",
+        "type": "string"
+       }
+      },
+      "required": [
+       "type",
+       "id"
+      ],
+      "title": "EmitConflictRead",
+      "type": "object"
+     },
+     "SkipReason": {
+      "description": "Why an emit item (claim or candidate) was not turned into a suggestion.",
+      "enum": [
+       "not_found",
+       "no_mentions",
+       "no_source_url",
+       "invalid_payload",
+       "duplicate",
+       "already_emitted",
+       "missing_entity",
+       "metadata_not_emitted",
+       "invalid_new_document_payload",
+       "unresolved_requirement_documents"
+      ],
+      "title": "SkipReason",
+      "type": "string"
+     }
+    },
+    "description": "Per-candidate outcomes of one emit call with their totals.",
+    "properties": {
+     "created_count": {
+      "title": "Created Count",
+      "type": "integer"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CandidateEmitItemResult"
+      },
+      "title": "Items",
+      "type": "array"
+     },
+     "replayed_count": {
+      "title": "Replayed Count",
+      "type": "integer"
+     },
+     "skipped_count": {
+      "title": "Skipped Count",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "created_count",
+     "items",
+     "replayed_count",
+     "skipped_count"
+    ],
+    "title": "CandidateEmitResponse",
+    "type": "object"
+   }
+  },
+  "candidate_emit.EmitConflictRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "A catalogue entity or pending suggestion that a candidate would duplicate.",
+    "properties": {
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "type": {
+      "title": "Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "type"
+    ],
+    "title": "EmitConflictRead",
+    "type": "object"
+   }
+  },
+  "candidate_sources.CandidateSourceListResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "CandidateSourceRead": {
+      "description": "A procedure with candidate mentions and the page a screenshot of it should capture.",
+      "properties": {
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "has_screenshot": {
+        "title": "Has Screenshot",
+        "type": "boolean"
+       },
+       "host": {
+        "title": "Host",
+        "type": "string"
+       },
+       "mention_count": {
+        "title": "Mention Count",
+        "type": "integer"
+       },
+       "source_url": {
+        "title": "Source Url",
+        "type": "string"
+       }
+      },
+      "required": [
+       "catalogue_service_id",
+       "source_url",
+       "host",
+       "has_screenshot",
+       "mention_count"
+      ],
+      "title": "CandidateSourceRead",
+      "type": "object"
+     }
+    },
+    "description": "One page of candidate sources.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CandidateSourceRead"
+      },
+      "title": "Items",
+      "type": "array"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "integer"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "items",
+     "limit",
+     "offset",
+     "total"
+    ],
+    "title": "CandidateSourceListResponse",
+    "type": "object"
+   }
+  },
+  "candidate_sources.CandidateSourceRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "A procedure with candidate mentions and the page a screenshot of it should capture.",
+    "properties": {
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "has_screenshot": {
+      "title": "Has Screenshot",
+      "type": "boolean"
+     },
+     "host": {
+      "title": "Host",
+      "type": "string"
+     },
+     "mention_count": {
+      "title": "Mention Count",
+      "type": "integer"
+     },
+     "source_url": {
+      "title": "Source Url",
+      "type": "string"
+     }
+    },
+    "required": [
+     "catalogue_service_id",
+     "has_screenshot",
+     "host",
+     "mention_count",
+     "source_url"
+    ],
+    "title": "CandidateSourceRead",
+    "type": "object"
+   }
+  },
+  "candidates.CandidateMentionItem": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryMentionRole": {
+      "description": "How a procedure relates to a mentioned document.",
+      "enum": [
+       "required",
+       "form",
+       "issued"
+      ],
+      "title": "DiscoveryMentionRole",
+      "type": "string"
+     }
+    },
+    "description": "One occurrence of a document in a procedure.",
+    "properties": {
+     "artifact_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Artifact Id"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "condition": {
+      "anyOf": [
+       {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Condition"
+     },
+     "direct_domain_confidence": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Direct Domain Confidence"
+     },
+     "direct_situation_confidence": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Direct Situation Confidence"
+     },
+     "domain_codes": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxItems": 2,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Domain Codes"
+     },
+     "excerpt": {
+      "minLength": 1,
+      "title": "Excerpt",
+      "type": "string"
+     },
+     "extractor": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Extractor",
+      "type": "string"
+     },
+     "extractor_version": {
+      "maxLength": 32,
+      "minLength": 1,
+      "title": "Extractor Version",
+      "type": "string"
+     },
+     "is_optional": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Is Optional"
+     },
+     "official_url": {
+      "anyOf": [
+       {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Official Url"
+     },
+     "pvog_leaf_code": {
+      "anyOf": [
+       {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Pvog Leaf Code"
+     },
+     "role": {
+      "$ref": "#/$defs/DiscoveryMentionRole"
+     },
+     "situation_codes": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxItems": 3,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Situation Codes"
+     },
+     "source_field": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Source Field",
+      "type": "string"
+     },
+     "title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Title I18N",
+      "type": "object"
+     }
+    },
+    "required": [
+     "catalogue_service_id",
+     "title_i18n",
+     "role",
+     "excerpt",
+     "source_field",
+     "extractor",
+     "extractor_version"
+    ],
+    "title": "CandidateMentionItem",
+    "type": "object"
+   }
+  },
+  "candidates.CandidateMentionsRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "CandidateMentionItem": {
+      "description": "One occurrence of a document in a procedure.",
+      "properties": {
+       "artifact_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Artifact Id"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "condition": {
+        "anyOf": [
+         {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Condition"
+       },
+       "direct_domain_confidence": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Direct Domain Confidence"
+       },
+       "direct_situation_confidence": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Direct Situation Confidence"
+       },
+       "domain_codes": {
+        "anyOf": [
+         {
+          "items": {
+           "maxLength": 64,
+           "minLength": 1,
+           "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Domain Codes"
+       },
+       "excerpt": {
+        "minLength": 1,
+        "title": "Excerpt",
+        "type": "string"
+       },
+       "extractor": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Extractor",
+        "type": "string"
+       },
+       "extractor_version": {
+        "maxLength": 32,
+        "minLength": 1,
+        "title": "Extractor Version",
+        "type": "string"
+       },
+       "is_optional": {
+        "anyOf": [
+         {
+          "type": "boolean"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Is Optional"
+       },
+       "official_url": {
+        "anyOf": [
+         {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Official Url"
+       },
+       "pvog_leaf_code": {
+        "anyOf": [
+         {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Pvog Leaf Code"
+       },
+       "role": {
+        "$ref": "#/$defs/DiscoveryMentionRole"
+       },
+       "situation_codes": {
+        "anyOf": [
+         {
+          "items": {
+           "maxLength": 64,
+           "minLength": 1,
+           "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Situation Codes"
+       },
+       "source_field": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Source Field",
+        "type": "string"
+       },
+       "title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "minProperties": 1,
+        "title": "Title I18N",
+        "type": "object"
+       }
+      },
+      "required": [
+       "catalogue_service_id",
+       "title_i18n",
+       "role",
+       "excerpt",
+       "source_field",
+       "extractor",
+       "extractor_version"
+      ],
+      "title": "CandidateMentionItem",
+      "type": "object"
+     },
+     "DiscoveryMentionRole": {
+      "description": "How a procedure relates to a mentioned document.",
+      "enum": [
+       "required",
+       "form",
+       "issued"
+      ],
+      "title": "DiscoveryMentionRole",
+      "type": "string"
+     }
+    },
+    "description": "Batch of mentions recorded in one transaction.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CandidateMentionItem"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "CandidateMentionsRequest",
+    "type": "object"
+   }
+  },
+  "candidates.CandidateMentionsResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "What a mentions batch created or updated.",
+    "properties": {
+     "candidates_created": {
+      "title": "Candidates Created",
+      "type": "integer"
+     },
+     "mentions_created": {
+      "title": "Mentions Created",
+      "type": "integer"
+     },
+     "mentions_updated": {
+      "title": "Mentions Updated",
+      "type": "integer"
+     },
+     "unknown_codes": {
+      "default": 0,
+      "title": "Unknown Codes",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "candidates_created",
+     "mentions_created",
+     "mentions_updated",
+     "unknown_codes"
+    ],
+    "title": "CandidateMentionsResponse",
+    "type": "object"
+   }
+  },
+  "machine.CatalogueBatchItem": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoverySource": {
+      "description": "Which government or manual feed produced a catalogue row.",
+      "enum": [
+       "govdata",
+       "pvog",
+       "fim",
+       "leika",
+       "manual"
+      ],
+      "title": "DiscoverySource",
+      "type": "string"
+     }
+    },
+    "description": "One catalogue row in a machine batch upsert.",
+    "properties": {
+     "description_i18n": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Description I18N"
+     },
+     "external_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "External Id",
+      "type": "string"
+     },
+     "jurisdiction_id": {
+      "format": "uuid",
+      "title": "Jurisdiction Id",
+      "type": "string"
+     },
+     "portal_url": {
+      "anyOf": [
+       {
+        "maxLength": 500,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Portal Url"
+     },
+     "raw_payload": {
+      "additionalProperties": true,
+      "title": "Raw Payload",
+      "type": "object"
+     },
+     "source": {
+      "$ref": "#/$defs/DiscoverySource"
+     },
+     "title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Title I18N",
+      "type": "object"
+     }
+    },
+    "required": [
+     "source",
+     "external_id",
+     "jurisdiction_id",
+     "title_i18n"
+    ],
+    "title": "CatalogueBatchItem",
+    "type": "object"
+   }
+  },
+  "machine.CatalogueBatchRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "CatalogueBatchItem": {
+      "description": "One catalogue row in a machine batch upsert.",
+      "properties": {
+       "description_i18n": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "string"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Description I18N"
+       },
+       "external_id": {
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "External Id",
+        "type": "string"
+       },
+       "jurisdiction_id": {
+        "format": "uuid",
+        "title": "Jurisdiction Id",
+        "type": "string"
+       },
+       "portal_url": {
+        "anyOf": [
+         {
+          "maxLength": 500,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Portal Url"
+       },
+       "raw_payload": {
+        "additionalProperties": true,
+        "title": "Raw Payload",
+        "type": "object"
+       },
+       "source": {
+        "$ref": "#/$defs/DiscoverySource"
+       },
+       "title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "minProperties": 1,
+        "title": "Title I18N",
+        "type": "object"
+       }
+      },
+      "required": [
+       "source",
+       "external_id",
+       "jurisdiction_id",
+       "title_i18n"
+      ],
+      "title": "CatalogueBatchItem",
+      "type": "object"
+     },
+     "DiscoverySource": {
+      "description": "Which government or manual feed produced a catalogue row.",
+      "enum": [
+       "govdata",
+       "pvog",
+       "fim",
+       "leika",
+       "manual"
+      ],
+      "title": "DiscoverySource",
+      "type": "string"
+     }
+    },
+    "description": "Batch upsert body for ingest workers.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CatalogueBatchItem"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "CatalogueBatchRequest",
+    "type": "object"
+   }
+  },
+  "machine.CatalogueMachineRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoverySource": {
+      "description": "Which government or manual feed produced a catalogue row.",
+      "enum": [
+       "govdata",
+       "pvog",
+       "fim",
+       "leika",
+       "manual"
+      ],
+      "title": "DiscoverySource",
+      "type": "string"
+     }
+    },
+    "description": "Minimal catalogue row for ingest enrich workers.",
+    "properties": {
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "portal_url": {
+      "anyOf": [
+       {
+        "maxLength": 500,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Portal Url"
+     },
+     "raw_payload": {
+      "additionalProperties": true,
+      "title": "Raw Payload",
+      "type": "object"
+     },
+     "source": {
+      "$ref": "#/$defs/DiscoverySource"
+     },
+     "title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Title I18N",
+      "type": "object"
+     }
+    },
+    "required": [
+     "id",
+     "portal_url",
+     "raw_payload",
+     "source",
+     "title_i18n"
+    ],
+    "title": "CatalogueMachineRead",
+    "type": "object"
+   }
+  },
+  "machine.ClaimAppendRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryClaimKind": {
+      "description": "Staging claim shape before emit to suggestions.",
+      "enum": [
+       "new_document",
+       "new_requirement",
+       "metadata"
+      ],
+      "title": "DiscoveryClaimKind",
+      "type": "string"
+     }
+    },
+    "description": "Append a validated claim on a discovery entity.",
+    "properties": {
+     "confidence": {
+      "anyOf": [
+       {
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Confidence"
+     },
+     "discovery_entity_id": {
+      "format": "uuid",
+      "title": "Discovery Entity Id",
+      "type": "string"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryClaimKind"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+     }
+    },
+    "required": [
+     "discovery_entity_id",
+     "kind"
+    ],
+    "title": "ClaimAppendRequest",
+    "type": "object"
+   }
+  },
+  "machine.ClaimAppendResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoveryClaimKind": {
+      "description": "Staging claim shape before emit to suggestions.",
+      "enum": [
+       "new_document",
+       "new_requirement",
+       "metadata"
+      ],
+      "title": "DiscoveryClaimKind",
+      "type": "string"
+     }
+    },
+    "description": "Created discovery claim row.",
+    "properties": {
+     "discovery_entity_id": {
+      "format": "uuid",
+      "title": "Discovery Entity Id",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryClaimKind"
+     }
+    },
+    "required": [
+     "discovery_entity_id",
+     "id",
+     "kind"
+    ],
+    "title": "ClaimAppendResponse",
+    "type": "object"
+   }
+  },
+  "machine.ClaimedTaskRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     },
+     "DiscoveryTaskStatus": {
+      "description": "Lifecycle of a queued fetch or enrich task.",
+      "enum": [
+       "pending",
+       "claimed",
+       "completed",
+       "failed"
+      ],
+      "title": "DiscoveryTaskStatus",
+      "type": "string"
+     }
+    },
+    "description": "Task assigned to the caller with an active lease.",
+    "properties": {
+     "artifact_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Artifact Id"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "input_key": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Input Key"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryTaskKind"
+     },
+     "lease_expires_at": {
+      "format": "date-time",
+      "title": "Lease Expires At",
+      "type": "string"
+     },
+     "priority": {
+      "title": "Priority",
+      "type": "integer"
+     },
+     "status": {
+      "$ref": "#/$defs/DiscoveryTaskStatus"
+     },
+     "target_url": {
+      "title": "Target Url",
+      "type": "string"
+     }
+    },
+    "required": [
+     "artifact_id",
+     "catalogue_service_id",
+     "id",
+     "input_key",
+     "kind",
+     "lease_expires_at",
+     "priority",
+     "status",
+     "target_url"
+    ],
+    "title": "ClaimedTaskRead",
+    "type": "object"
+   }
+  },
+  "machine.EntityUpsertRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Upsert a discovery entity under an existing catalogue row.",
+    "properties": {
+     "canonical_url": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Canonical Url",
+      "type": "string"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "label": {
+      "anyOf": [
+       {
+        "maxLength": 500,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Label"
+     }
+    },
+    "required": [
+     "catalogue_service_id",
+     "canonical_url"
+    ],
+    "title": "EntityUpsertRequest",
+    "type": "object"
+   }
+  },
+  "machine.EntityUpsertResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Upsert outcome for one entity.",
+    "properties": {
+     "canonical_url": {
+      "title": "Canonical Url",
+      "type": "string"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "created": {
+      "title": "Created",
+      "type": "boolean"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "canonical_url",
+     "catalogue_service_id",
+     "created",
+     "id"
+    ],
+    "title": "EntityUpsertResponse",
+    "type": "object"
+   }
+  },
+  "machine.FetchLogAppendRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "One HTTP fetch attempt against a task target.",
+    "properties": {
+     "byte_length": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Byte Length"
+     },
+     "content_type": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Content Type"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Error Message"
+     },
+     "http_status": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Http Status"
+     }
+    },
+    "title": "FetchLogAppendRequest",
+    "type": "object"
+   }
+  },
+  "machine.RunFinishRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Close a run with its report.",
+    "properties": {
+     "claimed_count": {
+      "minimum": 0,
+      "title": "Claimed Count",
+      "type": "integer"
+     },
+     "completed_count": {
+      "minimum": 0,
+      "title": "Completed Count",
+      "type": "integer"
+     },
+     "error_detail": {
+      "anyOf": [
+       {
+        "maxLength": 1000,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Error Detail"
+     },
+     "failed_count": {
+      "minimum": 0,
+      "title": "Failed Count",
+      "type": "integer"
+     },
+     "remaining_count": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Remaining Count"
+     },
+     "skipped_count": {
+      "minimum": 0,
+      "title": "Skipped Count",
+      "type": "integer"
+     },
+     "status": {
+      "enum": [
+       "succeeded",
+       "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "stop_reason": {
+      "anyOf": [
+       {
+        "enum": [
+         "queue_empty",
+         "batch_limit",
+         "time_budget",
+         "error",
+         "browser_budget",
+         "browser_quota",
+         "storage_unavailable",
+         "db_limit",
+         "llm_budget",
+         "llm_quota"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Stop Reason"
+     }
+    },
+    "required": [
+     "status",
+     "claimed_count",
+     "completed_count",
+     "failed_count",
+     "skipped_count"
+    ],
+    "title": "RunFinishRequest",
+    "type": "object"
+   }
+  },
+  "machine.RunRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Run record returned to workers.",
+    "properties": {
+     "finished_at": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Finished At"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "finished_at",
+     "id",
+     "kind",
+     "started_at",
+     "status"
+    ],
+    "title": "RunRead",
+    "type": "object"
+   }
+  },
+  "machine.RunStartRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryRunKind": {
+      "description": "Which operational job a run record describes.",
+      "enum": [
+       "worker_drain"
+      ],
+      "title": "DiscoveryRunKind",
+      "type": "string"
+     }
+    },
+    "description": "Open a run record before the worker starts draining.",
+    "properties": {
+     "kind": {
+      "$ref": "#/$defs/DiscoveryRunKind",
+      "default": "worker_drain"
+     }
+    },
+    "title": "RunStartRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskClaimRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     }
+    },
+    "description": "Claim pending discovery tasks for the caller API key.",
+    "properties": {
+     "kinds": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/$defs/DiscoveryTaskKind"
+        },
+        "minItems": 1,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Kinds"
+     },
+     "limit": {
+      "default": 1,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+     }
+    },
+    "title": "TaskClaimRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskClaimResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ClaimedTaskRead": {
+      "description": "Task assigned to the caller with an active lease.",
+      "properties": {
+       "artifact_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Artifact Id"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "input_key": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Input Key"
+       },
+       "kind": {
+        "$ref": "#/$defs/DiscoveryTaskKind"
+       },
+       "lease_expires_at": {
+        "format": "date-time",
+        "title": "Lease Expires At",
+        "type": "string"
+       },
+       "priority": {
+        "title": "Priority",
+        "type": "integer"
+       },
+       "status": {
+        "$ref": "#/$defs/DiscoveryTaskStatus"
+       },
+       "target_url": {
+        "title": "Target Url",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "catalogue_service_id",
+       "kind",
+       "target_url",
+       "status",
+       "priority",
+       "lease_expires_at"
+      ],
+      "title": "ClaimedTaskRead",
+      "type": "object"
+     },
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     },
+     "DiscoveryTaskStatus": {
+      "description": "Lifecycle of a queued fetch or enrich task.",
+      "enum": [
+       "pending",
+       "claimed",
+       "completed",
+       "failed"
+      ],
+      "title": "DiscoveryTaskStatus",
+      "type": "string"
+     }
+    },
+    "description": "Tasks claimed in one request.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ClaimedTaskRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "TaskClaimResponse",
+    "type": "object"
+   }
+  },
+  "machine.TaskCompleteRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Optional note on why a task completed without producing anything (for example ``no_mentions``).",
+    "properties": {
+     "note": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Note"
+     }
+    },
+    "title": "TaskCompleteRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskEnqueueRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     }
+    },
+    "description": "Enqueue a follow-up task for a catalogue row.",
+    "properties": {
+     "artifact_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Artifact Id"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "input_key": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Input Key"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryTaskKind"
+     },
+     "priority": {
+      "default": 100,
+      "minimum": 0,
+      "title": "Priority",
+      "type": "integer"
+     },
+     "target_url": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Target Url",
+      "type": "string"
+     }
+    },
+    "required": [
+     "catalogue_service_id",
+     "kind",
+     "target_url"
+    ],
+    "title": "TaskEnqueueRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskEnqueueResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "The task behind an enqueue request.",
+    "properties": {
+     "created": {
+      "title": "Created",
+      "type": "boolean"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "created",
+     "id"
+    ],
+    "title": "TaskEnqueueResponse",
+    "type": "object"
+   }
+  },
+  "machine.TaskFailRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Failure reason for a discovery task.",
+    "properties": {
+     "error": {
+      "minLength": 1,
+      "title": "Error",
+      "type": "string"
+     },
+     "retryable": {
+      "default": false,
+      "title": "Retryable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "error"
+    ],
+    "title": "TaskFailRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskReleaseRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Hand a claimed task back because a limit, not the page, stopped the work.",
+    "properties": {
+     "not_before": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Not Before"
+     },
+     "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "reason"
+    ],
+    "title": "TaskReleaseRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskSummaryResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.",
+    "properties": {
+     "claimed": {
+      "title": "Claimed",
+      "type": "integer"
+     },
+     "claimed_stale": {
+      "title": "Claimed Stale",
+      "type": "integer"
+     },
+     "completed": {
+      "title": "Completed",
+      "type": "integer"
+     },
+     "failed": {
+      "title": "Failed",
+      "type": "integer"
+     },
+     "pending_delayed": {
+      "title": "Pending Delayed",
+      "type": "integer"
+     },
+     "pending_ready": {
+      "title": "Pending Ready",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "claimed",
+     "claimed_stale",
+     "completed",
+     "failed",
+     "pending_delayed",
+     "pending_ready"
+    ],
+    "title": "TaskSummaryResponse",
+    "type": "object"
+   }
+  },
+  "read.CandidateListItemRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "CandidateFlags": {
+      "description": "The five completeness flags of a candidate.",
+      "properties": {
+       "has_domain": {
+        "title": "Has Domain",
+        "type": "boolean"
+       },
+       "has_edges": {
+        "title": "Has Edges",
+        "type": "boolean"
+       },
+       "has_screenshot": {
+        "title": "Has Screenshot",
+        "type": "boolean"
+       },
+       "has_situation": {
+        "title": "Has Situation",
+        "type": "boolean"
+       },
+       "has_snapshot": {
+        "title": "Has Snapshot",
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "has_domain",
+       "has_situation",
+       "has_edges",
+       "has_snapshot",
+       "has_screenshot"
+      ],
+      "title": "CandidateFlags",
+      "type": "object"
+     },
+     "DiscoveryCandidateStatus": {
+      "description": "Lifecycle of a document candidate.",
+      "enum": [
+       "staged",
+       "emitted"
+      ],
+      "title": "DiscoveryCandidateStatus",
+      "type": "string"
+     },
+     "DiscoveryMentionRole": {
+      "description": "How a procedure relates to a mentioned document.",
+      "enum": [
+       "required",
+       "form",
+       "issued"
+      ],
+      "title": "DiscoveryMentionRole",
+      "type": "string"
+     }
+    },
+    "description": "A listed candidate with its roles, jurisdiction name and completeness flags.",
+    "properties": {
+     "complete": {
+      "title": "Complete",
+      "type": "boolean"
+     },
+     "completeness": {
+      "title": "Completeness",
+      "type": "integer"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "flags": {
+      "$ref": "#/$defs/CandidateFlags"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "jurisdiction_id": {
+      "format": "uuid",
+      "title": "Jurisdiction Id",
+      "type": "string"
+     },
+     "jurisdiction_name_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Jurisdiction Name I18N",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "mention_count": {
+      "title": "Mention Count",
+      "type": "integer"
+     },
+     "official_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Official Url"
+     },
+     "roles": {
+      "items": {
+       "$ref": "#/$defs/DiscoveryMentionRole"
+      },
+      "title": "Roles",
+      "type": "array"
+     },
+     "status": {
+      "$ref": "#/$defs/DiscoveryCandidateStatus"
+     },
+     "suggestion_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggestion Id"
+     },
+     "title_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Title I18N",
+      "type": "object"
+     },
+     "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "complete",
+     "completeness",
+     "created_at",
+     "flags",
+     "id",
+     "jurisdiction_id",
+     "jurisdiction_name_i18n",
+     "key",
+     "mention_count",
+     "official_url",
+     "roles",
+     "status",
+     "suggestion_id",
+     "title_i18n",
+     "updated_at"
+    ],
+    "title": "CandidateListItemRead",
+    "type": "object"
+   }
+  },
+  "read.CandidateListResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "CandidateFlags": {
+      "description": "The five completeness flags of a candidate.",
+      "properties": {
+       "has_domain": {
+        "title": "Has Domain",
+        "type": "boolean"
+       },
+       "has_edges": {
+        "title": "Has Edges",
+        "type": "boolean"
+       },
+       "has_screenshot": {
+        "title": "Has Screenshot",
+        "type": "boolean"
+       },
+       "has_situation": {
+        "title": "Has Situation",
+        "type": "boolean"
+       },
+       "has_snapshot": {
+        "title": "Has Snapshot",
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "has_domain",
+       "has_situation",
+       "has_edges",
+       "has_snapshot",
+       "has_screenshot"
+      ],
+      "title": "CandidateFlags",
+      "type": "object"
+     },
+     "CandidateListItemRead": {
+      "description": "A listed candidate with its roles, jurisdiction name and completeness flags.",
+      "properties": {
+       "complete": {
+        "title": "Complete",
+        "type": "boolean"
+       },
+       "completeness": {
+        "title": "Completeness",
+        "type": "integer"
+       },
+       "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+       },
+       "flags": {
+        "$ref": "#/$defs/CandidateFlags"
+       },
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "jurisdiction_id": {
+        "format": "uuid",
+        "title": "Jurisdiction Id",
+        "type": "string"
+       },
+       "jurisdiction_name_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "title": "Jurisdiction Name I18N",
+        "type": "object"
+       },
+       "key": {
+        "title": "Key",
+        "type": "string"
+       },
+       "mention_count": {
+        "title": "Mention Count",
+        "type": "integer"
+       },
+       "official_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Official Url"
+       },
+       "roles": {
+        "items": {
+         "$ref": "#/$defs/DiscoveryMentionRole"
+        },
+        "title": "Roles",
+        "type": "array"
+       },
+       "status": {
+        "$ref": "#/$defs/DiscoveryCandidateStatus"
+       },
+       "suggestion_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Suggestion Id"
+       },
+       "title_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "title": "Title I18N",
+        "type": "object"
+       },
+       "updated_at": {
+        "format": "date-time",
+        "title": "Updated At",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "jurisdiction_id",
+       "key",
+       "title_i18n",
+       "official_url",
+       "status",
+       "suggestion_id",
+       "mention_count",
+       "created_at",
+       "updated_at",
+       "roles",
+       "jurisdiction_name_i18n",
+       "completeness",
+       "complete",
+       "flags"
+      ],
+      "title": "CandidateListItemRead",
+      "type": "object"
+     },
+     "DiscoveryCandidateStatus": {
+      "description": "Lifecycle of a document candidate.",
+      "enum": [
+       "staged",
+       "emitted"
+      ],
+      "title": "DiscoveryCandidateStatus",
+      "type": "string"
+     },
+     "DiscoveryMentionRole": {
+      "description": "How a procedure relates to a mentioned document.",
+      "enum": [
+       "required",
+       "form",
+       "issued"
+      ],
+      "title": "DiscoveryMentionRole",
+      "type": "string"
+     }
+    },
+    "description": "Paginated document candidates.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/CandidateListItemRead"
+      },
+      "title": "Items",
+      "type": "array"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "integer"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "items",
+     "limit",
+     "offset",
+     "total"
+    ],
+    "title": "CandidateListResponse",
+    "type": "object"
+   }
+  },
+  "taxonomy_read.VocabularyResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "VocabularyTerm": {
+      "description": "A domain or life situation with every stored translation, for machine consumers.",
+      "properties": {
+       "code": {
+        "title": "Code",
+        "type": "string"
+       },
+       "description_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "title": "Description I18N",
+        "type": "object"
+       },
+       "name_i18n": {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "title": "Name I18N",
+        "type": "object"
+       }
+      },
+      "required": [
+       "code",
+       "name_i18n",
+       "description_i18n"
+      ],
+      "title": "VocabularyTerm",
+      "type": "object"
+     }
+    },
+    "description": "Both closed vocabularies in sort order.",
+    "properties": {
+     "domains": {
+      "items": {
+       "$ref": "#/$defs/VocabularyTerm"
+      },
+      "title": "Domains",
+      "type": "array"
+     },
+     "situations": {
+      "items": {
+       "$ref": "#/$defs/VocabularyTerm"
+      },
+      "title": "Situations",
+      "type": "array"
+     }
+    },
+    "required": [
+     "domains",
+     "situations"
+    ],
+    "title": "VocabularyResponse",
+    "type": "object"
+   }
+  },
+  "taxonomy_read.VocabularyTerm": {
+   "mode": "serialization",
+   "schema": {
+    "description": "A domain or life situation with every stored translation, for machine consumers.",
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "description_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Description I18N",
+      "type": "object"
+     },
+     "name_i18n": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Name I18N",
+      "type": "object"
+     }
+    },
+    "required": [
+     "code",
+     "description_i18n",
+     "name_i18n"
+    ],
+    "title": "VocabularyTerm",
+    "type": "object"
+   }
+  }
+ },
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/artifacts"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/artifacts/status"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/artifacts/{artifact_id}/content"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/budgets"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/budgets/{resource}/adjust"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/budgets/{resource}/exhaust"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/budgets/{resource}/reserve"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/candidates"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/candidates/edges"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/candidates/emit"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/candidates/mentions"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/candidates/sources"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/candidates/{candidate_id}/emit-preview"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/catalogue/batch"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/catalogue/{catalogue_id}"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/catalogue/{catalogue_id}/emit"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/claims"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/entities"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/runs"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/runs/{run_id}/finish"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/claim"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/tasks/summary"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/{task_id}/artifacts"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/{task_id}/complete"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/{task_id}/fail"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/{task_id}/fetches"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/{task_id}/release"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/taxonomy"
+  }
+ ]
+}

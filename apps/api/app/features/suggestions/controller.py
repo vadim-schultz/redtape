@@ -1,3 +1,5 @@
+"""HTTP endpoints for submitting, listing and reading suggestions; domain errors become HTTP statuses here."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -75,6 +77,7 @@ class SuggestionsController(Controller):
     def create(
         self, suggestion_service: SuggestionService, data: SuggestionCreate, submission: Submission
     ) -> Response[SuggestionRead]:
+        """Store a pending suggestion (201), or answer an idempotent replay with the earlier row (200)."""
         try:
             result = suggestion_service.create(
                 submitter=submission.submitter, request=data, idempotency_key=submission.idempotency_key
@@ -87,6 +90,7 @@ class SuggestionsController(Controller):
     def list_suggestions(
         self, suggestion_service: SuggestionService, vote_service: VoteService, suggestion_query: SuggestionListQuery
     ) -> SuggestionListResponse:
+        """Page through suggestions, each with its vote tally attached."""
         page = suggestion_query.page
         result = suggestion_service.list_suggestions(
             filters=suggestion_query.filters, offset=page.offset, limit=page.limit
@@ -101,6 +105,7 @@ class SuggestionsController(Controller):
         suggestion_id: UUID,
         optional_user: AppUser | None,
     ) -> SuggestionRead:
+        """Return one suggestion with its tally and the caller's own vote; 404 when it does not exist."""
         read = suggestion_service.get_suggestion(suggestion_id)
         if read is None:
             raise NotFoundException("Suggestion not found")

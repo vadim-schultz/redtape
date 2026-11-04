@@ -1,6 +1,6 @@
 import { Stack, Text } from "@chakra-ui/react";
 
-import QueryError from "../../../components/feedback/QueryError";
+import QueryBoundary from "../../../components/feedback/QueryBoundary";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { EmitPreviewItem } from "../types";
@@ -16,37 +16,38 @@ export default function EmitPreviewPanel({
 }: EmitPreviewPanelProps) {
   const { t } = useLocale();
 
-  if (status.isLoading) return <Text>{t("common.loading")}</Text>;
-  if (status.isError) return <QueryError onRetry={status.onRetry} />;
-
   return (
-    <Stack gap={2} align="stretch">
-      <Text fontWeight="medium">{t("discovery_admin.emit_preview.title")}</Text>
-      {items.length === 0 ? (
-        <Text fontSize="sm" color="muted">
-          {t("discovery_admin.emit_preview.empty")}
+    <QueryBoundary status={status}>
+      <Stack gap={2} align="stretch">
+        <Text fontWeight="medium">
+          {t("discovery_admin.emit_preview.title")}
         </Text>
-      ) : (
-        items.map((item) => (
-          <Stack
-            key={item.claim_id}
-            gap={1}
-            p={3}
-            borderWidth="1px"
-            borderRadius="md"
-          >
-            <Text fontSize="sm">
-              {item.kind}
-              {item.skip_reason ? ` · ${item.skip_reason}` : ""}
-            </Text>
-            {item.payload ? (
-              <Text fontSize="xs" color="muted" fontFamily="mono">
-                {JSON.stringify(item.payload)}
+        {items.length === 0 ? (
+          <Text fontSize="sm" color="muted">
+            {t("discovery_admin.emit_preview.empty")}
+          </Text>
+        ) : (
+          items.map((item) => (
+            <Stack
+              key={item.claim_id}
+              gap={1}
+              p={3}
+              borderWidth="1px"
+              borderRadius="md"
+            >
+              <Text fontSize="sm">
+                {item.kind}
+                {item.skip_reason ? ` · ${item.skip_reason}` : ""}
               </Text>
-            ) : null}
-          </Stack>
-        ))
-      )}
-    </Stack>
+              {item.payload ? (
+                <Text fontSize="xs" color="muted" fontFamily="mono">
+                  {JSON.stringify(item.payload)}
+                </Text>
+              ) : null}
+            </Stack>
+          ))
+        )}
+      </Stack>
+    </QueryBoundary>
   );
 }

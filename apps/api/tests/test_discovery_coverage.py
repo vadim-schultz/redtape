@@ -8,7 +8,6 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
-import app.features.auth.dependencies as auth_dependencies
 import app.features.auth.guard_session as guard_session_module
 import jwt
 import pytest
@@ -36,6 +35,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy.orm import Session
+
+from auth_support import use_jwt_verifier
 
 COVERAGE_URL = "/api/v1/discovery/admin/coverage"
 ISSUER = "https://example.supabase.co/auth/v1"
@@ -139,7 +140,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     monkeypatch.setattr(settings, "discovery_admin_emails", ADMIN_EMAIL)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
+    use_jwt_verifier(monkeypatch, verifier)
     monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()

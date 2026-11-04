@@ -11,6 +11,7 @@ from app.features.discovery.candidate_emit_payload import SuggestedTags, new_doc
 from app.features.discovery.candidate_emit_skip import EmitSkip
 from app.features.discovery.repository import DiscoveryRepository
 from app.models.discovery import DiscoveryDocumentCandidate
+from app.schema.discovery.emit import SkipReason
 from app.schema.suggestion.create import SuggestionCreate
 
 TagHook = Callable[[Session, DiscoveryDocumentCandidate], SuggestedTags]
@@ -35,13 +36,13 @@ class CandidateRequestBuilder:
         try:
             return SuggestionCreate.model_validate(body)
         except ValidationError as exc:
-            raise EmitSkip("invalid_payload") from exc
+            raise EmitSkip(SkipReason.INVALID_PAYLOAD) from exc
 
     def _source_url(self, candidate: DiscoveryDocumentCandidate) -> str:
         mentions = self._repo.list_candidate_mentions(candidate.id)
         if not mentions:
-            raise EmitSkip("no_mentions")
+            raise EmitSkip(SkipReason.NO_MENTIONS)
         portal_url = mentions[0].procedure.portal_url
         if portal_url is None:
-            raise EmitSkip("no_source_url")
+            raise EmitSkip(SkipReason.NO_SOURCE_URL)
         return portal_url

@@ -8,8 +8,9 @@ from typing import TypeVar
 import httpx
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.budget_models import BudgetResource, BudgetSnapshot
+from discovery_ingest.client import DiscoveryMachineApiError
+from discovery_ingest.client.budget_api import BudgetAPI
 
 LEDGER_ERRORS = (DiscoveryMachineApiError, httpx.HTTPError, ValidationError)
 """Everything that can mean "the ledger did not answer": a 5xx, a 404 from an API without the routes, a transport
@@ -42,15 +43,15 @@ class BudgetGuard:
     ``ledger_unavailable`` turns true on the first call the ledger did not answer, so a drain can say so in its report.
     """
 
-    def __init__(self, client: DiscoveryMachineClient) -> None:
-        """Wrap ``client``."""
+    def __init__(self, client: BudgetAPI) -> None:
+        """Wrap the budget routes of the facade."""
         self._client = client
         self.ledger_unavailable = False
 
     def snapshot(self) -> BudgetSnapshot | None:
         """Return every resource, or ``None`` when the ledger could not be read."""
         try:
-            return self._client.get_budgets()
+            return self._client.snapshot()
         except LEDGER_ERRORS:
             return self._mark_unavailable(None)
 
@@ -67,7 +68,7 @@ class BudgetGuard:
     def reserve(self, resource: BudgetResource, amount: float) -> Reserved:
         """Reserve ``amount`` of ``resource``."""
         try:
-            answer = self._client.reserve_budget(resource, amount)
+            answer = self._client.reserve(resource, amount)
         except LEDGER_ERRORS:
             return self._mark_unavailable(Reserved(False, None, ledger_unavailable=True))
         return Reserved(answer.granted, answer.remaining)
@@ -75,7 +76,7 @@ class BudgetGuard:
     def adjust(self, resource: BudgetResource, delta: float) -> bool:
         """Record the real cost of a reservation; return whether the ledger took it."""
         try:
-            self._client.adjust_budget(resource, delta)
+            self._client.adjust(resource, delta)
         except LEDGER_ERRORS:
             return self._mark_unavailable(False)
         return True
@@ -83,7 +84,7 @@ class BudgetGuard:
     def exhaust(self, resource: BudgetResource) -> bool:
         """Tell the ledger a provider's quota is gone; return whether the ledger took it."""
         try:
-            self._client.exhaust_budget(resource)
+            self._client.exhaust(resource)
         except LEDGER_ERRORS:
             return self._mark_unavailable(False)
         return True

@@ -56,13 +56,25 @@ export function attentionCell(
   return { text: String(count), badge: { label, palette: "red" } };
 }
 
-/** Record entries ordered by key so an unknown server key lands in a stable place. */
-export function sortedEntries<V>(record: Record<string, V>): [string, V][] {
-  return Object.entries(record).sort(([a], [b]) => a.localeCompare(b));
+function isDefinedEntry<V>(
+  entry: [string, V | undefined],
+): entry is [string, V] {
+  return entry[1] !== undefined;
 }
 
-/** One count-valued row per record entry, labelled with the raw server key. */
-export function countRows(record: Record<string, number>): MetricRow[] {
+/** Record entries ordered by key so an unknown server key lands in a stable place. */
+export function sortedEntries<V>(
+  record: Partial<Record<string, V>>,
+): [string, V][] {
+  return Object.entries(record)
+    .filter(isDefinedEntry)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+/** One count-valued row per defined record entry, labelled with the raw server key. */
+export function countRows(
+  record: Partial<Record<string, number>>,
+): MetricRow[] {
   return sortedEntries(record).map(([key, count]) => ({
     key,
     label: key,

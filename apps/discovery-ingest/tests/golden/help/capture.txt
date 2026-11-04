@@ -1,0 +1,8 @@
+usage: discovery_ingest capture [-h] {requeue} ...
+
+positional arguments:
+  {requeue}
+    requeue   Queue capture_screenshot for categorised pages without one
+
+options:
+  -h, --help  show this help message and exit

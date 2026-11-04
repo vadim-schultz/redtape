@@ -154,6 +154,19 @@
     "auth_unconfigured_body": "Konfiguriere Supabase, bevor du es erneut versuchst.",
     "disabled_title": "Discovery-Administration ist deaktiviert",
     "disabled_body": "Die Discovery-Administration ist in dieser Umgebung nicht konfiguriert. Prüfe die Deployment-Konfiguration und versuche es erneut.",
+    "values": {
+      "source_govdata": "GovData",
+      "source_pvog": "Portalverbund",
+      "source_fim": "FIM",
+      "source_leika": "LeiKa",
+      "source_manual": "Manuell",
+      "task_status_pending": "Ausstehend",
+      "task_status_claimed": "Reserviert",
+      "task_status_completed": "Abgeschlossen",
+      "task_status_failed": "Fehlgeschlagen",
+      "candidate_status_staged": "Vorgemerkt",
+      "candidate_status_emitted": "Übernommen"
+    },
     "tasks": {
       "filter_status": "Aufgabenstatus",
       "filter_source": "Aufgabenquelle",

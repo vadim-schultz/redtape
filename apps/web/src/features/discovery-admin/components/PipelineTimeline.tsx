@@ -1,8 +1,7 @@
 import { Badge, HStack, Text } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
-
-const STAGES = ["T0", "T1", "T2", "T3", "T4"] as const;
+import { PIPELINE_STAGES } from "../types";
 
 export default function PipelineTimeline({
   derivedStage,
@@ -16,7 +15,7 @@ export default function PipelineTimeline({
       <Text fontSize="sm" color="muted">
         {t("discovery_admin.pipeline.stage_label")}
       </Text>
-      {STAGES.map((stage) => (
+      {PIPELINE_STAGES.map((stage) => (
         <Badge
           key={stage}
           colorPalette={stage === derivedStage ? "blue" : "gray"}

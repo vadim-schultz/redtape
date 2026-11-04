@@ -88,7 +88,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Api:
         kwargs["transport"] = httpx.MockTransport(fake.handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
     return fake
 
 
@@ -154,10 +154,9 @@ def test_requeue_rejects_a_limit_over_200_or_not_positive_before_any_call(
     api: Api, capsys: pytest.CaptureFixture[str], limit: str
 ) -> None:
     """llm requeue · 201, 0 and text are refused (exit 2) with no request made."""
-    with pytest.raises(SystemExit) as stop:
-        main(["llm", "requeue", "--limit", limit])
+    exit_code = main(["llm", "requeue", "--limit", limit])
 
-    assert stop.value.code == 2 and api.requests == []
+    assert exit_code == 2 and api.requests == []
     capsys.readouterr()
 
 

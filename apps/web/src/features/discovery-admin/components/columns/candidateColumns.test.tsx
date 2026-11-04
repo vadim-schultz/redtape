@@ -176,3 +176,11 @@ it("candidate columns align the mention count to the end", () => {
   expect(emotionRules(header)).toContain("text-align: end");
   expect(emotionRules(title)).not.toContain("text-align: end");
 });
+
+it("jurisdiction column shows the shared empty-value placeholder without a name", () => {
+  renderWithProviders(
+    <Table query={{}} item={{ ...row, jurisdiction_name_i18n: {} }} />,
+  );
+
+  expect(screen.getByRole("cell", { name: "—" })).toBeInTheDocument();
+});

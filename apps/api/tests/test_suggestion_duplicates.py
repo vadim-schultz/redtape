@@ -5,12 +5,13 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.service import Conflict, DuplicateSuggestionError, SubmitterRef, SuggestionService
+from app.features.suggestions.service import Conflict, DuplicateSuggestionError, SuggestionService
+from app.features.suggestions.submitters import HumanSubmitter
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document
@@ -22,6 +23,8 @@ from app.schema.suggestion.payload import NewDocumentPayload
 from app.url_normalization import normalize_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from suggestion_support import compose_suggestion_service
 
 
 @pytest.fixture
@@ -54,10 +57,10 @@ def user(db_session: Session) -> AppUser:
 
 @pytest.fixture
 def service(db_session: Session) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
 
 
 def _document(
@@ -122,7 +125,7 @@ def test_same_slug_in_the_same_jurisdiction_conflicts_with_the_document(
     )
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
     assert exc_info.value.conflicts == [Conflict("document", document.id)]
 
@@ -139,7 +142,7 @@ def test_same_normalized_official_url_conflicts_even_if_the_title_differs(
     )
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
     assert exc_info.value.conflicts == [Conflict("document", document.id)]
 
@@ -153,7 +156,7 @@ def test_same_slug_in_another_jurisdiction_is_allowed(
         payload=_payload(title_i18n={"en": "Residency Permit"}, official_url="https://example.gov/unique-page"),
     )
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -165,7 +168,7 @@ def test_same_url_as_a_pending_suggestion_conflicts(
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
     assert exc_info.value.conflicts == [Conflict("suggestion", pending.id)]
 
@@ -181,7 +184,7 @@ def test_same_url_as_an_approved_suggestion_is_allowed(
     )
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -197,7 +200,7 @@ def test_same_url_as_a_rejected_suggestion_is_allowed(
     )
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -208,7 +211,7 @@ def test_same_title_but_different_url_as_a_pending_suggestion_is_allowed(
     _pending_suggestion(db_session, country, normalized_url=normalize_url("https://example.gov/other-page"))
     request = _request(country, payload=_payload(official_url="https://example.gov/residency"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -224,7 +227,7 @@ def test_all_conflicts_are_reported_together_documents_first(
     )
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
     assert exc_info.value.conflicts == [Conflict("document", document.id), Conflict("suggestion", pending.id)]
 
@@ -250,7 +253,7 @@ def test_a_non_duplicate_creates_the_suggestion_as_before(
 ) -> None:
     request = _request(country, payload=_payload(official_url="https://example.gov/brand-new-page"))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -263,7 +266,7 @@ def test_two_url_less_documents_with_different_slugs_do_not_conflict(
     service: SuggestionService, db_session: Session, country: Jurisdiction, user: AppUser
 ) -> None:
     _document(db_session, country, slug="birth-certificate", official_url=None)
-    submitter = SubmitterRef("user", user.id)
+    submitter = HumanSubmitter(user.id)
     first = service.create(submitter=submitter, request=_url_less_request(country, "Residency permit")).suggestion
 
     second = service.create(submitter=submitter, request=_url_less_request(country, "Passport")).suggestion
@@ -278,6 +281,6 @@ def test_same_slug_still_conflicts_without_a_url(
     document = _document(db_session, country, slug="residency-permit", official_url=None)
 
     with pytest.raises(DuplicateSuggestionError) as exc_info:
-        service.create(submitter=SubmitterRef("user", user.id), request=_url_less_request(country, "Residency Permit"))
+        service.create(submitter=HumanSubmitter(user.id), request=_url_less_request(country, "Residency Permit"))
 
     assert exc_info.value.conflicts == [Conflict("document", document.id)]

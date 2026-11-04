@@ -7,7 +7,6 @@ import enum
 
 def enum_values(enum_cls: type[enum.StrEnum]) -> list[str]:
     """Return member values for SQLAlchemy native enums."""
-
     return [member.value for member in enum_cls]
 
 

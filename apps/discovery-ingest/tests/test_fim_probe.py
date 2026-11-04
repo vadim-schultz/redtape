@@ -126,6 +126,5 @@ def test_probe_cli_exits_one_when_the_gate_fails_and_two_for_a_malformed_key(
 
     assert main(["fim", "probe", "--keys", OK_KEY]) == 1
     assert capsys.readouterr().out.splitlines()[-1].endswith("(failed)")
-    with pytest.raises(SystemExit) as raised:
-        main(["fim", "probe", "--keys", "not-a-key"])
-    assert raised.value.code == 2
+    exit_code = main(["fim", "probe", "--keys", "not-a-key"])
+    assert exit_code == 2

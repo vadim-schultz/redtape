@@ -1,12 +1,14 @@
+"""Verify Supabase access tokens against the project's JWKS, without touching the database."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any
+from typing import Annotated
 
 import jwt
 from jwt import PyJWKClient
 from jwt.algorithms import AllowedPublicKeys
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, field_validator
 
 ALGORITHMS = ("RS256", "ES256")
 REQUIRED_CLAIMS = ("exp", "iat", "sub", "iss", "aud")
@@ -25,15 +27,46 @@ _REASON_BY_EXCEPTION: dict[type[Exception], str] = {
 }
 
 
-@dataclass(frozen=True)
-class TokenClaims:
+def _string_or_none(value: object) -> object:
+    """Treat any non-string value as absent: a display name is optional and never trusted by type."""
+    return value if isinstance(value, str) else None
+
+
+class UserMetadata(BaseModel):
+    """The `user_metadata` object of a Supabase access token; only the display name is read."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    full_name: Annotated[str | None, BeforeValidator(_string_or_none)] = None
+
+
+class JwtClaims(BaseModel):
+    """The verified claims the application reads from a Supabase access token."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
     sub: str
-    email: str
-    display_name: str | None = None
+    email: str = Field(min_length=1)
+    user_metadata: UserMetadata | None = None
+
+    @field_validator("email")
+    @classmethod
+    def _email_has_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("email must not be blank")
+        return value
+
+    @property
+    def display_name(self) -> str | None:
+        """Return the token's full name, or ``None`` when the token carries none."""
+        return self.user_metadata.full_name if self.user_metadata is not None else None
 
 
 class AuthError(Exception):
+    """Raised when a credential is refused; `reason` is a stable code for logs, never a client message."""
+
     def __init__(self, reason: str) -> None:
+        """Bind the stable reason code that explains the refusal."""
         super().__init__(reason)
         self.reason = reason
 
@@ -42,23 +75,28 @@ def _translate(exc: Exception) -> AuthError:
     return AuthError(_REASON_BY_EXCEPTION.get(type(exc), "malformed"))
 
 
-def _build_claims(payload: dict[str, Any]) -> TokenClaims:
+def _claims_from(payload: dict[str, object]) -> JwtClaims:
+    """Validate the decoded payload once; a missing or blank email is `missing_claim`, any other defect `malformed`."""
     email = payload.get("email")
-    if not email:
+    if email is None or (isinstance(email, str) and not email.strip()):
         raise AuthError("missing_claim")
-    display_name = payload.get("user_metadata", {}).get("full_name")
-    return TokenClaims(sub=payload["sub"], email=email, display_name=display_name)
+    try:
+        return JwtClaims.model_validate(payload)
+    except ValidationError as exc:
+        raise AuthError("malformed") from exc
 
 
 class JwtVerifier:
     """Database-free verification of a Supabase access token against its JWKS."""
 
     def __init__(self, key_resolver: KeyResolver, issuer: str, audience: str) -> None:
+        """Bind the key resolver and the expected issuer and audience of the tokens."""
         self._key_resolver = key_resolver
         self._issuer = issuer
         self._audience = audience
 
-    def verify(self, token: str) -> TokenClaims:
+    def verify(self, token: str) -> JwtClaims:
+        """Return the claims of a valid token, or raise `AuthError` with the reason it was refused."""
         try:
             key = self._key_resolver(token)
             payload = jwt.decode(
@@ -72,11 +110,10 @@ class JwtVerifier:
             )
         except jwt.PyJWTError as exc:
             raise _translate(exc) from exc
-        return _build_claims(payload)
+        return _claims_from(payload)
 
 
 def jwks_key_resolver(url: str) -> KeyResolver:
     """Production key resolver: fetches and caches the project's JWKS over HTTP."""
-
     client = PyJWKClient(url, cache_keys=True)
     return lambda token: client.get_signing_key_from_jwt(token).key

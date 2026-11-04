@@ -94,12 +94,18 @@ def _normalised_url(raw: str) -> str:
 class DiscoveryMachineService:
     """Machine ingest and crawler queue operations."""
 
-    def __init__(self, repository: DiscoveryRepository) -> None:
-        """Bind the service to ``repository`` and build its collaborators."""
+    def __init__(
+        self,
+        repository: DiscoveryRepository,
+        catalogue_upserts: CatalogueUpsertService,
+        queue: TaskQueue,
+        claim_ingest: ClaimIngest,
+    ) -> None:
+        """Bind the service to ``repository`` and to the collaborators that write catalogue rows, tasks and claims."""
         self._repo = repository
-        self._catalogue_upserts = CatalogueUpsertService(repository)
-        self._queue = TaskQueue(repository)
-        self._claim_ingest = ClaimIngest(repository)
+        self._catalogue_upserts = catalogue_upserts
+        self._queue = queue
+        self._claim_ingest = claim_ingest
 
     def batch_upsert(self, body: CatalogueBatchRequest) -> CatalogueBatchResponse:
         """Upsert catalogue rows, enqueue their tasks and fan out."""

@@ -1,9 +1,6 @@
 import { NativeSelect } from "@chakra-ui/react";
 
-export interface FilterOption {
-  value: string;
-  label: string;
-}
+import type { FilterOption } from "../../../components/data-display/DataTable";
 
 export interface FilterSelectProps {
   label: string;

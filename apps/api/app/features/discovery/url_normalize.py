@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from app.schema.suggestion.payload import validate_url
-from app.url_normalization import normalize_url
+from app.url_normalization import normalize_url, validate_url
 
 
 def normalize_canonical_url(url: str) -> str:

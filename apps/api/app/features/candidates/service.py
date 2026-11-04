@@ -69,8 +69,8 @@ class CandidateReadService:
         return Evidence(edges, mentions, self._repo.newest_screenshot(candidate_id))
 
     def _context(self, candidate_ids: Sequence[UUID], locale: ResolvedLocale) -> CardContext:
-        domains = self._taxonomy.list_domains(locale=locale.code, enabled_locales=locale.enabled)
-        situations = self._taxonomy.list_situations(locale=locale.code, enabled_locales=locale.enabled)
+        domains = self._taxonomy.list_domains(locale=locale)
+        situations = self._taxonomy.list_situations(locale=locale)
         return CardContext(
             locale=locale,
             completeness=self._repo.completeness_for(candidate_ids),

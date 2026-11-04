@@ -13,6 +13,12 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from app.features.locations.openplz.models import (
+    OpenPLZDistrict,
+    OpenPLZFederalState,
+    OpenPLZLocality,
+    OpenPLZMunicipality,
+)
 from app.models.jurisdiction import Jurisdiction
 from app.models.locality import Locality
 from scripts import import_openplz_locations as importer
@@ -60,23 +66,25 @@ def _dataset() -> Payload:
 
 
 class _FakeClient:
-    """Serves the in-memory dataset through the two OpenPLZClient methods the importer uses."""
+    """Serves the in-memory dataset through OpenPLZClient's typed endpoint methods."""
 
     def __init__(self, data: Payload) -> None:
         self._data = data
 
-    def get_json(self, endpoint: str, params: dict[str, Any] | None = None) -> list[Payload]:
-        assert endpoint == "FederalStates"
-        return self._data["states"]
+    def federal_states(self) -> list[OpenPLZFederalState]:
+        return [OpenPLZFederalState.model_validate(item) for item in self._data["states"]]
 
-    def iter_paged(self, *, endpoint: str, page_size: int = 50) -> Iterator[Payload]:
-        parts = endpoint.split("/")
-        if parts[0] == "FederalStates":
-            yield from self._data["districts"][parts[1]]
-        elif parts[2] == "Municipalities":
-            yield from self._data["municipalities"][parts[1]]
-        else:
-            yield from self._data["localities"][parts[1]]
+    def districts(self, state_code: str) -> Iterator[OpenPLZDistrict]:
+        for item in self._data["districts"][state_code]:
+            yield OpenPLZDistrict.model_validate(item)
+
+    def municipalities(self, district_code: str) -> Iterator[OpenPLZMunicipality]:
+        for item in self._data["municipalities"][district_code]:
+            yield OpenPLZMunicipality.model_validate(item)
+
+    def localities(self, district_code: str) -> Iterator[OpenPLZLocality]:
+        for item in self._data["localities"][district_code]:
+            yield OpenPLZLocality.model_validate(item)
 
 
 def _run_import(

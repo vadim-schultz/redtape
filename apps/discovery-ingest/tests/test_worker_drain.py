@@ -11,13 +11,15 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.cli import main
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS, TaskEnqueueRequest
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
+from pydantic import SecretStr
 
 from capture_fakes import FakeCamera, shot
+from drain_deps_for import deps_for
 from render_fakes import FakeApi, robots_fetcher, task_json
 from run_stub import run_response
 
@@ -29,13 +31,13 @@ _REAL_HTTPX_CLIENT = httpx.Client
 
 
 def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTransport) -> None:
-    """Patch httpx.Client for api_client and fetcher (shared httpx module binding)."""
+    """Patch httpx.Client for the ingest client and fetcher (shared httpx module binding)."""
 
     def client_factory(**kwargs: Any) -> httpx.Client:
         kwargs["transport"] = transport
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", client_factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", client_factory)
     monkeypatch.setattr("discovery_ingest.worker.fetcher.httpx.Client", client_factory)
 
 
@@ -267,8 +269,7 @@ def test_worker_drain_rejects_non_positive_bounds_before_claiming(
 
 def test_worker_drain_rejects_non_numeric_bound(_env: None) -> None:
     """worker drain rejects a non-numeric bound at argument parsing."""
-    with pytest.raises(SystemExit):
-        main(["worker", "drain", "--max-batches", "many"])
+    assert main(["worker", "drain", "--max-batches", "many"]) == 2
 
 
 def test_worker_drain_stops_at_time_budget_without_speculative_claim(
@@ -277,7 +278,7 @@ def test_worker_drain_stops_at_time_budget_without_speculative_claim(
     """worker drain stops at the configured bound and reports remaining work."""
     claims, finishes = [0], []
     ticks = itertools.chain([0.0], itertools.repeat(5.0))
-    monkeypatch.setattr("discovery_ingest.worker.drain.time.monotonic", lambda: next(ticks))
+    monkeypatch.setattr("discovery_ingest.worker.drain_deps.time.monotonic", lambda: next(ticks))
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_queue_handler(_two_batches(), claims, finishes)))
 
     exit_code = main(["worker", "drain", "--max-tasks", "2", "--max-batches", "9", "--time-budget-seconds", "1"])
@@ -430,10 +431,9 @@ def test_worker_drain_rejects_an_unknown_or_empty_kind_before_claiming(
     bodies: list[dict[str, object]] = []
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_claim_bodies_handler(bodies)))
 
-    with pytest.raises(SystemExit) as exit_info:
-        main(["worker", "drain", "--kinds", raw])
+    exit_code = main(["worker", "drain", "--kinds", raw])
 
-    assert exit_info.value.code == 2
+    assert exit_code == 2
     assert bodies == []
 
 
@@ -446,9 +446,9 @@ def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.Monke
         return httpx.Response(201, json={"id": str(TASK_ID), "created": True})
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
-    result = client.enqueue_task(
+    result = client.tasks.enqueue(
         TaskEnqueueRequest(
             catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL, input_key="html@1"
         )
@@ -469,11 +469,11 @@ def test_client_enqueue_task_posts_the_documented_body(monkeypatch: pytest.Monke
 def test_client_enqueue_task_raises_on_an_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """A 404 from the enqueue route surfaces as DiscoveryMachineApiError."""
     _patch_httpx_client(monkeypatch, httpx.MockTransport(lambda request: httpx.Response(404, text="gone")))
-    client = DiscoveryMachineClient(API_BASE, "test-machine-key")
+    client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
     body = TaskEnqueueRequest(catalogue_service_id=CATALOGUE_ID, kind="extract_page", target_url=TARGET_URL)
 
     with pytest.raises(DiscoveryMachineApiError) as error:
-        client.enqueue_task(body)
+        client.tasks.enqueue(body)
 
     assert error.value.status_code == 404
 
@@ -653,7 +653,7 @@ def test_capture_screenshot_is_dispatched_to_its_handler_and_absent_from_the_def
     api, camera = _capture_api(), FakeCamera(shot())
     policy = DrainPolicy(max_tasks=5, kinds=("capture_screenshot",), browser_budget_seconds=480)
 
-    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), policy, browser=camera)
+    report = run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher(), browser=camera), policy)
 
     assert camera.calls == [TARGET_URL] and len(api.uploads) == 1
     assert (report.completed, report.failed, report.browser_seconds_used) == (1, 0, 2.0)
@@ -666,7 +666,7 @@ def test_a_capture_screenshot_task_claimed_by_a_default_drain_is_failed_without_
     """worker drain · without a browser there is no capture handler: the task fails permanently, nothing is captured."""
     api = _capture_api()
 
-    report = run_worker_drain(api.client(monkeypatch), robots_fetcher(), DrainPolicy(max_tasks=5))
+    report = run_worker_drain(deps_for(api.client(monkeypatch), robots_fetcher()), DrainPolicy(max_tasks=5))
 
     ((_, body),) = api.named("fail")
     assert body["retryable"] is False and str(body["error"]).startswith("unsupported task kind")

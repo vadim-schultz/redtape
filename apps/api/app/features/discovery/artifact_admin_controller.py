@@ -26,6 +26,7 @@ class DiscoveryArtifactAdminController(Controller):
         page: PageParams,
         catalogue_id: UUID,
     ) -> AdminArtifactListResponse:
+        """Page through the artifacts stored for one catalogue row."""
         return discovery_artifact_read_service.list_for_catalogue(catalogue_id, Page(page.offset, page.limit))
 
     @get("/candidates/{candidate_id:uuid}/artifacts", sync_to_thread=True)
@@ -35,4 +36,5 @@ class DiscoveryArtifactAdminController(Controller):
         page: PageParams,
         candidate_id: UUID,
     ) -> AdminArtifactListResponse:
+        """Page through the artifacts cited as evidence for one candidate."""
         return discovery_artifact_read_service.list_for_candidate(candidate_id, Page(page.offset, page.limit))

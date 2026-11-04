@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "DependencyItem": {
+      "additionalProperties": false,
+      "description": "A statement that ``parent`` requires ``requires``, by document name.",
+      "properties": {
+        "condition": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition"
+        },
+        "parent": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Parent",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "requires": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Requires",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parent",
+        "requires",
+        "quote"
+      ],
+      "title": "DependencyItem",
+      "type": "object"
+    },
+    "DocumentItem": {
+      "additionalProperties": false,
+      "description": "A document, form or issued document the page names, with the quote that proves it.",
+      "properties": {
+        "condition": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition"
+        },
+        "is_optional": {
+          "default": false,
+          "title": "Is Optional",
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "required",
+            "form",
+            "issued"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "name",
+        "role",
+        "quote"
+      ],
+      "title": "DocumentItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Everything the model says about one page.",
+  "properties": {
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/DependencyItem"
+      },
+      "maxItems": 40,
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/DocumentItem"
+      },
+      "maxItems": 40,
+      "title": "Documents",
+      "type": "array"
+    },
+    "domain_codes": {
+      "items": {
+        "enum": [
+          "DOM_A",
+          "DOM_B"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Domain Codes",
+      "type": "array"
+    },
+    "page_kind": {
+      "enum": [
+        "service",
+        "form",
+        "list",
+        "login_or_error",
+        "other"
+      ],
+      "title": "Page Kind",
+      "type": "string"
+    },
+    "situation_codes": {
+      "items": {
+        "enum": [
+          "SIT_X"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Situation Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "page_kind",
+    "domain_codes",
+    "documents",
+    "dependencies"
+  ],
+  "title": "PageExtraction",
+  "type": "object"
+}

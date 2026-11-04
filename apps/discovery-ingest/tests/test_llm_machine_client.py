@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineApiError
+from discovery_ingest.client import DiscoveryMachineApiError
 from discovery_ingest.edges import EdgeItem
 from discovery_ingest.mentions import MentionItem, MentionsResponse
 
@@ -43,7 +43,7 @@ def test_post_edges_sends_the_batch_and_reads_the_counts(monkeypatch: pytest.Mon
     api = LlmApi([])
     client = api.client(monkeypatch)
 
-    response = client.post_edges([_edge()])
+    response = client.candidates.post_edges([_edge()])
 
     assert api.edge_posts[0][0]["basis"] == "explicit"
     assert (response.edges_created, response.edges_updated, response.edges_skipped, response.skipped) == (1, 0, 0, [])
@@ -55,10 +55,10 @@ def test_post_edges_raises_the_api_error_and_recognises_the_database_limit(monke
     client = api.client(monkeypatch)
     api.edge_status, api.edge_detail = 507, '{"detail":"database_soft_limit"}'
     with pytest.raises(DiscoveryMachineApiError) as limit:
-        client.post_edges([_edge()])
+        client.candidates.post_edges([_edge()])
     api.edge_status, api.edge_detail = 422, "bad edge"
     with pytest.raises(DiscoveryMachineApiError) as invalid:
-        client.post_edges([_edge()])
+        client.candidates.post_edges([_edge()])
 
     assert limit.value.is_database_limit and not invalid.value.is_database_limit
 
@@ -68,7 +68,7 @@ def test_post_mentions_reads_the_unknown_code_count_and_defaults_it_to_zero(monk
     api = LlmApi([])
     client = api.client(monkeypatch)
     api.unknown_codes = 2
-    assert client.post_mentions([_mention()]).unknown_codes == 2
+    assert client.candidates.post_mentions([_mention()]).unknown_codes == 2
 
     assert (
         MentionsResponse.model_validate(

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import unicodedata
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter
 
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.json_types import JsonObject, JsonSchema
 
 MAX_NAME_LENGTH = 120
 MAX_QUOTE_LENGTH = 300
@@ -73,16 +74,27 @@ class PageExtraction(_Strict):
     dependencies: list[DependencyItem] = Field(max_length=MAX_DEPENDENCIES)
 
 
-def _restrict_codes(code_property: dict[str, Any], codes: tuple[str, ...]) -> None:
+def _restrict_codes(code_property: JsonObject, codes: tuple[str, ...]) -> None:
     """Offer ``codes`` as an enum; an empty vocabulary allows no codes (an empty enum is not valid JSON schema)."""
-    code_property["items"] = {"type": "string", "enum": list(codes)} if codes else {"type": "string"}
+    code_property["items"] = {"type": "string", "enum": [*codes]} if codes else {"type": "string"}
     if not codes:
         code_property["maxItems"] = 0
 
 
-def build_json_schema(taxonomy: Taxonomy) -> dict[str, Any]:
+def _property(schema: JsonObject, name: str) -> JsonObject:
+    """Return the object schema of property ``name``; the generated schema always has one."""
+    properties = schema["properties"]
+    if not isinstance(properties, dict):
+        raise ValueError("generated schema has no properties object")
+    node = properties[name]
+    if not isinstance(node, dict):
+        raise ValueError(f"generated schema property {name} is not an object")
+    return node
+
+
+def build_json_schema(taxonomy: Taxonomy) -> JsonSchema:
     """Return the JSON schema for ``response_format`` with the vocabulary as code enums (a hint; grounding decides)."""
-    schema = PageExtraction.model_json_schema()
-    _restrict_codes(schema["properties"]["domain_codes"], taxonomy.domain_codes)
-    _restrict_codes(schema["properties"]["situation_codes"], taxonomy.situation_codes)
+    schema = TypeAdapter(JsonSchema).validate_python(PageExtraction.model_json_schema())
+    _restrict_codes(_property(schema, "domain_codes"), taxonomy.domain_codes)
+    _restrict_codes(_property(schema, "situation_codes"), taxonomy.situation_codes)
     return schema

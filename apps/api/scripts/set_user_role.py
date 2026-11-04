@@ -24,6 +24,7 @@ def _set_role_or_exit(service: UserService, email: str, role: str) -> AppUser:
 
 
 def main() -> None:
+    """Set the role of the user identified by email, committing only when the role is accepted."""
     parser = argparse.ArgumentParser(description="Set an app_user's role by email.")
     parser.add_argument("email")
     parser.add_argument("role")

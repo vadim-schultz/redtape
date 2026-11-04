@@ -1,0 +1,9 @@
+usage: discovery_ingest leika enrich [-h] --catalogue-service-id CATALOGUE_SERVICE_ID
+                                     --catalogue-export CATALOGUE_EXPORT --input INPUT
+
+options:
+  -h, --help            show this help message and exit
+  --catalogue-service-id CATALOGUE_SERVICE_ID
+  --catalogue-export CATALOGUE_EXPORT
+                        Admin catalogue export JSON
+  --input INPUT         Stammtext JSON fixture or snapshot

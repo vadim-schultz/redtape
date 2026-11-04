@@ -3,16 +3,17 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
-from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.service import AlreadyDecidedError, SuggestionService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.features.voting.repository import VoteRepository
 from app.features.voting.service import NotFoundError, SelfVoteError, SuggestionNotVotableError, VoteService
+from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType
@@ -20,6 +21,8 @@ from app.models.suggestion_vote import SuggestionVote
 from app.models.user import AppUser
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from suggestion_support import compose_suggestion_service
 
 
 @pytest.fixture
@@ -77,9 +80,9 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def suggestion_service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 @pytest.fixture
@@ -100,6 +103,10 @@ def _voters(db_session: Session, n: int) -> list[AppUser]:
     db_session.add_all(users)
     db_session.flush()
     return users
+
+
+def _document_by_slug(session: Session, jurisdiction: Jurisdiction, slug: str) -> Document | None:
+    return session.scalar(select(Document).where(Document.jurisdiction_id == jurisdiction.id, Document.slug == slug))
 
 
 def test_cast_records_an_up_vote_for_a_pending_suggestion(
@@ -241,7 +248,7 @@ def test_cast_logs_a_voted_event_with_the_value_and_the_voter(
     assert voted[0].actor_user_id == voter.id
 
 
-def test_remove_never_triggers_a_transition(
+def test_remove_after_a_decision_is_rejected_and_changes_nothing(
     db_session: Session, service: VoteService, pending_suggestion: Suggestion
 ) -> None:
     voters = _voters(db_session, 3)
@@ -249,6 +256,126 @@ def test_remove_never_triggers_a_transition(
         service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
     assert pending_suggestion.status == SuggestionStatus.APPROVED
 
-    service.remove(suggestion_id=pending_suggestion.id, user_id=voters[0].id)
+    with pytest.raises(SuggestionNotVotableError):
+        service.remove(suggestion_id=pending_suggestion.id, user_id=voters[0].id)
 
     assert pending_suggestion.status == SuggestionStatus.APPROVED
+    assert _vote(db_session, pending_suggestion.id, voters[0].id) is not None
+
+
+def test_remove_on_a_rejected_suggestion_is_rejected_and_keeps_the_vote(
+    db_session: Session, service: VoteService, pending_suggestion: Suggestion
+) -> None:
+    voters = _voters(db_session, 3)
+    for voter in voters:
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=-1)
+    assert pending_suggestion.status == SuggestionStatus.REJECTED
+
+    with pytest.raises(SuggestionNotVotableError):
+        service.remove(suggestion_id=pending_suggestion.id, user_id=voters[0].id)
+
+    assert pending_suggestion.status == SuggestionStatus.REJECTED
+    assert _vote(db_session, pending_suggestion.id, voters[0].id) is not None
+
+
+def test_remove_on_an_unknown_suggestion_raises_not_found(service: VoteService, voter: AppUser) -> None:
+    with pytest.raises(NotFoundError):
+        service.remove(suggestion_id=uuid.uuid4(), user_id=voter.id)
+
+
+def test_cast_that_hits_a_promotion_conflict_keeps_the_vote_and_leaves_the_suggestion_pending(
+    db_session: Session,
+    service: VoteService,
+    suggestion_service: SuggestionService,
+    event_log_service: EventLogService,
+    jurisdiction: Jurisdiction,
+    submitter: AppUser,
+) -> None:
+    first = _suggestion(db_session, jurisdiction, submitter)
+    second = _suggestion(db_session, jurisdiction, submitter)
+    suggestion_service.transition_to(first.id, SuggestionStatus.APPROVED, actor=None)
+
+    voters = _voters(db_session, 3)
+    for voter in voters[:2]:
+        service.cast(suggestion_id=second.id, user_id=voter.id, value=1)
+    result = service.cast(suggestion_id=second.id, user_id=voters[2].id, value=1)
+
+    assert result.promotion_blocked is not None
+    assert "residency-permit" in result.promotion_blocked
+    assert _vote(db_session, second.id, voters[2].id) is not None
+    assert second.status == SuggestionStatus.PENDING
+    events = event_log_service.list_for(second.id)
+    assert len([e for e in events if e.event_type == EventType.VOTED]) == 3
+    assert not any(e.event_type in (EventType.PROMOTED, EventType.STATUS_CHANGED) for e in events)
+
+
+def test_cast_without_a_conflict_reports_nothing_blocked(
+    db_session: Session, service: VoteService, jurisdiction: Jurisdiction, submitter: AppUser
+) -> None:
+    other_jurisdiction = Jurisdiction(
+        kind=JurisdictionKind.COUNTRY, name_i18n={"en": "Otherland"}, code=f"O{uuid.uuid4().hex[:8]}"
+    )
+    db_session.add(other_jurisdiction)
+    db_session.flush()
+    promotes = _suggestion(db_session, jurisdiction, submitter)
+    stays_pending = _suggestion(db_session, other_jurisdiction, submitter)
+    voters = _voters(db_session, 3)
+
+    result = None
+    for voter in voters:
+        result = service.cast(suggestion_id=promotes.id, user_id=voter.id, value=1)
+    assert result is not None
+    assert result.promotion_blocked is None
+    assert promotes.status == SuggestionStatus.APPROVED
+
+    sub_threshold_result = service.cast(suggestion_id=stays_pending.id, user_id=voters[0].id, value=1)
+    assert sub_threshold_result.promotion_blocked is None
+    assert stays_pending.status == SuggestionStatus.PENDING
+
+
+def test_a_blocked_promotion_is_retried_by_the_next_vote(
+    db_session: Session,
+    service: VoteService,
+    suggestion_service: SuggestionService,
+    jurisdiction: Jurisdiction,
+    submitter: AppUser,
+) -> None:
+    first = _suggestion(db_session, jurisdiction, submitter)
+    second = _suggestion(db_session, jurisdiction, submitter)
+    suggestion_service.transition_to(first.id, SuggestionStatus.APPROVED, actor=None)
+
+    voters = _voters(db_session, 4)
+    for voter in voters[:3]:
+        service.cast(suggestion_id=second.id, user_id=voter.id, value=1)
+    assert second.status == SuggestionStatus.PENDING
+
+    competing_document = _document_by_slug(db_session, jurisdiction, "residency-permit")
+    assert competing_document is not None
+    db_session.delete(competing_document)
+    db_session.flush()
+
+    result = service.cast(suggestion_id=second.id, user_id=voters[3].id, value=1)
+
+    assert result.promotion_blocked is None
+    assert second.status == SuggestionStatus.APPROVED
+    assert _document_by_slug(db_session, jurisdiction, "residency-permit") is not None
+
+
+def test_cast_propagates_already_decided_when_the_suggestion_was_decided_behind_its_back(
+    monkeypatch: pytest.MonkeyPatch,
+    db_session: Session,
+    service: VoteService,
+    suggestion_service: SuggestionService,
+    pending_suggestion: Suggestion,
+) -> None:
+    voters = _voters(db_session, 3)
+    for voter in voters[:2]:
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voter.id, value=1)
+
+    def _raise(*args: object, **kwargs: object) -> Suggestion:
+        raise AlreadyDecidedError("decided behind our back")
+
+    monkeypatch.setattr(suggestion_service, "transition_to", _raise)
+
+    with pytest.raises(AlreadyDecidedError):
+        service.cast(suggestion_id=pending_suggestion.id, user_id=voters[2].id, value=1)

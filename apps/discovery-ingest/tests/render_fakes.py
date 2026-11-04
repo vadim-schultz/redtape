@@ -11,10 +11,11 @@ from typing import Any
 
 import httpx
 import pytest
-from discovery_ingest.api_client import DiscoveryMachineClient
 from discovery_ingest.browser.errors import BrowserError
 from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from pydantic import SecretStr
 
 from run_stub import run_response
 
@@ -158,15 +159,15 @@ class FakeApi:
             "exhausted": self.ledger_exhausted,
         }
 
-    def client(self, monkeypatch: pytest.MonkeyPatch) -> DiscoveryMachineClient:
+    def client(self, monkeypatch: pytest.MonkeyPatch) -> DiscoveryIngestClient:
         """Return a machine client whose every HTTP call lands in :meth:`handler`."""
 
         def factory(**kwargs: Any) -> httpx.Client:
             kwargs["transport"] = httpx.MockTransport(self.handler)
             return _REAL_HTTPX_CLIENT(**kwargs)
 
-        monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
-        return DiscoveryMachineClient(API_BASE, "test-machine-key")
+        monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
+        return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
 
 def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> PoliteUrlFetcher:

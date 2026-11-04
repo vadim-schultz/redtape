@@ -1,7 +1,10 @@
+"""Clean up OpenPLZ-derived jurisdiction and locality rows, or wipe the location tables entirely."""
+
 from __future__ import annotations
 
 import argparse
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from app.db import SessionLocal
@@ -9,19 +12,21 @@ from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locality import Locality
 from app.models.suggestion import Suggestion
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "redtape-openplz")
+from scripts.openplz_ids import country_id, locality_id, municipality_id, region_id
 
 
 class SuggestionsPresentError(RuntimeError):
     """Raised by wipe_all() when suggestion rows exist and --include-suggestions wasn't passed."""
 
 
-def _stable_uuid(key: str) -> uuid.UUID:
-    # Deterministic UUID so re-imports are idempotent.
-    return uuid.uuid5(UUID_NAMESPACE, key)
+_ID_FACTORIES: dict[JurisdictionKind, Callable[[str], uuid.UUID]] = {
+    JurisdictionKind.COUNTRY: country_id,
+    JurisdictionKind.REGION: region_id,
+    JurisdictionKind.MUNICIPALITY: municipality_id,
+}
 
 
 def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.UUID | None:
@@ -31,26 +36,16 @@ def _expected_jurisdiction_id(kind: JurisdictionKind, code: str | None) -> uuid.
     We only mark a row as "OpenPLZ-derived" when its existing `id` matches the expected UUID.
     This avoids accidentally deleting non-OpenPLZ data that might share schema tables.
     """
-
     if code is None:
         return None
 
-    if kind == JurisdictionKind.COUNTRY:
-        return _stable_uuid(f"jurisdiction:COUNTRY:{code}")
-    if kind == JurisdictionKind.REGION:
-        return _stable_uuid(f"jurisdiction:REGION:{code}")
-    if kind == JurisdictionKind.MUNICIPALITY:
-        return _stable_uuid(f"jurisdiction:MUNICIPALITY:{code}")
-
-    # Future-proofing: unknown kind.
-    return None
+    # Future-proofing: a kind without a deterministic id factory yields None.
+    factory = _ID_FACTORIES.get(kind)
+    return factory(code) if factory is not None else None
 
 
 def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
-    """
-    Return (jurisdiction_ids, locality_ids) that appear to be OpenPLZ-derived.
-    """
-
+    """Return the jurisdiction and locality ids whose stored id equals the deterministic OpenPLZ id."""
     openplz_jurisdiction_ids: list[uuid.UUID] = []
     jurisdiction_rows = session.execute(select(Jurisdiction.id, Jurisdiction.kind, Jurisdiction.code)).all()
     for jid, kind, code in jurisdiction_rows:
@@ -72,7 +67,7 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     for loc_id, postal_code, name, muni_code in locality_rows:
         if muni_code is None:
             continue
-        expected_locality_id = _stable_uuid(f"locality:{muni_code}:{postal_code}:{name}")
+        expected_locality_id = locality_id(muni_code, postal_code, name)
         if loc_id == expected_locality_id:
             openplz_locality_ids.append(loc_id)
 
@@ -80,6 +75,10 @@ def _compute_openplz_ids(session) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
 
 
 def cleanup_openplz_data(*, dry_run: bool) -> None:
+    """Delete the OpenPLZ-derived localities, municipalities, regions and countries, leaf first.
+
+    Rows whose id is not the deterministic OpenPLZ id are left alone. A dry run prints the counts and rolls back.
+    """
     session = SessionLocal()
     try:
         now = datetime.now(UTC)
@@ -137,19 +136,29 @@ def cleanup_openplz_data(*, dry_run: bool) -> None:
         # Use a transaction: if something goes wrong, rollback to keep DB consistent.
         # (SQLAlchemy session is already transactional; commit only at end.)
         if locality_ids:
-            session.execute(Locality.__table__.delete().where(Locality.id.in_(locality_ids)))
+            session.execute(
+                delete(Locality).where(Locality.id.in_(locality_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_localities={len(locality_ids)}")
 
         if muni_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(muni_ids)))
+            session.execute(
+                delete(Jurisdiction).where(Jurisdiction.id.in_(muni_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_municipalities={len(muni_ids)}")
 
         if region_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(region_ids)))
+            session.execute(
+                delete(Jurisdiction).where(Jurisdiction.id.in_(region_ids)).execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_regions={len(region_ids)}")
 
         if country_ids:
-            session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.id.in_(country_ids)))
+            session.execute(
+                delete(Jurisdiction)
+                .where(Jurisdiction.id.in_(country_ids))
+                .execution_options(synchronize_session=False)
+            )
             print(f"[cleanup_openplz_data] deleted_countries={len(country_ids)}")
 
         session.commit()
@@ -163,14 +172,16 @@ def _count(session: Session, model) -> int:
 
 
 def _delete_all(session: Session, model) -> None:
-    session.execute(model.__table__.delete())
+    session.execute(delete(model).execution_options(synchronize_session=False))
 
 
 def _delete_jurisdictions_leaf_first(session: Session) -> None:
     # geographic_parent_id is a non-deferrable RESTRICT self-FK, so children
     # must go before parents -- a single bulk DELETE can't guarantee that.
     for kind in (JurisdictionKind.MUNICIPALITY, JurisdictionKind.REGION, JurisdictionKind.COUNTRY):
-        session.execute(Jurisdiction.__table__.delete().where(Jurisdiction.kind == kind))
+        session.execute(
+            delete(Jurisdiction).where(Jurisdiction.kind == kind).execution_options(synchronize_session=False)
+        )
 
 
 def _guard_suggestions_present(suggestion_count: int, include_suggestions: bool) -> None:
@@ -209,7 +220,6 @@ def wipe_all(session: Session, *, dry_run: bool, include_suggestions: bool) -> d
     (possible user-submitted data) aren't OpenPLZ-derived, so it's treated
     conservatively by default rather than assumed disposable.
     """
-
     suggestion_count = _count(session, Suggestion)
     _guard_suggestions_present(suggestion_count, include_suggestions)
     counts = _wipe_all_counts(session, suggestion_count=suggestion_count, include_suggestions=include_suggestions)
@@ -232,6 +242,7 @@ def _run_wipe_all(*, dry_run: bool, include_suggestions: bool) -> None:
 
 
 def main() -> None:
+    """Parse the command-line flags and run either the wipe-all or the derived-row cleanup."""
     parser = argparse.ArgumentParser(description="Cleanup OpenPLZ-derived jurisdiction + locality data.")
     parser.add_argument(
         "--wipe-all",

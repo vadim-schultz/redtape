@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.extract.llm.meter import NeuronMeter, open_neuron_meter
+from discovery_ingest.schemas import DiscoveryTaskKind
 from discovery_ingest.worker.batch import TaskHandler
 from discovery_ingest.worker.llm_extract import AfterExtract, LlmExtractHandler
 from discovery_ingest.worker.llm_runtime import LlmResources
@@ -21,8 +22,8 @@ class LlmDrain:
     handler: LlmExtractHandler
     meter: NeuronMeter
 
-    def handlers(self) -> Mapping[str, TaskHandler]:
-        """The kind-to-handler entry of this drain."""
+    def handlers(self) -> Mapping[DiscoveryTaskKind, TaskHandler]:
+        """Return the kind-to-handler entry of this drain."""
         return {"llm_extract": self.handler}
 
     def record(self, tally: Tally) -> None:

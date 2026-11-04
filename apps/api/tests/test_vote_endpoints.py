@@ -6,12 +6,13 @@ import time
 import uuid
 from collections.abc import Iterator
 
-import app.features.auth.dependencies as auth_dependencies
 import jwt
 import pytest
 from app.config import settings
 from app.features.auth.jwt import JwtVerifier
+from app.features.suggestions.transitions import AlreadyDecidedError, SuggestionTransitions
 from app.main import create_app
+from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_vote import SuggestionVote
@@ -22,6 +23,8 @@ from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from auth_support import use_jwt_verifier
 
 ISSUER = "https://example.supabase.co/auth/v1"
 AUDIENCE = "authenticated"
@@ -67,16 +70,42 @@ def _token_for(user_id: uuid.UUID, **claim_overrides: object) -> str:
     return _token(_claims(sub=str(user_id), **claim_overrides))
 
 
-@pytest.fixture
-def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+def _patch_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
+    use_jwt_verifier(monkeypatch, verifier)
+
+
+@pytest.fixture
+def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    _patch_auth(monkeypatch)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def rollback_spy(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[tuple[TestClient[Litestar], list[BaseException]]]:
+    """A client whose `provide_session` rolls back on exception, like production's (`app/db.py`)."""
+    _patch_auth(monkeypatch)
+    rollbacks: list[BaseException] = []
+
+    def _provide_session() -> Iterator[Session]:
+        try:
+            yield db_session
+        except Exception as exc:
+            db_session.rollback()
+            rollbacks.append(exc)
+            raise
+
+    monkeypatch.setattr("app.main.provide_session", _provide_session)
+    app = create_app()
+    with TestClient(app) as test_client:
+        yield test_client, rollbacks
 
 
 @pytest.fixture
@@ -115,10 +144,18 @@ def _suggestion(
         source_type=SuggestionSource.HUMAN,
         jurisdiction_id=jurisdiction.id,
         submitted_by_user_id=submitter.id,
+        payload={"title_i18n": {"en": "Residency permit"}, "official_url": "https://example.gov/residency"},
     )
     session.add(row)
     session.flush()
     return row
+
+
+def _voters(session: Session, n: int) -> list[AppUser]:
+    users = [AppUser(id=uuid.uuid4(), email=f"{uuid.uuid4().hex}@example.com") for _ in range(n)]
+    session.add_all(users)
+    session.flush()
+    return users
 
 
 @pytest.fixture
@@ -237,3 +274,78 @@ def test_delete_vote_returns_401_without_a_token(client: TestClient[Litestar], p
     response = client.delete(_vote_url(pending_suggestion.id))
 
     assert response.status_code == 401
+
+
+def test_delete_vote_returns_409_for_a_decided_suggestion_and_keeps_the_vote(
+    client: TestClient[Litestar], db_session: Session, jurisdiction: Jurisdiction, submitter: AppUser, voter: AppUser
+) -> None:
+    suggestion = _suggestion(db_session, jurisdiction, submitter, status=SuggestionStatus.APPROVED)
+    db_session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=voter.id, value=1))
+    db_session.flush()
+    token = _token_for(voter.id)
+
+    response = client.delete(_vote_url(suggestion.id), headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    assert _vote_row(db_session, suggestion.id, voter.id) is not None
+
+
+def test_delete_vote_returns_404_for_an_unknown_suggestion(client: TestClient[Litestar], voter: AppUser) -> None:
+    token = _token_for(voter.id)
+
+    response = client.delete(_vote_url(uuid.uuid4()), headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 404
+
+
+def test_put_vote_returns_409_and_keeps_the_vote_when_the_promotion_is_blocked(
+    rollback_spy: tuple[TestClient[Litestar], list[BaseException]],
+    db_session: Session,
+    jurisdiction: Jurisdiction,
+    submitter: AppUser,
+) -> None:
+    client, rollbacks = rollback_spy
+    suggestion = _suggestion(db_session, jurisdiction, submitter)
+    db_session.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="residency-permit", title_i18n={"en": "Residency permit"})
+    )
+    db_session.flush()
+    voters = _voters(db_session, 3)
+    db_session.add_all(SuggestionVote(suggestion_id=suggestion.id, user_id=v.id, value=1) for v in voters[:2])
+    db_session.flush()
+    token = _token_for(voters[2].id)
+
+    response = client.put(_vote_url(suggestion.id), json={"value": 1}, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    assert response.json()["extra"] == {"value": 1}
+    assert rollbacks == []
+    assert _vote_row(db_session, suggestion.id, voters[2].id) is not None
+    assert suggestion.status == SuggestionStatus.PENDING
+
+
+def test_put_vote_returns_409_when_the_suggestion_was_decided_concurrently(
+    rollback_spy: tuple[TestClient[Litestar], list[BaseException]],
+    monkeypatch: pytest.MonkeyPatch,
+    db_session: Session,
+    pending_suggestion: Suggestion,
+    voter: AppUser,
+) -> None:
+    client, rollbacks = rollback_spy
+    others = _voters(db_session, 2)
+    db_session.add_all(SuggestionVote(suggestion_id=pending_suggestion.id, user_id=u.id, value=1) for u in others)
+    db_session.flush()
+
+    def _raise(self: SuggestionTransitions, *args: object, **kwargs: object) -> Suggestion:
+        raise AlreadyDecidedError("decided behind our back")
+
+    monkeypatch.setattr(SuggestionTransitions, "transition_to", _raise)
+    token = _token_for(voter.id)
+
+    response = client.put(
+        _vote_url(pending_suggestion.id), json={"value": 1}, headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 409
+    assert len(rollbacks) == 1
+    assert _vote_row(db_session, pending_suggestion.id, voter.id) is None

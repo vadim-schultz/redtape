@@ -15,6 +15,7 @@ from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.llm_enqueue import LlmEnqueuer, llm_input_key
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from llm_transport import ACCOUNT_ID, TOKEN, success
 from llm_worker_fakes import MODEL, SERVICE, LlmApi, answer, llm_task
 from render_fakes import FakeApi, FakeBrowser, page, robots_fetcher, task_json
@@ -33,7 +34,9 @@ def _render(
     policy = DrainPolicy(max_tasks=5, kinds=("render_page",), browser_budget_seconds=480.0)
     browser = FakeBrowser(*[page() for _ in range(tasks)])
     hook = LlmEnqueuer(client, model) if enqueue else None
-    return run_worker_drain(client, robots_fetcher(), policy, browser=browser, extractors=(), llm_enqueue=hook)
+    return run_worker_drain(
+        deps_for(client, robots_fetcher(), browser=browser, extractors=(), llm_enqueue=hook), policy
+    )
 
 
 def _enqueues(api: FakeApi) -> list[dict[str, object]]:

@@ -3,7 +3,7 @@ import { LuLibrary } from "react-icons/lu";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { toTableQuery } from "../../../hooks/toTableQuery";
-import type { CatalogueList } from "../hooks/useCatalogueListState";
+import type { CatalogueList } from "../types/listControllers";
 import type { CatalogueListResponse } from "../types";
 import {
   catalogueColumns,

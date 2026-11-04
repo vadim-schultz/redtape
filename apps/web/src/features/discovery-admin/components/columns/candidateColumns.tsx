@@ -1,5 +1,6 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
-import { formatRelativeTime } from "../../../suggestions/utils/formatRelativeTime";
+import { EMPTY_VALUE } from "../../../../utils/emptyValue";
+import { formatRelativeTime } from "../../../../utils/relativeTime";
 import type {
   CandidateFilterKey,
   CandidateSortKey,
@@ -41,7 +42,8 @@ export function candidateColumns(context: ColumnContext): CandidateColumn[] {
       key: "jurisdiction",
       header: header("jurisdiction"),
       canSort: "jurisdiction",
-      render: (c) => localizedTitle(c.jurisdiction_name_i18n, locale) || "—",
+      render: (c) =>
+        localizedTitle(c.jurisdiction_name_i18n, locale) || EMPTY_VALUE,
     },
     {
       key: "roles",

@@ -24,7 +24,13 @@ export type DocumentListResponse = {
   limit: number;
 };
 
-export type DocumentSortKey = "confidence" | "title" | "created_at";
+/** Sort keys of the documents list, in the order the sort control offers them. */
+export const DOCUMENT_SORT_KEYS = [
+  "confidence",
+  "title",
+  "created_at",
+] as const;
+export type DocumentSortKey = (typeof DOCUMENT_SORT_KEYS)[number];
 
 /** Search, sort and page of the documents list; the taxonomy chips travel beside it. */
 export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;

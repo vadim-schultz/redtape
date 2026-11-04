@@ -23,11 +23,12 @@ def _mentions(session: Session) -> list[tuple[uuid.UUID, uuid.UUID]]:
     return list(
         session.execute(
             sa.select(DiscoveryCandidateMention.candidate_id, DiscoveryCandidateMention.catalogue_service_id)
-        )
+        ).tuples()
     )
 
 
 def main() -> None:
+    """Print the consensus ceiling over the production discovery candidates."""
     with SessionLocal() as session:
         ceiling = consensus_ceiling(_candidate_ids(session), _mentions(session))
     print(

@@ -58,9 +58,10 @@ class TagAxis(enum.Enum):
 
 
 def llm_evidence_score(procedures: int, share: float) -> float:
-    """Saturating curve for LLM-only corroboration, anchored to situation-tag-activation's LR1 sample:
-    one procedure lands near its measured 37.5-62.5% midpoint, two or more approach the historical
-    "high" ceiling. Not yet validated beyond that sample — see gaps-and-decisions.md P1.
+    """Return a saturating LLM-only corroboration score, anchored to situation-tag-activation's LR1 sample.
+
+    One procedure lands near its measured 37.5-62.5% midpoint; two or more approach the historical
+    "high" ceiling. Not yet validated beyond that sample (see gaps-and-decisions.md P1).
     """
     if procedures <= 0:
         return 0.0
@@ -68,8 +69,10 @@ def llm_evidence_score(procedures: int, share: float) -> float:
 
 
 def noisy_or(scores: Iterable[float]) -> float:
-    """Combine independent evidence: ``1 - product(1 - s)``. A ``0.0`` term (no evidence) is the identity —
-    safe to always pass the LLM score even when there were zero LLM-extracted mentions for a code.
+    """Combine independent evidence as ``1 - product(1 - s)``.
+
+    A ``0.0`` term (no evidence) is the identity, so the LLM score can always be passed even when a code
+    has zero LLM-extracted mentions.
     """
     remaining = 1.0
     for score in scores:

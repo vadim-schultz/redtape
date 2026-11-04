@@ -5,11 +5,17 @@ from __future__ import annotations
 import inspect
 
 import pytest
+from app.features.discovery.admin_controller import DiscoveryAdminController
+from app.features.discovery.artifact_machine_controller import DiscoveryArtifactMachineController
+from app.features.discovery.candidate_admin_controller import DiscoveryCandidateAdminController
+from app.features.discovery.candidate_machine_controller import DiscoveryCandidateMachineController
 from app.features.documents.controller import DocumentsController
 from app.features.locations.controller import LocationsController
 from app.features.suggestions.controller import SuggestionsController
 from app.features.taxonomy.controller import TaxonomyController
-from app.shared.locale import ResolvedLocale, provide_resolved_locale
+from app.locale_resolution import resolve_locale
+from app.middleware import locale as locale_middleware
+from app.shared.locale import DEFAULT_ENABLED_LOCALES, ResolvedLocale, provide_resolved_locale
 from app.shared.paging import PageParams, provide_page_params
 from litestar import Litestar, get
 from litestar.datastructures import State
@@ -57,6 +63,21 @@ def test_resolved_locale_defaults_to_de_and_de_en() -> None:
     assert resolved == ResolvedLocale(code="de", enabled=set({"de", "en"}))
 
 
+def test_default_enabled_locales_is_single_source() -> None:
+    """`provide_resolved_locale`, the locale middleware and `resolve_locale` agree on one constant."""
+    assert frozenset({"de", "en"}) == DEFAULT_ENABLED_LOCALES
+
+    resolved = provide_resolved_locale(_request(None, None))
+    assert resolved.enabled == set(DEFAULT_ENABLED_LOCALES)
+
+    assert resolve_locale(query_locale=None, accept_language=None, enabled=set()) in DEFAULT_ENABLED_LOCALES
+
+    # The middleware's own default (when `app.state.enabled_locale_codes` is unset) must come
+    # from the same constant rather than repeating the `{"de", "en"}` literal.
+    middleware_source = inspect.getsource(locale_middleware)
+    assert "DEFAULT_ENABLED_LOCALES" in middleware_source
+
+
 # Handlers audited by chapter 4; `get_suggestion` (voting composition) and `get_matrix` keep 4 for now.
 BUDGETED_HANDLERS = [
     (DocumentsController, "list_documents"),
@@ -70,6 +91,12 @@ BUDGETED_HANDLERS = [
     (LocationsController, "list_localities"),
     (TaxonomyController, "list_domains"),
     (TaxonomyController, "list_life_situations"),
+    (DiscoveryCandidateAdminController, "list_candidates"),
+    (DiscoveryAdminController, "list_tasks"),
+    (DiscoveryAdminController, "list_catalogue"),
+    (DiscoveryCandidateMachineController, "select_candidates"),
+    (DiscoveryCandidateMachineController, "select_candidate_sources"),
+    (DiscoveryArtifactMachineController, "list_artifacts"),
 ]
 
 

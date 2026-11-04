@@ -1,0 +1,8 @@
+usage: discovery_ingest worker [-h] {drain} ...
+
+positional arguments:
+  {drain}
+    drain     Claim tasks, fetch URLs, complete or fail
+
+options:
+  -h, --help  show this help message and exit

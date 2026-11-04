@@ -6,8 +6,9 @@ from dataclasses import dataclass
 
 from litestar import Request
 
-_DEFAULT_LOCALE = "de"
-_DEFAULT_ENABLED = ("de", "en")
+DEFAULT_LOCALE = "de"
+FALLBACK_ORDER: tuple[str, ...] = ("de", "en")
+DEFAULT_ENABLED_LOCALES: frozenset[str] = frozenset(FALLBACK_ORDER)
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,5 +22,5 @@ class ResolvedLocale:
 def provide_resolved_locale(request: Request) -> ResolvedLocale:
     """Read the middleware-resolved locale and the app's enabled locale codes."""
     state = request.scope.get("state") or {}
-    enabled = getattr(request.app.state, "enabled_locale_codes", _DEFAULT_ENABLED)
-    return ResolvedLocale(code=str(state.get("locale", _DEFAULT_LOCALE)), enabled=set(enabled))
+    enabled = getattr(request.app.state, "enabled_locale_codes", DEFAULT_ENABLED_LOCALES)
+    return ResolvedLocale(code=str(state.get("locale", DEFAULT_LOCALE)), enabled=set(enabled))

@@ -45,6 +45,10 @@ def _assign_situation_groups(session: Session) -> None:
 
 
 def seed_taxonomy(session: Session) -> None:
+    """Upsert the groups, domains and life situations, then link each situation to its group.
+
+    Terms are merged by their deterministic ids, so rerunning updates rows in place instead of duplicating them.
+    """
     _upsert_terms(session, LifeSituationGroup, SITUATION_GROUPS)
     _upsert_terms(session, Domain, DOMAINS)
     _upsert_terms(session, LifeSituation, SITUATIONS)
@@ -53,6 +57,7 @@ def seed_taxonomy(session: Session) -> None:
 
 
 def main() -> None:
+    """Seed the taxonomy in one transaction and print the row counts."""
     with SessionLocal() as session:
         seed_taxonomy(session)
         session.commit()

@@ -1,3 +1,5 @@
+"""ORM models for the matrix axes: domains and life situations, with their groups."""
+
 from __future__ import annotations
 
 import uuid

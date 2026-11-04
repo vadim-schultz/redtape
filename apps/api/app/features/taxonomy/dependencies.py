@@ -10,10 +10,12 @@ from app.features.taxonomy.service import TaxonomyService
 
 
 def provide_taxonomy_repository(session: Session) -> TaxonomyRepository:
+    """Bind a taxonomy repository to the request session."""
     return TaxonomyRepository(session)
 
 
 def provide_taxonomy_service(taxonomy_repository: TaxonomyRepository) -> TaxonomyService:
+    """Bind the taxonomy service to its repository."""
     return TaxonomyService(taxonomy_repository)
 
 

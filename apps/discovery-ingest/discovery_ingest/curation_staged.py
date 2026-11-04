@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from difflib import get_close_matches
 from uuid import UUID
 
-from discovery_ingest.api_client import DiscoveryMachineClient
+from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.emit_models import CandidateSummary
 from discovery_ingest.extract.llm.normalise import name_slug
 from discovery_ingest.mentions import MentionRole
@@ -25,15 +25,16 @@ class StagedIndex:
     """Staged candidates looked up by id, or by title slug within a jurisdiction."""
 
     def __init__(self, candidates: Iterable[CandidateSummary]) -> None:
+        """Index ``candidates`` by id and by jurisdiction and title slug."""
         self._by_id = {c.id: c for c in candidates}
         self._by_key = {(c.jurisdiction_id, c.key): c for c in self._by_id.values()}
 
     @classmethod
-    def fetch(cls, client: DiscoveryMachineClient) -> StagedIndex:
+    def fetch(cls, client: DiscoveryIngestClient) -> StagedIndex:
         """Read every staged candidate, one route page at a time."""
         found: list[CandidateSummary] = []
         while True:
-            page = client.list_staged_candidates(min_mentions=0, limit=PAGE_SIZE, offset=len(found))
+            page = client.candidates.list_staged(min_mentions=0, limit=PAGE_SIZE, offset=len(found))
             found += page.items
             if not page.items or len(found) >= page.total:
                 return cls(found)

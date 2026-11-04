@@ -7,8 +7,8 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from discovery_ingest.api_client import DiscoveryMachineApiError, DiscoveryMachineClient
 from discovery_ingest.artifacts import ArtifactContent
+from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.extract.base import Extractor, PageContext
 from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.registry import EXTRACTORS, find_extractor
@@ -32,7 +32,7 @@ class ExtractPageHandler:
         """Dispatch through ``extractors``; production passes the registry, tests pass fakes."""
         self._extractors = extractors
 
-    def __call__(self, task: ClaimedTask, *, client: DiscoveryMachineClient, fetcher: PoliteUrlFetcher) -> str:
+    def __call__(self, task: ClaimedTask, *, client: DiscoveryIngestClient, fetcher: PoliteUrlFetcher) -> str:
         """Settle ``task`` as ``completed`` or ``failed``; the page itself is never fetched (``fetcher`` is unused)."""
         try:
             return self._run(task, client)
@@ -41,10 +41,10 @@ class ExtractPageHandler:
         except DiscoveryMachineApiError as err:
             return _api_refused(client, task, err)
 
-    def _run(self, task: ClaimedTask, client: DiscoveryMachineClient) -> str:
+    def _run(self, task: ClaimedTask, client: DiscoveryIngestClient) -> str:
         if task.artifact_id is None:
             return fail_permanently(client, task.id, "extract_page task has no artifact_id")
-        content = client.get_artifact_content(task.artifact_id)
+        content = client.artifacts.content(task.artifact_id)
         extractor = find_extractor(task.target_url, content.content_type, self._extractors)
         if extractor is None:
             return _complete(client, task, "no_extractor")
@@ -55,19 +55,19 @@ class ExtractPageHandler:
         return _complete_after_capture_enqueue(client, task)
 
 
-def _api_refused(client: DiscoveryMachineClient, task: ClaimedTask, err: DiscoveryMachineApiError) -> str:
+def _api_refused(client: DiscoveryIngestClient, task: ClaimedTask, err: DiscoveryMachineApiError) -> str:
     """Fail the task on an API refusal (5xx retryable); the database limit propagates so the drain stops."""
     if err.is_database_limit:
         raise err
     return fail_from_api_error(client, task.id, err)
 
 
-def _complete(client: DiscoveryMachineClient, task: ClaimedTask, note: str | None) -> str:
-    client.complete_task(task.id, note=note)
+def _complete(client: DiscoveryIngestClient, task: ClaimedTask, note: str | None) -> str:
+    client.tasks.complete(task.id, note=note)
     return "completed"
 
 
-def _complete_after_capture_enqueue(client: DiscoveryMachineClient, task: ClaimedTask) -> str:
+def _complete_after_capture_enqueue(client: DiscoveryIngestClient, task: ClaimedTask) -> str:
     """Queue the page's screenshot (D13), then complete; a failed enqueue is counted and never fails the task."""
     enqueued = enqueue_screenshot_for_mentions(client, task)
     _complete(client, task, None)

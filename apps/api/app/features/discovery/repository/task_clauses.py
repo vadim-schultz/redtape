@@ -32,6 +32,7 @@ def expired_lease(now: datetime) -> tuple[ColumnElement[bool], ...]:
 
 
 def fail_exhausted_stmt(now: datetime, max_attempts: int) -> Update:
+    """Fail every expired lease whose task has used all its attempts, recording why."""
     message = func.concat("lease expired after ", DiscoveryTask.attempt_count, " attempts")
     return (
         update(DiscoveryTask)
@@ -41,6 +42,7 @@ def fail_exhausted_stmt(now: datetime, max_attempts: int) -> Update:
 
 
 def repend_expired_stmt(now: datetime) -> Update:
+    """Return expired leases to pending and clear their claim so another worker can take them."""
     return (
         update(DiscoveryTask)
         .where(*expired_lease(now))

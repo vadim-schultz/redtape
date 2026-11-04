@@ -44,6 +44,7 @@ class RobotsCache:
     """Answer ``allowed(url)`` from robots.txt rules cached per origin."""
 
     def __init__(self, fetch: RobotsFetch, *, agent: str = BOT_PRODUCT_TOKEN) -> None:
+        """Bind the hook that loads an origin's robots.txt and the agent token its rules are read for."""
         self._fetch = fetch
         self._agent = agent
         self._rules: dict[str, RobotsRules | RobotsUnavailableError] = {}

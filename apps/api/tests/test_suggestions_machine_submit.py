@@ -6,14 +6,14 @@ import time
 import uuid
 from collections.abc import Iterator
 
-import app.features.auth.dependencies as auth_dependencies
 import jwt
 import pytest
 from app.config import settings
 from app.features.auth.jwt import JwtVerifier
 from app.features.auth.repository import ApiKeyRepository
 from app.features.auth.service import ApiKeyService
-from app.features.suggestions.service import SuggestionService
+from app.features.suggestions.repository import SuggestionRepository
+from app.features.suggestions.submitters import CrawlerSubmitter
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
@@ -24,6 +24,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy.orm import Session
+
+from auth_support import use_jwt_verifier
 
 URL = "/api/v1/suggestions"
 ISSUER = "https://example.supabase.co/auth/v1"
@@ -71,7 +73,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
+    use_jwt_verifier(monkeypatch, verifier)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     app = create_app()
     with TestClient(app) as test_client:
@@ -296,15 +298,15 @@ def test_a_concurrent_retry_resolves_to_the_original(
     db_session.commit()  # a real SAVEPOINT boundary, so the service's own rollback() below can't undo it
 
     seen = {"count": 0}
-    real_replay = SuggestionService._replay
+    real_replay = CrawlerSubmitter.find_replay
 
     def _blind_on_first_call(
-        self: SuggestionService, submitter: object, idempotency_key: str | None
+        self: CrawlerSubmitter, repo: SuggestionRepository, idempotency_key: str | None
     ) -> Suggestion | None:
         seen["count"] += 1
-        return None if seen["count"] == 1 else real_replay(self, submitter, idempotency_key)
+        return None if seen["count"] == 1 else real_replay(self, repo, idempotency_key)
 
-    monkeypatch.setattr(SuggestionService, "_replay", _blind_on_first_call)
+    monkeypatch.setattr(CrawlerSubmitter, "find_replay", _blind_on_first_call)
 
     response = client.post(
         URL,

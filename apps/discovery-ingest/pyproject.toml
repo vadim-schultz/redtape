@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.10,<3",
     "pydantic-settings>=2.0,<3",
     "selectolax>=1.0.2",
+    "typer>=0.12",
 ]
 
 [project.optional-dependencies]
@@ -33,19 +34,28 @@ line-length = 120
 src = ["discovery_ingest", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D", "ANN401", "TID251"]
 ignore = ["E501"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+"typing_extensions.Any" = { msg = "Use a Pydantic model, a TypedDict or pydantic.JsonValue instead of Any (see .plans/codebase-audit/00-audit-report.md section 5)." }
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "D", "ANN401", "TID251"]
 
 [tool.mypy]
 python_version = "3.11"
+plugins = ["pydantic.mypy"]
 warn_unused_ignores = true
 warn_return_any = true
 check_untyped_defs = true
 disallow_untyped_defs = true
 strict_optional = true
+disallow_any_explicit = true
 
 [[tool.mypy.overrides]]
 module = ["httpx.*"]

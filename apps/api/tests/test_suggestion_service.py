@@ -3,17 +3,18 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import (
-    SubmitterRef,
+    MissingSourceUrlError,
     SuggestionService,
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
 )
+from app.features.suggestions.submitters import CrawlerSubmitter, HumanSubmitter
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.api_key import ApiKey
@@ -29,6 +30,8 @@ from pydantic import ValidationError
 from scripts.seed_taxonomy import seed_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from suggestion_support import compose_suggestion_service
 
 
 @pytest.fixture
@@ -87,9 +90,9 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:
@@ -117,9 +120,7 @@ def _request(
 def test_stores_a_pending_human_suggestion_for_a_user(
     service: SuggestionService, country: Jurisdiction, user: AppUser
 ) -> None:
-    suggestion = service.create(
-        submitter=SubmitterRef("user", user.id), request=_request(jurisdiction=country)
-    ).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=_request(jurisdiction=country)).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
     assert suggestion.source_type == SuggestionSource.HUMAN
@@ -132,7 +133,7 @@ def test_stores_a_pending_crawler_suggestion_for_an_api_key(
 ) -> None:
     request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
 
-    suggestion = service.create(submitter=SubmitterRef("crawler", api_key.id), request=request).suggestion
+    suggestion = service.create(submitter=CrawlerSubmitter(api_key.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
     assert suggestion.source_type == SuggestionSource.CRAWLER
@@ -142,9 +143,7 @@ def test_stores_a_pending_crawler_suggestion_for_an_api_key(
 def test_create_logs_a_submitted_event_for_a_human_submitter(
     service: SuggestionService, event_log_service: EventLogService, country: Jurisdiction, user: AppUser
 ) -> None:
-    suggestion = service.create(
-        submitter=SubmitterRef("user", user.id), request=_request(jurisdiction=country)
-    ).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=_request(jurisdiction=country)).suggestion
 
     events = event_log_service.list_for(suggestion.id)
     submitted = [e for e in events if e.event_type == EventType.SUBMITTED]
@@ -158,7 +157,7 @@ def test_create_logs_a_submitted_event_for_a_crawler_submitter(
 ) -> None:
     request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
 
-    suggestion = service.create(submitter=SubmitterRef("crawler", api_key.id), request=request).suggestion
+    suggestion = service.create(submitter=CrawlerSubmitter(api_key.id), request=request).suggestion
 
     submitted = [e for e in event_log_service.list_for(suggestion.id) if e.event_type == EventType.SUBMITTED]
     assert len(submitted) == 1
@@ -173,7 +172,7 @@ def test_derives_normalized_url_from_official_url(
     official_url = "https://Example.gov/residency/?utm_source=x&b=2&a=1"
     request = _request(jurisdiction=country, payload=_payload(official_url=official_url))
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.normalized_url == normalize_url(official_url)
 
@@ -183,7 +182,7 @@ def test_resolves_municipality_code_to_the_jurisdiction_id(
 ) -> None:
     request = _request(municipality_code=municipality.code)
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.jurisdiction_id == municipality.id
 
@@ -192,28 +191,28 @@ def test_rejects_an_unknown_jurisdiction_id(service: SuggestionService, user: Ap
     request = _request(jurisdiction=None)
 
     with pytest.raises(UnknownJurisdictionError):
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
 def test_rejects_an_unknown_municipality_code(service: SuggestionService, user: AppUser) -> None:
     request = _request(municipality_code="does-not-exist")
 
     with pytest.raises(UnknownJurisdictionError):
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
 def test_rejects_an_unknown_domain_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
     request = _request(jurisdiction=country, payload=_payload(domain_codes=["no-such-domain"]))
 
     with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
 def test_rejects_an_unknown_situation_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
     request = _request(jurisdiction=country, payload=_payload(situation_codes=["no-such-situation"]))
 
     with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=SubmitterRef("user", user.id), request=request)
+        service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
 def test_accepts_known_domain_and_situation_codes(
@@ -228,7 +227,7 @@ def test_accepts_known_domain_and_situation_codes(
         payload=_payload(domain_codes=[domain_code], situation_codes=[situation_code]),
     )
 
-    suggestion = service.create(submitter=SubmitterRef("user", user.id), request=request).suggestion
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion
 
     assert suggestion.status == SuggestionStatus.PENDING
 
@@ -247,3 +246,78 @@ def test_client_supplied_status_and_source_type_are_rejected_by_the_schema(count
 
 def test_get_returns_none_for_an_unknown_id(service: SuggestionService) -> None:
     assert service.get(uuid.uuid4()) is None
+
+
+def test_human_row_has_user_column_source_human_and_no_idempotency_key(
+    service: SuggestionService, country: Jurisdiction, user: AppUser
+) -> None:
+    request = _request(jurisdiction=country)
+
+    suggestion = service.create(
+        submitter=HumanSubmitter(user.id), request=request, idempotency_key="ignored-key"
+    ).suggestion
+
+    assert suggestion.source_type == SuggestionSource.HUMAN
+    assert suggestion.submitted_by_user_id == user.id
+    assert suggestion.submitted_by_api_key_id is None
+    assert suggestion.idempotency_key is None
+
+
+def test_crawler_row_has_api_key_column_source_crawler_and_stored_key(
+    service: SuggestionService, country: Jurisdiction, api_key: ApiKey
+) -> None:
+    request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
+
+    suggestion = service.create(
+        submitter=CrawlerSubmitter(api_key.id), request=request, idempotency_key="crawl-1"
+    ).suggestion
+
+    assert suggestion.source_type == SuggestionSource.CRAWLER
+    assert suggestion.submitted_by_user_id is None
+    assert suggestion.submitted_by_api_key_id == api_key.id
+    assert suggestion.idempotency_key == "crawl-1"
+
+
+def test_crawler_replay_returns_existing_row_with_replayed_true(
+    service: SuggestionService, country: Jurisdiction, api_key: ApiKey
+) -> None:
+    request = _request(jurisdiction=country, source_url="https://example.gov/found-here")
+    submitter = CrawlerSubmitter(api_key.id)
+
+    first = service.create(submitter=submitter, request=request, idempotency_key="crawl-2")
+    second = service.create(submitter=submitter, request=request, idempotency_key="crawl-2")
+
+    assert first.replayed is False
+    assert second.replayed is True
+    assert second.suggestion.id == first.suggestion.id
+
+
+def test_human_idempotency_header_is_ignored(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
+    submitter = HumanSubmitter(user.id)
+    first = service.create(
+        submitter=submitter,
+        request=_request(jurisdiction=country, payload=_payload(official_url=None)),
+        idempotency_key="same",
+    )
+    second = service.create(
+        submitter=submitter,
+        request=_request(jurisdiction=country, payload=_payload(official_url=None)),
+        idempotency_key="same",
+    )
+
+    assert second.replayed is False
+    assert second.suggestion.id != first.suggestion.id
+
+
+def test_crawler_without_source_url_raises_missing_source_url(
+    service: SuggestionService, country: Jurisdiction, api_key: ApiKey
+) -> None:
+    with pytest.raises(MissingSourceUrlError):
+        service.create(submitter=CrawlerSubmitter(api_key.id), request=_request(jurisdiction=country))
+
+
+def test_human_without_source_url_is_accepted(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
+    suggestion = service.create(submitter=HumanSubmitter(user.id), request=_request(jurisdiction=country)).suggestion
+
+    assert suggestion.source_url is None
+    assert suggestion.status == SuggestionStatus.PENDING

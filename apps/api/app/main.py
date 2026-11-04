@@ -1,3 +1,5 @@
+"""Litestar application factory, the module-level `app`, and the uvicorn entry point."""
+
 from __future__ import annotations
 
 from litestar import Litestar
@@ -11,6 +13,7 @@ from app.features.auth.router import auth_router
 from app.features.candidates.router import candidates_router
 from app.features.discovery.router import discovery_admin_router, discovery_machine_router
 from app.features.documents.router import documents_router
+from app.features.locales.router import locales_router
 from app.features.locations.router import locations_router
 from app.features.suggestions.router import suggestions_router
 from app.features.taxonomy.router import taxonomy_router
@@ -18,17 +21,17 @@ from app.features.voting.router import voting_router
 from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
 from app.middleware.locale import LocaleResolverMiddleware
-from app.routes import health, list_locales, translations_bundle
+from app.routes import health
 from app.shared.dependencies import shared_dependencies
 from app.shared.object_store.http import object_store_exception_handlers
 
 
 def create_app() -> Litestar:
+    """Build the application with every feature router, the locale middleware and the lifespan hook."""
     return Litestar(
         route_handlers=[
             health,
-            list_locales,
-            translations_bundle,
+            locales_router,
             auth_router,
             documents_router,
             candidates_router,
@@ -53,6 +56,7 @@ app = create_app()
 
 
 def run() -> None:
+    """Serve the API with uvicorn on port 8000 without auto-reload; the `redtape-api` script calls this."""
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

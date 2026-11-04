@@ -138,7 +138,8 @@ def test_the_docs_name_the_real_settings_and_commands_of_the_ingest_package() ->
     for doc in (SCHEDULED_JOBS, CHECKLIST, LOOP_DOC, DISCOVERY_ONLINE):
         assert default_model.group(1) in read(doc) and "provisional" not in read(doc), doc
     assert not missing(INGEST_README, ("`llm probe", "`llm eval", "`llm requeue", "`budget show`"))
-    cli = read(REPO_ROOT / "apps/discovery-ingest/discovery_ingest/cli.py")
+    cli_package = REPO_ROOT / "apps/discovery-ingest/discovery_ingest/cli"
+    cli = "\n".join(read(path) for path in sorted(cli_package.rglob("*.py")))
     assert all(f'"{command}"' in cli for command in ("requeue", "probe", "eval", "budget"))
 
 

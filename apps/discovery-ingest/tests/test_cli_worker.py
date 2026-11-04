@@ -7,8 +7,9 @@ import uuid
 
 import httpx
 import pytest
-from discovery_ingest.cli import _build_parser, main
+from discovery_ingest.cli import main
 
+from cli_adapters import parsed_params
 from render_fakes import FakeApi, task_json
 
 ACCOUNT_ID = "acc0123456789abcdef0123456789abc"
@@ -115,10 +116,8 @@ def test_a_rejected_cloudflare_token_fails_the_run_and_the_command(
 
 def test_the_drain_cli_default_browser_budget_is_570() -> None:
     """worker drain · without the flag the run budget is 570 s; an explicit value still wins."""
-    parser = _build_parser()
-
-    assert parser.parse_args(DRAIN).browser_budget_seconds == 570.0
-    assert parser.parse_args([*DRAIN, "--browser-budget-seconds", "120"]).browser_budget_seconds == 120.0
+    assert parsed_params(DRAIN)["browser_budget_seconds"] == 570.0
+    assert parsed_params([*DRAIN, "--browser-budget-seconds", "120"])["browser_budget_seconds"] == 120.0
 
 
 @pytest.mark.parametrize("flags", [["--browser-budget-seconds", "0"], ["--browser-budget-seconds", "-5"]])

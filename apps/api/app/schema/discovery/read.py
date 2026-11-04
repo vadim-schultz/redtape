@@ -5,22 +5,22 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from app.models.discovery import (
-    CatalogueService,
-    DiscoveryArtifact,
-    DiscoveryCandidateMention,
     DiscoveryCandidateStatus,
-    DiscoveryDocumentCandidate,
+    DiscoveryClaimKind,
+    DiscoveryEventType,
     DiscoveryMentionRole,
     DiscoverySource,
-    DiscoveryTask,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
 from app.schema.candidate import CandidateFlags
 from app.schema.discovery.artifacts import ArtifactSummaryRead
+from app.schema.discovery.emit import SkipReason
+
+JsonObject = dict[str, JsonValue]
 
 
 class DiscoveryTaskRead(BaseModel):
@@ -42,25 +42,6 @@ class DiscoveryTaskRead(BaseModel):
     lease_expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
-
-    @classmethod
-    def from_row(cls, task: DiscoveryTask, *, source: DiscoverySource) -> DiscoveryTaskRead:
-        return cls(
-            id=task.id,
-            catalogue_service_id=task.catalogue_service_id,
-            source=source,
-            kind=task.kind,
-            target_url=task.target_url,
-            status=task.status,
-            priority=task.priority,
-            attempt_count=task.attempt_count,
-            not_before=task.not_before,
-            input_key=task.input_key,
-            result_note=task.result_note,
-            lease_expires_at=task.lease_expires_at,
-            created_at=task.created_at,
-            updated_at=task.updated_at,
-        )
 
 
 class DiscoveryTaskListResponse(BaseModel):
@@ -86,20 +67,6 @@ class CatalogueServiceRead(BaseModel):
     portal_url: str | None
     created_at: datetime
     updated_at: datetime
-
-    @classmethod
-    def from_row(cls, row: CatalogueService) -> CatalogueServiceRead:
-        return cls(
-            id=row.id,
-            source=row.source,
-            external_id=row.external_id,
-            jurisdiction_id=row.jurisdiction_id,
-            title_i18n=row.title_i18n,
-            pipeline_stage=row.pipeline_stage,
-            portal_url=row.portal_url,
-            created_at=row.created_at,
-            updated_at=row.updated_at,
-        )
 
 
 class CatalogueSummaryChips(BaseModel):
@@ -207,7 +174,7 @@ class EmitPreviewItemRead(BaseModel):
     claim_id: UUID
     kind: str
     payload: dict[str, object] | None = None
-    skip_reason: str | None = None
+    skip_reason: SkipReason | None = None
 
 
 class EmitPreviewResponse(BaseModel):
@@ -216,16 +183,68 @@ class EmitPreviewResponse(BaseModel):
     items: list[EmitPreviewItemRead]
 
 
+class PipelineEntityRow(BaseModel):
+    """A canonical entity a catalogue service's pipeline has staged."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    catalogue_service_id: UUID
+    canonical_url: str
+    label: str | None
+    created_at: datetime
+
+
+class FetchLogRow(BaseModel):
+    """One fetch attempt of a discovery task."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    discovery_task_id: UUID
+    http_status: int | None
+    fetched_at: datetime
+    content_type: str | None
+    byte_length: int | None
+    error_message: str | None
+
+
+class ClaimRow(BaseModel):
+    """One claim extracted from an entity; the payload is open JSON."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    discovery_entity_id: UUID
+    kind: DiscoveryClaimKind
+    payload: JsonObject
+    confidence: float | None
+    created_at: datetime
+
+
+class EventRow(BaseModel):
+    """One audit event about a catalogue service or a task."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    event_type: DiscoveryEventType
+    catalogue_service_id: UUID | None
+    discovery_task_id: UUID | None
+    payload: JsonObject
+    created_at: datetime
+
+
 class CataloguePipelineResponse(BaseModel):
     """Pipeline drill-down aggregate for one catalogue service."""
 
     service: CatalogueServiceRead
     derived_stage: str
     tasks: list[DiscoveryTaskRead] = Field(default_factory=list)
-    entities: list[dict[str, object]] = Field(default_factory=list)
-    fetch_logs: list[dict[str, object]] = Field(default_factory=list)
-    claims: list[dict[str, object]] = Field(default_factory=list)
-    events: list[dict[str, object]] = Field(default_factory=list)
+    entities: list[PipelineEntityRow] = Field(default_factory=list)
+    fetch_logs: list[FetchLogRow] = Field(default_factory=list)
+    claims: list[ClaimRow] = Field(default_factory=list)
+    events: list[EventRow] = Field(default_factory=list)
 
 
 class CandidateRead(BaseModel):
@@ -243,21 +262,6 @@ class CandidateRead(BaseModel):
     mention_count: int
     created_at: datetime
     updated_at: datetime
-
-    @classmethod
-    def from_row(cls, row: DiscoveryDocumentCandidate, *, mention_count: int) -> CandidateRead:
-        return cls(
-            id=row.id,
-            jurisdiction_id=row.jurisdiction_id,
-            key=row.key,
-            title_i18n=row.title_i18n,
-            official_url=row.official_url,
-            status=row.status,
-            suggestion_id=row.suggestion_id,
-            mention_count=mention_count,
-            created_at=row.created_at,
-            updated_at=row.updated_at,
-        )
 
 
 class CandidateListItemRead(CandidateRead):
@@ -301,30 +305,6 @@ class CandidateMentionRead(BaseModel):
     domain_codes: list[str]
     situation_codes: list[str]
     created_at: datetime
-
-    @classmethod
-    def from_row(
-        cls, mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
-    ) -> CandidateMentionRead:
-        return cls(
-            id=mention.id,
-            catalogue_service_id=procedure.id,
-            procedure_title_i18n=procedure.title_i18n,
-            procedure_source=procedure.source,
-            portal_url=procedure.portal_url,
-            role=mention.role,
-            excerpt=mention.excerpt,
-            source_field=mention.source_field,
-            artifact_id=mention.artifact_id,
-            artifact=ArtifactSummaryRead.from_row(artifact) if artifact else None,
-            extractor=mention.extractor,
-            extractor_version=mention.extractor_version,
-            condition=mention.condition,
-            is_optional=mention.is_optional,
-            domain_codes=mention.domain_codes or [],
-            situation_codes=mention.situation_codes or [],
-            created_at=mention.created_at,
-        )
 
 
 class TagSupportRead(BaseModel):

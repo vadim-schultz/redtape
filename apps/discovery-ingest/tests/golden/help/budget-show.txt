@@ -1,0 +1,10 @@
+usage: discovery_ingest budget show [-h] [--resource RESOURCE] [--require-remaining RESOURCE=N]
+                                    [--strict]
+
+options:
+  -h, --help            show this help message and exit
+  --resource RESOURCE   Only print this resource (repeatable)
+  --require-remaining RESOURCE=N
+                        Exit 3 when RESOURCE has less than N remaining or is exhausted
+                        (repeatable)
+  --strict              Exit 4 instead of 0 when the ledger is unreachable

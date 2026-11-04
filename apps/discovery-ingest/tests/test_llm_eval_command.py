@@ -11,10 +11,10 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 from discovery_ingest.extract.llm.errors import LlmAuthError, LlmQuotaExceeded, LlmRequestError
-from discovery_ingest.extract.llm.evaluation import command
-from discovery_ingest.extract.llm.evaluation.command import EvalRuntime
 from discovery_ingest.extract.llm.prices import cost
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.operations import eval as evaluation
+from discovery_ingest.operations.eval import EvalRuntime
 
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold, write_long_gold
 from ledger_fakes import FakeLedger, guard_for
@@ -41,7 +41,7 @@ def _wire(
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
     runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
-    monkeypatch.setattr(command, "_runtime", lambda _settings, _model: runtime)
+    monkeypatch.setattr(evaluation, "_runtime", lambda _settings, _model, _stack: runtime)
     return ledger
 
 
@@ -140,8 +140,7 @@ def test_the_eval_neuron_budget_help_says_the_last_call_may_pass_the_budget(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """llm eval --help · the run stops once the budget is reached and the last call may pass it by its own cost."""
-    with pytest.raises(SystemExit):
-        main(["llm", "eval", "--help"])
+    assert main(["llm", "eval", "--help"]) == 0
 
     help_text = " ".join(capsys.readouterr().out.split())
     assert "Stop once this many neurons are used" in help_text and "may pass it by its own cost" in help_text
@@ -391,6 +390,26 @@ def test_eval_never_prints_the_token_or_the_account_id_even_when_cloudflare_echo
     assert "<redacted>" in pages["gamma"]["error"]
     for secret in (TOKEN, ACCOUNT_ID):
         assert secret not in shown.out + shown.err + written
+
+
+def test_llm_eval_closes_its_http_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """eval · the httpx.Client the real _runtime builds is closed once the run ends."""
+    write_gold(tmp_path / "gold", names=["alpha", "gamma"])
+    _router(monkeypatch, FakeLedger(remaining=9000), _answer)
+
+    created: list[httpx.Client] = []
+    inner_factory = httpx.Client
+
+    def recording_factory(**kwargs: object) -> httpx.Client:
+        client = inner_factory(**kwargs)
+        created.append(client)
+        return client
+
+    monkeypatch.setattr(httpx, "Client", recording_factory)
+
+    assert _eval(tmp_path) == 0
+
+    assert created and all(client.is_closed for client in created)
 
 
 def test_a_credential_inside_an_error_text_is_scrubbed_at_the_command_even_when_the_client_did_not(

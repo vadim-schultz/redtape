@@ -1,16 +1,16 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
 import TruncatedText from "../../../../components/data-display/TruncatedText";
-import { formatRelativeTime } from "../../../suggestions/utils/formatRelativeTime";
-import {
-  DISCOVERY_SOURCES,
-  TASK_KINDS,
-  TASK_STATUSES,
-} from "../../types/listValues";
+import { DISCOVERY_SOURCES, TASK_KINDS, TASK_STATUSES } from "../../types";
 import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../../types";
-import { formatRetryAfter } from "../../utils/formatRetryAfter";
+import {
+  formatRelativeTime,
+  formatTimeUntil,
+} from "../../../../utils/relativeTime";
+import { translateOrRaw } from "../../utils/translateOrRaw";
 import TaskStatusCell from "./cells/TaskStatusCell";
 import { headerLabels, type ColumnContext } from "./columnContext";
-import { plainOptions } from "./filterOptions";
+import { filterCapability } from "./filterCapability";
+import { enumOptions, plainOptions } from "./filterOptions";
 
 /** Width at which the target URL is clipped. */
 const TARGET_MAX_WIDTH = "24rem";
@@ -27,12 +27,6 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
   const { locale, t } = context;
   const header = headerLabels(context, "discovery_admin.tasks");
   const none = t("discovery_admin.tasks.retry_none");
-  const filterOf = (key: TaskFilterKey, values: readonly string[]) => ({
-    key,
-    operators: ["eq"] as const,
-    label: t(`discovery_admin.tasks.filter_${key}`),
-    options: plainOptions(values),
-  });
   return [
     {
       key: "target",
@@ -49,22 +43,39 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
       key: "kind",
       header: header("kind"),
       canSort: "kind",
-      filter: filterOf("kind", TASK_KINDS),
+      filter: filterCapability({
+        key: "kind",
+        label: t("discovery_admin.tasks.filter_kind"),
+        options: plainOptions(TASK_KINDS),
+      }),
       render: (task) => task.kind,
     },
     {
       key: "status",
       header: header("status"),
       canSort: "status",
-      filter: filterOf("status", TASK_STATUSES),
+      filter: filterCapability({
+        key: "status",
+        label: t("discovery_admin.tasks.filter_status"),
+        options: enumOptions(t, "task_status", TASK_STATUSES),
+      }),
       render: (task) => <TaskStatusCell task={task} />,
     },
     {
       key: "source",
       header: header("source"),
       canSort: "source",
-      filter: filterOf("source", DISCOVERY_SOURCES),
-      render: (task) => task.source,
+      filter: filterCapability({
+        key: "source",
+        label: t("discovery_admin.tasks.filter_source"),
+        options: enumOptions(t, "source", DISCOVERY_SOURCES),
+      }),
+      render: (task) =>
+        translateOrRaw(
+          t,
+          `discovery_admin.values.source_${task.source}`,
+          task.source,
+        ),
     },
     {
       key: "priority",
@@ -83,7 +94,7 @@ export function taskColumns(context: ColumnContext): TaskColumn[] {
     {
       key: "retry",
       header: header("retry"),
-      render: (task) => formatRetryAfter(task.not_before, locale) ?? none,
+      render: (task) => formatTimeUntil(task.not_before, locale) ?? none,
     },
     {
       key: "lease",

@@ -1,4 +1,5 @@
 import type { AuthStatus } from "../../auth/contexts/AuthContext";
+import { AUTH_GATE } from "../../auth/types/authGate";
 import { discoveryAdminProbeErrorOutcome } from "./discoveryAdminProbeErrors";
 
 export type DiscoveryAdminGuardOutcome =
@@ -16,29 +17,25 @@ type ProbeState = {
   error: unknown;
 };
 
-type AuthGuardOutcome = "wait" | "auth-unconfigured" | "login" | "probe";
-
-const authOutcomes: Record<
-  Exclude<AuthStatus, "authenticated">,
-  Exclude<AuthGuardOutcome, "probe">
+const GATE_OUTCOME: Record<
+  "wait" | "login" | "unconfigured",
+  Exclude<
+    DiscoveryAdminGuardOutcome,
+    "forbidden" | "disabled" | "allow" | "error"
+  >
 > = {
+  wait: "wait",
+  login: "login",
   unconfigured: "auth-unconfigured",
-  loading: "wait",
-  anonymous: "login",
 };
-
-function authGuardOutcome(status: AuthStatus): AuthGuardOutcome {
-  if (status === "authenticated") return "probe";
-  return authOutcomes[status];
-}
 
 /** Decide what the discovery admin guard should render. */
 export function discoveryAdminGuardOutcome(
   authStatus: AuthStatus,
   probe: ProbeState,
 ): DiscoveryAdminGuardOutcome {
-  const authOutcome = authGuardOutcome(authStatus);
-  if (authOutcome !== "probe") return authOutcome;
+  const gate = AUTH_GATE[authStatus];
+  if (gate !== "open") return GATE_OUTCOME[gate];
   if (probe.isPending) return "wait";
   if (!probe.isError) return "allow";
   return discoveryAdminProbeErrorOutcome(probe.error);

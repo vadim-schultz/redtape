@@ -25,7 +25,6 @@ T = TypeVar("T")
 @contextmanager
 def guard_session() -> Iterator[Session]:
     """Yield a session, commit on success, always close."""
-
     with SessionLocal() as session:
         yield session
         session.commit()
@@ -33,7 +32,6 @@ def guard_session() -> Iterator[Session]:
 
 def read_guard_user(connection: ASGIConnection, read: Callable[[AppUser], T]) -> T:
     """Resolve the connection's user and return `read(user)`, taken before the session closes."""
-
     with guard_session() as session:
         user = user_from_connection(connection, provide_jwt_verifier(), UserService(UserRepository(session)))
         return read(user)
@@ -41,6 +39,5 @@ def read_guard_user(connection: ASGIConnection, read: Callable[[AppUser], T]) ->
 
 def verify_guard_machine(connection: ASGIConnection) -> None:
     """Reject the connection unless it carries a valid machine API key."""
-
     with guard_session() as session:
         machine_principal_from_connection(connection, ApiKeyService(ApiKeyRepository(session)))

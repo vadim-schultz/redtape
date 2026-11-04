@@ -27,9 +27,8 @@ def enqueue_task_if_needed(
     target: TaskTarget,
     *,
     priority: int = 100,
-) -> DiscoveryTask | None:
+) -> DiscoveryTask:
     """Insert a pending task unless an equivalent open or completed task already exists."""
-
     return enqueue_task_with_outcome(repo, target, priority=priority).task
 
 
@@ -40,7 +39,6 @@ def enqueue_task_with_outcome(
     priority: int = 100,
 ) -> EnqueueOutcome:
     """Like ``enqueue_task_if_needed`` but report whether a new task was inserted."""
-
     existing = repo.find_task_for_target(target, statuses=_SKIP_REENQUEUE_STATUSES)
     if existing is not None:
         return EnqueueOutcome(task=existing, created=False)

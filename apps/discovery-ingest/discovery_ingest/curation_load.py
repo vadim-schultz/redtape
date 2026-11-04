@@ -14,6 +14,7 @@ class CurationError(Exception):
     """The file cannot be used; ``problems`` is one line per fault."""
 
     def __init__(self, problems: list[str]) -> None:
+        """Keep every fault line so callers can report all of them, not only the first."""
         self.problems = problems
         super().__init__("; ".join(problems))
 

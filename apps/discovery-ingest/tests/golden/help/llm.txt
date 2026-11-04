@@ -1,0 +1,10 @@
+usage: discovery_ingest llm [-h] {eval,requeue,probe} ...
+
+positional arguments:
+  {eval,requeue,probe}
+    eval                Measure a model on the gold set and print a table
+    requeue             Queue llm_extract for the latest snapshots under the current key
+    probe               Probe models on one fixture and print a table
+
+options:
+  -h, --help            show this help message and exit

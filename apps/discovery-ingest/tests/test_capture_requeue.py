@@ -16,6 +16,7 @@ from discovery_ingest.worker.capture_enqueue import (
     capture_request,
     enqueue_screenshot_for_mentions,
 )
+from pydantic import SecretStr
 
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
@@ -85,7 +86,7 @@ def _install(monkeypatch: pytest.MonkeyPatch, fake: Api) -> Api:
         kwargs["transport"] = httpx.MockTransport(fake.handler)
         return _REAL_HTTPX_CLIENT(**kwargs)
 
-    monkeypatch.setattr("discovery_ingest.api_client.httpx.Client", factory)
+    monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
     return fake
 
 
@@ -174,10 +175,9 @@ def test_capture_requeue_rejects_a_bad_limit_before_any_call(
     api: Api, capsys: pytest.CaptureFixture[str], limit: str
 ) -> None:
     """capture requeue · 0, 201 and text are an argparse error (exit 2) with no request made."""
-    with pytest.raises(SystemExit) as stop:
-        main(["capture", "requeue", "--limit", limit])
+    exit_code = main(["capture", "requeue", "--limit", limit])
 
-    assert stop.value.code == 2 and api.requests == []
+    assert exit_code == 2 and api.requests == []
     capsys.readouterr()
 
 
@@ -189,17 +189,18 @@ def test_capture_requeue_passes_chosen_service_ids_and_refuses_more_than_twenty(
     flags = [part for value in ids for part in ("--service-id", value)]
 
     _run(capsys, *flags)
-    with pytest.raises(SystemExit) as stop:
-        main(["capture", "requeue", *[p for n in range(21) for p in ("--service-id", str(uuid.UUID(int=n + 1)))]])
+    exit_code = main(
+        ["capture", "requeue", *[p for n in range(21) for p in ("--service-id", str(uuid.UUID(int=n + 1)))]]
+    )
 
     assert api.lists[0].url.params.get_list("catalogue_service_id") == ids
-    assert stop.value.code == 2 and len(api.lists) == 1
+    assert exit_code == 2 and len(api.lists) == 1
     capsys.readouterr()
 
 
 def test_capture_request_is_shared_with_the_extraction_hook(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
     """capture_request · the extraction hook posts exactly the request ``capture_request`` builds."""
-    from discovery_ingest.api_client import DiscoveryMachineClient
+    from discovery_ingest.client import DiscoveryIngestClient
 
     row, url = uuid.UUID(int=7), "https://portal.example/page/7"
     task = ClaimedTask.model_validate(
@@ -214,7 +215,7 @@ def test_capture_request_is_shared_with_the_extraction_hook(api: Api, monkeypatc
         }
     )
 
-    assert enqueue_screenshot_for_mentions(DiscoveryMachineClient(API_BASE, API_KEY), task) is True
+    assert enqueue_screenshot_for_mentions(DiscoveryIngestClient(API_BASE, SecretStr(API_KEY)), task) is True
 
     request = capture_request(row, url)
     assert api.enqueues == [request.model_dump(mode="json", exclude_none=True)]

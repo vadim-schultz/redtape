@@ -1,0 +1,10 @@
+usage: discovery_ingest candidates [-h] {emit,page,curate} ...
+
+positional arguments:
+  {emit,page,curate}
+    emit              Emit staged candidates as pending suggestions
+    page              Print the procedures of a candidate; --out writes their cleaned text
+    curate            Apply a reviewed curation file as manual tags and edges
+
+options:
+  -h, --help          show this help message and exit

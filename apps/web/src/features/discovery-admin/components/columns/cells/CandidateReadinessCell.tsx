@@ -1,4 +1,4 @@
-import { CompletenessChips } from "../../../../candidates/components/CompletenessChips";
+import { CompletenessChips } from "../../../../../components/data-display/CompletenessChips";
 import type { DiscoveryCandidate } from "../../../types";
 
 /** The five completeness flags of a candidate, the same chips the public cards show. */

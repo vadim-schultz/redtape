@@ -56,7 +56,10 @@ jobs:
         run: pip install uv
 
       - name: Install API + dev dependencies
-        run: uv pip install --system -e ".[dev]"
+        run: |
+          uv export --locked --extra dev --no-emit-project --no-hashes --output-file "$RUNNER_TEMP/requirements.txt"
+          uv pip install --system -r "$RUNNER_TEMP/requirements.txt"
+          uv pip install --system --no-deps -e .
 
       - name: Ruff format check
         run: ruff format --check .
@@ -105,7 +108,10 @@ jobs:
         run: pip install uv
 
       - name: Install API + dev dependencies
-        run: uv pip install --system -e ".[dev]"
+        run: |
+          uv export --locked --extra dev --no-emit-project --no-hashes --output-file "$RUNNER_TEMP/requirements.txt"
+          uv pip install --system -r "$RUNNER_TEMP/requirements.txt"
+          uv pip install --system --no-deps -e .
 
       - name: Migration round trip
         run: bash scripts/check_migrations.sh

@@ -4,11 +4,18 @@ import { Navigate, useLocation } from "react-router-dom";
 import ForbiddenView from "../../../components/feedback/ForbiddenView";
 import NotFoundView from "../../../components/feedback/NotFoundView";
 import { useAuth, type AuthStatus } from "../contexts/AuthContext";
+import { AUTH_GATE } from "../types/authGate";
 
-export type MinRole = "user" | "moderator";
+export const ROLES = ["user", "moderator", "admin"] as const;
+export type MinRole = (typeof ROLES)[number];
+
 type GuardOutcome = "wait" | "login" | "allow" | "forbidden" | "hidden";
 
-const ROLE_RANK: Record<MinRole, number> = { user: 0, moderator: 1 };
+const GATE_OUTCOME: Record<"wait" | "login" | "unconfigured", GuardOutcome> = {
+  wait: "wait",
+  login: "login",
+  unconfigured: "hidden",
+};
 
 /** Pure decision for the guard: what to render given auth state, without any JSX. */
 export function guardOutcome(
@@ -16,12 +23,12 @@ export function guardOutcome(
   role: string | undefined,
   minRole: MinRole,
 ): GuardOutcome {
-  if (status === "unconfigured") return "hidden";
-  if (status === "loading") return "wait";
-  if (status === "anonymous") return "login";
-  const rank = role ? ROLE_RANK[role as MinRole] : undefined;
-  if (rank === undefined) return "wait"; // authenticated, but /me hasn't resolved a role yet
-  return rank >= ROLE_RANK[minRole] ? "allow" : "forbidden";
+  const gate = AUTH_GATE[status];
+  if (gate !== "open") return GATE_OUTCOME[gate];
+
+  const rank = role ? ROLES.findIndex((r) => r === role) : -1;
+  if (rank < 0) return "wait"; // authenticated, but /me hasn't resolved a known role yet
+  return rank >= ROLES.findIndex((r) => r === minRole) ? "allow" : "forbidden";
 }
 
 /** Redirects anonymous visitors to /login, remembering where they were going. */

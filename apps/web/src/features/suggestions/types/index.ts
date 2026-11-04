@@ -1,3 +1,11 @@
+import type {
+  SuggestionKind,
+  SuggestionSourceType,
+  SuggestionStatus,
+} from "./values";
+
+export * from "./values";
+
 export type SuggestionPayload = {
   title_i18n: Record<string, string>;
   description_i18n?: Record<string, string>;
@@ -16,10 +24,6 @@ export type SubmitterRead = {
   kind: "user" | "crawler";
   display_name: string | null;
 };
-
-export type SuggestionKind = "new_document" | "new_requirement";
-export type SuggestionStatus = "pending" | "approved" | "rejected";
-export type SuggestionSourceType = "human" | "crawler";
 
 export type SuggestionRead = {
   id: string;

@@ -3,7 +3,7 @@ import { LuListTodo } from "react-icons/lu";
 import { toTableQuery } from "../../../hooks/toTableQuery";
 import type { QueryStatus } from "../../../components/feedback/queryStatus";
 import { useLocale } from "../../../contexts/LocaleContext";
-import type { TaskList } from "../hooks/useTaskListState";
+import type { TaskList } from "../types/listControllers";
 import type { DiscoveryTaskListResponse } from "../types";
 import { taskColumns } from "./columns/taskColumns";
 import DiscoveryDataTable from "./DiscoveryDataTable";

@@ -11,6 +11,7 @@ from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.policy import DrainPolicy
 
+from drain_deps_for import deps_for
 from render_fakes import CATALOGUE_ID, FakeApi, task_json
 
 PAGE = "https://portal.example/service/1"
@@ -20,7 +21,7 @@ HTML = {"content-type": "text/html; charset=utf-8"}
 def _fetch(monkeypatch: pytest.MonkeyPatch, api: FakeApi) -> DrainReport:
     api.batches = [[task_json(uuid.uuid4(), PAGE, kind="fetch_url")]]
     client = api.client(monkeypatch)
-    return run_worker_drain(client, PoliteUrlFetcher(min_interval_per_host_s=0), DrainPolicy(max_tasks=1))
+    return run_worker_drain(deps_for(client, PoliteUrlFetcher(min_interval_per_host_s=0)), DrainPolicy(max_tasks=1))
 
 
 def test_fetch_url_enqueues_render_page_with_the_final_url_after_a_200_html_response(

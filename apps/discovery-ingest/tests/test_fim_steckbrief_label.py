@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from discovery_ingest.catalogue_export import CatalogueExportItem
 from discovery_ingest.enrich import fim_steckbrief_claim_requests, fim_steckbrief_entity_request
+from discovery_ingest.fim.models import Steckbrief
 
 FIXTURE = Path(__file__).parent / "fixtures" / "fim" / "steckbrief.json"
 FIM_BASE = "https://fimportal.de"
@@ -27,11 +28,13 @@ def _real() -> dict[str, object]:
 
 
 def _label(steckbrief: dict[str, object]) -> str | None:
-    return fim_steckbrief_entity_request(CATALOGUE, steckbrief, fim_base_url=FIM_BASE).label
+    return fim_steckbrief_entity_request(CATALOGUE, Steckbrief.from_object(steckbrief), fim_base_url=FIM_BASE).label
 
 
 def _kinds(steckbrief: dict[str, object]) -> list[str]:
-    claims = fim_steckbrief_claim_requests(CATALOGUE, steckbrief, entity_id=ENTITY_ID, fim_base_url=FIM_BASE)
+    claims = fim_steckbrief_claim_requests(
+        CATALOGUE, Steckbrief.from_object(steckbrief), entity_id=ENTITY_ID, fim_base_url=FIM_BASE
+    )
     return [claim.kind for claim in claims]
 
 
@@ -64,7 +67,9 @@ def test_the_label_falls_back_from_title_to_titel_to_leistungsbezeichnung(
 @pytest.mark.parametrize("fields", [{}, {"title": None, "titel": ""}, {"title": 3, "leistungsbezeichnung": []}])
 def test_a_steckbrief_without_any_title_field_has_no_label_and_does_not_crash(fields: dict[str, object]) -> None:
     """label · none of the title fields yields no label (the entity is still built)."""
-    request = fim_steckbrief_entity_request(CATALOGUE, {"leistungsschluessel": KEY, **fields}, fim_base_url=FIM_BASE)
+    request = fim_steckbrief_entity_request(
+        CATALOGUE, Steckbrief.from_object({"leistungsschluessel": KEY, **fields}), fim_base_url=FIM_BASE
+    )
     assert request.label is None
     assert request.canonical_url.endswith(f"/leistung-steckbriefe/{KEY}")
 
@@ -77,6 +82,8 @@ def test_the_real_steckbrief_has_no_kurztext_so_it_yields_no_metadata_claim() ->
 def test_a_steckbrief_with_a_kurztext_still_yields_the_metadata_claim() -> None:
     """claims · a real kurztext keeps the unchanged metadata claim shape."""
     steckbrief = {**_real(), "kurztext": " Kurzbeschreibung "}
-    claims = fim_steckbrief_claim_requests(CATALOGUE, steckbrief, entity_id=ENTITY_ID, fim_base_url=FIM_BASE)
+    claims = fim_steckbrief_claim_requests(
+        CATALOGUE, Steckbrief.from_object(steckbrief), entity_id=ENTITY_ID, fim_base_url=FIM_BASE
+    )
     assert [claim.kind for claim in claims] == ["metadata", "new_document"]
     assert claims[0].payload == {"kurztext": "Kurzbeschreibung"}

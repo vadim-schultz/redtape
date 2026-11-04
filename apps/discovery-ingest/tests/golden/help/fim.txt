@@ -1,0 +1,9 @@
+usage: discovery_ingest fim [-h] {enrich,probe} ...
+
+positional arguments:
+  {enrich,probe}
+    enrich        Upsert entity and claims from steckbrief
+    probe         Report status and top-level keys of live steckbriefe
+
+options:
+  -h, --help      show this help message and exit

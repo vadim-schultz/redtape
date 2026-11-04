@@ -1,11 +1,19 @@
+import { toQueryStatus } from "../../../components/feedback/queryStatus";
+import { useListQueryState } from "../../../hooks/useListQueryState";
 import CatalogueIndexPanel from "../components/CatalogueIndexPanel";
-import { useCatalogueListState } from "../hooks/useCatalogueListState";
-import { useCatalogueState } from "../hooks/useCatalogueState";
+import { useDiscoveryCatalogueQuery } from "../hooks/useDiscoveryCatalogueQuery";
+import { CATALOGUE_LIST_SPEC } from "../services/catalogueListQuery";
 
 /** Imported catalogue index at ``/admin/discovery/catalogue``. */
 export default function DiscoveryCataloguePage() {
-  const list = useCatalogueListState();
-  const panel = useCatalogueState(list.state);
+  const list = useListQueryState(CATALOGUE_LIST_SPEC);
+  const catalogueQuery = useDiscoveryCatalogueQuery(list.state);
 
-  return <CatalogueIndexPanel panel={panel} list={list} />;
+  return (
+    <CatalogueIndexPanel
+      page={catalogueQuery.data}
+      status={toQueryStatus(catalogueQuery)}
+      list={list}
+    />
+  );
 }
