@@ -5,19 +5,18 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, get
-from litestar.params import Parameter
+from litestar.di import Provide
 
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
-from app.features.discovery.candidate_list_query import CANDIDATE_LIST_SPEC, candidate_filter_from
+from app.features.discovery.candidate_list_query import CANDIDATE_LIST_SPEC, provide_candidate_query
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
-from app.features.discovery.repository import LEGACY_SORTS, CandidateFilter, CandidateSort, Page
-from app.models.discovery import DiscoveryCandidateStatus, DiscoveryMentionRole, DiscoverySource
+from app.features.discovery.list_query import DiscoveryListQuery
+from app.features.discovery.repository import CandidateFilter
 from app.schema.discovery.candidate_edges import CandidateEdgeListResponse
 from app.schema.discovery.candidate_emit import CandidateEmitPreview
 from app.schema.discovery.read import CandidateDetailResponse, CandidateListResponse
-from app.shared.list_query import ListQuery, provide_list_query
-from app.shared.paging import PageParams
+from app.shared.list_query import provide_list_query
 
 
 class DiscoveryCandidateAdminController(Controller):
@@ -25,29 +24,19 @@ class DiscoveryCandidateAdminController(Controller):
 
     path = "/candidates"
     guards = DISCOVERY_ADMIN_GUARDS
-    dependencies = {"list_query": provide_list_query(CANDIDATE_LIST_SPEC)}
+    dependencies = {
+        "list_query": provide_list_query(CANDIDATE_LIST_SPEC),
+        "discovery_query": Provide(provide_candidate_query, sync_to_thread=False),
+    }
 
     @get("/", sync_to_thread=True)
     def list_candidates(
         self,
         discovery_candidate_admin_service: CandidateAdminService,
-        page: PageParams,
-        list_query: ListQuery,
-        status: DiscoveryCandidateStatus | None = Parameter(query="status", default=None),
-        min_mentions: int | None = Parameter(query="min_mentions", default=None, ge=0),
-        role: DiscoveryMentionRole | None = Parameter(query="role", default=None),
-        source: DiscoverySource | None = Parameter(query="source", default=None),
-        sort: CandidateSort = Parameter(query="sort", default=CandidateSort.MENTIONS_DESC),
+        discovery_query: DiscoveryListQuery[CandidateFilter],
     ) -> CandidateListResponse:
         """Page through document candidates, filtered and sorted by the legacy query parameters."""
-        sort_by, sort_order = LEGACY_SORTS[sort]
-        legacy = CandidateFilter(
-            status=status, min_mentions=min_mentions, role=role, source=source, sort_by=sort_by, sort_order=sort_order
-        )
-        candidate_filter = candidate_filter_from(list_query, legacy)
-        return discovery_candidate_admin_service.list_candidates(
-            candidate_filter, Page(offset=page.offset, limit=page.limit)
-        )
+        return discovery_candidate_admin_service.list_candidates(discovery_query.filters, discovery_query.page)
 
     @get("/{candidate_id:uuid}", sync_to_thread=True)
     def candidate_detail(

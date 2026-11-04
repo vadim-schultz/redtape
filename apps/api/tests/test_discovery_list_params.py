@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.models.discovery import DiscoverySource, DiscoveryMentionRole, DiscoveryTaskKind, DiscoveryTaskStatus
+from app.models.discovery import DiscoveryMentionRole, DiscoverySource, DiscoveryTaskKind, DiscoveryTaskStatus
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy.orm import Session
@@ -18,7 +18,10 @@ TASKS_URL = "/api/v1/discovery/admin/tasks"
 MACHINE_CANDIDATES_URL = "/api/v1/discovery/machine/candidates"
 
 
-def test_task_list_accepts_each_legacy_filter_alone(client: TestClient[Litestar], db_session: Session) -> None:
+def test_task_list_accepts_each_legacy_filter_alone(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
     catalogue = _catalogue(db_session)
     _task(db_session, catalogue, "queued", status=DiscoveryTaskStatus.PENDING, kind=DiscoveryTaskKind.FETCH_URL)
     _task(db_session, catalogue, "done", status=DiscoveryTaskStatus.COMPLETED, kind=DiscoveryTaskKind.HARVEST_PAYLOAD)
@@ -29,7 +32,8 @@ def test_task_list_accepts_each_legacy_filter_alone(client: TestClient[Litestar]
 
 
 def test_task_list_rejects_unknown_legacy_status_with_422_and_lists_the_parameter(
-    client: TestClient[Litestar], db_session: Session
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     _task(db_session, _catalogue(db_session), "one")
 
@@ -39,20 +43,24 @@ def test_task_list_rejects_unknown_legacy_status_with_422_and_lists_the_paramete
     assert "status" in response.text
 
 
-def test_candidate_list_accepts_legacy_role_and_source_alone(client: TestClient[Litestar], db_session: Session) -> None:
+def test_candidate_list_accepts_legacy_role_and_source_alone(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
     govdata = _catalogue(db_session)
     pvog = _catalogue(db_session, source=DiscoverySource.PVOG, external_id="svc-2")
-    optional_hit = _candidate(db_session, govdata, key="optional-hit")
-    _mention(db_session, optional_hit, govdata, role=DiscoveryMentionRole.FORM)
+    form_hit = _candidate(db_session, govdata, key="form-hit")
+    _mention(db_session, form_hit, govdata, role=DiscoveryMentionRole.FORM)
     pvog_hit = _candidate(db_session, pvog, key="pvog-hit")
     _mention(db_session, pvog_hit, pvog)
 
-    assert _keys(client, role="form") == ["optional-hit"]
+    assert _keys(client, role="form") == ["form-hit"]
     assert _keys(client, source="pvog") == ["pvog-hit"]
 
 
 def test_candidate_sources_rejects_more_than_twenty_service_ids(
-    machine_client: TestClient[Litestar], db_session: Session
+    machine_client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     key = _issue_key(db_session)
     ids = [f"00000000-0000-0000-0000-{n:012d}" for n in range(21)]
@@ -63,12 +71,11 @@ def test_candidate_sources_rejects_more_than_twenty_service_ids(
 
 
 def test_machine_candidate_list_rejects_negative_min_mentions(
-    machine_client: TestClient[Litestar], db_session: Session
+    machine_client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
 ) -> None:
     key = _issue_key(db_session)
 
-    response = machine_client.get(
-        MACHINE_CANDIDATES_URL, params={"min_mentions": -1}, headers={"X-API-Key": key}
-    )
+    response = machine_client.get(MACHINE_CANDIDATES_URL, params={"min_mentions": -1}, headers={"X-API-Key": key})
 
     assert response.status_code == 422

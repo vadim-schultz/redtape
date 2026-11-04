@@ -6,7 +6,16 @@ import enum
 from dataclasses import replace
 from uuid import UUID
 
-from app.features.discovery.repository import CandidateFilter, CandidateSortKey
+from litestar.params import Parameter
+
+from app.features.discovery.list_query import DiscoveryListQuery
+from app.features.discovery.repository import (
+    LEGACY_SORTS,
+    CandidateFilter,
+    CandidateSort,
+    CandidateSortKey,
+    Page,
+)
 from app.features.discovery.repository.candidate_filter_flags import FLAG_FILTERS, CompletenessFilter
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryMentionRole, DiscoverySource
 from app.shared.list_query import (
@@ -18,6 +27,7 @@ from app.shared.list_query import (
     text_filter,
     uuid_filter,
 )
+from app.shared.paging import PageParams
 
 CODE_MAX_LENGTH = 64
 
@@ -58,6 +68,34 @@ def _completeness_from(query: ListQuery) -> CompletenessFilter:
 def _jurisdiction_from(query: ListQuery) -> UUID | None:
     raw = query.filter_value("jurisdiction", str)
     return None if raw is None else UUID(raw)
+
+
+def provide_candidate_query(
+    page: PageParams,
+    list_query: ListQuery,
+    status: DiscoveryCandidateStatus | None = Parameter(query="status", default=None),
+    min_mentions: int | None = Parameter(query="min_mentions", default=None, ge=0),
+    role: DiscoveryMentionRole | None = Parameter(query="role", default=None),
+    source: DiscoverySource | None = Parameter(query="source", default=None),
+    sort: CandidateSort = Parameter(query="sort", default=CandidateSort.MENTIONS_DESC),
+) -> DiscoveryListQuery[CandidateFilter]:
+    """Collect the admin candidate list parameters, legacy and canonical, into one filter and page."""
+    sort_by, sort_order = LEGACY_SORTS[sort]
+    legacy = CandidateFilter(
+        status=status, min_mentions=min_mentions, role=role, source=source, sort_by=sort_by, sort_order=sort_order
+    )
+    candidate_filter = candidate_filter_from(list_query, legacy)
+    return DiscoveryListQuery(filters=candidate_filter, page=Page(offset=page.offset, limit=page.limit))
+
+
+def provide_machine_candidate_query(
+    page: PageParams,
+    status: DiscoveryCandidateStatus | None = Parameter(query="status", default=None),
+    min_mentions: int | None = Parameter(query="min_mentions", default=None, ge=0),
+) -> DiscoveryListQuery[CandidateFilter]:
+    """Collect the machine candidate list parameters into one filter and page."""
+    candidate_filter = CandidateFilter(status=status, min_mentions=min_mentions)
+    return DiscoveryListQuery(filters=candidate_filter, page=Page(offset=page.offset, limit=page.limit))
 
 
 def candidate_filter_from(query: ListQuery, legacy: CandidateFilter) -> CandidateFilter:
