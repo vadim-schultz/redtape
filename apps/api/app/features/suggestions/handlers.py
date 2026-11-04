@@ -104,6 +104,7 @@ class KindDispatch(Generic[PayloadT]):
     """The one place the payload union is narrowed: check the kind once, then forward to the handler."""
 
     def __init__(self, handler: KindHandler[PayloadT]) -> None:
+        """Wrap one typed handler; the dispatch narrows incoming payloads to its payload type."""
         self._handler = handler
 
     def validate(self, payload: SuggestionPayload, *, jurisdiction_id: UUID) -> None:
@@ -146,6 +147,7 @@ class NewDocumentHandler:
     payload_type: ClassVar[type[NewDocumentPayload]] = NewDocumentPayload
 
     def __init__(self, deps: HandlerDeps) -> None:
+        """Bind the document port, taxonomy service and suggestion repository from the shared deps."""
         self._documents = deps.documents
         self._taxonomy = deps.taxonomy
         self._suggestions = deps.suggestions
@@ -198,6 +200,7 @@ class NewRequirementHandler:
     payload_type: ClassVar[type[NewRequirementPayload]] = NewRequirementPayload
 
     def __init__(self, deps: HandlerDeps) -> None:
+        """Bind the document port and suggestion repository; requirement edges need no taxonomy."""
         self._documents = deps.documents
         self._suggestions = deps.suggestions
 

@@ -78,7 +78,6 @@ convention = "pep257"
 "scripts/*" = ["T201"]   # allow print in scripts
 # docstring baseline (T1): delete the line when its slice is done
 "app/features/discovery/**" = ["D102", "D103", "D205", "D401"]  # A-S1
-"app/features/suggestions/**" = ["D100", "D102", "D103", "D107"]  # A-S2
 "app/features/{documents,auth}/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S4
 "app/schema/discovery/**" = ["D100", "D101", "D102", "D103", "D104", "D107", "D205"]  # A-S4
 

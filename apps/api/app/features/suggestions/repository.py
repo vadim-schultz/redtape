@@ -30,14 +30,17 @@ class SuggestionRepository:
     """Persistence for suggestions; the session only."""
 
     def __init__(self, session: Session) -> None:
+        """Bind the repository to the request session; committing stays with the request."""
         self._session = session
 
     def add(self, suggestion: Suggestion) -> Suggestion:
+        """Stage a new suggestion and flush so its generated columns are populated."""
         self._session.add(suggestion)
         self._session.flush()
         return suggestion
 
     def get(self, suggestion_id: UUID) -> Suggestion | None:
+        """Return the suggestion with this id, or None."""
         return self._session.get(Suggestion, suggestion_id)
 
     def get_for_update(self, suggestion_id: UUID) -> Suggestion | None:
@@ -57,6 +60,7 @@ class SuggestionRepository:
         return self._session.scalar(stmt)
 
     def save(self, suggestion: Suggestion) -> Suggestion:
+        """Flush changes made to a suggestion that is already in the session."""
         self._session.flush()
         return suggestion
 
@@ -72,6 +76,7 @@ class SuggestionRepository:
         return list(self._session.execute(stmt).tuples().all())
 
     def get_with_submitter(self, suggestion_id: UUID) -> tuple[Suggestion, str | None] | None:
+        """Return one suggestion with its submitter's display name, or None."""
         stmt = self._with_submitter().where(Suggestion.id == suggestion_id)
         row = self._session.execute(stmt).tuples().first()
         return row if row is None else (row[0], row[1])
@@ -108,6 +113,7 @@ class SuggestionRepository:
         return list(self._session.scalars(stmt).all())
 
     def get_by_idempotency_key(self, *, api_key_id: UUID, idempotency_key: str) -> Suggestion | None:
+        """Return the suggestion this API key stored under the idempotency key, or None."""
         stmt = select(Suggestion).where(
             Suggestion.submitted_by_api_key_id == api_key_id,
             Suggestion.idempotency_key == idempotency_key,
