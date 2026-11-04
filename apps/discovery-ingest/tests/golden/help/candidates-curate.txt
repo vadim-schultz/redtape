@@ -1,0 +1,15 @@
+usage: discovery_ingest candidates curate [-h] --file FILE [--dry-run]
+                                          [--check-pages | --no-check-pages]
+
+options:
+  -h, --help            show this help message and exit
+  --file FILE           JSON curation file (at most 8 candidates and 60 edges)
+  --dry-run             Validate and plan; make no write call
+  --check-pages, --no-check-pages
+                        Require every excerpt to be on the cleaned page text (default on)
+
+There is no machine delete. To undo a curation, run as the database owner, in this order:
+  DELETE FROM discovery_candidate_edge WHERE extractor = 'manual';
+  DELETE FROM discovery_candidate_mention WHERE extractor = 'manual';
+  DELETE FROM discovery_document_candidate c WHERE c.status = 'staged'
+    AND NOT EXISTS (SELECT 1 FROM discovery_candidate_mention m WHERE m.candidate_id = c.id);

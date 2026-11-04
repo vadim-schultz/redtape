@@ -1,0 +1,8 @@
+usage: discovery_ingest leika [-h] {enrich} ...
+
+positional arguments:
+  {enrich}
+    enrich    Upsert entity and claims from LeiKa stammtext
+
+options:
+  -h, --help  show this help message and exit

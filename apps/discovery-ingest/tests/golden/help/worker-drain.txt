@@ -1,0 +1,26 @@
+usage: discovery_ingest worker drain [-h] [--max-tasks MAX_TASKS] [--max-batches MAX_BATCHES]
+                                     [--time-budget-seconds TIME_BUDGET_SECONDS]
+                                     [--browser-budget-seconds BROWSER_BUDGET_SECONDS]
+                                     [--neuron-budget NEURON_BUDGET] [--kinds KINDS]
+
+options:
+  -h, --help            show this help message and exit
+  --max-tasks MAX_TASKS
+                        Maximum tasks per claim request (1–50; default 50, or 5 when llm_extract
+                        is drained)
+  --max-batches MAX_BATCHES
+                        Maximum claim/process batches (positive, default 1)
+  --time-budget-seconds TIME_BUDGET_SECONDS
+                        Optional positive wall-clock budget for the whole drain
+  --browser-budget-seconds BROWSER_BUDGET_SECONDS
+                        Browser seconds this run may spend on render_page and capture_screenshot
+                        (positive, default 570)
+  --neuron-budget NEURON_BUDGET
+                        Workers AI neurons this run may spend on llm_extract: it stops once the
+                        budget is reached, and the last call may pass it by its own cost
+                        (positive; required for that kind, no default)
+  --kinds KINDS         Comma separated task kinds to claim (default
+                        fetch_url,enrich_metadata,harvest_payload,extract_page; render_page and
+                        capture_screenshot need Cloudflare settings and artifact storage;
+                        llm_extract also needs the Workers AI token, LLM_MODEL, a readable ledger
+                        and --neuron-budget)

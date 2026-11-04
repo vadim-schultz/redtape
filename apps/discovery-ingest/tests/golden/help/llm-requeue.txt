@@ -1,0 +1,7 @@
+usage: discovery_ingest llm requeue [-h] [--host HOST] [--limit LIMIT] [--dry-run]
+
+options:
+  -h, --help     show this help message and exit
+  --host HOST    Only pages of this source host (default: every host)
+  --limit LIMIT  Maximum pages to queue (1-200, default 50)
+  --dry-run      Count the pages; make no enqueue call

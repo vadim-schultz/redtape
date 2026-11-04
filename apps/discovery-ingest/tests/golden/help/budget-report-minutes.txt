@@ -1,0 +1,5 @@
+usage: discovery_ingest budget report-minutes [-h] --minutes MINUTES
+
+options:
+  -h, --help         show this help message and exit
+  --minutes MINUTES

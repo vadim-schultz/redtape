@@ -1,0 +1,11 @@
+usage: discovery_ingest candidates emit [-h] (--id ID | --all-staged)
+                                        [--min-mentions MIN_MENTIONS] [--limit LIMIT] [--dry-run]
+
+options:
+  -h, --help            show this help message and exit
+  --id ID               Candidate to emit (repeatable)
+  --all-staged          Emit the most mentioned staged candidates
+  --min-mentions MIN_MENTIONS
+                        With --all-staged: minimum mentions (default 0)
+  --limit LIMIT         Maximum candidates to emit (1-50, default 10)
+  --dry-run             Preview only; nothing is written

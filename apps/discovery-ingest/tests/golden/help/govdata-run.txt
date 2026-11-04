@@ -1,0 +1,7 @@
+usage: discovery_ingest govdata run [-h] --input INPUT --jurisdiction-id JURISDICTION_ID
+
+options:
+  -h, --help            show this help message and exit
+  --input INPUT         Path to OZG Leistungen JSON page
+  --jurisdiction-id JURISDICTION_ID
+                        Jurisdiction UUID for federal rows (ars 000000000000)
