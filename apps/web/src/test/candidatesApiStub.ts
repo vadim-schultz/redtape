@@ -12,6 +12,16 @@ export const DOMAIN_TERMS = [
   term("work", "Work"),
 ];
 export const SITUATION_TERMS = [term("moving", "Moving")];
+export const CATEGORY_TREE = [
+  {
+    code: "identity-and-documents",
+    name: "Identity",
+    description: "",
+    icon: "id-card",
+    parent_code: null,
+    children: [],
+  },
+];
 
 type Responder = (url: URL) => Response | Promise<Response>;
 
@@ -19,6 +29,8 @@ type Responder = (url: URL) => Response | Promise<Response>;
 export function stubCandidatesApi(onList: Responder) {
   const fetchMock = vi.fn(async (input?: unknown) => {
     const url = new URL(String(input));
+    if (url.pathname.endsWith("/api/v1/categories"))
+      return new Response(JSON.stringify(CATEGORY_TREE));
     if (url.pathname.endsWith("/api/v1/domains"))
       return new Response(JSON.stringify(DOMAIN_TERMS));
     if (url.pathname.endsWith("/api/v1/life-situations"))

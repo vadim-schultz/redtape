@@ -8,225 +8,87 @@ import { useDocumentFilters } from "../../../hooks/useDocumentFilters";
 import DocumentFilters from "./DocumentFilters";
 
 const fetchMock = vi.fn();
-
-const domains = [
-  { code: "housing", name: "Housing", description: "", icon: null },
-  { code: "work", name: "Work", description: "", icon: null },
-];
-const groups = [{ code: "home", name: "Home", description: "", icon: null }];
-const situations = [
+const tree = [
   {
-    code: "moving",
-    name: "Moving",
+    code: "home-and-housing",
+    name: "Home & housing",
     description: "",
-    icon: null,
-    group_code: "home",
+    icon: "home",
+    parent_code: null,
+    children: [
+      {
+        code: "moving-house",
+        name: "Moving house",
+        description: "",
+        icon: null,
+        parent_code: "home-and-housing",
+        children: [],
+      },
+    ],
   },
 ];
-
-function respond(failTaxonomy: boolean) {
-  fetchMock.mockImplementation(async (url: string) => {
-    const path = new URL(String(url)).pathname;
-    if (failTaxonomy) return new Response("boom", { status: 500 });
-    if (path.endsWith("/domains")) return new Response(JSON.stringify(domains));
-    if (path.endsWith("/life-situation-groups"))
-      return new Response(JSON.stringify(groups));
-    return new Response(JSON.stringify(situations));
-  });
-}
-
-function LocationProbe() {
-  return <output data-testid="search">{useLocation().search}</output>;
-}
 
 function Container() {
   const taxonomy = useFilterTaxonomy();
   return (
     <DocumentFilters
       taxonomy={taxonomy}
-      filters={useDocumentFilters(taxonomy.situations)}
+      filters={useDocumentFilters(taxonomy.categories)}
     />
   );
 }
 
-function renderFilters(url: string) {
-  return renderWithProviders(
-    <>
-      <Container />
-      <LocationProbe />
-    </>,
-    { initialEntries: [url] },
+function LocationProbe() {
+  return <output data-testid="search">{useLocation().search}</output>;
+}
+
+function respond(status = 200) {
+  fetchMock.mockResolvedValue(
+    new Response(status === 200 ? JSON.stringify(tree) : "boom", { status }),
   );
 }
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
-  respond(false);
+  respond();
 });
+
 afterEach(() => {
   fetchMock.mockReset();
   vi.unstubAllGlobals();
 });
 
-it("DocumentFilters · clear removes all filters", async () => {
-  const { user } = renderFilters("/documents?domain=housing&situation=moving");
-  await screen.findByRole("button", { name: "Housing" });
-
-  await user.click(screen.getByRole("button", { name: /clear/i }));
-
-  expect(screen.getByTestId("search")).toHaveTextContent("");
-  expect(screen.getByRole("button", { name: "Housing" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
+it("DocumentFilters · selecting a root writes its canonical category code", async () => {
+  const { user } = renderWithProviders(
+    <>
+      <Container />
+      <LocationProbe />
+    </>,
+    {
+      initialEntries: ["/documents"],
+    },
   );
-});
 
-it("DocumentFilters · clicking a chip writes the code to the URL", async () => {
-  const { user } = renderFilters("/documents");
-
-  await user.click(await screen.findByRole("button", { name: "Work" }));
-
-  expect(screen.getByTestId("search")).toHaveTextContent("?domain=work");
-});
-
-it("DocumentFilters · unknown code in the URL is ignored with no crash", async () => {
-  renderFilters("/documents?domain=nope");
-
-  const chip = await screen.findByRole("button", { name: "Housing" });
-
-  expect(chip).toHaveAttribute("aria-pressed", "false");
-  expect(screen.getByRole("button", { name: "Work" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
+  await user.click(
+    await screen.findByRole("button", { name: "Home & housing" }),
   );
-});
 
-it("DocumentFilters · a situation selected via the URL auto-expands its group", async () => {
-  renderFilters("/documents?situation=moving");
-
-  await screen.findByRole("button", { name: "Home" });
-
-  expect(screen.getByRole("button", { name: "Moving" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
+  expect(screen.getByTestId("search")).toHaveTextContent(
+    "?category=home-and-housing",
   );
+  expect(
+    screen.getByRole("button", { name: "Home & housing" }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
-it("DocumentFilters · taxonomy error shows compact error and no chips", async () => {
-  respond(true);
-  renderFilters("/documents");
+it("category tree · failed query renders the existing query error and no stale chips", async () => {
+  respond(500);
+  renderWithProviders(<Container />, { initialEntries: ["/documents"] });
 
   await waitFor(() =>
     expect(
-      screen.getAllByRole("button", { name: /try again/i }).length,
-    ).toBeGreaterThan(0),
+      screen.getAllByRole("button", { name: /try again/i }),
+    ).not.toHaveLength(0),
   );
-  expect(screen.queryByRole("button", { name: "Housing" })).toBeNull();
-});
-
-const noopFilters = {
-  domains: [],
-  groups: [],
-  situations: [],
-  toggleDomain: vi.fn(),
-  toggleGroup: vi.fn(),
-  toggleSituation: vi.fn(),
-  clear: vi.fn(),
-  clearAll: vi.fn(),
-};
-
-function renderPresentational(taxonomy: {
-  isError: boolean;
-  onRetry: () => void;
-}) {
-  const props = { domains, situations, groups, ...taxonomy };
-  return renderWithProviders(
-    <DocumentFilters taxonomy={props} filters={noopFilters} />,
-  );
-}
-
-it("DocumentFilters · renders the terms it is given without calling an API", () => {
-  renderPresentational({ isError: false, onRetry: vi.fn() });
-
-  expect(screen.getByRole("button", { name: "Housing" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalledWith(
-    expect.stringContaining("/domains"),
-    expect.anything(),
-  );
-});
-
-it("DocumentFilters · expanding a situation group reveals its situation chip", async () => {
-  const { user } = renderPresentational({ isError: false, onRetry: vi.fn() });
-
-  await user.click(screen.getByRole("button", { name: "Home" }));
-
-  expect(screen.getByRole("button", { name: "Moving" })).toBeInTheDocument();
-});
-
-it("DocumentFilters · renders no facet chip beside the situations", () => {
-  renderPresentational({ isError: false, onRetry: vi.fn() });
-
-  const chips = screen.getAllByRole("button").map((b) => b.textContent);
-  expect(chips).toEqual(["Housing", "Work", "Home"]);
-});
-
-it("DocumentFilters · error flag shows retry, which calls onRetry only", async () => {
-  const onRetry = vi.fn();
-  const { user } = renderPresentational({ isError: true, onRetry });
-
-  await user.click(screen.getByRole("button", { name: /try again/i }));
-
-  expect(onRetry).toHaveBeenCalledTimes(1);
-  expect(screen.queryByRole("button", { name: "Housing" })).toBeNull();
-  const taxonomyCalls = fetchMock.mock.calls.filter(([url]) =>
-    /domains|life-situations|situations/.test(String(url)),
-  );
-  expect(taxonomyCalls).toHaveLength(0);
-});
-
-it("DocumentFilters · a group chip selects the area in the URL and expands it", async () => {
-  const { user } = renderFilters("/documents");
-
-  await user.click(await screen.findByRole("button", { name: "Home" }));
-
-  expect(screen.getByTestId("search")).toHaveTextContent("?group=home");
-  expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  expect(screen.getByRole("button", { name: "Moving" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-});
-
-it("DocumentFilters · a sub-situation of a selected group leaves exactly one state", async () => {
-  const { user } = renderFilters("/documents?group=home");
-
-  await user.click(await screen.findByRole("button", { name: "Moving" }));
-
-  expect(screen.getByTestId("search")).toHaveTextContent("?situation=moving");
-  expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-});
-
-it("DocumentFilters · clear is offered for a group alone and wipes it", async () => {
-  const { user } = renderFilters("/documents?group=home");
-
-  await user.click(await screen.findByRole("button", { name: /clear/i }));
-
-  expect(screen.getByTestId("search")).toHaveTextContent("");
-});
-
-it("DocumentFilters · an unknown group in the URL is ignored with no crash", async () => {
-  renderFilters("/documents?group=nope");
-
-  expect(await screen.findByRole("button", { name: "Home" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  expect(screen.queryByRole("button", { pressed: true })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Home & housing" })).toBeNull();
 });

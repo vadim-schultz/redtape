@@ -1,31 +1,19 @@
-import { useDomainsQuery } from "../../taxonomy/hooks/useDomainsQuery";
-import { useLifeSituationGroupsQuery } from "../../taxonomy/hooks/useLifeSituationGroupsQuery";
-import { useLifeSituationsQuery } from "../../taxonomy/hooks/useLifeSituationsQuery";
-import type { GroupedTerm, Term } from "../../taxonomy/types";
+import { useCategoryTreeQuery } from "../../taxonomy/hooks/useCategoryTreeQuery";
+import type { CategoryNode } from "../../taxonomy/types";
 
 export interface FilterTaxonomy {
-  domains: Term[];
-  situations: GroupedTerm[];
-  groups: Term[];
+  categories: CategoryNode[];
   isError: boolean;
   onRetry: () => void;
 }
 
-/** Taxonomy terms for the filter chips, with one retry for all three queries. */
+/** Canonical category tree for the filter chips, with one retry action. */
 export function useFilterTaxonomy(): FilterTaxonomy {
-  const domains = useDomainsQuery();
-  const situations = useLifeSituationsQuery();
-  const groups = useLifeSituationGroupsQuery();
+  const categories = useCategoryTreeQuery();
 
   return {
-    domains: domains.data ?? [],
-    situations: situations.data ?? [],
-    groups: groups.data ?? [],
-    isError: domains.isError || situations.isError || groups.isError,
-    onRetry: () => {
-      void domains.refetch();
-      void situations.refetch();
-      void groups.refetch();
-    },
+    categories: categories.data ?? [],
+    isError: categories.isError,
+    onRetry: () => void categories.refetch(),
   };
 }

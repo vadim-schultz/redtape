@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { LocaleProvider, useLocale } from "../../../contexts/LocaleContext";
+import { useCategoryTreeQuery } from "./useCategoryTreeQuery";
 import { useDomainsQuery } from "./useDomainsQuery";
 import { useLifeSituationGroupsQuery } from "./useLifeSituationGroupsQuery";
 
@@ -66,4 +67,52 @@ it("useLifeSituationGroupsQuery · fetches the 8 groups", async () => {
   expect(result.current.data).toEqual([
     { code: "home-housing", name: "Home", description: "", icon: null },
   ]);
+});
+
+it("category tree hook · returns roots and children from one query", async () => {
+  fetchMock.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify([
+          {
+            code: "home-and-housing",
+            name: "Home & housing",
+            description: "",
+            icon: "home",
+            parent_code: null,
+            children: [
+              {
+                code: "moving-house",
+                name: "Moving house",
+                description: "",
+                icon: null,
+                parent_code: "home-and-housing",
+                children: [],
+              },
+            ],
+          },
+        ]),
+      ),
+  );
+
+  const { result } = renderHook(() => useCategoryTreeQuery(), { wrapper });
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  expect(result.current.data?.[0].children[0].code).toBe("moving-house");
+  expect(
+    fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes("/api/v1/categories"),
+    ),
+  ).toHaveLength(1);
+});
+
+it("category tree · failed query renders no stale tree data", async () => {
+  fetchMock.mockImplementation(
+    async () => new Response("boom", { status: 500 }),
+  );
+
+  const { result } = renderHook(() => useCategoryTreeQuery(), { wrapper });
+
+  await waitFor(() => expect(result.current.isError).toBe(true));
+  expect(result.current.data).toBeUndefined();
 });

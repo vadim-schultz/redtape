@@ -24,8 +24,13 @@ export function candidateFixture(
     title: "Passport",
     description: "Proof of identity.",
     description_source: "Apply for a passport",
-    domains: [{ code: "identity", name: "Identity", confidence: 0.8 }],
-    situations: [{ code: "moving", name: "Moving", confidence: 0.6 }],
+    categories: [
+      {
+        code: "identity-and-documents",
+        name: "Identity",
+        confidence: 0.8,
+      },
+    ],
     status: "staged",
     completeness: 5,
     complete: true,

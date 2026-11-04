@@ -6,13 +6,6 @@ import { afterEach, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../../contexts/LocaleContext";
 import { useFilterTaxonomy } from "./useFilterTaxonomy";
 
-const term = (code: string) => ({
-  code,
-  name: code,
-  description: "",
-  icon: null,
-});
-
 function renderTaxonomy() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -27,29 +20,33 @@ function renderTaxonomy() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-function respond() {
-  return vi.fn(async (url: string) => {
-    const path = new URL(String(url)).pathname;
-    if (path.endsWith("/domains"))
-      return new Response(JSON.stringify([term("housing")]));
-    if (path.endsWith("/life-situation-groups"))
-      return new Response(JSON.stringify([term("home-housing")]));
-    return new Response(JSON.stringify([term("moving")]));
-  });
-}
-
-it("useFilterTaxonomy · exposes domains, situations and groups once loaded", async () => {
-  vi.stubGlobal("fetch", respond());
+it("category tree hook · returns roots and children from one query", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      new Response(
+        JSON.stringify([
+          {
+            code: "home-and-housing",
+            name: "Home & housing",
+            description: "",
+            icon: "home",
+            parent_code: null,
+            children: [],
+          },
+        ]),
+      ),
+    ),
+  );
 
   const { result } = renderTaxonomy();
 
-  await waitFor(() => expect(result.current.domains).toHaveLength(1));
-  expect(result.current.situations).toEqual([term("moving")]);
-  expect(result.current.groups).toEqual([term("home-housing")]);
+  await waitFor(() => expect(result.current.categories).toHaveLength(1));
+  expect(result.current.categories[0].code).toBe("home-and-housing");
   expect(result.current.isError).toBe(false);
 });
 
-it("useFilterTaxonomy · flags an error when any query fails", async () => {
+it("category tree · failed query renders no stale chips", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response("boom", { status: 500 })),
@@ -58,6 +55,5 @@ it("useFilterTaxonomy · flags an error when any query fails", async () => {
   const { result } = renderTaxonomy();
 
   await waitFor(() => expect(result.current.isError).toBe(true));
-  expect(result.current.domains).toEqual([]);
-  expect(result.current.groups).toEqual([]);
+  expect(result.current.categories).toEqual([]);
 });

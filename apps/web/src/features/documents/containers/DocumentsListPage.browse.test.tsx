@@ -156,7 +156,9 @@ it("DocumentsListPage · a single page shows no pager", async () => {
 
 it("DocumentsListPage · an empty filtered result offers to clear the chips and the search", async () => {
   stubCandidatesApi(() => json(candidatePage([])));
-  const { user } = renderAt("/documents?domain=identity&q=zzz&sort_by=title");
+  const { user } = renderAt(
+    "/documents?category=identity-and-documents&q=zzz&sort_by=title",
+  );
 
   expect(await screen.findByText("No documents found")).toBeInTheDocument();
   expect(

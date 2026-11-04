@@ -19,8 +19,7 @@ export default function DocumentSummaryCard({
         <DocumentHeader
           title={document.title}
           description={document.description}
-          domains={document.domains}
-          lifeSituations={document.life_situations}
+          categories={document.categories}
         />
         <DocumentBreadcrumb nodes={document.jurisdiction_path ?? []} />
       </VStack>

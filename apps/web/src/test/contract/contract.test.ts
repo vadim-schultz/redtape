@@ -204,8 +204,7 @@ const CANDIDATE_DETAIL: Keys<DiscoveryCandidateDetailResponse> = {
   candidate: true,
   jurisdiction_name_i18n: true,
   mentions: true,
-  suggested_domain_codes: true,
-  suggested_situation_codes: true,
+  suggested_category_codes: true,
 };
 
 const MENTION: Keys<DiscoveryCandidateMention> = {
@@ -223,8 +222,11 @@ const MENTION: Keys<DiscoveryCandidateMention> = {
   extractor_version: true,
   condition: true,
   is_optional: true,
-  domain_codes: true,
-  situation_codes: true,
+  category_codes: true,
+  pvog_leaf_code: true,
+  direct_category_confidence: true,
+  pvog_source_path: true,
+  pvog_mapping_version: true,
   created_at: true,
 };
 

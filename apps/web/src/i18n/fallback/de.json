@@ -141,9 +141,10 @@
     "forbidden_body": "Du hast keine Berechtigung, diese Seite anzusehen."
   },
   "filters": {
-    "domain": "Lebensbereich",
-    "situation": "Lebenslage",
+    "category": "Kategorien",
     "clear": "Filter zurücksetzen",
+    "chip": "Nach {name} filtern",
+    "browse": "Kategorien durchsuchen",
     "remove_domain": "Lebensbereich-Filter entfernen: {name}",
     "remove_situation": "Lebenslagen-Filter entfernen: {name}"
   },

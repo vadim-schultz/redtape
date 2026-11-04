@@ -57,6 +57,8 @@ export const queryKeys = {
   },
   taxonomy: {
     all: ["taxonomy"] as const,
+    categories: (locale: string) =>
+      [...queryKeys.taxonomy.all, "categories", locale] as const,
     domains: (locale: string) =>
       [...queryKeys.taxonomy.all, "domains", locale] as const,
     lifeSituations: (locale: string) =>
