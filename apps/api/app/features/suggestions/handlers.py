@@ -153,10 +153,9 @@ class NewDocumentHandler:
         self._suggestions = deps.suggestions
 
     def validate(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID) -> None:
-        """Check that every domain and situation code exists; the jurisdiction is not used here."""
+        """Check that every canonical category code exists; the jurisdiction is not used here."""
         try:
-            self._taxonomy.resolve_domain_ids(payload.domain_codes)
-            self._taxonomy.resolve_situation_ids(payload.situation_codes)
+            self._taxonomy.resolve_category_code_ids(payload.category_codes)
         except TaxonomyCodeError as exc:
             raise UnknownTaxonomyCodeError(str(exc)) from exc
 

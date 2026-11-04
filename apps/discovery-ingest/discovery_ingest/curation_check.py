@@ -17,14 +17,12 @@ PageText = Callable[[CandidateSourceRead], str | None]
 
 
 def code_problems(file: CurationFile, taxonomy: Taxonomy) -> list[str]:
-    """Return a line for each domain or situation code that the closed vocabulary does not hold."""
-    axes = (("domain_codes", taxonomy.domain_codes), ("situation_codes", taxonomy.situation_codes))
+    """Return a line for each category code that the closed vocabulary does not hold."""
     return [
-        f"{c.title_de!r} {field}: unknown code {code!r}"
+        f"{c.title_de!r} category_codes: unknown code {code!r}"
         for c in file.candidates
-        for field, known in axes
-        for code in getattr(c, field)
-        if code not in known
+        for code in c.category_codes
+        if code not in taxonomy.category_codes
     ]
 
 

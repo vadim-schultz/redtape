@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 from uuid import UUID
 
 from app.features.discovery.candidate_codes import ItemCodes
-from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate
+from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate, PvogSourcePathData
 from app.schema.discovery.candidates import CandidateMentionItem
 
 
@@ -45,13 +46,16 @@ def refresh_mention(mention: DiscoveryCandidateMention, prepared: PreparedMentio
     mention.extractor_version = item.extractor_version
     mention.artifact_id = item.artifact_id or mention.artifact_id
     _apply_conditions(mention, prepared)
+    mention.category_codes = prepared.codes.category_codes
+    mention.direct_category_confidence = prepared.item.direct_category_confidence
 
 
 def _apply_conditions(mention: DiscoveryCandidateMention, prepared: PreparedMention) -> None:
     mention.condition = prepared.item.condition
     mention.is_optional = prepared.item.is_optional
-    mention.domain_codes = prepared.codes.domain_codes
-    mention.situation_codes = prepared.codes.situation_codes
-    mention.direct_domain_confidence = prepared.item.direct_domain_confidence
-    mention.direct_situation_confidence = prepared.item.direct_situation_confidence
+    mention.category_codes = prepared.codes.category_codes
+    mention.direct_category_confidence = prepared.item.direct_category_confidence
     mention.pvog_leaf_code = prepared.item.pvog_leaf_code
+    path = prepared.item.pvog_source_path
+    mention.pvog_source_path = None if path is None else cast(PvogSourcePathData, path.model_dump(exclude_none=True))
+    mention.pvog_mapping_version = prepared.item.pvog_mapping_version

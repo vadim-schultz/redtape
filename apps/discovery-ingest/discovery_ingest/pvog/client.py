@@ -12,6 +12,7 @@ from pydantic import BaseModel, JsonValue
 
 from discovery_ingest.catalogue_scope import FEDERAL_ARS
 from discovery_ingest.page_budget import PageBudget
+from discovery_ingest.pvog.category_mapping import PVOG_CATEGORY_MAPPING_VERSION
 from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord, PvogSourcePath
 from discovery_ingest.schemas import CatalogueBatchItem
 
@@ -160,8 +161,8 @@ def map_pvog_record(
     """Map one PVOG Suchdienst row to a machine batch item.
 
     ``personal_matter_code``, when given, is stashed into the stored ``raw_payload`` under the
-    reserved ``_personal_matter_code`` key so a later harvest step can derive ``situation_codes``
-    from it (no existing PVOG field uses an underscore-prefixed key).
+    reserved ``_personal_matter_code`` key. The captured ``personal_matter_path`` is stored beside
+    it so later harvest can map only complete PVOG evidence through the frozen category crosswalk.
     """
     external_id = _external_id_for_record(record)
     title = record.title
@@ -175,6 +176,7 @@ def map_pvog_record(
         if personal_matter_code is not None and source_path.leaf_code not in {None, personal_matter_code}:
             raise PvogMappingError("personal matter code does not match its PVOG source path")
         raw_payload["_pvog_source_path"] = source_path.as_raw()
+        raw_payload["_pvog_category_mapping_version"] = PVOG_CATEGORY_MAPPING_VERSION
     return CatalogueBatchItem(
         source="pvog",
         external_id=external_id,

@@ -22,10 +22,11 @@ class ScoredCode(NamedTuple):
 
 
 class CandidateTagScores(NamedTuple):
-    """Every scored code of one candidate per axis, most confident first."""
+    """Every scored code of one candidate per compatibility axis and category collection."""
 
     domains: tuple[ScoredCode, ...] = ()
     situations: tuple[ScoredCode, ...] = ()
+    categories: tuple[ScoredCode, ...] = ()
 
 
 def _by_candidate(rows: Iterable[Row]) -> dict[UUID, CandidateTagScores]:
@@ -34,7 +35,11 @@ def _by_candidate(rows: Iterable[Row]) -> dict[UUID, CandidateTagScores]:
     for row in rows:
         grouped[row.candidate_id][row.axis].append(ScoredCode(row.code, row.score))
     return {
-        candidate_id: CandidateTagScores(tuple(axes[TagAxis.DOMAIN.value]), tuple(axes[TagAxis.SITUATION.value]))
+        candidate_id: CandidateTagScores(
+            tuple(axes[TagAxis.DOMAIN.value]),
+            tuple(axes[TagAxis.SITUATION.value]),
+            tuple(axes[TagAxis.CATEGORY.value]),
+        )
         for candidate_id, axes in grouped.items()
     }
 

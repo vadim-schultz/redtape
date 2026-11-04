@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from discovery_ingest.extract.llm.schema import (
-    MAX_DOMAIN_CODES,
+    MAX_CATEGORY_CODES,
     MAX_NAME_LENGTH,
     MAX_QUOTE_LENGTH,
-    MAX_SITUATION_CODES,
 )
 
 PAGE_OPEN = "<page>"
@@ -42,7 +41,7 @@ for "gegebenenfalls" or "falls vorhanden".
 the line that says so. Leave dependencies empty when the page does not say so.
 
 Rules for tags:
-- Choose domain_codes (at most {max_domains}) and situation_codes (at most {max_situations}) only from \
+- Choose category_codes (at most {max_categories}) only from \
 the codes in the vocabulary of the user message, and only for a procedure the page clearly describes. Give \
 none when the page is not a procedure (a start page, a list, a login page, a general information page). \
 An empty list is correct when unsure. When unsure give none.
@@ -62,6 +61,5 @@ def system_text() -> str:
         page_close=PAGE_CLOSE,
         max_name=MAX_NAME_LENGTH,
         max_quote=MAX_QUOTE_LENGTH,
-        max_domains=MAX_DOMAIN_CODES,
-        max_situations=MAX_SITUATION_CODES,
+        max_categories=MAX_CATEGORY_CODES,
     )

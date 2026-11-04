@@ -7,6 +7,7 @@ from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from app.features.documents.repository import DocumentRepository
+from app.features.taxonomy.compatibility import LegacyTaxonomyAdapter
 from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
 from app.schema.suggestion.payload import NewDocumentPayload
@@ -27,10 +28,8 @@ class PromotionPort(Protocol):
         payload: NewDocumentPayload,
         jurisdiction_id: UUID,
         slug: str,
-        *,
-        category_scores: dict[str, float] | None = None,
     ) -> Document:
-        """Persist the document and any already-resolved canonical category scores."""
+        """Persist a document and its canonical category scores."""
         ...
 
     def create_requirement(
@@ -77,11 +76,9 @@ class DocumentPromotion:
         payload: NewDocumentPayload,
         jurisdiction_id: UUID,
         slug: str,
-        *,
-        category_scores: dict[str, float] | None = None,
     ) -> Document:
         """Build and persist a document; `slug` is never recomputed."""
-        domain_scores, situation_scores, situation_leaf_codes = self._resolve_tags(payload)
+        domain_scores, situation_scores, situation_leaf_codes, category_scores = self._resolve_tags(payload)
         document = self._build_document(payload, jurisdiction_id, slug)
         return self._repo.add(
             document,
@@ -143,32 +140,54 @@ class DocumentPromotion:
 
     def _resolve_tags(
         self, payload: NewDocumentPayload
-    ) -> tuple[dict[UUID, float], dict[UUID, float], dict[UUID, str]]:
-        """Resolve each axis' codes to ids and pair them with their given confidence, defaulting to `1.0`.
+    ) -> tuple[dict[UUID, float], dict[UUID, float], dict[UUID, str], dict[str, float]]:
+        """Resolve canonical categories and bounded legacy inputs with one confidence policy.
 
         A code missing from `payload.tag_confidence` (including when it's `None` entirely, e.g. a
         hand-written admin creation) is treated as fully confident — the same default the link tables'
         own `server_default` uses for a row written without this service at all.
         """
         confidence = payload.tag_confidence or {}
+        self._taxonomy.resolve_category_code_ids(payload.category_codes)
+        category_scores = self._category_scores(payload, confidence)
+        if not payload.domain_codes and not payload.situation_codes:
+            return {}, {}, {}, category_scores
         domain_ids = self._taxonomy.resolve_domain_ids(payload.domain_codes)
         situation_ids = self._taxonomy.resolve_situation_ids(payload.situation_codes)
-        domain_scores = self._scores(payload.domain_codes, domain_ids, confidence)
-        situation_scores = self._scores(payload.situation_codes, situation_ids, confidence)
-        situation_leaf_codes = self._leaf_codes(payload.situation_codes, situation_ids, payload.situation_leaf_codes)
-        return domain_scores, situation_scores, situation_leaf_codes
+        return (
+            self._scores(payload.domain_codes, domain_ids, confidence),
+            self._scores(payload.situation_codes, situation_ids, confidence),
+            self._leaf_codes(
+                payload.situation_codes,
+                situation_ids,
+                payload.situation_leaf_codes,
+            ),
+            category_scores,
+        )
 
-    def _scores(self, codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
+    @staticmethod
+    def _category_scores(payload: NewDocumentPayload, confidence: dict[str, float]) -> dict[str, float]:
+        """Return canonical scores, translating compatibility-axis scores once when needed."""
+        if not payload.domain_codes and not payload.situation_codes:
+            return {code: confidence.get(code, 1.0) for code in payload.category_codes}
+        translated = LegacyTaxonomyAdapter().canonical_scores(
+            domain_scores={code: confidence[code] for code in payload.domain_codes if code in confidence},
+            situation_scores={code: confidence[code] for code in payload.situation_codes if code in confidence},
+        )
+        return {code: translated.get(code, 1.0) for code in payload.category_codes}
+
+    @staticmethod
+    def _scores(codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
+        """Pair legacy ids with their direct confidence, defaulting omitted values to one."""
         return {term_id: confidence.get(code, 1.0) for code, term_id in zip(codes, ids, strict=True)}
 
+    @staticmethod
     def _leaf_codes(
-        self, codes: Sequence[str], ids: Sequence[UUID], leaf_codes: dict[str, str] | None
+        codes: Sequence[str],
+        ids: Sequence[UUID],
+        leaf_codes: dict[str, str] | None,
     ) -> dict[UUID, str]:
-        """Resolve `payload.situation_leaf_codes` (code -> leaf code) to the term id it belongs to.
-
-        A code missing from `leaf_codes` (including when it's `None` entirely) simply has no leaf code —
-        unlike `tag_confidence`, there is no default to fall back to; the facet is optional.
-        """
+        """Translate legacy situation leaf metadata to the corresponding persisted term ids."""
         given = leaf_codes or {}
         return {term_id: given[code] for code, term_id in zip(codes, ids, strict=True) if code in given}
 

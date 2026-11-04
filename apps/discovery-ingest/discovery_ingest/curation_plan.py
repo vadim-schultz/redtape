@@ -51,8 +51,7 @@ def _tag_mentions(entry: CurationCandidate, staged: StagedIndex) -> list[Mention
             excerpt=excerpt,
             source_field="manual:tags",
             **MANUAL,
-            domain_codes=entry.domain_codes or None,
-            situation_codes=entry.situation_codes or None,
+            category_codes=entry.category_codes or None,
         )
     ]
 

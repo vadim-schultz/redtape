@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
+from scripts.seed_data.category_contract import CATEGORY_INVENTORY
 from scripts.seed_data.taxonomy import LEGACY_CROSSWALK, SITUATION_GROUP_CODES, SITUATION_GROUPS
 
 LegacyAxis = Literal["domain", "life_situation"]
@@ -19,6 +20,7 @@ _GROUP_SITUATIONS = {
     group.code: tuple(code for code, group_code in SITUATION_GROUP_CODES.items() if group_code == group.code)
     for group in SITUATION_GROUPS
 }
+_ACTIVE_CATEGORY_CODES = frozenset(category.code for category in CATEGORY_INVENTORY if category.is_active)
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +67,23 @@ class LegacyTaxonomyAdapter:
                 (domains if axis == "domain" else situations).append(source_code)
         return tuple(domains), tuple(situations)
 
+    def canonical_codes(
+        self,
+        *,
+        domain_codes: Sequence[str],
+        situation_codes: Sequence[str],
+    ) -> tuple[str, ...]:
+        """Translate stored canonical or legacy axis values into canonical category codes."""
+        axes: tuple[tuple[LegacyAxis, Sequence[str]], ...] = (
+            ("domain", domain_codes),
+            ("life_situation", situation_codes),
+        )
+        return tuple(
+            dict.fromkeys(
+                target for axis, codes in axes for code in codes for target in self._targets_for_stored_code(axis, code)
+            )
+        )
+
     def canonical_scores(
         self,
         *,
@@ -82,6 +101,13 @@ class LegacyTaxonomyAdapter:
                 for category_code in _LEGACY_TARGETS.get((axis, source_code), ()):
                     result[category_code] = max(score, result.get(category_code, 0.0))
         return result
+
+    @staticmethod
+    def _targets_for_stored_code(axis: LegacyAxis, code: str) -> tuple[str, ...]:
+        """Return a canonical code unchanged, or its frozen legacy crosswalk targets."""
+        if code in _ACTIVE_CATEGORY_CODES:
+            return (code,)
+        return _LEGACY_TARGETS.get((axis, code), ())
 
     @staticmethod
     def _mapped_codes(axis: LegacyAxis, codes: Sequence[str]) -> tuple[str, ...]:

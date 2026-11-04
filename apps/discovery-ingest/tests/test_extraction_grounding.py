@@ -36,8 +36,7 @@ def run(
 ) -> Grounded:
     payload: dict[str, Any] = {
         "page_kind": "service",
-        "domain_codes": [],
-        "situation_codes": [],
+        "category_codes": [],
         "documents": documents or [],
         "dependencies": dependencies or [],
         **extra,
@@ -159,30 +158,24 @@ def test_a_repeated_dependency_is_kept_once() -> None:
 
 
 def test_codes_are_kept_in_order_without_duplicates() -> None:
-    grounded = run(
-        [doc("Personalausweis")], domain_codes=["housing", "identity-civil-status"], situation_codes=["moving-house"]
-    )
-    assert grounded.domain_codes == ("housing", "identity-civil-status")
-    assert grounded.situation_codes == ("moving-house",)
+    grounded = run([doc("Personalausweis")], category_codes=["home-and-housing", "moving-house", "home-and-housing"])
+    assert grounded.category_codes == ("home-and-housing", "moving-house")
 
 
 def test_unknown_codes_are_dropped_and_counted_and_counts_are_capped() -> None:
     wide = taxonomy().model_copy(
         update={
-            "domains": (term("a", "A", "A"), term("b", "B", "B"), term("c", "C", "C")),
-            "situations": tuple(term(code, code, code) for code in "wxyz"),
+            "categories": tuple(term(code, code, code) for code in "abcdef"),
         }
     )
     extraction = PageExtraction.model_construct(
         page_kind="service",
-        domain_codes=["a", "nope", "a", "b", "c"],
-        situation_codes=["w", "x", "y", "z"],
+        category_codes=["a", "nope", "a", "b", "c", "d", "e", "f"],
         documents=[DocumentItem(name="Personalausweis", role="required", quote=ID_QUOTE)],
         dependencies=[],
     )
     grounded = ground(extraction, PAGE, wide)
-    assert grounded.domain_codes == ("a", "b")
-    assert grounded.situation_codes == ("w", "x", "y")
+    assert grounded.category_codes == ("a", "b", "c", "d", "e")
     assert grounded.diagnostics.unknown_codes == 1
 
 
@@ -190,12 +183,10 @@ def test_unknown_codes_are_dropped_and_counted_and_counts_are_capped() -> None:
 def test_a_page_that_is_not_a_procedure_yields_nothing(kind: str) -> None:
     grounded = run(
         [doc("Personalausweis")],
-        domain_codes=["housing"],
-        situation_codes=["moving-house"],
+        category_codes=["home-and-housing"],
         page_kind=kind,
     )
-    assert (grounded.documents, grounded.dependencies, grounded.domain_codes, grounded.situation_codes) == (
-        (),
+    assert (grounded.documents, grounded.dependencies, grounded.category_codes) == (
         (),
         (),
         (),

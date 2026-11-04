@@ -128,16 +128,16 @@
       "title": "Documents",
       "type": "array"
     },
-    "domain_codes": {
+    "category_codes": {
       "items": {
         "enum": [
-          "DOM_A",
-          "DOM_B"
+          "moving-house",
+          "retirement"
         ],
         "type": "string"
       },
-      "maxItems": 2,
-      "title": "Domain Codes",
+      "maxItems": 5,
+      "title": "Category Codes",
       "type": "array"
     },
     "page_kind": {
@@ -150,22 +150,10 @@
       ],
       "title": "Page Kind",
       "type": "string"
-    },
-    "situation_codes": {
-      "items": {
-        "enum": [
-          "SIT_X"
-        ],
-        "type": "string"
-      },
-      "maxItems": 3,
-      "title": "Situation Codes",
-      "type": "array"
     }
   },
   "required": [
     "page_kind",
-    "domain_codes",
     "documents",
     "dependencies"
   ],

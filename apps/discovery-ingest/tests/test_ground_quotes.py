@@ -21,7 +21,7 @@ Die Bundes-Agentur – kurz BA – hilft."""
 
 def run(quote: str, text: str = TEXT) -> Grounded:
     document: dict[str, Any] = {"name": "Dokument", "role": "required", "quote": quote}
-    payload = {"page_kind": "service", "domain_codes": [], "situation_codes": [], "documents": [document]}
+    payload = {"page_kind": "service", "category_codes": [], "documents": [document]}
     return ground(PageExtraction.model_validate({**payload, "dependencies": []}), page(text), taxonomy())
 
 

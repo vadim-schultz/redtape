@@ -9,7 +9,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from discovery_ingest.extract.llm.normalise import name_slug
-from discovery_ingest.mentions import MAX_CONDITION_LENGTH, MAX_DOMAIN_CODES, MAX_SITUATION_CODES, Code
+from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code
+from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
 
 MANUAL_EXTRACTOR = "manual"
 """The extractor name of every row the tool writes; the API's manual override keys on the same value."""
@@ -44,8 +45,7 @@ class CurationCandidate(_Strict):
     candidate_id: UUID
     catalogue_service_id: UUID
     title_de: Title
-    domain_codes: list[Code] = Field(default_factory=list, max_length=MAX_DOMAIN_CODES)
-    situation_codes: list[Code] = Field(default_factory=list, max_length=MAX_SITUATION_CODES)
+    category_codes: list[Code] = Field(default_factory=list, max_length=MAX_CATEGORY_CODES)
     tag_note: Excerpt | None = None
     requires: list[CurationEdge] = Field(default_factory=list)
     required_by: list[CurationEdge] = Field(default_factory=list)
@@ -53,7 +53,7 @@ class CurationCandidate(_Strict):
     @property
     def tag_count(self) -> int:
         """Return how many codes the entry assigns."""
-        return len(self.domain_codes) + len(self.situation_codes)
+        return len(self.category_codes)
 
     def edges(self) -> list[tuple[str, str, CurationEdge]]:
         """Return ``(parent title, required title, edge)``: ``requires`` makes this candidate the parent."""
@@ -65,6 +65,24 @@ class CurationCandidate(_Strict):
         if self.tag_count and not self.tag_note:
             raise ValueError(f"{self.title_de!r}: tag_note is required when codes are given")
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def _translate_legacy_axes(cls, value: object) -> object:
+        """Translate compatibility-axis fields before validating manual category codes."""
+        if not isinstance(value, dict):
+            return value
+        legacy_fields = {"domain_codes", "situation_codes"}
+        if not legacy_fields & value.keys():
+            return value
+        if "category_codes" in value:
+            raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
+        categories = categories_for_legacy_codes(
+            "domain", tuple(value.get("domain_codes") or ())
+        ) + categories_for_legacy_codes("life_situation", tuple(value.get("situation_codes") or ()))
+        translated = {key: item for key, item in value.items() if key not in legacy_fields}
+        translated["category_codes"] = list(dict.fromkeys(categories))
+        return translated
 
     @model_validator(mode="after")
     def _no_self_edge(self) -> Self:

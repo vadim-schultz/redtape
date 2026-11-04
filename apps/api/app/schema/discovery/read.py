@@ -18,6 +18,7 @@ from app.models.discovery import (
 )
 from app.schema.candidate import CandidateFlags
 from app.schema.discovery.artifacts import ArtifactSummaryRead
+from app.schema.discovery.candidates import PvogSourcePath
 from app.schema.discovery.emit import SkipReason
 
 JsonObject = dict[str, JsonValue]
@@ -302,8 +303,11 @@ class CandidateMentionRead(BaseModel):
     extractor_version: str
     condition: str | None
     is_optional: bool | None
-    domain_codes: list[str]
-    situation_codes: list[str]
+    category_codes: list[str]
+    pvog_leaf_code: str | None
+    direct_category_confidence: float | None
+    pvog_source_path: PvogSourcePath | None
+    pvog_mapping_version: str | None
     created_at: datetime
 
 
@@ -322,5 +326,4 @@ class CandidateDetailResponse(BaseModel):
     candidate: CandidateRead
     jurisdiction_name_i18n: dict[str, str]
     mentions: list[CandidateMentionRead]
-    suggested_domain_codes: list[TagSupportRead]
-    suggested_situation_codes: list[TagSupportRead]
+    suggested_category_codes: list[TagSupportRead]

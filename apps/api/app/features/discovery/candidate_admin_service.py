@@ -91,8 +91,7 @@ class CandidateAdminService:
             candidate=candidate_read(candidate, mention_count=len(mentions)),
             jurisdiction_name_i18n=self._repo.get_jurisdiction_name_i18n(candidate.jurisdiction_id),
             mentions=mentions,
-            suggested_domain_codes=[TagSupportRead(**s._asdict()) for s in suggestions.domains],
-            suggested_situation_codes=[TagSupportRead(**s._asdict()) for s in suggestions.situations],
+            suggested_category_codes=[TagSupportRead(**s._asdict()) for s in suggestions.categories],
         )
 
     def candidate_edges(self, candidate_id: UUID) -> CandidateEdgeListResponse:

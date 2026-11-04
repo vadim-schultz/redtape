@@ -12,8 +12,7 @@ from app.schema.discovery.candidates import CandidateMentionItem
 class ItemCodes:
     """The codes of one item that exist in the vocabulary, and how many were dropped."""
 
-    domain_codes: list[str] | None
-    situation_codes: list[str] | None
+    category_codes: list[str] | None
     dropped: int
 
 
@@ -26,20 +25,17 @@ def _keep(known: set[str], codes: list[str] | None) -> tuple[list[str] | None, i
 
 @dataclass(frozen=True, slots=True)
 class CodeVocabulary:
-    """The domain and situation codes of one batch that the taxonomy knows."""
+    """The canonical category codes of one batch that the taxonomy knows."""
 
-    domains: set[str]
-    situations: set[str]
+    categories: set[str]
 
     @classmethod
     def for_items(cls, items: list[CandidateMentionItem], taxonomy: TaxonomyService) -> CodeVocabulary:
         """Look the codes of every item up once for the whole batch."""
-        domains = {code for item in items for code in item.domain_codes or []}
-        situations = {code for item in items for code in item.situation_codes or []}
-        return cls(taxonomy.known_domain_codes(domains), taxonomy.known_situation_codes(situations))
+        categories = {code for item in items for code in item.category_codes or []}
+        return cls(taxonomy.known_category_codes(categories))
 
     def filter(self, item: CandidateMentionItem) -> ItemCodes:
         """Return ``item``'s known codes; unknown ones are dropped and counted."""
-        domains, dropped_domains = _keep(self.domains, item.domain_codes)
-        situations, dropped_situations = _keep(self.situations, item.situation_codes)
-        return ItemCodes(domains, situations, dropped_domains + dropped_situations)
+        categories, dropped = _keep(self.categories, item.category_codes)
+        return ItemCodes(categories, dropped)

@@ -87,7 +87,7 @@ def test_a_tampered_page_would_be_caught_by_the_trim_check() -> None:
 
 
 def test_every_gold_code_is_in_the_real_taxonomy() -> None:
-    """gold set · domain and situation codes exist in the vocabulary GET /machine/taxonomy serves."""
+    """gold set · category codes exist in the vocabulary GET /machine/taxonomy serves."""
     taxonomy = _taxonomy()
 
     assert [
@@ -97,7 +97,7 @@ def test_every_gold_code_is_in_the_real_taxonomy() -> None:
 
 def test_a_code_outside_the_taxonomy_is_reported() -> None:
     """unknown_codes · a made-up code is returned by name; a known one is not."""
-    page = load_gold(GOLD_DIR, limit=1)[0].model_copy(update={"domain_codes": ("housing", "made-up")})
+    page = load_gold(GOLD_DIR, limit=1)[0].model_copy(update={"category_codes": ("home-and-housing", "made-up")})
 
     assert unknown_codes(page, _taxonomy()) == ["made-up"]
 

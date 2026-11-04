@@ -6,11 +6,12 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError, model_validator
 
 from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.llm.schema import Code, Name, PageKind, Role
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
+from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
 
 GOLD_SUFFIX = ".gold.json"
 
@@ -53,8 +54,20 @@ class GoldPage(_Strict):
     page_kind: PageKind
     documents: tuple[GoldDocument, ...]
     dependencies: tuple[GoldDependency, ...]
-    domain_codes: tuple[Code, ...]
-    situation_codes: tuple[Code, ...]
+    category_codes: tuple[Code, ...]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _translate_legacy_axes(cls, value: object) -> object:
+        """Translate old gold labels through the frozen crosswalk."""
+        if not isinstance(value, dict) or "category_codes" in value:
+            return value
+        domains = categories_for_legacy_codes("domain", tuple(value.get("domain_codes") or ()))
+        situations = categories_for_legacy_codes("life_situation", tuple(value.get("situation_codes") or ()))
+        return {
+            **{key: item for key, item in value.items() if key not in {"domain_codes", "situation_codes"}},
+            "category_codes": tuple(dict.fromkeys((*domains, *situations))),
+        }
 
 
 def _labels(directory: Path, name: str) -> dict[str, JsonValue]:
@@ -96,7 +109,7 @@ class DocumentCase(_Strict):
     page_name: str
     document_name: str
     document_text: str
-    gold_situation_codes: tuple[Code, ...]
+    gold_category_codes: tuple[Code, ...]
 
 
 def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
@@ -106,7 +119,7 @@ def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
             page_name=page.name,
             document_name=document.name,
             document_text=document.document_text,
-            gold_situation_codes=page.situation_codes,
+            gold_category_codes=page.category_codes,
         )
         for page in pages
         for document in page.documents
@@ -115,6 +128,5 @@ def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
 
 
 def unknown_codes(page: GoldPage, taxonomy: Taxonomy) -> list[str]:
-    """Return the domain and situation codes of ``page`` that the vocabulary does not contain."""
-    unknown_domains = [code for code in page.domain_codes if code not in taxonomy.domain_codes]
-    return unknown_domains + [code for code in page.situation_codes if code not in taxonomy.situation_codes]
+    """Return the category codes of ``page`` that the vocabulary does not contain."""
+    return [code for code in page.category_codes if code not in taxonomy.category_codes]

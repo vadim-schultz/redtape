@@ -29,7 +29,7 @@ def _gold_page(
     *,
     html: str = "<html lang='de'><body><main><h1>Verfahren</h1><p>Platzhaltertext.</p></main></body></html>",
     documents: tuple[GoldDocument, ...] = (),
-    situation_codes: tuple[str, ...] = (),
+    category_codes: tuple[str, ...] = (),
 ) -> GoldPage:
     return GoldPage(
         name=name,
@@ -38,8 +38,7 @@ def _gold_page(
         page_kind="service",
         documents=documents,
         dependencies=(),
-        domain_codes=(),
-        situation_codes=situation_codes,
+        category_codes=category_codes,
     )
 
 
@@ -71,9 +70,7 @@ def test_document_cases_is_empty_when_no_gold_document_has_text() -> None:
     assert document_cases([page]) == []
 
 
-def test_run_documents_scores_the_situation_axis_with_the_split_metric(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_run_documents_scores_canonical_categories(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """run_documents · situation tag agreement is computed from the document-level grounded codes, not the page's."""
     matching = _gold_page(
         name="beta1",
@@ -82,7 +79,7 @@ def test_run_documents_scores_the_situation_axis_with_the_split_metric(
                 name="Formular X", role="form", document_text="Formular X: Antrag auf Ummeldung des Wohnsitzes."
             ),
         ),
-        situation_codes=("moving-house",),
+        category_codes=("moving-house",),
     )
     mismatching = _gold_page(
         name="beta2",
@@ -91,21 +88,19 @@ def test_run_documents_scores_the_situation_axis_with_the_split_metric(
                 name="Formular Y", role="form", document_text="Formular Y: Antrag auf Geburtsanzeige des Kindes."
             ),
         ),
-        situation_codes=("birth-of-child",),
+        category_codes=("birth-and-parenthood",),
     )
     cases = document_cases([matching, mismatching])
     answers = {
         "Formular X": {
             "page_kind": "form",
-            "domain_codes": [],
-            "situation_codes": ["moving-house"],
+            "category_codes": ["moving-house"],
             "documents": [{"name": "Formular X", "role": "form", "quote": "Formular X"}],
             "dependencies": [],
         },
         "Formular Y": {
             "page_kind": "form",
-            "domain_codes": [],
-            "situation_codes": ["moving-house"],
+            "category_codes": ["moving-house"],
             "documents": [{"name": "Formular Y", "role": "form", "quote": "Formular Y"}],
             "dependencies": [],
         },
@@ -114,9 +109,9 @@ def test_run_documents_scores_the_situation_axis_with_the_split_metric(
 
     run = runner.run_documents(cases)
 
-    assert [page.scores.predicted_situation_codes for page in run.pages] == [("moving-house",), ("moving-house",)]
-    assert [page.scores.gold_situation_codes for page in run.pages] == [("moving-house",), ("birth-of-child",)]
-    assert summarise(run.pages).situation_tag_agreement == pytest.approx(0.5)
+    assert [page.scores.predicted_category_codes for page in run.pages] == [("moving-house",), ("moving-house",)]
+    assert [page.scores.gold_category_codes for page in run.pages] == [("moving-house",), ("birth-and-parenthood",)]
+    assert summarise(run.pages).category_tag_agreement == pytest.approx(0.5)
 
 
 def test_run_documents_does_not_fall_back_to_page_text(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -127,7 +122,7 @@ def test_run_documents_does_not_fall_back_to_page_text(monkeypatch: pytest.Monke
         name="gamma",
         html=f"<html lang='de'><body><main><h1>Verfahren</h1><p>{page_only}</p></main></body></html>",
         documents=(GoldDocument(name="Formular Z", role="form", document_text=doc_only),),
-        situation_codes=("moving-house",),
+        category_codes=("moving-house",),
     )
     case = document_cases([page])[0]
 
@@ -139,8 +134,7 @@ def test_run_documents_does_not_fall_back_to_page_text(monkeypatch: pytest.Monke
             self.sent.append(messages[-1]["content"])
             answer = {
                 "page_kind": "form",
-                "domain_codes": [],
-                "situation_codes": [],
+                "category_codes": [],
                 "documents": [],
                 "dependencies": [],
             }
@@ -167,10 +161,10 @@ def test_document_level_cache_key_does_not_collide_with_the_page_level_key(
         name="delta",
         html=html,
         documents=(GoldDocument(name="Formular X", role="form", document_text="Formular X: amtlicher Hinweistext."),),
-        situation_codes=("moving-house",),
+        category_codes=("moving-house",),
     )
     case = document_cases([page])[0]
-    answer = {"page_kind": "form", "domain_codes": [], "situation_codes": [], "documents": [], "dependencies": []}
+    answer = {"page_kind": "form", "category_codes": [], "documents": [], "dependencies": []}
     llm = FakeLlm({"Formular X": answer})
     cache_dir = tmp_path / "cache"
 

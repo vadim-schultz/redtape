@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.features.taxonomy.compatibility import LegacyTaxonomyAdapter
 from app.models.discovery import (
     CatalogueService,
     DiscoveryArtifact,
@@ -15,6 +16,7 @@ from app.models.discovery import (
     DiscoveryTask,
 )
 from app.schema.discovery.artifacts import ArtifactRead, ArtifactSummaryRead
+from app.schema.discovery.candidates import PvogSourcePath
 from app.schema.discovery.read import (
     CandidateMentionRead,
     CandidateRead,
@@ -82,6 +84,11 @@ def mention_read(
     mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
 ) -> CandidateMentionRead:
     """Return one mention with the procedure it was found in and its artifact summary."""
+    category_codes = LegacyTaxonomyAdapter().canonical_codes(
+        domain_codes=mention.domain_codes or (),
+        situation_codes=mention.situation_codes or (),
+    )
+    source_path, mapping_version = _pvog_provenance(mention, procedure)
     return CandidateMentionRead(
         id=mention.id,
         catalogue_service_id=procedure.id,
@@ -97,10 +104,34 @@ def mention_read(
         extractor_version=mention.extractor_version,
         condition=mention.condition,
         is_optional=mention.is_optional,
-        domain_codes=mention.domain_codes or [],
-        situation_codes=mention.situation_codes or [],
+        category_codes=list(category_codes),
+        pvog_leaf_code=mention.pvog_leaf_code,
+        direct_category_confidence=mention.direct_category_confidence,
+        pvog_source_path=source_path,
+        pvog_mapping_version=mapping_version,
         created_at=mention.created_at,
     )
+
+
+def _pvog_provenance(
+    mention: DiscoveryCandidateMention, procedure: CatalogueService
+) -> tuple[PvogSourcePath | None, str | None]:
+    """Read typed PVOG provenance from the mention or its source row during the storage transition."""
+    path_data = mention.pvog_source_path
+    path: PvogSourcePath | None = None
+    if path_data is not None:
+        path = PvogSourcePath.model_validate(path_data)
+    mapping_version = mention.pvog_mapping_version
+    raw_path = procedure.raw_payload.get("_pvog_source_path")
+    if path is None and isinstance(raw_path, dict):
+        try:
+            path = PvogSourcePath.model_validate(raw_path)
+        except ValueError:
+            path = None
+    raw_version = procedure.raw_payload.get("_pvog_category_mapping_version")
+    if mapping_version is None and isinstance(raw_version, str):
+        mapping_version = raw_version
+    return path, mapping_version
 
 
 def artifact_read(row: DiscoveryArtifact) -> ArtifactRead:

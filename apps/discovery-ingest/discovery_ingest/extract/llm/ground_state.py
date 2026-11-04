@@ -35,8 +35,7 @@ class Grounded:
 
     documents: tuple[DocumentItem, ...]
     dependencies: tuple[DependencyItem, ...]
-    domain_codes: tuple[str, ...]
-    situation_codes: tuple[str, ...]
+    category_codes: tuple[str, ...]
     diagnostics: Diagnostics
 
 

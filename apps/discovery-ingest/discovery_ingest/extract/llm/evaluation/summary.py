@@ -26,8 +26,7 @@ class Summary:
     edges: Counts
     grounded_rate: float
     kept_rate: float
-    domain_tag_agreement: float
-    situation_tag_agreement: float
+    category_tag_agreement: float
     cleaner_recall: float
     page_kind_accuracy: float
     neurons_total: float
@@ -65,11 +64,8 @@ def summarise(pages: tuple[PageResult, ...]) -> Summary:
         edges=_pool([page.scores.edges for page in pages]),
         grounded_rate=grounded,
         kept_rate=kept,
-        domain_tag_agreement=tag_agreement(
-            [(page.scores.predicted_domain_codes, page.scores.gold_domain_codes) for page in pages]
-        ),
-        situation_tag_agreement=tag_agreement(
-            [(page.scores.predicted_situation_codes, page.scores.gold_situation_codes) for page in pages]
+        category_tag_agreement=tag_agreement(
+            [(page.scores.predicted_category_codes, page.scores.gold_category_codes) for page in pages]
         ),
         cleaner_recall=share_found(
             total=sum(page.gold_names for page in pages), missing=sum(len(page.missing_names) for page in pages)

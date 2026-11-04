@@ -44,8 +44,7 @@ def _mention(document: DocumentItem, grounded: Grounded, ctx: MappingContext) ->
         official_url=document.url,
         condition=document.condition,
         is_optional=document.is_optional,
-        domain_codes=list(grounded.domain_codes),
-        situation_codes=list(grounded.situation_codes),
+        category_codes=list(grounded.category_codes),
     )
 
 
