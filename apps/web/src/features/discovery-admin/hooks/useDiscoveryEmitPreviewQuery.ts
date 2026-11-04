@@ -5,7 +5,6 @@ import {
   fetchEmitPreview,
   type AdminAuth,
 } from "../services/discoveryAdminApi";
-import type { EmitPreviewResponse } from "../types";
 import { useAdminQueryFromOptions } from "./useAdminQuery";
 
 /** Build the emit-preview query for one catalogue row. */
@@ -23,7 +22,7 @@ export function cataloguePreviewQueryOptions(
 
 /** Load the suggestion payloads emitting a catalogue service would create. */
 export function useDiscoveryEmitPreviewQuery(catalogueId: string | undefined) {
-  return useAdminQueryFromOptions<EmitPreviewResponse>((auth) =>
+  return useAdminQueryFromOptions((auth) =>
     cataloguePreviewQueryOptions(auth, catalogueId),
   );
 }

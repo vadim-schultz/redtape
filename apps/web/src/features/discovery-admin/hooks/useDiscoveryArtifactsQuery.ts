@@ -5,7 +5,6 @@ import {
   listCatalogueArtifacts,
   type AdminAuth,
 } from "../services/discoveryAdminApi";
-import type { DiscoveryArtifactListResponse } from "../types";
 import { ARTIFACT_STALE_MS } from "../constants/queryTiming";
 import { useAdminQueryFromOptions } from "./useAdminQuery";
 
@@ -26,7 +25,7 @@ export function catalogueArtifactsQueryOptions(
 
 /** Load the artifacts of one catalogue row, refreshing their presigned URLs once stale. */
 export function useDiscoveryArtifactsQuery(catalogueId: string | undefined) {
-  return useAdminQueryFromOptions<DiscoveryArtifactListResponse>((auth) =>
+  return useAdminQueryFromOptions((auth) =>
     catalogueArtifactsQueryOptions(auth, catalogueId),
   );
 }

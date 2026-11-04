@@ -5,7 +5,6 @@ import {
   fetchCandidateEmitPreview,
   type AdminAuth,
 } from "../services/discoveryAdminApi";
-import type { CandidateEmitPreview } from "../types";
 import { useAdminQueryFromOptions } from "./useAdminQuery";
 
 /** Build the emit-preview query for one candidate. */
@@ -28,7 +27,7 @@ export function candidateEmitPreviewQueryOptions(
 export function useDiscoveryCandidateEmitPreviewQuery(
   candidateId: string | undefined,
 ) {
-  return useAdminQueryFromOptions<CandidateEmitPreview>((auth) =>
+  return useAdminQueryFromOptions((auth) =>
     candidateEmitPreviewQueryOptions(auth, candidateId),
   );
 }

@@ -5,7 +5,6 @@ import {
   listCandidateArtifacts,
   type AdminAuth,
 } from "../services/discoveryAdminApi";
-import type { DiscoveryArtifactListResponse } from "../types";
 import { ARTIFACT_STALE_MS } from "../constants/queryTiming";
 import { useAdminQueryFromOptions } from "./useAdminQuery";
 
@@ -31,7 +30,7 @@ export function candidateArtifactsQueryOptions(
 export function useDiscoveryCandidateArtifactsQuery(
   candidateId: string | undefined,
 ) {
-  return useAdminQueryFromOptions<DiscoveryArtifactListResponse>((auth) =>
+  return useAdminQueryFromOptions((auth) =>
     candidateArtifactsQueryOptions(auth, candidateId),
   );
 }
