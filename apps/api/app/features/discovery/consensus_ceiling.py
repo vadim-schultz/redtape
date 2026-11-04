@@ -30,14 +30,17 @@ class ConsensusCeiling(NamedTuple):
 
     @property
     def share_at_or_above_floor(self) -> float:
+        """Return the share of candidates that clear the floor; 0.0 when there are none."""
         return self.at_or_above_floor / self.total_candidates if self.total_candidates else 0.0
 
     @property
     def share_exactly_one(self) -> float:
+        """Return the share of candidates mentioned by exactly one procedure; 0.0 when none exist."""
         return self.exactly_one / self.total_candidates if self.total_candidates else 0.0
 
     @property
     def share_zero(self) -> float:
+        """Return the share of candidates that no procedure mentions; 0.0 when none exist."""
         return self.zero / self.total_candidates if self.total_candidates else 0.0
 
 

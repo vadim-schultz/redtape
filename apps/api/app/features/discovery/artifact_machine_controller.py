@@ -52,18 +52,21 @@ class DiscoveryArtifactMachineController(Controller):
         task_id: UUID,
         data: Annotated[ArtifactUploadForm, Body(media_type=RequestEncodingType.MULTI_PART)],
     ) -> Response[ArtifactRead]:
+        """Store a worker's artifact for a task; an identical upload answers 200 with the existing row, not 201."""
         outcome = discovery_artifact_upload_service.upload(task_id, _upload_from_form(data))
         status = HTTP_201_CREATED if outcome.created else HTTP_200_OK
         return Response(artifact_read(outcome.artifact), status_code=status)
 
     @get("/artifacts/status", sync_to_thread=True)
     def artifact_status(self, discovery_artifact_read_service: ArtifactReadService) -> ArtifactStatusResponse:
+        """Report whether uploads would be accepted: a store is set and the byte cap is not reached."""
         return discovery_artifact_read_service.status()
 
     @get("/artifacts/{artifact_id:uuid}/content", sync_to_thread=True)
     def artifact_content(
         self, discovery_artifact_read_service: ArtifactReadService, artifact_id: UUID
     ) -> Response[bytes]:
+        """Return the stored bytes of one artifact with its recorded content type."""
         stored = discovery_artifact_read_service.content(artifact_id)
         return Response(stored.data, media_type=stored.content_type)
 
@@ -75,5 +78,6 @@ class DiscoveryArtifactMachineController(Controller):
         kind: DiscoveryArtifactKind | None = Parameter(query="kind", default=None),
         host: str | None = Parameter(query="host", default=None, min_length=1, max_length=253),
     ) -> ArtifactListResponse:
+        """Page through artifacts, optionally filtered by kind or host."""
         artifact_filter = ArtifactFilter(kind=kind, host=host)
         return discovery_artifact_read_service.list_artifacts(artifact_filter, Page(page.offset, page.limit))

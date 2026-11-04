@@ -39,14 +39,17 @@ from app.shared.object_store.provider import get_object_store
 
 
 def provide_discovery_repository(session: Session) -> DiscoveryRepository:
+    """Bind a discovery repository to the request session."""
     return DiscoveryRepository(session)
 
 
 def provide_discovery_admin_service(discovery_repository: DiscoveryRepository) -> DiscoveryAdminService:
+    """Build the admin read service over the discovery repository."""
     return DiscoveryAdminService(discovery_repository)
 
 
 def provide_discovery_machine_service(discovery_repository: DiscoveryRepository) -> DiscoveryMachineService:
+    """Build the machine service with its upsert, queue and claim collaborators."""
     return DiscoveryMachineService(
         discovery_repository,
         CatalogueUpsertService(discovery_repository),
@@ -58,16 +61,19 @@ def provide_discovery_machine_service(discovery_repository: DiscoveryRepository)
 def provide_discovery_candidate_service(
     discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
 ) -> CandidateService:
+    """Build the candidate service with the taxonomy it tags against."""
     return CandidateService(discovery_repository, taxonomy_service)
 
 
 def provide_discovery_edge_service(discovery_repository: DiscoveryRepository) -> EdgeService:
+    """Build the edge service over the discovery repository."""
     return EdgeService(discovery_repository)
 
 
 def provide_discovery_candidate_admin_service(
     discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
 ) -> CandidateAdminService:
+    """Build the candidate admin service with the taxonomy it reads."""
     return CandidateAdminService(discovery_repository, taxonomy_service)
 
 
@@ -75,12 +81,14 @@ def provide_discovery_candidate_emit_service(
     discovery_repository: DiscoveryRepository,
     suggestion_service: SuggestionService,
 ) -> DiscoveryCandidateEmitService:
+    """Build the candidate emit service, which tags candidates through the suggestion service."""
     return DiscoveryCandidateEmitService(discovery_repository, suggestion_service)
 
 
 def provide_discovery_artifact_upload_service(
     discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
 ) -> ArtifactUploadService:
+    """Build the artifact upload service with the object store and the configured byte cap."""
     return ArtifactUploadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
 
 
@@ -89,6 +97,7 @@ def provide_discovery_artifact_read_service(
     object_store: InjectedObjectStore,
     discovery_budget_service: BudgetService,
 ) -> ArtifactReadService:
+    """Build the artifact read service; its presigned reads are metered against the budget ledger."""
     return ArtifactReadService(
         discovery_repository,
         object_store,
@@ -98,12 +107,14 @@ def provide_discovery_artifact_read_service(
 
 
 def provide_discovery_budget_service(discovery_repository: DiscoveryRepository) -> BudgetService:
+    """Build the budget ledger service over the discovery repository."""
     return BudgetService(discovery_repository)
 
 
 def provide_discovery_budget_api_service(
     discovery_repository: DiscoveryRepository, discovery_budget_service: BudgetService
 ) -> BudgetApiService:
+    """Build the budget API service over the repository and the budget ledger."""
     return BudgetApiService(discovery_repository, discovery_budget_service)
 
 
@@ -113,6 +124,7 @@ def provide_metered_object_store(discovery_budget_service: BudgetService) -> Obj
 
 
 def provide_discovery_run_service(discovery_repository: DiscoveryRepository) -> DiscoveryRunService:
+    """Build the run service over the discovery repository."""
     return DiscoveryRunService(discovery_repository)
 
 
@@ -120,6 +132,7 @@ def provide_discovery_emit_service(
     discovery_repository: DiscoveryRepository,
     suggestion_service: SuggestionService,
 ) -> DiscoveryEmitService:
+    """Build the emit service, which tags suggestions through the suggestion service."""
     return DiscoveryEmitService(discovery_repository, suggestion_service)
 
 

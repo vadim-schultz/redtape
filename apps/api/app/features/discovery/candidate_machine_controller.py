@@ -38,6 +38,7 @@ class DiscoveryCandidateMachineController(Controller):
         discovery_candidate_service: CandidateService,
         data: CandidateMentionsRequest,
     ) -> CandidateMentionsResponse:
+        """Record where documents are mentioned on catalogue procedures; the batch is written all or nothing."""
         return discovery_candidate_service.record_mentions(data)
 
     @post("/edges", sync_to_thread=True, status_code=HTTP_200_OK, guards=DB_WRITE_GUARDS)
@@ -46,6 +47,7 @@ class DiscoveryCandidateMachineController(Controller):
         discovery_edge_service: EdgeService,
         data: CandidateEdgesRequest,
     ) -> CandidateEdgesResponse:
+        """Record staged edges between candidates; an unknown catalogue row rejects the batch before any write."""
         return discovery_edge_service.record_edges(data)
 
     @get("/", sync_to_thread=True)
@@ -56,6 +58,7 @@ class DiscoveryCandidateMachineController(Controller):
         status: DiscoveryCandidateStatus | None = Parameter(query="status", default=None),
         min_mentions: int | None = Parameter(query="min_mentions", default=None, ge=0),
     ) -> CandidateListResponse:
+        """Page through candidates for workers, optionally filtered by status and minimum mentions."""
         candidate_filter = CandidateFilter(status=status, min_mentions=min_mentions)
         return discovery_candidate_admin_service.list_candidates(
             candidate_filter, Page(offset=page.offset, limit=page.limit)
@@ -71,6 +74,7 @@ class DiscoveryCandidateMachineController(Controller):
         candidate_id: UUID | None = Parameter(query="candidate_id", default=None),
         service_ids: list[UUID] | None = Parameter(query="catalogue_service_id", default=None, max_items=20),
     ) -> CandidateSourceListResponse:
+        """Page through procedures with candidate mentions, narrowed by missing screenshot, host or candidate."""
         candidate_filter = CandidateSourceFilter(
             missing_screenshot=missing == "screenshot",
             host=host,
@@ -87,6 +91,7 @@ class DiscoveryCandidateMachineController(Controller):
         discovery_candidate_emit_service: DiscoveryCandidateEmitService,
         candidate_id: UUID,
     ) -> CandidateEmitPreview:
+        """Return what emitting one candidate would create, for workers, without writing."""
         return discovery_candidate_emit_service.preview(candidate_id)
 
     @post("/emit", sync_to_thread=True, status_code=HTTP_200_OK)
@@ -96,4 +101,5 @@ class DiscoveryCandidateMachineController(Controller):
         machine_principal: MachinePrincipal,
         data: CandidateEmitRequest,
     ) -> CandidateEmitResponse:
+        """Emit a batch of candidates under the machine's API key and total the outcomes."""
         return discovery_candidate_emit_service.emit_batch(data.candidate_ids, machine_principal.api_key)

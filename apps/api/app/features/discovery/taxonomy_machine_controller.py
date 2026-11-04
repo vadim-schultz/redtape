@@ -17,4 +17,5 @@ class DiscoveryTaxonomyMachineController(Controller):
 
     @get("/", sync_to_thread=True)
     def vocabulary(self, taxonomy_service: TaxonomyService) -> VocabularyResponse:
+        """Return the closed domain and life-situation vocabulary that workers tag pages with."""
         return taxonomy_service.vocabulary()

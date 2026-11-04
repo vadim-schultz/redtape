@@ -61,9 +61,11 @@ def _direct_log(confidence: ColumnElement[float]) -> ColumnElement[float]:
 
 
 def support_rows(exploded: CTE) -> Subquery:
-    """Return one row per ``(candidate_id, code)``: whether any row carries a direct confidence, the
-    distinct procedures of the rows that don't (its LLM-only evidence), and the log-space product of the
-    direct confidences (``direct_log``).
+    """Return one row per ``(candidate_id, code)`` with its evidence.
+
+    Each row says whether any source carries a direct confidence, counts the distinct procedures of the
+    rows that don't (its LLM-only evidence), and holds the log-space product of the direct confidences
+    (``direct_log``).
     """
     confidence = exploded.c.confidence
     has_direct = func.bool_or(confidence.is_not(None))
