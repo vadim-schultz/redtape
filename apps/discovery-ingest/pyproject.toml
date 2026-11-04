@@ -63,11 +63,6 @@ convention = "pep257"
 # docstring baseline (T1): delete the line when its slice is done
 "discovery_ingest/{emit_models,config,curation,enrich,curation_plan,health,curation_check,llm_settings,__init__,edges,budget_models,batch_dedup,schemas,mentions,catalogue_export,__main__,curation_load}.py" = ["D107", "D401"]  # I-S2 (browser/** has no current violations, so it carries no exemption)
 "discovery_ingest/extract/{clean,clean_dom,registry,__init__,clean_meta,clean_rank,clean_cap,clean_links,clean_tags,clean_markdown,decode,base}.py" = ["D107", "D401"]  # I-S2
-"discovery_ingest/extract/llm/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
-"discovery_ingest/pvog/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
-"discovery_ingest/govdata/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
-"discovery_ingest/fim/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3
-"discovery_ingest/leika/**" = ["D103", "D107", "D205", "D400", "D401"]  # I-S3 (harvest/** has no current violations, so it carries no exemption)
 
 [tool.mypy]
 python_version = "3.11"

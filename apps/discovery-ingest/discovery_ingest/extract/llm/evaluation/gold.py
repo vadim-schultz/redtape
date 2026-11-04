@@ -87,9 +87,10 @@ def load_gold(directory: Path, *, limit: int | None = None) -> list[GoldPage]:
 
 
 class DocumentCase(_Strict):
-    """One gold document scored against its own text; the gold label is the page's situation codes (X8: production
+    """One gold document scored against its own text.
 
-    copies a page's codes onto every document it mentions, so that is the one gold label a document has today).
+    The gold label is the page's situation codes: production copies a page's codes onto every document it
+    mentions (X8), so that is the one gold label a document has today.
     """
 
     page_name: str

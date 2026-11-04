@@ -39,7 +39,7 @@ class ModelCalls:
     short: RawCall | None
 
     def all(self) -> list[RawCall]:
-        """The calls that were made."""
+        """Return the calls that were made, leaving out the variants that are ``None``."""
         return [call for call in (self.native, self.chat, self.short) if call is not None]
 
 

@@ -28,7 +28,7 @@ class ProbeReport:
     refused: bool = False
 
     def models(self) -> list[str]:
-        """The probed models in first-seen order."""
+        """Return the probed models in first-seen order, without duplicates or rows lacking a model."""
         return list(dict.fromkeys(row.model for row in self.rows if row.model is not None))
 
 
