@@ -1,0 +1,115 @@
+# Category taxonomy migration — Run ledger
+
+**Suite:** [00-architecture.md](00-architecture.md) · [01-rollout.md](01-rollout.md)
+**Purpose:** Record implementation and post-deploy evidence. This file is a ledger template; no production checks are implied by its creation.
+
+## Baseline
+
+| Check | Expected evidence | Recorded |
+| --- | --- | --- |
+| Category inventory | Versioned roots, subcategories, localized text, parent IDs, and PVOG crosswalk | pending |
+| Legacy code crosswalk | Every domain/situation code is mapped, intentionally unmapped, or manual-review | pending |
+| PVOG vocabulary | Snapshot version, root/parent/leaf counts, and mapping coverage | pending |
+| Existing database | Row counts for old taxonomy tables and link tables | pending |
+| Existing confidence | Distribution and null counts for old link confidence | pending |
+| Public contracts | API/OpenAPI/worker/frontend fixtures captured before change | pending |
+| UI baseline | Existing category chips, progress circle, detail sections, and source list behavior | pending |
+
+## Chapter evidence
+
+### Chapter 1 — PVOG taxonomy contract
+
+- Vocabulary artifact: pending
+- PVOG tree/source version: pending
+- Root/subcategory review: pending
+- Old-code crosswalk coverage: pending
+- Ambiguous/unmapped review list: pending
+
+### Chapter 2 — Schema and data migration
+
+- Alembic upgrade: pending
+- Alembic downgrade/forward-only decision: pending
+- Category row count: pending
+- Document-category link count: pending
+- External PVOG classification count: pending
+- Backfill rerun is idempotent: pending
+- Old/new projection parity report: pending
+
+### Chapter 3 — API and backend filters
+
+- Category-tree response: pending
+- Machine taxonomy response: pending
+- Parent descendant filter test: pending
+- Subcategory exact filter test: pending
+- Unknown-code rejection: pending
+- Legacy parameter compatibility: pending
+- Matrix reference status: pending
+
+### Chapter 4 — Ingest and LLM contract
+
+- Mention category payload validation: pending
+- PVOG parent/leaf provenance: pending
+- LLM schema enum digest: pending
+- Unknown category handling: pending
+- Confidence parity: pending
+- Re-ingest/backfill behavior: pending
+
+### Chapter 5 — Frontend category browsing
+
+- Search-first layout: pending
+- Category tree loading/error/empty states: pending
+- Red semantic chip token: pending
+- Top-level chip href: pending
+- Subcategory chip href: pending
+- No nested interactive markup: pending
+- Legacy URL behavior: pending
+
+### Chapter 6 — Admin and suggestion cutover
+
+- Admin category labels: pending
+- Suggestion payload category codes: pending
+- Manual curation contract: pending
+- Machine contract fixture: pending
+- Completeness/staging internal-only audit: pending
+
+### Chapter 7 — Public metadata cleanup
+
+- Staged/unreviewed notice absent: pending
+- Completeness section absent: pending
+- Public DTO fields removed or justified: pending
+- Progress circle still present: pending
+- Ranking/operations regression check: pending
+
+### Chapter 8 — Accordion view and source cards
+
+- Five accordion items present: pending
+- First three expanded by default: pending
+- Evidence and sources collapsed by default: pending
+- Keyboard interaction: pending
+- Empty states: pending
+- One subordinate source card per source: pending
+- External source links: pending
+
+### Chapter 9 — Legacy retirement
+
+- Runtime reference scan: pending
+- Contract reference scan: pending
+- Legacy migration execution: pending
+- Compatibility redirect expiry: pending
+- Backup/rollback evidence: pending
+
+## Post-deploy validation
+
+- Deployment/version: pending
+- Category-tree API parity: pending
+- Document counts before/after: pending
+- Search without category: pending
+- Root and subcategory filtering: pending
+- Category chip navigation: pending
+- Old URL behavior: pending
+- No staging/completeness disclosure: pending
+- Accordion defaults: pending
+- Source cards and source links: pending
+- PVOG provenance on new ingest: pending
+- Unexpected taxonomy loss: pending
+- Follow-up issue/plan: pending
