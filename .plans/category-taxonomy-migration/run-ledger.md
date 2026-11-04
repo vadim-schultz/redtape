@@ -55,7 +55,7 @@
 - Static checks: format, ruff, and mypy pass
 - Paired tests: 35 focused Postgres tests pass; migration-retry regression passes
 - Refactor gate: transformation, persistence, reporting, and rollback boundaries remain named and separate; no additional extraction justified
-- Full `./ci.sh`: rerun after integration pending
+- Full `./ci.sh`: API phase passes; web phase stops at pre-existing Prettier failure in `apps/web/src/features/discovery-admin/containers/DiscoveryPipelinePage.tsx` (outside C2 touches)
 
 ### Chapter 3 — API and backend filters
 
