@@ -20,6 +20,7 @@ from app.features.taxonomy.service import TaxonomyService
 
 
 def provide_suggestion_repository(session: Session) -> SuggestionRepository:
+    """Bind a suggestion repository to the request's session."""
     return SuggestionRepository(session)
 
 
@@ -29,6 +30,7 @@ def provide_suggestion_service(
     taxonomy_service: TaxonomyService,
     event_log_service: EventLogService,
 ) -> SuggestionService:
+    """Assemble the suggestion service from its per-kind handlers, transitions and event log."""
     handlers = build_dispatch(HandlerDeps(document_promotion, taxonomy_service, suggestion_repository))
     transitions = SuggestionTransitions(suggestion_repository, handlers, event_log_service)
     return SuggestionService(suggestion_repository, document_promotion, handlers, transitions, event_log_service)

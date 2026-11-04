@@ -52,6 +52,7 @@ class DuplicateSuggestionError(ValueError):
     """Raised when a suggestion matches existing catalogue entities or pending suggestions."""
 
     def __init__(self, conflicts: list[Conflict]) -> None:
+        """Keep the conflicts so the controller can list each duplicate in the 409 body."""
         super().__init__(f"duplicate suggestion: {len(conflicts)} conflict(s)")
         self.conflicts = conflicts
 
