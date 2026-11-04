@@ -5,6 +5,10 @@ from __future__ import annotations
 import inspect
 
 import pytest
+from app.features.discovery.admin_controller import DiscoveryAdminController
+from app.features.discovery.artifact_machine_controller import DiscoveryArtifactMachineController
+from app.features.discovery.candidate_admin_controller import DiscoveryCandidateAdminController
+from app.features.discovery.candidate_machine_controller import DiscoveryCandidateMachineController
 from app.features.documents.controller import DocumentsController
 from app.features.locations.controller import LocationsController
 from app.features.suggestions.controller import SuggestionsController
@@ -87,6 +91,12 @@ BUDGETED_HANDLERS = [
     (LocationsController, "list_localities"),
     (TaxonomyController, "list_domains"),
     (TaxonomyController, "list_life_situations"),
+    (DiscoveryCandidateAdminController, "list_candidates"),
+    (DiscoveryAdminController, "list_tasks"),
+    (DiscoveryAdminController, "list_catalogue"),
+    (DiscoveryCandidateMachineController, "select_candidates"),
+    (DiscoveryCandidateMachineController, "select_candidate_sources"),
+    (DiscoveryArtifactMachineController, "list_artifacts"),
 ]
 
 
