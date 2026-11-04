@@ -49,7 +49,7 @@ it("DocumentsListPage · search renders before secondary category browsing", asy
   expect(
     Boolean(
       search.compareDocumentPosition(categoryHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      Node.DOCUMENT_POSITION_FOLLOWING,
     ),
   ).toBe(true);
 });
@@ -87,9 +87,10 @@ it("category filter · unknown URL category does not select a root", async () =>
 
   await screen.findByRole("link", { name: /Passport/ });
 
-  expect(
-    screen.getByRole("button", { name: "Identity" }),
-  ).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: "Identity" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
   expect(
     listCalls(fetchMock).at(-1)?.searchParams.has("filter[category]"),
   ).toBe(false);

@@ -7,9 +7,9 @@ export function hasSelectedChips(
   const { categories, legacy } = filters;
   return (
     categories.length +
-    legacy.domain.length +
-    legacy.group.length +
-    legacy.situation.length >
+      legacy.domain.length +
+      legacy.group.length +
+      legacy.situation.length >
     0
   );
 }

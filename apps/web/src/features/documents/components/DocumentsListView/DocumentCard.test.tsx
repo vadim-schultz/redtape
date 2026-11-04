@@ -68,7 +68,9 @@ it("DocumentCard · renders canonical category chips, most confident first", asy
     />,
   );
 
-  expect(await screen.findByRole("link", { name: "Moving house" })).toBeVisible();
+  expect(
+    await screen.findByRole("link", { name: "Moving house" }),
+  ).toBeVisible();
   expect(screen.getByRole("link", { name: "Moving house" })).toHaveAttribute(
     "href",
     "/documents?category=moving-house",

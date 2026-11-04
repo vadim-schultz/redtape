@@ -24,10 +24,7 @@ export default function DocumentFilters({
   return (
     <VStack align="stretch" gap={4}>
       <Text textStyle="subsectionHeader">{t("filters.category")}</Text>
-      <CategoryFilterView
-        categories={taxonomy.categories}
-        filters={filters}
-      />
+      <CategoryFilterView categories={taxonomy.categories} filters={filters} />
       {hasSelectedChips(filters) ? (
         <Button alignSelf="start" variant="ghost" onClick={filters.clear}>
           {t("filters.clear")}

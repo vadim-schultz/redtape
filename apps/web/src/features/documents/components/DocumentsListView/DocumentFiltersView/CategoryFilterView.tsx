@@ -1,7 +1,7 @@
 import { HStack, VStack } from "@chakra-ui/react";
 import { useState } from "react";
 
-import type { CategoryNode } from "../../../../../taxonomy/types";
+import type { CategoryNode } from "../../../../taxonomy/types";
 import type { DocumentFilters } from "../../../hooks/useDocumentFilters";
 import FilterChip from "./FilterChip";
 

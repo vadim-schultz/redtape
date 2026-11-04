@@ -20,10 +20,7 @@ export default function DiscoveryPipelinePage() {
   const { data } = query;
 
   return (
-    <QueryBoundary
-      status={toQueryStatus(query)}
-      loading={<LoadingNote />}
-    >
+    <QueryBoundary status={toQueryStatus(query)} loading={<LoadingNote />}>
       {data ? (
         <PipelineDetail data={data}>
           <PipelineArtifactsSection catalogueId={data.service.id} />

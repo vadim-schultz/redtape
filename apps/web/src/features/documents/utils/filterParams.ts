@@ -90,9 +90,5 @@ export function withToggledCategory(
       ? next.filter((candidate) => candidate !== parentCode)
       : next;
 
-  return withCodes(
-    params,
-    "category",
-    withoutParent,
-  );
+  return withCodes(params, "category", withoutParent);
 }
