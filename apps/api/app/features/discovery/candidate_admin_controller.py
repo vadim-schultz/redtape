@@ -39,6 +39,7 @@ class DiscoveryCandidateAdminController(Controller):
         source: DiscoverySource | None = Parameter(query="source", default=None),
         sort: CandidateSort = Parameter(query="sort", default=CandidateSort.MENTIONS_DESC),
     ) -> CandidateListResponse:
+        """Page through document candidates, filtered and sorted by the legacy query parameters."""
         sort_by, sort_order = LEGACY_SORTS[sort]
         legacy = CandidateFilter(
             status=status, min_mentions=min_mentions, role=role, source=source, sort_by=sort_by, sort_order=sort_order
@@ -54,6 +55,7 @@ class DiscoveryCandidateAdminController(Controller):
         discovery_candidate_admin_service: CandidateAdminService,
         candidate_id: UUID,
     ) -> CandidateDetailResponse:
+        """Return the detail view of one candidate."""
         return discovery_candidate_admin_service.candidate_detail(candidate_id)
 
     @get("/{candidate_id:uuid}/edges", sync_to_thread=True)
@@ -62,6 +64,7 @@ class DiscoveryCandidateAdminController(Controller):
         discovery_candidate_admin_service: CandidateAdminService,
         candidate_id: UUID,
     ) -> CandidateEdgeListResponse:
+        """Return every staged edge that has the candidate as its parent or its required end."""
         return discovery_candidate_admin_service.candidate_edges(candidate_id)
 
     @get("/{candidate_id:uuid}/emit-preview", sync_to_thread=True)
@@ -70,4 +73,5 @@ class DiscoveryCandidateAdminController(Controller):
         discovery_candidate_emit_service: DiscoveryCandidateEmitService,
         candidate_id: UUID,
     ) -> CandidateEmitPreview:
+        """Return what emitting one candidate would create, without writing."""
         return discovery_candidate_emit_service.preview(candidate_id)
