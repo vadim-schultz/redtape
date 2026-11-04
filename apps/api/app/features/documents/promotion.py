@@ -10,25 +10,8 @@ from app.features.documents.repository import DocumentRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
 from app.schema.suggestion.payload import NewDocumentPayload
-from app.url_normalization import normalize_url
 
 COMMUNITY_SOURCE = "community"
-
-
-def _conflicting_document_ids(
-    rows: Sequence[tuple[UUID, str, str | None]], *, slug: str, normalized_url: str | None
-) -> list[UUID]:
-    """Ids of rows whose slug or normalized `official_url` matches; pure, no session needed.
-
-    A ``None`` ``normalized_url`` (a URL-less document) matches on the slug alone.
-    """
-    return [
-        doc_id for doc_id, doc_slug, official_url in rows if doc_slug == slug or _same_url(official_url, normalized_url)
-    ]
-
-
-def _same_url(official_url: str | None, normalized_url: str | None) -> bool:
-    return official_url is not None and normalized_url is not None and normalize_url(official_url) == normalized_url
 
 
 @runtime_checkable
@@ -78,8 +61,9 @@ class DocumentPromotion:
 
     def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str | None) -> list[UUID]:
         """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches (slug only if no URL)."""
-        rows = self._repo.list_slugs_and_urls(jurisdiction_id)
-        return _conflicting_document_ids(rows, slug=slug, normalized_url=normalized_url)
+        return self._repo.find_conflicting_document_ids(
+            jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized_url
+        )
 
     def create_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
