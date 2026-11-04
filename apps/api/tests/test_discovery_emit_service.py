@@ -14,8 +14,8 @@ from app.features.discovery.candidate_emit_skip import EmitSkip
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.emit_submit import SUGGESTION_RULE_REASONS, idempotency_key, submit_or_skip
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
@@ -23,7 +23,6 @@ from app.features.suggestions.service import (
     CycleError,
     DuplicateSuggestionError,
     MissingSourceUrlError,
-    SuggestionService,
     UnknownDocumentError,
     UnknownJurisdictionError,
     UnknownTaxonomyCodeError,
@@ -40,14 +39,15 @@ from app.schema.discovery.emit import SkipReason
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from suggestion_support import compose_suggestion_service
 from test_discovery_admin_api import _catalogue
 
 
 def _service(db_session: Session) -> DiscoveryEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
-    suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryEmitService(DiscoveryRepository(db_session), suggestions)
 
 
@@ -163,9 +163,9 @@ def test_emit_catalogue_reports_a_claim_without_its_entity_as_skipped(
     repo = DiscoveryRepository(db_session)
     monkeypatch.setattr(repo, "list_catalogue_entities", lambda _id: [])
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentService(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
     events = EventLogService(EventLogRepository(db_session))
-    suggestions = SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     service = DiscoveryEmitService(repo, suggestions)
 
     response = service.emit_catalogue(catalogue.id, api_key=_api_key(db_session))

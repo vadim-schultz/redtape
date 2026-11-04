@@ -16,6 +16,7 @@ from app.features.discovery.artifact_read import ArtifactReadService
 from app.features.discovery.artifact_upload import ArtifactUpload, ArtifactUploadService
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.guards import require_discovery_machine
+from app.features.discovery.read_mappers import artifact_read
 from app.features.discovery.repository import ArtifactFilter, Page
 from app.models.discovery import DiscoveryArtifactKind
 from app.schema.discovery.artifacts import (
@@ -53,7 +54,7 @@ class DiscoveryArtifactMachineController(Controller):
     ) -> Response[ArtifactRead]:
         outcome = discovery_artifact_upload_service.upload(task_id, _upload_from_form(data))
         status = HTTP_201_CREATED if outcome.created else HTTP_200_OK
-        return Response(ArtifactRead.from_row(outcome.artifact), status_code=status)
+        return Response(artifact_read(outcome.artifact), status_code=status)
 
     @get("/artifacts/status", sync_to_thread=True)
     def artifact_status(self, discovery_artifact_read_service: ArtifactReadService) -> ArtifactStatusResponse:

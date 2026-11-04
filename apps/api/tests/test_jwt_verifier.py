@@ -8,7 +8,7 @@ import time
 
 import jwt
 import pytest
-from app.features.auth.jwt import AuthError, JwtVerifier, TokenClaims, jwks_key_resolver
+from app.features.auth.jwt import AuthError, JwtClaims, JwtVerifier, jwks_key_resolver
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -80,7 +80,7 @@ def test_accepts_a_valid_token_and_returns_sub_and_email() -> None:
 
     claims = _verifier().verify(token)
 
-    assert claims == TokenClaims(sub=SUBJECT, email="ada@example.com", display_name="Ada Lovelace")
+    assert claims == JwtClaims(sub=SUBJECT, email="ada@example.com", user_metadata={"full_name": "Ada Lovelace"})
 
 
 def test_rejects_an_expired_token() -> None:
@@ -178,3 +178,38 @@ def test_jwks_key_resolver_returns_a_callable_without_hitting_the_network() -> N
     resolver = jwks_key_resolver("https://example.supabase.co/auth/v1/.well-known/jwks.json")
 
     assert callable(resolver)
+
+
+def test_user_metadata_null_is_accepted_without_display_name() -> None:
+    token = _token(_claims(user_metadata=None))
+
+    claims = _verifier().verify(token)
+
+    assert claims.display_name is None
+    assert claims.sub == SUBJECT
+
+
+def test_blank_email_raises_missing_claim() -> None:
+    token = _token(_claims(email="   "))
+
+    with pytest.raises(AuthError) as exc_info:
+        _verifier().verify(token)
+
+    assert exc_info.value.reason == "missing_claim"
+
+
+def test_non_string_full_name_is_ignored() -> None:
+    token = _token(_claims(user_metadata={"full_name": 42}))
+
+    claims = _verifier().verify(token)
+
+    assert claims.display_name is None
+
+
+def test_non_string_sub_raises_malformed() -> None:
+    token = _token(_claims(sub=12345))
+
+    with pytest.raises(AuthError) as exc_info:
+        _verifier().verify(token)
+
+    assert exc_info.value.reason == "malformed"

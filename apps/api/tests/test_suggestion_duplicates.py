@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.service import DocumentService
 from app.features.events.repository import EventLogRepository
 from app.features.events.service import EventLogService
 from app.features.suggestions.repository import SuggestionRepository
@@ -23,6 +23,8 @@ from app.schema.suggestion.payload import NewDocumentPayload
 from app.url_normalization import normalize_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from suggestion_support import compose_suggestion_service
 
 
 @pytest.fixture
@@ -55,10 +57,10 @@ def user(db_session: Session) -> AppUser:
 
 @pytest.fixture
 def service(db_session: Session) -> SuggestionService:
-    documents = DocumentService(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
-    return SuggestionService(SuggestionRepository(db_session), documents, taxonomy, events)
+    return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
 
 
 def _document(

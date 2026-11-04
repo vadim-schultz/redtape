@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.features.discovery.read_mappers import candidate_read
 from app.features.discovery.repository.candidate_completeness import CandidateCompleteness
 from app.features.discovery.repository.candidate_completeness_flags import FLAG_NAMES
 from app.features.discovery.repository.candidate_filter_flags import CompletenessFilter
@@ -9,13 +10,13 @@ from app.features.discovery.repository.candidate_listing import CandidateListRow
 from app.features.taxonomy.service import TaxonomyService
 from app.models.discovery import DiscoveryMentionRole
 from app.schema.candidate import CandidateFlags
-from app.schema.discovery.read import CandidateListItemRead, CandidateRead
+from app.schema.discovery.read import CandidateListItemRead
 from app.shared.list_query.errors import InvalidParam, raise_if_any
 
 
 def list_item(row: CandidateListRow, done: CandidateCompleteness) -> CandidateListItemRead:
     """Return the response item of ``row`` with the completeness ``done`` of its candidate."""
-    base = CandidateRead.from_row(row.candidate, mention_count=row.mention_count)
+    base = candidate_read(row.candidate, mention_count=row.mention_count)
     return CandidateListItemRead(
         **base.model_dump(),
         roles=[DiscoveryMentionRole(role) for role in row.roles],

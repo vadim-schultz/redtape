@@ -17,21 +17,11 @@ APP_ROOT = API_ROOT / "app"
 
 # A-1 allow-list: (path relative to apps/api, fully-qualified import) pairs that
 # still reach app.features from schema/. Delete a line when its chapter fixes it.
-SCHEMA_FEATURE_ALLOW: frozenset[tuple[str, str]] = frozenset(
-    {
-        ("app/schema/discovery/candidates.py", "app.features.suggestions.slugs.pick_title"),  # B3 (L5)
-    }
-)
+SCHEMA_FEATURE_ALLOW: frozenset[tuple[str, str]] = frozenset()
 
 # A-2 allow-list: ORM-class imports from schema/. Enums and constants are not here.
 SCHEMA_ORM_ALLOW: frozenset[tuple[str, str]] = frozenset(
     {
-        ("app/schema/discovery/read.py", "app.models.discovery.CatalogueService"),  # B3 (L5)
-        ("app/schema/discovery/read.py", "app.models.discovery.DiscoveryArtifact"),  # B3 (L5)
-        ("app/schema/discovery/read.py", "app.models.discovery.DiscoveryCandidateMention"),  # B3 (L5)
-        ("app/schema/discovery/read.py", "app.models.discovery.DiscoveryDocumentCandidate"),  # B3 (L5)
-        ("app/schema/discovery/read.py", "app.models.discovery.DiscoveryTask"),  # B3 (L5)
-        ("app/schema/discovery/artifacts.py", "app.models.discovery.DiscoveryArtifact"),  # B3 (L5)
         ("app/schema/suggestion/read.py", "app.models.suggestion.Suggestion"),  # unassigned; G2 or B2/B3
     }
 )

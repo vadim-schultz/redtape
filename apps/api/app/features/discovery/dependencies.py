@@ -17,11 +17,14 @@ from app.features.discovery.budgets import BudgetService
 from app.features.discovery.candidate_admin_service import CandidateAdminService
 from app.features.discovery.candidate_emit import DiscoveryCandidateEmitService
 from app.features.discovery.candidate_service import CandidateService
+from app.features.discovery.catalogue_upsert import CatalogueUpsertService
+from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
+from app.features.discovery.task_queue import TaskQueue
 from app.features.documents.dependencies import router_dependencies as document_dependencies
 from app.features.events.dependencies import router_dependencies as event_dependencies
 from app.features.suggestions.dependencies import (
@@ -44,7 +47,12 @@ def provide_discovery_admin_service(discovery_repository: DiscoveryRepository) -
 
 
 def provide_discovery_machine_service(discovery_repository: DiscoveryRepository) -> DiscoveryMachineService:
-    return DiscoveryMachineService(discovery_repository)
+    return DiscoveryMachineService(
+        discovery_repository,
+        CatalogueUpsertService(discovery_repository),
+        TaskQueue(discovery_repository),
+        ClaimIngest(discovery_repository),
+    )
 
 
 def provide_discovery_candidate_service(

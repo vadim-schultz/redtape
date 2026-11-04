@@ -1,10 +1,10 @@
-"""Pure comparison helper behind DocumentService.find_conflicts; no database session needed."""
+"""Pure comparison helper behind DocumentPromotion.find_conflicts; no database session needed."""
 
 from __future__ import annotations
 
 import uuid
 
-from app.features.documents.service import _conflicting_document_ids
+from app.features.documents.promotion import _conflicting_document_ids
 
 
 def test_matches_on_slug() -> None:

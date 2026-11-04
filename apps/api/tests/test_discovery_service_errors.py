@@ -28,6 +28,8 @@ from app.schema.discovery.machine import (
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from machine_support import machine_service
+
 
 @pytest.fixture
 def repo(db_session: Session) -> DiscoveryRepository:
@@ -36,7 +38,7 @@ def repo(db_session: Session) -> DiscoveryRepository:
 
 @pytest.fixture
 def machine(repo: DiscoveryRepository) -> DiscoveryMachineService:
-    return DiscoveryMachineService(repo)
+    return machine_service(repo)
 
 
 @pytest.fixture

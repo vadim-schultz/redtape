@@ -7,13 +7,15 @@ from sqlalchemy.orm import Session
 
 from app.features.auth.dependencies import router_dependencies as auth_dependencies
 from app.features.documents.dependencies import router_dependencies as document_dependencies
-from app.features.documents.service import DocumentService
+from app.features.documents.promotion import DocumentPromotion
 from app.features.events.dependencies import router_dependencies as event_dependencies
 from app.features.events.service import EventLogService
+from app.features.suggestions.handlers import HandlerDeps, build_dispatch
 from app.features.suggestions.query import provide_suggestion_list_query
 from app.features.suggestions.repository import SuggestionRepository
 from app.features.suggestions.service import SuggestionService
 from app.features.suggestions.submission import provide_submission
+from app.features.suggestions.transitions import SuggestionTransitions
 from app.features.taxonomy.service import TaxonomyService
 
 
@@ -23,11 +25,13 @@ def provide_suggestion_repository(session: Session) -> SuggestionRepository:
 
 def provide_suggestion_service(
     suggestion_repository: SuggestionRepository,
-    document_service: DocumentService,
+    document_promotion: DocumentPromotion,
     taxonomy_service: TaxonomyService,
     event_log_service: EventLogService,
 ) -> SuggestionService:
-    return SuggestionService(suggestion_repository, document_service, taxonomy_service, event_log_service)
+    handlers = build_dispatch(HandlerDeps(document_promotion, taxonomy_service, suggestion_repository))
+    transitions = SuggestionTransitions(suggestion_repository, handlers, event_log_service)
+    return SuggestionService(suggestion_repository, document_promotion, handlers, transitions, event_log_service)
 
 
 router_dependencies = {

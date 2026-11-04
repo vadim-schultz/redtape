@@ -9,6 +9,7 @@ from uuid import UUID
 from app.features.discovery.candidate_list_items import list_item, reject_unknown_codes
 from app.features.discovery.candidate_tags import candidate_tag_suggestions
 from app.features.discovery.lookups import require_candidate
+from app.features.discovery.read_mappers import candidate_read, mention_read
 from app.features.discovery.repository import (
     CandidateFilter,
     CandidateSourceFilter,
@@ -23,8 +24,6 @@ from app.schema.discovery.candidate_sources import CandidateSourceListResponse, 
 from app.schema.discovery.read import (
     CandidateDetailResponse,
     CandidateListResponse,
-    CandidateMentionRead,
-    CandidateRead,
     TagSupportRead,
 )
 
@@ -86,10 +85,10 @@ class CandidateAdminService:
         """Return one candidate with its jurisdiction name, mentions, procedures and artifact summaries."""
         candidate = require_candidate(self._repo, candidate_id)
         rows = self._repo.list_candidate_mentions(candidate_id)
-        mentions = [CandidateMentionRead.from_row(*row) for row in rows]
+        mentions = [mention_read(*row) for row in rows]
         suggestions = candidate_tag_suggestions(self._session, candidate_id)
         return CandidateDetailResponse(
-            candidate=CandidateRead.from_row(candidate, mention_count=len(mentions)),
+            candidate=candidate_read(candidate, mention_count=len(mentions)),
             jurisdiction_name_i18n=self._repo.get_jurisdiction_name_i18n(candidate.jurisdiction_id),
             mentions=mentions,
             suggested_domain_codes=[TagSupportRead(**s._asdict()) for s in suggestions.domains],

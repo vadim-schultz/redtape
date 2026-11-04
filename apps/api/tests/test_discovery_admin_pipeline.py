@@ -159,3 +159,75 @@ def test_get_catalogue_pipeline_pins_the_shape_of_entities_claims_and_fetch_logs
         "byte_length",
         "error_message",
     }
+
+
+def test_get_catalogue_pipeline_pins_keys_and_values_of_every_pipeline_list(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    task = DiscoveryTask(
+        catalogue_service_id=catalogue.id,
+        kind=DiscoveryTaskKind.FETCH_URL,
+        target_url="https://example.gov/service",
+        status=DiscoveryTaskStatus.PENDING,
+    )
+    entity = DiscoveryEntity(catalogue_service_id=catalogue.id, canonical_url="https://example.gov/a", label="A")
+    db_session.add_all([task, entity])
+    db_session.flush()
+    claim = DiscoveryClaim(
+        discovery_entity_id=entity.id,
+        kind=DiscoveryClaimKind.METADATA,
+        payload={"k": "v"},
+        payload_fingerprint="a" * 64,
+        confidence=Decimal("0.5"),
+    )
+    event = DiscoveryEvent(
+        event_type=DiscoveryEventType.TASK_ENQUEUED,
+        catalogue_service_id=catalogue.id,
+        discovery_task_id=task.id,
+        payload={"kind": "fetch_url"},
+    )
+    db_session.add_all([claim, event, DiscoveryFetchLog(discovery_task_id=task.id, http_status=200)])
+    db_session.flush()
+
+    body = client.get(
+        PIPELINE_URL.format(catalogue_id=catalogue.id),
+        headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"},
+    ).json()
+
+    assert set(body["claims"][0]) == {"id", "discovery_entity_id", "kind", "payload", "confidence", "created_at"}
+    assert set(body["events"][0]) == {
+        "id",
+        "event_type",
+        "catalogue_service_id",
+        "discovery_task_id",
+        "payload",
+        "created_at",
+    }
+    assert body["events"][0]["event_type"] == "task_enqueued"
+    assert body["events"][0]["payload"] == {"kind": "fetch_url"}
+    assert body["events"][0]["catalogue_service_id"] == str(catalogue.id)
+    assert body["claims"][0]["discovery_entity_id"] == str(entity.id)
+    assert body["entities"][0]["canonical_url"] == "https://example.gov/a"
+    assert body["entities"][0]["label"] == "A"
+    # One typed timestamp spelling across the API ("Z", not "+00:00"): the operator-approved B3 wire change.
+    assert body["entities"][0]["created_at"].endswith("Z")
+    assert body["claims"][0]["created_at"].endswith("Z")
+    assert body["events"][0]["created_at"].endswith("Z")
+    assert body["fetch_logs"][0]["fetched_at"].endswith("Z")
+
+
+def test_get_catalogue_pipeline_for_catalogue_without_rows_returns_empty_lists(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+
+    body = client.get(
+        PIPELINE_URL.format(catalogue_id=catalogue.id),
+        headers={"Authorization": f"Bearer {_token(sub=uuid.uuid4(), email=ADMIN_EMAIL)}"},
+    ).json()
+
+    assert body["entities"] == []
+    assert body["fetch_logs"] == []
+    assert body["claims"] == []
+    assert body["events"] == []

@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.features.suggestions.slugs import pick_title
 from app.models.discovery import DiscoveryMentionRole
 
 MAX_MENTION_ITEMS = 100
@@ -39,7 +38,7 @@ class CandidateMentionItem(BaseModel):
 
     @model_validator(mode="after")
     def _title_has_text(self) -> Self:
-        if not pick_title(self.title_i18n):
+        if not any(value.strip() for value in self.title_i18n.values()):
             raise ValueError("title_i18n needs at least one non-blank value")
         return self
 

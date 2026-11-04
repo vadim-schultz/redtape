@@ -43,6 +43,9 @@ class ApiKeyRepository:
         self._session.flush()
         return record
 
+    def get(self, id: uuid.UUID) -> ApiKey | None:
+        return self._session.get(ApiKey, id)
+
     def get_by_hash(self, key_hash: str) -> ApiKey | None:
         return self._session.scalar(select(ApiKey).where(ApiKey.key_hash == key_hash))
 

@@ -6,7 +6,6 @@ import time
 import uuid
 from collections.abc import Iterator
 
-import app.features.auth.dependencies as auth_dependencies
 import jwt
 import pytest
 from app.config import settings
@@ -24,6 +23,8 @@ from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from auth_support import use_jwt_verifier
 
 ISSUER = "https://example.supabase.co/auth/v1"
 AUDIENCE = "authenticated"
@@ -73,7 +74,7 @@ def _patch_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
+    use_jwt_verifier(monkeypatch, verifier)
 
 
 @pytest.fixture

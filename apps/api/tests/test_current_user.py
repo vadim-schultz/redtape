@@ -8,7 +8,7 @@ import jwt
 import pytest
 from app.config import settings
 from app.features.auth.dependencies import router_dependencies
-from app.features.auth.jwt import JwtVerifier, TokenClaims
+from app.features.auth.jwt import JwtClaims, JwtVerifier
 from app.features.auth.repository import UserRepository
 from app.features.auth.service import UserService
 from app.models import AppUser
@@ -118,7 +118,7 @@ def test_upsert_refreshes_email_and_last_seen_at_for_an_existing_user(db_session
 
 def test_resolve_lower_cases_the_email(db_session: Session) -> None:
     service = UserService(UserRepository(db_session))
-    claims = TokenClaims(sub=str(uuid.uuid4()), email="Ada@Example.com", display_name="Ada")
+    claims = JwtClaims(sub=str(uuid.uuid4()), email="Ada@Example.com", user_metadata={"full_name": "Ada"})
 
     user = service.resolve(claims)
     db_session.flush()
