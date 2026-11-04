@@ -1,7 +1,7 @@
 """Seed and backfill the canonical category projection from frozen local data.
 
-Revision ID: 20261104_category_taxonomy_backfill
-Revises: 20261104_category_taxonomy_schema
+Revision ID: 20261104_category_backfill
+Revises: 20261104_category_schema
 Create Date: 2026-11-04
 
 The operation reads only the existing database and checked-in category contract.
@@ -17,8 +17,8 @@ from sqlalchemy.orm import Session
 
 from scripts.category_backfill import run_category_backfill
 
-revision: str = "20261104_category_taxonomy_backfill"
-down_revision: str | None = "20261104_category_taxonomy_schema"
+revision: str = "20261104_category_backfill"
+down_revision: str | None = "20261104_category_schema"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

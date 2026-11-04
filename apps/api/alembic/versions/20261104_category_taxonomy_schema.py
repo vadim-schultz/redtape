@@ -1,6 +1,6 @@
 """Add canonical category, document link, and external classification tables.
 
-Revision ID: 20261104_category_taxonomy_schema
+Revision ID: 20261104_category_schema
 Revises: 20261104_document_normalized_url
 Create Date: 2026-11-04
 
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "20261104_category_taxonomy_schema"
+revision: str = "20261104_category_schema"
 down_revision: str | None = "20261104_document_normalized_url"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
