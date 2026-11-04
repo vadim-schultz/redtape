@@ -1,81 +1,18 @@
-import { queryOptions, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import { queryKeys } from "../../../app/queryKeys";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useAuth } from "../../auth/contexts/AuthContext";
-import { ARTIFACT_STALE_MS } from "../hooks/useDiscoveryArtifactsQuery";
-import {
-  fetchCandidateEmitPreview,
-  fetchCandidateEdges,
-  fetchEmitPreview,
-  listCandidateArtifacts,
-  listCatalogueArtifacts,
-  type AdminAuth,
-} from "../services/discoveryAdminApi";
+import { candidateEdgesQueryOptions } from "../hooks/useCandidateEdgesQuery";
+import { candidateArtifactsQueryOptions } from "../hooks/useDiscoveryCandidateArtifactsQuery";
+import { candidateEmitPreviewQueryOptions } from "../hooks/useDiscoveryCandidateEmitPreviewQuery";
+import { catalogueArtifactsQueryOptions } from "../hooks/useDiscoveryArtifactsQuery";
+import { cataloguePreviewQueryOptions } from "../hooks/useDiscoveryEmitPreviewQuery";
 
 /*
- * Query options of the secondary panels, with the same keys and calls as the
- * hooks their section containers use. The prefetch hooks start the requests
+ * The prefetch hooks start the same secondary requests as their section hooks
  * when the page mounts, so they run in parallel with the main query.
  */
-
-/** Options for the staged edges of one candidate. */
-export function candidateEdgesOptions(auth: AdminAuth, candidateId: string) {
-  return queryOptions({
-    queryKey: queryKeys.discoveryAdmin.candidateEdges(candidateId, auth.locale),
-    queryFn: () => fetchCandidateEdges(auth, candidateId),
-  });
-}
-
-/** Options for the evidence of one candidate. */
-export function candidateArtifactsOptions(
-  auth: AdminAuth,
-  candidateId: string,
-) {
-  return queryOptions({
-    queryKey: queryKeys.discoveryAdmin.candidateArtifacts(
-      candidateId,
-      auth.locale,
-    ),
-    queryFn: () => listCandidateArtifacts(auth, candidateId),
-    staleTime: ARTIFACT_STALE_MS,
-  });
-}
-
-/** Options for the emit preview of one candidate. */
-export function candidateEmitPreviewOptions(
-  auth: AdminAuth,
-  candidateId: string,
-) {
-  return queryOptions({
-    queryKey: queryKeys.discoveryAdmin.candidateEmitPreview(
-      candidateId,
-      auth.locale,
-    ),
-    queryFn: () => fetchCandidateEmitPreview(auth, candidateId),
-  });
-}
-
-/** Options for the evidence of one catalogue row. */
-export function catalogueArtifactsOptions(
-  auth: AdminAuth,
-  catalogueId: string,
-) {
-  return queryOptions({
-    queryKey: queryKeys.discoveryAdmin.artifacts(catalogueId, auth.locale),
-    queryFn: () => listCatalogueArtifacts(auth, catalogueId),
-    staleTime: ARTIFACT_STALE_MS,
-  });
-}
-
-/** Options for the emit preview of one catalogue row. */
-export function cataloguePreviewOptions(auth: AdminAuth, catalogueId: string) {
-  return queryOptions({
-    queryKey: queryKeys.discoveryAdmin.emitPreview(catalogueId, auth.locale),
-    queryFn: () => fetchEmitPreview(auth, catalogueId),
-  });
-}
 
 /** Start the edges, evidence and emit preview requests of a document while its main record loads. */
 export function usePrefetchDocumentSections(candidateId: string | undefined) {
@@ -87,12 +24,14 @@ export function usePrefetchDocumentSections(candidateId: string | undefined) {
   useEffect(() => {
     if (!candidateId || !accessToken) return;
     const auth = { locale, accessToken };
-    void queryClient.prefetchQuery(candidateEdgesOptions(auth, candidateId));
     void queryClient.prefetchQuery(
-      candidateArtifactsOptions(auth, candidateId),
+      candidateEdgesQueryOptions(auth, candidateId),
     );
     void queryClient.prefetchQuery(
-      candidateEmitPreviewOptions(auth, candidateId),
+      candidateArtifactsQueryOptions(auth, candidateId),
+    );
+    void queryClient.prefetchQuery(
+      candidateEmitPreviewQueryOptions(auth, candidateId),
     );
   }, [queryClient, candidateId, locale, accessToken]);
 }
@@ -108,8 +47,10 @@ export function usePrefetchPipelineSections(catalogueId: string | undefined) {
     if (!catalogueId || !accessToken) return;
     const auth = { locale, accessToken };
     void queryClient.prefetchQuery(
-      catalogueArtifactsOptions(auth, catalogueId),
+      catalogueArtifactsQueryOptions(auth, catalogueId),
     );
-    void queryClient.prefetchQuery(cataloguePreviewOptions(auth, catalogueId));
+    void queryClient.prefetchQuery(
+      cataloguePreviewQueryOptions(auth, catalogueId),
+    );
   }, [queryClient, catalogueId, locale, accessToken]);
 }
