@@ -5,7 +5,6 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-import app.features.auth.dependencies as auth_dependencies
 import app.features.auth.guard_session as guard_session_module
 import jwt
 import pytest
@@ -21,6 +20,8 @@ from litestar import Litestar, get
 from litestar.di import Provide
 from litestar.testing import TestClient
 from sqlalchemy.orm import Session
+
+from auth_support import use_jwt_verifier
 
 ISSUER = "https://example.supabase.co/auth/v1"
 AUDIENCE = "authenticated"
@@ -84,7 +85,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
     monkeypatch.setattr(settings, "supabase_jwks_url", "https://example.supabase.co/auth/v1/.well-known/jwks.json")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", ISSUER)
     verifier = JwtVerifier(key_resolver=lambda token: PUBLIC_KEY, issuer=ISSUER, audience=AUDIENCE)
-    monkeypatch.setattr(auth_dependencies, "_jwt_verifier", verifier)
+    use_jwt_verifier(monkeypatch, verifier)
     monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
     app = Litestar(
         route_handlers=[_probe_moderator, _probe_admin],

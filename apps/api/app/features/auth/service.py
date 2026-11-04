@@ -6,7 +6,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from app.features.auth.jwt import TokenClaims
+from app.features.auth.jwt import JwtClaims
 from app.features.auth.repository import ApiKeyRepository, UserRepository
 from app.models import AppUser
 from app.models.api_key import ApiKey
@@ -31,12 +31,15 @@ class UserService:
     def __init__(self, repository: UserRepository) -> None:
         self._repo = repository
 
-    def resolve(self, claims: TokenClaims) -> AppUser:
+    def resolve(self, claims: JwtClaims) -> AppUser:
         return self._repo.upsert(
             id=uuid.UUID(claims.sub),
             email=claims.email.lower(),
             display_name=claims.display_name,
         )
+
+    def get(self, user_id: uuid.UUID) -> AppUser | None:
+        return self._repo.get(user_id)
 
     def set_role(self, email: str, role: str) -> AppUser:
         try:
@@ -62,6 +65,9 @@ class ApiKeyService:
         key = self._generate()
         self._repo.create(name=name, key_hash=self._hash(key), key_prefix=key.removeprefix(KEY_PREFIX)[:8])
         return key
+
+    def get(self, key_id: uuid.UUID) -> ApiKey | None:
+        return self._repo.get(key_id)
 
     def verify(self, key: str) -> ApiKey:
         key_hash = self._hash(key)
