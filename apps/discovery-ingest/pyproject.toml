@@ -60,8 +60,6 @@ convention = "pep257"
 "discovery_ingest/leika/client.py" = ["TID251"]  # T2 baseline, removed by I2
 "discovery_ingest/worker/enrich_metadata.py" = ["TID251"]  # T2 baseline, removed by I3
 # docstring baseline (T1): delete the line when its slice is done
-"discovery_ingest/{emit_models,config,curation,enrich,curation_plan,health,curation_check,llm_settings,__init__,edges,budget_models,batch_dedup,schemas,mentions,catalogue_export,__main__,curation_load}.py" = ["D107", "D401"]  # I-S2 (browser/** has no current violations, so it carries no exemption)
-"discovery_ingest/extract/{clean,clean_dom,registry,__init__,clean_meta,clean_rank,clean_cap,clean_links,clean_tags,clean_markdown,decode,base}.py" = ["D107", "D401"]  # I-S2
 
 [tool.mypy]
 python_version = "3.11"
