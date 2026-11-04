@@ -204,10 +204,10 @@ def test_leika_enrich_missing_segments_prints_the_lookup_message_and_exits_1(
     assert capsys.readouterr().err == "catalogue row missing redaktion_id and leistung_id\n"
 
 
-def test_worker_drain_zero_max_tasks_keeps_the_default_claim_size(
+def test_worker_drain_omitted_max_tasks_keeps_the_default_claim_size(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """worker drain · --max-tasks 0 keeps meaning the default claim size, as before the refactor."""
+    """worker drain · omitted --max-tasks keeps the default claim size."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         if str(request.url).endswith("/tasks/claim"):
@@ -224,7 +224,33 @@ def test_worker_drain_zero_max_tasks_keeps_the_default_claim_size(
     seen: list[int] = []
     _patch_api(monkeypatch, handler)
 
-    assert main(["worker", "drain", "--max-tasks", "0"]) == 0
+    assert main(["worker", "drain"]) == 0
     assert seen == [50]
     report = json.loads(capsys.readouterr().out)
     assert report["stop_reason"] == "queue_empty"
+
+
+def test_worker_drain_zero_max_tasks_exits_before_claiming(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """worker drain · explicit zero is a usage error and sends no claim request."""
+    claim_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url.endswith("/tasks/claim"):
+            claim_requests.append(request)
+            return httpx.Response(200, json={"items": []})
+        if url.endswith("/tasks/summary"):
+            return httpx.Response(200, json={"pending_ready": 0})
+        if url.endswith("/machine/runs"):
+            return httpx.Response(201, json={"id": str(uuid.uuid4()), "kind": "worker_drain", "status": "running"})
+        if "/finish" in url:
+            return httpx.Response(200, json={"id": str(uuid.uuid4()), "kind": "worker_drain", "status": "succeeded"})
+        return httpx.Response(200, json={"remaining": 0, "limit": 0, "used": 0, "ledger": "ok"})
+
+    _patch_api(monkeypatch, handler)
+
+    assert main(["worker", "drain", "--max-tasks", "0"]) == 2
+    assert claim_requests == []
+    assert "invalid drain bounds" in capsys.readouterr().err

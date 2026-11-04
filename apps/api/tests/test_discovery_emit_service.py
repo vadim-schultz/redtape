@@ -34,7 +34,7 @@ from app.models.api_key import ApiKey
 from app.models.discovery import CatalogueService, DiscoveryClaim, DiscoveryClaimKind, DiscoveryEntity, DiscoveryEvent
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.suggestion import Suggestion
+from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.schema.discovery.emit import SkipReason
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -121,6 +121,51 @@ def test_emit_catalogue_creates_one_pending_suggestion_per_emit_ready_claim(db_s
     response = _service(db_session).emit_catalogue(catalogue.id, api_key=_api_key(db_session))
 
     assert (response.created_count, response.skipped_count, response.replayed_count) == (2, 0, 0)
+    assert _count(db_session, Suggestion) == 2
+
+
+def test_emit_catalogue_keeps_earlier_suggestions_when_a_later_insert_hits_integrity_error(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalogue = _catalogue(db_session)
+    _new_document_claim(db_session, catalogue, url="https://example.gov/first", title="First")
+    later = _new_document_claim(db_session, catalogue, url="https://example.gov/later", title="Later")
+    api_key = _api_key(db_session)
+    replay = Suggestion(
+        kind=SuggestionKind.NEW_DOCUMENT,
+        status=SuggestionStatus.PENDING,
+        source_type=SuggestionSource.CRAWLER,
+        jurisdiction_id=catalogue.jurisdiction_id,
+        payload={"title_i18n": {"de": "Already committed"}, "official_url": "https://example.gov/existing"},
+        source_url="https://example.gov/existing",
+        normalized_url="https://example.gov/existing",
+        submitted_by_api_key_id=api_key.id,
+        idempotency_key=f"discovery-emit:{later.id}",
+    )
+    db_session.add(replay)
+    db_session.flush()
+    db_session.commit()
+
+    hidden_once = True
+    real_find_replay = CrawlerSubmitter.find_replay
+
+    def hide_later_replay_once(
+        submitter: CrawlerSubmitter, repository: SuggestionRepository, key: str | None
+    ) -> Suggestion | None:
+        nonlocal hidden_once
+        if key == replay.idempotency_key and hidden_once:
+            hidden_once = False
+            return None
+        return real_find_replay(submitter, repository, key)
+
+    monkeypatch.setattr(CrawlerSubmitter, "find_replay", hide_later_replay_once)
+
+    response = _service(db_session).emit_catalogue(catalogue.id, api_key=api_key)
+
+    assert (response.created_count, response.skipped_count, response.replayed_count) == (1, 0, 1)
+    assert response.items[0].suggestion_id is not None
+    assert response.items[1].suggestion_id == replay.id
+    assert _count(db_session, Suggestion) == 2
 
 
 def test_emit_catalogue_reports_a_metadata_claim_as_skipped(db_session: Session) -> None:

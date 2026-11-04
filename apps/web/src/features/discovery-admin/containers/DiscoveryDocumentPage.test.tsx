@@ -450,3 +450,19 @@ it("DiscoveryDocumentPage · requests the edges, artifacts and emit preview whil
     await screen.findByRole("heading", { name: "Geburtsurkunde" }),
   ).toBeInTheDocument();
 });
+
+it("DiscoveryDocumentPage · announces loading while the candidate request is pending", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const calls = stubDocumentFetch(detail(), { candidateGate: gate });
+  renderDocumentPage();
+
+  await vi.waitFor(() => expect(calls.map(({ path }) => path)).toContain(base));
+  expect(screen.getByRole("status")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Geburtsurkunde" }),
+  ).not.toBeInTheDocument();
+  release();
+});
