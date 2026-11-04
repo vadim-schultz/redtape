@@ -1,8 +1,8 @@
-"""Pydantic models for the taxonomy API (read-only)."""
+"""Pydantic models for canonical and legacy taxonomy reads."""
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TermRead(BaseModel):
@@ -12,6 +12,25 @@ class TermRead(BaseModel):
     name: str
     description: str
     icon: str | None
+
+
+class CategoryNodeRead(BaseModel):
+    """A locale-resolved canonical category node and its direct children."""
+
+    code: str
+    parent_code: str | None
+    name: str
+    description: str
+    icon: str | None
+    children: list[CategoryNodeRead] = Field(default_factory=list)
+
+
+class CategoryTagRead(BaseModel):
+    """A canonical category attached to a document or candidate with its confidence."""
+
+    code: str
+    name: str
+    confidence: float
 
 
 class LifeSituationGroupedRead(TermRead):
@@ -45,15 +64,17 @@ class MatrixResponse(BaseModel):
 
 
 class VocabularyTerm(BaseModel):
-    """A domain or life situation with every stored translation, for machine consumers."""
+    """An active canonical category with every stored translation, for machine consumers."""
 
     code: str
+    parent_code: str | None
     name_i18n: dict[str, str]
     description_i18n: dict[str, str]
+    icon: str | None
+    source_parent_codes: list[str]
 
 
 class VocabularyResponse(BaseModel):
-    """Both closed vocabularies in sort order."""
+    """The closed canonical category vocabulary in contract order."""
 
-    domains: list[VocabularyTerm]
-    situations: list[VocabularyTerm]
+    categories: list[VocabularyTerm]

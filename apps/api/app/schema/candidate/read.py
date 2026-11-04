@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import DiscoveryCandidateStatus, DiscoveryEdgeBasis, DiscoveryMentionRole
+from app.schema.taxonomy.read import CategoryTagRead
 
 
 class CandidateTag(BaseModel):
@@ -45,6 +46,7 @@ class CandidateCard(BaseModel):
     status: DiscoveryCandidateStatus
     domains: list[CandidateTag]
     situations: list[CandidateTag]
+    categories: list[CategoryTagRead]
     completeness: int
     complete: bool
     flags: CandidateFlags

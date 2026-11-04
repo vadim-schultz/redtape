@@ -8,7 +8,7 @@ import pytest
 from app.main import create_app
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation, document_life_situation
+from app.models.taxonomy import Category, Domain, LifeSituation, document_life_situation
 from httpx import Response
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -129,6 +129,51 @@ def test_untagged_document_never_appears_when_a_filter_is_set(client: TestClient
         assert "d-untagged" not in _slugs(_get(client, params))
 
 
+def test_category_root_filter_includes_direct_and_descendant_category_links(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    country_id = uuid.UUID(client.jurisdiction_id)  # type: ignore[attr-defined]
+    root = db_session.scalars(select(Category).where(Category.code == "home-and-housing")).one()
+    child = db_session.scalars(select(Category).where(Category.code == "moving-house")).one()
+    db_session.add_all(
+        [
+            Document(
+                jurisdiction_id=country_id,
+                slug="canonical-root",
+                title_i18n={"de": "canonical-root"},
+                description_i18n={"de": ""},
+                categories=[root],
+            ),
+            Document(
+                jurisdiction_id=country_id,
+                slug="canonical-child",
+                title_i18n={"de": "canonical-child"},
+                description_i18n={"de": ""},
+                categories=[child],
+            ),
+        ]
+    )
+    db_session.flush()
+
+    assert _slugs(_get(client, {"category": "home-and-housing"})) == ["canonical-child", "canonical-root"]
+
+
+def test_unknown_category_code_returns_422(client: TestClient[Litestar]) -> None:
+    response = _get(client, {"category": "not-a-category"})
+
+    assert response.status_code == 422
+    assert "Unknown category code" in response.json()["detail"]
+
+
+def test_conflicting_legacy_group_and_situation_returns_diagnostic_422(
+    client: TestClient[Litestar],
+) -> None:
+    response = _get(client, {"group": "family-relationships", "situation": "moving-house"})
+
+    assert response.status_code == 422
+    assert "conflicting legacy taxonomy filters" in response.json()["detail"].lower()
+
+
 def test_available_leaf_codes_is_empty_without_a_situation_filter(client: TestClient[Litestar]) -> None:
     assert _get(client, {}).json()["available_leaf_codes"] == []
 
@@ -162,6 +207,23 @@ def test_detail_includes_resolved_domains_and_life_situations(client: TestClient
     assert set(body["domains"][0]) == {"code", "name", "description", "icon", "confidence"}
     assert body["domains"][0]["name"] != "housing"
     assert body["domains"][0]["confidence"] == 1.0
+
+
+def test_detail_includes_canonical_category_tags_with_confidence(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    document_id = next(
+        item["id"] for item in _get(client, {"limit": 100}).json()["items"] if item["slug"] == "a-housing-moving"
+    )
+    document = db_session.get(Document, uuid.UUID(document_id))
+    assert document is not None
+    child = db_session.scalars(select(Category).where(Category.code == "moving-house")).one()
+    document.categories.append(child)
+    db_session.flush()
+
+    body = _detail(client, "a-housing-moving")
+
+    assert [(tag["code"], tag["confidence"]) for tag in body["categories"]] == [("moving-house", 1.0)]
 
 
 def test_detail_document_without_tags_returns_empty_arrays(client: TestClient[Litestar]) -> None:

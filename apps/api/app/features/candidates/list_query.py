@@ -42,7 +42,13 @@ def _codes(query: ListQuery, name: str) -> tuple[str, ...]:
 
 PUBLIC_CANDIDATE_SPEC = ListQuerySpec(
     sort_keys=frozenset(key.value for key in PublicSortKey),
-    filters={"complete": enum_filter(CompleteChoice), "domain": codes_filter, "situation": codes_filter},
+    filters={
+        "complete": enum_filter(CompleteChoice),
+        "category": codes_filter,
+        "domain": codes_filter,
+        "group": codes_filter,
+        "situation": codes_filter,
+    },
 )
 
 
@@ -51,7 +57,9 @@ def public_filter_from(query: ListQuery) -> PublicCandidateFilter:
     complete = query.filter_value("complete", CompleteChoice)
     narrowed = PublicCandidateFilter(
         complete=None if complete is None else complete is CompleteChoice.YES,
+        category_codes=_codes(query, "category"),
         domains=_codes(query, "domain"),
+        groups=_codes(query, "group"),
         situations=_codes(query, "situation"),
         q=query.q,
     )

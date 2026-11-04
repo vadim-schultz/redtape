@@ -465,6 +465,12 @@
   },
   "CandidateCard": {
     "properties": {
+      "categories": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryTagRead"
+        },
+        "type": "array"
+      },
       "complete": {
         "type": "boolean"
       },
@@ -527,6 +533,7 @@
       }
     },
     "required": [
+      "categories",
       "complete",
       "completeness",
       "confidence",
@@ -568,6 +575,12 @@
   },
   "CandidateDetail": {
     "properties": {
+      "categories": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryTagRead"
+        },
+        "type": "array"
+      },
       "complete": {
         "type": "boolean"
       },
@@ -666,6 +679,7 @@
       }
     },
     "required": [
+      "categories",
       "complete",
       "completeness",
       "confidence",
@@ -2203,6 +2217,72 @@
     "title": "CatalogueSummaryChips",
     "type": "object"
   },
+  "CategoryNodeRead": {
+    "properties": {
+      "children": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryNodeRead"
+        },
+        "type": "array"
+      },
+      "code": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name": {
+        "type": "string"
+      },
+      "parent_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code",
+      "description",
+      "name"
+    ],
+    "title": "CategoryNodeRead",
+    "type": "object"
+  },
+  "CategoryTagRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "confidence",
+      "name"
+    ],
+    "title": "CategoryTagRead",
+    "type": "object"
+  },
   "ClaimAppendRequest": {
     "properties": {
       "confidence": {
@@ -2774,6 +2854,12 @@
   },
   "DocumentDetail": {
     "properties": {
+      "categories": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryTagRead"
+        },
+        "type": "array"
+      },
       "description": {
         "type": "string"
       },
@@ -4449,13 +4535,7 @@
   },
   "VocabularyResponse": {
     "properties": {
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/VocabularyTerm"
-        },
-        "type": "array"
-      },
-      "situations": {
+      "categories": {
         "items": {
           "$ref": "#/components/schemas/VocabularyTerm"
         },
@@ -4463,8 +4543,7 @@
       }
     },
     "required": [
-      "domains",
-      "situations"
+      "categories"
     ],
     "title": "VocabularyResponse",
     "type": "object"
@@ -4480,17 +4559,44 @@
         },
         "type": "object"
       },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "name_i18n": {
         "additionalProperties": {
           "type": "string"
         },
         "type": "object"
+      },
+      "parent_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_parent_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
       }
     },
     "required": [
       "code",
       "description_i18n",
-      "name_i18n"
+      "name_i18n",
+      "source_parent_codes"
     ],
     "title": "VocabularyTerm",
     "type": "object"

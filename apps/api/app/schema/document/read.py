@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schema.taxonomy.read import TermRead
+from app.schema.taxonomy.read import CategoryTagRead, TermRead
 
 
 class DocumentListQuery(BaseModel):
@@ -50,7 +50,7 @@ class TaggedTermRead(TermRead):
 
 
 class DocumentDetail(BaseModel):
-    """Full document with direct requirements."""
+    """Full document with direct requirements and canonical category tags."""
 
     model_config = ConfigDict(from_attributes=False)
 
@@ -64,6 +64,7 @@ class DocumentDetail(BaseModel):
     jurisdiction_path: list[JurisdictionPathNode] = Field(default_factory=list)
     domains: list[TaggedTermRead] = Field(default_factory=list)
     life_situations: list[TaggedTermRead] = Field(default_factory=list)
+    categories: list[CategoryTagRead] = Field(default_factory=list)
 
 
 class JurisdictionPathNode(BaseModel):
