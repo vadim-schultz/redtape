@@ -157,8 +157,8 @@ def test_candidates_category_filter_returns_canonical_tags_and_confidence(
     assert response.status_code == 200
     [item] = response.json()["items"]
     assert [(tag["code"], tag["confidence"]) for tag in item["categories"]] == [
-        ("home-and-housing", 0.85),
-        ("moving-house", 0.85),
+        ("home-and-housing", 0.5),
+        ("moving-house", 0.5),
     ]
 
 

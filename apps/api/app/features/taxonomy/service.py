@@ -236,7 +236,7 @@ class TaxonomyService:
         known = self._repo.ids_for_category_codes(unique)
         unknown = sorted(set(unique) - known.keys())
         if unknown:
-            raise TaxonomyCodeError(f"Unknown or inactive category code(s): {', '.join(unknown)}")
+            raise TaxonomyCodeError(f"Unknown category code(s): {', '.join(unknown)}")
         return self._repo.category_descendant_codes(unique)
 
     def _resolve_category_ids(self, codes: Sequence[str]) -> list[UUID]:

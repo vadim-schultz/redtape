@@ -75,6 +75,15 @@ def test_categories_return_ordered_localized_roots_and_children(client: TestClie
         "family-and-relationships",
         "home-and-housing",
         "work-and-employment",
+        "education-and-training",
+        "mobility-and-vehicles",
+        "health-and-care",
+        "residence-and-migration",
+        "retirement-and-old-age",
+        "taxes-and-finance",
+        "identity-and-documents",
+        "social-benefits",
+        "law-and-justice",
     ]
     first = de.json()[0]
     assert first["parent_code"] is None
