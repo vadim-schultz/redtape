@@ -152,7 +152,8 @@ def test_category_score_keeps_a_low_share_assertion_below_the_existing_floor(db_
 
     support = candidate_axis_support(db_session, subject_id, TagAxis.CATEGORY)
 
-    assert support[0].score < MIN_SUGGESTED_SCORE
+    moving_house = next(item for item in support if item.code == "moving-house")
+    assert moving_house.score < MIN_SUGGESTED_SCORE
 
 
 def test_a_single_low_share_llm_mention_scores_below_the_inclusion_floor(db_session: Session) -> None:
