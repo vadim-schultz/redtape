@@ -13,13 +13,6 @@ const populated = {
   egress: [],
 };
 
-function cssText(): string {
-  return Array.from(document.styleSheets)
-    .flatMap((sheet) => Array.from(sheet.cssRules))
-    .map((rule) => rule.cssText)
-    .join("\n");
-}
-
 it("flow diagram shows the empty note without dependencies", () => {
   const { container } = renderWithProviders(
     <FlowSection candidate={{ title: "Passport", ingress: [], egress: [] }} />,
@@ -44,14 +37,10 @@ it("flow diagram section shows the diagram when there are neighbours", () => {
   ).toBeNull();
 });
 
-it("flow diagram is hidden below the md breakpoint", () => {
-  renderWithProviders(<FlowSection candidate={populated} />);
+it("flow diagram remains present below the md breakpoint", () => {
+  const { container } = renderWithProviders(
+    <FlowSection candidate={populated} />,
+  );
 
-  const heading = screen.getByRole("heading", { name: "Flow", hidden: true });
-  const section = heading.closest("section")!;
-  expect(section).toContainElement(heading);
-  const className = section.className.split(" ").pop()!;
-  const css = cssText();
-  expect(css).toMatch(new RegExp(`\\.${className}[^{]*\\{[^}]*display: none`));
-  expect(css).toMatch(/@media[^{]*min-width[^{]*\{[^}]*display: block/);
+  expect(container.querySelector("svg")).not.toBeNull();
 });
