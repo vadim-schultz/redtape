@@ -46,10 +46,17 @@ def test_fim_probe_with_a_bad_key_exits_2() -> None:
     assert result.stdout == ""
 
 
-def test_budget_show_without_api_settings_fails_with_nothing_on_stdout() -> None:
-    result = _run("budget", "show")
-    assert result.returncode != 0
+def test_budget_show_strict_without_api_settings_fails_with_nothing_on_stdout() -> None:
+    result = _run("budget", "show", "--strict")
+    assert result.returncode == 4
     assert result.stdout == ""
+
+
+def test_budget_show_without_api_settings_warns_on_stderr_and_exits_0() -> None:
+    result = _run("budget", "show")
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert "budget ledger unreachable" in result.stderr
 
 
 @pytest.mark.parametrize("argv", [[], ["worker"]], ids=["root", "group"])
