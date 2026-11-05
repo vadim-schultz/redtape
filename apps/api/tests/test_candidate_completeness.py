@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
+from app.features.discovery.repository import candidate_completeness
 from app.features.discovery.repository.candidate_completeness import (
     completeness_columns,
     completeness_order,
@@ -171,3 +175,14 @@ def test_manual_rows_never_leak_to_other_candidates(db_session: Session) -> None
 
     assert result.accepted_domain_codes == ("work-employment",)
     assert result.has_situation is False
+
+
+PUBLIC_PRESENTATION = ("app.schema.candidate", "app.features.candidates", "app.schema.discovery.read")
+
+
+def test_internal_completeness_imports_no_public_presentation_module() -> None:
+    """Removing a public tag or checklist field cannot change the flags: the read model never imports one."""
+    tree = ast.parse(Path(candidate_completeness.__file__).read_text(encoding="utf-8"))
+    imported = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
+
+    assert [m for m in imported if m.startswith(PUBLIC_PRESENTATION)] == []

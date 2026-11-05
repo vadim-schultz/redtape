@@ -544,3 +544,16 @@ def test_candidate_card_without_mentions_lists_no_tags(client: TestClient[Litest
     body = client.get(URL).json()
 
     assert (_tags(body, "untagged", "domains"), _tags(body, "untagged", "situations")) == ([], [])
+
+
+def test_candidate_detail_never_lists_a_pvog_leaf_as_a_category(
+    client: TestClient[Litestar], scene: Scene, db_session: Session
+) -> None:
+    owner = scene.candidate("leaf-only")
+    mention = scene.mention(owner, scene.procedure())
+    mention.pvog_leaf_code = "1050200"
+    db_session.flush()
+
+    detail = client.get(f"{URL}/{owner.id}").json()
+
+    assert (detail["categories"], detail["domains"], detail["situations"]) == ([], [], [])

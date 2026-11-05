@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.schema.suggestion.payload import ACTIVE_CATEGORY_CODES
 from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_taxonomy
@@ -50,3 +51,15 @@ def test_machine_taxonomy_excludes_source_only_pvog_leaf_codes(
 
     assert response.status_code == 200
     assert all(not category["code"].isdigit() for category in response.json()["categories"])
+
+
+def test_machine_vocabulary_is_the_set_the_suggestion_payload_accepts(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    seed_taxonomy(db_session)
+
+    response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
+
+    machine_codes = {category["code"] for category in response.json()["categories"]}
+    assert machine_codes == set(ACTIVE_CATEGORY_CODES)

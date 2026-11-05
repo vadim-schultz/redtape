@@ -416,3 +416,19 @@ def test_a_reposted_pvog_mention_updates_its_direct_confidence_and_leaf_code_in_
     assert replay.json()["mentions_updated"] == 1
     mention = _only_mention(db_session)
     assert mention.direct_category_confidence == 0.65
+
+
+def test_a_manual_mention_keeps_only_the_active_categories_it_names(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    vocabulary: None,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+    item = _item(catalogue, extractor="manual", source_field="curated", category_codes=["moving-house", "retired-code"])
+
+    response = _post(client, key, item)
+
+    assert response.status_code == 200
+    assert response.json()["unknown_codes"] == 1
+    assert _only_mention(db_session).category_codes == ["moving-house"]
