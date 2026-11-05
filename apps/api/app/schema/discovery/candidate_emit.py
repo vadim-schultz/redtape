@@ -55,6 +55,7 @@ class PreviewedSuggestion(BaseModel):
 
     kind: SuggestionKind
     jurisdiction_id: UUID | None = None
+    municipality_code: str | None = None
     source_url: str | None = None
     payload: PreviewedDocumentPayload
 
@@ -64,6 +65,7 @@ class PreviewedSuggestion(BaseModel):
         return cls(
             kind=request.kind,
             jurisdiction_id=request.jurisdiction_id,
+            municipality_code=request.municipality_code,
             source_url=request.source_url,
             payload=PreviewedDocumentPayload.model_validate(request.payload.model_dump()),
         )
