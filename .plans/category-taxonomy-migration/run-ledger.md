@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C6 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 implementation complete on `feat/public-document-metadata-cleanup` (`0d5b4c0`), full CI green, not yet integrated; C8 not started
+- Status: C1-C7 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 ready to start
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C7 public metadata cleanup is complete on its branch. Integration is the next action; C8 remains blocked until C7 is integrated.
+- Current work: C7 public metadata cleanup is integrated and its full CI gate passed. C8 is the next chapter.
 
 ## Baseline
 
@@ -120,7 +120,7 @@
 
 ### Chapter 7 — Public metadata cleanup
 
-- Status: implementation complete on `feat/public-document-metadata-cleanup` at `0d5b4c0`; integration pending
+- Status: integrated from `feat/public-document-metadata-cleanup` at `0d5b4c0`; full CI passed
 - Staged/unreviewed notice absent: verified in loaded, loading, retryable-error, and not-found detail states; banner translations and component removed.
 - Completeness section absent: verified; checklist, count, and public completeness presentation are removed from the detail composition.
 - Public DTO fields removed or justified: public `CandidateCard`/`CandidateDetail` no longer expose `status`, `completeness`, `complete`, or `flags`; admin candidate DTOs retain their internal readiness fields.
