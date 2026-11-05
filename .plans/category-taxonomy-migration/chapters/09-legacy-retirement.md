@@ -23,16 +23,16 @@ execution: chapter-implementer
 todos:
   - id: reference-scan
     content: "Prove no active runtime, worker, frontend, contract, migration, or documentation consumer requires the old axes."
-    status: pending
+    status: complete
   - id: api-retirement
     content: "Remove dormant matrix and legacy taxonomy routes/fields after the compatibility cutoff."
-    status: pending
+    status: complete
   - id: data-retirement
     content: "Archive/drop legacy tables and links in a separately reviewed migration with backup and rollback evidence."
-    status: pending
+    status: complete
   - id: tests
     content: "Add no-reference, migration, contract, and post-cutover compatibility tests."
-    status: pending
+    status: complete
 ---
 
 # Chapter 9 — Legacy taxonomy retirement

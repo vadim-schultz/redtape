@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C8 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 in progress (WIP commit on the loop branch; see Chapter 9)
+- Status: C1-C9 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 integrated at `d9c9e7b` and merged at `c0919a5` after the full root gate passed. C10 remains deferred.
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C8 accordion/source-card work is integrated and its full CI gate passed. C9 is in progress and paused at the user's request; its open items are recorded under Chapter 9.
+- Current work: stopped after C9 at the user's request. C10 documentation sync and live validation were not started.
 
 ## Baseline
 
@@ -146,31 +146,19 @@
 
 ### Chapter 9 — Legacy retirement
 
-- Status: in progress; WIP commit on `feat/plans-category-taxonomy-migration` (not pushed); no `./ci.sh` run for C9 yet
-- Progress log (2026-11-05, Postgres database `redtape_c9` migrated to the new head `20261105_retire_legacy_taxonomy`):
-  - Completeness and scoring: `test_candidate_completeness_tags.py` and `test_candidate_tag_scores.py` rewritten category-only; 56 focused tests pass, including Python/SQL score parity within 1e-6.
-  - Public candidate list: `test_candidates_browse.py` rewritten around `filter[category]` with descendant expansion, 422 for unknown and malformed codes, and 422 for retired keys; 51 tests pass with the list-query tests.
-  - Taxonomy service, repository, and tags vocabulary: rewritten to categories; 17 tests pass.
-  - Migration chain: `test_discovery_staging_migration_retry.py` passes at the new head. It downgrades `-10` to the staging-edges revision. The stuck-state test now steps the retirement back first, so the legacy tables exist before it simulates the old state.
-  - Emit payload, emit, public API, and list contract: migrated to category fixtures. All 107 tests in that batch now pass; the one failure (a retired-code assertion) was fixed and re-run green.
-  - Edited but not yet re-run: `test_discovery_candidates_api.py`, `test_discovery_candidates_admin_api.py`, `test_discovery_models.py`, `test_discovery_task_queue.py`, `test_task_page_completeness.py`.
-- Finding fixed: bare retired keys (`domain=`, `situation=`, `group=`) were silently ignored by the shared list parser, which would have returned an unfiltered list. `app/shared/list_query/parse.py` now rejects them with 422 naming the key and the replacement. This is a behavior change for both candidate lists.
-- Last full API run, before the fixes above (`redtape_c9`): 61 failed, 1,359 passed, 12 collection errors. This count is stale; there has been no full run since.
-- Open API test work:
-  - Collection errors from removed legacy models and helpers: `test_taxonomy_models.py` (keep the category tests, drop the legacy term and link tests), `test_seed_taxonomy.py`, `test_documents_filter.py`, `test_document_service.py`, `test_document_repository.py`, `test_suggestion_service.py`, `test_category_backfill.py`, `test_c4_category_contract.py`, and `test_remove_seeded_documents_migration.py`. The last one is a historical migration test whose legacy tables are dropped at head. It needs a decision: rewrite it against a pre-retirement revision, or retire it with a note here.
-  - Failing: `test_taxonomy_api.py` (5), `test_shared_paging_locale.py` (2), `test_suggestion_payload.py` (2), `test_suggestions_submit.py`, `test_promote_new_document.py`, `test_openapi_snapshot.py`, `test_machine_contract_fixture.py`, `test_check_migrations_script.py`, `test_architecture.py`, and the new red tests `test_legacy_taxonomy_retirement.py` (3) and `test_legacy_reference_scan.py` (2).
-- Not started: web retirement (legacy query hooks, matrix, domains and situations clients, chip components, i18n keys); OpenAPI snapshot and machine-fixture regeneration; `test_legacy_taxonomy_migration.py`; `alembic upgrade`, `downgrade`, `upgrade`, and `check` on `redtape_c9`; the final reference scan; full `./ci.sh`; the refactor audit for the chapter.
-- Design risk: the retirement migration must find the legacy tables in order to archive them. Replay is safe after a downgrade, which recreates the tables empty. Archive copies use `CREATE TABLE IF NOT EXISTS`, so a replay never overwrites the first archive. A replay on a database where those tables were removed out of band would fail at the archive step.
-- Behavior changes to report when complete: public and admin `domain` and `situation` inputs now return 422. The completeness merge changes the denominator to four flags, which changes public ordering. The document-level PVOG leaf facet is retired; the leaf is stored in `document_category.provenance` on promotion.
+- Status: integrated at `d9c9e7b`, merged into the loop branch at `c0919a5`.
+- Runtime and contract reference scan: `test_legacy_reference_scan.py` passes (`2 passed`); active API/web code, contracts, fixtures, and active docs carry no retired route/parameter consumers. Discovery-ingest compatibility readers remain intentionally outside C9 scope.
+- Paired tests: category-only browse, retired route/input rejection, migration/provenance preservation, score parity, OpenAPI and machine-contract fixtures, and web taxonomy retirement pass.
+- Migration gate: disposable `redtape_c9` upgrade/downgrade/upgrade and `alembic check` pass. The local `redtape` database was aligned to the existing additive schema, then upgraded to `20261105_retire_legacy_taxonomy`; final `alembic current` and `alembic check` pass.
+- Local migration evidence: 34 canonical categories, 0 document-category links, 0 external classifications, and 6 archive retirement-evidence rows; legacy public taxonomy tables are absent. Downgrade remains schema-only and does not claim to restore dropped data; the archive is the recovery source.
+- Compatibility behavior: expired public/admin `domain`, `group`, and `situation` inputs return diagnostic 422 responses instead of widening queries. Category-only filtering remains available, and PVOG leaf provenance remains preserved in the canonical projection.
+- Full `./ci.sh` (2026-11-05): passed after the local database was aligned to the C9 head; API, web, discovery-skill, discovery-ingest, migration, lint, typecheck, tests, and build gates are green.
+- Refactor gate: stale legacy web clients, scripts, routes, models, and matrix tests were removed; rejection stays at the request boundary; canonical category paths contain no compatibility branches. No further extraction justified.
 - Follow-up outside C9 scope: discovery-ingest still translates legacy axis inputs on the client side (`mentions.py`, `curation.py`, `extract/llm/schema.py`, `pvog/category_mapping.py`).
-- Runtime reference scan: pending
-- Contract reference scan: pending
-- Legacy migration execution: pending
-- Compatibility redirect expiry: pending
-- Backup/rollback evidence: pending
 
 ## Post-deploy validation
 
+- Status: deferred; C10 was not executed because the user requested stopping after C9.
 - Deployment/version: pending
 - Category-tree API parity: pending
 - Document counts before/after: pending
