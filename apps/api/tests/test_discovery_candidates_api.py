@@ -282,7 +282,9 @@ def test_a_reposted_llm_mention_updates_in_place_instead_of_adding_a_row(
     replay = _post(
         client,
         key,
-        _item(catalogue, **{**LLM_FIELDS, "condition": None, "category_codes": ["moving-house", "birth-and-parenthood"]}),
+        _item(
+            catalogue, **{**LLM_FIELDS, "condition": None, "category_codes": ["moving-house", "birth-and-parenthood"]}
+        ),
     )
 
     assert replay.json()["mentions_updated"] == 1

@@ -3214,10 +3214,10 @@
    "schema": {
     "$defs": {
      "CandidateFlags": {
-      "description": "The five completeness flags of a candidate.",
+      "description": "The four completeness flags of a candidate.",
       "properties": {
-       "has_domain": {
-        "title": "Has Domain",
+       "has_category": {
+        "title": "Has Category",
         "type": "boolean"
        },
        "has_edges": {
@@ -3228,18 +3228,13 @@
         "title": "Has Screenshot",
         "type": "boolean"
        },
-       "has_situation": {
-        "title": "Has Situation",
-        "type": "boolean"
-       },
        "has_snapshot": {
         "title": "Has Snapshot",
         "type": "boolean"
        }
       },
       "required": [
-       "has_domain",
-       "has_situation",
+       "has_category",
        "has_edges",
        "has_snapshot",
        "has_screenshot"
@@ -3382,10 +3377,10 @@
    "schema": {
     "$defs": {
      "CandidateFlags": {
-      "description": "The five completeness flags of a candidate.",
+      "description": "The four completeness flags of a candidate.",
       "properties": {
-       "has_domain": {
-        "title": "Has Domain",
+       "has_category": {
+        "title": "Has Category",
         "type": "boolean"
        },
        "has_edges": {
@@ -3396,18 +3391,13 @@
         "title": "Has Screenshot",
         "type": "boolean"
        },
-       "has_situation": {
-        "title": "Has Situation",
-        "type": "boolean"
-       },
        "has_snapshot": {
         "title": "Has Snapshot",
         "type": "boolean"
        }
       },
       "required": [
-       "has_domain",
-       "has_situation",
+       "has_category",
        "has_edges",
        "has_snapshot",
        "has_screenshot"

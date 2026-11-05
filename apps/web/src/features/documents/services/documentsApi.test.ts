@@ -44,18 +44,6 @@ it("documentsApi · sends canonical category codes as a CSV filter", async () =>
 
   const params = requestedUrl().searchParams;
   expect(params.get("filter[category]")).toBe("a,b");
-  expect(params.has("filter[domain]")).toBe(false);
-});
-
-it("legacy URL · sends old axis aliases to the compatibility API", async () => {
-  await fetchWith({
-    legacy: { domain: ["a"], group: ["home"], situation: ["x"] },
-  });
-
-  const params = requestedUrl().searchParams;
-  expect(params.get("filter[domain]")).toBe("a");
-  expect(params.get("filter[group]")).toBe("home");
-  expect(params.get("filter[situation]")).toBe("x");
 });
 
 it("documentsApi · sends search, sort and page", async () => {
@@ -85,13 +73,12 @@ it("documentsApi · leaves out filters, search and sort that are not set", async
   expect(names).toEqual(["limit", "offset"]);
 });
 
-it("documentsApi · never sends a jurisdiction or unbracketed params", async () => {
+it("documentsApi · sends only the bracketed canonical category filter", async () => {
   await fetchWith({ categories: ["a"] });
 
   const params = requestedUrl().searchParams;
   expect(params.has("municipality_code")).toBe(false);
-  expect(params.has("domain")).toBe(false);
-  expect(params.has("situation")).toBe(false);
+  expect(params.get("filter[category]")).toBe("a");
 });
 
 it("documentsApi · maps a candidate card to a document with tags and confidence", async () => {

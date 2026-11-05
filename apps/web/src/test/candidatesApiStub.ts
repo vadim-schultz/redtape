@@ -1,17 +1,4 @@
 import { vi } from "vitest";
-
-const term = (code: string, name: string) => ({
-  code,
-  name,
-  description: "",
-  icon: null,
-});
-
-export const DOMAIN_TERMS = [
-  term("identity", "Identity"),
-  term("work", "Work"),
-];
-export const SITUATION_TERMS = [term("moving", "Moving")];
 export const CATEGORY_TREE = [
   {
     code: "identity-and-documents",
@@ -31,10 +18,6 @@ export function stubCandidatesApi(onList: Responder) {
     const url = new URL(String(input));
     if (url.pathname.endsWith("/api/v1/categories"))
       return new Response(JSON.stringify(CATEGORY_TREE));
-    if (url.pathname.endsWith("/api/v1/domains"))
-      return new Response(JSON.stringify(DOMAIN_TERMS));
-    if (url.pathname.endsWith("/api/v1/life-situations"))
-      return new Response(JSON.stringify(SITUATION_TERMS));
     if (url.pathname.endsWith("/api/v1/candidates")) return onList(url);
     return new Response("", { status: 404 });
   });

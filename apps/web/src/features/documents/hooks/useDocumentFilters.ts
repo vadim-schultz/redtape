@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import type { CategoryNode } from "../../taxonomy/types";
 import {
   FILTER_PARAMS,
-  readLegacyFilters,
   readValidCategoryCodes,
   withToggledCategory,
   withoutParams,
@@ -11,7 +10,6 @@ import {
 
 export interface DocumentFilters {
   categories: string[];
-  legacy: ReturnType<typeof readLegacyFilters>;
   toggleCategory: (code: string, parentCode?: string | null) => void;
   /** Drops the chips and returns to the first page; search and sort stay. */
   clear: () => void;
@@ -19,7 +17,7 @@ export interface DocumentFilters {
   clearAll: () => void;
 }
 
-/** Read canonical category state and preserve legacy URL aliases for the API. */
+/** Read canonical category state from the URL. */
 export function useDocumentFilters(
   taxonomy: CategoryNode[] = [],
 ): DocumentFilters {
@@ -27,7 +25,6 @@ export function useDocumentFilters(
 
   return {
     categories: readValidCategoryCodes(params, taxonomy),
-    legacy: readLegacyFilters(params),
     toggleCategory: (code, parentCode) =>
       setParams((prev) => withToggledCategory(prev, code, parentCode)),
     clear: () => setParams((prev) => withoutParams(prev, [...FILTER_PARAMS])),

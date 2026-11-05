@@ -134,17 +134,17 @@ def _mention_payload(**changes: object) -> dict[str, object]:
 
 
 def test_mention_payload_rejects_retired_axis_fields_with_a_retirement_diagnostic() -> None:
-    with pytest.raises(ValidationError, match="retired"):
+    with pytest.raises(ValidationError, match="Retired"):
         CandidateMentionItem.model_validate(_mention_payload(domain_codes=["housing"]))
 
 
 def test_mention_payload_rejects_retired_situation_fields_with_a_retirement_diagnostic() -> None:
-    with pytest.raises(ValidationError, match="retired"):
+    with pytest.raises(ValidationError, match="Retired"):
         CandidateMentionItem.model_validate(_mention_payload(situation_codes=["moving-house"]))
 
 
 def test_suggestion_payload_rejects_retired_axis_fields_with_a_retirement_diagnostic() -> None:
-    with pytest.raises(ValidationError, match="retired"):
+    with pytest.raises(ValidationError, match="Retired"):
         NewDocumentPayload.model_validate({"title_i18n": {"de": "Antrag"}, "domain_codes": ["housing"]})
 
 

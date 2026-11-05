@@ -89,13 +89,13 @@ def _new_document_claim(
     *,
     url: str = "https://example.gov/doc",
     title: str = "Ausweis",
-    domain_codes: list[str] | None = None,
+    category_codes: list[str] | None = None,
     entity: DiscoveryEntity | None = None,
 ) -> DiscoveryClaim:
     entity = entity or _entity(db_session, catalogue, url=url)
     payload: dict[str, object] = {"title_i18n": {"de": title}, "official_url": url}
-    if domain_codes is not None:
-        payload["domain_codes"] = domain_codes
+    if category_codes is not None:
+        payload["category_codes"] = category_codes
     return _claim(db_session, entity, kind=DiscoveryClaimKind.NEW_DOCUMENT, payload=payload)
 
 
@@ -284,9 +284,9 @@ def test_emit_catalogue_skips_a_duplicate_claim_and_emits_the_rest(db_session: S
     assert _count(db_session, Suggestion) == 2
 
 
-def test_emit_catalogue_skips_a_claim_with_an_unknown_taxonomy_code(db_session: Session) -> None:
+def test_emit_catalogue_skips_a_claim_with_an_unknown_category_code(db_session: Session) -> None:
     catalogue = _catalogue(db_session)
-    _new_document_claim(db_session, catalogue, domain_codes=["no-such-domain"])
+    _new_document_claim(db_session, catalogue, category_codes=["no-such-category"])
 
     response = _service(db_session).emit_catalogue(catalogue.id, api_key=_api_key(db_session))
 

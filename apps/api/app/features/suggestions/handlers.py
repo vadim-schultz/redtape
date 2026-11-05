@@ -19,7 +19,7 @@ PayloadT = TypeVar("PayloadT", bound=NewDocumentPayload | NewRequirementPayload)
 
 
 class UnknownTaxonomyCodeError(ValueError):
-    """Raised when a domain or situation code does not exist."""
+    """Raised when a canonical category code does not exist."""
 
 
 class UnknownDocumentError(ValueError):

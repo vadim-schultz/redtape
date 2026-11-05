@@ -16,15 +16,15 @@ it("completeness chips announce present and missing flags", () => {
     screen.getByRole("listitem", { name: "Screenshot: missing" }),
   ).toBeInTheDocument();
   expect(screen.getAllByRole("listitem", { name: /: present$/ })).toHaveLength(
-    4,
+    3,
   );
 });
 
-it("completeness chips show five present chips for a complete candidate", () => {
+it("completeness chips show four present chips for a complete candidate", () => {
   renderWithProviders(<CompletenessChips flags={ALL_FLAGS} />);
 
   const chips = screen.getAllByRole("listitem");
-  expect(chips).toHaveLength(5);
+  expect(chips).toHaveLength(4);
   chips.forEach((chip) => expect(chip).toHaveAccessibleName(/: present$/));
   expect(screen.queryByRole("listitem", { name: /missing/ })).toBeNull();
 });
@@ -34,13 +34,7 @@ it("completeness chips keep a visible text label on every chip", () => {
     <CompletenessChips flags={{ ...ALL_FLAGS, has_edges: false }} />,
   );
 
-  const labels = [
-    "Domain",
-    "Situation",
-    "Dependencies",
-    "Snapshot",
-    "Screenshot",
-  ];
+  const labels = ["Category", "Dependencies", "Snapshot", "Screenshot"];
   const chips = screen.getAllByRole("listitem");
   labels.forEach((label, index) =>
     expect(within(chips[index]).getByText(label)).toBeVisible(),

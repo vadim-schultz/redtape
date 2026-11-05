@@ -4,21 +4,26 @@ import uuid
 
 import pytest
 import sqlalchemy as sa
-from app.models import Category, Domain, LifeSituation, LifeSituationGroup
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import category_external_mapping, document_domain, document_life_situation
+from app.models.taxonomy import (
+    Category,
+    CategoryExternalMapping,
+    DocumentExternalClassification,
+    document_category,
+)
 from scripts.seed_data.taxonomy import CATEGORY_INVENTORY, TaxonomyContractError, validate_category_inventory
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 
-def _term(model: type[Domain] | type[LifeSituation], code: str) -> Domain | LifeSituation:
-    return model(code=code, name_i18n={"en": code})
-
-
 def _document(session: Session) -> Document:
-    country = Jurisdiction(kind=JurisdictionKind.COUNTRY, name_i18n={"en": "Testland"}, code=f"T{uuid.uuid4().hex[:8]}")
+    country = Jurisdiction(
+        kind=JurisdictionKind.COUNTRY,
+        name_i18n={"en": "Testland"},
+        code=f"T{uuid.uuid4().hex[:8]}",
+    )
     session.add(country)
     session.flush()
     document = Document(jurisdiction_id=country.id, slug=f"doc-{uuid.uuid4().hex[:8]}")
@@ -31,153 +36,112 @@ def _count(session: Session, table: sa.Table) -> int:
     return session.execute(sa.select(sa.func.count()).select_from(table)).scalar_one()
 
 
-def test_domain_persists_with_de_and_en_names(db_session: Session) -> None:
-    domain = Domain(code="housing", name_i18n={"de": "Wohnen", "en": "Housing"})
-    db_session.add(domain)
+def test_category_persists_localized_names_and_external_mapping(db_session: Session) -> None:
+    category = Category(code="test-home-and-housing", name_i18n={"de": "Wohnen", "en": "Housing"})
+    db_session.add(category)
     db_session.flush()
-    db_session.expire(domain)
-
-    assert domain.name_i18n == {"de": "Wohnen", "en": "Housing"}
-
-
-def test_domain_duplicate_code_is_rejected(db_session: Session) -> None:
-    db_session.add(_term(Domain, "housing"))
+    db_session.add(
+        CategoryExternalMapping(
+            category_id=category.id,
+            source="pvog",
+            external_level="parent",
+            external_code="105",
+            source_version="v7",
+        )
+    )
     db_session.flush()
-    db_session.add(_term(Domain, "housing"))
+    db_session.expire_all()
+
+    stored = db_session.scalar(sa.select(Category).where(Category.code == "test-home-and-housing"))
+    assert stored is not None
+    assert stored.name_i18n == {"de": "Wohnen", "en": "Housing"}
+    assert stored.external_mappings[0].external_code == "105"
+
+
+def test_category_duplicate_code_is_rejected(db_session: Session) -> None:
+    db_session.add(Category(code="housing", name_i18n={"en": "Housing"}))
+    db_session.flush()
+    db_session.add(Category(code="housing", name_i18n={"en": "Housing"}))
 
     with pytest.raises(IntegrityError):
         db_session.flush()
 
 
 @pytest.mark.parametrize("code", ["Umzüge", "moving house", "", "Housing", "-a", "a--b"])
-def test_domain_non_kebab_or_accented_code_is_rejected(db_session: Session, code: str) -> None:
-    db_session.add(_term(Domain, code))
+def test_category_non_kebab_or_accented_code_is_rejected(db_session: Session, code: str) -> None:
+    db_session.add(Category(code=code, name_i18n={"en": code}))
 
     with pytest.raises(IntegrityError):
         db_session.flush()
 
 
-def test_life_situation_duplicate_code_is_rejected(db_session: Session) -> None:
-    db_session.add(_term(LifeSituation, "moving-house"))
-    db_session.flush()
-    db_session.add(_term(LifeSituation, "moving-house"))
-
-    with pytest.raises(IntegrityError):
-        db_session.flush()
-
-
-def test_life_situation_group_persists_with_de_and_en_names(db_session: Session) -> None:
-    group = LifeSituationGroup(code="home-housing", name_i18n={"de": "Wohnen", "en": "Home & housing"})
-    db_session.add(group)
-    db_session.flush()
-    db_session.expire(group)
-
-    assert group.name_i18n == {"de": "Wohnen", "en": "Home & housing"}
-
-
-def test_life_situation_group_duplicate_code_is_rejected(db_session: Session) -> None:
-    db_session.add(LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"}))
-    db_session.flush()
-    db_session.add(LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"}))
-
-    with pytest.raises(IntegrityError):
-        db_session.flush()
-
-
-@pytest.mark.parametrize("code", ["Umzüge", "moving house", "", "Housing", "-a", "a--b"])
-def test_life_situation_group_non_kebab_or_accented_code_is_rejected(db_session: Session, code: str) -> None:
-    db_session.add(LifeSituationGroup(code=code, name_i18n={"en": code}))
-
-    with pytest.raises(IntegrityError):
-        db_session.flush()
-
-
-def test_life_situation_can_be_assigned_a_group(db_session: Session) -> None:
-    group = LifeSituationGroup(code="home-housing", name_i18n={"en": "home-housing"})
-    db_session.add(group)
-    db_session.flush()
-    situation = LifeSituation(code="moving-house", name_i18n={"en": "moving-house"}, group_id=group.id)
-    db_session.add(situation)
-    db_session.flush()
-    db_session.expire(situation)
-
-    assert situation.group_id == group.id
-
-
-def test_document_tagging_with_a_domain_and_a_situation_links_both(db_session: Session) -> None:
+def test_document_category_link_defaults_confidence_and_provenance(db_session: Session) -> None:
     document = _document(db_session)
-    domain, situation = _term(Domain, "housing"), _term(LifeSituation, "moving-house")
-    document.domains.append(domain)  # type: ignore[arg-type]
-    document.life_situations.append(situation)  # type: ignore[arg-type]
+    category = Category(code="housing", name_i18n={"en": "Housing"})
+    db_session.add(category)
     db_session.flush()
-    db_session.expire(document)
+    db_session.execute(document_category.insert().values(document_id=document.id, category_id=category.id))
 
-    assert document.domains == [domain]
-    assert document.life_situations == [situation]
-
-
-def test_a_link_row_without_confidence_backfills_to_full_confidence(db_session: Session) -> None:
-    """D7: a row written without an explicit confidence (the shape of every row from before chapter 1)
-    reads back as ``1.0`` via the column's own ``server_default`` — honest, not a retroactive scoring claim.
-    """
-    document = _document(db_session)
-    domain = _term(Domain, "housing")
-    db_session.add(domain)
-    db_session.flush()
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id))
-
-    confidence = db_session.execute(
-        sa.select(document_domain.c.confidence).where(document_domain.c.document_id == document.id)
-    ).scalar_one()
+    confidence, source, provenance = db_session.execute(
+        sa.select(document_category.c.confidence, document_category.c.source, document_category.c.provenance).where(
+            document_category.c.document_id == document.id
+        )
+    ).one()
 
     assert confidence == 1.0
+    assert source == "legacy_crosswalk"
+    assert provenance == {}
 
 
-def test_document_tagging_the_same_domain_twice_is_rejected(db_session: Session) -> None:
+def test_document_category_link_is_unique(db_session: Session) -> None:
     document = _document(db_session)
-    domain = _term(Domain, "housing")
-    db_session.add(domain)
+    category = Category(code="housing", name_i18n={"en": "Housing"})
+    db_session.add(category)
     db_session.flush()
-    link = document_domain.insert().values(document_id=document.id, domain_id=domain.id)
+    link = document_category.insert().values(document_id=document.id, category_id=category.id)
     db_session.execute(link)
 
     with pytest.raises(IntegrityError):
         db_session.execute(link)
 
 
-def test_deleting_a_document_removes_its_links_but_keeps_the_domain(db_session: Session) -> None:
+def test_deleting_a_document_removes_category_links_and_keeps_category(db_session: Session) -> None:
     document = _document(db_session)
-    document.domains.append(_term(Domain, "housing"))  # type: ignore[arg-type]
-    document.life_situations.append(_term(LifeSituation, "moving-house"))  # type: ignore[arg-type]
+    category = Category(code="housing", name_i18n={"en": "Housing"})
+    document.categories.append(category)
+    db_session.add(document)
     db_session.flush()
 
     db_session.execute(sa.delete(Document).where(Document.id == document.id))
 
-    assert _count(db_session, document_domain) == 0
-    assert _count(db_session, document_life_situation) == 0
-    assert db_session.execute(sa.select(Domain).where(Domain.code == "housing")).scalar_one()
+    assert _count(db_session, document_category) == 0
+    assert db_session.scalar(sa.select(Category).where(Category.id == category.id)) is not None
 
 
-def test_deleting_a_linked_domain_cascades_its_links(db_session: Session) -> None:
+def test_external_classification_preserves_pvog_leaf_separately(db_session: Session) -> None:
     document = _document(db_session)
-    domain = _term(Domain, "housing")
-    document.domains.append(domain)  # type: ignore[arg-type]
+    db_session.add(
+        DocumentExternalClassification(
+            document_id=document.id,
+            source="pvog",
+            external_level="leaf",
+            external_code="1050200",
+            source_version="v7",
+        )
+    )
     db_session.flush()
 
-    db_session.execute(sa.delete(Domain).where(Domain.id == domain.id))
-
-    assert _count(db_session, document_domain) == 0
-    assert db_session.get(Document, document.id) is not None
+    stored = db_session.scalar(sa.select(DocumentExternalClassification))
+    assert stored is not None
+    assert stored.external_code == "1050200"
 
 
 def test_category_seeds_roots_and_children_with_stable_ids(db_session: Session) -> None:
-    """Category · seed roots and children, then update rows in place on rerun."""
-    from scripts.seed_taxonomy import seed_canonical_taxonomy
-
     seed_canonical_taxonomy(db_session)
     db_session.flush()
-    root = db_session.execute(sa.select(Category).where(Category.code == "family-and-relationships")).scalar_one()
-    child = db_session.execute(sa.select(Category).where(Category.code == "birth-and-parenthood")).scalar_one()
+    root = db_session.scalar(sa.select(Category).where(Category.code == "family-and-relationships"))
+    child = db_session.scalar(sa.select(Category).where(Category.code == "birth-and-parenthood"))
+    assert root is not None and child is not None
     root_id, child_id = root.id, child.id
 
     root.name_i18n = {"de": "Familie & Beziehungen", "en": "Family & relationships"}
@@ -187,12 +151,11 @@ def test_category_seeds_roots_and_children_with_stable_ids(db_session: Session) 
     assert db_session.get(Category, root_id) is root
     assert db_session.get(Category, child_id) is child
     assert child.parent_id == root_id
-    assert _count(db_session, Category) == len(CATEGORY_INVENTORY)
-    assert _count(db_session, category_external_mapping) > 0
+    assert _count(db_session, Category.__table__) == len(CATEGORY_INVENTORY)
 
 
-def test_category_duplicate_code_missing_parent_or_cycle_is_rejected() -> None:
-    """Category · duplicate code, missing parent, or cycle is rejected."""
+def test_category_duplicate_missing_parent_or_cycle_is_rejected() -> None:
+    """Category inventory validation rejects invalid tree definitions."""
     from dataclasses import replace
 
     root = next(category for category in CATEGORY_INVENTORY if category.parent_code is None)

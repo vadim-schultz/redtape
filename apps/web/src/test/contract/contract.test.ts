@@ -364,9 +364,8 @@ it.fails(
   },
 );
 
-// The API still accepts these legacy axis inputs on the request body during the compatibility window
-// (ends in chapter 9), translated once at the boundary. The output payloads and candidate contracts must
-// not advertise them; the request schema NewDocumentPayload is deliberately not in the list below.
+// The retired axis names remain here only as a negative contract assertion. The output payloads and
+// candidate contracts must not advertise them; the request schema is deliberately not in this list.
 const FORBIDDEN_LEGACY_FIELDS = [
   "domain_codes",
   "situation_codes",

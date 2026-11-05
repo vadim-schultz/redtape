@@ -86,7 +86,11 @@ def test_a_candidate_without_mentions_has_no_rows(db_session: Session) -> None:
 
 
 def test_a_manual_override_hides_the_consensus(db_session: Session) -> None:
-    rows = [Row(0, ["housing", "moving-house"]), Row(1, ["housing", "moving-house"]), Row(0, ["work"], MANUAL_EXTRACTOR)]
+    rows = [
+        Row(0, ["housing", "moving-house"]),
+        Row(1, ["housing", "moving-house"]),
+        Row(0, ["work"], MANUAL_EXTRACTOR),
+    ]
     candidate_id = _staged(db_session, rows)
 
     assert _sql_scores(db_session, candidate_id) == {"work": 1.0}

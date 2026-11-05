@@ -29,7 +29,6 @@ const categories: CategoryNode[] = [
 function filters(selected: string[] = []): DocumentFilters {
   return {
     categories: selected,
-    legacy: { domain: [], group: [], situation: [] },
     toggleCategory: vi.fn(),
     clear: vi.fn(),
     clearAll: vi.fn(),
@@ -48,7 +47,7 @@ it("category filter · selecting a root reveals its subcategories", async () => 
   expect(screen.getByRole("button", { name: "Moving house" })).toBeVisible();
 });
 
-it("category filter · selecting a subcategory has no legacy axis alias", async () => {
+it("category filter · selecting a subcategory keeps one canonical axis", async () => {
   const state = filters(["home-and-housing"]);
   const { user } = renderWithProviders(
     <CategoryFilterView categories={categories} filters={state} />,
@@ -60,7 +59,7 @@ it("category filter · selecting a subcategory has no legacy axis alias", async 
     "moving-house",
     "home-and-housing",
   );
-  expect(state.legacy).toEqual({ domain: [], group: [], situation: [] });
+  expect(state.categories).toEqual(["home-and-housing"]);
 });
 
 it("category filter · unknown URL category is not shown as selected", () => {

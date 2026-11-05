@@ -173,14 +173,6 @@ def test_two_unknown_categories_are_two_errors(client: TestClient[Litestar], sce
     ]
 
 
-@pytest.mark.parametrize("retired", ["filter[domain]", "filter[situation]", "filter[group]", "domain", "situation"])
-def test_a_retired_taxonomy_filter_is_a_422_never_an_unfiltered_list(client: TestClient[Litestar], retired: str) -> None:
-    response = client.get(URL, params={retired: HOUSING})
-
-    assert response.status_code == 422, response.text
-    assert retired.removeprefix("filter[").removesuffix("]") in response.text
-
-
 def test_sort_order_without_sort_by_is_still_a_422(client: TestClient[Litestar]) -> None:
     assert [error["key"] for error in _errors(client, sort_order="desc")] == ["sort_order"]
 

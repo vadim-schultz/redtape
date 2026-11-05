@@ -85,8 +85,7 @@
     "confidence_high": "high"
   },
   "candidates": {
-    "flag_domain": "Domain",
-    "flag_situation": "Situation",
+    "flag_category": "Category",
     "flag_edges": "Dependencies",
     "flag_snapshot": "Snapshot",
     "flag_screenshot": "Screenshot",
@@ -141,9 +140,7 @@
     "category": "Categories",
     "clear": "Clear filters",
     "chip": "Filter by {name}",
-    "browse": "Browse categories",
-    "remove_domain": "Remove domain filter: {name}",
-    "remove_situation": "Remove situation filter: {name}"
+    "browse": "Browse categories"
   },
   "discovery_admin": {
     "menu_unavailable": "Discovery unavailable",

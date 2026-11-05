@@ -30,8 +30,7 @@ const candidate = {
   completeness: 4,
   complete: false,
   flags: {
-    has_domain: true,
-    has_situation: true,
+    has_category: true,
     has_edges: true,
     has_snapshot: true,
     has_screenshot: false,

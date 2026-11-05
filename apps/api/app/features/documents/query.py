@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from litestar import Request
+from litestar.exceptions import HTTPException
 from litestar.params import Parameter
 
 from app.features.documents.service import DocumentFilters
 from app.shared.paging import PageParams
-from app.shared.retired_taxonomy import reject_retired_query_keys
+from app.shared.retired_taxonomy import retired_axis_keys, retired_taxonomy_message
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +41,9 @@ def provide_document_list_query(
     category_filter: list[str] | None = Parameter(query="filter[category]", default=None),
 ) -> DocumentListQuery:
     """Collect the document list query parameters into one object; retired legacy axes fail with 422."""
-    reject_retired_query_keys(request.query_params.keys())
+    retired = retired_axis_keys(request.query_params.keys())
+    if retired:
+        raise HTTPException(status_code=422, detail=retired_taxonomy_message(retired))
     filters = DocumentFilters(
         jurisdiction_id=jurisdiction_id,
         municipality_code=municipality_code,

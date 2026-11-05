@@ -26,7 +26,7 @@ class DocumentFilters:
 
 
 class DocumentService:
-    """Read-only domain logic for documents: lists, scopes, leaf codes and localized details."""
+    """Read-only document logic for lists, scopes and localized details."""
 
     def __init__(self, repository: DocumentRepository, taxonomy: TaxonomyService) -> None:
         """Bind the service to its repository and taxonomy lookups."""

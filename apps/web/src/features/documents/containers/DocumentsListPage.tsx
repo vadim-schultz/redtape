@@ -16,7 +16,6 @@ export default function DocumentsListPage() {
   const filters = useDocumentFilters(taxonomy.categories);
   const query = useDocumentsListQuery({
     categories: filters.categories,
-    legacy: filters.legacy,
     query: list.state,
   });
 

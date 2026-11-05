@@ -1,7 +1,6 @@
 import { mode } from "./mode";
 
-/** Filter chips. A selected life situation is a lighter red than the Swiss-red life area
- * and domain chips, so the coarse and the fine filter stage read as two different things. */
+/** Subcategory filter chips use a lighter red than the selected root chip. */
 export const chip = {
   sub: {
     selected: {
