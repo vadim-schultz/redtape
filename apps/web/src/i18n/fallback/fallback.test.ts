@@ -27,8 +27,6 @@ function readSeed(locale: string): Record<string, string> {
 }
 
 const CANDIDATE_KEYS = [
-  "banner_title",
-  "banner_body",
   "from_source",
   "flag_domain",
   "flag_situation",
@@ -51,8 +49,6 @@ const CANDIDATE_KEYS = [
   "source_role_required",
   "source_role_form",
   "source_role_issued",
-  "checklist_title",
-  "checklist_count",
   "flow",
   "flow_summary",
   "flow_empty",

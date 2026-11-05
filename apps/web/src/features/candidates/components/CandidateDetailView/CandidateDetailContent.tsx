@@ -1,7 +1,6 @@
 import { VStack } from "@chakra-ui/react";
 
 import type { CandidateDetail } from "../../types";
-import CandidateChecklist from "./CandidateChecklist";
 import CandidateEvidence from "./CandidateEvidence";
 import CandidateHeader from "./CandidateHeader";
 import { FlowSection } from "../FlowDiagram";
@@ -20,10 +19,6 @@ export default function CandidateDetailContent({
   return (
     <VStack align="stretch" gap={8}>
       <CandidateHeader candidate={candidate} />
-      <CandidateChecklist
-        flags={candidate.flags}
-        completeness={candidate.completeness}
-      />
       <NeighbourSection kind="ingress" items={candidate.ingress} />
       <NeighbourSection kind="egress" items={candidate.egress} />
       <FlowSection candidate={candidate} />

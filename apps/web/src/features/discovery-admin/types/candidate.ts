@@ -1,4 +1,4 @@
-import type { CompletenessFlags } from "../../candidates/types";
+import type { CompletenessFlags } from "../../../components/data-display/CompletenessChips/types";
 
 import type { DiscoveryMentionArtifact } from "./artifact";
 import type {

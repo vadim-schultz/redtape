@@ -104,13 +104,37 @@ def test_candidates_list_is_public_and_ranks_by_completeness(client: TestClient[
     assert response.json()["total"] == 3
 
 
-def test_candidates_list_shows_staged_and_emitted_candidates(client: TestClient[Litestar], scene: Scene) -> None:
+def test_candidates_list_omits_staging_status(client: TestClient[Litestar], scene: Scene) -> None:
     scene.candidate("staged-one")
     scene.candidate("emitted-one", status=DiscoveryCandidateStatus.EMITTED)
 
-    statuses = {item["key"]: item["status"] for item in client.get(URL).json()["items"]}
+    items = client.get(URL).json()["items"]
 
-    assert statuses == {"staged-one": "staged", "emitted-one": "emitted"}
+    assert all("status" not in item for item in items)
+
+
+def test_candidate_detail_retains_confidence_and_categories(client: TestClient[Litestar], scene: Scene) -> None:
+    owner = scene.candidate("canonical-tags")
+    scene.mention(owner, scene.procedure(), domains=[HOUSING], situations=[MOVING])
+
+    detail = client.get(f"{URL}/{owner.id}").json()
+
+    assert detail["confidence"] > 0
+    assert [tag["code"] for tag in detail["categories"]] == ["home-and-housing", "moving-house"]
+
+
+def test_public_candidate_responses_omit_staging_and_completeness_metadata(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    owner = scene.candidate("subject")
+    scene.complete_candidate("complete")
+
+    listing = client.get(URL).json()
+    detail = client.get(f"{URL}/{owner.id}").json()
+    presentation_fields = {"status", "completeness", "complete", "flags"}
+
+    assert all(presentation_fields.isdisjoint(item) for item in listing["items"])
+    assert presentation_fields.isdisjoint(detail)
 
 
 def test_candidates_list_filters_by_complete(client: TestClient[Litestar], scene: Scene) -> None:

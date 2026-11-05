@@ -471,12 +471,6 @@
         },
         "type": "array"
       },
-      "complete": {
-        "type": "boolean"
-      },
-      "completeness": {
-        "type": "integer"
-      },
       "confidence": {
         "type": "number"
       },
@@ -506,9 +500,6 @@
         },
         "type": "array"
       },
-      "flags": {
-        "$ref": "#/components/schemas/CandidateFlags"
-      },
       "id": {
         "format": "uuid",
         "type": "string"
@@ -525,25 +516,18 @@
         },
         "type": "array"
       },
-      "status": {
-        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
-      },
       "title": {
         "type": "string"
       }
     },
     "required": [
       "categories",
-      "complete",
-      "completeness",
       "confidence",
       "domains",
-      "flags",
       "id",
       "key",
       "mention_count",
       "situations",
-      "status",
       "title"
     ],
     "title": "CandidateCard",
@@ -580,12 +564,6 @@
           "$ref": "#/components/schemas/CategoryTagRead"
         },
         "type": "array"
-      },
-      "complete": {
-        "type": "boolean"
-      },
-      "completeness": {
-        "type": "integer"
       },
       "confidence": {
         "type": "number"
@@ -625,9 +603,6 @@
       "egress_truncated": {
         "default": false,
         "type": "boolean"
-      },
-      "flags": {
-        "$ref": "#/components/schemas/CandidateFlags"
       },
       "id": {
         "format": "uuid",
@@ -671,25 +646,18 @@
         },
         "type": "array"
       },
-      "status": {
-        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
-      },
       "title": {
         "type": "string"
       }
     },
     "required": [
       "categories",
-      "complete",
-      "completeness",
       "confidence",
       "domains",
-      "flags",
       "id",
       "key",
       "mention_count",
       "situations",
-      "status",
       "title"
     ],
     "title": "CandidateDetail",
