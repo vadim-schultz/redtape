@@ -65,6 +65,7 @@ export type DiscoveryCandidateMention = {
   condition: string | null;
   is_optional: boolean | null;
   category_codes: string[];
+  unknown_category_codes: string[];
   pvog_leaf_code: string | null;
   direct_category_confidence: number | null;
   pvog_source_path: PvogSourcePath | null;

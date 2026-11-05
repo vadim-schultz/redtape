@@ -262,6 +262,8 @@ describe("discovery admin artifact strings", () => {
 const DOCUMENT_KEYS = [
   "documents.role_issued",
   "document.col_condition",
+  "document.col_taxonomy_diagnostics",
+  "document.unknown_category_codes",
   "document.optional",
   ...["title", "categories", "support", "empty", "accepted"].map(
     (key) => `document.tags.${key}`,

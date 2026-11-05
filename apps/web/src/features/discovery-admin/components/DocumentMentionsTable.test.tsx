@@ -65,6 +65,7 @@ it("catalogue, mentions, and nested admin lists use the shared table contract (m
     "Role",
     "Excerpt",
     "Condition",
+    "Taxonomy diagnostics",
     "Source field",
     "Extractor",
     "Source host",

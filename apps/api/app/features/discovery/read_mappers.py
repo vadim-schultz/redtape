@@ -84,7 +84,7 @@ def mention_read(
     mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
 ) -> CandidateMentionRead:
     """Return one mention with the procedure it was found in and its artifact summary."""
-    category_codes = LegacyTaxonomyAdapter().canonical_codes(
+    category_resolution = LegacyTaxonomyAdapter().canonical_code_resolution(
         domain_codes=mention.domain_codes or (),
         situation_codes=mention.situation_codes or (),
     )
@@ -104,7 +104,8 @@ def mention_read(
         extractor_version=mention.extractor_version,
         condition=mention.condition,
         is_optional=mention.is_optional,
-        category_codes=list(category_codes),
+        category_codes=list(category_resolution.codes),
+        unknown_category_codes=list(category_resolution.unknown_codes),
         pvog_leaf_code=mention.pvog_leaf_code,
         direct_category_confidence=mention.direct_category_confidence,
         pvog_source_path=source_path,

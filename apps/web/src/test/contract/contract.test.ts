@@ -228,6 +228,7 @@ const MENTION: Keys<DiscoveryCandidateMention> = {
   condition: true,
   is_optional: true,
   category_codes: true,
+  unknown_category_codes: true,
   pvog_leaf_code: true,
   direct_category_confidence: true,
   pvog_source_path: true,

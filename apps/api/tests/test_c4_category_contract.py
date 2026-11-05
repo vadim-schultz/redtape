@@ -10,6 +10,7 @@ from app.features.discovery.candidate_codes import CodeVocabulary
 from app.features.taxonomy.service import TaxonomyService
 from app.schema.discovery.candidates import CandidateMentionItem
 from app.schema.suggestion.payload import NewDocumentPayload
+from app.shared.taxonomy_compatibility import LegacyTaxonomyAdapter
 from pydantic import ValidationError
 
 
@@ -60,6 +61,16 @@ def test_unknown_category_codes_are_reported_without_dropping_known_categories()
 
     assert filtered.category_codes == ["moving-house"]
     assert filtered.dropped == 1
+
+
+def test_stored_category_resolution_keeps_unknown_codes_for_admin_diagnostics() -> None:
+    resolution = LegacyTaxonomyAdapter().canonical_code_resolution(
+        domain_codes=("moving-house", "housing", "stale-code"),
+        situation_codes=("stale-code",),
+    )
+
+    assert resolution.codes == ("moving-house", "home-and-housing")
+    assert resolution.unknown_codes == ("stale-code",)
 
 
 def test_new_document_payload_translates_legacy_axis_fields_once() -> None:

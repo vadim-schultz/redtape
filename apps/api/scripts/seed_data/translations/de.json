@@ -238,6 +238,8 @@
       "col_extractor": "Extraktor",
       "col_host": "Quell-Host",
       "col_procedure": "Verfahren",
+      "col_taxonomy_diagnostics": "Taxonomie-Hinweise",
+      "unknown_category_codes": "Unbekannte Kategoriecodes: {codes}",
       "emit_title": "Emit-Vorschau",
       "emit_would_create": "Würde einen neuen Dokumentvorschlag erzeugen.",
       "emit_title_label": "Titel",
