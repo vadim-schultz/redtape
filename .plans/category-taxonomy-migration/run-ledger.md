@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C7 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 implementation complete on `feat/accordion-document-view` (`777502f`), full CI green, not yet integrated; C9 not started
+- Status: C1-C8 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 ready to start
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C8 accordion/source-card work is complete on its branch. Integration is the next action; C9 remains blocked until C8 is integrated.
+- Current work: C8 accordion/source-card work is integrated and its full CI gate passed. C9 is the next chapter.
 
 ## Baseline
 
@@ -132,7 +132,7 @@
 
 ### Chapter 8 — Accordion view and source cards
 
-- Status: implementation complete on `feat/accordion-document-view` at `777502f`; integration pending
+- Status: integrated from `feat/accordion-document-view` at `777502f`; full CI passed
 - Five accordion items present: verified for ingress, egress, flow, evidence, and sources.
 - First three expanded by default: verified for ingress, egress, and flow.
 - Evidence and sources collapsed by default: verified while their triggers remain available.
