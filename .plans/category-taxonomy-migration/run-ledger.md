@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C7 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 ready to start
+- Status: C1-C7 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 implementation complete on `feat/accordion-document-view` (`777502f`), full CI green, not yet integrated; C9 not started
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C7 public metadata cleanup is integrated and its full CI gate passed. C8 is the next chapter.
+- Current work: C8 accordion/source-card work is complete on its branch. Integration is the next action; C9 remains blocked until C8 is integrated.
 
 ## Baseline
 
@@ -132,13 +132,17 @@
 
 ### Chapter 8 — Accordion view and source cards
 
-- Five accordion items present: pending
-- First three expanded by default: pending
-- Evidence and sources collapsed by default: pending
-- Keyboard interaction: pending
-- Empty states: pending
-- One subordinate source card per source: pending
-- External source links: pending
+- Status: implementation complete on `feat/accordion-document-view` at `777502f`; integration pending
+- Five accordion items present: verified for ingress, egress, flow, evidence, and sources.
+- First three expanded by default: verified for ingress, egress, and flow.
+- Evidence and sources collapsed by default: verified while their triggers remain available.
+- Keyboard interaction: source expansion via Enter is covered; the Chakra accordion supplies the accessible trigger/content contract.
+- Empty states: neighbour and flow empty states remain covered; source cards render one article per source.
+- One subordinate source card per source: verified with role, excerpt, optional condition/marker, and one article per source.
+- External source links: portal URLs remain target-blank, noreferrer links; missing URLs remain readable text.
+- Responsive flow: flow content is no longer hidden below the ``md`` breakpoint; the parent accordion keeps the item discoverable.
+- Refactor gate: the parent owns one accordion and all five stable values; neighbour, flow, evidence, and source components own content only; source mapping and card rendering remain separate; no nested accordion or nested links were introduced. No further extraction justified.
+- Full `./ci.sh` (2026-11-05): passed with Docker enabled.
 
 ### Chapter 9 — Legacy retirement
 
