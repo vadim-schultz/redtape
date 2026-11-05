@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C6 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 ready to start
+- Status: C1-C6 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 implementation complete on `feat/public-document-metadata-cleanup` (`0d5b4c0`), full CI green, not yet integrated; C8 not started
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C6 is integrated and C7 is the next chapter. The C6 full gate passed after Docker became available; its earlier stale machine-contract fixture was regenerated before the successful rerun.
+- Current work: C7 public metadata cleanup is complete on its branch. Integration is the next action; C8 remains blocked until C7 is integrated.
 
 ## Baseline
 
@@ -120,11 +120,15 @@
 
 ### Chapter 7 — Public metadata cleanup
 
-- Staged/unreviewed notice absent: pending
-- Completeness section absent: pending
-- Public DTO fields removed or justified: pending
-- Progress circle still present: pending
-- Ranking/operations regression check: pending
+- Status: implementation complete on `feat/public-document-metadata-cleanup` at `0d5b4c0`; integration pending
+- Staged/unreviewed notice absent: verified in loaded, loading, retryable-error, and not-found detail states; banner translations and component removed.
+- Completeness section absent: verified; checklist, count, and public completeness presentation are removed from the detail composition.
+- Public DTO fields removed or justified: public `CandidateCard`/`CandidateDetail` no longer expose `status`, `completeness`, `complete`, or `flags`; admin candidate DTOs retain their internal readiness fields.
+- Progress circle still present: `confidence` remains in the public card contract and the document card continues to render `ConfidenceCircle`.
+- Ranking/operations regression check: completeness remains in private repository query projections for ranking and filters; the full API suite passes.
+- Paired tests: public API preserves confidence/categories and omits staging/completeness fields; web detail absence tests pass across all query states; confidence-circle and candidate suites pass.
+- Refactor gate: public card mapping no longer receives completeness data; private ranking projections remain behind the repository boundary; the detail shell only dispatches query states; no banner/checklist imports or translation references remain. No further extraction justified.
+- Full `./ci.sh` (2026-11-05): passed with Docker enabled.
 
 ### Chapter 8 — Accordion view and source cards
 
