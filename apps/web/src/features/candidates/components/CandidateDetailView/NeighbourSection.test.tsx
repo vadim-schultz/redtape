@@ -16,13 +16,12 @@ const ingress = [
   neighbourFixture({ id: "n2", title: "Photo", is_optional: true }),
 ];
 
-it("the ingress heading reads the plain-language text", () => {
-  renderWithProviders(<NeighbourSection kind="ingress" items={ingress} />);
+it("the ingress content keeps neighbour links and metadata", () => {
+  renderWithProviders(
+    <NeighbourSection items={ingress} emptyText="No documents staged" />,
+  );
 
-  const section = screen.getByRole("region", {
-    name: "Documents you need first",
-  });
-  const links = within(section).getAllByRole("link");
+  const links = screen.getAllByRole("link");
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
     "/candidates/n1",
     "/candidates/n2",
@@ -36,47 +35,34 @@ it("the ingress heading reads the plain-language text", () => {
 it("the egress heading reads the plain-language text", () => {
   renderWithProviders(
     <>
-      <NeighbourSection kind="ingress" items={ingress} />
+      <NeighbourSection items={ingress} emptyText="No documents staged" />
       <NeighbourSection
-        kind="egress"
         items={[neighbourFixture({ id: "e1", title: "Residence permit" })]}
+        emptyText="No documents staged"
       />
     </>,
   );
 
-  const section = screen.getByRole("region", {
-    name: "Documents that need this one",
-  });
-  expect(within(section).getAllByRole("link")).toHaveLength(1);
-  expect(within(section).getByText("Residence permit")).toBeVisible();
-  expect(within(section).queryByText("Birth certificate")).toBeNull();
-  expect(screen.queryByText("Egress")).toBeNull();
+  expect(screen.getByText("Residence permit")).toBeVisible();
+  expect(screen.getByText("Birth certificate")).toBeVisible();
 });
 
-it("the section renders no separate subtitle line", () => {
-  renderWithProviders(<NeighbourSection kind="ingress" items={ingress} />);
+it("the section renders content without an extra heading", () => {
+  renderWithProviders(
+    <NeighbourSection items={ingress} emptyText="No documents staged" />,
+  );
 
-  expect(screen.getAllByText("Documents you need first")).toHaveLength(1);
-  const heading = screen.getByRole("heading", {
-    name: "Documents you need first",
-  });
-  expect(heading.tagName).toBe("H2");
+  expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
 });
 
 it("the empty-state text is unchanged", () => {
   renderWithProviders(
     <>
-      <NeighbourSection kind="ingress" items={[]} />
-      <NeighbourSection kind="egress" items={[]} />
+      <NeighbourSection items={[]} emptyText="No documents staged" />
+      <NeighbourSection items={[]} emptyText="No documents staged" />
     </>,
   );
 
-  expect(
-    screen.getByRole("heading", { name: "Documents you need first" }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole("heading", { name: "Documents that need this one" }),
-  ).toBeInTheDocument();
   expect(screen.getAllByText("No documents staged")).toHaveLength(2);
   expect(screen.queryAllByRole("link")).toHaveLength(0);
 });

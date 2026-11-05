@@ -1,5 +1,4 @@
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
-import { useId } from "react";
+import { Text } from "@chakra-ui/react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
 import FlowDiagram from "./FlowDiagram";
@@ -13,30 +12,13 @@ function hasDependencies({ ingress, egress }: FlowCandidate): boolean {
   return ingress.length + egress.length > 0;
 }
 
-/**
- * The Flow section. Below `md` the lists above carry the information, so the
- * heading hides together with the diagram and no empty heading is left behind.
- */
+/** Render the flow body; its parent accordion owns the heading and responsive visibility. */
 export default function FlowSection({ candidate }: FlowSectionProps) {
   const { t } = useLocale();
-  const headingId = useId();
 
-  return (
-    <Box
-      as="section"
-      aria-labelledby={headingId}
-      display={{ base: "none", md: "block" }}
-    >
-      <VStack align="stretch" gap={3}>
-        <Heading as="h2" id={headingId} textStyle="sectionHeader">
-          {t("candidates.flow")}
-        </Heading>
-        {hasDependencies(candidate) ? (
-          <FlowDiagram candidate={candidate} />
-        ) : (
-          <Text color="muted">{t("candidates.flow_empty")}</Text>
-        )}
-      </VStack>
-    </Box>
+  return hasDependencies(candidate) ? (
+    <FlowDiagram candidate={candidate} />
+  ) : (
+    <Text color="muted">{t("candidates.flow_empty")}</Text>
   );
 }
