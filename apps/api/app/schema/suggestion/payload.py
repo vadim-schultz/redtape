@@ -6,8 +6,9 @@ import re
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from scripts.seed_data.category_contract import CATEGORY_INVENTORY
 
+from app.shared.category_codes import ACTIVE_CATEGORY_CODES
+from app.shared.retired_taxonomy import RETIRED_TAXONOMY_FIELDS, retired_taxonomy_message
 from app.url_normalization import validate_url
 
 _LOCALE_CODE_RE = re.compile(r"^[a-zA-Z]{2,5}$")
@@ -17,9 +18,6 @@ MAX_TITLE_LENGTH = 300
 MAX_DESCRIPTION_LENGTH = 4000
 MAX_NOTES_LENGTH = 1000
 MAX_CODES = 20
-ACTIVE_CATEGORY_CODES = frozenset(category.code for category in CATEGORY_INVENTORY if category.is_active)
-MAX_LEGACY_DOMAIN_CODES = 20
-MAX_LEGACY_SITUATION_CODES = 20
 
 
 def _validate_locale_key(key: str) -> str:
@@ -60,49 +58,16 @@ class NewDocumentPayload(BaseModel):
     category_codes: list[str] = Field(default_factory=list)
     tag_confidence: dict[str, float] | None = None
     pvog_leaf_codes: dict[str, str] | None = None
-    domain_codes: list[str] = Field(default_factory=list, exclude=True, max_length=MAX_LEGACY_DOMAIN_CODES)
-    situation_codes: list[str] = Field(default_factory=list, exclude=True, max_length=MAX_LEGACY_SITUATION_CODES)
-    situation_leaf_codes: dict[str, str] | None = Field(default=None, exclude=True)
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate old suggestion axes once at the compatibility boundary."""
-        if not isinstance(value, dict):
-            return value
-        legacy = {"domain_codes", "situation_codes"}
-        if not legacy & value.keys():
-            if "situation_leaf_codes" in value and "pvog_leaf_codes" not in value:
-                return {**value, "pvog_leaf_codes": value["situation_leaf_codes"]}
-            return value
-        if "category_codes" in value:
-            raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        from app.shared.taxonomy_compatibility import LegacyTaxonomyAdapter
-
-        try:
-            translated = LegacyTaxonomyAdapter().translate(
-                domain_codes=tuple(value.get("domain_codes") or ()),
-                group_codes=(),
-                situation_codes=tuple(value.get("situation_codes") or ()),
-            )
-        except ValueError as exc:
-            raise ValueError(f"legacy taxonomy input is invalid: {exc}") from exc
-        result = dict(value)
-        result["category_codes"] = list(dict.fromkeys((*translated.domain_targets, *translated.situation_targets)))
-        if "situation_leaf_codes" in value:
-            leaf_codes = value.get("situation_leaf_codes") or {}
-            unknown_leaf_codes = sorted(set(leaf_codes) - set(value.get("situation_codes") or ()))
-            if unknown_leaf_codes:
-                raise ValueError(f"situation_leaf_codes keys not in situation_codes: {', '.join(unknown_leaf_codes)}")
-            result["pvog_leaf_codes"] = {
-                target: leaf
-                for source, leaf in leaf_codes.items()
-                for target in LegacyTaxonomyAdapter().canonical_codes(
-                    domain_codes=(),
-                    situation_codes=(source,),
-                )
-            }
-        return result
+    def _reject_retired_fields(cls, value: object) -> object:
+        """Reject retired axis fields with a validation error; a retired field is never silently translated."""
+        if isinstance(value, dict):
+            retired = sorted(RETIRED_TAXONOMY_FIELDS & value.keys())
+            if retired:
+                raise ValueError(retired_taxonomy_message(retired))
+        return value
 
     @field_validator("title_i18n")
     @classmethod
@@ -131,18 +96,11 @@ class NewDocumentPayload(BaseModel):
             raise ValueError(f"unknown or inactive category code(s): {', '.join(unknown)}")
         return checked
 
-    @field_validator("domain_codes", "situation_codes")
-    @classmethod
-    def _check_legacy_codes(cls, value: list[str]) -> list[str]:
-        """Keep compatibility-axis inputs bounded and duplicate-free."""
-        return _validate_codes(value)
-
     @model_validator(mode="after")
     def _check_tag_confidence_keys(self) -> NewDocumentPayload:
         if self.tag_confidence is None:
             return self
-        known = {*self.category_codes, *self.domain_codes, *self.situation_codes}
-        unknown = sorted(set(self.tag_confidence) - known)
+        unknown = sorted(set(self.tag_confidence) - set(self.category_codes))
         if unknown:
             raise ValueError(f"tag_confidence keys not in category_codes: {unknown}")
         return self

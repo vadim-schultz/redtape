@@ -1,4 +1,4 @@
-"""Completeness read model: five flags, their count, the order, and the manual override (chapter 2)."""
+"""Completeness read model: four flags, their count, the order, and the manual override (chapter 2)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import completeness_world as world
 from completeness_world import Row
 
 SNAPSHOT, SCREENSHOT = DiscoveryArtifactKind.HTML_SNAPSHOT, DiscoveryArtifactKind.SCREENSHOT
-TAGGED = Row(0, ["housing"], ["moving-house"])
+TAGGED = Row(0, ["housing"])
 
 
 def _subject(session: Session, procs: int = 2) -> tuple[list, object]:
@@ -39,9 +39,9 @@ def test_a_candidate_with_every_signal_is_complete(db_session: Session) -> None:
 
     result = world.flags_of(db_session)[subject.id]
 
-    assert (result.has_domain, result.has_situation, result.has_edges) == (True, True, True)
+    assert (result.has_category, result.has_edges) == (True, True)
     assert (result.has_snapshot, result.has_screenshot) == (True, True)
-    assert (result.completeness, result.complete) == (5, True)
+    assert (result.completeness, result.complete) == (4, True)
 
 
 def test_a_candidate_with_nothing_is_zero(db_session: Session) -> None:
@@ -50,22 +50,19 @@ def test_a_candidate_with_nothing_is_zero(db_session: Session) -> None:
 
     result = world.flags_of(db_session)[subject.id]
 
-    assert not any((result.has_domain, result.has_situation, result.has_edges))
-    assert not any((result.has_snapshot, result.has_screenshot, result.complete))
-    assert (result.completeness, result.accepted_domain_codes) == (0, ())
+    assert not any((result.has_category, result.has_edges, result.has_snapshot, result.has_screenshot))
+    assert (result.completeness, result.complete, result.accepted_category_codes) == (0, False, ())
 
 
-def test_a_single_procedure_clears_the_inclusion_floor_on_both_axes(db_session: Session) -> None:
-    """D1/D8: the accept/reject gate (and its stricter domain floor) is gone; a lone LLM mention's score
-    clears the small inclusion floor on either axis now, the same way.
-    """
+def test_a_single_llm_mention_with_a_category_sets_the_category_flag(db_session: Session) -> None:
+    """A lone LLM mention carrying a category clears the inclusion floor, so the category flag holds."""
     procs, subject = _subject(db_session, 1)
-    world.mentioned(db_session, subject, procs, [Row(0, ["housing"], ["moving-house"])])
+    world.mentioned(db_session, subject, procs, [Row(0, ["housing", "moving-house"])])
 
     result = world.flags_of(db_session)[subject.id]
 
-    assert (result.has_domain, result.has_situation) == (True, True)
-    assert (result.accepted_domain_codes, result.accepted_situation_codes) == (("housing",), ("moving-house",))
+    assert result.has_category is True
+    assert result.accepted_category_codes == ("housing", "moving-house")
 
 
 def test_edges_count_on_either_end(db_session: Session) -> None:
@@ -115,66 +112,44 @@ def test_completeness_order_is_completeness_then_mentions(db_session: Session) -
     assert completeness_columns(sub)[0] is sub.c.candidate_id
 
 
-def test_a_manual_mention_overrides_the_consensus_for_its_axis(db_session: Session) -> None:
+def test_a_manual_mention_overrides_the_consensus_for_categories(db_session: Session) -> None:
     procs, subject = _subject(db_session)
-    rows = [Row(0, ["housing"]), Row(1, ["housing"]), Row(0, ["work-employment"], None, "manual")]
+    rows = [Row(0, ["housing"]), Row(1, ["housing"]), Row(0, ["work-employment"], "manual")]
     world.mentioned(db_session, subject, procs, rows)
 
     result = world.flags_of(db_session)[subject.id]
 
-    assert result.accepted_domain_codes == ("work-employment",)
-    assert result.has_domain is True
+    assert result.accepted_category_codes == ("work-employment",)
+    assert result.has_category is True
 
 
 def test_one_manual_mention_on_one_procedure_is_enough(db_session: Session) -> None:
     procs, subject = _subject(db_session, 1)
-    world.mentioned(db_session, subject, procs, [Row(0, ["housing"], ["moving-house"], "manual")])
+    world.mentioned(db_session, subject, procs, [Row(0, ["housing", "moving-house"], "manual")])
 
     result = world.flags_of(db_session)[subject.id]
 
-    assert (result.has_domain, result.has_situation) == (True, True)
-
-
-def test_the_override_is_per_axis(db_session: Session) -> None:
-    """A manual mention on one axis replaces only that axis' consensus; the other axis still runs its own
-    scoring untouched.
-    """
-    procs, subject = _subject(db_session, 3)
-    rows = [
-        Row(0, ["housing"], None, "manual"),
-        Row(0, None, ["moving-house"]),
-        Row(1, None, ["moving-house"]),
-        Row(2, None, ["job-loss"]),
-    ]
-    world.mentioned(db_session, subject, procs, rows)
-
-    result = world.flags_of(db_session)[subject.id]
-
-    assert (result.has_domain, result.accepted_domain_codes) == (True, ("housing",))
-    assert result.has_situation is True
-    assert set(result.accepted_situation_codes) == {"moving-house", "job-loss"}
+    assert (result.has_category, result.accepted_category_codes) == (True, ("housing", "moving-house"))
 
 
 @pytest.mark.parametrize("codes", [None, []])
 def test_an_empty_manual_code_list_overrides_nothing(db_session: Session, codes: list[str] | None) -> None:
     procs, subject = _subject(db_session)
-    world.mentioned(
-        db_session, subject, procs, [Row(0, ["housing"]), Row(1, ["housing"]), Row(0, codes, None, "manual")]
-    )
+    world.mentioned(db_session, subject, procs, [Row(0, ["housing"]), Row(1, ["housing"]), Row(0, codes, "manual")])
 
-    assert world.flags_of(db_session)[subject.id].accepted_domain_codes == ("housing",)
+    assert world.flags_of(db_session)[subject.id].accepted_category_codes == ("housing",)
 
 
 def test_manual_rows_never_leak_to_other_candidates(db_session: Session) -> None:
     procs, curated = _subject(db_session, 1)
     other = world.candidate(db_session, procs[0], "personalausweis")
-    world.mentioned(db_session, curated, procs, [Row(0, ["housing"], ["moving-house"], "manual")])
+    world.mentioned(db_session, curated, procs, [Row(0, ["housing"], "manual")])
     world.mentioned(db_session, other, procs, [Row(0, ["work-employment"])])
 
     result = world.flags_of(db_session)[other.id]
 
-    assert result.accepted_domain_codes == ("work-employment",)
-    assert result.has_situation is False
+    assert result.accepted_category_codes == ("work-employment",)
+    assert result.has_category is True
 
 
 PUBLIC_PRESENTATION = ("app.schema.candidate", "app.features.candidates", "app.schema.discovery.read")

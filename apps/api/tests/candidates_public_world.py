@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from test_discovery_admin_api import _jurisdiction
 
 BASE_TIME = datetime(2026, 10, 26, 12, 0, tzinfo=UTC)
-HOUSING, MOVING = "housing", "moving-house"
+HOUSING, MOVING = "home-and-housing", "moving-house"
 Row = TypeVar("Row")
 
 
@@ -73,11 +73,9 @@ class Scene:
         role: DiscoveryMentionRole = DiscoveryMentionRole.REQUIRED,
         excerpt: str = "Bitte mitbringen",
         days_old: int = 0,
-        domains: list[str] | None = None,
-        situations: list[str] | None = None,
+        categories: list[str] | None = None,
         extractor: str = "llm",
-        domain_confidence: float | None = None,
-        situation_confidence: float | None = None,
+        category_confidence: float | None = None,
     ) -> DiscoveryCandidateMention:
         row = DiscoveryCandidateMention(
             candidate_id=owner.id,
@@ -87,10 +85,8 @@ class Scene:
             source_field=f"details[{uuid.uuid4().hex[:8]}]",
             extractor=extractor,
             extractor_version="1",
-            domain_codes=domains,
-            situation_codes=situations,
-            direct_domain_confidence=domain_confidence,
-            direct_situation_confidence=situation_confidence,
+            category_codes=categories,
+            direct_category_confidence=category_confidence,
             created_at=_at(days_old),
         )
         return self._add(row)
@@ -155,24 +151,21 @@ class Scene:
         self,
         key: str,
         *,
-        domains: Mapping[str, float] | None = None,
-        situations: Mapping[str, float] | None = None,
+        categories: Mapping[str, float] | None = None,
         title: dict[str, str] | None = None,
     ) -> DiscoveryDocumentCandidate:
-        """Return a candidate whose every code scores exactly the given value: one direct-source mention per code."""
+        """Return a candidate whose every category scores exactly the given value: one direct-source mention each."""
         owner = self.candidate(key, title=title)
-        for code, score in (domains or {}).items():
-            self.mention(owner, self.procedure(), extractor="pvog", domains=[code], domain_confidence=score)
-        for code, score in (situations or {}).items():
-            self.mention(owner, self.procedure(), extractor="pvog", situations=[code], situation_confidence=score)
+        for code, score in (categories or {}).items():
+            self.mention(owner, self.procedure(), extractor="pvog", categories=[code], category_confidence=score)
         return owner
 
     def complete_candidate(self, key: str) -> DiscoveryDocumentCandidate:
-        """Return a candidate with all five completeness flags: two tagged procedures, an edge, both artifacts."""
+        """Return a candidate with all four completeness flags: two categorised procedures, an edge, both artifacts."""
         first, second = self.procedure(), self.procedure()
         owner = self.candidate(key)
         for procedure in (first, second):
-            self.mention(owner, procedure, domains=[HOUSING], situations=[MOVING])
+            self.mention(owner, procedure, categories=[HOUSING, MOVING])
         self.edge(owner, self.candidate(f"{key}-needs"))
         self.artifact(first, DiscoveryArtifactKind.HTML_SNAPSHOT, content_type="text/html")
         self.artifact(first, DiscoveryArtifactKind.SCREENSHOT)

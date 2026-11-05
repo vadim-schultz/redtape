@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.discovery import DiscoveryMentionRole
+from app.shared.retired_taxonomy import RETIRED_TAXONOMY_FIELDS, retired_taxonomy_message
 
 MAX_MENTION_ITEMS = 100
 MAX_CONDITION_LENGTH = 300
@@ -51,43 +52,13 @@ class CandidateMentionItem(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate old axis fields at the request boundary while old workers drain."""
-        if not isinstance(value, dict):
-            return value
-        legacy_fields = {"domain_codes", "situation_codes", "direct_domain_confidence", "direct_situation_confidence"}
-        if not legacy_fields & value.keys():
-            return value
-        if "category_codes" in value:
-            raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        from app.shared.taxonomy_compatibility import LegacyTaxonomyAdapter
-
-        try:
-            translated = LegacyTaxonomyAdapter().translate(
-                domain_codes=tuple(value.get("domain_codes") or ()),
-                group_codes=(),
-                situation_codes=tuple(value.get("situation_codes") or ()),
-            )
-        except ValueError as exc:
-            raise ValueError(f"legacy taxonomy input is invalid: {exc}") from exc
-        direct = max(
-            (
-                confidence
-                for confidence in (
-                    value.get("direct_domain_confidence"),
-                    value.get("direct_situation_confidence"),
-                )
-                if confidence is not None
-            ),
-            default=None,
-        )
-        translated_value = {key: item for key, item in value.items() if key not in legacy_fields}
-        translated_value["category_codes"] = (
-            list(dict.fromkeys((*translated.domain_targets, *translated.situation_targets))) or None
-        )
-        if direct is not None:
-            translated_value["direct_category_confidence"] = direct
-        return translated_value
+    def _reject_retired_fields(cls, value: object) -> object:
+        """Reject retired axis fields with a validation error; a retired field is never silently translated."""
+        if isinstance(value, dict):
+            retired = sorted(RETIRED_TAXONOMY_FIELDS & value.keys())
+            if retired:
+                raise ValueError(retired_taxonomy_message(retired))
+        return value
 
     @model_validator(mode="after")
     def _title_has_text(self) -> Self:

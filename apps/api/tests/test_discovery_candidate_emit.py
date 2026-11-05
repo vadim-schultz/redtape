@@ -28,7 +28,7 @@ from app.models.document import Document
 from app.models.suggestion import Suggestion, SuggestionSource, SuggestionStatus
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -321,7 +321,7 @@ def api_key(db_session: Session) -> ApiKey:
 
 def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandidateEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(
@@ -332,9 +332,9 @@ def _tagged_service(db_session: Session, tags: SuggestedTags) -> DiscoveryCandid
 def test_payload_carries_the_codes_the_tag_hook_returns_and_the_preview_prints_them(
     db_session: Session, api_key: ApiKey
 ) -> None:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     candidate, _ = _staged(db_session)
-    service = _tagged_service(db_session, SuggestedTags(["housing"], ["moving-house"]))
+    service = _tagged_service(db_session, SuggestedTags(["home-and-housing", "moving-house"], {}, {}))
 
     preview = service.preview(candidate.id)
     result = service.emit(candidate.id, api_key)
@@ -348,7 +348,7 @@ def test_payload_carries_the_codes_the_tag_hook_returns_and_the_preview_prints_t
 
 def test_payload_has_no_codes_when_the_tag_hook_returns_none(db_session: Session, api_key: ApiKey) -> None:
     candidate, _ = _staged(db_session)
-    service = _tagged_service(db_session, SuggestedTags([], []))
+    service = _tagged_service(db_session, SuggestedTags([], {}, {}))
 
     result = service.emit(candidate.id, api_key)
 
@@ -359,7 +359,7 @@ def test_payload_has_no_codes_when_the_tag_hook_returns_none(db_session: Session
 
 def test_an_unknown_code_from_the_tag_hook_skips_the_candidate_as_invalid(db_session: Session, api_key: ApiKey) -> None:
     candidate, _ = _staged(db_session)
-    service = _tagged_service(db_session, SuggestedTags(["no-such-domain"], []))
+    service = _tagged_service(db_session, SuggestedTags(["no-such-category"], {}, {}))
 
     result = service.emit(candidate.id, api_key)
 
@@ -368,11 +368,10 @@ def test_an_unknown_code_from_the_tag_hook_skips_the_candidate_as_invalid(db_ses
     assert _count(db_session, Suggestion) == 0
 
 
-def _tagged_mention(
+def _categorised_mention(
     db_session: Session,
     candidate: DiscoveryDocumentCandidate,
-    domains: list[str],
-    situations: list[str],
+    categories: list[str],
     *,
     external_id: str,
 ) -> None:
@@ -382,24 +381,24 @@ def _tagged_mention(
     row = db_session.scalars(
         select(DiscoveryCandidateMention).where(DiscoveryCandidateMention.catalogue_service_id == catalogue.id)
     ).one()
-    row.domain_codes, row.situation_codes = domains, situations
+    row.category_codes = categories
     db_session.flush()
     db_session.expire(candidate)
 
 
 def _default_service(db_session: Session) -> DiscoveryCandidateEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryCandidateEmitService(DiscoveryRepository(db_session), suggestions)
 
 
-def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
-    seed_taxonomy(db_session)
+def test_emit_payload_carries_the_categories_the_mentions_agree_on(db_session: Session, api_key: ApiKey) -> None:
+    seed_canonical_taxonomy(db_session)
     candidate, _ = _staged(db_session)
-    _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
-    _tagged_mention(db_session, candidate, ["housing"], ["birth-of-child"], external_id="svc-b")
+    _categorised_mention(db_session, candidate, ["home-and-housing", "moving-house"], external_id="svc-a")
+    _categorised_mention(db_session, candidate, ["home-and-housing", "birth-and-parenthood"], external_id="svc-b")
 
     result = _default_service(db_session).emit(candidate.id, api_key)
 
@@ -412,13 +411,11 @@ def test_emit_payload_carries_the_domain_codes_the_mentions_agree_on(db_session:
     ]
 
 
-def test_emit_payload_includes_a_single_procedure_code_on_either_axis(db_session: Session, api_key: ApiKey) -> None:
-    """situation-tag-hierarchy chapter 1: the binary accept/reject gate is gone, so a single procedure's
-    code clears the small inclusion floor on either axis now — not just situation's old relaxed rule.
-    """
-    seed_taxonomy(db_session)
+def test_emit_payload_includes_a_single_procedure_category(db_session: Session, api_key: ApiKey) -> None:
+    """One procedure's category clears the small inclusion floor, so a single tagged procedure is enough."""
+    seed_canonical_taxonomy(db_session)
     candidate, _ = _staged(db_session)
-    _tagged_mention(db_session, candidate, ["housing"], ["moving-house"], external_id="svc-a")
+    _categorised_mention(db_session, candidate, ["home-and-housing", "moving-house"], external_id="svc-a")
 
     result = _default_service(db_session).emit(candidate.id, api_key)
 

@@ -1,117 +1,49 @@
-"""Persistence for documents, their tag links, direct requirements and the jurisdiction tree."""
+"""Persistence for documents, their category links, direct requirements and the jurisdiction tree."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 from uuid import UUID
 
-from sqlalchemy import Column, ColumnElement, Select, and_, func, or_, select
+from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Category, document_category, document_domain, document_life_situation
+from app.models.taxonomy import Category, document_category
 
 
-@dataclass(frozen=True)
-class TagConfidenceMaps:
-    """A document's persisted tag confidence, keyed by term id, for each axis."""
-
-    domains: dict[UUID, float]
-    life_situations: dict[UUID, float]
-    categories: dict[UUID, float] = field(default_factory=dict)
-
-
-def _confidence_map(session: Session, term_column: Column, document_id: UUID) -> dict[UUID, float]:
-    link = term_column.table
-    stmt = select(term_column, link.c.confidence).where(link.c.document_id == document_id)
-    return dict(session.execute(stmt).tuples().all())
-
-
-def _category_or_legacy_filter(
-    stmt: Select[tuple[Document]],
-    category_ids: Sequence[UUID],
-    domain_category_ids: Sequence[UUID],
-    situation_category_ids: Sequence[UUID],
-    domain_ids: Sequence[UUID],
-    situation_ids: Sequence[UUID],
-) -> Select[tuple[Document]]:
-    """Use canonical links when present, with legacy links as the transition fallback."""
-    legacy_conditions: list[ColumnElement[bool]] = []
-    if domain_ids:
-        legacy_domain: ColumnElement[bool] = (
-            select(1)
-            .where(document_domain.c.document_id == Document.id, document_domain.c.domain_id.in_(domain_ids))
-            .exists()
-        )
-        if domain_category_ids:
-            legacy_domain = or_(
-                legacy_domain,
-                select(1)
-                .where(
-                    document_category.c.document_id == Document.id,
-                    document_category.c.category_id.in_(domain_category_ids),
-                )
-                .exists(),
-            )
-        legacy_conditions.append(legacy_domain)
-    if situation_ids:
-        legacy_situation: ColumnElement[bool] = (
-            select(1)
-            .where(
-                document_life_situation.c.document_id == Document.id,
-                document_life_situation.c.life_situation_id.in_(situation_ids),
-            )
-            .exists()
-        )
-        if situation_category_ids:
-            legacy_situation = or_(
-                legacy_situation,
-                select(1)
-                .where(
-                    document_category.c.document_id == Document.id,
-                    document_category.c.category_id.in_(situation_category_ids),
-                )
-                .exists(),
-            )
-        legacy_conditions.append(legacy_situation)
-    if legacy_conditions:
-        return stmt.where(and_(*legacy_conditions))
+def _category_filter(stmt: Select, category_ids: Sequence[UUID]) -> Select:
+    """Keep the documents linked to any of ``category_ids``; no ids keeps every document."""
     if not category_ids:
         return stmt
-    canonical = (
+    linked = (
         select(1)
         .where(document_category.c.document_id == Document.id, document_category.c.category_id.in_(category_ids))
         .exists()
     )
-    return stmt.where(canonical)
+    return stmt.where(linked)
 
 
-def _order_by(category_ids: Sequence[UUID], situation_ids: Sequence[UUID]) -> tuple:
-    """Order by slug, or by the highest matched category or situation confidence.
-
-    With a taxonomy filter the highest matched confidence comes first and the slug is the tiebreak
-    (situation-tag-hierarchy chapter 4; `max` across multiple selected situations is a documented
-    open seam, see `gaps-and-decisions.md`).
-    """
-    if category_ids:
-        link = document_category
-        max_confidence = (
-            select(func.max(link.c.confidence))
-            .where(link.c.document_id == Document.id, link.c.category_id.in_(category_ids))
-            .scalar_subquery()
-        )
-        return (max_confidence.desc(), Document.slug.asc())
-    if not situation_ids:
+def _order_by(category_ids: Sequence[UUID]) -> tuple:
+    """Order by slug, or by the highest matched category confidence first with the slug as the tiebreak."""
+    if not category_ids:
         return (Document.slug.asc(),)
-    link = document_life_situation
+    link = document_category
     max_confidence = (
         select(func.max(link.c.confidence))
-        .where(link.c.document_id == Document.id, link.c.life_situation_id.in_(situation_ids))
+        .where(link.c.document_id == Document.id, link.c.category_id.in_(category_ids))
         .scalar_subquery()
     )
     return (max_confidence.desc(), Document.slug.asc())
+
+
+def _provenance(code: str, leaf_codes: dict[str, str]) -> dict[str, str]:
+    """Return a category link's provenance: the promotion source, and the PVOG leaf it came from when one was given."""
+    provenance = {"source": "category_code_promotion"}
+    if code in leaf_codes:
+        provenance["pvog_leaf_code"] = leaf_codes[code]
+    return provenance
 
 
 class DocumentRepository:
@@ -121,58 +53,16 @@ class DocumentRepository:
         """Bind the repository to the request's database session."""
         self._session = session
 
-    def _base_select(
-        self,
-        jurisdiction_id: UUID | None,
-        category_ids: Sequence[UUID],
-        domain_category_ids: Sequence[UUID],
-        situation_category_ids: Sequence[UUID],
-        domain_ids: Sequence[UUID],
-        situation_ids: Sequence[UUID],
-    ) -> Select[tuple[Document]]:
-        stmt = select(Document).order_by(*_order_by(category_ids, situation_ids))
+    def _base_select(self, jurisdiction_id: UUID | None, category_ids: Sequence[UUID]) -> Select:
+        stmt = select(Document).order_by(*_order_by(category_ids))
         if jurisdiction_id is not None:
             stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
-        return _category_or_legacy_filter(
-            stmt,
-            category_ids,
-            domain_category_ids,
-            situation_category_ids,
-            domain_ids,
-            situation_ids,
-        )
+        return _category_filter(stmt, category_ids)
 
-    def count(
-        self,
-        *,
-        jurisdiction_id: UUID | None,
-        category_ids: Sequence[UUID] = (),
-        domain_category_ids: Sequence[UUID] = (),
-        situation_category_ids: Sequence[UUID] = (),
-        domain_ids: Sequence[UUID] = (),
-        situation_ids: Sequence[UUID] = (),
-    ) -> int:
-        """Count documents matching the jurisdiction and tag filters, ignoring pagination."""
-        filtered = (
-            self._base_select(
-                jurisdiction_id,
-                category_ids,
-                domain_category_ids,
-                situation_category_ids,
-                domain_ids,
-                situation_ids,
-            )
-            .order_by(None)
-            .subquery()
-        )
+    def count(self, *, jurisdiction_id: UUID | None, category_ids: Sequence[UUID] = ()) -> int:
+        """Count documents matching the jurisdiction and category filters, ignoring pagination."""
+        filtered = self._base_select(jurisdiction_id, category_ids).order_by(None).subquery()
         return int(self._session.scalar(select(func.count()).select_from(filtered)) or 0)
-
-    def ids_in_scope(self, *, jurisdiction_id: UUID | None) -> list[UUID]:
-        """Return the ids of every document in a jurisdiction, or of all documents when none is given."""
-        stmt = select(Document.id)
-        if jurisdiction_id is not None:
-            stmt = stmt.where(Document.jurisdiction_id == jurisdiction_id)
-        return list(self._session.scalars(stmt).all())
 
     def list_page(
         self,
@@ -181,54 +71,29 @@ class DocumentRepository:
         offset: int,
         limit: int,
         category_ids: Sequence[UUID] = (),
-        domain_category_ids: Sequence[UUID] = (),
-        situation_category_ids: Sequence[UUID] = (),
-        domain_ids: Sequence[UUID] = (),
-        situation_ids: Sequence[UUID] = (),
     ) -> list[Document]:
         """Return one page of matching documents in the repository ordering."""
-        stmt = (
-            self._base_select(
-                jurisdiction_id,
-                category_ids,
-                domain_category_ids,
-                situation_category_ids,
-                domain_ids,
-                situation_ids,
-            )
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = self._base_select(jurisdiction_id, category_ids).offset(offset).limit(limit)
         return list(self._session.scalars(stmt).all())
 
     def add(
         self,
         document: Document,
         *,
-        domain_scores: dict[UUID, float] | None = None,
-        situation_scores: dict[UUID, float] | None = None,
-        situation_leaf_codes: dict[UUID, str] | None = None,
-        category_scores: dict[str, float] | None = None,
+        category_scores: dict[str, float],
+        pvog_leaf_codes: dict[str, str] | None = None,
     ) -> Document:
-        """Insert a document and flush it, then link its domain and situation tags from the given scores."""
+        """Insert a document and flush it, then link each category with its confidence and PVOG provenance."""
         self._session.add(document)
         self._session.flush()
-        self._link_terms(document_domain.c.domain_id, document.id, domain_scores or {})
-        self._link_terms(
-            document_life_situation.c.life_situation_id,
-            document.id,
-            situation_scores or {},
-            leaf_codes=situation_leaf_codes or {},
-        )
-        self._link_categories(document.id, category_scores or {})
+        self._link_categories(document.id, category_scores, pvog_leaf_codes or {})
         return document
 
-    def _link_categories(self, document_id: UUID, scores: dict[str, float]) -> None:
-        """Link canonical category codes when a caller is already on the target write path."""
+    def _link_categories(self, document_id: UUID, scores: dict[str, float], leaf_codes: dict[str, str]) -> None:
+        """Insert one category link per score; an unknown category code is rejected before any row is written."""
         if not scores:
             return
-        ids = self._session.execute(select(Category.code, Category.id).where(Category.code.in_(set(scores)))).all()
-        known = {code: category_id for code, category_id in ids}
+        known = self._category_ids(scores)
         unknown = sorted(set(scores) - known.keys())
         if unknown:
             raise ValueError(f"Unknown category code(s): {', '.join(unknown)}")
@@ -240,78 +105,33 @@ class DocumentRepository:
                     "category_id": known[code],
                     "confidence": confidence,
                     "source": "promotion",
-                    "provenance": {"source": "category_code_promotion"},
+                    "provenance": _provenance(code, leaf_codes),
                 }
                 for code, confidence in scores.items()
             ],
         )
 
-    def _link_terms(
-        self,
-        term_column: Column,
-        document_id: UUID,
-        scores: dict[UUID, float],
-        *,
-        leaf_codes: dict[UUID, str] | None = None,
-    ) -> None:
-        """Insert one link row per ``scores`` entry, carrying its confidence and any PVOG leaf code.
-
-        The PVOG leaf code is the situation-only facet (situation-tag-hierarchy chapter 3).
-        ``scores`` must already carry every id that is to be linked — a missing id is not defaulted here;
-        that's the caller's contract, one layer up (``DocumentService._resolve_tags``).
-        """
-        if not scores:
-            return
-        leaf_codes = leaf_codes or {}
-        rows = [
-            {
-                "document_id": document_id,
-                term_column.name: term_id,
-                "confidence": score,
-                **({"pvog_leaf_code": leaf_codes[term_id]} if term_id in leaf_codes else {}),
-            }
-            for term_id, score in scores.items()
-        ]
-        self._session.execute(term_column.table.insert(), rows)
+    def _category_ids(self, codes: dict[str, float]) -> dict[str, UUID]:
+        rows = self._session.execute(select(Category.code, Category.id).where(Category.code.in_(set(codes)))).all()
+        return {code: category_id for code, category_id in rows}
 
     def get_by_id(self, document_id: UUID) -> Document | None:
-        """Return the document with its requirements and tags eager-loaded, or `None` when absent."""
+        """Return the document with its requirements and categories eager-loaded, or `None` when absent."""
         stmt = (
             select(Document)
             .options(
                 selectinload(Document.outgoing_requirements).selectinload(DocumentRequirement.required_document),
-                selectinload(Document.domains),
-                selectinload(Document.life_situations),
                 selectinload(Document.categories),
             )
             .where(Document.id == document_id)
         )
         return self._session.scalar(stmt)
 
-    def leaf_codes_in_scope(self, *, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
-        """Return the distinct non-null PVOG leaf codes in the given jurisdiction and situation scope.
-
-        Same scope shape as the document list; the result is sorted.
-        """
-        link = document_life_situation
-        stmt = (
-            select(link.c.pvog_leaf_code)
-            .distinct()
-            .where(link.c.pvog_leaf_code.is_not(None), link.c.life_situation_id.in_(situation_ids))
-        )
-        if jurisdiction_id is not None:
-            stmt = stmt.where(
-                select(1).where(Document.id == link.c.document_id, Document.jurisdiction_id == jurisdiction_id).exists()
-            )
-        return sorted(self._session.scalars(stmt).all())
-
-    def get_tag_confidence(self, document_id: UUID) -> TagConfidenceMaps:
-        """Return the persisted confidence of every domain and life-situation tag of ``document_id``."""
-        return TagConfidenceMaps(
-            _confidence_map(self._session, document_domain.c.domain_id, document_id),
-            _confidence_map(self._session, document_life_situation.c.life_situation_id, document_id),
-            _confidence_map(self._session, document_category.c.category_id, document_id),
-        )
+    def get_category_confidence(self, document_id: UUID) -> dict[UUID, float]:
+        """Return the persisted confidence of every category link of ``document_id``, keyed by category id."""
+        link = document_category
+        stmt = select(link.c.category_id, link.c.confidence).where(link.c.document_id == document_id)
+        return dict(self._session.execute(stmt).tuples().all())
 
     def get_jurisdiction_path(self, *, jurisdiction_id: UUID) -> list[Jurisdiction]:
         """Walk `geographic_parent_id` links to build a root → leaf breadcrumb."""

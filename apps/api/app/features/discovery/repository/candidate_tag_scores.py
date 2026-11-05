@@ -1,24 +1,23 @@
-"""The tag score of every ``(candidate, axis, code)`` in SQL: the bulk mirror of :func:`candidate_axis_support`.
+"""The category score of every ``(candidate, code)`` in SQL: the bulk mirror of :func:`candidate_category_support`.
 
 Unlike the usability predicate of :func:`code_support`, this relation applies no inclusion floor: a code
-with at least one mention has a row. A manual mention replaces the consensus of its axis at score ``1.0``;
+with at least one mention has a row. A manual mention replaces the consensus at score ``1.0``;
 otherwise the LLM-evidence score and any direct confidences combine by noisy-OR, in log space.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import ColumnElement, String, func, literal, select, union_all
+from sqlalchemy import ColumnElement, func, literal, select, union_all
 from sqlalchemy.sql.expression import CTE, Select, Subquery
 
 from app.features.discovery.repository.candidate_completeness_tags import (
     NOISY_OR_CLAMP,
-    exploded_codes,
+    exploded_categories,
     llm_score_of,
     manual_support,
     support_rows,
     tagged_procedures,
 )
-from app.features.discovery.tags import TagAxis
 
 MANUAL_SCORE = 1.0
 SCORES_CTE = "scored"
@@ -45,17 +44,12 @@ def _manual_scores(exploded: CTE) -> Select:
     return select(manual.c.candidate_id, manual.c.code, literal(MANUAL_SCORE).label("score"))
 
 
-def _axis_rows(axis: TagAxis) -> Select:
-    """Return ``(candidate_id, axis, code, score)`` of one axis: manual codes replace a candidate's consensus."""
-    exploded = exploded_codes(axis, SCORES_CTE)
+def tag_scores_subquery() -> Subquery:
+    """Return ``(candidate_id, code, score)`` for every canonical category code of every candidate.
+
+    Manual codes replace a candidate's consensus, so a candidate with a manual mention keeps only its manual codes.
+    """
+    exploded = exploded_categories(SCORES_CTE)
     manual, consensus = _manual_scores(exploded).subquery(), _consensus_scores(exploded).subquery()
     kept = select(consensus).where(consensus.c.candidate_id.not_in(select(manual.c.candidate_id)))
-    both = union_all(select(manual), kept).subquery()
-    label = literal(axis.value, String).label("axis")
-    return select(both.c.candidate_id, label, both.c.code, both.c.score)
-
-
-def tag_scores_subquery() -> Subquery:
-    """Return ``(candidate_id, axis, code, score)`` for every compatibility and category code."""
-    axes = (TagAxis.DOMAIN, TagAxis.SITUATION, TagAxis.CATEGORY)
-    return union_all(*(_axis_rows(axis) for axis in axes)).subquery()
+    return union_all(select(manual), kept).subquery()

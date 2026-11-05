@@ -172,16 +172,16 @@ def test_deleting_a_linked_domain_cascades_its_links(db_session: Session) -> Non
 
 def test_category_seeds_roots_and_children_with_stable_ids(db_session: Session) -> None:
     """Category · seed roots and children, then update rows in place on rerun."""
-    from scripts.seed_taxonomy import seed_taxonomy
+    from scripts.seed_taxonomy import seed_canonical_taxonomy
 
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
     root = db_session.execute(sa.select(Category).where(Category.code == "family-and-relationships")).scalar_one()
     child = db_session.execute(sa.select(Category).where(Category.code == "birth-and-parenthood")).scalar_one()
     root_id, child_id = root.id, child.id
 
     root.name_i18n = {"de": "Familie & Beziehungen", "en": "Family & relationships"}
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
 
     assert db_session.get(Category, root_id) is root

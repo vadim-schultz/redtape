@@ -7,6 +7,7 @@ from dataclasses import replace
 
 from app.features.candidates.repository import PublicCandidateFilter, PublicSortKey
 from app.shared.list_query import FilterValue, ListQuery, ListQuerySpec, SortOrder, enum_filter
+from app.shared.retired_taxonomy import RETIRED_TAXONOMY_AXES
 
 CODE_MAX_LENGTH = 64
 CODES_MAX_COUNT = 20
@@ -45,10 +46,8 @@ PUBLIC_CANDIDATE_SPEC = ListQuerySpec(
     filters={
         "complete": enum_filter(CompleteChoice),
         "category": codes_filter,
-        "domain": codes_filter,
-        "group": codes_filter,
-        "situation": codes_filter,
     },
+    retired_filters=RETIRED_TAXONOMY_AXES,
 )
 
 
@@ -58,9 +57,6 @@ def public_filter_from(query: ListQuery) -> PublicCandidateFilter:
     narrowed = PublicCandidateFilter(
         complete=None if complete is None else complete is CompleteChoice.YES,
         category_codes=_codes(query, "category"),
-        domains=_codes(query, "domain"),
-        groups=_codes(query, "group"),
-        situations=_codes(query, "situation"),
         q=query.q,
     )
     if query.sort_by is None:

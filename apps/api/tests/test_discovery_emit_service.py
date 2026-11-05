@@ -46,7 +46,7 @@ from test_discovery_admin_api import _catalogue
 
 def _service(db_session: Session) -> DiscoveryEmitService:
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     return DiscoveryEmitService(DiscoveryRepository(db_session), suggestions)
@@ -213,7 +213,7 @@ def test_emit_catalogue_reports_a_claim_without_its_entity_as_skipped(
     repo = DiscoveryRepository(db_session)
     monkeypatch.setattr(repo, "list_catalogue_entities", lambda _id: [])
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     suggestions = compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
     service = DiscoveryEmitService(repo, suggestions)

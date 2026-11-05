@@ -6,7 +6,7 @@ import pytest
 from app.main import create_app
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     # tags={}: this suite only needs the domain/life-situation vocabulary, not
     # the document tags, which reference a document graph this fixture never seeds.
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     with TestClient(create_app()) as test_client:

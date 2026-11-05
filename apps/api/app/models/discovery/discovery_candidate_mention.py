@@ -67,40 +67,14 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
     condition: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_optional: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    domain_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
-    situation_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
-    direct_domain_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    direct_situation_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    category_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
+    direct_category_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     pvog_leaf_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     candidate: Mapped[DiscoveryDocumentCandidate] = relationship(
         "DiscoveryDocumentCandidate", back_populates="mentions"
     )
     catalogue_service: Mapped[CatalogueService] = relationship("CatalogueService")
-
-    @property
-    def category_codes(self) -> list[str] | None:
-        """Return canonical categories during the compatibility storage window."""
-        return self.domain_codes
-
-    @category_codes.setter
-    def category_codes(self, value: list[str] | None) -> None:
-        """Store canonical categories in the legacy array until the storage cutover."""
-        self.domain_codes = value
-
-    @property
-    def direct_category_confidence(self) -> float | None:
-        """Return the strongest direct category confidence during the transition."""
-        values = [
-            value for value in (self.direct_domain_confidence, self.direct_situation_confidence) if value is not None
-        ]
-        return max(values, default=None)
-
-    @direct_category_confidence.setter
-    def direct_category_confidence(self, value: float | None) -> None:
-        """Store canonical direct confidence in the legacy confidence slot."""
-        self.direct_domain_confidence = value
-        self.direct_situation_confidence = None
 
     @property
     def pvog_source_path(self) -> PvogSourcePathData | None:

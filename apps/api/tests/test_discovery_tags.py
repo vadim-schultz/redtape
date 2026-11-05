@@ -1,6 +1,4 @@
-"""Tag confidence scoring vocabulary (situation-tag-hierarchy chapter 1): the LLM-evidence curve and
-noisy-OR combination that replaced the binary accept/reject gate and its per-axis thresholds.
-"""
+"""Category confidence scoring vocabulary: the LLM-evidence curve and the noisy-OR combination."""
 
 from __future__ import annotations
 
@@ -8,21 +6,9 @@ import pytest
 from app.features.discovery.tags import (
     LLM_SCORE_CEILING,
     MIN_SUGGESTED_SCORE,
-    TagAxis,
     llm_evidence_score,
     noisy_or,
 )
-from app.models.discovery import DiscoveryCandidateMention as Mention
-
-
-def test_each_axis_points_at_its_own_mention_column() -> None:
-    assert TagAxis.DOMAIN.column is Mention.domain_codes
-    assert TagAxis.SITUATION.column is Mention.situation_codes
-
-
-def test_each_axis_points_at_its_own_direct_confidence_column() -> None:
-    assert TagAxis.DOMAIN.confidence_column is Mention.direct_domain_confidence
-    assert TagAxis.SITUATION.confidence_column is Mention.direct_situation_confidence
 
 
 def test_llm_evidence_score_is_zero_without_any_procedure() -> None:

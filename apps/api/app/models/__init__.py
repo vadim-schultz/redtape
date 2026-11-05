@@ -29,9 +29,6 @@ from app.models.taxonomy import (
     Category,
     CategoryExternalMapping,
     DocumentExternalClassification,
-    Domain,
-    LifeSituation,
-    LifeSituationGroup,
 )
 from app.models.user import AppUser, UserRole
 
@@ -56,12 +53,9 @@ __all__ = [
     "Document",
     "DocumentExternalClassification",
     "DocumentRequirement",
-    "Domain",
     "EventType",
     "Jurisdiction",
     "JurisdictionKind",
-    "LifeSituation",
-    "LifeSituationGroup",
     "Locality",
     "Suggestion",
     "SuggestionEvent",

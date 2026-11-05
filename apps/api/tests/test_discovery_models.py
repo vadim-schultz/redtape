@@ -421,12 +421,7 @@ def test_mention_condition_and_code_columns_default_to_none(db_session: Session)
     db_session.expire_all()
     stored = db_session.get(DiscoveryCandidateMention, mention.id)
 
-    assert (stored.condition, stored.is_optional, stored.domain_codes, stored.situation_codes) == (
-        None,
-        None,
-        None,
-        None,
-    )
+    assert (stored.condition, stored.is_optional, stored.category_codes) == (None, None, None)
 
 
 def _edge(

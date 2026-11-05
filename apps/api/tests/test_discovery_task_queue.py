@@ -120,7 +120,7 @@ def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) ->
                 source_field="domain",
                 extractor="llm",
                 extractor_version="1",
-                domain_codes=["housing"],
+                category_codes=["home-and-housing"],
             )
         )
     if count >= 2:
@@ -133,7 +133,7 @@ def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) ->
                 source_field="situation",
                 extractor="llm",
                 extractor_version="1",
-                situation_codes=["moving-house"],
+                category_codes=["moving-house"],
             )
         )
     if count >= 3:

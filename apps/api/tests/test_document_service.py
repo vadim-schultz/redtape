@@ -13,7 +13,7 @@ from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.taxonomy import document_life_situation
 from app.schema.suggestion.payload import NewDocumentPayload
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -28,16 +28,15 @@ def jurisdiction(db_session: Session) -> Jurisdiction:
 
 @pytest.fixture
 def document_service(db_session: Session) -> DocumentService:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return DocumentService(DocumentRepository(db_session), taxonomy)
 
 
 @pytest.fixture
 def document_promotion(db_session: Session) -> DocumentPromotion:
-    seed_taxonomy(db_session)
-    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    seed_canonical_taxonomy(db_session)
+    return DocumentPromotion(DocumentRepository(db_session))
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:

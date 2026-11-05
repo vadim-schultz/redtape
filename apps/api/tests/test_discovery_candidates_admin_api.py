@@ -151,10 +151,13 @@ def test_admin_candidate_detail_shows_mention_conditions_categories_and_suggeste
     first = _catalogue(db_session, external_id="svc-a")
     second = _catalogue(db_session, external_id="svc-b")
     candidate = _candidate(db_session, first, key="personalausweis")
-    for catalogue, situations in ((first, ["moving-house"]), (second, ["moving-house", "birth-of-child"])):
+    for catalogue, categories in (
+        (first, ["moving-house"]),
+        (second, ["moving-house", "birth-and-parenthood"]),
+    ):
         row = _mention(db_session, candidate, catalogue)
         row.condition, row.is_optional = "bei Zuzug", False
-        row.domain_codes, row.situation_codes = ["housing"], situations
+        row.category_codes = ["home-and-housing", *categories]
     db_session.flush()
 
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
@@ -496,7 +499,7 @@ def test_admin_candidate_detail_reports_unknown_stored_category_codes(
     catalogue = _catalogue(db_session)
     candidate = _candidate(db_session, catalogue, key="personalausweis")
     mention = _mention(db_session, candidate, catalogue, "stale-category")
-    mention.domain_codes = ["moving-house", "retired-category"]
+    mention.category_codes = ["moving-house", "retired-category"]
     db_session.flush()
 
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()

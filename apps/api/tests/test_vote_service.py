@@ -80,7 +80,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def suggestion_service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 

@@ -10,16 +10,10 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from app.db import SessionLocal
-from app.models.taxonomy import (
-    DocumentExternalClassification,
-    Domain,
-    LifeSituation,
-    document_category,
-    document_domain,
-    document_life_situation,
-)
+from app.models.taxonomy import DocumentExternalClassification, document_category
 from sqlalchemy.orm import Session
 
+from scripts.seed_data.legacy_tables import DOCUMENT_DOMAIN, DOCUMENT_LIFE_SITUATION, DOMAIN, LIFE_SITUATION
 from scripts.seed_data.taxonomy import (
     CATEGORY_CONTRACT_VERSION,
     CATEGORY_INVENTORY,
@@ -116,15 +110,15 @@ def _legacy_rows(
 ) -> list[_LegacyRow]:
     """Read one legacy axis with its persisted confidence."""
     if axis == "domain":
-        stmt = sa.select(document_domain.c.document_id, Domain.code, document_domain.c.confidence).join(
-            Domain, Domain.id == document_domain.c.domain_id
+        stmt = sa.select(DOCUMENT_DOMAIN.c.document_id, DOMAIN.c.code, DOCUMENT_DOMAIN.c.confidence).join(
+            DOMAIN, DOMAIN.c.id == DOCUMENT_DOMAIN.c.domain_id
         )
     else:
         stmt = sa.select(
-            document_life_situation.c.document_id,
-            LifeSituation.code,
-            document_life_situation.c.confidence,
-        ).join(LifeSituation, LifeSituation.id == document_life_situation.c.life_situation_id)
+            DOCUMENT_LIFE_SITUATION.c.document_id,
+            LIFE_SITUATION.c.code,
+            DOCUMENT_LIFE_SITUATION.c.confidence,
+        ).join(LIFE_SITUATION, LIFE_SITUATION.c.id == DOCUMENT_LIFE_SITUATION.c.life_situation_id)
     return [
         _LegacyRow(document_id, axis, source_code, confidence)
         for document_id, source_code, confidence in session.execute(stmt).tuples().all()
@@ -228,8 +222,8 @@ def _collect_projections(
 
 def _external_classification_keys(session: Session) -> set[tuple[UUID, str]]:
     """Read distinct PVOG leaf facts from the legacy situation links."""
-    stmt = sa.select(document_life_situation.c.document_id, document_life_situation.c.pvog_leaf_code).where(
-        document_life_situation.c.pvog_leaf_code.is_not(None)
+    stmt = sa.select(DOCUMENT_LIFE_SITUATION.c.document_id, DOCUMENT_LIFE_SITUATION.c.pvog_leaf_code).where(
+        DOCUMENT_LIFE_SITUATION.c.pvog_leaf_code.is_not(None)
     )
     return {(document_id, leaf_code) for document_id, leaf_code in session.execute(stmt).tuples().all()}
 

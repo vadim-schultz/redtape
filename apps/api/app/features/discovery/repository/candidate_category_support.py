@@ -1,4 +1,4 @@
-"""The exact tag scores of one candidate, computed in Python: the single-candidate mirror of the SQL score model."""
+"""The exact category scores of one candidate, computed in Python: the single-candidate mirror of the SQL score model."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from sqlalchemy import Row, Select, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import CTE
 
-from app.features.discovery.repository.candidate_completeness_tags import exploded_codes, manual_support
-from app.features.discovery.tags import TagAxis, TagSupport, llm_evidence_score, noisy_or
+from app.features.discovery.repository.candidate_completeness_tags import exploded_categories, manual_support
+from app.features.discovery.tags import TagSupport, llm_evidence_score, noisy_or
 
 
 def _mention_rows(exploded: CTE, candidate_id: UUID) -> Select:
@@ -48,15 +48,14 @@ def _sorted_supports(supports: list[TagSupport]) -> list[TagSupport]:
     return sorted(supports, key=lambda support: (-support.procedures, support.code))
 
 
-def candidate_axis_support(session: Session, candidate_id: UUID, axis: TagAxis) -> list[TagSupport]:
-    """Return the score of every code of one candidate's mentions on ``axis``, most supported first.
+def candidate_category_support(session: Session, candidate_id: UUID) -> list[TagSupport]:
+    """Return the score of every category code of one candidate's mentions, most supported first.
 
-    A manual mention replaces the consensus entirely for the axis, the same way :func:`axis_acceptance`
-    replaces it for the bulk path — its codes score ``1.0``, a full curator override.
+    A manual mention replaces the consensus entirely, the same way :func:`category_acceptance` replaces it for
+    the bulk path — its codes score ``1.0``, a full curator override.
     """
-    exploded = exploded_codes(axis)
-    manual_stmt = manual_support(exploded).where(exploded.c.candidate_id == candidate_id)
-    manual_rows = session.execute(manual_stmt).all()
+    exploded = exploded_categories()
+    manual_rows = session.execute(manual_support(exploded).where(exploded.c.candidate_id == candidate_id)).all()
     if manual_rows:
         return _sorted_supports([TagSupport(row.code, row.procedures, 1.0, 1.0) for row in manual_rows])
     rows = session.execute(_mention_rows(exploded, candidate_id)).all()

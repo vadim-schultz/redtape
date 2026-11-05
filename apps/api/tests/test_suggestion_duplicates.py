@@ -57,7 +57,7 @@ def user(db_session: Session) -> AppUser:
 
 @pytest.fixture
 def service(db_session: Session) -> SuggestionService:
-    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     events = EventLogService(EventLogRepository(db_session))
     return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)

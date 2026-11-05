@@ -23,7 +23,7 @@ from app.models.suggestion_event import EventType
 from app.schema.suggestion.payload import NewDocumentPayload
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -40,13 +40,13 @@ def jurisdiction(db_session: Session) -> Jurisdiction:
 
 @pytest.fixture
 def taxonomy_service(db_session: Session) -> TaxonomyService:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     return TaxonomyService(TaxonomyRepository(db_session))
 
 
 @pytest.fixture
 def document_promotion(db_session: Session, taxonomy_service: TaxonomyService) -> DocumentPromotion:
-    return DocumentPromotion(DocumentRepository(db_session), taxonomy_service)
+    return DocumentPromotion(DocumentRepository(db_session))
 
 
 @pytest.fixture

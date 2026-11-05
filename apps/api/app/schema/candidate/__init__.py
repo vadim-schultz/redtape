@@ -8,7 +8,6 @@ from app.schema.candidate.read import (
     CandidateNeighbour,
     CandidateScreenshot,
     CandidateSource,
-    CandidateTag,
 )
 
 __all__ = [
@@ -19,5 +18,4 @@ __all__ = [
     "CandidateNeighbour",
     "CandidateScreenshot",
     "CandidateSource",
-    "CandidateTag",
 ]

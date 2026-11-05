@@ -3,20 +3,16 @@
 Chapter 1 of ``situation-tag-hierarchy`` replaces every accept/reject boolean with a continuous
 ``[0, 1]`` score: a direct-source confidence (manual stays a full override; PVOG and any future
 direct source combine via :func:`noisy_or`) and a calibrated LLM-evidence curve (:func:`llm_evidence_score`).
+Chapter 9 reads one axis only: the canonical category codes of a mention.
 """
 
 from __future__ import annotations
 
-import enum
 from collections.abc import Iterable
 from typing import NamedTuple
 
-from sqlalchemy.orm import InstrumentedAttribute
-
-from app.models.discovery import DiscoveryCandidateMention as Mention
-
 MANUAL_EXTRACTOR = "manual"
-"""The ``extractor`` of a mention written by a curator; its codes are authoritative for their axis."""
+"""The ``extractor`` of a mention written by a curator; its codes are authoritative for the candidate."""
 
 MIN_SUGGESTED_SCORE = 0.05
 """Below this, a code isn't offered at all — noise suppression, not a precision claim (D9)."""
@@ -33,33 +29,6 @@ class TagSupport(NamedTuple):
     procedures: int
     share: float
     score: float
-
-
-class TagAxis(enum.Enum):
-    """A compatibility axis or the canonical category collection of a mention."""
-
-    DOMAIN = "domain"
-    SITUATION = "situation"
-    CATEGORY = "category"
-
-    @property
-    def column(self) -> InstrumentedAttribute[list[str] | None]:
-        """Return the mention column holding this axis' codes."""
-        if self is TagAxis.SITUATION:
-            return Mention.situation_codes
-        return Mention.domain_codes
-
-    @property
-    def confidence_column(self) -> InstrumentedAttribute[float | None]:
-        """Return the mention column holding this axis' direct-source confidence, when it supplies one.
-
-        ``NULL`` means the mention's assertion is LLM-extracted — score it via :func:`llm_evidence_score`;
-        a non-``NULL`` value means the mention supplies its own fixed confidence directly (a PVOG leaf today,
-        a vote-backed estimate in future), independent of how many other procedures agree.
-        """
-        if self is TagAxis.SITUATION:
-            return Mention.direct_situation_confidence
-        return Mention.direct_domain_confidence
 
 
 def llm_evidence_score(procedures: int, share: float) -> float:

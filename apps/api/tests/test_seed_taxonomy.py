@@ -28,7 +28,7 @@ from scripts.seed_data.taxonomy import (
     validate_category_inventory,
     validate_legacy_crosswalk,
 )
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 ALL_TERMS = DOMAINS + SITUATIONS
@@ -40,7 +40,7 @@ def _count(session: Session, table: sa.Table | type) -> int:
 
 
 def _seeded(session: Session) -> Session:
-    seed_taxonomy(session)
+    seed_canonical_taxonomy(session)
     session.flush()
     return session
 
@@ -162,7 +162,7 @@ def test_second_run_creates_no_duplicates(db_session: Session) -> None:
     _seeded(db_session)
     before = [_count(db_session, t) for t in (Domain, LifeSituation, LifeSituationGroup)]
 
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
 
     assert [_count(db_session, t) for t in (Domain, LifeSituation, LifeSituationGroup)] == before

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from app.features.taxonomy.compatibility import LegacyTaxonomyAdapter
 from app.models.discovery import (
     CatalogueService,
     DiscoveryArtifact,
@@ -27,6 +26,7 @@ from app.schema.discovery.read import (
     FetchLogRow,
     PipelineEntityRow,
 )
+from app.shared.category_codes import split_active_codes
 
 
 def task_read(task: DiscoveryTask, *, source: DiscoverySource) -> DiscoveryTaskRead:
@@ -84,10 +84,7 @@ def mention_read(
     mention: DiscoveryCandidateMention, procedure: CatalogueService, artifact: DiscoveryArtifact | None
 ) -> CandidateMentionRead:
     """Return one mention with the procedure it was found in and its artifact summary."""
-    category_resolution = LegacyTaxonomyAdapter().canonical_code_resolution(
-        domain_codes=mention.domain_codes or (),
-        situation_codes=mention.situation_codes or (),
-    )
+    active_codes, unknown_codes = split_active_codes(mention.category_codes or ())
     source_path, mapping_version = _pvog_provenance(mention, procedure)
     return CandidateMentionRead(
         id=mention.id,
@@ -104,8 +101,8 @@ def mention_read(
         extractor_version=mention.extractor_version,
         condition=mention.condition,
         is_optional=mention.is_optional,
-        category_codes=list(category_resolution.codes),
-        unknown_category_codes=list(category_resolution.unknown_codes),
+        category_codes=list(active_codes),
+        unknown_category_codes=list(unknown_codes),
         pvog_leaf_code=mention.pvog_leaf_code,
         direct_category_confidence=mention.direct_category_confidence,
         pvog_source_path=source_path,

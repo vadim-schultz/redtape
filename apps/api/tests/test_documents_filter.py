@@ -12,7 +12,7 @@ from app.models.taxonomy import Category, Domain, LifeSituation, document_life_s
 from httpx import Response
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -40,7 +40,7 @@ def _document(session: Session, jurisdiction_id: uuid.UUID, slug: str, domains=(
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     # tags={}: this suite tags its own documents directly (see `_document` above); the
     # default tag map references a document graph this fixture never seeds.
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     country = Jurisdiction(
         kind=JurisdictionKind.COUNTRY,
         code="XX",

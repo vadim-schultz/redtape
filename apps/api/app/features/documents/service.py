@@ -1,4 +1,4 @@
-"""Document read use cases: paged lists, scope resolution, leaf codes and localized details."""
+"""Document read use cases: paged lists, scope resolution and localized details."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from uuid import UUID
 
 from app.features.documents.document_read import DocumentReadMapper
 from app.features.documents.repository import DocumentRepository
-from app.features.taxonomy.service import CategoryFilter, TaxonomyService
+from app.features.taxonomy.service import TaxonomyService
 from app.schema.document.read import (
     DocumentDetail,
     DocumentListResponse,
@@ -18,14 +18,11 @@ from app.shared.locale import ResolvedLocale
 
 @dataclass(frozen=True)
 class DocumentFilters:
-    """Optional canonical narrowing plus legacy compatibility inputs for the document list."""
+    """Optional jurisdiction scope and canonical category narrowing for the document list."""
 
     jurisdiction_id: UUID | None = None
     municipality_code: str | None = None
     category_codes: Sequence[str] = ()
-    domain_codes: Sequence[str] = ()
-    group_codes: Sequence[str] = ()
-    situation_codes: Sequence[str] = ()
 
 
 class DocumentService:
@@ -51,73 +48,23 @@ class DocumentService:
         if filters.municipality_code is not None and jurisdiction_id is None:
             return DocumentListResponse(items=[], total=0, offset=offset, limit=limit)
 
-        category_filter = self._category_filter(filters)
-        category_ids = self._taxonomy.resolve_category_ids(category_filter)
-        domain_category_ids = self._taxonomy.resolve_category_code_ids(category_filter.domain_category_codes)
-        situation_category_ids = self._taxonomy.resolve_category_code_ids(category_filter.situation_category_codes)
-        domain_ids = self._taxonomy.resolve_domain_ids(category_filter.legacy_domain_codes)
-        situation_ids = self._taxonomy.resolve_situation_ids(category_filter.legacy_situation_codes)
-        total = self._repo.count(
-            jurisdiction_id=jurisdiction_id,
-            category_ids=category_ids,
-            domain_category_ids=domain_category_ids,
-            situation_category_ids=situation_category_ids,
-            domain_ids=domain_ids,
-            situation_ids=situation_ids,
-        )
+        category_ids = self._taxonomy.resolve_category_ids(self._expanded_codes(filters))
+        total = self._repo.count(jurisdiction_id=jurisdiction_id, category_ids=category_ids)
         rows = self._repo.list_page(
-            offset=offset,
-            limit=limit,
-            jurisdiction_id=jurisdiction_id,
-            category_ids=category_ids,
-            domain_category_ids=domain_category_ids,
-            situation_category_ids=situation_category_ids,
-            domain_ids=domain_ids,
-            situation_ids=situation_ids,
+            offset=offset, limit=limit, jurisdiction_id=jurisdiction_id, category_ids=category_ids
         )
         locales = ResolvedLocale(code=locale, enabled=enabled_locales)
         items = [self._reader.summary(row, locales) for row in rows]
-        leaf_codes = self._leaf_codes_in_scope(jurisdiction_id, situation_ids)
-        return DocumentListResponse(
-            items=items, total=total, offset=offset, limit=limit, available_leaf_codes=leaf_codes
-        )
-
-    def available_leaf_codes(self, filters: DocumentFilters) -> list[str]:
-        """Return the distinct PVOG leaf codes in scope, but only when exactly one situation is selected.
-
-        Chapter 4 design: zero or several situations, or an unresolvable municipality, give an empty list.
-        """
-        if filters.municipality_code is not None and self._effective_jurisdiction_id(filters) is None:
-            return []
-        category_filter = self._category_filter(filters)
-        situation_ids = self._taxonomy.resolve_situation_ids(category_filter.legacy_situation_codes)
-        return self._leaf_codes_in_scope(self._effective_jurisdiction_id(filters), situation_ids)
-
-    def _leaf_codes_in_scope(self, jurisdiction_id: UUID | None, situation_ids: Sequence[UUID]) -> list[str]:
-        if len(situation_ids) != 1:
-            return []
-        return self._repo.leaf_codes_in_scope(jurisdiction_id=jurisdiction_id, situation_ids=situation_ids)
-
-    def document_ids_in_scope(self, filters: DocumentFilters) -> list[UUID]:
-        """Ids of documents inside the jurisdiction scope; an unresolvable municipality has none."""
-        jurisdiction_id = self._effective_jurisdiction_id(filters)
-        if filters.municipality_code is not None and jurisdiction_id is None:
-            return []
-        return self._repo.ids_in_scope(jurisdiction_id=jurisdiction_id)
+        return DocumentListResponse(items=items, total=total, offset=offset, limit=limit)
 
     def _effective_jurisdiction_id(self, filters: DocumentFilters) -> UUID | None:
         if filters.municipality_code is None:
             return filters.jurisdiction_id
         return self._repo.get_municipality_jurisdiction_id(municipality_code=filters.municipality_code)
 
-    def _category_filter(self, filters: DocumentFilters) -> CategoryFilter:
-        """Resolve canonical and legacy list inputs through the taxonomy boundary."""
-        return self._taxonomy.resolve_category_filter(
-            filters.category_codes,
-            domain_codes=filters.domain_codes,
-            group_codes=filters.group_codes,
-            situation_codes=filters.situation_codes,
-        )
+    def _expanded_codes(self, filters: DocumentFilters) -> tuple[str, ...]:
+        """Expand the selected categories to their descendants; an unknown code is a validation error."""
+        return self._taxonomy.expand_category_codes(filters.category_codes) if filters.category_codes else ()
 
     def get_document_detail(
         self,
@@ -131,5 +78,5 @@ class DocumentService:
         if doc is None:
             return None
         path = self._repo.get_jurisdiction_path(jurisdiction_id=doc.jurisdiction_id)
-        confidence = self._repo.get_tag_confidence(document_id)
+        confidence = self._repo.get_category_confidence(document_id)
         return self._reader.detail(doc, path, ResolvedLocale(code=locale, enabled=enabled_locales), confidence)

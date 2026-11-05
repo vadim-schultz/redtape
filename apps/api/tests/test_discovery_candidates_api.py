@@ -14,7 +14,7 @@ from app.models.discovery import (
 )
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -220,14 +220,13 @@ LLM_FIELDS: dict[str, object] = {
     "role": "issued",
     "condition": "bei Zuzug aus dem Ausland",
     "is_optional": True,
-    "domain_codes": ["housing"],
-    "situation_codes": ["moving-house", "birth-of-child"],
+    "category_codes": ["home-and-housing", "moving-house", "birth-and-parenthood"],
 }
 
 
 @pytest.fixture
 def vocabulary(db_session: Session) -> None:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
 
 def _only_mention(db_session: Session) -> DiscoveryCandidateMention:
@@ -250,7 +249,6 @@ def test_mention_items_store_condition_optional_flag_and_codes(
     assert mention.role is DiscoveryMentionRole.ISSUED
     assert (mention.condition, mention.is_optional) == ("bei Zuzug aus dem Ausland", True)
     assert mention.category_codes == ["home-and-housing", "moving-house", "birth-and-parenthood"]
-    assert mention.situation_codes is None
 
 
 def test_unknown_codes_are_dropped_and_counted_and_valid_codes_are_kept(
@@ -281,12 +279,15 @@ def test_a_reposted_llm_mention_updates_in_place_instead_of_adding_a_row(
     catalogue = _catalogue(db_session)
     _post(client, key, _item(catalogue, **LLM_FIELDS))
 
-    replay = _post(client, key, _item(catalogue, **{**LLM_FIELDS, "condition": None, "domain_codes": []}))
+    replay = _post(
+        client,
+        key,
+        _item(catalogue, **{**LLM_FIELDS, "condition": None, "category_codes": ["moving-house", "birth-and-parenthood"]}),
+    )
 
     assert replay.json()["mentions_updated"] == 1
     mention = _only_mention(db_session)
     assert (mention.condition, mention.category_codes) == (None, ["moving-house", "birth-and-parenthood"])
-    assert mention.situation_codes is None
 
 
 def test_items_without_the_new_fields_behave_exactly_as_before(
@@ -305,8 +306,7 @@ def test_items_without_the_new_fields_behave_exactly_as_before(
         "unknown_codes": 0,
     }
     mention = _only_mention(db_session)
-    assert (mention.condition, mention.is_optional, mention.domain_codes, mention.situation_codes) == (
-        None,
+    assert (mention.condition, mention.is_optional, mention.category_codes) == (
         None,
         None,
         None,
@@ -380,7 +380,6 @@ def test_mention_items_store_direct_confidence_and_leaf_code(
     assert response.status_code == 200
     mention = _only_mention(db_session)
     assert mention.direct_category_confidence == 0.95
-    assert mention.direct_situation_confidence is None
     assert mention.pvog_leaf_code == "1050100"
 
 

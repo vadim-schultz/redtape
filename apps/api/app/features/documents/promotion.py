@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from app.features.documents.repository import DocumentRepository
-from app.features.taxonomy.compatibility import LegacyTaxonomyAdapter
-from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
 from app.schema.suggestion.payload import NewDocumentPayload
 
@@ -60,10 +57,9 @@ class PromotionPort(Protocol):
 class DocumentPromotion:
     """Creates documents and requirement edges from approved suggestions; the only document write path."""
 
-    def __init__(self, repository: DocumentRepository, taxonomy: TaxonomyService) -> None:
-        """Bind the promotion writes to the repository and the taxonomy lookups."""
+    def __init__(self, repository: DocumentRepository) -> None:
+        """Bind the promotion writes to the document repository."""
         self._repo = repository
-        self._taxonomy = taxonomy
 
     def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str | None) -> list[UUID]:
         """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches (slug only if no URL)."""
@@ -78,14 +74,11 @@ class DocumentPromotion:
         slug: str,
     ) -> Document:
         """Build and persist a document; `slug` is never recomputed."""
-        domain_scores, situation_scores, situation_leaf_codes, category_scores = self._resolve_tags(payload)
         document = self._build_document(payload, jurisdiction_id, slug)
         return self._repo.add(
             document,
-            domain_scores=domain_scores,
-            situation_scores=situation_scores,
-            situation_leaf_codes=situation_leaf_codes,
-            category_scores=category_scores,
+            category_scores=self._category_scores(payload),
+            pvog_leaf_codes=payload.pvog_leaf_codes,
         )
 
     def create_requirement(
@@ -138,58 +131,15 @@ class DocumentPromotion:
             return None
         return jurisdiction_id
 
-    def _resolve_tags(
-        self, payload: NewDocumentPayload
-    ) -> tuple[dict[UUID, float], dict[UUID, float], dict[UUID, str], dict[str, float]]:
-        """Resolve canonical categories and bounded legacy inputs with one confidence policy.
+    @staticmethod
+    def _category_scores(payload: NewDocumentPayload) -> dict[str, float]:
+        """Return each category's confidence.
 
-        A code missing from `payload.tag_confidence` (including when it's `None` entirely, e.g. a
-        hand-written admin creation) is treated as fully confident — the same default the link tables'
-        own `server_default` uses for a row written without this service at all.
+        A code missing from `payload.tag_confidence` (including when it is `None`, e.g. a hand-written admin
+        creation) is fully confident, the same default the link table uses.
         """
         confidence = payload.tag_confidence or {}
-        self._taxonomy.resolve_category_code_ids(payload.category_codes)
-        category_scores = self._category_scores(payload, confidence)
-        if not payload.domain_codes and not payload.situation_codes:
-            return {}, {}, {}, category_scores
-        domain_ids = self._taxonomy.resolve_domain_ids(payload.domain_codes)
-        situation_ids = self._taxonomy.resolve_situation_ids(payload.situation_codes)
-        return (
-            self._scores(payload.domain_codes, domain_ids, confidence),
-            self._scores(payload.situation_codes, situation_ids, confidence),
-            self._leaf_codes(
-                payload.situation_codes,
-                situation_ids,
-                payload.situation_leaf_codes,
-            ),
-            category_scores,
-        )
-
-    @staticmethod
-    def _category_scores(payload: NewDocumentPayload, confidence: dict[str, float]) -> dict[str, float]:
-        """Return canonical scores, translating compatibility-axis scores once when needed."""
-        if not payload.domain_codes and not payload.situation_codes:
-            return {code: confidence.get(code, 1.0) for code in payload.category_codes}
-        translated = LegacyTaxonomyAdapter().canonical_scores(
-            domain_scores={code: confidence[code] for code in payload.domain_codes if code in confidence},
-            situation_scores={code: confidence[code] for code in payload.situation_codes if code in confidence},
-        )
-        return {code: translated.get(code, 1.0) for code in payload.category_codes}
-
-    @staticmethod
-    def _scores(codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
-        """Pair legacy ids with their direct confidence, defaulting omitted values to one."""
-        return {term_id: confidence.get(code, 1.0) for code, term_id in zip(codes, ids, strict=True)}
-
-    @staticmethod
-    def _leaf_codes(
-        codes: Sequence[str],
-        ids: Sequence[UUID],
-        leaf_codes: dict[str, str] | None,
-    ) -> dict[UUID, str]:
-        """Translate legacy situation leaf metadata to the corresponding persisted term ids."""
-        given = leaf_codes or {}
-        return {term_id: given[code] for code, term_id in zip(codes, ids, strict=True) if code in given}
+        return {code: confidence.get(code, 1.0) for code in payload.category_codes}
 
     def _build_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         return Document(

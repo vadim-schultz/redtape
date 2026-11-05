@@ -29,9 +29,6 @@ def list_item(row: CandidateListRow, done: CandidateCompleteness) -> CandidateLi
 
 def reject_unknown_codes(narrowing: CompletenessFilter, taxonomy: TaxonomyService) -> None:
     """Raise a validation error naming every code filter whose code is not in the taxonomy."""
-    checks = (
-        ("filter[domain]", narrowing.domain, taxonomy.known_domain_codes),
-        ("filter[situation]", narrowing.situation, taxonomy.known_situation_codes),
-    )
-    unknown = [(key, code) for key, code, known in checks if code is not None and not known([code])]
-    raise_if_any([InvalidParam(key, f"Unknown code: {code}") for key, code in unknown])
+    if narrowing.category is None or taxonomy.known_category_codes([narrowing.category]):
+        return
+    raise_if_any([InvalidParam("filter[category]", f"Unknown code: {narrowing.category}")])

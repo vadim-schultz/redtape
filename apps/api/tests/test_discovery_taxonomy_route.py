@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.schema.suggestion.payload import ACTIVE_CATEGORY_CODES
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 from test_discovery_machine_api import _issue_key, client  # noqa: F401
@@ -14,7 +14,7 @@ TAXONOMY_URL = "/api/v1/discovery/machine/taxonomy"
 
 
 def test_taxonomy_route_returns_the_vocabulary_in_sort_order(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
     response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
 
@@ -35,7 +35,7 @@ def _in_seed_order() -> list[str]:
 
 
 def test_taxonomy_route_requires_the_machine_key(client: TestClient[Litestar], db_session: Session) -> None:  # noqa: F811
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
     assert client.get(TAXONOMY_URL).status_code == 401
     assert client.get(TAXONOMY_URL, headers={"X-API-Key": "rt_wrong"}).status_code == 401
@@ -45,7 +45,7 @@ def test_machine_taxonomy_excludes_source_only_pvog_leaf_codes(
     client: TestClient[Litestar],  # noqa: F811
     db_session: Session,
 ) -> None:  # noqa: F811
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
     response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
 
@@ -57,7 +57,7 @@ def test_machine_vocabulary_is_the_set_the_suggestion_payload_accepts(
     client: TestClient[Litestar],  # noqa: F811
     db_session: Session,
 ) -> None:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
     response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
 

@@ -26,7 +26,7 @@ from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
 from app.url_normalization import normalize_url
 from pydantic import ValidationError
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -72,7 +72,7 @@ def api_key(db_session: Session) -> ApiKey:
 @pytest.fixture
 def domain_code(db_session: Session) -> str:
     # tags={}: this suite only resolves codes, not documents.
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
     return db_session.scalars(select(Domain.code)).first()
 
@@ -89,7 +89,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 

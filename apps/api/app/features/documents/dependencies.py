@@ -31,7 +31,7 @@ def provide_document_promotion(
     taxonomy_service: TaxonomyService,
 ) -> DocumentPromotion:
     """Build the promotion workflow on the repository and the taxonomy lookups."""
-    return DocumentPromotion(document_repository, taxonomy_service)
+    return DocumentPromotion(document_repository)
 
 
 router_dependencies = {
