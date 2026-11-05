@@ -85,8 +85,7 @@
     "confidence_high": "hoch"
   },
   "candidates": {
-    "flag_domain": "Lebensbereich",
-    "flag_situation": "Lebenslage",
+    "flag_category": "Kategorie",
     "flag_edges": "Abhängigkeiten",
     "flag_snapshot": "Schnappschuss",
     "flag_screenshot": "Bildschirmfoto",
@@ -141,9 +140,7 @@
     "category": "Kategorien",
     "clear": "Filter zurücksetzen",
     "chip": "Nach {name} filtern",
-    "browse": "Kategorien durchsuchen",
-    "remove_domain": "Lebensbereich-Filter entfernen: {name}",
-    "remove_situation": "Lebenslagen-Filter entfernen: {name}"
+    "browse": "Kategorien durchsuchen"
   },
   "discovery_admin": {
     "menu_unavailable": "Discovery nicht verfügbar",

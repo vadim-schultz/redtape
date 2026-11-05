@@ -1,1 +1,1 @@
-"""Taxonomy feature: the domain and life-situation axes of the document matrix."""
+"""Taxonomy feature: the canonical category tree and its external mappings."""

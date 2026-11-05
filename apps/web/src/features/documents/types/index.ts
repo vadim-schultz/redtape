@@ -33,11 +33,6 @@ export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;
 /** Everything one page of the documents list depends on. */
 export type DocumentListRequest = {
   categories: string[];
-  legacy?: {
-    domain: string[];
-    group: string[];
-    situation: string[];
-  };
   query: DocumentListQuery;
 };
 

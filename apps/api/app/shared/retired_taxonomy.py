@@ -10,8 +10,6 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from litestar.exceptions import HTTPException
-
 RETIRED_TAXONOMY_AXES: frozenset[str] = frozenset({"domain", "group", "situation"})
 RETIRED_TAXONOMY_FIELDS: frozenset[str] = frozenset(
     {
@@ -35,13 +33,6 @@ def retired_taxonomy_message(names: Iterable[str]) -> str:
 def retired_axis_keys(keys: Iterable[str]) -> list[str]:
     """Return the query keys that name a retired axis, bare (``domain``) or as ``filter[domain]``."""
     return [key for key in keys if _axis_of(key) in RETIRED_TAXONOMY_AXES]
-
-
-def reject_retired_query_keys(keys: Iterable[str]) -> None:
-    """Raise a 422 naming every retired query parameter; a request never falls back to unfiltered results."""
-    retired = retired_axis_keys(keys)
-    if retired:
-        raise HTTPException(status_code=422, detail=retired_taxonomy_message(retired))
 
 
 def _axis_of(key: str) -> str:

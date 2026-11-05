@@ -57,8 +57,7 @@ Errors below); send neither and you get a plain 401.
   "title_i18n": { "en": "Registration certificate", "de": "Meldebescheinigung" },
   "description_i18n": { "en": "…" },
   "official_url": "https://example.gov/registration",
-  "domain_codes": ["housing"],
-  "situation_codes": ["moving"]
+  "category_codes": ["home-and-housing", "moving-house"]
 }
 ```
 
@@ -67,8 +66,7 @@ Errors below); send neither and you get a plain 401.
 | `title_i18n` | yes | At least one non-blank value; keys are 2–5 letter locale codes; ≤300 chars/value |
 | `description_i18n` | no | Same i18n rules; ≤4000 chars/value |
 | `official_url` | no | `http`/`https` only, must have a host, ≤500 chars. Omit it for a document with no URL of its own (decision D8 of the [crawlers suite](../../.plans/crawlers/gaps-and-decisions.md)); a blank or malformed value is still a 422 |
-| `domain_codes` | no | ≤20, unique, must exist in the taxonomy |
-| `situation_codes` | no | ≤20, unique, must exist in the taxonomy |
+| `category_codes` | no | ≤20, unique, must be active canonical category codes |
 
 ### `payload` for `kind: "new_requirement"`
 
@@ -131,7 +129,7 @@ case below.
 | Invalid field (e.g. bad URL scheme) | 422 | `Validation failed for POST /api/v1/suggestions`, with `extra: [{"message": "...", "key": "official_url"}]` |
 | Both/neither `jurisdiction_id` and `municipality_code` | 422 | same envelope, `extra: [{"message": "Value error, exactly one of jurisdiction_id or municipality_code is required"}]` |
 | `jurisdiction_id`/`municipality_code` doesn't resolve | 422 | `jurisdiction_id or municipality_code does not resolve to a jurisdiction` |
-| Unknown taxonomy code | 422 | `Unknown domain code(s): <code>` (or `situation code(s)`) |
+| Unknown taxonomy code | 422 | `unknown or inactive category code(s): <code>` |
 | Crawler submission missing `source_url` | 422 | `source_url is required for crawler submissions` |
 | `new_requirement` document unknown or outside the jurisdiction | 422 | `document <id> is not in this jurisdiction` |
 | `new_requirement` direct cycle | 422 | `the required document already requires the parent document` |
@@ -196,8 +194,7 @@ curl -s -X POST http://localhost:8000/api/v1/suggestions \
     "payload": {
       "title_i18n": { "de": "Meldebescheinigung", "en": "Registration certificate" },
       "official_url": "https://example.gov/residency",
-      "domain_codes": ["housing"],
-      "situation_codes": ["moving"]
+      "category_codes": ["home-and-housing", "moving-house"]
     }
   }' | python -m json.tool
 ```

@@ -37,9 +37,6 @@ it("category filter · selecting a subcategory serializes its exact code", () =>
   );
 
   expect(params.getAll("category")).toEqual(["moving-house"]);
-  expect(params.has("domain")).toBe(false);
-  expect(params.has("situation")).toBe(false);
-  expect(params.has("group")).toBe(false);
 });
 
 it("category filter · unknown URL category does not produce a valid taxonomy selection", () => {

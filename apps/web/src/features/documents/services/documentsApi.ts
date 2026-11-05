@@ -13,13 +13,13 @@ function codesFilter(codes: string[]): string | undefined {
   return codes.length > 0 ? codes.join(",") : undefined;
 }
 
-/** One page of documents filtered by canonical categories and legacy URL aliases. */
+/** One page of documents filtered by canonical categories. */
 export async function fetchDocuments(params: {
   locale: string;
   request: DocumentListRequest;
 }): Promise<DocumentListResponse> {
   const { locale, request } = params;
-  const { categories, legacy, query } = request;
+  const { categories, query } = request;
   const page = await apiRequest<CandidateListResponse>("/api/v1/candidates", {
     method: "GET",
     locale,
@@ -27,9 +27,6 @@ export async function fetchDocuments(params: {
       ...query,
       filters: {
         category: codesFilter(categories),
-        domain: codesFilter(legacy?.domain ?? []),
-        group: codesFilter(legacy?.group ?? []),
-        situation: codesFilter(legacy?.situation ?? []),
       },
     }),
   });

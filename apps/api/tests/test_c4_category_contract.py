@@ -10,7 +10,7 @@ from app.features.discovery.candidate_codes import CodeVocabulary
 from app.features.taxonomy.service import TaxonomyService
 from app.schema.discovery.candidates import CandidateMentionItem
 from app.schema.suggestion.payload import NewDocumentPayload
-from app.shared.taxonomy_compatibility import LegacyTaxonomyAdapter
+from app.shared.retired_taxonomy import retired_taxonomy_message
 from pydantic import ValidationError
 
 
@@ -63,26 +63,25 @@ def test_unknown_category_codes_are_reported_without_dropping_known_categories()
     assert filtered.dropped == 1
 
 
-def test_stored_category_resolution_keeps_unknown_codes_for_admin_diagnostics() -> None:
-    resolution = LegacyTaxonomyAdapter().canonical_code_resolution(
-        domain_codes=("moving-house", "housing", "stale-code"),
-        situation_codes=("stale-code",),
-    )
-
-    assert resolution.codes == ("moving-house", "home-and-housing")
-    assert resolution.unknown_codes == ("stale-code",)
+@pytest.mark.parametrize("field", ("domain_codes", "situation_codes"))
+def test_retired_mention_fields_are_rejected_with_a_replacement_hint(field: str) -> None:
+    with pytest.raises(ValidationError, match="Retired"):
+        CandidateMentionItem.model_validate(_mention(**{field: ["moving-house"]}))
 
 
-def test_new_document_payload_translates_legacy_axis_fields_once() -> None:
-    payload = NewDocumentPayload.model_validate(
-        {
-            "title_i18n": {"de": "Meldebescheinigung"},
-            "domain_codes": ["housing"],
-            "situation_codes": ["moving-house"],
-        }
-    )
+@pytest.mark.parametrize("field", ("domain_codes", "situation_codes"))
+def test_retired_document_fields_are_rejected_with_a_replacement_hint(field: str) -> None:
+    with pytest.raises(ValidationError, match="Retired"):
+        NewDocumentPayload.model_validate(
+            {
+                "title_i18n": {"de": "Meldebescheinigung"},
+                field: ["moving-house"],
+            }
+        )
 
-    assert payload.category_codes == ["home-and-housing", "moving-house"]
+
+def test_retired_taxonomy_message_points_to_categories() -> None:
+    assert "GET /api/v1/categories" in retired_taxonomy_message(["domain"])
 
 
 def test_new_document_payload_rejects_stale_category_codes() -> None:

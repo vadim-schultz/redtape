@@ -49,7 +49,11 @@ Fixed: added [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc), committ
 
 **Update, 2026-09-24 (fourth pass)** — production browsers on some networks (e.g. corporate Zscaler) returned **403** on direct calls to `redtape-api.onrender.com` while the Workers frontend loaded fine. That is not a CORS allowlist gap (`render.yaml` already lists the `workers.dev` origin; Litestar would return **400** for a bad CORS origin). Fix: **same-origin API** — the Cloudflare Worker in [`apps/web/src/worker.ts`](../../apps/web/src/worker.ts) proxies `/api/*` to Render (`API_ORIGIN` in [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc)); the SPA uses [`apps/web/src/services/apiOrigin.ts`](../../apps/web/src/services/apiOrigin.ts) so production builds call `/api/v1/...` on the Workers host. Render `CORS_ALLOWED_ORIGINS` stays for direct clients (local dev, curl). **Not yet done:** deploy and confirm Network tab shows `…workers.dev/api/v1/…` with `200`s.
 
-**Update, 2026-09-26 — document matrix shipped.** Documents are organized on two independent axes, domain × life situation (13 domains, 18 situations, seeded for Germany with `de`/`en` names and existing documents tagged). API: `GET /api/v1/domains`, `/life-situations`, `/matrix`, plus `domain` / `situation` filters on `GET /api/v1/documents`. Web: `/matrix` page, URL-backed list filters, tags on document detail. Deferred: tags on list cards, curation. Details: [`.plans/document-matrix/`](../../.plans/document-matrix/00-architecture.md).
+**Update, 2026-09-26 — document taxonomy shipped.** Documents use the canonical category tree, seeded
+for Germany with `de`/`en` names and category links. API: `GET /api/v1/categories` and category filters
+on `GET /api/v1/documents`. Web: URL-backed category filters and category links on document detail.
+The retired matrix plan remains available as historical context; current behavior is defined by
+[`.plans/category-taxonomy-migration/`](../../.plans/category-taxonomy-migration/00-architecture.md).
 
 ## Known documentation/code drift (fixed in this pass)
 

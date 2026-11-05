@@ -204,10 +204,10 @@ def test_returns_422_for_an_unknown_municipality_code(client: TestClient[Litesta
     assert response.status_code == 422
 
 
-def test_returns_422_for_an_unknown_domain_code(client: TestClient[Litestar], country: Jurisdiction) -> None:
+def test_returns_422_for_an_unknown_category_code(client: TestClient[Litestar], country: Jurisdiction) -> None:
     token = _token_for()
     body = _payload(country)
-    body["payload"]["domain_codes"] = ["not-a-real-code"]  # type: ignore[index]
+    body["payload"]["category_codes"] = ["not-a-real-code"]  # type: ignore[index]
 
     response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
 
@@ -254,19 +254,3 @@ def test_an_unknown_category_code_is_a_422_that_names_the_code(
 
     assert response.status_code == 422
     assert "retired-code" in response.text
-
-
-def test_legacy_axis_fields_cannot_be_mixed_with_category_codes(
-    client: TestClient[Litestar], country: Jurisdiction
-) -> None:
-    token = _token_for()
-    payload = {
-        "title_i18n": {"en": "Residency permit"},
-        "category_codes": ["moving-house"],
-        "domain_codes": ["housing"],
-    }
-
-    response = client.post(URL, json=_payload(country, payload=payload), headers={"Authorization": f"Bearer {token}"})
-
-    assert response.status_code == 422
-    assert "cannot be combined with category_codes" in response.text

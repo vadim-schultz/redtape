@@ -78,7 +78,7 @@ def test_default_enabled_locales_is_single_source() -> None:
     assert "DEFAULT_ENABLED_LOCALES" in middleware_source
 
 
-# Handlers audited by chapter 4; `get_suggestion` (voting composition) and `get_matrix` keep 4 for now.
+# Handlers audited by chapter 4; `get_suggestion` (voting composition) keeps 4 for now.
 BUDGETED_HANDLERS = [
     (DocumentsController, "list_documents"),
     (DocumentsController, "get_document"),
@@ -89,8 +89,7 @@ BUDGETED_HANDLERS = [
     (LocationsController, "list_districts"),
     (LocationsController, "list_cities"),
     (LocationsController, "list_localities"),
-    (TaxonomyController, "list_domains"),
-    (TaxonomyController, "list_life_situations"),
+    (TaxonomyController, "list_categories"),
     (DiscoveryCandidateAdminController, "list_candidates"),
     (DiscoveryAdminController, "list_tasks"),
     (DiscoveryAdminController, "list_catalogue"),

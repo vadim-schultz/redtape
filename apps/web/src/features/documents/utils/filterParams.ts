@@ -1,21 +1,10 @@
 import type { CategoryNode } from "../../taxonomy/types";
 
 /** The URL params the chips are stored in. */
-export const FILTER_PARAMS = [
-  "category",
-  "domain",
-  "group",
-  "situation",
-] as const;
+export const FILTER_PARAMS = ["category"] as const;
 
 /** One chip axis of the documents list URL. */
 export type FilterAxis = (typeof FILTER_PARAMS)[number];
-
-/** The compatibility axes retained while old document links are translated by the API. */
-export type LegacyFilterSelection = Pick<
-  Record<"domain" | "group" | "situation", string[]>,
-  "domain" | "group" | "situation"
->;
 
 function toggled(codes: string[], code: string): string[] {
   return codes.includes(code)
@@ -44,17 +33,6 @@ export function readValidCategoryCodes(
 ): string[] {
   const known = flattenCategoryCodes(taxonomy);
   return readCodes(params, "category").filter((code) => known.has(code));
-}
-
-/** Read legacy axis values so old shareable links are not silently widened. */
-export function readLegacyFilters(
-  params: URLSearchParams,
-): LegacyFilterSelection {
-  return {
-    domain: readCodes(params, "domain"),
-    group: readCodes(params, "group"),
-    situation: readCodes(params, "situation"),
-  };
 }
 
 /** A copy of `params` without `names`; any change of the filters also leaves the current page. */

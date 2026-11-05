@@ -70,17 +70,6 @@ it("category filter · selecting a root sends one canonical category code", asyn
   );
 });
 
-it("legacy URL · old axis parameters are not silently widened to an unfiltered request", async () => {
-  const fetchMock = stubPage();
-  renderAt("/documents?domain=identity");
-
-  await screen.findByRole("link", { name: /Passport/ });
-
-  expect(listCalls(fetchMock).at(-1)?.searchParams.get("filter[domain]")).toBe(
-    "identity",
-  );
-});
-
 it("category filter · unknown URL category does not select a root", async () => {
   const fetchMock = stubPage();
   renderAt("/documents?category=ghost");

@@ -356,22 +356,6 @@
     "title": "ArtifactUploadForm",
     "type": "object"
   },
-  "AxisCount": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "count": {
-        "type": "integer"
-      }
-    },
-    "required": [
-      "code",
-      "count"
-    ],
-    "title": "AxisCount",
-    "type": "object"
-  },
   "BudgetAdjustRequest": {
     "properties": {
       "delta": {
@@ -494,12 +478,6 @@
           }
         ]
       },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "id": {
         "format": "uuid",
         "type": "string"
@@ -510,12 +488,6 @@
       "mention_count": {
         "type": "integer"
       },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "title": {
         "type": "string"
       }
@@ -523,11 +495,9 @@
     "required": [
       "categories",
       "confidence",
-      "domains",
       "id",
       "key",
       "mention_count",
-      "situations",
       "title"
     ],
     "title": "CandidateCard",
@@ -588,12 +558,6 @@
           }
         ]
       },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "egress": {
         "items": {
           "$ref": "#/components/schemas/CandidateNeighbour"
@@ -634,12 +598,6 @@
           }
         ]
       },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "sources": {
         "items": {
           "$ref": "#/components/schemas/CandidateSource"
@@ -653,11 +611,9 @@
     "required": [
       "categories",
       "confidence",
-      "domains",
       "id",
       "key",
       "mention_count",
-      "situations",
       "title"
     ],
     "title": "CandidateDetail",
@@ -1071,7 +1027,7 @@
   },
   "CandidateFlags": {
     "properties": {
-      "has_domain": {
+      "has_category": {
         "type": "boolean"
       },
       "has_edges": {
@@ -1080,18 +1036,14 @@
       "has_screenshot": {
         "type": "boolean"
       },
-      "has_situation": {
-        "type": "boolean"
-      },
       "has_snapshot": {
         "type": "boolean"
       }
     },
     "required": [
-      "has_domain",
+      "has_category",
       "has_edges",
       "has_screenshot",
-      "has_situation",
       "has_snapshot"
     ],
     "title": "CandidateFlags",
@@ -1793,26 +1745,6 @@
       "source_url"
     ],
     "title": "CandidateSourceRead",
-    "type": "object"
-  },
-  "CandidateTag": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "confidence": {
-        "type": "number"
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "confidence",
-      "name"
-    ],
-    "title": "CandidateTag",
     "type": "object"
   },
   "CatalogueBatchItem": {
@@ -2861,12 +2793,6 @@
       "description": {
         "type": "string"
       },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/TaggedTermRead"
-        },
-        "type": "array"
-      },
       "id": {
         "format": "uuid",
         "type": "string"
@@ -2878,12 +2804,6 @@
       "jurisdiction_path": {
         "items": {
           "$ref": "#/components/schemas/JurisdictionPathNode"
-        },
-        "type": "array"
-      },
-      "life_situations": {
-        "items": {
-          "$ref": "#/components/schemas/TaggedTermRead"
         },
         "type": "array"
       },
@@ -2922,12 +2842,6 @@
   },
   "DocumentListResponse": {
     "properties": {
-      "available_leaf_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
       "items": {
         "items": {
           "$ref": "#/components/schemas/DocumentSummary"
@@ -3364,40 +3278,6 @@
     "title": "JurisdictionPathNode",
     "type": "object"
   },
-  "LifeSituationGroupedRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "group_code": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "description",
-      "group_code",
-      "name"
-    ],
-    "title": "LifeSituationGroupedRead",
-    "type": "object"
-  },
   "LlmOutcomesRead": {
     "properties": {
       "extracted": {
@@ -3509,59 +3389,6 @@
     "title": "LocationNode",
     "type": "object"
   },
-  "MatrixCell": {
-    "properties": {
-      "count": {
-        "type": "integer"
-      },
-      "domain": {
-        "type": "string"
-      },
-      "situation": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "count",
-      "domain",
-      "situation"
-    ],
-    "title": "MatrixCell",
-    "type": "object"
-  },
-  "MatrixResponse": {
-    "properties": {
-      "cells": {
-        "items": {
-          "$ref": "#/components/schemas/MatrixCell"
-        },
-        "type": "array"
-      },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/AxisCount"
-        },
-        "type": "array"
-      },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/AxisCount"
-        },
-        "type": "array"
-      },
-      "total": {
-        "type": "integer"
-      }
-    },
-    "required": [
-      "cells",
-      "domains",
-      "situations",
-      "total"
-    ],
-    "title": "MatrixResponse",
-    "type": "object"
-  },
   "NewDocumentPayload": {
     "properties": {
       "category_codes": {
@@ -3583,13 +3410,6 @@
           }
         ]
       },
-      "domain_codes": {
-        "items": {
-          "type": "string"
-        },
-        "maxItems": 20,
-        "type": "array"
-      },
       "official_url": {
         "oneOf": [
           {
@@ -3601,26 +3421,6 @@
         ]
       },
       "pvog_leaf_codes": {
-        "oneOf": [
-          {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "situation_codes": {
-        "items": {
-          "type": "string"
-        },
-        "maxItems": 20,
-        "type": "array"
-      },
-      "situation_leaf_codes": {
         "oneOf": [
           {
             "additionalProperties": {
@@ -4313,40 +4113,6 @@
     "title": "TagSupportRead",
     "type": "object"
   },
-  "TaggedTermRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "confidence": {
-        "type": "number"
-      },
-      "description": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "confidence",
-      "description",
-      "name"
-    ],
-    "title": "TaggedTermRead",
-    "type": "object"
-  },
   "Tally": {
     "properties": {
       "down": {
@@ -4654,36 +4420,6 @@
       "pending_ready"
     ],
     "title": "TaskSummaryResponse",
-    "type": "object"
-  },
-  "TermRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "description",
-      "name"
-    ],
-    "title": "TermRead",
     "type": "object"
   },
   "TranslationBundle": {

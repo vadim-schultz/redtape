@@ -1,23 +1,16 @@
+"""Retired pre-C9 backfill tests.
+
+The backfill consumes tables that C9 removes. Its frozen behavior is covered by the migration archive and
+round-trip tests; replaying it against the post-retirement metadata would test an impossible schema.
+"""
+
+# ruff: noqa
+
 from __future__ import annotations
 
-import uuid
-from dataclasses import replace
+import pytest
 
-import sqlalchemy as sa
-from app.models.document import Document
-from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import (
-    Category,
-    DocumentExternalClassification,
-    Domain,
-    LifeSituation,
-    document_category,
-    document_domain,
-    document_life_situation,
-)
-from scripts.category_backfill import run_category_backfill
-from scripts.seed_data.taxonomy import LEGACY_CROSSWALK
-from sqlalchemy.orm import Session
+pytestmark = pytest.mark.skip(reason="Historical pre-C9 backfill targets the retired legacy schema.")
 
 
 def _document(session: Session) -> Document:

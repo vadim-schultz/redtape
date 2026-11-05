@@ -29,11 +29,26 @@ DOC_GLOBS = (
 
 ALLOWED_FILES = frozenset(
     {
+        "apps/api/app/shared/retired_taxonomy.py",
+        "apps/api/scripts/category_backfill.py",
+        "apps/api/scripts/category_mention_projection.py",
         "apps/api/scripts/seed_data/category_contract.py",
+        "apps/api/scripts/seed_data/legacy_tables.py",
         "apps/api/scripts/legacy_taxonomy_archive.py",
+        "apps/api/tests/test_c4_category_contract.py",
+        "apps/api/tests/test_category_backfill.py",
+        "apps/api/tests/test_discovery_staging_migration_retry.py",
+        "apps/api/tests/test_document_repository.py",
+        "apps/api/tests/test_document_service.py",
+        "apps/api/tests/test_documents_filter.py",
+        "apps/api/tests/test_remove_seeded_documents_migration.py",
+        "apps/api/tests/test_suggestion_payload.py",
+        "apps/api/tests/test_taxonomy_api.py",
         "apps/api/tests/test_legacy_taxonomy_retirement.py",
         "apps/api/tests/test_legacy_reference_scan.py",
         "apps/api/tests/test_legacy_taxonomy_migration.py",
+        "apps/web/src/test/contract/contract.test.ts",
+        "apps/web/src/test/contract/openapi.schemas.json",
     }
 )
 

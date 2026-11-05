@@ -48,9 +48,7 @@ it("category filter · selecting a root serializes one category code", () => {
 });
 
 it("category filter · selecting a subcategory serializes its exact code", () => {
-  const { result } = renderFilters(
-    "/documents?category=home-and-housing&domain=legacy",
-  );
+  const { result } = renderFilters("/documents?category=home-and-housing");
 
   act(() =>
     result.current.filters.toggleCategory("moving-house", "home-and-housing"),
@@ -58,20 +56,7 @@ it("category filter · selecting a subcategory serializes its exact code", () =>
 
   const params = new URLSearchParams(result.current.location.search);
   expect(params.getAll("category")).toEqual(["moving-house"]);
-  expect(params.get("domain")).toBe("legacy");
   expect(result.current.filters.categories).toEqual(["moving-house"]);
-});
-
-it("legacy URL · old axis parameters remain available to the compatibility API", () => {
-  const { result } = renderFilters(
-    "/documents?domain=identity&group=home&situation=moving",
-  );
-
-  expect(result.current.filters.legacy).toEqual({
-    domain: ["identity"],
-    group: ["home"],
-    situation: ["moving"],
-  });
 });
 
 it("category filter · unknown URL category does not produce a valid taxonomy selection", () => {

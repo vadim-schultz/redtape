@@ -1,15 +1,8 @@
 import type { DocumentFilters } from "../hooks/useDocumentFilters";
 
-/** True while at least one canonical or legacy filter narrows the list. */
+/** Return whether at least one category narrows the list. */
 export function hasSelectedChips(
-  filters: Pick<DocumentFilters, "categories" | "legacy">,
+  filters: Pick<DocumentFilters, "categories">,
 ): boolean {
-  const { categories, legacy } = filters;
-  return (
-    categories.length +
-      legacy.domain.length +
-      legacy.group.length +
-      legacy.situation.length >
-    0
-  );
+  return filters.categories.length > 0;
 }

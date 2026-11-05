@@ -192,7 +192,7 @@ def test_candidate_list_filters_by_a_category_and_its_descendants(client: Client
 
 
 @pytest.mark.usefixtures("taxonomy")
-@pytest.mark.parametrize("key", ["filter[domain]", "filter[situation]"])
+@pytest.mark.parametrize("key", ["filter[category]"])
 def test_candidate_list_rejects_an_unknown_taxonomy_code(client: Client, scene: Scene, key: str) -> None:
     scene.complete_candidate("accepted")
 

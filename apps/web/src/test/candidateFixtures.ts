@@ -7,8 +7,7 @@ import type {
 import type { CompletenessFlags } from "../components/data-display/CompletenessChips/types";
 
 export const ALL_FLAGS: CompletenessFlags = {
-  has_domain: true,
-  has_situation: true,
+  has_category: true,
   has_edges: true,
   has_snapshot: true,
   has_screenshot: true,

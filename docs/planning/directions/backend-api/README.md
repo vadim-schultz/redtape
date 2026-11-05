@@ -26,9 +26,12 @@ Implemented in [`apps/api`](../../../../apps/api) (see [wave-0-repo-i18n](../wav
 
 Document-specific resolution (JSONB `*_i18n`) arrives in Wave 1; this wave covers **UI bundles** + **picker metadata** only.
 
-## Document matrix endpoints
+## Document category endpoints
 
-`GET /api/v1/domains`, `GET /api/v1/life-situations` (localized terms keyed by language-neutral `code`), `GET /api/v1/matrix` (per-cell document counts), and `domain` / `situation` code filters on `GET /api/v1/documents`. Contract: [`.plans/document-matrix/00-architecture.md`](../../../../.plans/document-matrix/00-architecture.md).
+`GET /api/v1/categories` returns the localized canonical category tree. `GET /api/v1/documents`
+accepts `category` and `filter[category]` codes; a root includes its active descendants. The retired
+matrix and axis endpoints are no longer part of the active contract. Contract:
+[`.plans/category-taxonomy-migration/00-architecture.md`](../../../../.plans/category-taxonomy-migration/00-architecture.md).
 
 ## Child plans (expand next)
 

@@ -28,8 +28,7 @@ function readSeed(locale: string): Record<string, string> {
 
 const CANDIDATE_KEYS = [
   "from_source",
-  "flag_domain",
-  "flag_situation",
+  "flag_category",
   "flag_edges",
   "flag_snapshot",
   "flag_screenshot",
@@ -64,8 +63,6 @@ const RETIRED_CANDIDATE_KEYS = [
     "title",
     "subtitle",
     "search_label",
-    "filter_domain",
-    "filter_situation",
     "complete_only",
     "clear_filters",
     "count_one",

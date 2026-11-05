@@ -193,17 +193,7 @@ def test_candidates_unknown_category_filter_returns_422(
     assert "filter[category]" in str(response.json())
 
 
-def test_candidates_retired_taxonomy_filters_return_a_diagnostic_422(client: TestClient[Litestar]) -> None:
-    response = client.get(
-        URL,
-        params={"filter[group]": "family-relationships", "filter[situation]": "moving-house"},
-    )
-
-    assert response.status_code == 422
-    assert "retired taxonomy input" in str(response.json()).lower()
-
-
-@pytest.mark.parametrize("param", ["filter[domain]", "filter[situation]", "filter[complete]", "filter[nope]"])
+@pytest.mark.parametrize("param", ["filter[category]", "filter[complete]", "filter[nope]"])
 def test_candidates_list_rejects_an_unknown_filter_value(client: TestClient[Litestar], param: str) -> None:
     response = client.get(URL, params={param: "nope"})
 

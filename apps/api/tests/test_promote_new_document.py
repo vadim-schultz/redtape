@@ -74,18 +74,15 @@ def _suggestion(
     title: str = "Residency permit",
     description: str | None = "How to register your residency.",
     official_url: str | None = "https://example.gov/residency",
-    domain_codes: list[str] | None = None,
-    situation_codes: list[str] | None = None,
+    category_codes: list[str] | None = None,
 ) -> Suggestion:
     payload: dict[str, object] = {"title_i18n": {"en": title}}
     if official_url is not None:
         payload["official_url"] = official_url
     if description is not None:
         payload["description_i18n"] = {"en": description}
-    if domain_codes is not None:
-        payload["domain_codes"] = domain_codes
-    if situation_codes is not None:
-        payload["situation_codes"] = situation_codes
+    if category_codes is not None:
+        payload["category_codes"] = category_codes
     row = Suggestion(
         kind=SuggestionKind.NEW_DOCUMENT,
         status=status,
@@ -156,23 +153,21 @@ def test_promoting_a_new_document_suggestion_logs_a_promoted_event_with_the_crea
     assert promoted[0].data == {"created_id": str(document.id), "table": "document"}
 
 
-def test_promote_resolves_domain_and_situation_codes_onto_the_created_document(
+def test_promote_resolves_category_codes_onto_the_created_document(
     service: SuggestionService, db_session: Session, jurisdiction: Jurisdiction, taxonomy_service: TaxonomyService
 ) -> None:
     suggestion = _suggestion(
         db_session,
         jurisdiction,
         title="Residency permit",
-        domain_codes=["housing"],
-        situation_codes=["moving-house"],
+        category_codes=["home-and-housing", "moving-house"],
     )
 
     service.transition_to(suggestion.id, SuggestionStatus.APPROVED, actor=None)
 
     document = _document_by_slug(db_session, jurisdiction, "residency-permit")
     assert document is not None
-    assert [d.code for d in document.domains] == ["housing"]
-    assert [s.code for s in document.life_situations] == ["moving-house"]
+    assert [category.code for category in document.categories] == ["home-and-housing", "moving-house"]
 
 
 def test_create_document_uses_the_given_slug_not_a_recomputed_one(

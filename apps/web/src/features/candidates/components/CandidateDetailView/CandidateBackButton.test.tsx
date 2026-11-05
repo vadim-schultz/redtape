@@ -28,7 +28,7 @@ function renderFrom(entries: RenderWithProvidersOptions) {
 it("candidate back button restores the documents list with its filters when it is the previous entry", async () => {
   const { user } = renderFrom({
     initialEntries: [
-      "/documents?q=ausweis&domain=housing",
+      "/documents?q=ausweis&category=home-and-housing",
       { pathname: "/candidates/c1", state: { fromList: true } },
     ],
   });
@@ -36,7 +36,7 @@ it("candidate back button restores the documents list with its filters when it i
   await user.click(screen.getByRole("button", { name: /Back to the list/ }));
 
   expect(screen.getByTestId("list-url")).toHaveTextContent(
-    "/documents?q=ausweis&domain=housing",
+    "/documents?q=ausweis&category=home-and-housing",
   );
 });
 

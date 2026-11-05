@@ -45,14 +45,14 @@ it("useDocumentListState · values round-trip through the URL", () => {
 });
 
 it("useDocumentListState · setSearch writes q and resets the page", () => {
-  const { result } = renderState("/documents?offset=40&domain=a");
+  const { result } = renderState("/documents?offset=40&category=a");
 
   act(() => result.current.list.setSearch("pass"));
 
   const params = new URLSearchParams(result.current.location.search);
   expect(params.get("q")).toBe("pass");
   expect(params.has("offset")).toBe(false);
-  expect(params.get("domain")).toBe("a");
+  expect(params.get("category")).toBe("a");
 });
 
 it("useDocumentListState · a blank search removes q instead of writing it", () => {
@@ -106,12 +106,12 @@ it.each(["-5", "abc", "1.5", ""])(
 );
 
 it("useDocumentListState · setOffset moves the page and keeps the rest", () => {
-  const { result } = renderState("/documents?q=pass&domain=a");
+  const { result } = renderState("/documents?q=pass&category=a");
 
   act(() => result.current.list.setOffset(20));
 
   const params = new URLSearchParams(result.current.location.search);
   expect(params.get("offset")).toBe("20");
   expect(params.get("q")).toBe("pass");
-  expect(params.get("domain")).toBe("a");
+  expect(params.get("category")).toBe("a");
 });

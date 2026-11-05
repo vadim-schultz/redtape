@@ -33,8 +33,7 @@ const row: DiscoveryCandidate = {
   completeness: 4,
   complete: false,
   flags: {
-    has_domain: true,
-    has_situation: true,
+    has_category: true,
     has_edges: true,
     has_snapshot: true,
     has_screenshot: false,
@@ -129,16 +128,16 @@ it("a column filter applies the contract key and value", async () => {
   });
 });
 
-it("readiness column shows five flags per row and names the missing one", () => {
+it("readiness column shows four flags per row and names the missing one", () => {
   renderWithProviders(<Table query={{}} />);
 
   const cell = screen.getByRole("cell", { name: /Screenshot: missing/ });
-  expect(within(cell).getAllByRole("listitem")).toHaveLength(5);
+  expect(within(cell).getAllByRole("listitem")).toHaveLength(4);
   expect(
     within(cell).getByRole("listitem", { name: "Screenshot: missing" }),
   ).toBeInTheDocument();
   expect(
-    within(cell).getByRole("listitem", { name: "Domain: present" }),
+    within(cell).getByRole("listitem", { name: "Category: present" }),
   ).toBeInTheDocument();
 });
 

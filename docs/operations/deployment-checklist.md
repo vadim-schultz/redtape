@@ -29,7 +29,8 @@ Checks:
   - `{"status":"ok"}`
 - [ ] `GET /api/v1/locales` includes `de` and `en`.
 - [ ] `GET /api/v1/translations?locale=de` returns a JSON bundle (non-empty).
-- [ ] `GET /api/v1/candidates?limit=1` returns `200` with `{items, total, offset, limit}`; the item carries `confidence` and `domains`/`situations` entries with `confidence`. This is the list behind `/documents`.
+- [ ] `GET /api/v1/candidates?limit=1` returns `200` with `{items, total, offset, limit}`; the item carries
+  `confidence` and canonical `categories` entries with `confidence`. This is the list behind `/documents`.
 - [ ] `GET /api/v1/candidates?sort_by=confidence&sort_order=desc&limit=5` returns `200` with `confidence` non-increasing.
 - [ ] `GET /api/v1/documents` returns `200` (dormant: the sample documents are no longer seeded and the web list no longer reads it; `total` stays `0` because nothing in the browse flow promotes a candidate).
 - [ ] `CORS_ALLOWED_ORIGINS` in `render.yaml` still includes the Workers origin (for direct API clients). Production browser traffic should be **same-origin** via the Worker proxy, not cross-origin to Render.
@@ -111,7 +112,7 @@ Checks:
 
 - [ ] `curl -s -w "\nHTTP %{http_code}\n" -H "X-API-Key: $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"` returns 200 with `"storage_enabled": true`.
 - [ ] The same call to `…/machine/budgets` returns five resources (`r2_class_a`, `r2_class_b`, `browser_seconds`, `neurons`, `actions_minutes`) with their caps.
-- [ ] `GET …/machine/taxonomy` returns 200 with 13 domains and 18 life situations.
+- [ ] `GET …/machine/taxonomy` returns 200 with the active canonical category vocabulary.
 - [ ] The storage probe passes (S6). It runs on a laptop with the Render values exported: `cd apps/api && set -a; source <env file>; set +a; .venv/bin/python -m scripts.object_store_probe`. Do not commit the env file.
 
 ### Worker-origin discovery probe sequence

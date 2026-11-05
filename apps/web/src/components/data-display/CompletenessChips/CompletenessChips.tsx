@@ -11,8 +11,7 @@ export interface CompletenessChipsProps {
 }
 
 const FLAG_LABELS = [
-  ["has_domain", "candidates.flag_domain"],
-  ["has_situation", "candidates.flag_situation"],
+  ["has_category", "candidates.flag_category"],
   ["has_edges", "candidates.flag_edges"],
   ["has_snapshot", "candidates.flag_snapshot"],
   ["has_screenshot", "candidates.flag_screenshot"],
@@ -23,7 +22,7 @@ const LAYOUTS = {
   vertical: { direction: "column", align: "flex-start" },
 } as const;
 
-/** The five completeness flags as labelled chips; shared by the list and the item page. */
+/** The four completeness flags as labelled chips; shared by the list and the item page. */
 export default function CompletenessChips({
   flags,
   orientation = "horizontal",
