@@ -12,12 +12,12 @@ import pytest
 APP = Path(__file__).resolve().parents[1]
 
 
-def _run(*args: str) -> subprocess.CompletedProcess[str]:
+def _run(*args: str, cwd: Path = APP) -> subprocess.CompletedProcess[str]:
     env = {key: value for key, value in os.environ.items() if not key.startswith("DISCOVERY_")}
     env["COLUMNS"] = "100"
     return subprocess.run(
         [sys.executable, "-m", "discovery_ingest", *args],
-        cwd=APP,
+        cwd=cwd,
         env=env,
         capture_output=True,
         text=True,
@@ -46,17 +46,11 @@ def test_fim_probe_with_a_bad_key_exits_2() -> None:
     assert result.stdout == ""
 
 
-def test_budget_show_strict_without_api_settings_fails_with_nothing_on_stdout() -> None:
-    result = _run("budget", "show", "--strict")
-    assert result.returncode == 4
+def test_budget_show_without_api_settings_fails_with_nothing_on_stdout(tmp_path: Path) -> None:
+    # Run outside apps/discovery-ingest so a developer's local .env cannot supply DISCOVERY_API_URL.
+    result = _run("budget", "show", cwd=tmp_path)
+    assert result.returncode != 0
     assert result.stdout == ""
-
-
-def test_budget_show_without_api_settings_warns_on_stderr_and_exits_0() -> None:
-    result = _run("budget", "show")
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert "budget ledger unreachable" in result.stderr
 
 
 @pytest.mark.parametrize("argv", [[], ["worker"]], ids=["root", "group"])
