@@ -125,12 +125,15 @@ const BANNER_STATES: [string, () => Response, string][] = [
 ];
 
 it.each(BANNER_STATES)(
-  "candidate detail keeps the banner when %s",
+  "candidate detail hides staging and completeness metadata when %s",
   async (_state, respond, marker) => {
     stubCandidateDetailApi(respond);
     renderPage();
 
     expect((await screen.findAllByText(marker)).length).toBeGreaterThan(0);
-    expect(screen.getByText(BANNER)).toBeInTheDocument();
+    expect(screen.queryByText(BANNER)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Completeness" }),
+    ).not.toBeInTheDocument();
   },
 );

@@ -85,8 +85,6 @@
     "confidence_high": "hoch"
   },
   "candidates": {
-    "banner_title": "Vorläufig und ungeprüft",
-    "banner_body": "Diese Kandidaten wurden automatisch aus öffentlichen Seiten gewonnen. Bisher hat sie niemand geprüft, einige können falsch sein.",
     "flag_domain": "Lebensbereich",
     "flag_situation": "Lebenslage",
     "flag_edges": "Abhängigkeiten",
@@ -109,8 +107,6 @@
     "source_role_required": "Erforderlich",
     "source_role_form": "Formular",
     "source_role_issued": "Ausgestellt",
-    "checklist_title": "Vollständigkeit",
-    "checklist_count": "{count} von 5",
     "flow": "Ablauf",
     "flow_summary": "{ingress} Dokumente zuerst nötig, {egress} Dokumente, die dieses brauchen",
     "flow_empty": "Für dieses Dokument sind keine Abhängigkeiten hinterlegt",

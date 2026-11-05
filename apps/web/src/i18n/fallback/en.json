@@ -85,8 +85,6 @@
     "confidence_high": "high"
   },
   "candidates": {
-    "banner_title": "Staged and unreviewed",
-    "banner_body": "These candidates are model output from public pages. Nobody has checked them yet, and some may be wrong.",
     "flag_domain": "Domain",
     "flag_situation": "Situation",
     "flag_edges": "Dependencies",
@@ -109,8 +107,6 @@
     "source_role_required": "Required",
     "source_role_form": "Form",
     "source_role_issued": "Issued",
-    "checklist_title": "Completeness",
-    "checklist_count": "{count} of 5",
     "flow": "Flow",
     "flow_summary": "{ingress} documents needed first, {egress} documents that need this one",
     "flow_empty": "No dependencies staged for this document",

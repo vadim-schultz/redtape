@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.discovery import DiscoveryCandidateStatus, DiscoveryEdgeBasis, DiscoveryMentionRole
+from app.models.discovery import DiscoveryEdgeBasis, DiscoveryMentionRole
 from app.schema.taxonomy.read import CategoryTagRead
 
 
@@ -43,13 +43,9 @@ class CandidateCard(BaseModel):
     title: str
     description: str | None
     description_source: str | None
-    status: DiscoveryCandidateStatus
     domains: list[CandidateTag]
     situations: list[CandidateTag]
     categories: list[CategoryTagRead]
-    completeness: int
-    complete: bool
-    flags: CandidateFlags
     mention_count: int
     confidence: float
 

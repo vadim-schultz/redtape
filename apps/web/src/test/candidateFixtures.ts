@@ -3,8 +3,8 @@ import type {
   CandidateDetail,
   CandidateNeighbour,
   CandidateSource,
-  CompletenessFlags,
 } from "../features/candidates/types";
+import type { CompletenessFlags } from "../components/data-display/CompletenessChips/types";
 
 export const ALL_FLAGS: CompletenessFlags = {
   has_domain: true,
@@ -31,10 +31,6 @@ export function candidateFixture(
         confidence: 0.8,
       },
     ],
-    status: "staged",
-    completeness: 5,
-    complete: true,
-    flags: ALL_FLAGS,
     mention_count: 3,
     confidence: 0.8,
     ...overrides,
