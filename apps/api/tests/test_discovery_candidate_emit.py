@@ -227,6 +227,18 @@ def test_emit_preview_never_writes(client: TestClient[Litestar], db_session: Ses
     assert (candidate.status, candidate.suggestion_id) == (DiscoveryCandidateStatus.STAGED, None)
 
 
+def test_emit_preview_keeps_the_municipality_code_key_as_null_for_a_jurisdiction_candidate(
+    client: TestClient[Litestar], db_session: Session
+) -> None:  # noqa: F811
+    candidate, _catalogue = _staged(db_session, official_url="https://example.gov/ausweis")
+
+    response = client.get(PREVIEW_URL.format(id=candidate.id), headers=_bearer())
+
+    assert response.status_code == 200
+    assert "municipality_code" in response.json()["suggestion"]
+    assert response.json()["suggestion"]["municipality_code"] is None
+
+
 def test_emit_preview_reports_why_a_candidate_would_be_skipped(
     client: TestClient[Litestar],
     db_session: Session,  # noqa: F811

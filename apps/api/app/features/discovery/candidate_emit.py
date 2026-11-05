@@ -23,6 +23,7 @@ from app.schema.discovery.candidate_emit import (
     CandidateEmitItemResult,
     CandidateEmitPreview,
     CandidateEmitResponse,
+    PreviewedSuggestion,
 )
 from app.schema.discovery.emit import SkipReason
 from app.schema.suggestion.create import SuggestionCreate
@@ -60,7 +61,8 @@ class DiscoveryCandidateEmitService:
         """Return what ``emit`` would create for the candidate, without writing."""
         candidate = require_candidate(self._repo, candidate_id)
         try:
-            return CandidateEmitPreview(candidate_id=candidate_id, suggestion=self._previewed_request(candidate))
+            request = self._previewed_request(candidate)
+            return CandidateEmitPreview(candidate_id=candidate_id, suggestion=PreviewedSuggestion.from_request(request))
         except EmitSkip as skip:
             return CandidateEmitPreview(
                 candidate_id=candidate_id,

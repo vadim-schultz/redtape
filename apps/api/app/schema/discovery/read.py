@@ -304,6 +304,7 @@ class CandidateMentionRead(BaseModel):
     condition: str | None
     is_optional: bool | None
     category_codes: list[str]
+    unknown_category_codes: list[str]
     pvog_leaf_code: str | None
     direct_category_confidence: float | None
     pvog_source_path: PvogSourcePath | None

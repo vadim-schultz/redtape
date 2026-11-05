@@ -7,43 +7,47 @@ import DocumentTagsPanel from "./DocumentTagsPanel";
 
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 
-it("tags panel shows suggested chips with support counts, styles accepted codes differently, and shows the empty state", () => {
+it("tags panel · shows canonical category names with support counts and accepted styling", () => {
   renderWithProviders(
     <DocumentTagsPanel
-      domains={[
-        tag({ code: "housing", procedures: 3, share: 0.75, accepted: true }),
-        tag({ code: "identity", procedures: 1, share: 0.25 }),
-      ]}
-      situations={[
+      categories={[
         tag({
-          code: "moving-house",
-          procedures: 2,
-          share: 0.5,
+          code: "home-and-housing",
+          procedures: 3,
+          share: 0.75,
           accepted: true,
         }),
+        tag({ code: "identity-and-documents", procedures: 1, share: 0.25 }),
       ]}
-      domainNames={{ housing: "Wohnen" }}
-      situationNames={{ "moving-house": "Umzug" }}
+      categoryNames={{
+        "home-and-housing": "Wohnen",
+        "identity-and-documents": "Identität",
+      }}
     />,
   );
 
   const accepted = screen.getByText("Wohnen · 3 of 4 procedures");
   expect(accepted).toHaveAttribute("data-accepted", "true");
-  const muted = screen.getByText("identity · 1 of 4 procedures");
+  const muted = screen.getByText("Identität · 1 of 4 procedures");
   expect(muted).toHaveAttribute("data-accepted", "false");
-  expect(screen.getByText("Umzug · 2 of 4 procedures")).toBeInTheDocument();
   expect(screen.queryByText("No consensus yet.")).not.toBeInTheDocument();
 });
 
-it("tags panel says there is no consensus yet when no code has support", () => {
+it("tags panel · a category without a canonical name shows its code instead of a blank chip", () => {
   renderWithProviders(
     <DocumentTagsPanel
-      domains={[]}
-      situations={[]}
-      domainNames={{}}
-      situationNames={{}}
+      categories={[tag({ code: "ghost-category", procedures: 1, share: 0.5 })]}
+      categoryNames={{}}
     />,
   );
+
+  expect(
+    screen.getByText("ghost-category · 1 of 2 procedures"),
+  ).toBeInTheDocument();
+});
+
+it("tags panel says there is no consensus yet when no category has support", () => {
+  renderWithProviders(<DocumentTagsPanel categories={[]} categoryNames={{}} />);
 
   expect(screen.getByText("No consensus yet.")).toBeInTheDocument();
   expect(screen.queryByText(/procedures/)).not.toBeInTheDocument();

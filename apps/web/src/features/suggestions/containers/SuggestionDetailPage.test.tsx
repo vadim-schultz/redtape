@@ -39,8 +39,7 @@ it("SuggestionDetailPage · renders a new_document payload with a working offici
     payload: {
       title_i18n: { en: "Residency permit" },
       official_url: "https://example.gov/residency",
-      domain_codes: [],
-      situation_codes: [],
+      category_codes: [],
     },
     source_url: null,
     submitted_by: { kind: "user", display_name: "Ada" },

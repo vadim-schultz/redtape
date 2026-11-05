@@ -223,3 +223,50 @@ def test_ignores_client_supplied_status_and_submitter_fields(
     response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 422
+
+
+def test_category_codes_round_trip_with_their_confidence_and_pvog_leaf_codes(
+    client: TestClient[Litestar], country: Jurisdiction
+) -> None:
+    token = _token_for()
+    payload = {
+        "title_i18n": {"en": "Residency permit"},
+        "official_url": "https://example.gov/residency",
+        "category_codes": ["moving-house"],
+        "tag_confidence": {"moving-house": 0.85},
+        "pvog_leaf_codes": {"moving-house": "1050200"},
+    }
+
+    response = client.post(URL, json=_payload(country, payload=payload), headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 201
+    stored = response.json()["payload"]
+    assert {key: stored[key] for key in payload} == payload
+
+
+def test_an_unknown_category_code_is_a_422_that_names_the_code(
+    client: TestClient[Litestar], country: Jurisdiction
+) -> None:
+    token = _token_for()
+    body = _payload(country, payload={"title_i18n": {"en": "Residency permit"}, "category_codes": ["retired-code"]})
+
+    response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 422
+    assert "retired-code" in response.text
+
+
+def test_legacy_axis_fields_cannot_be_mixed_with_category_codes(
+    client: TestClient[Litestar], country: Jurisdiction
+) -> None:
+    token = _token_for()
+    payload = {
+        "title_i18n": {"en": "Residency permit"},
+        "category_codes": ["moving-house"],
+        "domain_codes": ["housing"],
+    }
+
+    response = client.post(URL, json=_payload(country, payload=payload), headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 422
+    assert "cannot be combined with category_codes" in response.text

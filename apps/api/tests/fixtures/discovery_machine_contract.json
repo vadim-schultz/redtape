@@ -946,9 +946,8 @@
       "title": "EmitConflictRead",
       "type": "object"
      },
-     "NewDocumentPayload": {
-      "additionalProperties": false,
-      "description": "Payload for a `new_document` suggestion; pure validation, no database lookups.",
+     "PreviewedDocumentPayload": {
+      "description": "The canonical ``new_document`` fields an emit preview shows; legacy axis inputs are never output.",
       "properties": {
        "category_codes": {
         "items": {
@@ -1025,44 +1024,61 @@
       "required": [
        "title_i18n"
       ],
-      "title": "NewDocumentPayload",
+      "title": "PreviewedDocumentPayload",
       "type": "object"
      },
-     "NewRequirementPayload": {
-      "additionalProperties": false,
-      "description": "Payload for a `new_requirement` suggestion; pure validation, no database lookups.",
+     "PreviewedSuggestion": {
+      "description": "The suggestion an emit would create, with the canonical payload only.",
       "properties": {
-       "notes_i18n": {
+       "jurisdiction_id": {
         "anyOf": [
          {
-          "additionalProperties": {
-           "type": "string"
-          },
-          "type": "object"
+          "format": "uuid",
+          "type": "string"
          },
          {
           "type": "null"
          }
         ],
         "default": null,
-        "title": "Notes I18N"
+        "title": "Jurisdiction Id"
        },
-       "parent_document_id": {
-        "format": "uuid",
-        "title": "Parent Document Id",
-        "type": "string"
+       "kind": {
+        "$ref": "#/$defs/SuggestionKind"
        },
-       "required_document_id": {
-        "format": "uuid",
-        "title": "Required Document Id",
-        "type": "string"
+       "municipality_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Municipality Code"
+       },
+       "payload": {
+        "$ref": "#/$defs/PreviewedDocumentPayload"
+       },
+       "source_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Url"
        }
       },
       "required": [
-       "parent_document_id",
-       "required_document_id"
+       "kind",
+       "payload"
       ],
-      "title": "NewRequirementPayload",
+      "title": "PreviewedSuggestion",
       "type": "object"
      },
      "SkipReason": {
@@ -1081,69 +1097,6 @@
       ],
       "title": "SkipReason",
       "type": "string"
-     },
-     "SuggestionCreate": {
-      "additionalProperties": false,
-      "description": "`POST /api/v1/suggestions` body; `payload`'s shape is discriminated on `kind`.",
-      "properties": {
-       "jurisdiction_id": {
-        "anyOf": [
-         {
-          "format": "uuid",
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Jurisdiction Id"
-       },
-       "kind": {
-        "$ref": "#/$defs/SuggestionKind",
-        "default": "new_document"
-       },
-       "municipality_code": {
-        "anyOf": [
-         {
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Municipality Code"
-       },
-       "payload": {
-        "anyOf": [
-         {
-          "$ref": "#/$defs/NewDocumentPayload"
-         },
-         {
-          "$ref": "#/$defs/NewRequirementPayload"
-         }
-        ],
-        "title": "Payload"
-       },
-       "source_url": {
-        "anyOf": [
-         {
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Source Url"
-       }
-      },
-      "required": [
-       "payload"
-      ],
-      "title": "SuggestionCreate",
-      "type": "object"
      },
      "SuggestionKind": {
       "description": "What a suggestion proposes to add to the catalogue.",
@@ -1183,7 +1136,7 @@
      "suggestion": {
       "anyOf": [
        {
-        "$ref": "#/$defs/SuggestionCreate"
+        "$ref": "#/$defs/PreviewedSuggestion"
        },
        {
         "type": "null"

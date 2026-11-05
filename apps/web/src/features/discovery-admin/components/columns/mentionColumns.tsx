@@ -22,7 +22,7 @@ export type MentionColumn = DataTableColumn<
 
 /** Columns of a document's mentions: role, excerpt, condition, extractor and the stating procedure. */
 export function mentionColumns(context: ColumnContext): MentionColumn[] {
-  const { locale } = context;
+  const { locale, t } = context;
   const header = headerLabels(context, "discovery_admin.document");
   return [
     {
@@ -39,6 +39,16 @@ export function mentionColumns(context: ColumnContext): MentionColumn[] {
       key: "condition",
       header: header("condition"),
       render: (m) => <LongText>{m.condition ?? EMPTY_VALUE}</LongText>,
+    },
+    {
+      key: "taxonomy_diagnostics",
+      header: header("taxonomy_diagnostics"),
+      render: (m) =>
+        m.unknown_category_codes.length > 0
+          ? t("discovery_admin.document.unknown_category_codes", {
+              codes: m.unknown_category_codes.join(", "),
+            })
+          : EMPTY_VALUE,
     },
     { key: "field", header: header("field"), render: (m) => m.source_field },
     {

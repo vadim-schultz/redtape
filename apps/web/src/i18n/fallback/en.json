@@ -238,6 +238,8 @@
       "col_extractor": "Extractor",
       "col_host": "Source host",
       "col_procedure": "Procedure",
+      "col_taxonomy_diagnostics": "Taxonomy diagnostics",
+      "unknown_category_codes": "Unknown category code(s): {codes}",
       "emit_title": "Emit preview",
       "emit_would_create": "Would create a new document suggestion.",
       "emit_title_label": "Title",
@@ -256,8 +258,7 @@
       "optional": "Optional",
       "tags": {
         "title": "Suggested tags",
-        "domains": "Domains",
-        "situations": "Life situations",
+        "categories": "Categories",
         "support": "{name} · {procedures} of {total} procedures",
         "empty": "No consensus yet.",
         "accepted": "Meets the thresholds"

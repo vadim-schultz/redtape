@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C5 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); root `./ci.sh` green on the loop branch; C6 in progress on `feat/category-admin-cutover` (head `d9d863f`; full `./ci.sh` not rerun since the emit-preview fixes), not yet integrated; C7 not started
+- Status: C1-C6 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 ready to start
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: C6 is paused for the machine reboot. Open before integration: admin unknown-category diagnostics (stored unknown codes are dropped at read time because storage shares the legacy column), the admin label DTO decision, a full `./ci.sh` on the branch head, and the chapter refactor audit. The emit-preview `municipality_code` regression was fixed in `0071a4b`, with the OpenAPI snapshot regenerated in `d9d863f`.
+- Current work: C6 is integrated and C7 is the next chapter. The C6 full gate passed after Docker became available; its earlier stale machine-contract fixture was regenerated before the successful rerun.
 
 ## Baseline
 
@@ -104,14 +104,19 @@
 
 ### Chapter 6 — Admin and suggestion cutover
 
-- Admin category labels: web done in `beebd35` (tag names come from the canonical category tree through `useCategoryNames`; a code without a name shows as the code; a failed tree query still lists the suggested codes). API admin label tests are pending.
-- Suggestion payload category codes: web type is `category_codes` only (`0dbc1f5`), matching what the API serializes. The API already accepts `category_codes` and translates legacy input once at the boundary; its negative compatibility tests are pending.
+- Status: integrated from `feat/category-admin-cutover`; full root CI passed after Docker became available
+- Admin category labels: tag names come from the canonical category tree through `useCategoryNames`; a code without a name shows as the code; a failed tree query still lists the suggested codes. The admin API deliberately keeps labels out of the mention DTO: the category tree is the single localized label source, while the mention DTO carries codes, evidence, and diagnostics.
+- Admin unknown-category diagnostics: stored canonical or mapped legacy values remain in `category_codes`; stale or unmapped values are returned as `unknown_category_codes` and rendered in the mentions table instead of being silently dropped.
+- Suggestion payload category codes: web type is `category_codes` only (`0dbc1f5`), matching what the API serializes. The API accepts canonical codes, translates legacy input once at the boundary, rejects mixed legacy/canonical payloads, and reports stale codes.
 - Malformed tree response: a non-array category tree no longer throws during admin render (`8dce30a`, found by the admin integration suite).
 - Refactor note: the web category-name lookup is one path (`categoryNamesByCode`). `flattenCategoryCodes` in documents `filterParams` is a second traversal that returns codes, not names. Left separate because a cross-feature import of a taxonomy util is blocked by the feature-boundary lint rule. Revisit in C9.
 - Legacy taxonomy queries (`useDomainsQuery`, `useLifeSituationsQuery`, `useLifeSituationGroupsQuery`) have no production consumers after this chapter. They are retained until C9 retirement.
-- Manual curation contract: pending
-- Machine contract fixture: pending
-- Completeness/staging internal-only audit: pending
+- Manual curation contract: canonical `category_codes` are validated against the machine vocabulary; unknown codes are rejected and the API boundary reports compatibility errors.
+- Machine contract fixture: canonical category payloads, PVOG provenance, leaf exclusion, and OpenAPI field parity pass.
+- Completeness/staging internal-only audit: pass; completeness remains on internal/admin paths and no public DTO or presentation path was introduced for the diagnostic field.
+- Paired tests: full API suite passed (1,588 tests), and the web admin/suggestion/candidate suite, contract tests, lint, typecheck, format, and build pass.
+- Refactor gate: `CanonicalCodeResolution` centralizes stored-value projection and unknown diagnostics; the admin uses one category-tree label lookup; provenance remains separate from product labels; no boolean taxonomy mode, untyped category/source clump, or completeness threading was added. No further extraction justified.
+- Full `./ci.sh` (2026-11-05): passed after Docker became available; the stale machine-contract fixture was regenerated before the successful rerun.
 
 ### Chapter 7 — Public metadata cleanup
 

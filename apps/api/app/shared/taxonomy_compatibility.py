@@ -33,6 +33,14 @@ class LegacyTranslation:
     situation_codes: tuple[str, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class CanonicalCodeResolution:
+    """Canonical codes and stored values that could not be resolved."""
+
+    codes: tuple[str, ...]
+    unknown_codes: tuple[str, ...]
+
+
 class LegacyTaxonomyAdapter:
     """Resolve the frozen domain, group, and situation compatibility crosswalk."""
 
@@ -74,14 +82,34 @@ class LegacyTaxonomyAdapter:
         situation_codes: Sequence[str],
     ) -> tuple[str, ...]:
         """Translate stored canonical or legacy axis values into canonical category codes."""
+        return self.canonical_code_resolution(
+            domain_codes=domain_codes,
+            situation_codes=situation_codes,
+        ).codes
+
+    def canonical_code_resolution(
+        self,
+        *,
+        domain_codes: Sequence[str],
+        situation_codes: Sequence[str],
+    ) -> CanonicalCodeResolution:
+        """Resolve stored values and retain unknown values for admin diagnostics."""
         axes: tuple[tuple[LegacyAxis, Sequence[str]], ...] = (
             ("domain", domain_codes),
             ("life_situation", situation_codes),
         )
-        return tuple(
-            dict.fromkeys(
-                target for axis, codes in axes for code in codes for target in self._targets_for_stored_code(axis, code)
-            )
+        codes: list[str] = []
+        unknown_codes: list[str] = []
+        for axis, values in axes:
+            for value in values:
+                targets = self._targets_for_stored_code(axis, value)
+                if targets:
+                    codes.extend(targets)
+                else:
+                    unknown_codes.append(value)
+        return CanonicalCodeResolution(
+            codes=tuple(dict.fromkeys(codes)),
+            unknown_codes=tuple(dict.fromkeys(unknown_codes)),
         )
 
     def canonical_scores(

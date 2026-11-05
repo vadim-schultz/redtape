@@ -1,20 +1,6 @@
-import { useDomainsQuery } from "../../taxonomy/hooks/useDomainsQuery";
-import { useLifeSituationsQuery } from "../../taxonomy/hooks/useLifeSituationsQuery";
-import type { Term } from "../../taxonomy/types";
+import { useCategoryNames } from "../../taxonomy/hooks/useCategoryNames";
 
-function namesByCode(terms: Term[] | undefined): Record<string, string> {
-  return Object.fromEntries(
-    (Array.isArray(terms) ? terms : []).map(({ code, name }) => [code, name]),
-  );
-}
-
-/** Display names of the closed domain and life-situation vocabularies, by code; empty while loading. */
+/** Display names of the suggested categories, by code; empty while loading or after a failure. */
 export function useTagNames() {
-  const domains = useDomainsQuery();
-  const situations = useLifeSituationsQuery();
-
-  return {
-    domainNames: namesByCode(domains.data),
-    situationNames: namesByCode(situations.data),
-  };
+  return { categoryNames: useCategoryNames() };
 }

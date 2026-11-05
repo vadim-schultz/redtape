@@ -24,5 +24,17 @@ it("mentionColumns · an empty condition and host render the placeholder", () =>
     <Table items={[mention({ condition: null, portal_url: null })]} />,
   );
 
-  expect(screen.getAllByRole("cell", { name: "—" })).toHaveLength(2);
+  expect(screen.getAllByRole("cell", { name: "—" })).toHaveLength(3);
+});
+
+it("mentionColumns · expose unknown stored category codes as a diagnostic", () => {
+  renderWithProviders(
+    <Table
+      items={[mention({ unknown_category_codes: ["retired-category"] })]}
+    />,
+  );
+
+  expect(
+    screen.getByText("Unknown category code(s): retired-category"),
+  ).toBeInTheDocument();
 });

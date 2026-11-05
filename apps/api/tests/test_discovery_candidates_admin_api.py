@@ -472,3 +472,34 @@ def test_admin_candidate_detail_includes_the_jurisdiction_name(
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
 
     assert body["jurisdiction_name_i18n"] == {"en": "Testland"}
+
+
+def test_admin_candidate_detail_never_suggests_a_pvog_leaf_as_a_category(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    leaf_only = _mention(db_session, candidate, catalogue, "leaf-only")
+    leaf_only.pvog_leaf_code = "1050200"
+    db_session.flush()
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert body["suggested_category_codes"] == []
+    assert body["mentions"][0]["category_codes"] == []
+    assert body["mentions"][0]["pvog_leaf_code"] == "1050200"
+
+
+def test_admin_candidate_detail_reports_unknown_stored_category_codes(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    mention = _mention(db_session, candidate, catalogue, "stale-category")
+    mention.domain_codes = ["moving-house", "retired-category"]
+    db_session.flush()
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert body["mentions"][0]["category_codes"] == ["moving-house"]
+    assert body["mentions"][0]["unknown_category_codes"] == ["retired-category"]

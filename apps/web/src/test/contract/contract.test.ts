@@ -45,7 +45,12 @@ import {
 } from "../../features/suggestions/types";
 
 import { API_SCHEMAS } from "./apiSchemas";
-import { diffEnum, diffFields, type SchemaRegistry } from "./schemaMatch";
+import {
+  diffEnum,
+  diffFields,
+  propertyNames,
+  type SchemaRegistry,
+} from "./schemaMatch";
 
 type Keys<T> = Record<keyof T, true>;
 
@@ -223,6 +228,7 @@ const MENTION: Keys<DiscoveryCandidateMention> = {
   condition: true,
   is_optional: true,
   category_codes: true,
+  unknown_category_codes: true,
   pvog_leaf_code: true,
   direct_category_confidence: true,
   pvog_source_path: true,
@@ -357,3 +363,28 @@ it.fails(
     expectFields(API_SCHEMAS, "TagSupportRead", TAG_SUPPORT);
   },
 );
+
+// The API still accepts these legacy axis inputs on the request body during the compatibility window
+// (ends in chapter 9), translated once at the boundary. The output payloads and candidate contracts must
+// not advertise them; the request schema NewDocumentPayload is deliberately not in the list below.
+const FORBIDDEN_LEGACY_FIELDS = [
+  "domain_codes",
+  "situation_codes",
+  "situation_leaf_codes",
+  "direct_domain_confidence",
+  "direct_situation_confidence",
+];
+
+it.each([
+  ["PreviewedDocumentPayload"],
+  ["PreviewedSuggestion"],
+  ["CandidateMentionItem"],
+  ["CandidateMentionRead"],
+  ["CandidateDetailResponse"],
+  ["CandidateListItemRead"],
+])("contract · %s advertises no legacy axis field", (apiName) => {
+  const advertised = new Set(propertyNames(API_SCHEMAS, apiName));
+  expect(
+    FORBIDDEN_LEGACY_FIELDS.filter((field) => advertised.has(field)),
+  ).toEqual([]);
+});

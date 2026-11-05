@@ -24,6 +24,7 @@ export function mention(
     condition: null,
     is_optional: null,
     category_codes: [],
+    unknown_category_codes: [],
     pvog_leaf_code: null,
     direct_category_confidence: null,
     pvog_source_path: null,
