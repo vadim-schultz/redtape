@@ -1031,7 +1031,7 @@
       "suggestion": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/SuggestionCreate"
+            "$ref": "#/components/schemas/PreviewedSuggestion"
           },
           {
             "type": "null"
@@ -3750,6 +3750,113 @@
       "id"
     ],
     "title": "PipelineEntityRow",
+    "type": "object"
+  },
+  "PreviewedDocumentPayload": {
+    "properties": {
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description_i18n": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pvog_leaf_codes": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "tag_confidence": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "title_i18n"
+    ],
+    "title": "PreviewedDocumentPayload",
+    "type": "object"
+  },
+  "PreviewedSuggestion": {
+    "properties": {
+      "jurisdiction_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/SuggestionKind"
+      },
+      "payload": {
+        "$ref": "#/components/schemas/PreviewedDocumentPayload"
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "kind",
+      "payload"
+    ],
+    "title": "PreviewedSuggestion",
     "type": "object"
   },
   "PvogSourcePath": {

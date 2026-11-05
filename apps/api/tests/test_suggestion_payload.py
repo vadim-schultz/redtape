@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from app.schema.discovery.candidate_emit import PreviewedDocumentPayload
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
 from pydantic import ValidationError
@@ -141,3 +142,10 @@ def test_suggestion_create_rejects_both_jurisdiction_id_and_municipality_code() 
 def test_suggestion_create_rejects_neither_jurisdiction_id_nor_municipality_code() -> None:
     with pytest.raises(ValidationError):
         SuggestionCreate.model_validate(_create_request(jurisdiction_id=None))
+
+
+def test_the_emit_preview_payload_schema_advertises_no_legacy_axis_fields() -> None:
+    advertised = set(PreviewedDocumentPayload.model_json_schema()["properties"])
+
+    assert advertised.isdisjoint({"domain_codes", "situation_codes", "situation_leaf_codes"})
+    assert "category_codes" in advertised
