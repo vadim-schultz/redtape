@@ -149,10 +149,10 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Red happy (no opacity style at 0.1 and at 0.9): red on the existing inline style (`expected '0.55' to be ''`; `expected '0.95' to be ''`).
 - Red negative (no staged wording in `ingress_empty`, `egress_empty`, `flow_empty`; both bundles share keys): pending
 - Green: pending
-- Refactor outcome: pending
-- Gate (web): pending
-- Integration commit: pending
-- Status: planned
+- Refactor outcome: `opacityFor` removed in the same green edit, since typecheck needed it gone. `confidence` stays on `CategoryChipCategory` as shared data (observed). The data-design gate is not applicable.
+- Gate (web and API): the full `./ci.sh` exited 0 on `57eda85` under the shared lock. API 1498 passed and 25 skipped. Web 1060 passed and 1 expected failure. Ingest 1789 passed. The loop CI covering C3 and C6 runs in `.git/ci-logs/integrate-c3-c6.log`.
+- Integration commit: `41cec33` (`merge: integrate C6 chip opacity and staged copy (M4, L4)`).
+- Status: **integrated** (the loop CI covering C3 and C6 is running)
 
 ### C7 — Ingest legacy removal (M6)
 
@@ -268,6 +268,8 @@ Status: planned.
 - **Environment:** `apps/api/.env` points to production. Probe credentials are in `probe.env`, which has no database URL (see C8).
 
 ## Chief-of-staff findings (2026-11-06)
+
+- **Environment leak (incident, 2026-11-06 about 15:00).** The chief of staff sourced `probe.env` into its persistent shell. That exported ten variables: object-store, Cloudflare, and discovery-API values, plus a truncated `DATABASE_URL`. The loop CI for C3 (`.git/ci-logs/integrate-c3.log`, `CI_EXIT=1`) inherited them. Six object-store tests in `test_config_object_store.py` and `test_object_store_probe.py` failed, because the store read as configured. The variables were unset, and the loop CI was rerun with C6. Rule: load secrets only in a subshell that exits after the command.
 
 - **Environment (production database).** `apps/api/.env` sets `DATABASE_URL` to the production Supabase pooler. `app/config.py` loads that file on import. `ci.sh` overrides `DATABASE_URL` for every step, so CI is safe. Any ad-hoc pytest, alembic, or script run must set `DATABASE_URL` explicitly to a local `127.0.0.1` database. Never run a write command without that override.
 - **Deploy path (C14 premise).** `render.yaml` defines the `redtape-api` web service. Its `startCommand` is `sh scripts/start.sh`, and that script runs `alembic upgrade head` on every start. Any Render deploy from `main` therefore runs the C3 retirement migration against production. C14's check "merging to `main` triggers no deploy" is expected to fail. This needs user review before any merge.
