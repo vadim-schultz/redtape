@@ -19,7 +19,7 @@ it("flow diagram shows the empty note without dependencies", () => {
   );
 
   expect(
-    screen.getByText("No dependencies staged for this document"),
+    screen.getByText("No dependencies listed for this document"),
   ).toBeInTheDocument();
   expect(container.querySelector("svg")).toBeNull();
   expect(screen.queryByRole("group")).toBeNull();
@@ -33,7 +33,7 @@ it("flow diagram section shows the diagram when there are neighbours", () => {
 
   expect(container.querySelector("svg")).not.toBeNull();
   expect(
-    screen.queryByText("No dependencies staged for this document"),
+    screen.queryByText("No dependencies listed for this document"),
   ).toBeNull();
 });
 

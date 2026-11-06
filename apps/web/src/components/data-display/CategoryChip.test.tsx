@@ -55,3 +55,21 @@ it("CategoryChip · is not nested inside another interactive element", () => {
   expect(screen.getAllByRole("link")).toHaveLength(1);
   expect(link.querySelector("a")).toBeNull();
 });
+
+it.each([0.1, 0.9])(
+  "CategoryChip · renders no opacity style at confidence %s",
+  (confidence) => {
+    renderWithProviders(
+      <CategoryChip
+        category={{ ...category, confidence }}
+        to="/documents?category=home-and-housing"
+      />,
+    );
+
+    const badge = screen
+      .getByRole("link", { name: "Home & housing" })
+      .closest<HTMLElement>(".chakra-badge");
+
+    expect(badge!.style.opacity).toBe("");
+  },
+);
