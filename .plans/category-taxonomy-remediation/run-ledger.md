@@ -29,7 +29,7 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 | --- | --- | --- |
 | PR 369 merged with a merge commit | Merge commit SHA on `main` | Met. Merge commit `eafd8e85d0d0e884d1042f69162f01f8cf3852ac` (parents `a5322d4` and `ce70420`), merged 2026-11-06T08:17:20Z. The loop branch merged `origin/main` at `855fb77` (no content change; identical tree). |
 | Loop branch `./ci.sh` before C0 | Exit code and failing test names (expected: the seeded round-trip test in C0 scope) | Baseline on `855fb77`: API pytest 1482 passed, 30 skipped. The round-trip test passes here because the developer `redtape` database is seeded, so the C0 failure does not reproduce on this database. Web and discovery-ingest steps: see the final result row below. |
-| Baseline final `./ci.sh` exit code | Exit code | pending (baseline run in progress) |
+| Baseline final `./ci.sh` exit code | Exit code | `./ci.sh` on `855fb77` exited 0: API 1482 passed and 30 skipped; migration round trip passed; web checks passed; discovery-skill checks passed; discovery-ingest 1789 passed. |
 | Production alembic revision | Revision ID; expected to be the revision before `20261105_retire_legacy_taxonomy` (see C13) | pending (C13) |
 | Archive owner and drop date | Name and date supplied by the user | pending (C12 records, C13 confirms) |
 | D-R4 completeness decision | Choice (four or five flags) and the user's confirmation | Four flags, confirmed by the user on 2026-11-06. C5 is unblocked. |
@@ -148,12 +148,13 @@ Each section records: branch or worktree, red happy and negative results, green 
 ### C8 — Compatibility boundary and worker drain (M7)
 
 - Execution: chief-of-staff
-- Worker runs checked (read-only): pending
-- Web bundle versions checked: pending
-- O4 boundary date: pending
-- 404 and 422 window for cached bundles: pending
-- Gate (this ledger entry and the gaps update): pending
-- Status: planned
+- Worker runs checked (read-only, GitHub run-log archives, 29 runs across the five `discovery-*.yml` drains, from 2026-11-01 to 2026-11-06; head SHAs `1599ed9d9`, `7bf01bef4`, `95a15dc31`, `95a361591`, `34cdf08ef`, `199f21ba2`, `a0c03b146`, `a5322d4de`, `eafd8e85d`): 0 log lines contain `domain_codes`, `situation_codes`, or `category_codes`. 15 runs claimed tasks (`"claimed": n` with n > 0). Run logs report counts only, not payloads, so this is **not** payload evidence.
+- Payload evidence (production run records): **pending**. It needs a read-only query against production, which the user has not yet authorised for the chief of staff. See the open items in the gaps file.
+- Web bundle versions checked (read-only HTTP GET): `https://redtape-web.vadim-schultz.workers.dev/` serves `/assets/index-bocpk6rH.js`. It contains no `domain`, `situation`, `group`, or legacy `filter[...]` references. The production API could not be probed from this sandbox (HTTP 403 for `/health` and `/api/v1/categories`), so its boundary state is unverified.
+- O4 boundary date: **release day** (the day PR 370 merges to `main`), chosen by the user on 2026-11-06.
+- 404 and 422 window for cached bundles: open. It is recorded when the payload check is complete.
+- Gate: the payload check and the cached-bundle window remain open. C7 stays blocked until they close.
+- Status: **partial (blocks C7).**
 
 ### C9 — Review-state leaves accepted (M8)
 
