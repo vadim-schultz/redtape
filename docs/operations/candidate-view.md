@@ -28,6 +28,12 @@ other user-facing disclosure. The public confidence circle remains the indirect 
 | `has_snapshot` | A procedure that mentions the candidate has an `html_snapshot`. |
 | `has_screenshot` | A procedure that mentions the candidate has a `screenshot`. |
 
+The denominator is these four flags (decision D-R4, 2026-11-06). The earlier five-flag split, with
+`has_domain` and `has_situation` as separate checks, is retired and not restored. The
+parity test `test_public_order_and_complete_follow_the_four_flag_rule` in
+[`apps/api/tests/test_candidate_completeness.py`](../../apps/api/tests/test_candidate_completeness.py)
+pins the default order, the `sort_by=completeness` order and `filter[complete]` to this rule.
+
 The full rule, including the manual override of the tag consensus, is section 3 of
 [00-architecture.md](../../.plans/candidate-view/00-architecture.md).
 

@@ -17,6 +17,8 @@ from app.models.discovery import DiscoveryCandidateEdge as Edge
 from app.models.discovery import DiscoveryCandidateMention as Mention
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 
+# Four flags by decision D-R4 (2026-11-06). The five-flag split (has_domain, has_situation) stays retired; the parity
+# test in tests/test_candidate_completeness.py pins the public order and the complete value to this rule.
 FLAG_NAMES = ("has_category", "has_edges", "has_snapshot", "has_screenshot")
 
 
