@@ -295,3 +295,25 @@ describe("discovery admin extraction strings", () => {
     );
   });
 });
+
+const EMPTY_STATE_KEYS = ["ingress_empty", "egress_empty", "flow_empty"].map(
+  (key) => `candidates.${key}`,
+);
+
+const STAGED_WORDING = /staged|vorgemerkt|hinterlegt/i;
+
+describe("candidate empty states", () => {
+  it.each(["en", "de"])(
+    "carry no staged wording in the fallback or the API seed for %s",
+    (locale) => {
+      const bundle = fallbackBundle(locale);
+      const seed = readSeed(locale);
+
+      for (const key of EMPTY_STATE_KEYS) {
+        expect(bundle[key], key).toBeTruthy();
+        expect(bundle[key], key).not.toMatch(STAGED_WORDING);
+        expect(seed[key], key).not.toMatch(STAGED_WORDING);
+      }
+    },
+  );
+});
