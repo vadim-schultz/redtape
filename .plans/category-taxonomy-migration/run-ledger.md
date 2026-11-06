@@ -12,7 +12,7 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C10 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 integrated at `d9c9e7b` and merged at `c0919a5` after the full root gate passed. C10 documentation and validation completed on 2026-11-06.
+- Status: C1-C10 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 integrated at `d9c9e7b` and merged at `c0919a5` after the full root gate passed. C10 documentation completed on 2026-11-06; C10 live validation is partial (see the Chapter 10 section and Post-deploy validation).
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
 - Current work: C10 evidence is recorded; the deployed API is still on a pre-cutover version and must be redeployed before the category-specific live gate can pass.
 
@@ -35,7 +35,7 @@
 - Status: integrated at `769019c` (`feat(taxonomy): add the PVOG-grounded category vocabulary`)
 - Vocabulary artifact: `category-contract-v1`; 12 roots and 22 subcategories, 34 categories total
 - PVOG tree/source version: PVOG `v7`; 118 total leaves, 56 citizen leaves, 62 business leaves
-- Root/subcategory review: recorded in `.plans/category-taxonomy-migration/category-contract-v1.json`
+- Root/subcategory review: recorded in the frozen artifact `apps/api/app/shared/taxonomy/category_contract_v1.json` (the `.plans` copy was deleted by the remediation suite, C4)
 - Old-code crosswalk coverage: 31 entries covering 13 domain and 18 life-situation codes
 - Ambiguous/unmapped review list: 14 PVOG review leaves and 10 citizen source-only leaves; business leaves remain excluded
 - Score-combination rule: `max`
@@ -147,6 +147,7 @@
 ### Chapter 9 — Legacy retirement
 
 - Status: integrated at `d9c9e7b`, merged into the loop branch at `c0919a5`.
+- Status reset (remediation C12, 2026-11-06): the `data-retirement` todo is `partial`. The migration is proven on disposable databases only. Production retirement waits for remediation C13 and C14, and no backup exists (remediation D-R1).
 - Runtime and contract reference scan: `test_legacy_reference_scan.py` passes (`2 passed`); active API/web code, contracts, fixtures, and active docs carry no retired route/parameter consumers. Discovery-ingest compatibility readers remain intentionally outside C9 scope.
 - Paired tests: category-only browse, retired route/input rejection, migration/provenance preservation, score parity, OpenAPI and machine-contract fixtures, and web taxonomy retirement pass.
 - Migration gate: disposable `redtape_c9` upgrade/downgrade/upgrade and `alembic check` pass. The local `redtape` database was aligned to the existing additive schema, then upgraded to `20261105_retire_legacy_taxonomy`; final `alembic current` and `alembic check` pass.

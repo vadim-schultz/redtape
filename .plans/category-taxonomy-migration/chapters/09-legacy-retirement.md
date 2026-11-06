@@ -29,7 +29,7 @@ todos:
     status: complete
   - id: data-retirement
     content: "Archive/drop legacy tables and links in a separately reviewed migration with backup and rollback evidence."
-    status: complete
+    status: partial
   - id: tests
     content: "Add no-reference, migration, contract, and post-cutover compatibility tests."
     status: complete
