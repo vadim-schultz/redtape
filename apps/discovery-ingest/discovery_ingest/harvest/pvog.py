@@ -17,11 +17,7 @@ from discovery_ingest.harvest.modules import MODULE_SELECTORS, Found, Module, Mo
 from discovery_ingest.harvest.noise import is_noise
 from discovery_ingest.harvest.text import plain_text
 from discovery_ingest.mentions import MentionDraft
-from discovery_ingest.pvog.category_mapping import (
-    PVOG_CATEGORY_MAPPING_VERSION,
-    PvogCategoryEvidence,
-    category_evidence_for_path,
-)
+from discovery_ingest.pvog.category_mapping import MachineCrosswalk, PvogCategoryEvidence
 from discovery_ingest.pvog.models import PvogSourcePath
 
 EXTRACTOR = "pvog-payload"
@@ -65,16 +61,14 @@ class LeafHints:
     mapping_version: str | None
 
     @classmethod
-    def from_payload(cls, raw_payload: dict[str, object]) -> LeafHints:
-        """Read the stashed PVOG path and map it through the frozen crosswalk."""
+    def from_payload(cls, raw_payload: dict[str, object], crosswalk: MachineCrosswalk) -> LeafHints:
+        """Read the stashed PVOG path and map it through the crosswalk the harvest was given."""
         code = _leaf_code(raw_payload)
         source_path = _source_path(raw_payload)
         if source_path is None:
             return cls(None, None, code, None, None)
-        evidence = category_evidence_for_path(source_path)
-        return cls(
-            *_evidence_fields(evidence), code or source_path.leaf_code, source_path, PVOG_CATEGORY_MAPPING_VERSION
-        )
+        evidence = crosswalk.evidence_for_path(source_path)
+        return cls(*_evidence_fields(evidence), code or source_path.leaf_code, source_path, crosswalk.artifact_version)
 
 
 def _source_path(raw_payload: dict[str, object]) -> PvogSourcePath | None:
@@ -128,7 +122,7 @@ class PvogDrafter:
         )
 
 
-def harvest_pvog_payload(raw_payload: dict[str, object]) -> list[MentionDraft]:
-    """Return the document mentions in ``raw_payload.details``, in module and document order."""
-    drafter = PvogDrafter(_locale(raw_payload), LeafHints.from_payload(raw_payload))
+def harvest_pvog_payload(raw_payload: dict[str, object], crosswalk: MachineCrosswalk) -> list[MentionDraft]:
+    """Return the document mentions in ``raw_payload.details``, in module and document order, mapped through ``crosswalk``."""
+    drafter = PvogDrafter(_locale(raw_payload), LeafHints.from_payload(raw_payload, crosswalk))
     return [draft for module in selected_modules(raw_payload) for draft in drafter.module_drafts(module)]

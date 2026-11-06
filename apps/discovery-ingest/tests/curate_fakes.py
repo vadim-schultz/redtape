@@ -12,6 +12,8 @@ from typing import Any
 import httpx
 import pytest
 
+from crosswalk_fakes import VOCABULARY
+
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
 _REAL_HTTPX_CLIENT = httpx.Client
@@ -32,10 +34,6 @@ STAGED = {
     MELDE: ("Meldebescheinigung", ["issued"]),
     AUSWEIS: ("Personalausweis", ["required"]),
     ANMELDUNG: ("Anmeldung einer Wohnung", ["form", "required"]),
-}
-TAXONOMY = {
-    "domains": [{"code": "identity-civil-status", "name_i18n": {"de": "Identität"}, "description_i18n": {}}],
-    "situations": [{"code": "moving-house", "name_i18n": {"de": "Umzug"}, "description_i18n": {}}],
 }
 
 
@@ -60,7 +58,7 @@ class Api:
         self.requests.append(request)
         path = request.url.path.removeprefix("/api/v1/discovery/machine")
         routes = {
-            ("GET", "/taxonomy"): lambda: httpx.Response(200, json=TAXONOMY),
+            ("GET", "/taxonomy"): lambda: httpx.Response(200, json=VOCABULARY),
             ("GET", "/candidates/"): lambda: self._staged(),
             ("GET", "/candidates/sources"): lambda: self._sources(request),
             ("GET", "/artifacts"): lambda: self._artifacts(),

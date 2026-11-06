@@ -5,12 +5,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+import httpx
+
 from discovery_ingest.candidate_sources import CandidateSourcePage, SourceQuery
+from discovery_ingest.client.errors import DiscoveryMachineApiError
 from discovery_ingest.client.http_client import MachineHttpClient
 from discovery_ingest.edges import EdgeItem, EdgesRequest, EdgesResponse
 from discovery_ingest.emit_models import CandidatePage, EmitPreview, EmitRequest, EmitResponse
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.mentions import MentionItem, MentionsRequest, MentionsResponse
+from discovery_ingest.pvog.category_mapping import CrosswalkError, MachineCrosswalk
+from discovery_ingest.pvog.crosswalk_check import parse_crosswalk
 
 
 class CandidatesAPI:
@@ -64,3 +69,11 @@ class CandidatesAPI:
     def taxonomy(self) -> Taxonomy:
         """Return the closed domain and life-situation vocabulary workers tag pages with."""
         return self._http.request_model(Taxonomy, "GET", "/taxonomy")
+
+    def crosswalk(self) -> MachineCrosswalk:
+        """Fetch the machine taxonomy once and return its validated PVOG crosswalk; an unreachable or invalid one raises :class:`CrosswalkError`."""
+        try:
+            body = self._http.request("GET", "/taxonomy").json()
+        except (DiscoveryMachineApiError, httpx.HTTPError, ValueError) as err:
+            raise CrosswalkError(f"machine taxonomy unavailable: {err}") from err
+        return parse_crosswalk(body)

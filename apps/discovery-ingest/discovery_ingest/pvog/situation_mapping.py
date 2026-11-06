@@ -1,4 +1,4 @@
-"""PVOG leaf-to-category evidence from the frozen taxonomy contract.
+"""PVOG leaf-to-situation tables from the human sign-off, kept as the situation-axis reference data.
 
 Built from the human sign-off in ``.plans/situation-tag-coverage/lr3-personal-matters-mapping.md``'s
 "Human sign-off" section (recorded as decision T4 in that suite's ``gaps-and-decisions.md``): widen the
@@ -7,28 +7,16 @@ plausible situation code for a bundled leaf instead of excluding it.
 
 32 citizen-branch leaves map to 17 of the 18 situation codes; ``going-self-employed`` has no citizen-branch
 PVOG leaf at all (its only analogue is the out-of-scope business branch) and stays unmapped.
+
+The category crosswalk is not here: it is served by the machine taxonomy and read through
+:mod:`discovery_ingest.pvog.category_mapping`.
 """
 
 from __future__ import annotations
 
-from discovery_ingest.pvog.category_mapping import (
-    PERSONAL_MATTER_CATEGORY_CONFIDENCE,
-    PERSONAL_MATTER_TO_CATEGORY,
-    PVOG_CATEGORY_MAPPING_VERSION,
-    CategoryEvidenceState,
-    PvogCategoryEvidence,
-    category_evidence_for_path,
-)
-
 __all__ = [
-    "CategoryEvidenceState",
-    "PERSONAL_MATTER_CATEGORY_CONFIDENCE",
     "PERSONAL_MATTER_CLARITY",
-    "PERSONAL_MATTER_TO_CATEGORY",
     "PERSONAL_MATTER_TO_SITUATION",
-    "PVOG_CATEGORY_MAPPING_VERSION",
-    "PvogCategoryEvidence",
-    "category_evidence_for_path",
 ]
 
 PERSONAL_MATTER_CLARITY: dict[str, float] = {

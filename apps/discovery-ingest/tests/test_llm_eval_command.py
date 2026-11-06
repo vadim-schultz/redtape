@@ -16,6 +16,7 @@ from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.operations import eval as evaluation
 from discovery_ingest.operations.eval import EvalRuntime
 
+from crosswalk_fakes import CROSSWALK, VOCABULARY
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold, write_long_gold
 from ledger_fakes import FakeLedger, guard_for
 from llm_fakes import taxonomy
@@ -40,7 +41,7 @@ def _wire(
 ) -> FakeLedger:
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
-    runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
+    runtime = EvalRuntime(llm, guard, vocabulary or taxonomy(), CROSSWALK)
     monkeypatch.setattr(evaluation, "_runtime", lambda _settings, _model, _stack: runtime)
     return ledger
 
@@ -304,7 +305,7 @@ def _router(monkeypatch: pytest.MonkeyPatch, ledger: FakeLedger, cloudflare: Cal
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "redtape.test" and request.url.path.endswith("/taxonomy"):
-            return httpx.Response(200, json=taxonomy().model_dump(mode="json"))
+            return httpx.Response(200, json=VOCABULARY)
         if request.url.host == "redtape.test":
             return ledger(request)
         return cloudflare(request.content.decode())
@@ -432,7 +433,11 @@ def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cle
     """eval · with no --gold-dir the 20 real pages run; the empty shell is not sent; a silent model scores recall 0."""
     silent = {"page_kind": "other", "category_codes": [], "documents": [], "dependencies": []}
     llm = FakeLlm({"<page>": silent})
-    _wire(monkeypatch, llm, vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8")))
+    _wire(
+        monkeypatch,
+        llm,
+        vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8"), context=CROSSWALK),
+    )
 
     code = main(
         ["llm", "eval", "--model", MODEL, "--cache-dir", str(tmp_path / "cache"), "--out", str(tmp_path / "out.json")]

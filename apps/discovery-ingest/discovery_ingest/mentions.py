@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
+from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
 from discovery_ingest.pvog.models import PvogSourcePath
 
 MentionRole = Literal["required", "form", "issued"]
@@ -40,8 +40,8 @@ class MentionDraft(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate old axis fields once while old workers drain."""
+    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
+        """Translate old axis fields once while old workers drain, through the crosswalk given as context."""
         if not isinstance(value, dict):
             return value
         legacy_fields = {"domain_codes", "situation_codes", "direct_domain_confidence", "direct_situation_confidence"}
@@ -49,9 +49,10 @@ class MentionDraft(BaseModel):
             return value
         if "category_codes" in value:
             raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
+        crosswalk = crosswalk_from(info)
         domains = tuple(value.get("domain_codes") or ())
         situations = tuple(value.get("situation_codes") or ())
-        categories = categories_for_legacy_codes("domain", domains) + categories_for_legacy_codes(
+        categories = crosswalk.legacy_categories("domain", domains) + crosswalk.legacy_categories(
             "life_situation", situations
         )
         direct = max(

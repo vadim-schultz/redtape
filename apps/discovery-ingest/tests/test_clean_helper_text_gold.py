@@ -8,12 +8,14 @@ from discovery_ingest.extract.clean import clean_page
 from discovery_ingest.extract.llm.evaluation.gold import GoldPage, load_gold
 from discovery_ingest.extract.llm.evaluation.metrics import cleaner_recall
 
+from crosswalk_fakes import CROSSWALK
+
 GOLD_DIR = Path(__file__).parent / "fixtures" / "gold"
 LABEL = "positiv:"
 
 
 def _arbeitsagentur_pages() -> list[GoldPage]:
-    return [page for page in load_gold(GOLD_DIR) if "arbeitsagentur.de" in page.source_url]
+    return [page for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if "arbeitsagentur.de" in page.source_url]
 
 
 def _cleaned(page: GoldPage) -> str:
@@ -30,7 +32,7 @@ def test_the_committed_arbeitsagentur_gold_pages_no_longer_contain_the_positiv_l
 
 def test_dropping_helper_text_keeps_every_gold_name_and_leaves_no_real_page_empty() -> None:
     """gold set · cleaner_recall stays 47 of 47 and only the un-rendered shell cleans to nothing."""
-    pages = load_gold(GOLD_DIR)
+    pages = load_gold(GOLD_DIR, crosswalk=CROSSWALK)
     recall = cleaner_recall([([d.name for d in page.documents], _cleaned(page)) for page in pages])
 
     assert recall == 1.0
