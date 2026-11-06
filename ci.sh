@@ -3,6 +3,24 @@ set -e  # Exit on any error
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# True when both the Docker CLI and the compose plugin are usable.
+have_docker_compose() {
+  command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1
+}
+
+# Drop and recreate a database on the compose `db` service, so the step that
+# uses it starts from an empty schema.
+recreate_ci_database() {
+  local name="$1"
+  if have_docker_compose; then
+    (cd "$ROOT" && docker compose exec -T db psql -U postgres \
+      -c "DROP DATABASE IF EXISTS ${name};" \
+      -c "CREATE DATABASE ${name};")
+  else
+    echo "Docker not found; skipping ${name} database (re)creation, the step that uses it may fail." >&2
+  fi
+}
+
 echo "=== API Checks ==="
 cd apps/api
 
@@ -31,7 +49,7 @@ PYTHONPATH=. \
 # compose db); start it if nothing is listening on 5432 yet. Without Docker,
 # tests fall back to skipping — export REQUIRE_DB=0 to silence the reason.
 if ! (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
-  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  if have_docker_compose; then
     echo "Postgres not reachable on 5432; starting 'docker compose up -d --wait db'..."
     (cd "$ROOT" && docker compose up -d --wait db)
   else
@@ -41,23 +59,22 @@ fi
 
 # Migration round trip: single head, upgrade, downgrade+upgrade, drift check.
 # Own database, dropped and recreated so it starts truly empty — separate
-# from the pytest database above, so a stray `create_all` can't hide a
-# missing migration.
+# from the pytest database, so a stray `create_all` can't hide a missing
+# migration.
 MIGRATIONS_DB="redtape_migrations"
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  (cd "$ROOT" && docker compose exec -T db psql -U postgres \
-    -c "DROP DATABASE IF EXISTS ${MIGRATIONS_DB};" \
-    -c "CREATE DATABASE ${MIGRATIONS_DB};")
-else
-  echo "Docker not found; skipping migration database (re)creation, check_migrations.sh may fail." >&2
-fi
+recreate_ci_database "${MIGRATIONS_DB}"
 
 PYTHONPATH=. \
   DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/${MIGRATIONS_DB}" \
   uv run bash scripts/check_migrations.sh
 
+# Pytest database: own database, dropped and recreated so every run starts
+# empty. Tests never touch the developer's `redtape` database.
+PYTEST_DB="redtape_pytest"
+recreate_ci_database "${PYTEST_DB}"
+
 PYTHONPATH=. \
-  DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape" \
+  DATABASE_URL="postgresql+psycopg://postgres:postgres@127.0.0.1:5432/${PYTEST_DB}" \
   REQUIRE_DB="${REQUIRE_DB:-1}" \
   uv run pytest
 

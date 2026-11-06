@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from litestar import Litestar
 from litestar.testing import TestClient
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 from auth_support import use_jwt_verifier
@@ -226,8 +227,9 @@ def test_ignores_client_supplied_status_and_submitter_fields(
 
 
 def test_category_codes_round_trip_with_their_confidence_and_pvog_leaf_codes(
-    client: TestClient[Litestar], country: Jurisdiction
+    client: TestClient[Litestar], country: Jurisdiction, db_session: Session
 ) -> None:
+    seed_canonical_taxonomy(db_session)
     token = _token_for()
     payload = {
         "title_i18n": {"en": "Residency permit"},
