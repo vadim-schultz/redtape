@@ -8,6 +8,7 @@ catalogue batch (C2).
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 
 import pytest
 from app.features.discovery.candidate_emit_skip import EmitSkip
@@ -128,8 +129,11 @@ def test_emit_catalogue_keeps_earlier_suggestions_when_a_later_insert_hits_integ
     db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     catalogue = _catalogue(db_session)
-    _new_document_claim(db_session, catalogue, url="https://example.gov/first", title="First")
+    first = _new_document_claim(db_session, catalogue, url="https://example.gov/first", title="First")
     later = _new_document_claim(db_session, catalogue, url="https://example.gov/later", title="Later")
+    # Both claims share one transaction timestamp, so emit order would fall back to random UUIDs.
+    later.created_at = first.created_at + timedelta(seconds=1)
+    db_session.flush()
     api_key = _api_key(db_session)
     replay = Suggestion(
         kind=SuggestionKind.NEW_DOCUMENT,
