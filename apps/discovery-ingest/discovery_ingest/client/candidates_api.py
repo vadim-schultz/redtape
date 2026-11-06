@@ -67,7 +67,7 @@ class CandidatesAPI:
         return self._http.request_model(CandidateSourcePage, "GET", "/candidates/sources", params=params)
 
     def taxonomy(self) -> Taxonomy:
-        """Return the closed domain and life-situation vocabulary workers tag pages with."""
+        """Return the active canonical category vocabulary, with source parent codes, that workers tag pages with."""
         return self._http.request_model(Taxonomy, "GET", "/taxonomy")
 
     def crosswalk(self) -> MachineCrosswalk:
