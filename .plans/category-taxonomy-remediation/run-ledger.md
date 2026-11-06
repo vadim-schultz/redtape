@@ -15,9 +15,9 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 - **Integration order:** C0, C1, C2, C4, C6, C9, C8, C7, C3, C11, C5, C10, C12, C13, C14
 - **Parallel batches:** B0 = C0 (C8 at any time before C7); B1 = C1, C6 (C5 when unblocked); B2 = C2, C4, C9; B3 = C3, C7, C11, C5; B4 = C10; B5 = C12; B6 = C13; B7 = C14
 - **Environment:** corporate build block, [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), passed to every implementer. `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate mirror. Revert that file before committing.
-- **Status:** in progress. Integrated on the loop so far: C0, C1, C2, C4, C5, C9. The loop tip is `d12da5f`.
-- **Running:** C3 (`.worktrees/ct-c3`, from `74e0b61`) and C6 (`.worktrees/ct-c6`, relaunched, from `74e0b61`). C11 (`.worktrees/ct-c11`, from `d12da5f`).
-- **Blocked:** C7 (waits on C8's payload evidence). C8 is partial. C10, C12, C13 depend on C7 or on production access. C14 needs user approval.
+- **Status:** in progress. Integrated on the loop: C0, C1, C2, C3, C4, C5, C9. The loop tip is `51cc760`. The loop CI after C3 is running.
+- **Running:** C6 follow-up commit (approved touch extension, see the C6 section). C11 (`.worktrees/ct-c11`, from `d12da5f`).
+- **Blocked:** C7 (waits on C8's payload evidence, which needs a database path from a machine that can reach Supabase). C10, C12, and C13 depend on C7 or on production access. C14 needs user approval.
 - **Worktree location:** `.worktrees/ct-cN`, not `.claude/worktrees/`. Reason: each worktree's Python venv holds about 1,980 `*.json` files, and the sandbox deny-glob `**/.claude/*.json` pushed the mount count past its 4,096 limit. Finished worktrees were removed with user approval, and their branches were kept.
 - **Isolation:** each implementer gets a worktree `.claude/worktrees/ct-cN` on branch `feat/ct-remediation-cN`, created from the loop branch tip. Chief of staff integrates with `git merge --no-ff` in the declared integration order. Implementers never push or merge to the loop branch.
 - **CI serialization:** `flock .git/redtape-ci.lock ./ci.sh` for every full local CI run, because all worktrees share the Postgres container and the `redtape_migrations` database.
@@ -66,6 +66,8 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Refactor outcome: `ci.sh` gained `have_docker_compose` and `recreate_ci_database`, so the migration and pytest databases share one drop/create path and one Docker check. Seeding appears once, in the round-trip test, with no shared fixture. The implementer's own refactor report is pending.
 - Gate (fresh-database file run, `./ci.sh`): the full `./ci.sh` on the loop branch after integration exited 0. API: 1482 passed and 30 skipped. Migration round trip passed. Web: 1056 passed, 1 expected failure. Discovery skill checks passed. Discovery-ingest: 1789 passed.
 - Integration commit: `f134b02` (`merge: integrate C0 CI baseline`, merging `feat/ct-remediation-c0`).
+- Implementer report (received): the implementer's `./ci.sh` run exited 0. It removed the developer `redtape` database from the pytest path, and that database's counters and alembic head were unchanged.
+- Deviations to route: `docs/operations/local-development.md` (around lines 90 to 93) says `./ci.sh` and GitHub Actions target `redtape`. It is outside C0's touches, so C12 or a follow-up fixes it. `.github/workflows/api-lint-test.yml` still runs pytest against `redtape` in a throwaway service container. The round-trip test seeds itself, so it passes there too. This is a user decision (align the workflow or leave it). Without Docker, `ci.sh` now needs an existing `redtape_pytest` database.
 - Status: **integrated**
 
 ### C1 — Contract artifact under `apps/api`
@@ -78,7 +80,9 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Refactor outcome: implementer report pending.
 - Gate: loop `./ci.sh` after integrating C1 and C5 exited 0.
 - Integration commit: `e51ad3a` (`merge: integrate C1 contract artifact under apps/api`).
-- Status: **integrated**. The implementer's written report is still pending.
+- Implementer report (received): the full `./ci.sh` exited 0 on `3b2b6ca`. Red happy: `ImportError: scripts import blocked`. Red negative: the loader entry point did not exist yet (a missing-behaviour failure, not the chapter's "missing module" wording). Transitional guard: `FileNotFoundError`. Green: 12 tests in `test_seed_taxonomy.py`. Both artifact copies share one sha256. The refactor split the loader into phases, extracted named validator checks (31-case old-versus-new harness, 0 mismatches), and tightened the scripts facade's return type. A data-design gate ran (DD1 accepted risk: two copies until C4; DD21 and DD30 clean).
+- Follow-ups deferred (not a correctness failure): (1) `app/schema/suggestion/payload.py` and `tests/test_discovery_taxonomy_route.py` still read `ACTIVE_CATEGORY_CODES` at import time, so importing `payload.py` loads the artifact eagerly. The fix is to call `active_category_codes()` at use time. Both files are outside C1's touches. (2) `scripts/seed_data/taxonomy.py` still validates at import (around lines 427 to 434). (3) `category_types.py` moved into `app/shared/taxonomy/` (accepted, since the loader needs it and `app` cannot import `scripts`). These are tracked for a C1 follow-up after the pipeline finishes.
+- Status: **integrated**
 
 ### C2 — Replay merge rule (M1)
 
@@ -95,13 +99,19 @@ Each section records: branch or worktree, red happy and negative results, green 
 ### C3 — Retirement migration gate (H1)
 
 - Branch or worktree: pending
-- Red happy (pre-retirement database upgrades; archive equals source): pending
-- Red negative (unmapped code aborts; checksum mismatch aborts): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate (disposable databases only): pending
-- Integration commit: pending
-- Status: planned
+- Red happy (pre-retirement database upgrades; archive equals source): red on the missing `archive_checksum` evidence column. The earlier assertions passed.
+- Red negative (unmapped code aborts; checksum mismatch aborts): both red. The upgrade exited 0 with no gate, and with no verification. Green after the change: `BackfillGateError` for unmapped, and `ArchiveMismatchError` naming `domain` for the checksum case. Legacy tables and archive stay intact in both.
+- Green: 8 of 8 tests in `test_legacy_taxonomy_migration.py` pass. The tests run the real Alembic chain on loopback-only disposable databases (`redtape_mig_c3_*`).
+- Refactor outcome: `_failing_counts` extracted from `_gate_backfill`. The mention table name is defined once in the archive module. The mention-axis profile moved out of the preflight, so legacy column names stay in the allowlisted module. The six explicit `add_column` and `drop_column` calls stay, because a helper needs a generic `TypeEngine` parameter and the downgrade test pins the shape.
+- Changes beyond the chapter text (accepted by the chief of staff): (1) a `LOCK TABLE … ACCESS EXCLUSIVE` before the archive copy. A race test showed a row committed between copy and drop was dropped unarchived. (2) An archive checksum recorded in `retirement_evidence`, so the proof survives the dropped source tables. (3) Step order is archive, verify, project, backfill, gate, drop. Projection reads the legacy mention columns and must run before the drop.
+- Data-design gate findings: DD8 (re-upgrading a database that ran an earlier revision fails loudly on insert) accepted. DD32 (downgrade restores no data; the archive is the only copy) accepted. DD3 (fingerprints sort every row; revisit above about 1e6 rows in C13) accepted. DD30 (no tested restore path from the archive) observed, for C12 and C13. DD28 (the migration runs on every app start) observed, for C14.
+- Open question for the user (before C13 and C14): a downgrade followed by an upgrade on a populated database aborts at verification, because the source is empty after the downgrade while the archive keeps its rows. This is safe, but a populated round trip needs the data restored first. `check_migrations` only tests empty databases.
+- Chapter references that did not match the repo (C12 to fix): the chapter names revision `20261104_category_taxonomy_backfill`, but the real ID is `20261104_category_backfill`. The chapter names `tests/legacy_tables.py`, which does not exist. The tests use the real chain instead.
+- Reference scan (C10 to decide): `tests/test_legacy_reference_scan.py` flags the preflight for legacy column names. Its allowlist covers only the archive module, which is outside C3's touches.
+- Stray database: `redtape_mig_c3_dbg` remains on the shared container. The chief of staff could not drop it, because it is outside the authorised names. The user should drop it.
+- Gate: full `./ci.sh` exited 0 on `36346e8` (log `.git/ci-logs/ct-c3-20261106-135009.log`). API 1506 passed and 25 skipped. Web 1056 passed, 1 expected failure. Ingest 1789 passed. The loop CI after integration is running (`.git/ci-logs/integrate-c3.log`).
+- Integration commit: `51cc760` (`merge: integrate C3 retirement migration gate (H1)`), merge of `feat/ct-remediation-c3` (`36346e8`).
+- Status: **integrated (loop CI running)**
 
 ### C4 — Machine crosswalk and ingest fetch (M2, ingest half)
 
@@ -122,19 +132,21 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 - Branch or worktree: `feat/ct-remediation-c5`, commits `5986826`, `4472132`, `bf34b50`. Integrated in `8af6ce1`. The worktree was removed after integration. The branch is kept.
 - Blocked until: D-R4 confirmed by user. **Unblocked** on 2026-11-06 (four flags).
-- Red happy (parity fixture for public order and `complete`): the commit `5986826` pins public order and `complete` to four flags. The implementer's red report is pending.
-- Red negative (invalid `filter[complete]` returns 422): pending the implementer's report.
-- Green: the code change is in `candidate_completeness_flags.py` (2 lines). The bulk is the test file (152 lines) and `docs/operations/candidate-view.md` (6 lines).
-- Refactor outcome: `bf34b50` splits the parity world artifacts and the four-flag reference. The full report is pending.
-- Ordering report (before and after, five and four flags): pending the implementer's report.
+- Red happy (parity fixture for public order and `complete`): the four-flag rule was already on the loop, so the test passed on its first run. Red was shown with a temporary five-flag mutation (an axis split in `candidate_completeness.py`). The test failed with `assert {'alpha'} == {'alpha', 'india'}`. The mutation was reverted. A cruder mutation (counting `has_category` twice) passed, so the axis split is the one that matters. This is a recorded deviation: no red against unchanged code.
+- Red negative (invalid `filter[complete]` returns 422): passes on the first run. `filter[complete]=maybe` and `=true` return 422 naming the parameter. An existing test in `test_candidates_public_api.py` already covers the contract. No mutation was run.
+- Green: 3 new tests pass. `pytest` on both completeness files: 46 passed.
+- Refactor outcome: the test helpers were split (`_add_artifacts`, flat artifact pairs, `_four_flags`). Production code needed no change. The test file is 313 lines (was 163), above the ~100-line guideline. Splitting it needs a file outside the touch set, so it is left for the user to decide.
+- Ordering report (five flags versus four, 9 candidates, 7 procedures). Default order: four flags gives charlie, bravo, alpha, delta, india, echo, hotel, foxtrot, golf. Five flags gives bravo, charlie, alpha, delta, india, echo, hotel, foxtrot, golf. `sort_by=completeness` desc: four flags gives alpha, india, delta, echo, hotel, charlie, bravo, foxtrot, golf. Five flags gives alpha, india, bravo, delta, echo, hotel, charlie, foxtrot, golf. `filter[complete]=yes`: four flags gives alpha and india. Five flags gives alpha only. Derivation: the five-flag numbers come from the pre-C9 rule (`9d628df^`), not from running legacy code. `public_order.py` and `candidate_sort.py` are unchanged, so only the completeness definition differs. Confidence is assumed unchanged.
+- Deviation to route: `task_page_completeness.py` keeps its own copy of `FLAG_NAMES` (outside the touch set, observed only).
 - Gate: loop `./ci.sh` after integration exited 0. The implementer's `./ci.sh` also exited 0 (`.git/ci-logs/c5-ci-final-bf34b50-110312.log`).
 - Integration commit: `8af6ce1` (`merge: integrate C5 four-flag completeness parity`).
-- Status: **integrated** (implementer report pending)
+- Status: **integrated**
 
 ### C6 — Chip opacity and staged copy (M4, L4)
 
-- Branch or worktree: pending
-- Red happy (no opacity style at 0.1 and at 0.9): pending
+- Branch or worktree: `feat/ct-remediation-c6`, commits `422f822` (chip opacity) and `21aa8a5` (staged copy). The worktree is at `.worktrees/ct-c6`. Not integrated yet. The chapter's touches did not cover two tests that pin the removed behaviour: `DocumentTags.test.tsx` (opacity 0.7) and `FlowSection.test.tsx` (old `flow_empty` copy). The chief of staff extended touches to those two files on 2026-11-06, limited to updating those assertions. A verified patch is at `.git/ci-logs/c6-out-of-touches.patch`. A follow-up commit applies it.
+- Wording (needs user review, not blocking): the implementer chose the English copy "No documents listed" (`ingress_empty` and `egress_empty`) and "No dependencies listed for this document" (`flow_empty`). German flow is "Für dieses Dokument sind keine Abhängigkeiten aufgeführt". German ingress and egress had no staged wording, so they are unchanged. The chapter does not specify the wording.
+- Red happy (no opacity style at 0.1 and at 0.9): red on the existing inline style (`expected '0.55' to be ''`; `expected '0.95' to be ''`).
 - Red negative (no staged wording in `ingress_empty`, `egress_empty`, `flow_empty`; both bundles share keys): pending
 - Green: pending
 - Refactor outcome: pending
@@ -157,7 +169,8 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 - Execution: chief-of-staff
 - Worker runs checked (read-only, GitHub run-log archives, 29 runs across the five `discovery-*.yml` drains, from 2026-11-01 to 2026-11-06; head SHAs `1599ed9d9`, `7bf01bef4`, `95a15dc31`, `95a361591`, `34cdf08ef`, `199f21ba2`, `a0c03b146`, `a5322d4de`, `eafd8e85d`): 0 log lines contain `domain_codes`, `situation_codes`, or `category_codes`. 15 runs claimed tasks (`"claimed": n` with n > 0). Run logs report counts only, not payloads, so this is **not** payload evidence.
-- Payload evidence (production run records): **blocked.** The user approved read-only use of `/home/schult_v/.config/redtape/probe.env`. That file has no database URL. It holds the discovery API URL and key, Cloudflare tokens, and object-store credentials. The only database URL in the workspace is `apps/api/.env`, which the user has not approved for this check. The chief of staff did not use it.
+- Payload evidence (production run records): **blocked by network.** The user added a read-only `DATABASE_URL` to `probe.env` on 2026-11-06. The first paste was truncated (no host). The corrected value parses (host, `sslmode=require`). The probe script is `.git/ci-logs/c8_probe.py`. It sets READ ONLY transactions, prints only aggregates, and never prints the URL. Connections to the Supabase pooler timed out on port 5432 and on port 6543, both from the sandbox and outside it. Port 443 is open. So the chief of staff cannot reach the database from this environment. The user must run the probe from a machine that can reach it, or the query must run in the Supabase SQL editor. The probe does not use `apps/api/.env`.
+- Credential hygiene: the database password was pasted into chat on 2026-11-06. Rotate it once the probe and C13 are done.
 - Web bundle versions checked (read-only HTTP GET): `https://redtape-web.vadim-schultz.workers.dev/` serves `/assets/index-bocpk6rH.js`. It contains no `domain`, `situation`, `group`, or legacy `filter[...]` references. The production API could not be probed from this sandbox (HTTP 403 for `/health` and `/api/v1/categories`), so its boundary state is unverified.
 - O4 boundary date: **release day** (the day PR 370 merges to `main`), chosen by the user on 2026-11-06.
 - 404 and 422 window for cached bundles: open. It is recorded when the payload check is complete.
@@ -248,6 +261,10 @@ Status: planned.
 - **D-R13** leaves `1040100` and `1060700`: keep their targets, and exempt them from harvest evidence by name. User decision.
 - **Accepted, not a user question:** C9 made an identical edit to the `.plans` copy so the byte-equality guard stayed green. C4 deleted that copy. `pvog_review_leaves` changed from 14 to 0, as a consequence of the state change. `machine_vocabulary.json` was regenerated for the same reason.
 - **Accepted deviation:** C2's negative test was not red on unchanged code (see the C2 section).
+- **Chief-of-staff decision (2026-11-06):** C6's touches are extended to `DocumentTags.test.tsx` and `FlowSection.test.tsx`, limited to updating the assertions that pin the removed behaviour. Reason: both tests assert the exact behaviour the chapter removes, and CI cannot pass without the change.
+- **Pending user review:** the English and German empty-state wording chosen in C6 (see the C6 section).
+- **Pending user decisions:** (1) whether to align `.github/workflows/api-lint-test.yml` with `ci.sh` (C0). (2) How C8's payload check gets a database path (see C8). (3) Whether to drop the stray database `redtape_mig_c3_dbg` (C3). (4) Whether a populated downgrade-and-upgrade round trip is acceptable (C3). (5) Whether to split the C5 test file, now 313 lines (C5).
+- **Deferred follow-ups:** C1 eager artifact load in `payload.py` and `test_discovery_taxonomy_route.py`, plus the import-time validation in `scripts/seed_data/taxonomy.py`. C0 docs in `docs/operations/local-development.md` (route to C12).
 - **Environment:** `apps/api/.env` points to production. Probe credentials are in `probe.env`, which has no database URL (see C8).
 
 ## Chief-of-staff findings (2026-11-06)
