@@ -182,7 +182,7 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Compatibility: `main`'s ingest never reads the served crosswalk, and it reads `categories` from `/machine/taxonomy`, which is unchanged. The API change cannot break a `main` worker. The new ingest works with the old and the new API, because it ignores the legacy key. Accepted risk: a pre-C7 C4-era ingest build against the new API would break. None is deployed. The trigger is any such build deployed after this API.
 - Data-design gate: DD8 and DD6 are accepted risks with the trigger above. DD9 and DD10 are clean. The retired-input refusal is observed and waits on the C12 docs.
 - Open: the shared-container database `redtape_pytest_c7` is still there. The user can drop it.
-- Integration commit: `87bc1ed` (`merge: integrate C7 ingest legacy removal (M6)`). The loop CI for C7 is running (`.git/ci-logs/integrate-c7.log`).
+- Integration commit: `87bc1ed` (`merge: integrate C7 ingest legacy removal (M6)`). The first loop CI run (`.git/ci-logs/integrate-c7.log`) exited 1 on the `ColorModeSwitch` flake. The rerun (`.git/ci-logs/integrate-c7-rerun.log`) exited 0 (`CI_EXIT=0`, ingest 1818 passed, web 1062 passed with 1 expected fail).
 - Status: **integrated**. C8 is closed by drain (see above), so the C8 precondition is met.
 
 ### C8 — Compatibility boundary and worker drain (M7)
@@ -262,9 +262,9 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Skipped retired modules, decision needed (not C12): `apps/api/tests/test_document_service.py`, `test_document_repository.py`, and `test_remove_seeded_documents_migration.py` are `pytestmark`-skipped. No chapter owns their deletion, so this is a follow-up for the user.
 - Refactor outcome: the stale check was split into `_missing_file_problem` and `_uncovered_problem`. The directory walk became one loop with a generator filter. Duplicate read-and-split became `_read_lines`, and duplicate regex application became `_matches`. One line covered by two allowances was fixed with an anchored pattern. The module is about 480 lines, mostly the table. It was not split, because a new file would be outside the touches.
 - Gate: `uv run pytest tests/test_legacy_reference_scan.py` passed 7 tests. Ruff format, ruff check, and mypy passed. The full `./ci.sh` under the shared lock exited 0 (API 1517 passed and 25 skipped, web 1062 passed and 1 expected fail, ingest 1818 passed). The ci run used `COMPOSE_PROJECT_NAME=redtape`, because the worktree directory name differs from the compose project.
-- Integration: pending. The merge waits for the C7 loop CI rerun, which holds the shared lock. The C10 branch was merge-tree clean against the loop at `1567229`.
+- Integration commit: `d35cd22` (`merge: integrate C10 reference scan and gates (M5)`). The loop CI for C10 is running (`.git/ci-logs/integrate-c10.log`).
 - Left behind: `redtape_pytest_c10` on the shared container, and a pre-format copy at `/tmp/c10_before_fmt.py`, outside the workspace.
-- Status: **committed on branch; integration pending.**
+- Status: **integrated** (the loop CI result is pending).
 
 ### C11 — API and web spec cleanup (L5, L6, L7)
 
