@@ -16,7 +16,7 @@ from app.features.discovery.repository.candidate_completeness import (
 )
 from app.features.discovery.tags import MIN_SUGGESTED_SCORE, llm_evidence_score
 from app.main import create_app
-from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateMention
+from app.models.discovery import CatalogueService, DiscoveryArtifactKind, DiscoveryCandidateMention
 from app.shared.list_query import SortOrder
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -32,7 +32,8 @@ TAGGED = Row(0, ["housing"])
 URL = "/api/v1/candidates"
 HOUSING, MOVING, WORK, RETIRE = "home-and-housing", "moving-house", "work-and-employment", "retirement"
 PARITY_PROCEDURES = 7
-PARITY_ARTIFACTS = {4: (SNAPSHOT, SCREENSHOT), 5: (SNAPSHOT,), 6: (SCREENSHOT,)}
+PARITY_ARTIFACTS = ((4, SNAPSHOT), (4, SCREENSHOT), (5, SNAPSHOT), (6, SCREENSHOT))
+"""Artifacts as (procedure index, kind): a candidate has one when it mentions the procedure."""
 
 
 class Member(NamedTuple):
@@ -80,9 +81,12 @@ def _build_parity_world(session: Session) -> None:
         world.mentioned(session, owners[member.key], procs, [Row(index, codes) for index, codes in member.mentions])
         for required in member.requires:
             world.edge(session, owners[member.key], owners[required])
-    for index, kinds in PARITY_ARTIFACTS.items():
-        for kind in kinds:
-            world.artifact(session, procs[index], kind)
+    _add_artifacts(session, procs)
+
+
+def _add_artifacts(session: Session, procs: list[CatalogueService]) -> None:
+    for index, kind in PARITY_ARTIFACTS:
+        world.artifact(session, procs[index], kind)
 
 
 def _procedures_with(member: Member, code: str) -> int:
@@ -101,24 +105,24 @@ def _category_scores(member: Member) -> dict[str, float]:
 
 
 def _artifact_kinds(member: Member) -> set[DiscoveryArtifactKind]:
-    return {kind for index, _ in member.mentions for kind in PARITY_ARTIFACTS.get(index, ())}
+    return {kind for index, _ in member.mentions for owner, kind in PARITY_ARTIFACTS if owner == index}
+
+
+def _four_flags(member: Member, members: tuple[Member, ...]) -> tuple[bool, bool, bool, bool]:
+    """Return the four flags of ``member``: a category, an edge, a snapshot and a screenshot."""
+    kinds = _artifact_kinds(member)
+    has_category = any(score >= MIN_SUGGESTED_SCORE for score in _category_scores(member).values())
+    has_edges = bool(member.requires) or any(member.key in other.requires for other in members)
+    return has_category, has_edges, SNAPSHOT in kinds, SCREENSHOT in kinds
 
 
 def _expected(member: Member, members: tuple[Member, ...]) -> Expected:
     """Apply the four-flag rule to one member of the world, from its definition and not from the database."""
-    scores = _category_scores(member)
-    kinds = _artifact_kinds(member)
-    has_edges = bool(member.requires) or any(member.key in other.requires for other in members)
-    flags = (
-        any(score >= MIN_SUGGESTED_SCORE for score in scores.values()),
-        has_edges,
-        SNAPSHOT in kinds,
-        SCREENSHOT in kinds,
-    )
+    flags = _four_flags(member, members)
     return Expected(
         completeness=sum(flags),
         complete=all(flags),
-        confidence=max(scores.values(), default=0.0),
+        confidence=max(_category_scores(member).values(), default=0.0),
         mentions=len(member.mentions),
     )
 
