@@ -1,0 +1,1287 @@
+{
+ "categories": [
+  {
+   "code": "family-and-relationships",
+   "description_i18n": {
+    "de": "Heirat, Trennung, Geburt und Todesfall in der Familie.",
+    "en": "Marriage, separation, birth and bereavement in the family."
+   },
+   "icon": "users",
+   "name_i18n": {
+    "de": "Familie & Beziehungen",
+    "en": "Family & relationships"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "101",
+    "102",
+    "119"
+   ]
+  },
+  {
+   "code": "birth-and-parenthood",
+   "description_i18n": {
+    "de": "Nachweise und Antr\u00e4ge rund um die Geburt.",
+    "en": "Certificates and applications around a birth."
+   },
+   "icon": "baby",
+   "name_i18n": {
+    "de": "Geburt eines Kindes",
+    "en": "Birth of a child"
+   },
+   "parent_code": "family-and-relationships",
+   "source_parent_codes": [
+    "101"
+   ]
+  },
+  {
+   "code": "marriage-and-partnership",
+   "description_i18n": {
+    "de": "Eheschlie\u00dfung oder Lebenspartnerschaft anmelden.",
+    "en": "Registering a marriage or civil partnership."
+   },
+   "icon": "heart",
+   "name_i18n": {
+    "de": "Heirat / Lebenspartnerschaft",
+    "en": "Marriage / civil partnership"
+   },
+   "parent_code": "family-and-relationships",
+   "source_parent_codes": [
+    "102"
+   ]
+  },
+  {
+   "code": "separation-and-divorce",
+   "description_i18n": {
+    "de": "Trennung, Scheidung und deren Folgen.",
+    "en": "Separation, divorce and their consequences."
+   },
+   "icon": "split",
+   "name_i18n": {
+    "de": "Trennung & Scheidung",
+    "en": "Separation & divorce"
+   },
+   "parent_code": "family-and-relationships",
+   "source_parent_codes": [
+    "102"
+   ]
+  },
+  {
+   "code": "death-and-estate",
+   "description_i18n": {
+    "de": "Sterbeurkunde, Erbe und Nachlass.",
+    "en": "Death certificate, inheritance and estate."
+   },
+   "icon": "flower",
+   "name_i18n": {
+    "de": "Todesfall",
+    "en": "Death of a relative"
+   },
+   "parent_code": "family-and-relationships",
+   "source_parent_codes": [
+    "119"
+   ]
+  },
+  {
+   "code": "home-and-housing",
+   "description_i18n": {
+    "de": "Umzug, Mietwohnung und Immobilienkauf.",
+    "en": "Moving house, renting and buying property."
+   },
+   "icon": "home",
+   "name_i18n": {
+    "de": "Wohnen & Umzug",
+    "en": "Home & housing"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "105"
+   ]
+  },
+  {
+   "code": "moving-house",
+   "description_i18n": {
+    "de": "Ummelden und Wohnsitz wechseln.",
+    "en": "Registering a new address."
+   },
+   "icon": "truck",
+   "name_i18n": {
+    "de": "Umzug",
+    "en": "Moving house"
+   },
+   "parent_code": "home-and-housing",
+   "source_parent_codes": [
+    "105"
+   ]
+  },
+  {
+   "code": "renting-home",
+   "description_i18n": {
+    "de": "Mietvertrag, Kaution und Vermieterbest\u00e4tigungen.",
+    "en": "Rental contract, deposit and landlord confirmations."
+   },
+   "icon": "key",
+   "name_i18n": {
+    "de": "Wohnung mieten",
+    "en": "Renting a home"
+   },
+   "parent_code": "home-and-housing",
+   "source_parent_codes": [
+    "105"
+   ]
+  },
+  {
+   "code": "buying-property",
+   "description_i18n": {
+    "de": "Kauf, Baugenehmigung und Grundbuch.",
+    "en": "Purchase, building permit and land register."
+   },
+   "icon": "building",
+   "name_i18n": {
+    "de": "Immobilie kaufen / bauen",
+    "en": "Buying or building property"
+   },
+   "parent_code": "home-and-housing",
+   "source_parent_codes": [
+    "105"
+   ]
+  },
+  {
+   "code": "work-and-employment",
+   "description_i18n": {
+    "de": "Arbeitsverh\u00e4ltnis, Arbeitslosigkeit und Berufsnachweise.",
+    "en": "Employment, unemployment and professional credentials."
+   },
+   "icon": "briefcase",
+   "name_i18n": {
+    "de": "Arbeit & Beruf",
+    "en": "Work & employment"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "104"
+   ]
+  },
+  {
+   "code": "job-loss",
+   "description_i18n": {
+    "de": "Arbeitslosmeldung und Leistungen bei Arbeitslosigkeit.",
+    "en": "Registering as unemployed and unemployment benefits."
+   },
+   "icon": "door-open",
+   "name_i18n": {
+    "de": "Jobverlust",
+    "en": "Losing a job"
+   },
+   "parent_code": "work-and-employment",
+   "source_parent_codes": [
+    "104"
+   ]
+  },
+  {
+   "code": "new-job",
+   "description_i18n": {
+    "de": "Nachweise f\u00fcr Berufseinstieg und neue Arbeitgeber.",
+    "en": "Paperwork for a first job or a new employer."
+   },
+   "icon": "briefcase",
+   "name_i18n": {
+    "de": "Berufseinstieg / Jobwechsel",
+    "en": "Starting or changing jobs"
+   },
+   "parent_code": "work-and-employment",
+   "source_parent_codes": [
+    "104"
+   ]
+  },
+  {
+   "code": "self-employment",
+   "description_i18n": {
+    "de": "Gewerbe anmelden und Selbstst\u00e4ndigkeit starten.",
+    "en": "Registering a business and starting self-employment."
+   },
+   "icon": "rocket",
+   "name_i18n": {
+    "de": "Selbstst\u00e4ndig machen",
+    "en": "Going self-employed"
+   },
+   "parent_code": "work-and-employment",
+   "source_parent_codes": []
+  },
+  {
+   "code": "education-and-training",
+   "description_i18n": {
+    "de": "Schule, Ausbildung und Studium.",
+    "en": "School, vocational training and university."
+   },
+   "icon": "graduation-cap",
+   "name_i18n": {
+    "de": "Bildung",
+    "en": "Education"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "103"
+   ]
+  },
+  {
+   "code": "studying",
+   "description_i18n": {
+    "de": "Einschreibung, BAf\u00f6G und Studiennachweise.",
+    "en": "Enrolment, student finance and study records."
+   },
+   "icon": "graduation-cap",
+   "name_i18n": {
+    "de": "Studium",
+    "en": "Studying"
+   },
+   "parent_code": "education-and-training",
+   "source_parent_codes": [
+    "103"
+   ]
+  },
+  {
+   "code": "starting-school",
+   "description_i18n": {
+    "de": "Schulanmeldung und Schuleingangsuntersuchung.",
+    "en": "School registration and school entry examination."
+   },
+   "icon": "backpack",
+   "name_i18n": {
+    "de": "Einschulung",
+    "en": "Starting school"
+   },
+   "parent_code": "education-and-training",
+   "source_parent_codes": [
+    "103"
+   ]
+  },
+  {
+   "code": "mobility-and-vehicles",
+   "description_i18n": {
+    "de": "Auto, Motorrad, Boot und F\u00fchrerscheine.",
+    "en": "Car, motorbike, boat and licences."
+   },
+   "icon": "car",
+   "name_i18n": {
+    "de": "Fahrzeuge & Mobilit\u00e4t",
+    "en": "Vehicles & mobility"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "109"
+   ]
+  },
+  {
+   "code": "vehicle-registration",
+   "description_i18n": {
+    "de": "Zulassung, Versicherung und Kennzeichen.",
+    "en": "Registration, insurance and number plates."
+   },
+   "icon": "car",
+   "name_i18n": {
+    "de": "Fahrzeug kaufen / zulassen",
+    "en": "Buying and registering a vehicle"
+   },
+   "parent_code": "mobility-and-vehicles",
+   "source_parent_codes": [
+    "109"
+   ]
+  },
+  {
+   "code": "driving-licence",
+   "description_i18n": {
+    "de": "Fahrerlaubnis und Sportbootf\u00fchrerschein.",
+    "en": "Driving licence and boating licence."
+   },
+   "icon": "badge-check",
+   "name_i18n": {
+    "de": "F\u00fchrerschein / Bootsschein erwerben",
+    "en": "Getting a driving or boating licence"
+   },
+   "parent_code": "mobility-and-vehicles",
+   "source_parent_codes": [
+    "109"
+   ]
+  },
+  {
+   "code": "health-and-care",
+   "description_i18n": {
+    "de": "Krankheit und Pflegebed\u00fcrftigkeit.",
+    "en": "Illness and care needs."
+   },
+   "icon": "stethoscope",
+   "name_i18n": {
+    "de": "Gesundheit & Pflege",
+    "en": "Health & care"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "113"
+   ]
+  },
+  {
+   "code": "illness-and-care",
+   "description_i18n": {
+    "de": "Krankengeld, Pflegegrad und Schwerbehinderung.",
+    "en": "Sick pay, care level and disability status."
+   },
+   "icon": "heart-pulse",
+   "name_i18n": {
+    "de": "Krankheit / Pflegebed\u00fcrftigkeit",
+    "en": "Illness / care needs"
+   },
+   "parent_code": "health-and-care",
+   "source_parent_codes": [
+    "113"
+   ]
+  },
+  {
+   "code": "residence-and-migration",
+   "description_i18n": {
+    "de": "Aufenthaltstitel, Visa und Einb\u00fcrgerung.",
+    "en": "Residence permits, visas and naturalisation."
+   },
+   "icon": "globe",
+   "name_i18n": {
+    "de": "Aufenthalt & Migration",
+    "en": "Residence & migration"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "108"
+   ]
+  },
+  {
+   "code": "immigration",
+   "description_i18n": {
+    "de": "Anmeldung, Aufenthalt und erste Beh\u00f6rdeng\u00e4nge.",
+    "en": "Registration, residence and first visits to authorities."
+   },
+   "icon": "plane-landing",
+   "name_i18n": {
+    "de": "Zuzug nach Deutschland",
+    "en": "Moving to Germany"
+   },
+   "parent_code": "residence-and-migration",
+   "source_parent_codes": [
+    "108"
+   ]
+  },
+  {
+   "code": "naturalisation",
+   "description_i18n": {
+    "de": "Antrag auf die deutsche Staatsangeh\u00f6rigkeit.",
+    "en": "Applying for German citizenship."
+   },
+   "icon": "flag",
+   "name_i18n": {
+    "de": "Einb\u00fcrgerung",
+    "en": "Naturalisation"
+   },
+   "parent_code": "residence-and-migration",
+   "source_parent_codes": [
+    "108"
+   ]
+  },
+  {
+   "code": "retirement-and-old-age",
+   "description_i18n": {
+    "de": "Rentenantr\u00e4ge und Leistungen im Alter.",
+    "en": "Pension applications and old-age benefits."
+   },
+   "icon": "sunset",
+   "name_i18n": {
+    "de": "Rente & Alter",
+    "en": "Retirement & old age"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "118"
+   ]
+  },
+  {
+   "code": "retirement",
+   "description_i18n": {
+    "de": "Rentenantrag und \u00dcbergang in den Ruhestand.",
+    "en": "Pension application and transition to retirement."
+   },
+   "icon": "sunset",
+   "name_i18n": {
+    "de": "Renteneintritt",
+    "en": "Retirement"
+   },
+   "parent_code": "retirement-and-old-age",
+   "source_parent_codes": [
+    "118"
+   ]
+  },
+  {
+   "code": "taxes-and-finance",
+   "description_i18n": {
+    "de": "Steuererkl\u00e4rung, Steuer-ID und Bankangelegenheiten.",
+    "en": "Tax returns, tax ID and banking matters."
+   },
+   "icon": "landmark",
+   "name_i18n": {
+    "de": "Steuern & Finanzen",
+    "en": "Taxes & finance"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "106"
+   ]
+  },
+  {
+   "code": "taxes-and-duties",
+   "description_i18n": {
+    "de": "Steuererkl\u00e4rung und weitere Steuerangelegenheiten.",
+    "en": "Tax returns and other tax matters."
+   },
+   "icon": "landmark",
+   "name_i18n": {
+    "de": "Steuern und Abgaben",
+    "en": "Taxes and duties"
+   },
+   "parent_code": "taxes-and-finance",
+   "source_parent_codes": [
+    "106"
+   ]
+  },
+  {
+   "code": "identity-and-documents",
+   "description_i18n": {
+    "de": "Ausweise, Urkunden und Personenstandsnachweise.",
+    "en": "ID documents, certificates and civil status records."
+   },
+   "icon": "id-card",
+   "name_i18n": {
+    "de": "Identit\u00e4t & Personenstand",
+    "en": "Identity & civil status"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "107"
+   ]
+  },
+  {
+   "code": "identity-documents",
+   "description_i18n": {
+    "de": "Ausweise, Urkunden und Bescheinigungen.",
+    "en": "ID documents, certificates and attestations."
+   },
+   "icon": "id-card",
+   "name_i18n": {
+    "de": "Ausweise und Dokumente",
+    "en": "ID documents"
+   },
+   "parent_code": "identity-and-documents",
+   "source_parent_codes": [
+    "107"
+   ]
+  },
+  {
+   "code": "social-benefits",
+   "description_i18n": {
+    "de": "B\u00fcrgergeld, Wohngeld und weitere Sozialleistungen.",
+    "en": "Citizen's income, housing benefit and other social benefits."
+   },
+   "icon": "hand-heart",
+   "name_i18n": {
+    "de": "Soziales & Leistungen",
+    "en": "Social benefits"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "114",
+    "116"
+   ]
+  },
+  {
+   "code": "social-support",
+   "description_i18n": {
+    "de": "Existenzsicherung und staatliche Unterst\u00fctzung.",
+    "en": "Income support and government assistance."
+   },
+   "icon": "hand-heart",
+   "name_i18n": {
+    "de": "Sozialleistungen",
+    "en": "Social benefits"
+   },
+   "parent_code": "social-benefits",
+   "source_parent_codes": [
+    "114",
+    "116"
+   ]
+  },
+  {
+   "code": "law-and-justice",
+   "description_i18n": {
+    "de": "F\u00fchrungszeugnis, Vollmachten und Gerichtsverfahren.",
+    "en": "Certificates of good conduct, powers of attorney and court matters."
+   },
+   "icon": "scale",
+   "name_i18n": {
+    "de": "Recht & Justiz",
+    "en": "Law & justice"
+   },
+   "parent_code": null,
+   "source_parent_codes": [
+    "115"
+   ]
+  },
+  {
+   "code": "legal-and-consumer-protection",
+   "description_i18n": {
+    "de": "Verfahren, Streitschlichtung und Verbraucherschutz.",
+    "en": "Procedures, dispute resolution and consumer protection."
+   },
+   "icon": "scale",
+   "name_i18n": {
+    "de": "Recht und Verbraucherschutz",
+    "en": "Law and consumer protection"
+   },
+   "parent_code": "law-and-justice",
+   "source_parent_codes": [
+    "115"
+   ]
+  }
+ ],
+ "crosswalk": {
+  "artifact_version": "category-contract-v1",
+  "legacy_crosswalk": [
+   {
+    "axis": "domain",
+    "reason": "PVOG Ausweise und Dokumente is the source parent.",
+    "score_combination": "max",
+    "source_code": "identity-civil-status",
+    "state": "mapped",
+    "target_codes": [
+     "identity-and-documents"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Bauen und Wohnen is the source parent.",
+    "score_combination": "max",
+    "source_code": "housing",
+    "state": "mapped",
+    "target_codes": [
+     "home-and-housing"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Mobilit\u00e4t und Fahrzeuge is the source parent.",
+    "score_combination": "max",
+    "source_code": "vehicles-mobility",
+    "state": "mapped",
+    "target_codes": [
+     "mobility-and-vehicles"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Arbeit is the source parent.",
+    "score_combination": "max",
+    "source_code": "work-employment",
+    "state": "mapped",
+    "target_codes": [
+     "work-and-employment"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Partnerschaft und Familie is the source parent.",
+    "score_combination": "max",
+    "source_code": "family-children",
+    "state": "mapped",
+    "target_codes": [
+     "family-and-relationships"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Schule, Ausbildung und Studium is the source parent.",
+    "score_combination": "max",
+    "source_code": "education",
+    "state": "mapped",
+    "target_codes": [
+     "education-and-training"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Gesundheit und Vorsorge is the source parent.",
+    "score_combination": "max",
+    "source_code": "health-insurance",
+    "state": "mapped",
+    "target_codes": [
+     "health-and-care"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Steuern und Abgaben is the source parent.",
+    "score_combination": "max",
+    "source_code": "taxes-finance",
+    "state": "mapped",
+    "target_codes": [
+     "taxes-and-finance"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Migration und Integration is the source parent.",
+    "score_combination": "max",
+    "source_code": "residence-migration",
+    "state": "mapped",
+    "target_codes": [
+     "residence-and-migration"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Altersvorsorge und Ruhestand is the source parent.",
+    "score_combination": "max",
+    "source_code": "retirement-old-age",
+    "state": "mapped",
+    "target_codes": [
+     "retirement-and-old-age"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "The legacy product term remains under work; no citizen PVOG leaf is claimed.",
+    "score_combination": "max",
+    "source_code": "self-employment-business",
+    "state": "mapped",
+    "target_codes": [
+     "work-and-employment"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Sozialleistungen is the source parent.",
+    "score_combination": "max",
+    "source_code": "social-benefits",
+    "state": "mapped",
+    "target_codes": [
+     "social-benefits"
+    ]
+   },
+   {
+    "axis": "domain",
+    "reason": "PVOG Recht und Verbraucherschutz is the source parent.",
+    "score_combination": "max",
+    "source_code": "law-justice",
+    "state": "mapped",
+    "target_codes": [
+     "law-and-justice"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct product event match.",
+    "score_combination": "max",
+    "source_code": "moving-house",
+    "state": "mapped",
+    "target_codes": [
+     "moving-house"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Geburt evidence.",
+    "score_combination": "max",
+    "source_code": "birth-of-child",
+    "state": "mapped",
+    "target_codes": [
+     "birth-and-parenthood"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Eheschlie\u00dfung evidence.",
+    "score_combination": "max",
+    "source_code": "marriage",
+    "state": "mapped",
+    "target_codes": [
+     "marriage-and-partnership"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Scheidung evidence.",
+    "score_combination": "max",
+    "source_code": "separation-divorce",
+    "state": "mapped",
+    "target_codes": [
+     "separation-and-divorce"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Sterbefall evidence.",
+    "score_combination": "max",
+    "source_code": "death-of-relative",
+    "state": "mapped",
+    "target_codes": [
+     "death-and-estate"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Jobsuche und Arbeitslosigkeit evidence.",
+    "score_combination": "max",
+    "source_code": "job-loss",
+    "state": "mapped",
+    "target_codes": [
+     "job-loss"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Arbeit evidence.",
+    "score_combination": "max",
+    "source_code": "new-job",
+    "state": "mapped",
+    "target_codes": [
+     "new-job"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Legacy product category retained; PVOG business leaves remain out of scope.",
+    "score_combination": "max",
+    "source_code": "going-self-employed",
+    "state": "mapped",
+    "target_codes": [
+     "self-employment"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Studium evidence.",
+    "score_combination": "max",
+    "source_code": "studying",
+    "state": "mapped",
+    "target_codes": [
+     "studying"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Schule evidence is retained as an explicitly broader source.",
+    "score_combination": "max",
+    "source_code": "starting-school",
+    "state": "mapped",
+    "target_codes": [
+     "starting-school"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Wohnen und Umzug evidence.",
+    "score_combination": "max",
+    "source_code": "renting-home",
+    "state": "mapped",
+    "target_codes": [
+     "renting-home"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Hausbau und Immobilienerwerb evidence.",
+    "score_combination": "max",
+    "source_code": "buying-property",
+    "state": "mapped",
+    "target_codes": [
+     "buying-property"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Fahrzeugbesitz evidence.",
+    "score_combination": "max",
+    "source_code": "buying-vehicle",
+    "state": "mapped",
+    "target_codes": [
+     "vehicle-registration"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG F\u00fchrerscheine evidence.",
+    "score_combination": "max",
+    "source_code": "getting-licence",
+    "state": "mapped",
+    "target_codes": [
+     "driving-licence"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Einwanderung evidence.",
+    "score_combination": "max",
+    "source_code": "immigration",
+    "state": "mapped",
+    "target_codes": [
+     "immigration"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Einb\u00fcrgerung evidence.",
+    "score_combination": "max",
+    "source_code": "naturalisation",
+    "state": "mapped",
+    "target_codes": [
+     "naturalisation"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "PVOG Krankheit und Pflege evidence.",
+    "score_combination": "max",
+    "source_code": "illness-care",
+    "state": "mapped",
+    "target_codes": [
+     "illness-and-care"
+    ]
+   },
+   {
+    "axis": "life_situation",
+    "reason": "Direct PVOG Rente evidence.",
+    "score_combination": "max",
+    "source_code": "retirement",
+    "state": "mapped",
+    "target_codes": [
+     "retirement"
+    ]
+   }
+  ],
+  "pvog_leaf_mappings": [
+   {
+    "category_codes": [
+     "birth-and-parenthood"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1010100",
+    "reason": "Vor der Geburt",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "birth-and-parenthood"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1010200",
+    "reason": "Nach der Geburt",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "family-and-relationships"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1020100",
+    "reason": "Adoption und Pflegekinder is broader than birth.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "marriage-and-partnership"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1020300",
+    "reason": "Eheschlie\u00dfung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "separation-and-divorce"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1020400",
+    "reason": "Scheidung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "separation-and-divorce"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1020500",
+    "reason": "Trennung mit Kind",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "starting-school"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1030100",
+    "reason": "Schule is broader than starting school.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "studying",
+     "work-and-employment"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1030200",
+    "reason": "Berufsausbildung straddles study and work; combine scores with max.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "studying"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1030300",
+    "reason": "Studium",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "job-loss",
+     "new-job"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1040300",
+    "reason": "One PVOG leaf bundles job search and unemployment; combine scores with max.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "residence-and-migration",
+     "work-and-employment"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1040400",
+    "reason": "Recognition of foreign qualifications spans migration and work; combine scores with max.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "work-and-employment"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1040500",
+    "reason": "Professional permissions are source work evidence.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "buying-property"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1050100",
+    "reason": "Hausbau und Immobilienerwerb",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "moving-house",
+     "renting-home"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1050200",
+    "reason": "Wohnen und Umzug bundles both product subcategories; combine scores with max.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1060400",
+    "reason": "Grundsteuer und Grunderwerbsteuer",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties",
+     "vehicle-registration"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1060600",
+    "reason": "Fahrzeugsteuern spans tax and vehicle evidence; combine scores with max.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "death-and-estate"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1060700",
+    "reason": "Erbschaftsteuer and Schenkungsteuer include estate evidence.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "immigration"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1080100",
+    "reason": "Einwanderung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "immigration"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1080200",
+    "reason": "Asyl is a broader migration source.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "naturalisation"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1080300",
+    "reason": "Einb\u00fcrgerung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "immigration"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1080400",
+    "reason": "Integration is broader migration evidence.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "driving-licence"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1090100",
+    "reason": "F\u00fchrerscheine",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "vehicle-registration"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1090200",
+    "reason": "Fahrzeugbesitz",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "illness-and-care"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1130100",
+    "reason": "Gesundheitsvorsorge is broader health evidence.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "illness-and-care"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1130200",
+    "reason": "Krankheit",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "illness-and-care"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1130300",
+    "reason": "Behinderung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "illness-and-care"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1130400",
+    "reason": "Pflege",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "social-support"
+    ],
+    "confidence": 0.65,
+    "leaf_code": "1140100",
+    "reason": "Existenzsicherung and state support are broader social evidence.",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "retirement"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1180100",
+    "reason": "Altersvorsorge",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "retirement"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1180200",
+    "reason": "Rente",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "death-and-estate"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1190100",
+    "reason": "Todesfall",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "death-and-estate"
+    ],
+    "confidence": 0.95,
+    "leaf_code": "1190200",
+    "reason": "Erbschaft, Nachlass und Testament",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1060100",
+    "reason": "Steuererkl\u00e4rung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1060200",
+    "reason": "Einkommensteuer und Kirchensteuer",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1060300",
+    "reason": "Sozialabgaben",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "taxes-and-duties"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1060800",
+    "reason": "Sonstige Steuern",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "family-and-relationships"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1020200",
+    "reason": "Kinderbetreuung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "education-and-training"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1040100",
+    "reason": "Weiterbildung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "identity-documents"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1070100",
+    "reason": "Ausweise",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "identity-documents"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1070200",
+    "reason": "Urkunden und Bescheinigungen",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "legal-and-consumer-protection"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1150100",
+    "reason": "Au\u00dfergerichtliche Verfahren und Streitschlichtung",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "legal-and-consumer-protection"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1150200",
+    "reason": "Gerichtliche Verfahren, Anzeige und Klage",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "legal-and-consumer-protection"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1150300",
+    "reason": "Verbraucherschutz",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "legal-and-consumer-protection"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1150400",
+    "reason": "Datenschutz, Ausk\u00fcnfte und Akteneinsicht",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "social-support"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1160100",
+    "reason": "Katastrophenhilfe",
+    "state": "mapped"
+   },
+   {
+    "category_codes": [
+     "social-support"
+    ],
+    "confidence": 0.8,
+    "leaf_code": "1160200",
+    "reason": "Hilfen f\u00fcr Gesch\u00e4digte",
+    "state": "mapped"
+   }
+  ],
+  "pvog_source_version": "v7"
+ }
+}

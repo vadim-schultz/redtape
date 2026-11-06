@@ -12,6 +12,8 @@ import pytest
 from discovery_ingest.cli import main
 from discovery_ingest.pvog.client import _build_v7_url
 
+from crosswalk_fakes import VOCABULARY
+
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "pvog"
 FEDERAL_JURISDICTION = uuid.UUID("11111111-1111-1111-1111-111111111101")
 DISCOVERY_BASE = "https://redtape.test"
@@ -54,6 +56,8 @@ def test_pvog_cli_sends_mapped_batch_with_source_pvog(monkeypatch: pytest.Monkey
     discovery_captured: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if request.url.host == "redtape.test":
             discovery_captured["api_key"] = request.headers.get("X-API-Key")
             discovery_captured["body"] = json.loads(request.content.decode())
@@ -92,6 +96,8 @@ def test_pvog_cli_exits_nonzero_on_400(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if request.url.host == "redtape.test":
             return httpx.Response(201, json={"items": []})
         return httpx.Response(400, json={"code": 1901, "message": "search criteria required"})
@@ -119,6 +125,8 @@ def test_pvog_vocabulary_prints_the_error_and_exits_1_on_a_connection_failure(
     monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         raise httpx.ConnectError("connection refused", request=request)
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
@@ -139,6 +147,8 @@ def test_pvog_cli_vocabulary_prints_sorted_leaf_codes(
     monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if str(request.url) == _bootstrap_url():
             return httpx.Response(
                 200,
@@ -163,6 +173,8 @@ def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPat
     pvog_pages = _cli_pvog_pages()
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if request.url.host == "redtape.test":
             return httpx.Response(422, json={"detail": "validation error"})
         path = pvog_pages.get(str(request.url))
@@ -182,3 +194,31 @@ def test_pvog_cli_exits_non_zero_on_422_validation(monkeypatch: pytest.MonkeyPat
     )
 
     assert exit_code == 1
+
+
+def test_pvog_run_posts_nothing_when_the_crosswalk_cannot_be_fetched(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """pvog run · an unreachable taxonomy refuses the run before any PVOG page is read or any row is posted."""
+    monkeypatch.setenv("DISCOVERY_API_URL", "https://redtape.test")
+    monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
+    monkeypatch.setenv("PVOG_API_BASE_URL", PVOG_BASE)
+    pvog_reads: list[str] = []
+    posts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(500, text="taxonomy is down")
+        if request.url.host == "redtape.test":
+            posts.append(request.url.path)
+            return httpx.Response(201, json={"items": []})
+        pvog_reads.append(str(request.url))
+        return httpx.Response(500, text="pvog must not be read")
+
+    _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
+
+    exit_code = main(["pvog", "run", "--jurisdiction-id", str(FEDERAL_JURISDICTION)])
+
+    assert exit_code != 0
+    assert "machine taxonomy unavailable" in capsys.readouterr().err
+    assert (pvog_reads, posts) == ([], [])

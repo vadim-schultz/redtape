@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass, field
+from collections import Counter
+from dataclasses import asdict, dataclass, field, replace
 from typing import Literal
 from uuid import UUID
 
 import sqlalchemy as sa
 from app.db import SessionLocal
 from app.models.taxonomy import DocumentExternalClassification, document_category
+from pydantic import JsonValue
 from sqlalchemy.orm import Session
 
 from scripts.seed_data.legacy_tables import DOCUMENT_DOMAIN, DOCUMENT_LIFE_SITUATION, DOMAIN, LIFE_SITUATION
@@ -25,6 +27,8 @@ from scripts.seed_data.taxonomy import (
 from scripts.seed_taxonomy import seed_canonical_taxonomy
 
 LegacyAxisName = Literal["domain", "life_situation"]
+RejectionBucket = Literal["unmapped", "ambiguous", "conflict"]
+LEGACY_SOURCE = "legacy_crosswalk"
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +70,19 @@ class _LinkProjection:
 
 
 @dataclass(frozen=True, slots=True)
+class _LinkValues:
+    """The stored fields of one document/category link."""
+
+    confidence: float
+    source: str
+    provenance: dict[str, JsonValue]
+
+    def as_columns(self) -> dict[str, float | str | dict[str, JsonValue]]:
+        """Return the column values written by insert and update."""
+        return {"confidence": self.confidence, "source": self.source, "provenance": self.provenance}
+
+
+@dataclass(frozen=True, slots=True)
 class _LegacyRow:
     """One persisted legacy link read for transformation."""
 
@@ -82,6 +99,7 @@ class _ProjectionContext:
     active_codes: set[str]
     projections: dict[tuple[UUID, UUID], _LinkProjection]
     report: BackfillReport
+    rejections: Counter[RejectionBucket] = field(default_factory=Counter)
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +151,11 @@ def _confidence(value: float | None, report: BackfillReport) -> float:
     return float(value)
 
 
+def _combine_confidence(left: float, right: float) -> float:
+    """Combine two confidences for one link with the approved score rule (O2): the maximum."""
+    return max(left, right)
+
+
 def _add_projection(
     projections: dict[tuple[UUID, UUID], _LinkProjection],
     *,
@@ -147,35 +170,34 @@ def _add_projection(
     if existing is None:
         projections[key] = _LinkProjection(document_id, category_id, confidence, {axis})
         return
-    existing.confidence = max(existing.confidence, confidence)
+    existing.confidence = _combine_confidence(existing.confidence, confidence)
     existing.axes.add(axis)
+
+
+def _reject(context: _ProjectionContext, row: _LegacyRow, bucket: RejectionBucket, reason: str) -> None:
+    """Count one legacy row that cannot be projected and record why for the operator."""
+    context.rejections[bucket] += 1
+    context.report.issues.append(BackfillIssue(row.document_id, row.axis, row.source_code, reason))
+
+
+def _count_rejections(report: BackfillReport, rejections: Counter[RejectionBucket]) -> None:
+    """Copy the per-bucket rejection counts into the report's counters."""
+    report.unmapped_rows += rejections["unmapped"]
+    report.ambiguous_rows += rejections["ambiguous"]
+    report.conflict_rows += rejections["conflict"]
 
 
 def _project_legacy_row(row: _LegacyRow, mapping: LegacyMapping | None, context: _ProjectionContext) -> None:
     """Apply one crosswalk row or record why it cannot be projected."""
     if mapping is None:
-        context.report.unmapped_rows += 1
-        context.report.issues.append(
-            BackfillIssue(row.document_id, row.axis, row.source_code, "crosswalk entry is missing")
-        )
+        _reject(context, row, "unmapped", "crosswalk entry is missing")
         return
     if mapping.state != "mapped":
-        context.report.ambiguous_rows += 1
-        context.report.issues.append(
-            BackfillIssue(row.document_id, row.axis, row.source_code, f"crosswalk state is {mapping.state}")
-        )
+        _reject(context, row, "ambiguous", f"crosswalk state is {mapping.state}")
         return
     unknown_targets = [code for code in mapping.target_codes if code not in context.active_codes]
     if unknown_targets:
-        context.report.conflict_rows += 1
-        context.report.issues.append(
-            BackfillIssue(
-                row.document_id,
-                row.axis,
-                row.source_code,
-                f"unknown target(s): {', '.join(unknown_targets)}",
-            )
-        )
+        _reject(context, row, "conflict", f"unknown target(s): {', '.join(unknown_targets)}")
         return
     confidence = _confidence(row.confidence, context.report)
     for category_code in mapping.target_codes:
@@ -206,18 +228,18 @@ def _collect_projections(
         rows = _legacy_rows(session, axis=axis)
         report.legacy_rows += len(rows)
         for row in rows:
-            if (row.axis, row.source_code) in crosswalk_index.duplicates:
-                report.conflict_rows += 1
-                report.issues.append(
-                    BackfillIssue(row.document_id, row.axis, row.source_code, "crosswalk entry is duplicated")
-                )
-                continue
-            _project_legacy_row(
-                row,
-                mapping=crosswalk_index.mappings.get((row.axis, row.source_code)),
-                context=context,
-            )
+            _project_indexed_row(row, crosswalk_index, context)
+    _count_rejections(report, context.rejections)
     return context.projections
+
+
+def _project_indexed_row(row: _LegacyRow, index: _CrosswalkIndex, context: _ProjectionContext) -> None:
+    """Project one legacy row through the crosswalk index, refusing duplicated crosswalk keys."""
+    key = (row.axis, row.source_code)
+    if key in index.duplicates:
+        _reject(context, row, "conflict", "crosswalk entry is duplicated")
+        return
+    _project_legacy_row(row, mapping=index.mappings.get(key), context=context)
 
 
 def _external_classification_keys(session: Session) -> set[tuple[UUID, str]]:
@@ -228,48 +250,83 @@ def _external_classification_keys(session: Session) -> set[tuple[UUID, str]]:
     return {(document_id, leaf_code) for document_id, leaf_code in session.execute(stmt).tuples().all()}
 
 
+def _stored_links(session: Session) -> dict[tuple[UUID, UUID], _LinkValues]:
+    """Read every canonical link keyed by its (document, category) pair."""
+    rows = session.execute(
+        sa.select(
+            document_category.c.document_id,
+            document_category.c.category_id,
+            document_category.c.confidence,
+            document_category.c.source,
+            document_category.c.provenance,
+        )
+    ).tuples()
+    return {
+        (document_id, category_id): _LinkValues(confidence, source, provenance)
+        for document_id, category_id, confidence, source, provenance in rows
+    }
+
+
+def _projected_values(projection: _LinkProjection) -> _LinkValues:
+    """Return the values a legacy projection writes for a link it creates or re-derives."""
+    legacy_axes: list[JsonValue] = list(sorted(projection.axes))
+    return _LinkValues(
+        confidence=projection.confidence,
+        source=LEGACY_SOURCE,
+        provenance={
+            "artifact_version": CATEGORY_CONTRACT_VERSION,
+            "legacy_axes": legacy_axes,
+            "score_combination": "max",
+        },
+    )
+
+
+def _merge_existing_link(stored: _LinkValues, projection: _LinkProjection) -> _LinkValues:
+    """Merge a legacy projection into a stored link without lowering its confidence.
+
+    A link written by another path (promotion) keeps its source and provenance. A legacy link takes the projected ones.
+    """
+    projected = _projected_values(projection)
+    confidence = _combine_confidence(stored.confidence, projected.confidence)
+    if stored.source == LEGACY_SOURCE:
+        return replace(projected, confidence=confidence)
+    return replace(stored, confidence=confidence)
+
+
+def _insert_link(session: Session, key: tuple[UUID, UUID], values: _LinkValues) -> None:
+    """Insert one canonical link row."""
+    document_id, category_id = key
+    session.execute(
+        document_category.insert().values(document_id=document_id, category_id=category_id, **values.as_columns())
+    )
+
+
+def _update_link(session: Session, key: tuple[UUID, UUID], values: _LinkValues) -> None:
+    """Overwrite the confidence, source and provenance of one canonical link row."""
+    document_id, category_id = key
+    session.execute(
+        document_category.update()
+        .where(document_category.c.document_id == document_id, document_category.c.category_id == category_id)
+        .values(**values.as_columns())
+    )
+
+
 def _persist_links(
     session: Session, projections: dict[tuple[UUID, UUID], _LinkProjection], report: BackfillReport
 ) -> None:
     """Upsert canonical document links without deleting any target or legacy link."""
-    existing = {
-        (document_id, category_id): (confidence, source, provenance)
-        for document_id, category_id, confidence, source, provenance in session.execute(
-            sa.select(
-                document_category.c.document_id,
-                document_category.c.category_id,
-                document_category.c.confidence,
-                document_category.c.source,
-                document_category.c.provenance,
-            )
-        ).tuples()
-    }
+    existing = _stored_links(session)
     for key, projection in projections.items():
-        provenance = {
-            "artifact_version": CATEGORY_CONTRACT_VERSION,
-            "legacy_axes": sorted(projection.axes),
-            "score_combination": "max",
-        }
         previous = existing.get(key)
-        values = {
-            "confidence": projection.confidence,
-            "source": "legacy_crosswalk",
-            "provenance": provenance,
-        }
         if previous is None:
-            session.execute(document_category.insert().values(document_id=key[0], category_id=key[1], **values))
+            _insert_link(session, key, _projected_values(projection))
             report.category_links_created += 1
             continue
-        if previous != (projection.confidence, "legacy_crosswalk", provenance):
-            session.execute(
-                document_category.update()
-                .where(
-                    document_category.c.document_id == key[0],
-                    document_category.c.category_id == key[1],
-                )
-                .values(**values)
-            )
-            report.category_links_updated += 1
+        merged = _merge_existing_link(previous, projection)
+        if merged == previous:
+            continue
+        _update_link(session, key, merged)
+        report.category_links_updated += 1
 
 
 def _persist_external_classifications(session: Session, keys: set[tuple[UUID, str]], report: BackfillReport) -> None:

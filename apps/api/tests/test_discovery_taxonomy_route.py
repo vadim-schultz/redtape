@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 from app.schema.suggestion.payload import ACTIVE_CATEGORY_CODES
+from app.shared.taxonomy import contract_loader
+from app.shared.taxonomy.contract_loader import load_contract
 from litestar import Litestar
 from litestar.testing import TestClient
 from scripts.seed_taxonomy import seed_canonical_taxonomy
@@ -63,3 +68,46 @@ def test_machine_vocabulary_is_the_set_the_suggestion_payload_accepts(
 
     machine_codes = {category["code"] for category in response.json()["categories"]}
     assert machine_codes == set(ACTIVE_CATEGORY_CODES)
+
+
+def test_machine_vocabulary_carries_the_pvog_crosswalk_with_its_source_and_artifact_versions(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    """machine vocabulary · the response carries the PVOG leaf crosswalk and its versions from the artifact."""
+    seed_canonical_taxonomy(db_session)
+    contract = load_contract()
+
+    response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
+
+    crosswalk = response.json()["crosswalk"]
+    assert crosswalk["artifact_version"] == contract.artifact_version == "category-contract-v1"
+    assert crosswalk["pvog_source_version"] == contract.pvog_source_version == "v7"
+    assert len(crosswalk["pvog_leaf_mappings"]) == len(contract.pvog_leaf_mappings)
+    assert len(crosswalk["legacy_crosswalk"]) == len(contract.legacy_crosswalk)
+    retirement = next(item for item in crosswalk["pvog_leaf_mappings"] if item["leaf_code"] == "1180100")
+    assert retirement["category_codes"] == ["retirement"]
+    assert retirement["confidence"] == 0.95
+    assert retirement["state"] == "mapped"
+
+
+def test_machine_vocabulary_serves_no_partial_response_when_the_contract_is_unusable(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """machine vocabulary · an unusable contract fails the request; no vocabulary without its crosswalk."""
+    seed_canonical_taxonomy(db_session)
+    broken = tmp_path / "category_contract_v1.json"
+    broken.write_bytes(b'{"artifact_version": "v1"}')
+    monkeypatch.setattr(contract_loader, "ARTIFACT_PATH", broken)
+    contract_loader.load_contract.cache_clear()
+    try:
+        response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
+    finally:
+        contract_loader.load_contract.cache_clear()
+
+    assert response.status_code == 500
+    assert "categories" not in response.text
+    assert "crosswalk" not in response.text

@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter, model_validator
 
-from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
+from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
 
 DIGEST_LENGTH = 8
 
@@ -35,10 +35,11 @@ class Taxonomy(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate a legacy vocabulary fixture at the input boundary."""
+    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
+        """Translate a legacy vocabulary fixture at the input boundary, through the crosswalk given as context."""
         if not isinstance(value, dict) or "categories" in value:
             return value
+        crosswalk = crosswalk_from(info)
         legacy_terms: list[TaxonomyTerm] = []
         legacy_axes: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
             ("domain", "domains"),
@@ -50,7 +51,7 @@ class Taxonomy(BaseModel):
                 continue
             terms = TypeAdapter(tuple[TaxonomyTerm, ...]).validate_python(raw_terms)
             for term in terms:
-                for code in categories_for_legacy_codes(axis, (term.code,)):
+                for code in crosswalk.legacy_categories(axis, (term.code,)):
                     if code not in {item.code for item in legacy_terms}:
                         legacy_terms.append(term.model_copy(update={"code": code}))
         return {**value, "categories": tuple(legacy_terms)}

@@ -23,6 +23,14 @@ def test_the_checked_in_fixture_is_current() -> None:
     )
 
 
+def test_the_checked_in_vocabulary_fixture_is_current() -> None:
+    """machine vocabulary fixture · matches the served vocabulary and crosswalk rendered from the artifact."""
+    assert exporter.VOCABULARY_PATH.exists(), f"missing {exporter.VOCABULARY_PATH}; run: {exporter.REGENERATE_COMMAND}"
+    assert exporter.VOCABULARY_PATH.read_text(encoding="utf-8") == exporter.render_vocabulary(), (
+        f"stale {exporter.VOCABULARY_PATH}; run: {exporter.REGENERATE_COMMAND}"
+    )
+
+
 def test_every_route_in_the_fixture_is_under_the_machine_prefix() -> None:
     """machine contract fixture · routes are the machine routes and nothing else."""
     routes = _checked_in()["routes"]

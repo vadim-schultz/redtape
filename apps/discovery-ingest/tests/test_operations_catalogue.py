@@ -93,7 +93,7 @@ def test_ingest_returns_counts_and_skips_for_each_source(tmp_path: Path) -> None
     sources = [
         GovDataFileSource(export, JURISDICTION),
         GovDataCkanSource(FakeCkan([_govdata_rows()]), JURISDICTION, max_pages=1, page_size=100),
-        PvogSource(FakePvog(_pvog_records()), JURISDICTION, max_pages=None),
+        PvogSource(FakePvog(_pvog_records()), JURISDICTION, max_pages=None, mapping_version="category-contract-v1"),
     ]
 
     results = [ingest(source, FakeClient(FakeCatalogueApi())) for source in sources]
@@ -153,7 +153,9 @@ def test_ingest_propagates_the_source_failure_after_earlier_pages_posted() -> No
 def test_pvog_source_posts_nothing_when_a_late_page_fails() -> None:
     """ingest · PVOG walks every page before its single post, so a late failure posts nothing."""
     api = FakeCatalogueApi()
-    source = PvogSource(FakePvog(_pvog_records(), fail=True), JURISDICTION, max_pages=None)
+    source = PvogSource(
+        FakePvog(_pvog_records(), fail=True), JURISDICTION, max_pages=None, mapping_version="category-contract-v1"
+    )
 
     with pytest.raises(PvogClientError):
         ingest(source, FakeClient(api))

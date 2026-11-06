@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 from discovery_ingest.extract.llm.normalise import name_slug
 from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code
-from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
+from discovery_ingest.pvog.category_mapping import LegacyAxis, MachineCrosswalk
+from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
 
 _LEGACY_AXES: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
     ("domain", "domain_codes"),
@@ -18,9 +19,12 @@ _LEGACY_AXES: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
 )
 
 
-def _canonical_for_legacy(title: object, axis: Literal["domain", "life_situation"], code: str) -> tuple[str, ...]:
-    """Return the canonical categories for one legacy code; a code with none refuses the entry."""
-    categories = categories_for_legacy_codes(axis, (code,))
+def _canonical_for_legacy(
+    crosswalk: MachineCrosswalk, title: object, legacy: tuple[LegacyAxis, str]
+) -> tuple[str, ...]:
+    """Return the canonical categories for one legacy (axis, code) pair; a code with none refuses the entry."""
+    axis, code = legacy
+    categories = crosswalk.legacy_categories(axis, (code,))
     if not categories:
         raise ValueError(f"{title!r}: unknown {axis} code {code!r}")
     return categories
@@ -82,8 +86,8 @@ class CurationCandidate(_Strict):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate compatibility-axis fields before validating manual category codes."""
+    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
+        """Translate compatibility-axis fields, through the crosswalk given as context, before validating manual codes."""
         if not isinstance(value, dict):
             return value
         legacy_fields = {"domain_codes", "situation_codes"}
@@ -91,11 +95,12 @@ class CurationCandidate(_Strict):
             return value
         if "category_codes" in value:
             raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
+        crosswalk = crosswalk_from(info)
         categories = [
             category
             for axis, field_name in _LEGACY_AXES
             for code in value.get(field_name) or ()
-            for category in _canonical_for_legacy(value.get("title_de"), axis, code)
+            for category in _canonical_for_legacy(crosswalk, value.get("title_de"), (axis, code))
         ]
         translated = {key: item for key, item in value.items() if key not in legacy_fields}
         translated["category_codes"] = list(dict.fromkeys(categories))

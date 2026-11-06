@@ -6,12 +6,11 @@ from __future__ import annotations
 from discovery_ingest.mentions import MAX_SITUATION_CODES
 from discovery_ingest.pvog.models import PvogSourcePath
 from discovery_ingest.pvog.situation_mapping import (
-    PERSONAL_MATTER_CATEGORY_CONFIDENCE,
     PERSONAL_MATTER_CLARITY,
-    PERSONAL_MATTER_TO_CATEGORY,
     PERSONAL_MATTER_TO_SITUATION,
-    category_evidence_for_path,
 )
+
+from crosswalk_fakes import CROSSWALK
 
 SITUATION_CODES = {
     "moving-house",
@@ -108,14 +107,14 @@ def test_category_mapping_preserves_source_leaf_and_maps_to_product_categories()
         source_version="v7",
     )
 
-    evidence = category_evidence_for_path(path)
+    evidence = CROSSWALK.evidence_for_path(path)
 
     assert evidence is not None
     assert evidence.category_codes == ("retirement",)
     assert evidence.leaf_code == "1180100"
     assert evidence.source_path == path
-    assert evidence.confidence == PERSONAL_MATTER_CATEGORY_CONFIDENCE["1180100"]
-    assert PERSONAL_MATTER_TO_CATEGORY["1180100"] == ("retirement",)
+    assert evidence.confidence == CROSSWALK.leaves["1180100"].confidence
+    assert CROSSWALK.leaves["1180100"].category_codes == ("retirement",)
     assert "1180100" not in evidence.category_codes
 
 
@@ -142,8 +141,7 @@ HARVEST_EVIDENCE_EXEMPT = frozenset({"1040100", "1060700"})
 def test_harvest_emits_mapped_evidence_with_a_reason_for_every_pvog_leaf() -> None:
     """Happy path (D-R9): each PVOG leaf emits mapped harvest evidence with a reason, except the named exemptions."""
     emitted = {
-        leaf_code: category_evidence_for_path(_path_under_own_parent(leaf_code))
-        for leaf_code in PERSONAL_MATTER_TO_CATEGORY
+        leaf_code: CROSSWALK.evidence_for_path(_path_under_own_parent(leaf_code)) for leaf_code in CROSSWALK.leaves
     }
 
     assert {leaf for leaf, evidence in emitted.items() if evidence is None} == HARVEST_EVIDENCE_EXEMPT
@@ -167,4 +165,4 @@ def test_category_mapping_does_not_invent_category_for_an_unmapped_leaf() -> Non
         source_version="v7",
     )
 
-    assert category_evidence_for_path(path) is None
+    assert CROSSWALK.evidence_for_path(path) is None

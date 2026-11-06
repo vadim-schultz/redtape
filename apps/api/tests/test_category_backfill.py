@@ -1,16 +1,42 @@
-"""Retired pre-C9 backfill tests.
+"""Category backfill replay tests over the frozen legacy tables.
 
-The backfill consumes tables that C9 removes. Its frozen behavior is covered by the migration archive and
-round-trip tests; replaying it against the post-retirement metadata would test an impossible schema.
+The replay reads the retired shapes declared in ``scripts.seed_data.legacy_tables`` and writes canonical links. Each
+test creates those legacy tables inside its own rolled-back transaction, so the replay has its source schema without
+any retired ORM model.
 """
-
-# ruff: noqa
 
 from __future__ import annotations
 
-import pytest
+import uuid
+from dataclasses import replace
+from uuid import UUID
 
-pytestmark = pytest.mark.skip(reason="Historical pre-C9 backfill targets the retired legacy schema.")
+import pytest
+import sqlalchemy as sa
+from app.models.document import Document
+from app.models.jurisdiction import Jurisdiction, JurisdictionKind
+from app.models.taxonomy import Category, DocumentExternalClassification, document_category
+from scripts.category_backfill import run_category_backfill
+from scripts.seed_data.legacy_tables import (
+    DOCUMENT_DOMAIN,
+    DOCUMENT_LIFE_SITUATION,
+    DOMAIN,
+    LEGACY_METADATA,
+    LIFE_SITUATION,
+)
+from scripts.seed_data.taxonomy import CATEGORY_CONTRACT_VERSION, LEGACY_CROSSWALK, term_id
+from scripts.seed_taxonomy import seed_canonical_taxonomy
+from sqlalchemy.orm import Session
+
+
+@pytest.fixture
+def legacy_session(db_session: Session) -> Session:
+    """Create the retired legacy tables inside this test's transaction and return its session."""
+    LEGACY_METADATA.create_all(
+        db_session.connection(),
+        tables=[DOMAIN, LIFE_SITUATION, DOCUMENT_DOMAIN, DOCUMENT_LIFE_SITUATION],
+    )
+    return db_session
 
 
 def _document(session: Session) -> Document:
@@ -31,29 +57,70 @@ def _document(session: Session) -> Document:
     return document
 
 
-def _old_terms(session: Session) -> tuple[Domain, LifeSituation]:
-    domain = Domain(code="housing", name_i18n={"en": "Housing"})
-    situation = LifeSituation(code="moving-house", name_i18n={"en": "Moving house"})
-    session.add_all([domain, situation])
-    session.flush()
-    return domain, situation
+def _legacy_domain(session: Session, document: Document, code: str, confidence: float) -> None:
+    domain_id = uuid.uuid4()
+    session.execute(DOMAIN.insert().values(id=domain_id, code=code))
+    session.execute(
+        DOCUMENT_DOMAIN.insert().values(document_id=document.id, domain_id=domain_id, confidence=confidence)
+    )
 
 
-def test_backfill_maps_old_links_to_canonical_links_with_confidence(db_session: Session) -> None:
-    """Backfill · map both legacy axes to canonical links using the maximum score."""
-    document = _document(db_session)
-    domain, situation = _old_terms(db_session)
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id, confidence=0.72))
-    db_session.execute(
-        document_life_situation.insert().values(
-            document_id=document.id, life_situation_id=situation.id, confidence=0.91
+def _legacy_situation(
+    session: Session,
+    document: Document,
+    code: str,
+    confidence: float,
+    pvog_leaf_code: str | None = None,
+) -> None:
+    situation_id = uuid.uuid4()
+    session.execute(LIFE_SITUATION.insert().values(id=situation_id, code=code))
+    session.execute(
+        DOCUMENT_LIFE_SITUATION.insert().values(
+            document_id=document.id,
+            life_situation_id=situation_id,
+            confidence=confidence,
+            pvog_leaf_code=pvog_leaf_code,
         )
     )
 
-    report = run_category_backfill(db_session)
-    db_session.flush()
 
-    rows = db_session.execute(
+def _promotion_link(session: Session, document: Document, category_code: str, confidence: float) -> None:
+    session.execute(
+        document_category.insert().values(
+            document_id=document.id,
+            category_id=term_id(category_code),
+            confidence=confidence,
+            source="promotion",
+            provenance={"source": "category_code_promotion"},
+        )
+    )
+
+
+def _links(session: Session, document_id: UUID) -> dict[str, tuple[str, dict[str, object], float]]:
+    """Return ``{category_code: (source, provenance, confidence)}`` for one document."""
+    rows = session.execute(
+        sa.select(
+            Category.code,
+            document_category.c.source,
+            document_category.c.provenance,
+            document_category.c.confidence,
+        )
+        .join(document_category, document_category.c.category_id == Category.id)
+        .where(document_category.c.document_id == document_id)
+    ).all()
+    return {code: (source, provenance, confidence) for code, source, provenance, confidence in rows}
+
+
+def test_backfill_maps_old_links_to_canonical_links_with_confidence(legacy_session: Session) -> None:
+    """Backfill · map both legacy axes to canonical links using the maximum score."""
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.72)
+    _legacy_situation(legacy_session, document, "moving-house", 0.91)
+
+    report = run_category_backfill(legacy_session)
+    legacy_session.flush()
+
+    rows = legacy_session.execute(
         sa.select(Category.code, document_category.c.confidence)
         .join(document_category, document_category.c.category_id == Category.id)
         .where(document_category.c.document_id == document.id)
@@ -64,24 +131,16 @@ def test_backfill_maps_old_links_to_canonical_links_with_confidence(db_session: 
     assert report.category_links_created == 2
 
 
-def test_backfill_preserves_pvog_external_classifications(db_session: Session) -> None:
+def test_backfill_preserves_pvog_external_classifications(legacy_session: Session) -> None:
     """Backfill · preserve the raw PVOG leaf independently of the category link."""
-    document = _document(db_session)
-    domain, situation = _old_terms(db_session)
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id, confidence=0.8))
-    db_session.execute(
-        document_life_situation.insert().values(
-            document_id=document.id,
-            life_situation_id=situation.id,
-            confidence=0.8,
-            pvog_leaf_code="1050200",
-        )
-    )
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.8)
+    _legacy_situation(legacy_session, document, "moving-house", 0.8, pvog_leaf_code="1050200")
 
-    report = run_category_backfill(db_session)
-    db_session.flush()
+    report = run_category_backfill(legacy_session)
+    legacy_session.flush()
 
-    classification = db_session.execute(
+    classification = legacy_session.execute(
         sa.select(DocumentExternalClassification).where(
             DocumentExternalClassification.document_id == document.id,
         )
@@ -93,11 +152,10 @@ def test_backfill_preserves_pvog_external_classifications(db_session: Session) -
     assert report.external_classifications_created == 1
 
 
-def test_backfill_ambiguous_mapping_is_reported_without_silent_link_loss(db_session: Session) -> None:
+def test_backfill_ambiguous_mapping_is_reported_without_silent_link_loss(legacy_session: Session) -> None:
     """Backfill · report manual-review mappings while retaining the legacy projection."""
-    document = _document(db_session)
-    domain, _ = _old_terms(db_session)
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id, confidence=0.8))
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.8)
     ambiguous = replace(
         next(mapping for mapping in LEGACY_CROSSWALK if mapping.axis == "domain" and mapping.source_code == "housing"),
         state="manual_review",
@@ -108,18 +166,18 @@ def test_backfill_ambiguous_mapping_is_reported_without_silent_link_loss(db_sess
         for mapping in LEGACY_CROSSWALK
     )
 
-    report = run_category_backfill(db_session, crosswalk=crosswalk)
-    db_session.flush()
+    report = run_category_backfill(legacy_session, crosswalk=crosswalk)
+    legacy_session.flush()
 
     assert report.ambiguous_rows == 1
     assert (
-        db_session.execute(
-            sa.select(sa.func.count()).select_from(document_domain).where(document_domain.c.document_id == document.id)
+        legacy_session.execute(
+            sa.select(sa.func.count()).select_from(DOCUMENT_DOMAIN).where(DOCUMENT_DOMAIN.c.document_id == document.id)
         ).scalar_one()
         == 1
     )
     assert (
-        db_session.execute(
+        legacy_session.execute(
             sa.select(sa.func.count())
             .select_from(document_category)
             .where(document_category.c.document_id == document.id)
@@ -128,44 +186,36 @@ def test_backfill_ambiguous_mapping_is_reported_without_silent_link_loss(db_sess
     )
 
 
-def test_backfill_rerun_does_not_duplicate_links_or_classifications(db_session: Session) -> None:
+def test_backfill_rerun_does_not_duplicate_links_or_classifications(legacy_session: Session) -> None:
     """Backfill · rerun updates the projection in place without duplicate rows."""
-    document = _document(db_session)
-    domain, situation = _old_terms(db_session)
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id, confidence=0.7))
-    db_session.execute(
-        document_life_situation.insert().values(
-            document_id=document.id,
-            life_situation_id=situation.id,
-            confidence=0.7,
-            pvog_leaf_code="1050200",
-        )
-    )
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.7)
+    _legacy_situation(legacy_session, document, "moving-house", 0.7, pvog_leaf_code="1050200")
 
-    run_category_backfill(db_session)
+    run_category_backfill(legacy_session)
     first_counts = (
-        db_session.execute(
+        legacy_session.execute(
             sa.select(sa.func.count())
             .select_from(document_category)
             .where(document_category.c.document_id == document.id)
         ).scalar_one(),
-        db_session.execute(
+        legacy_session.execute(
             sa.select(sa.func.count())
             .select_from(DocumentExternalClassification)
             .where(DocumentExternalClassification.document_id == document.id)
         ).scalar_one(),
     )
 
-    rerun = run_category_backfill(db_session)
-    db_session.flush()
+    rerun = run_category_backfill(legacy_session)
+    legacy_session.flush()
 
     assert (
-        db_session.execute(
+        legacy_session.execute(
             sa.select(sa.func.count())
             .select_from(document_category)
             .where(document_category.c.document_id == document.id)
         ).scalar_one(),
-        db_session.execute(
+        legacy_session.execute(
             sa.select(sa.func.count())
             .select_from(DocumentExternalClassification)
             .where(DocumentExternalClassification.document_id == document.id)
@@ -175,16 +225,75 @@ def test_backfill_rerun_does_not_duplicate_links_or_classifications(db_session: 
     assert rerun.external_classifications_created == 0
 
 
-def test_backfill_dry_run_reports_without_writing(db_session: Session) -> None:
+def test_backfill_dry_run_reports_without_writing(legacy_session: Session) -> None:
     """Backfill · dry-run reports planned legacy rows without changing target tables."""
-    document = _document(db_session)
-    domain, _ = _old_terms(db_session)
-    db_session.execute(document_domain.insert().values(document_id=document.id, domain_id=domain.id, confidence=0.8))
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.8)
 
-    report = run_category_backfill(db_session, dry_run=True)
-    db_session.flush()
+    report = run_category_backfill(legacy_session, dry_run=True)
+    legacy_session.flush()
 
     assert report.dry_run is True
     assert report.legacy_rows == 1
-    assert db_session.execute(sa.select(sa.func.count()).select_from(document_category)).scalar_one() == 0
-    assert db_session.execute(sa.select(sa.func.count()).select_from(Category)).scalar_one() == 0
+    assert legacy_session.execute(sa.select(sa.func.count()).select_from(document_category)).scalar_one() == 0
+    assert legacy_session.execute(sa.select(sa.func.count()).select_from(Category)).scalar_one() == 0
+
+
+@pytest.mark.parametrize(
+    ("stored_confidence", "expected_confidence"),
+    [(0.9, 0.9), (0.3, 0.6)],
+    ids=["stored-is-higher", "projection-is-higher"],
+)
+def test_replay_keeps_promotion_source_and_provenance(
+    legacy_session: Session,
+    stored_confidence: float,
+    expected_confidence: float,
+) -> None:
+    """Replay · a promotion-written link keeps its source and provenance and takes the higher confidence."""
+    document = _document(legacy_session)
+    seed_canonical_taxonomy(legacy_session)
+    _promotion_link(legacy_session, document, "home-and-housing", stored_confidence)
+    _legacy_domain(legacy_session, document, "housing", 0.6)
+    _legacy_situation(legacy_session, document, "moving-house", 0.8)
+
+    run_category_backfill(legacy_session)
+    legacy_session.flush()
+
+    links = _links(legacy_session, document.id)
+    assert links["home-and-housing"] == (
+        "promotion",
+        {"source": "category_code_promotion"},
+        expected_confidence,
+    )
+    assert links["moving-house"] == (
+        "legacy_crosswalk",
+        {
+            "artifact_version": CATEGORY_CONTRACT_VERSION,
+            "legacy_axes": ["life_situation"],
+            "score_combination": "max",
+        },
+        0.8,
+    )
+
+
+def test_replay_conflicting_crosswalk_writes_no_row_and_counts_conflict(legacy_session: Session) -> None:
+    """Replay · a duplicated crosswalk entry writes no link for its pair, counts the conflict, and a rerun adds nothing."""
+    document = _document(legacy_session)
+    _legacy_domain(legacy_session, document, "housing", 0.6)
+    duplicate = next(
+        mapping for mapping in LEGACY_CROSSWALK if mapping.axis == "domain" and mapping.source_code == "housing"
+    )
+    crosswalk = (*LEGACY_CROSSWALK, duplicate)
+
+    report = run_category_backfill(legacy_session, crosswalk=crosswalk)
+    legacy_session.flush()
+
+    assert report.conflict_rows == 1
+    assert _links(legacy_session, document.id) == {}
+
+    rerun = run_category_backfill(legacy_session, crosswalk=crosswalk)
+    legacy_session.flush()
+
+    assert _links(legacy_session, document.id) == {}
+    assert rerun.category_links_created == 0
+    assert rerun.category_links_updated == 0

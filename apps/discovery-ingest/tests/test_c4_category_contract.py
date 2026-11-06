@@ -16,6 +16,8 @@ from discovery_ingest.mentions import MentionItem
 from discovery_ingest.pvog.models import PvogSourcePath
 from pydantic import ValidationError
 
+from crosswalk_fakes import CROSSWALK
+
 SERVICE_ID = UUID("00000000-0000-0000-0000-000000000001")
 ARTIFACT_ID = UUID("00000000-0000-0000-0000-000000000002")
 
@@ -111,7 +113,8 @@ def test_pvog_harvest_maps_a_known_parent_leaf_through_the_frozen_crosswalk() ->
                 "leaf_label": "Wohnen und Umzug",
                 "source_version": "v7",
             },
-        }
+        },
+        CROSSWALK,
     )
 
     assert drafts[0].category_codes == ["moving-house", "renting-home"]
@@ -134,7 +137,8 @@ def test_pvog_missing_path_retains_leaf_provenance_but_emits_no_invented_categor
                 }
             ],
             "_personal_matter_code": "1050200",
-        }
+        },
+        CROSSWALK,
     )
 
     assert drafts[0].pvog_leaf_code == "1050200"

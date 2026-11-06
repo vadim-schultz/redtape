@@ -26,9 +26,7 @@ from sqlalchemy.orm import Session
 
 CODE_PATTERN = r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
 API_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
 APP_ARTIFACT = API_ROOT / "app" / "shared" / "taxonomy" / "category_contract_v1.json"
-PLANS_ARTIFACT = REPO_ROOT / ".plans" / "category-taxonomy-migration" / "category-contract-v1.json"
 ACTIVE_CODE_COUNT = 34
 SCRIPTS_IMPORT_BLOCKER = """
 import importlib.abc
@@ -166,11 +164,6 @@ def test_unusable_contract_artifact_raises_on_first_use(
                 active_category_codes()
     finally:
         contract_loader.load_contract.cache_clear()
-
-
-def test_app_contract_copy_matches_the_plans_copy_byte_for_byte() -> None:
-    """Transitional guard, not a loop pair: C4 deletes the .plans copy and this test with it."""
-    assert APP_ARTIFACT.read_bytes() == PLANS_ARTIFACT.read_bytes()
 
 
 def _load_contract_with_leaf_edited(

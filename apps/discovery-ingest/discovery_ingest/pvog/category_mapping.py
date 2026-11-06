@@ -1,19 +1,22 @@
-"""Load the frozen PVOG-to-category mapping and create source-backed evidence."""
+"""The validated PVOG crosswalk that the machine taxonomy serves, and the evidence and legacy lookups it backs."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal
-
-from pydantic import BaseModel, Field, TypeAdapter
 
 from discovery_ingest.pvog.models import PvogSourcePath
 
-_ARTIFACT_PATH = (
-    Path(__file__).resolve().parents[4] / ".plans" / "category-taxonomy-migration" / "category-contract-v1.json"
-)
 CategoryEvidenceState = Literal["mapped", "review"]
+LegacyAxis = Literal["domain", "life_situation"]
+
+
+class CrosswalkError(RuntimeError):
+    """The machine taxonomy's crosswalk cannot be fetched, is malformed, or names a category it does not serve.
+
+    It is not a ``ValueError``, so a validation that hits it propagates it instead of reporting it as a bad field.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,117 +32,51 @@ class PvogCategoryEvidence:
     source_path: PvogSourcePath
 
 
-class _CategoryPayload(BaseModel):
-    code: str
-    is_active: bool = True
-    source_parent_codes: tuple[str, ...] = ()
+@dataclass(frozen=True, slots=True)
+class LeafEntry:
+    """One validated PVOG leaf mapping as the crosswalk holds it."""
 
-
-class _LeafMappingPayload(BaseModel):
-    leaf_code: str
     category_codes: tuple[str, ...]
-    confidence: float = Field(ge=0, le=1)
+    confidence: float
     state: CategoryEvidenceState
     reason: str
 
 
-class _ContractPayload(BaseModel):
+@dataclass(frozen=True, slots=True)
+class MachineCrosswalk:
+    """A crosswalk whose sections have been validated against each other; ingest maps evidence through it only."""
+
     artifact_version: str
     pvog_source_version: str
-    categories: tuple[_CategoryPayload, ...]
-    legacy_crosswalk: tuple[_LegacyMappingPayload, ...] = ()
-    pvog_leaf_mappings: tuple[_LeafMappingPayload, ...]
+    source_parents: Mapping[str, tuple[str, ...]]
+    leaves: Mapping[str, LeafEntry]
+    legacy: Mapping[tuple[LegacyAxis, str], tuple[str, ...]]
 
+    def get(self) -> MachineCrosswalk:
+        """Return this crosswalk; a crosswalk already held is its own lookup."""
+        return self
 
-class _LegacyMappingPayload(BaseModel):
-    axis: Literal["domain", "life_situation"]
-    source_code: str
-    state: Literal["mapped", "unmapped", "manual-review"]
-    target_codes: tuple[str, ...] = ()
+    def evidence_for_path(self, path: PvogSourcePath) -> PvogCategoryEvidence | None:
+        """Map a complete PVOG path to canonical evidence; never infer a category from a bare leaf."""
+        if not path.has_parent_path or path.leaf_code is None:
+            return None
+        entry = self.leaves.get(path.leaf_code)
+        if entry is None or not self._parent_is_source(path.parent_code, entry.category_codes):
+            return None
+        return PvogCategoryEvidence(
+            leaf_code=path.leaf_code,
+            category_codes=entry.category_codes,
+            confidence=entry.confidence,
+            state=entry.state,
+            reason=entry.reason,
+            mapping_version=self.artifact_version,
+            source_path=path,
+        )
 
+    def legacy_categories(self, axis: LegacyAxis, codes: tuple[str, ...]) -> tuple[str, ...]:
+        """Translate compatibility-axis codes through the legacy crosswalk, keeping the first occurrence of each category."""
+        return tuple(dict.fromkeys(category for code in codes for category in self.legacy.get((axis, code), ())))
 
-def _load_category_mappings() -> tuple[
-    str,
-    str,
-    dict[str, _LeafMappingPayload],
-    dict[str, tuple[str, ...]],
-    dict[tuple[str, str], tuple[str, ...]],
-]:
-    """Load the canonical leaf mappings and reject unknown or duplicate targets."""
-    payload = TypeAdapter(_ContractPayload).validate_json(_ARTIFACT_PATH.read_bytes())
-    active_categories = {category.code for category in payload.categories if category.is_active}
-    category_parents = {category.code: category.source_parent_codes for category in payload.categories}
-    mappings: dict[str, _LeafMappingPayload] = {}
-    for mapping in payload.pvog_leaf_mappings:
-        if not mapping.category_codes:
-            raise ValueError(f"PVOG mapping has no category target for {mapping.leaf_code}")
-        if len(set(mapping.category_codes)) != len(mapping.category_codes):
-            raise ValueError(f"PVOG mapping has duplicate category target for {mapping.leaf_code}")
-        if any(code not in active_categories for code in mapping.category_codes):
-            raise ValueError(f"PVOG mapping has unknown category target for {mapping.leaf_code}")
-        if mapping.leaf_code in mappings:
-            raise ValueError(f"PVOG mapping has duplicate leaf {mapping.leaf_code}")
-        if not mapping.reason.strip():
-            raise ValueError(f"PVOG mapping has no reason for {mapping.leaf_code}")
-        mappings[mapping.leaf_code] = mapping
-    legacy: dict[tuple[str, str], tuple[str, ...]] = {}
-    for legacy_mapping in payload.legacy_crosswalk:
-        if legacy_mapping.state == "mapped":
-            if any(code not in active_categories for code in legacy_mapping.target_codes):
-                raise ValueError(f"legacy mapping has unknown category target for {legacy_mapping.source_code}")
-            legacy[(legacy_mapping.axis, legacy_mapping.source_code)] = legacy_mapping.target_codes
-    return payload.artifact_version, payload.pvog_source_version, mappings, category_parents, legacy
-
-
-(
-    PVOG_CATEGORY_MAPPING_VERSION,
-    PVOG_SOURCE_VERSION,
-    _PVOG_CATEGORY_MAPPINGS,
-    _CATEGORY_SOURCE_PARENTS,
-    _LEGACY_CATEGORY_MAPPINGS,
-) = _load_category_mappings()
-PERSONAL_MATTER_TO_CATEGORY: dict[str, tuple[str, ...]] = {
-    leaf_code: mapping.category_codes for leaf_code, mapping in _PVOG_CATEGORY_MAPPINGS.items()
-}
-PERSONAL_MATTER_CATEGORY_CONFIDENCE: dict[str, float] = {
-    leaf_code: mapping.confidence for leaf_code, mapping in _PVOG_CATEGORY_MAPPINGS.items()
-}
-
-
-def category_evidence_for_path(path: PvogSourcePath) -> PvogCategoryEvidence | None:
-    """Map a complete PVOG path to canonical evidence; never infer a category from a bare leaf."""
-    if not path.has_parent_path or path.leaf_code is None:
-        return None
-    mapping = _PVOG_CATEGORY_MAPPINGS.get(path.leaf_code)
-    if mapping is None:
-        return None
-    if not any(path.parent_code in _CATEGORY_SOURCE_PARENTS[code] for code in mapping.category_codes):
-        return None
-    return PvogCategoryEvidence(
-        leaf_code=path.leaf_code,
-        category_codes=mapping.category_codes,
-        confidence=mapping.confidence,
-        state=mapping.state,
-        reason=mapping.reason,
-        mapping_version=PVOG_CATEGORY_MAPPING_VERSION,
-        source_path=path,
-    )
-
-
-def categories_for_legacy_codes(axis: Literal["domain", "life_situation"], codes: tuple[str, ...]) -> tuple[str, ...]:
-    """Translate compatibility-axis codes through the frozen crosswalk."""
-    return tuple(
-        dict.fromkeys(category for code in codes for category in _LEGACY_CATEGORY_MAPPINGS.get((axis, code), ()))
-    )
-
-
-__all__ = [
-    "CategoryEvidenceState",
-    "PERSONAL_MATTER_CATEGORY_CONFIDENCE",
-    "PERSONAL_MATTER_TO_CATEGORY",
-    "PVOG_CATEGORY_MAPPING_VERSION",
-    "PVOG_SOURCE_VERSION",
-    "PvogCategoryEvidence",
-    "categories_for_legacy_codes",
-    "category_evidence_for_path",
-]
+    def _parent_is_source(self, parent_code: str | None, category_codes: tuple[str, ...]) -> bool:
+        """Return whether ``parent_code`` is a PVOG source parent of at least one of ``category_codes``."""
+        return any(parent_code in self.source_parents[code] for code in category_codes)
