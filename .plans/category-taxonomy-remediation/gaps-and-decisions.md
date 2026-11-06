@@ -19,6 +19,9 @@ This file records decisions that chapters must consume. A chapter may add a deci
 | D-R8 | **Old bookmarked URLs.** Old `domain`, `situation`, and `group` links show an unfiltered list. No compatibility code is added. | Accepted | The run ledger records this as known behaviour. |
 | D-R9 | **Review-state PVOG leaves.** Keep publishing them. Each leaf gets a recorded reason and date. A test pins the behaviour. | Accepted by user | C9. |
 | D-R10 | **Template gap.** The chief-of-staff skill names `.plans/PLAN_TEMPLATE.md`, which does not exist in this repository. | Accepted in this suite | This suite follows the shape of `category-taxonomy-migration`. Creating the template is out of scope. |
+| D-R11 | **C4 scope (2026-11-06, user).** The touch set is widened to the crosswalk consumers. The legacy crosswalk is served from the machine response until C7 removes it. | Accepted by user | C4 is integrated. C7 must also remove the legacy crosswalk from the machine response, which is a new API touch for C7. |
+| D-R12 | **`accepted_on` (2026-11-06, user).** The 32 leaves that were already `mapped` get `accepted_on` `2026-11-06`. | Accepted by user | C9 is integrated. The date is not persisted (DD4), and it is observed only. |
+| D-R13 | **Leaves `1040100` and `1060700` (2026-11-06, user).** Keep the current targets (`education-and-training`, `death-and-estate`). They are exempt from the harvest-evidence assertion by name. | Accepted by user | C9 is integrated. A later harvest path for either leaf needs its own decision. |
 
 ## Open decisions
 

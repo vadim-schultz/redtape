@@ -15,8 +15,10 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 - **Integration order:** C0, C1, C2, C4, C6, C9, C8, C7, C3, C11, C5, C10, C12, C13, C14
 - **Parallel batches:** B0 = C0 (C8 at any time before C7); B1 = C1, C6 (C5 when unblocked); B2 = C2, C4, C9; B3 = C3, C7, C11, C5; B4 = C10; B5 = C12; B6 = C13; B7 = C14
 - **Environment:** corporate build block, [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), passed to every implementer. `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate mirror. Revert that file before committing.
-- **Status:** in progress. Pre-flight recorded. C0 integrated at `f134b02`. Batch B1 running: C1, C5, and C6.
-- **Current work:** C1, C5, and C6 implementers in `.claude/worktrees/ct-c1`, `ct-c5`, and `ct-c6`. C8 partial (see its section). C7 is blocked on C8.
+- **Status:** in progress. Integrated on the loop so far: C0, C1, C2, C4, C5, C9. The loop tip is `d12da5f`.
+- **Running:** C3 (`.worktrees/ct-c3`, from `74e0b61`) and C6 (`.worktrees/ct-c6`, relaunched, from `74e0b61`). C11 (`.worktrees/ct-c11`, from `d12da5f`).
+- **Blocked:** C7 (waits on C8's payload evidence). C8 is partial. C10, C12, C13 depend on C7 or on production access. C14 needs user approval.
+- **Worktree location:** `.worktrees/ct-cN`, not `.claude/worktrees/`. Reason: each worktree's Python venv holds about 1,980 `*.json` files, and the sandbox deny-glob `**/.claude/*.json` pushed the mount count past its 4,096 limit. Finished worktrees were removed with user approval, and their branches were kept.
 - **Isolation:** each implementer gets a worktree `.claude/worktrees/ct-cN` on branch `feat/ct-remediation-cN`, created from the loop branch tip. Chief of staff integrates with `git merge --no-ff` in the declared integration order. Implementers never push or merge to the loop branch.
 - **CI serialization:** `flock .git/redtape-ci.lock ./ci.sh` for every full local CI run, because all worktrees share the Postgres container and the `redtape_migrations` database.
 - **Test databases:** narrow runs use `redtape_pytest_<cid>` through an explicit `DATABASE_URL`. See the environment finding below.
@@ -68,26 +70,27 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 ### C1 — Contract artifact under `apps/api`
 
-- Branch or worktree: pending
-- Red happy (import with `scripts` blocked; 34 active codes): pending
-- Red negative (missing or malformed artifact raises a typed error): pending
-- Red transitional (`.plans` and `apps/api` copies identical): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate: pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c1`, commit `3b2b6ca` (`refactor(taxonomy): load the category contract from apps/api`). The worktree was removed after integration. The branch is kept.
+- Red happy (import with `scripts` blocked; 34 active codes): implementer report pending. The chief of staff has the final `./ci.sh` evidence below.
+- Red negative (missing or malformed artifact raises a typed error): implementer report pending.
+- Red transitional (`.plans` and `apps/api` copies identical): implemented. The guard was removed in C4 with the `.plans` copy.
+- Green: the implementer's `./ci.sh` run on the branch passed (`.git/ci-logs/ct-c1-ci-20261106-105014.log`). Loop CI after integration passed (`.git/ci-logs/integrate-c1-c5.log`, `CI_EXIT=0`).
+- Refactor outcome: implementer report pending.
+- Gate: loop `./ci.sh` after integrating C1 and C5 exited 0.
+- Integration commit: `e51ad3a` (`merge: integrate C1 contract artifact under apps/api`).
+- Status: **integrated**. The implementer's written report is still pending.
 
 ### C2 — Replay merge rule (M1)
 
-- Branch or worktree: pending
-- Red happy (promotion row keeps source and provenance; confidence stays 0.9): pending
-- Red negative (conflict writes no row and is counted; rerun writes nothing new): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate: pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c2`, commit `ed0e32a`. Integrated. The worktree is at `.worktrees/ct-c2`.
+- Red happy (promotion row keeps source and provenance; confidence stays 0.9): **red**. Failed 2 of 2 on overwrite (`'legacy_crosswalk' != 'promotion'`; stored 0.9 dropped to 0.6).
+- Red negative (conflict writes no row and is counted; rerun writes nothing new): **not red on unchanged code.** The conflict count already existed, so the test is a regression guard. This is a recorded deviation from the chapter's "fail for the right reason" rule. The chief of staff accepts it, because the behaviour is pre-existing and the test now pins it.
+- Green: 8 of 8 backfill tests pass. The module-level skip in `test_category_backfill.py` is removed.
+- Refactor outcome: the whole `category_backfill.py` was refactored. Applied: `_LinkValues`, `_stored_links`, `_projected_values`, `_merge_existing_link`, `_insert_link`, `_update_link`, `_combine_confidence`, `_project_indexed_row`, and `_reject`, which keeps per-bucket counts. The `max` rule is defined once. The data-design gate found one `accepted-risk` item: DD12, a read-then-write race on `document_category`. The trigger is a second writer to that table.
+- Gate: the implementer's full `./ci.sh` passed on its base (`.git/ci-logs/ct-c2-ci-20261106-113538.log`). Loop CI was not rerun because the merge tree equals that tested tree (base `8af6ce1`, loop unchanged).
+- Test support: the tests create the four retired legacy tables from `apps/api/tests/legacy_tables.py` inside rolled-back transactions. This is test-only.
+- Integration commit: `74e0b61` (`merge: integrate C2 replay merge rule (M1)`).
+- Status: **integrated**
 
 ### C3 — Retirement migration gate (H1)
 
@@ -102,26 +105,31 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 ### C4 — Machine crosswalk and ingest fetch (M2, ingest half)
 
-- Branch or worktree: pending
-- Red happy (machine response carries crosswalk and version; harvest maps a complete path): pending
-- Red negative (unreachable or invalid response: harvest refuses and writes no mentions): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate (backend and ingest): pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c4`, commits `cf3d792` (API) and `db943a4` (ingest). Integrated. The worktree is at `.worktrees/ct-c4`.
+- Scope: the chief of staff widened the touch set on 2026-11-06 (decision D-R11). Changed files: the API crosswalk served from the machine response, the ingest fetch and validation, the harvest and legacy consumers that read the crosswalk, and their tests. The full list is in the implementer's report.
+- Red happy (machine response carries crosswalk and version; harvest maps a complete path): the API red was `KeyError: 'crosswalk'`. The ingest red was weaker: the deleted `.plans` path broke collection. Both are green now.
+- Red negative (unreachable or invalid response: harvest refuses and writes no mentions): the unusable-contract test failed with `DID NOT RAISE`. The refusal behaviour is covered by tests and by a mutation check (two refusal tests fail when the stop reason changes).
+- Green: API route tests (6), the fixture freshness test, and the search test that no ingest module reads the artifact path pass.
+- Refactor outcome: `_canonical_for_legacy` takes one `(axis, code)` pair. `PvogStash` replaces a five-argument mapper. `crosswalk_lookup.py` was split out of `category_mapping.py`. A duplicate-key check was left, because each copy is short.
+- Data-design gate: DD26 (crosswalk fetch has no retry) is an `accepted-risk`. Trigger: more than one drain a week stopped by taxonomy 5xx errors.
+- Stored values: none change. Both the old constant and the served `artifact_version` are `category-contract-v1`.
+- Deploy order: the API must ship before the ingest. New ingest refuses to run against an API that does not serve the crosswalk.
+- Gate: the implementer could not run the full `./ci.sh`, because its auto-review blocked it. The cause was the instruction to use only `redtape_pytest_c4`. The chief of staff ran the full loop `./ci.sh` after integration: `CI_EXIT=0`, with ingest 1817 passed (`.git/ci-logs/integrate-c4.log`).
+- Integration commit: `080bca1` (`merge: integrate C4 machine crosswalk and ingest fetch (M2)`).
+- Status: **integrated**
 
 ### C5 — Completeness decision and parity (M3)
 
-- Branch or worktree: pending
-- Blocked until: D-R4 confirmed by user
-- Red happy (parity fixture for public order and `complete`): pending
-- Red negative (invalid `filter[complete]` returns 422): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate: pending
-- Integration commit: pending
-- Status: blocked (D-R4)
+- Branch or worktree: `feat/ct-remediation-c5`, commits `5986826`, `4472132`, `bf34b50`. Integrated in `8af6ce1`. The worktree was removed after integration. The branch is kept.
+- Blocked until: D-R4 confirmed by user. **Unblocked** on 2026-11-06 (four flags).
+- Red happy (parity fixture for public order and `complete`): the commit `5986826` pins public order and `complete` to four flags. The implementer's red report is pending.
+- Red negative (invalid `filter[complete]` returns 422): pending the implementer's report.
+- Green: the code change is in `candidate_completeness_flags.py` (2 lines). The bulk is the test file (152 lines) and `docs/operations/candidate-view.md` (6 lines).
+- Refactor outcome: `bf34b50` splits the parity world artifacts and the four-flag reference. The full report is pending.
+- Ordering report (before and after, five and four flags): pending the implementer's report.
+- Gate: loop `./ci.sh` after integration exited 0. The implementer's `./ci.sh` also exited 0 (`.git/ci-logs/c5-ci-final-bf34b50-110312.log`).
+- Integration commit: `8af6ce1` (`merge: integrate C5 four-flag completeness parity`).
+- Status: **integrated** (implementer report pending)
 
 ### C6 — Chip opacity and staged copy (M4, L4)
 
@@ -149,7 +157,7 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 - Execution: chief-of-staff
 - Worker runs checked (read-only, GitHub run-log archives, 29 runs across the five `discovery-*.yml` drains, from 2026-11-01 to 2026-11-06; head SHAs `1599ed9d9`, `7bf01bef4`, `95a15dc31`, `95a361591`, `34cdf08ef`, `199f21ba2`, `a0c03b146`, `a5322d4de`, `eafd8e85d`): 0 log lines contain `domain_codes`, `situation_codes`, or `category_codes`. 15 runs claimed tasks (`"claimed": n` with n > 0). Run logs report counts only, not payloads, so this is **not** payload evidence.
-- Payload evidence (production run records): **pending**. It needs a read-only query against production, which the user has not yet authorised for the chief of staff. See the open items in the gaps file.
+- Payload evidence (production run records): **blocked.** The user approved read-only use of `/home/schult_v/.config/redtape/probe.env`. That file has no database URL. It holds the discovery API URL and key, Cloudflare tokens, and object-store credentials. The only database URL in the workspace is `apps/api/.env`, which the user has not approved for this check. The chief of staff did not use it.
 - Web bundle versions checked (read-only HTTP GET): `https://redtape-web.vadim-schultz.workers.dev/` serves `/assets/index-bocpk6rH.js`. It contains no `domain`, `situation`, `group`, or legacy `filter[...]` references. The production API could not be probed from this sandbox (HTTP 403 for `/health` and `/api/v1/categories`), so its boundary state is unverified.
 - O4 boundary date: **release day** (the day PR 370 merges to `main`), chosen by the user on 2026-11-06.
 - 404 and 422 window for cached bundles: open. It is recorded when the payload check is complete.
@@ -158,14 +166,19 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 ### C9 — Review-state leaves accepted (M8)
 
-- Branch or worktree: pending
-- Red happy (every PVOG leaf mapped, with reason and `accepted_on`): pending
-- Red negative (leaf in `review` without reason fails validation): pending
-- Green (14 leaves; frozen-section hash unchanged): pending
-- Refactor outcome: pending
-- Gate: pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c9`, commit `70cff7d`, then merge commit `a4a1ef4` (loop tip merged in). Integrated in `d12da5f`. The worktree is at `.worktrees/ct-c9`.
+- Decisions applied (2026-11-06): `accepted_on` is `2026-11-06` for the 32 leaves that were already `mapped` (D-R12). The leaves `1040100` and `1060700` keep their targets, and they are exempt from the harvest-evidence assertion by name (D-R13). The identical `.plans` copy edit was made, and C4 then deleted that copy.
+- Red happy (every PVOG leaf mapped, with reason and `accepted_on`): **red** on the missing `accepted_on` (API, 2 failed) and on `'review' == 'mapped'` (ingest, 1 failed).
+- Red negative (leaf in `review` without reason fails validation): the guard `PVOG leaf mapping has no reason` passed before and after. It is a pinned guard, not a red driver. The acceptance guard `no acceptance date` was red, and it is now green.
+- Green (46 leaves now `mapped`; frozen-section hash unchanged): API `test_seed_taxonomy.py` 15 passed. Ingest `test_pvog_situation_mapping.py` 12 passed.
+- Frozen-section hash (SHA-256 of canonical JSON of `categories` and `legacy_crosswalk`): before `dccc8ca29a45f7e1db3438cff9e6e4dd4776e59d373b7dcad5b4323683a866ad`, after the same value. Match.
+- Derived coverage count: `pvog_review_leaves` changed from 14 to 0. Accepted as a consequence of the state change.
+- Fixture: `apps/api/tests/fixtures/machine_vocabulary.json` was regenerated. It is 14 lines, `review` changed to `mapped`. The chief of staff accepted the file, because the freshness test requires it.
+- Refactor outcome: no refactor was applied. Observed, not applied: data clumps (`reason` with `accepted_on`), a borderline long function `_check_leaf`, and `category_validation.py` at 181 lines (pre-existing).
+- Data-design gate: DD10 (`artifact_version` stays `category-contract-v1` while states change; latent). DD1 and DD4 (`accepted_on` is not persisted; the seed does not write the date). Both are `observed`.
+- Gate: the full `./ci.sh` exited 0 under the shared lock on the merged tree (`.git/ci-logs/c9-merge-ci-20261106-142427.log`). API 1503 passed and 25 skipped. Web 1056 passed, 1 expected failure. Ingest 1818 passed.
+- Integration commit: `d12da5f` (`merge: integrate C9 review-state PVOG leaves accepted`).
+- Status: **integrated**
 
 ### C10 — Reference scan and gates (M5)
 
@@ -225,6 +238,17 @@ Status: planned.
 - [ ] Release recorded here.
 
 Status: planned.
+
+## Decisions log (2026-11-06, user and chief of staff)
+
+- **D-R4** completeness: four flags. User decision.
+- **O4** compatibility boundary: release day (the day PR 370 merges to `main`). User decision.
+- **D-R11** C4 scope: widened to the crosswalk consumers. Serve the legacy crosswalk from the machine response until C7 removes it. User decision (option 1).
+- **D-R12** `accepted_on` for the 32 already-mapped PVOG leaves: `2026-11-06`. User decision.
+- **D-R13** leaves `1040100` and `1060700`: keep their targets, and exempt them from harvest evidence by name. User decision.
+- **Accepted, not a user question:** C9 made an identical edit to the `.plans` copy so the byte-equality guard stayed green. C4 deleted that copy. `pvog_review_leaves` changed from 14 to 0, as a consequence of the state change. `machine_vocabulary.json` was regenerated for the same reason.
+- **Accepted deviation:** C2's negative test was not red on unchanged code (see the C2 section).
+- **Environment:** `apps/api/.env` points to production. Probe credentials are in `probe.env`, which has no database URL (see C8).
 
 ## Chief-of-staff findings (2026-11-06)
 
