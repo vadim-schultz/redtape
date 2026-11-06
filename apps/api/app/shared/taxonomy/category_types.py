@@ -81,7 +81,9 @@ class _PvogLeafMappingPayload(BaseModel):
     reason: str
 
 
-class _ContractPayload(BaseModel):
+class ContractPayload(BaseModel):
+    """The artifact's JSON shape, checked before it is mapped onto the frozen dataclasses."""
+
     artifact_version: str
     pvog_source_version: str
     categories: tuple[_CategoryPayload, ...]

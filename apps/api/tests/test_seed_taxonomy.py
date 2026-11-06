@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import json
+import os
 import re
+import subprocess
+import sys
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
@@ -17,6 +22,29 @@ from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 CODE_PATTERN = r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+API_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+APP_ARTIFACT = API_ROOT / "app" / "shared" / "taxonomy" / "category_contract_v1.json"
+PLANS_ARTIFACT = REPO_ROOT / ".plans" / "category-taxonomy-migration" / "category-contract-v1.json"
+ACTIVE_CODE_COUNT = 34
+SCRIPTS_IMPORT_BLOCKER = """
+import importlib.abc
+import json
+import sys
+
+
+class _BlockScripts(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname == "scripts" or fullname.startswith("scripts."):
+            raise ImportError(f"scripts import blocked: {fullname}")
+        return None
+
+
+sys.meta_path.insert(0, _BlockScripts())
+from app.shared.category_codes import ACTIVE_CATEGORY_CODES
+
+print(json.dumps(sorted(ACTIVE_CATEGORY_CODES)))
+"""
 
 
 def _count(session: Session, table: sa.Table | type) -> int:
@@ -93,3 +121,50 @@ def test_taxonomy_duplicate_or_cyclic_category_inventory_is_rejected() -> None:
 def test_frozen_crosswalk_has_a_disposition_for_each_legacy_source() -> None:
     """Keep the retired mapping artifact valid even though runtime taxonomy is category-only."""
     validate_legacy_crosswalk(LEGACY_CROSSWALK, CATEGORY_INVENTORY)
+
+
+def test_category_codes_import_without_scripts_yields_the_active_codes() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", SCRIPTS_IMPORT_BLOCKER],
+        cwd=API_ROOT,
+        env={**os.environ, "PYTHONPATH": str(API_ROOT)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    codes = json.loads(result.stdout)
+    expected = sorted(category.code for category in CATEGORY_INVENTORY if category.is_active)
+    assert len(codes) == ACTIVE_CODE_COUNT
+    assert codes == expected
+
+
+@pytest.mark.parametrize(
+    "artifact_bytes",
+    [None, b"{not json", b'{"artifact_version": "v1"}'],
+    ids=["missing", "not-json", "wrong-shape"],
+)
+def test_unusable_contract_artifact_raises_on_first_use(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, artifact_bytes: bytes | None
+) -> None:
+    from app.shared.category_codes import active_category_codes
+    from app.shared.taxonomy import contract_loader
+    from app.shared.taxonomy.category_types import TaxonomyContractError
+
+    artifact = tmp_path / "category_contract_v1.json"
+    if artifact_bytes is not None:
+        artifact.write_bytes(artifact_bytes)
+    monkeypatch.setattr(contract_loader, "ARTIFACT_PATH", artifact)
+    contract_loader.load_contract.cache_clear()
+    try:
+        for _ in range(2):
+            with pytest.raises(TaxonomyContractError, match="category contract artifact"):
+                active_category_codes()
+    finally:
+        contract_loader.load_contract.cache_clear()
+
+
+def test_app_contract_copy_matches_the_plans_copy_byte_for_byte() -> None:
+    """Transitional guard, not a loop pair: C4 deletes the .plans copy and this test with it."""
+    assert APP_ARTIFACT.read_bytes() == PLANS_ARTIFACT.read_bytes()
