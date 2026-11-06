@@ -1,25 +1,23 @@
-"""Map the category contract onto the machine vocabulary: the PVOG leaf crosswalk and the legacy crosswalk."""
+"""Map the category contract onto the machine vocabulary: the PVOG leaf crosswalk and its versions."""
 
 from __future__ import annotations
 
 from app.schema.taxonomy.read import (
     CrosswalkRead,
-    LegacyMappingRead,
     PvogLeafMappingRead,
     VocabularyResponse,
     VocabularyTerm,
 )
-from app.shared.taxonomy.category_types import CategoryDefinition, LegacyMapping, PvogLeafMapping
+from app.shared.taxonomy.category_types import CategoryDefinition, PvogLeafMapping
 from app.shared.taxonomy.contract_loader import CategoryContract
 
 
 def crosswalk_read(contract: CategoryContract) -> CrosswalkRead:
-    """Return the PVOG leaf crosswalk and the legacy crosswalk of ``contract`` with their versions."""
+    """Return the PVOG leaf crosswalk of ``contract`` with its source and artifact versions."""
     return CrosswalkRead(
         artifact_version=contract.artifact_version,
         pvog_source_version=contract.pvog_source_version,
         pvog_leaf_mappings=[_leaf_read(mapping) for mapping in contract.pvog_leaf_mappings],
-        legacy_crosswalk=[_legacy_read(mapping) for mapping in contract.legacy_crosswalk],
     )
 
 
@@ -39,18 +37,6 @@ def _leaf_read(mapping: PvogLeafMapping) -> PvogLeafMappingRead:
         confidence=mapping.confidence,
         state=mapping.state,
         reason=mapping.reason,
-    )
-
-
-def _legacy_read(mapping: LegacyMapping) -> LegacyMappingRead:
-    """Map one legacy disposition onto its read model."""
-    return LegacyMappingRead(
-        axis=mapping.axis,
-        source_code=mapping.source_code,
-        state=mapping.state,
-        target_codes=list(mapping.target_codes),
-        reason=mapping.reason,
-        score_combination=mapping.score_combination,
     )
 
 

@@ -37,17 +37,6 @@ class VocabularyTerm(BaseModel):
     source_parent_codes: list[str]
 
 
-class LegacyMappingRead(BaseModel):
-    """One disposition of a legacy domain or life-situation code, served until the compatibility axes are retired."""
-
-    axis: Literal["domain", "life_situation"]
-    source_code: str
-    state: Literal["mapped", "intentionally_unmapped", "manual_review"]
-    target_codes: list[str]
-    reason: str
-    score_combination: str | None
-
-
 class PvogLeafMappingRead(BaseModel):
     """One PVOG leaf and the canonical categories it maps to, with its confidence and review state."""
 
@@ -59,12 +48,11 @@ class PvogLeafMappingRead(BaseModel):
 
 
 class CrosswalkRead(BaseModel):
-    """The frozen PVOG leaf crosswalk with its source and artifact versions, and the legacy crosswalk."""
+    """The frozen PVOG leaf crosswalk with its source and artifact versions."""
 
     artifact_version: str
     pvog_source_version: str
     pvog_leaf_mappings: list[PvogLeafMappingRead]
-    legacy_crosswalk: list[LegacyMappingRead]
 
 
 class VocabularyResponse(BaseModel):

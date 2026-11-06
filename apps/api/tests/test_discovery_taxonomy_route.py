@@ -84,11 +84,23 @@ def test_machine_vocabulary_carries_the_pvog_crosswalk_with_its_source_and_artif
     assert crosswalk["artifact_version"] == contract.artifact_version == "category-contract-v1"
     assert crosswalk["pvog_source_version"] == contract.pvog_source_version == "v7"
     assert len(crosswalk["pvog_leaf_mappings"]) == len(contract.pvog_leaf_mappings)
-    assert len(crosswalk["legacy_crosswalk"]) == len(contract.legacy_crosswalk)
     retirement = next(item for item in crosswalk["pvog_leaf_mappings"] if item["leaf_code"] == "1180100")
     assert retirement["category_codes"] == ["retirement"]
     assert retirement["confidence"] == 0.95
     assert retirement["state"] == "mapped"
+
+
+def test_machine_vocabulary_serves_no_legacy_crosswalk(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    """machine vocabulary · the retired legacy crosswalk is not served; the PVOG leaf crosswalk is its only section."""
+    seed_canonical_taxonomy(db_session)
+
+    response = client.get(TAXONOMY_URL, headers={"X-API-Key": _issue_key(db_session)})
+
+    assert response.status_code == 200
+    assert set(response.json()["crosswalk"]) == {"artifact_version", "pvog_source_version", "pvog_leaf_mappings"}
 
 
 def test_machine_vocabulary_serves_no_partial_response_when_the_contract_is_unusable(
