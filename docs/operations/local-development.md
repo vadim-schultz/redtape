@@ -89,10 +89,15 @@ compose `db` service itself if nothing is listening on 5432 yet.
 If you keep a remote `DATABASE_URL` in `apps/api/.env` for day-to-day dev
 against Supabase or another hosted Postgres, that file still applies when you
 run `uvicorn` or ad-hoc `pytest` from `apps/api`. **`./ci.sh` and GitHub Actions
-override it** for the API test run: they always set
-`DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/redtape`
-and `REQUIRE_DB=1`, matching [`.github/workflows/api-lint-test.yml`](../../.github/workflows/api-lint-test.yml),
-so DB-backed tests never hit a remote database during CI.
+override it** for the API test run, and `REQUIRE_DB` defaults to `1`, so DB-backed tests never hit a remote
+database during CI:
+
+- `./ci.sh` uses the compose `db` service on `127.0.0.1:5432`. When Docker is available, it drops and recreates two
+  throwaway databases on every run: `redtape_pytest` for pytest and `redtape_migrations` for the migration check. It
+  never touches your local `redtape` database.
+- GitHub Actions uses its own throwaway Postgres service containers, one in each job, as set in
+  [`.github/workflows/api-lint-test.yml`](../../.github/workflows/api-lint-test.yml). The pytest job's database is
+  named `redtape`, and the migration job's is `redtape_migrations`. Neither is your local compose database.
 
 ## Checking migrations
 
