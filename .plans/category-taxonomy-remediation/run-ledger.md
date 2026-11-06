@@ -15,8 +15,8 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 - **Integration order:** C0, C1, C2, C4, C6, C9, C8, C7, C3, C11, C5, C10, C12, C13, C14
 - **Parallel batches:** B0 = C0 (C8 at any time before C7); B1 = C1, C6 (C5 when unblocked); B2 = C2, C4, C9; B3 = C3, C7, C11, C5; B4 = C10; B5 = C12; B6 = C13; B7 = C14
 - **Environment:** corporate build block, [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), passed to every implementer. `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate mirror. Revert that file before committing.
-- **Status:** in progress. Pre-flight recorded. C0 implementer running.
-- **Current work:** C0 in `.claude/worktrees/ct-c0` (branch `feat/ct-remediation-c0`). C8 evidence gathering (read-only).
+- **Status:** in progress. Pre-flight recorded. C0 integrated at `f134b02`. Batch B1 running: C1, C5, and C6.
+- **Current work:** C1, C5, and C6 implementers in `.claude/worktrees/ct-c1`, `ct-c5`, and `ct-c6`. C8 partial (see its section). C7 is blocked on C8.
 - **Isolation:** each implementer gets a worktree `.claude/worktrees/ct-cN` on branch `feat/ct-remediation-cN`, created from the loop branch tip. Chief of staff integrates with `git merge --no-ff` in the declared integration order. Implementers never push or merge to the loop branch.
 - **CI serialization:** `flock .git/redtape-ci.lock ./ci.sh` for every full local CI run, because all worktrees share the Postgres container and the `redtape_migrations` database.
 - **Test databases:** narrow runs use `redtape_pytest_<cid>` through an explicit `DATABASE_URL`. See the environment finding below.
@@ -57,14 +57,14 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 ### C0 — CI baseline
 
-- Branch or worktree: pending
-- Red happy (round-trip test on an empty database): pending
-- Red negative (unknown-code 422 test): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate (fresh-database file run, `./ci.sh`): pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c0`, worktree `.claude/worktrees/ct-c0`, commit `6cd345a`.
+- Red happy (round-trip test on an empty database): the original test fails with `assert 422 == 201` on an empty `redtape_pytest_chief_red` database. Reproduced by the chief of staff on the original test file.
+- Red negative (unknown-code 422 test): passes on the empty database, which is the expected behaviour before the change. Reproduced by the chief of staff.
+- Green: on a fresh `redtape_pytest_chief_c0` database, both tests pass (3 passed, with the round-trip and unknown-code selection). Reproduced by the chief of staff.
+- Refactor outcome: `ci.sh` gained `have_docker_compose` and `recreate_ci_database`, so the migration and pytest databases share one drop/create path and one Docker check. Seeding appears once, in the round-trip test, with no shared fixture. The implementer's own refactor report is pending.
+- Gate (fresh-database file run, `./ci.sh`): the full `./ci.sh` on the loop branch after integration exited 0. API: 1482 passed and 30 skipped. Migration round trip passed. Web: 1056 passed, 1 expected failure. Discovery skill checks passed. Discovery-ingest: 1789 passed.
+- Integration commit: `f134b02` (`merge: integrate C0 CI baseline`, merging `feat/ct-remediation-c0`).
+- Status: **integrated**
 
 ### C1 — Contract artifact under `apps/api`
 
