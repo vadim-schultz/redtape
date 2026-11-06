@@ -251,13 +251,20 @@ Each section records: branch or worktree, red happy and negative results, green 
 ### C10 — Reference scan and gates (M5)
 
 - Branch or worktree: pending
-- Red happy (scan over ingest and active docs fails on known hits): pending
-- Red negative (planted legacy identifier fails the scan): pending
-- Green: pending
-- Refactor outcome: pending
-- Gate (backend): pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c10`, commit `6db436b` (`test(taxonomy): widen reference scan with reasoned line allowances`). Only `apps/api/tests/test_legacy_reference_scan.py` changed. The worktree is at `.worktrees/ct-c10`.
+- Scope now: `apps/api`, `apps/discovery-ingest`, `apps/web/src`, `docs/**`, and `apps/*/README.md`. `.plans/` is excluded. Virtualenvs and caches are pruned.
+- Red happy (widened scope, no allowances): 158 unique lines in 31 files (154 code, 4 doc). Every one was classified before any change.
+- Red negative (planted identifier in ingest, old scope): the M5 gap. The probe line was not found under the old scope.
+- Red stale and reason checks: an allowance naming a missing file fails, an uncovered pattern fails, and a blank reason raises `ValueError`. The live-entries test passed vacuously at red, because the table was empty.
+- Allowances: one `ALLOWANCES` table with 90 line-level entries, each with a file, a regex the line must match, and a required reason. The reasons come from 14 `REASON_*` constants. Every entry matches a live hit, and there are no overlaps.
+- Hit classification: 0 fixed in this chapter. No hit sat in production runtime code outside the retirement guards. 84 allowed: historical migrations, the C3 retirement and archive code, rejection guards (`shared/retired_taxonomy.py`, `schema.py`, `mentions.py`), negative contract tests, and skipped retired pre-C9 modules. 6 are handed to C12, listed below.
+- C12 handoff (6 lines, each reason starts with `C12:`): `apps/discovery-ingest/README.md:76`, `apps/discovery-ingest/tests/fixtures/gold/README.md:37` (the gold README is not in C12's original touches, so it is added), and `docs/operations/discovery-online.md` lines 222, 223, 224, and 226.
+- Skipped retired modules, decision needed (not C12): `apps/api/tests/test_document_service.py`, `test_document_repository.py`, and `test_remove_seeded_documents_migration.py` are `pytestmark`-skipped. No chapter owns their deletion, so this is a follow-up for the user.
+- Refactor outcome: the stale check was split into `_missing_file_problem` and `_uncovered_problem`. The directory walk became one loop with a generator filter. Duplicate read-and-split became `_read_lines`, and duplicate regex application became `_matches`. One line covered by two allowances was fixed with an anchored pattern. The module is about 480 lines, mostly the table. It was not split, because a new file would be outside the touches.
+- Gate: `uv run pytest tests/test_legacy_reference_scan.py` passed 7 tests. Ruff format, ruff check, and mypy passed. The full `./ci.sh` under the shared lock exited 0 (API 1517 passed and 25 skipped, web 1062 passed and 1 expected fail, ingest 1818 passed). The ci run used `COMPOSE_PROJECT_NAME=redtape`, because the worktree directory name differs from the compose project.
+- Integration: pending. The merge waits for the C7 loop CI rerun, which holds the shared lock. The C10 branch was merge-tree clean against the loop at `1567229`.
+- Left behind: `redtape_pytest_c10` on the shared container, and a pre-format copy at `/tmp/c10_before_fmt.py`, outside the workspace.
+- Status: **committed on branch; integration pending.**
 
 ### C11 — API and web spec cleanup (L5, L6, L7)
 
