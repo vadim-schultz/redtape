@@ -91,7 +91,7 @@ Each entry follows its `depends_on` chapters in this order. C5 is listed last am
 Shared-file serials:
 
 - `apps/discovery-ingest/tests/test_pvog_situation_mapping.py`: C9 before C7.
-- `.plans/category-taxonomy-migration/category-contract-v1.json`: C1 keeps the copy, C4 deletes it, and C12 fixes links that point at it.
+- `.plans/category-taxonomy-migration/category-contract-v1.json`: C1 kept the copy, C4 deleted it, and C12 fixed the links that pointed at it. Integrated on the loop.
 - `apps/api/tests/test_seed_taxonomy.py`: C1 before C9.
 - `apps/discovery-ingest/discovery_ingest/harvest/pvog.py`: C4 only. C9 and C7 must not edit it.
 

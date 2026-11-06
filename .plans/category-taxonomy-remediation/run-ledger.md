@@ -284,15 +284,23 @@ Each section records: branch or worktree, red happy and negative results, green 
 
 ### C12 — Docs and decision sync (L1, L2, L3, L8)
 
-- Branch or worktree: pending
-- Evidence pairs (grep fails before, passes after; relative links resolve): pending
-- O2 and O4 to O7 status recorded: pending
-- Chip size wording (`sm`): pending
-- Archive owner and drop date: pending
-- Stale `.worktrees` copies: pending (remove or ignore only with user approval)
-- Gate (docs): pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c12`, five commits from `c667d6f` to `3859879`, on base `6db436b` (the C10 branch). The worktree is at `.worktrees/ct-c12`.
+- Evidence pairs: 16 grep pairs, each red before and green after. Examples: five-flag completeness in `docs/planning/STATUS.md` (1 → 0). Retired fields in `discovery-online.md` (4 → 0). Curation fields in the ingest README (1 → 0). Gold README field names (1 → 0). Deleted contract path in the old suite (1 file → 0). Local CI naming `redtape` in `local-development.md` (1 → 0). Chip size `XS` (1 → 0). Link check: 142 relative links across 11 changed files, with zero missing targets and anchors.
+- Allowances in the scan: 90 → 84. The six `C12:` entries were removed, since their lines are fixed.
+- O2: decided, maximum confidence. Cites `score_combination = "max"` in `apps/api/scripts/category_backfill.py`, pinned by `test_replay_keeps_promotion_source_and_provenance`.
+- O4: decided, 422 after the boundary. The boundary is release day. Evidence: `apps/api/app/shared/retired_taxonomy.py` and the `test_retired_*_filter_is_rejected_*` tests. The cached-bundle window stays open, pending the C8 production payload check.
+- O5: default confirmed. `DocumentCard.tsx` links only the title, and the chips are sibling links, with no nested anchors.
+- O6: default confirmed. `CandidateDetailContent.tsx` uses `Accordion.Root multiple defaultValue`, with no URL state.
+- O7: **reopened.** The shipped sources accordion has no empty state, and no `sources_empty` copy exists. The user has to decide (see the gaps file).
+- L5: `SourceCard` stays inline. The card is `SourceItem`. No `SourceCard` symbol exists.
+- L8: archive owner and drop date stay **open**. The user has not supplied them.
+- Old-suite statuses: the C9 `data-retirement` todo and the C10 rollout row and `live-validation` todo are set to `partial`, because production retirement waits for C13 and C14.
+- Extra stale claims fixed in touched files: ingest README lines 21, 60, and 216, the gold README `ext-5` to `ext-6`, and an old architecture translation claim.
+- Not changed: the gold README reference to `apps/api/scripts/seed_data/taxonomy.py`, which was not verified.
+- Gate: the full `./ci.sh` under the shared lock exited 0 (`.git/ci-logs/ct-c12-ci-20261106-174251.log`, `CI_EXIT=0`). API 1517 passed and 25 skipped. Web 1062 passed and 1 expected fail. Ingest 1818 passed. Lockfiles reverted, not committed.
+- Integration commit: `50d9f4c` (`merge: integrate C12 docs and decision sync (L1, L2, L3, L8)`).
+- Left behind: `redtape_pytest_c12` on the shared container. Outside C12's touches: `.github/workflows/api-lint-test.yml` still names `redtape` for its pytest service. The user decides whether to align it.
+- Status: **integrated.** C13 and C14 remain.
 
 ## Live gates
 
