@@ -1,4 +1,5 @@
 import type { CategoryNode } from "../../taxonomy/types";
+import { flattenCategories } from "../../../utils/categoryTree";
 
 /** The URL params the chips are stored in. */
 export const FILTER_PARAMS = ["category"] as const;
@@ -17,21 +18,12 @@ export function readCodes(params: URLSearchParams, axis: FilterAxis): string[] {
   return [...new Set(params.getAll(axis).filter(Boolean))];
 }
 
-function flattenCategoryCodes(nodes: CategoryNode[]): Set<string> {
-  return new Set(
-    nodes.flatMap((node) => [
-      node.code,
-      ...flattenCategoryCodes(node.children),
-    ]),
-  );
-}
-
 /** Read only category codes that exist in the loaded canonical tree. */
 export function readValidCategoryCodes(
   params: URLSearchParams,
   taxonomy: CategoryNode[],
 ): string[] {
-  const known = flattenCategoryCodes(taxonomy);
+  const known = new Set(flattenCategories(taxonomy).map((node) => node.code));
   return readCodes(params, "category").filter((code) => known.has(code));
 }
 
@@ -55,6 +47,17 @@ function withCodes(
   return next;
 }
 
+/** The selection after toggling `code`; picking a child also drops its selected parent. */
+function codesAfterToggle(
+  selected: string[],
+  code: string,
+  parentCode?: string | null,
+): string[] {
+  const next = toggled(selected, code);
+  if (!parentCode || selected.includes(code)) return next;
+  return next.filter((candidate) => candidate !== parentCode);
+}
+
 /** Toggle one canonical category without adding a legacy axis alias. */
 export function withToggledCategory(
   params: URLSearchParams,
@@ -62,11 +65,9 @@ export function withToggledCategory(
   parentCode?: string | null,
 ): URLSearchParams {
   const selected = readCodes(params, "category");
-  const next = toggled(selected, code);
-  const withoutParent =
-    parentCode && !selected.includes(code)
-      ? next.filter((candidate) => candidate !== parentCode)
-      : next;
-
-  return withCodes(params, "category", withoutParent);
+  return withCodes(
+    params,
+    "category",
+    codesAfterToggle(selected, code, parentCode),
+  );
 }

@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 
+import { flattenCategories } from "../../../utils/categoryTree";
 import type { CategoryNode } from "../../taxonomy/types";
+import { categoryNamesByCode } from "../../taxonomy/utils/categoryNames";
 import { readValidCategoryCodes, withToggledCategory } from "./filterParams";
 
 const tree: CategoryNode[] = [
@@ -43,4 +45,27 @@ it("category filter · unknown URL category does not produce a valid taxonomy se
   const params = new URLSearchParams("category=not-a-category");
 
   expect(readValidCategoryCodes(params, tree)).toEqual([]);
+});
+
+it("category traversal · the URL filter and the name lookup read one traversal of the same tree", () => {
+  const everyCode = ["home-and-housing", "moving-house"];
+  const params = new URLSearchParams(
+    everyCode.map((code) => ["category", code]),
+  );
+
+  expect(flattenCategories(tree).map((node) => node.code)).toEqual(everyCode);
+  expect(readValidCategoryCodes(params, tree)).toEqual(everyCode);
+  expect(Object.keys(categoryNamesByCode(tree))).toEqual(everyCode);
+});
+
+it("category filter · an unknown code in the URL leaves the filter as if it were absent", () => {
+  const withUnknown = new URLSearchParams(
+    "category=moving-house&category=not-a-category",
+  );
+  const withoutUnknown = new URLSearchParams("category=moving-house");
+
+  expect(readValidCategoryCodes(withUnknown, tree)).toEqual(
+    readValidCategoryCodes(withoutUnknown, tree),
+  );
+  expect(readValidCategoryCodes(withUnknown, tree)).toEqual(["moving-house"]);
 });
