@@ -199,7 +199,18 @@ Each section records: branch or worktree, red happy and negative results, green 
   - Manual rows: 5 manual mentions with legacy axes. The same projection covers them. The user should decide whether they are test data or real curation.
   - Stale runs: three `worker_drain` runs are still `running`, from 2026-10-28. Not touched.
   - Next input: `.git/ci-logs/c8_queries_4.sql`, which dates the `ext-5` rows. If none were written after 2026-11-04, the legacy writer has stopped being used since that date, but the schedule is still enabled.
-- Status: **partial (blocks C7).** The gate fails while the scheduled `ext-5` drain is enabled. It can close once the schedule is paused and `c8_queries_4.sql` confirms no later `ext-5` writes. The earlier input was the output of `c8_queries_3.sql`. If `with_domain_codes` or `with_situation_codes` is non-zero for a version that is still deployed, C7 stays blocked until that worker is updated or drained.
+- **Result, fourth set (2026-11-06, about 16:14 CET, after `DISCOVERY_LLM_SCHEDULE` was deleted).** From `.git/ci-logs/c8_queries_4.sql`:
+  - `ext-5` mentions: 293 in total. First write 2026-10-30 08:44 UTC. Last write 2026-11-06 12:23 UTC. 97 were written on or after 2026-11-04.
+  - `llm_extract` tasks: 279 completed, with the last claim at 2026-11-06 12:23:23 UTC. 5 failed, the last on 2026-10-30.
+  - `manual` mentions: 5, all written on 2026-10-30 at 15:54 UTC, each with both legacy axes. None since.
+  - `pvog-payload` mentions: 5808, written on 2026-10-28, clean.
+  - The deletion came after the last claim, so the scheduled drain has stopped.
+  - Task kinds: no `extract_page` tasks exist in production. The `discovery-extract.yml` workflow therefore has no extraction path that writes mentions.
+- **Status: closed by drain.** The chief of staff closed it on the user's deletion of `DISCOVERY_LLM_SCHEDULE`. Conditions still open:
+  1. Re-run part C of `c8_queries_4.sql` before the release. It must show no `ext-5` rows written after 2026-11-06 12:23 UTC.
+  2. No manual dispatch of `discovery-llm.yml` until the release. Main still runs `ext-5`.
+  3. C7 integrates on the loop. Its legacy-removal effect reaches production only at release, together with the API-first ordering.
+  4. C7 must confirm that the manual curation path accepts category codes only. The 5 legacy `manual` rows are projected at retirement, as recorded above. If `with_domain_codes` or `with_situation_codes` is non-zero for a version that is still deployed, C7 stays blocked until that worker is updated or drained.
 
 ### C9 — Review-state leaves accepted (M8)
 
