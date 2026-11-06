@@ -163,7 +163,27 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Refactor outcome: pending
 - Gate (ingest): pending
 - Integration commit: pending
-- Status: planned (after C8)
+- Branch or worktree: `feat/ct-remediation-c7`, commits `03e9a9a` (test: convert gold labels and taxonomy to category codes), `1629f43` (refactor: remove the legacy translators), and `f00bc6a` (refactor: stop serving the legacy crosswalk on the machine route). The worktree is at `.worktrees/ct-c7`.
+- Red (on unchanged code): ingest 15 of 26 failed. The retired-field negatives for mentions, curation, and gold failed because the translator still ran. The import test found both removed modules. The fixture tests found `domain_codes` still present. The served-crosswalk parse failed on the required `legacy_crosswalk`. API: `Extra items in the left set: 'legacy_crosswalk'`.
+- Guards, not red (recorded as such): the curation `direct_*` refusals (already refused by name through `extra="forbid"`), three category-only happy paths, and the existing crosswalk client tests.
+- Process note: the gold conversion script ran before the red step. The fixtures were reverted to HEAD for the red run, then the identical script output was restored for green. The script is not committed (`.git/ci-logs/c7_convert_gold.py`). Its output is committed, and equivalence was checked against a pre-change snapshot: same codes per page, same taxonomy digest (`c45150c7`), and the same 30 terms.
+- Green: ingest narrow set 248 passed. Full ingest suite 1818 passed, the same count as baseline. The count reconciles as +18 new tests, −16 legacy-table tests, and −2 contract cases. API: 68 targeted tests passed. Full `./ci.sh` under the shared lock exited 0 (`.git/ci-logs/c7-ci-full.log`, `CI_EXIT=0`): API 1512 passed and 25 skipped, web 1062 passed and 1 expected failure, ingest 1818 passed.
+- Refactor outcome: the shared refusal check was written in the green edit. The audit found nothing more to extract. `gold.py` (118 lines) and `operations/eval.py` (160 lines) were already over the size guideline and were left alone.
+- Scope widenings, accepted by the chief of staff on 2026-11-06:
+  1. Ingest `pvog/crosswalk_wire.py`, `crosswalk_check.py`, `category_mapping.py`, and `crosswalk_lookup.py`. Ingest must stop requiring the served section, or it refuses the new API.
+  2. `tests/fixtures/gold/taxonomy.json`, which the `*.gold.json` glob does not match.
+  3. The unused crosswalk argument of `load_gold` and `load_curation_file` was removed, which touched about nine test files.
+  4. `pvog/situation_mapping.py` was deleted outright, since it held only the legacy table.
+  5. The gate names `tests/test_machine_crosswalk.py` for the API, but that file exists only in ingest. The API tests that exist were run.
+- Gold `taxonomy.json`: the legacy term names remain under category codes. This is the translator's existing behaviour, and it keeps the taxonomy digest. Regenerating from the served vocabulary would change the eval prompt, so it was not done. Recorded as a follow-up, not a blocker.
+- O4 check (answered): the API already answers 422 that names the parameter for `domain`, `situation`, and `group`, in the bare and `filter[...]` forms on `/candidates` and `/documents`. No change needed.
+- Manual path (answered): accepts category codes only. `curation_plan.py:54` builds `category_codes`, and the loader refuses retired fields by name.
+- Doc drift for C12 (not changed here): `apps/discovery-ingest/README.md:76` and `apps/discovery-ingest/tests/fixtures/gold/README.md:37` still tell curators to send legacy fields.
+- Compatibility: `main`'s ingest never reads the served crosswalk, and it reads `categories` from `/machine/taxonomy`, which is unchanged. The API change cannot break a `main` worker. The new ingest works with the old and the new API, because it ignores the legacy key. Accepted risk: a pre-C7 C4-era ingest build against the new API would break. None is deployed. The trigger is any such build deployed after this API.
+- Data-design gate: DD8 and DD6 are accepted risks with the trigger above. DD9 and DD10 are clean. The retired-input refusal is observed and waits on the C12 docs.
+- Open: the shared-container database `redtape_pytest_c7` is still there. The user can drop it.
+- Integration commit: `87bc1ed` (`merge: integrate C7 ingest legacy removal (M6)`). The loop CI for C7 is running (`.git/ci-logs/integrate-c7.log`).
+- Status: **integrated**. C8 is closed by drain (see above), so the C8 precondition is met.
 
 ### C8 — Compatibility boundary and worker drain (M7)
 
