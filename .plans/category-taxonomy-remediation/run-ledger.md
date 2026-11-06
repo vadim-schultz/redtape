@@ -111,7 +111,7 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Stray database: `redtape_mig_c3_dbg` remains on the shared container. The chief of staff could not drop it, because it is outside the authorised names. The user should drop it.
 - Gate: full `./ci.sh` exited 0 on `36346e8` (log `.git/ci-logs/ct-c3-20261106-135009.log`). API 1506 passed and 25 skipped. Web 1056 passed, 1 expected failure. Ingest 1789 passed. The loop CI after integration is running (`.git/ci-logs/integrate-c3.log`).
 - Integration commit: `51cc760` (`merge: integrate C3 retirement migration gate (H1)`), merge of `feat/ct-remediation-c3` (`36346e8`).
-- Status: **integrated (loop CI running)**
+- Status: **integrated.** Loop CI covering C3 and C6 exited 0 (`.git/ci-logs/integrate-c3-c6.log`, `CI_EXIT=0`, ingest 1818 passed). The earlier C3 loop run failed only because of the environment leak (see the findings).
 
 ### C4 — Machine crosswalk and ingest fetch (M2, ingest half)
 
@@ -152,7 +152,7 @@ Each section records: branch or worktree, red happy and negative results, green 
 - Refactor outcome: `opacityFor` removed in the same green edit, since typecheck needed it gone. `confidence` stays on `CategoryChipCategory` as shared data (observed). The data-design gate is not applicable.
 - Gate (web and API): the full `./ci.sh` exited 0 on `57eda85` under the shared lock. API 1498 passed and 25 skipped. Web 1060 passed and 1 expected failure. Ingest 1789 passed. The loop CI covering C3 and C6 runs in `.git/ci-logs/integrate-c3-c6.log`.
 - Integration commit: `41cec33` (`merge: integrate C6 chip opacity and staged copy (M4, L4)`).
-- Status: **integrated** (the loop CI covering C3 and C6 is running)
+- Status: **integrated.** The loop CI covering C3 and C6 exited 0.
 
 ### C7 — Ingest legacy removal (M6)
 
