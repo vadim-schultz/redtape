@@ -57,7 +57,7 @@ flowchart TD
 | C7 | Public document metadata cleanup | C5, C6 | Public web candidate/detail surfaces, API candidate/discovery DTOs, tests | chapter-implementer | DTO/UI regression tests + `./ci.sh` | integrated |
 | C8 | Accordion view and source cards | C7 | Web candidate detail, flow, source cards, translations, tests | chapter-implementer | Accessibility/component tests + `./ci.sh` | integrated |
 | C9 | Legacy taxonomy retirement | C8 | API/web legacy taxonomy, migrations, contracts, docs, suite ledger | chapter-implementer | Reference scan + migration gate + `./ci.sh` | integrated |
-| C10 | Docs sync and live validation | C9 | Active docs, validation tests, deployed-app evidence, suite ledger | chief-of-staff | Link/contract/reference checks + read-only live validation | deferred by user request |
+| C10 | Docs sync and live validation | C9 | Active docs, validation tests, deployed-app evidence, suite ledger | chief-of-staff | Link/contract/reference checks + read-only live validation | integrated |
 
 ## Parallel batches
 
@@ -114,7 +114,7 @@ Chapters 3 and 4 must not be merged in a way that leaves machine workers with a 
 | 7 | [Public document metadata cleanup](chapters/07-public-document-metadata-cleanup.md) | api, web | DTO/UI regression tests + `./ci.sh` | integrated |
 | 8 | [Accordion view and source cards](chapters/08-accordion-document-view-and-source-cards.md) | web | accessibility/component tests + `./ci.sh` | integrated |
 | 9 | [Legacy retirement](chapters/09-legacy-retirement.md) | api, web | reference scan + migration gate + `./ci.sh` | integrated |
-| 10 | [Docs sync and live validation](chapters/10-docs-sync-and-live-validation.md) | docs, deployed apps | link check + read-only live checks | deferred by user request |
+| 10 | [Docs sync and live validation](chapters/10-docs-sync-and-live-validation.md) | docs, deployed apps | link check + read-only live checks | integrated |
 
 ## Parallel-safe ownership
 

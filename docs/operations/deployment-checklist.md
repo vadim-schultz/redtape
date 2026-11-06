@@ -15,6 +15,14 @@ Update the stored service URLs if you change project/service names.
 
 > **Update, 2026-09-23:** the frontend is now deployed, but under `https://redtape-web.vadim-schultz.workers.dev` — a `workers.dev` domain, not the `pages.dev` domain assumed above and throughout this checklist. That mismatch broke CORS between the two hosts (fixed in `render.yaml` and `apps/api/app/middleware/cors.py`; see [STATUS.md](../planning/STATUS.md) for details). This checklist still needs a real run against both live URLs once the CORS fix is confirmed deployed.
 
+> **Read-only validation, 2026-11-06:** the deployed web shell returned `200` and the isolated API
+> check returned `GET /health` `200 {"status":"ok"}`. The deployed API does not yet contain the
+> category-taxonomy cutover: `GET /api/v1/categories` returned `404`, the category-filtered
+> candidate request returned `422`, and an unfiltered candidate read still exposed the retired
+> `domains`/`situations` fields. `/api/v1/documents` returned `200` with an empty list. Treat the
+> category, chip, accordion, and PVOG-provenance live checks as pending until the C9 release is
+> deployed; this run performed no writes.
+
 ---
 
 ## Backend (Render)

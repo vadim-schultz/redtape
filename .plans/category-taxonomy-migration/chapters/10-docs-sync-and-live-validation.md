@@ -14,16 +14,16 @@ execution: chief-of-staff
 todos:
   - id: docs-sync
     content: "Remove stale active matrix/domain/life-situation instructions and document the canonical category and provenance boundaries."
-    status: pending
+    status: complete
   - id: static-validation
     content: "Run link, contract, translation, and reference checks after cleanup."
-    status: pending
+    status: complete
   - id: live-validation
     content: "Record read-only post-deploy category, UI, PVOG, and data-parity observations."
-    status: pending
+    status: complete
   - id: follow-up
     content: "Record any unresolved mapping, source, or compatibility issues without changing production data from the validation run."
-    status: pending
+    status: complete
 ---
 
 # Chapter 10 — Docs sync and live validation

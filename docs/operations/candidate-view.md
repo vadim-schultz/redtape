@@ -11,14 +11,15 @@ the exposure risk and the release smoke checks. Plans and decisions:
 
 ## What it is
 
-The view is public, read-only and unreviewed. Anyone can open it without a login. It shows every
-staged or emitted candidate, ranked by confidence and then completeness. It never emits, votes,
-moderates or edits. A candidate is listed whether or not it was ever emitted, voted or promoted:
-those steps are dormant (see [discovery-layer.md](discovery-layer.md#emit-vote-and-promote-are-dormant)).
+The view is public and read-only. Anyone can open it without a login. It shows candidate records,
+ranked by category confidence and the internal ranking model. It never emits, votes, moderates or
+edits. A candidate is listed whether or not it was ever emitted, voted or promoted: those steps are
+dormant (see [discovery-layer.md](discovery-layer.md#emit-vote-and-promote-are-dormant)).
 
-Completeness is four yes-or-no flags per candidate. A candidate is `complete` when all four are
-true. The flags drive `filter[complete]`, the completeness sort, the tie-break after confidence and the
-checklist on the item page. The `/documents` card does not show them.
+Completeness is an internal four-flag read model. A candidate is `complete` when all four are true.
+The flags remain available to the API's operational filtering and ranking paths, but they are not
+included in the public card/detail response and are not rendered as a banner, checklist, count, or
+other user-facing disclosure. The public confidence circle remains the indirect confidence signal.
 
 | Flag | True when |
 | --- | --- |
@@ -36,7 +37,7 @@ The full rule, including the manual override of the tag consensus, is section 3 
 | --- | --- | --- |
 | Web | `/documents` | The one document list, served by `GET /api/v1/candidates`: search, sort, category chips, a confidence circle per card, paging. |
 | Web | `/candidates` | Redirects to `/documents`. The old filter params are dropped, not translated. |
-| Web | `/candidates/:id` | One candidate: tags, ingress and egress cards, the flow diagram, the screenshot, the sources. Cards on `/documents` link here. |
+| Web | `/candidates/:id` | One candidate: canonical category tags and five accordion sections for ingress, egress, flow, evidence and sources. Ingress, egress and flow open by default; evidence and sources start collapsed. Cards on `/documents` link here. |
 | API | `GET /api/v1/candidates` | `{items, total, offset, limit}`. Search, sorts and filters are in the browse contract below. |
 | API | `GET /api/v1/candidates/{id}` | The detail with `ingress`, `egress`, `sources` and the `screenshot` reference. |
 | API | `GET /api/v1/candidates/{id}/screenshot` | The newest screenshot of the candidate's procedures, streamed from the object store. |
@@ -196,8 +197,9 @@ The candidates are unreviewed model output. The 2026-10-30 drain judged 10 to 17
 false positives, for example `Bescheid`, `Kontaktformular` and annex names. The owner chose to
 show them all (decision D1 in [gaps-and-decisions.md](../../.plans/candidate-view/gaps-and-decisions.md)).
 
-- The item page `/candidates/:id` carries a "staged, unreviewed" banner (D16). The `/documents`
-  list does not: its cards show a confidence circle instead.
+- The public item page does not expose staging/completeness internals: there is no "staged and
+  unreviewed" banner or completeness checklist. The `/documents` list and detail page retain the
+  confidence circle and canonical category links.
 - Ranking by confidence, then completeness, pushes sparse and weakly tagged candidates down. Chips
   match by presence, so a weak candidate still appears under a chip; its red circle says so.
 - The open seam is a curation gate or a hide list. A hide list is the first follow-up. Until it
@@ -221,17 +223,19 @@ you tick a box.
       with the percentage. Search (submit-applied), the sort (confidence, title, newest, each
       ascending or descending), the category chips and paging work.
       Every change returns to page one, and a reload or a shared URL restores the same view. A
-      A root chip is solid swiss red, a subcategory chip uses a lighter red. The empty and
+      root chip is solid swiss red, a subcategory chip uses a lighter red. The empty and
       error states are readable. `/candidates` redirects to `/documents`.  
       Status: not yet performed.
 - [ ] **Detail.** `/candidates/:id` shows the title, the description with its source attribution,
-      the ingress and egress cards, the flow diagram (arrows converge on the title card and
-      diverge to the egress cards), the screenshot and the sources. A candidate without edges
-      shows the "no dependencies staged" note. A reload of the screenshot answers 304.  
+      canonical category links, and five accordion sections: ingress, egress, flow, evidence and
+      sources. The first three are expanded by default; evidence and sources start collapsed.
+      A candidate without edges shows the "no dependencies staged" note. A reload of the
+      screenshot answers 304.
       Status: not yet performed.
 - [ ] **Light, dark and narrow.** Check light mode, dark mode and a narrow layout (below `md`).
-      The diagram is hidden below `md` and the card lists remain. Focus rings, link names and the
-      text alternative of the diagram are present.  
+      The flow accordion remains present below `md`; its diagram may use a responsive fallback, but
+      the section is not removed. Focus rings, link names and the text alternative of the diagram
+      are present.
       Status: not yet performed.
 - [ ] **Menu.** The menu has no Candidates and no Suggest link. Home is centred. The menu closes
       after Home, a Documents link, the language flag or Sign out, and stays open when the colour

@@ -14,6 +14,24 @@ Canonical URLs and roles for the discovery layer staging ingest loop. Staging co
 | `leika` | **Enrich** (chapter 17) | FIM Portal (`source=leika`) + bulk downloads from Kataloge |
 | `manual` | Ops / tests | N/A |
 
+## Taxonomy and provenance boundary
+
+The product browse taxonomy is the canonical category tree documented in
+[the category migration architecture](../../.plans/category-taxonomy-migration/00-architecture.md).
+Search is the primary discovery path; category browsing is a secondary aid. PVOG identifiers are
+source classifications, not product categories:
+
+- retain PVOG root, parent, leaf, path, and source-version metadata on ingest where the source
+  provides it;
+- map source evidence to product category codes only through the frozen
+  `category-contract-v1` crosswalk;
+- do not render PVOG leaf codes or source labels as category chips;
+- keep a document without sufficient category evidence searchable and report unknown or stale
+  category codes instead of inventing a mapping.
+
+Category links and external classifications are separate relations. Embeddings and entity
+identification are future capabilities and are not part of catalogue ingest.
+
 ## Out of scope (v1)
 
 | Source | Reason |

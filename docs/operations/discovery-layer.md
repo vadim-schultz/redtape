@@ -106,7 +106,7 @@ authorization boundary; the browser does not contain an email allowlist.
 | `/admin/discovery/catalogue` | Shows catalogue rows with their own summary chips (total, source, pipeline stage) that filter the table, a Title column and a stage filter. |
 | `/admin/discovery/coverage` | Shows the dedicated coverage summary and the budgets. |
 | `/admin/discovery/tasks` | Shows the crawler task queue: kind, status and source filters; columns for attempts, retry time and result note. |
-| `/admin/discovery/documents` | Lists document candidates: toolbar in the table header, every column sorts, filters appear as removable chips, a Ready quick filter (the five completeness flags), long titles clipped with a tooltip, paging. |
+| `/admin/discovery/documents` | Lists document candidates: toolbar in the table header, every column sorts, filters appear as removable chips, an internal Ready quick filter (the four completeness flags), long titles clipped with a tooltip, paging. |
 | `/admin/discovery/documents/<candidate-id>` | Shows one candidate: mentions, evidence artifacts, emit preview and suggestion state. |
 | `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
@@ -128,6 +128,18 @@ The emit preview is a subview of the pipeline page, not a top-level route. Every
 visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
 the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the
 existing retry action.
+
+## Taxonomy and public presentation
+
+The canonical category tree is the only product browse taxonomy. Search is primary and category
+browsing is secondary. Discovery mentions and admin views may retain source evidence, PVOG leaf/path
+metadata, confidence, and internal completeness flags, but those technical fields are not rendered
+on the public `/documents` list or candidate detail page. Public category chips use canonical
+category codes and link to the same category-filtered list as the front-page browse control.
+
+PVOG identifiers are external source classifications, not category chips. A missing or stale
+category mapping is reported for review; it is not converted into a guessed product category.
+Embeddings and entity identification remain separate future capabilities.
 
 If the probe fails with `503`, a 5xx status, or a network error, the app retries it twice. If it still
 fails, the menu shows a muted **Discovery unavailable** hint instead of the links. A `401` or `403`

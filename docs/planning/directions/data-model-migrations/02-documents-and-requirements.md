@@ -16,6 +16,8 @@ Fields to plan in schema (names indicative):
 - **Metadata** — validity hints, `jsonb` for extensibility without migrations for every country-specific attribute.
 - **Canonical categories** — many-to-many taxonomy links (join tables, not jsonb); see
   [`.plans/category-taxonomy-migration/`](../../../../.plans/category-taxonomy-migration/00-architecture.md).
+  Search remains the primary discovery path; category browsing is a secondary aid, and external
+  source classifications remain separate from these user-facing links.
 
 ## Requirement (edge)
 

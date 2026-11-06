@@ -12,9 +12,9 @@
 - Integration order: `C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
 - Parallel batches: `B1=C1`, `B2=C2`, `B3=C3`, `B4=C4`, `B5=C5`, `B6=C6`, `B7=C7`, `B8=C8`, `B9=C9`, `B10=C10`
 - Environment: web installs use `npm ci` against the corporate npm mirror through the documented proxy (see `.cursor/skills/chief-of-staff/corporate-build-env.md`); `./ci.sh` runs `uv run`, which rewrites `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing.
-- Status: C1-C9 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 integrated at `d9c9e7b` and merged at `c0919a5` after the full root gate passed. C10 remains deferred.
+- Status: C1-C10 integrated; C4 and C5 gates repaired and merged (`fb069c9`, `adf9435`); C6 integrated from `feat/category-admin-cutover` after full `./ci.sh` passed with Docker (`d9d6dd1`), including the regenerated machine-contract fixture; C7 integrated from `feat/public-document-metadata-cleanup` after full CI passed (`0d5b4c0`); C8 integrated from `feat/accordion-document-view` after full CI passed (`777502f`); C9 integrated at `d9c9e7b` and merged at `c0919a5` after the full root gate passed. C10 documentation and validation completed on 2026-11-06.
 - Conflicts/failures: none open at the loop branch. The C4 entry had not recorded its discovery-ingest failures (44 tests across 11 files). They were repaired as fixture and contract drift plus one real validation gap (manual curation silently accepted unknown legacy codes).
-- Current work: stopped after C9 at the user's request. C10 documentation sync and live validation were not started.
+- Current work: C10 evidence is recorded; the deployed API is still on a pre-cutover version and must be redeployed before the category-specific live gate can pass.
 
 ## Baseline
 
@@ -156,19 +156,30 @@
 - Refactor gate: stale legacy web clients, scripts, routes, models, and matrix tests were removed; rejection stays at the request boundary; canonical category paths contain no compatibility branches. No further extraction justified.
 - Follow-up outside C9 scope: discovery-ingest still translates legacy axis inputs on the client side (`mentions.py`, `curation.py`, `extract/llm/schema.py`, `pvog/category_mapping.py`).
 
+### Chapter 10 — Docs sync and live validation
+
+- Status: integrated on 2026-11-06; documentation changes remain on the loop branch pending the release commit.
+- Documentation sync: active master, data-model, discovery-source, discovery-operations, admin-table, candidate-view, deployment, backend, frontend, and mobile pointers now describe the canonical category tree, search-first/category-secondary discovery, red canonical chips, separate PVOG provenance, internal-only staging/completeness, five document accordions, subordinate source cards, and embeddings/entity identification as future work. Historical matrix plans remain unchanged.
+- Link check: a relative-link check over 11 changed suite and active documentation files passed; all relative targets resolved.
+- Contract/reference checks: `cd apps/api && PYTHONPATH=. DATABASE_URL=sqlite:///test.db uv run pytest -q tests/test_legacy_reference_scan.py tests/test_openapi_snapshot.py tests/test_machine_contract_fixture.py` passed (7 tests, one deprecation warning). The web contract and translation checks passed (64 tests, 1 expected failure); Vitest emitted a worker-termination `EACCES` warning but exited 0. `git diff --check` passed.
+- Full CI: `./ci.sh` passed on 2026-11-06 with Docker/Postgres; the migration round trip and drift check passed, the full API/web/discovery-skill gates passed, and discovery-ingest passed (1,789 tests). Final output: `✅ All CI checks passed!`.
+- Read-only live validation (2026-11-06 08:07 +01:00, isolated fetch path): the web shell returned `200`; `/health` returned `200 {"status":"ok"}`; `/api/v1/documents` returned `200` with an empty list. The deployed API is pre-cutover: `/api/v1/categories` returned `404`, the category-filtered candidate request returned `422`, and an unfiltered candidate response still exposed `domains`, `situations`, and completeness fields. The machine taxonomy request returned `401` without a machine key. No production write or ingest was attempted.
+- UI/PVOG/data-parity observation: browser-level visual checks and live PVOG provenance checks remain pending because the deployed API does not contain C9 and no production credentials were used. The live drift is a deployment-version mismatch, not evidence of a local category mapping loss.
+- Refactor gate: smells found -> active operator and planning docs still described the old public disclosure, taxonomy boundary, or pre-C8 detail behavior; refactorings applied -> updated those active references, retained historical records, and kept validation read-only/repeatable. No additional code refactor was needed.
+
 ## Post-deploy validation
 
-- Status: deferred; C10 was not executed because the user requested stopping after C9.
-- Deployment/version: pending
-- Category-tree API parity: pending
-- Document counts before/after: pending
-- Search without category: pending
-- Root and subcategory filtering: pending
-- Category chip navigation: pending
-- Old URL behavior: pending
-- No staging/completeness disclosure: pending
-- Accordion defaults: pending
-- Source cards and source links: pending
-- PVOG provenance on new ingest: pending
-- Unexpected taxonomy loss: pending
-- Follow-up issue/plan: pending
+- Status: partial; local C1-C9 gates are green, but the current deployment predates the cutover.
+- Deployment/version: API healthy and web shell reachable; deployed API version is not the C9 release.
+- Category-tree API parity: blocked by deployed `404` on `/api/v1/categories`.
+- Document counts before/after: local C9 evidence is 34 canonical categories, 0 document-category links, 0 external classifications, and 6 retirement-evidence rows; production counts remain pending.
+- Search without category: deployed unfiltered candidate list returned `200`; the response shape is pre-cutover and must be rechecked after release.
+- Root and subcategory filtering: blocked by deployed `422` for `filter[category]`.
+- Category chip navigation: pending browser-level check after web/API redeploy.
+- Old URL behavior: pending post-cutover live check; local C9 tests cover diagnostic rejection.
+- No staging/completeness disclosure: pending live UI/API check; deployed candidate data still exposes old fields.
+- Accordion defaults: local component tests pass; browser smoke pending after redeploy.
+- Source cards and source links: local component tests pass; browser smoke pending after redeploy.
+- PVOG provenance on new ingest: local contract tests pass; live ingest validation pending and no production write was attempted.
+- Unexpected taxonomy loss: no local loss observed; production comparison is pending because the deployed API is stale.
+- Follow-up issue/plan: release and deploy the integrated C9/C10 loop branch, then rerun the read-only API, web, category-filter, UI accordion/chip, and PVOG provenance checks.
