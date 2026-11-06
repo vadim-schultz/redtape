@@ -2400,12 +2400,6 @@
       "artifact_version": {
         "type": "string"
       },
-      "legacy_crosswalk": {
-        "items": {
-          "$ref": "#/components/schemas/LegacyMappingRead"
-        },
-        "type": "array"
-      },
       "pvog_leaf_mappings": {
         "items": {
           "$ref": "#/components/schemas/PvogLeafMappingRead"
@@ -2418,7 +2412,6 @@
     },
     "required": [
       "artifact_version",
-      "legacy_crosswalk",
       "pvog_leaf_mappings",
       "pvog_source_version"
     ],
@@ -3306,56 +3299,6 @@
       "name"
     ],
     "title": "JurisdictionPathNode",
-    "type": "object"
-  },
-  "LegacyMappingRead": {
-    "properties": {
-      "axis": {
-        "enum": [
-          "domain",
-          "life_situation"
-        ],
-        "type": "string"
-      },
-      "reason": {
-        "type": "string"
-      },
-      "score_combination": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "source_code": {
-        "type": "string"
-      },
-      "state": {
-        "enum": [
-          "mapped",
-          "intentionally_unmapped",
-          "manual_review"
-        ],
-        "type": "string"
-      },
-      "target_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      }
-    },
-    "required": [
-      "axis",
-      "reason",
-      "source_code",
-      "state",
-      "target_codes"
-    ],
-    "title": "LegacyMappingRead",
     "type": "object"
   },
   "LlmOutcomesRead": {

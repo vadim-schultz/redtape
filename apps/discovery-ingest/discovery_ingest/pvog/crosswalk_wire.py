@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
-from discovery_ingest.pvog.category_mapping import CategoryEvidenceState, LegacyAxis
+from discovery_ingest.pvog.category_mapping import CategoryEvidenceState
 
 
 class ServedCategory(BaseModel):
@@ -26,24 +24,12 @@ class ServedLeafMapping(BaseModel):
     reason: str
 
 
-class ServedLegacyMapping(BaseModel):
-    """One disposition of a legacy domain or life-situation code."""
-
-    axis: LegacyAxis
-    source_code: str
-    state: Literal["mapped", "intentionally_unmapped", "manual_review"]
-    target_codes: tuple[str, ...] = ()
-    reason: str
-    score_combination: str | None = None
-
-
 class ServedCrosswalk(BaseModel):
-    """The crosswalk section: the source and artifact versions, the PVOG leaves and the legacy dispositions."""
+    """The crosswalk section: the source and artifact versions and the PVOG leaf mappings."""
 
     artifact_version: str
     pvog_source_version: str
     pvog_leaf_mappings: tuple[ServedLeafMapping, ...]
-    legacy_crosswalk: tuple[ServedLegacyMapping, ...]
 
 
 class ServedVocabulary(BaseModel):

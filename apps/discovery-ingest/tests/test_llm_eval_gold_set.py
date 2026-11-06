@@ -13,8 +13,6 @@ from discovery_ingest.extract.llm.evaluation.gold import GoldPage, load_gold, un
 from discovery_ingest.extract.llm.evaluation.metrics import cleaner_recall
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
-from crosswalk_fakes import CROSSWALK
-
 GOLD_DIR = Path(__file__).parent / "fixtures" / "gold"
 REQUIRED_KINDS = {"accordion", "list", "no-documents", "login-wall", "conditional"}
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
@@ -37,7 +35,7 @@ def _kinds() -> dict[str, set[str]]:
 
 
 def _taxonomy() -> Taxonomy:
-    return Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"), context=CROSSWALK)
+    return Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"))
 
 
 def _hosts(pages: list[GoldPage]) -> set[str]:
@@ -46,7 +44,7 @@ def _hosts(pages: list[GoldPage]) -> set[str]:
 
 def test_the_gold_set_has_about_twenty_pages_on_at_least_eight_hosts_and_every_required_kind() -> None:
     """gold set · coverage: 20 or so pages, 8 or more hosts, an accordion, a list, no documents, a login wall, conditions."""
-    pages = load_gold(GOLD_DIR, crosswalk=CROSSWALK)
+    pages = load_gold(GOLD_DIR)
     kinds = set().union(*_kinds().values())
 
     assert 18 <= len(pages) <= 24
@@ -57,7 +55,7 @@ def test_the_gold_set_has_about_twenty_pages_on_at_least_eight_hosts_and_every_r
 def test_the_kind_tags_agree_with_the_labels() -> None:
     """gold set · a page tagged no-documents has none, conditional has a condition, login-wall is a login page."""
     all_kinds = _kinds()
-    for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK):
+    for page in load_gold(GOLD_DIR):
         kinds = all_kinds[page.name]
         assert ("no-documents" in kinds) == (not page.documents), page.name
         assert ("conditional" in kinds) == any(d.condition for d in page.documents), page.name
@@ -68,7 +66,7 @@ def test_the_kind_tags_agree_with_the_labels() -> None:
 def test_trimming_did_not_change_what_the_cleaner_reads() -> None:
     """gold set · clean_page of every committed page hashes to the value recorded from the untrimmed page at trim time."""
     manifest = _manifest()
-    pages = load_gold(GOLD_DIR, crosswalk=CROSSWALK)
+    pages = load_gold(GOLD_DIR)
 
     assert set(manifest) == {page.name for page in pages}
     for page in pages:
@@ -79,7 +77,7 @@ def test_trimming_did_not_change_what_the_cleaner_reads() -> None:
 
 def test_a_tampered_page_would_be_caught_by_the_trim_check() -> None:
     """gold set · the same digest differs as soon as one word of the page changes (the check can fail)."""
-    page = load_gold(GOLD_DIR, limit=1, crosswalk=CROSSWALK)[0]
+    page = load_gold(GOLD_DIR, limit=1)[0]
     original = hashlib.sha256(clean_page(page.html, page.source_url).text.encode()).hexdigest()
     tampered = clean_page(
         page.html.replace("Arbeitsuchend melden", "Arbeitsuchend melden Phantom"), page.source_url
@@ -93,17 +91,13 @@ def test_every_gold_code_is_in_the_real_taxonomy() -> None:
     taxonomy = _taxonomy()
 
     assert [
-        (page.name, unknown_codes(page, taxonomy))
-        for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK)
-        if unknown_codes(page, taxonomy)
+        (page.name, unknown_codes(page, taxonomy)) for page in load_gold(GOLD_DIR) if unknown_codes(page, taxonomy)
     ] == []
 
 
 def test_a_code_outside_the_taxonomy_is_reported() -> None:
     """unknown_codes · a made-up code is returned by name; a known one is not."""
-    page = load_gold(GOLD_DIR, limit=1, crosswalk=CROSSWALK)[0].model_copy(
-        update={"category_codes": ("home-and-housing", "made-up")}
-    )
+    page = load_gold(GOLD_DIR, limit=1)[0].model_copy(update={"category_codes": ("home-and-housing", "made-up")})
 
     assert unknown_codes(page, _taxonomy()) == ["made-up"]
 
@@ -136,7 +130,7 @@ def test_the_cleaner_keeps_nearly_every_gold_name_on_the_real_pages() -> None:
     """gold set · offline cleaner_recall over the real pages stays above the floor (44 of 47 names, 0.936, under clean-1)."""
     pages = [
         (page.name, [d.name for d in page.documents], clean_page(page.html, page.source_url).text)
-        for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK)
+        for page in load_gold(GOLD_DIR)
     ]
 
     assert cleaner_recall([(names, text) for _name, names, text in pages]) >= CLEANER_RECALL_FLOOR
@@ -145,8 +139,7 @@ def test_the_cleaner_keeps_nearly_every_gold_name_on_the_real_pages() -> None:
 def test_cleaner_recall_on_the_gold_set_with_the_default_cap_is_47_of_47() -> None:
     """gold set · clean-4 keeps every gold name: the 30,000-character cap no longer cuts the last document list."""
     pages = [
-        ([d.name for d in page.documents], clean_page(page.html, page.source_url).text)
-        for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK)
+        ([d.name for d in page.documents], clean_page(page.html, page.source_url).text) for page in load_gold(GOLD_DIR)
     ]
 
     assert cleaner_recall(pages) >= CLEANER_RECALL_TARGET
@@ -154,7 +147,7 @@ def test_cleaner_recall_on_the_gold_set_with_the_default_cap_is_47_of_47() -> No
 
 def test_a_missing_gold_name_would_pull_cleaner_recall_below_the_floor() -> None:
     """gold set · three invented names on a 47-name set drop the recall by more than the floor allows."""
-    page = load_gold(GOLD_DIR, limit=1, crosswalk=CROSSWALK)[0]
+    page = load_gold(GOLD_DIR, limit=1)[0]
     text = clean_page(page.html, page.source_url).text
 
     assert cleaner_recall([(["Phantom eins", "Phantom zwei"], text)]) < CLEANER_RECALL_FLOOR
@@ -162,6 +155,6 @@ def test_a_missing_gold_name_would_pull_cleaner_recall_below_the_floor() -> None
 
 def test_the_js_shell_page_cleans_to_nothing() -> None:
     """gold set · an un-rendered client-side shell has no text, so the model must not be paid for it."""
-    page = next(page for page in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if page.name == "verwaltung-js-shell")
+    page = next(page for page in load_gold(GOLD_DIR) if page.name == "verwaltung-js-shell")
 
     assert clean_page(page.html, page.source_url).text.strip() == ""

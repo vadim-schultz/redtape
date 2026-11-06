@@ -8,7 +8,6 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from discovery_ingest.curation import CurationFile
-from discovery_ingest.pvog.crosswalk_lookup import CrosswalkLookup
 
 
 class CurationError(Exception):
@@ -24,13 +23,13 @@ def _lines(err: ValidationError) -> list[str]:
     return [f"{'.'.join(str(part) for part in e['loc']) or 'file'}: {e['msg']}" for e in err.errors()]
 
 
-def load_curation_file(path: Path, crosswalk: CrosswalkLookup) -> CurationFile:
-    """Return the validated file at ``path``, its legacy fields translated through ``crosswalk``; raise :class:`CurationError` for unreadable, invalid or oversized input."""
+def load_curation_file(path: Path) -> CurationFile:
+    """Return the validated file at ``path``; raise :class:`CurationError` for unreadable, invalid or oversized input."""
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as err:
         raise CurationError([f"{path}: {err}"]) from err
     try:
-        return CurationFile.model_validate(raw, context=crosswalk)
+        return CurationFile.model_validate(raw)
     except ValidationError as err:
         raise CurationError(_lines(err)) from err

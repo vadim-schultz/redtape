@@ -24,7 +24,6 @@ from discovery_ingest.extract.llm.prompt import PROMPT_VERSION
 from discovery_ingest.extract.llm.redaction import scrub, secrets_of
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.operations.models import build_model_client
-from discovery_ingest.pvog.category_mapping import CrosswalkError, MachineCrosswalk
 
 DEFAULT_NEURON_BUDGET = 4000.0
 DEFAULT_GOLD_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "gold"
@@ -66,12 +65,11 @@ class EvalRefused(Exception):
 
 @dataclass(frozen=True, slots=True)
 class EvalRuntime:
-    """The live pieces of a run: the model client, the budget ledger, the tag vocabulary and the crosswalk its legacy labels read."""
+    """The live pieces of a run: the model client, the budget ledger and the tag vocabulary."""
 
     client: LlmClient
     guard: BudgetGuard
     taxonomy: Taxonomy
-    crosswalk: MachineCrosswalk
 
 
 def startup_problem(options: EvalOptions, settings: IngestSettings) -> str | None:
@@ -95,12 +93,12 @@ def _runtime(settings: IngestSettings, model: str, stack: ExitStack) -> EvalRunt
     """
     api = stack.enter_context(DiscoveryIngestClient.from_settings(settings))
     client = build_model_client(settings, model, stack)
-    return EvalRuntime(client, BudgetGuard(api.budget), api.candidates.taxonomy(), api.candidates.crosswalk())
+    return EvalRuntime(client, BudgetGuard(api.budget), api.candidates.taxonomy())
 
 
 def _pages(options: EvalOptions, runtime: EvalRuntime) -> list[GoldPage] | str:
     try:
-        pages = load_gold(Path(options.gold_dir), crosswalk=runtime.crosswalk, limit=options.limit)
+        pages = load_gold(Path(options.gold_dir), limit=options.limit)
     except GoldError as err:
         return str(err)
     taxonomy = runtime.taxonomy
@@ -151,7 +149,7 @@ def run_eval(settings: IngestSettings, options: EvalOptions) -> EvalResult:
     with ExitStack() as stack:
         try:
             runtime = _runtime(settings, options.model, stack)
-        except (DiscoveryMachineApiError, CrosswalkError) as err:
+        except DiscoveryMachineApiError as err:
             raise EvalRefused(f"the Discovery API refused the taxonomy request: {err}", EXIT_USAGE) from err
         pages = _pages(options, runtime)
         meter = _meter(options, runtime.guard)

@@ -21,8 +21,6 @@ from discovery_ingest.extract.llm.ground_state import DroppedItem
 from discovery_ingest.extract.llm.schema import PageExtraction
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
-from crosswalk_fakes import CROSSWALK
-
 FIXTURES = Path(__file__).parent / "fixtures"
 GOLD_DIR = FIXTURES / "gold"
 ANSWERS = FIXTURES / "llm_answers"
@@ -48,12 +46,12 @@ def _extraction(name: str) -> PageExtraction:
 
 def _page(name: str) -> CleanPage:
     """Return the page as the model read it: ``sr-only`` renamed, so clean-4 does not drop the helper text it copied."""
-    gold = next(item for item in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if item.name == name)
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == name)
     return clean_page(gold.html.replace("sr-only", "sr-label"), gold.source_url)
 
 
 def _ground(name: str, extraction: PageExtraction | None = None) -> Grounded:
-    taxonomy = Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"), context=CROSSWALK)
+    taxonomy = Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"))
     return ground(extraction or _extraction(name), _page(name), taxonomy)
 
 
@@ -132,7 +130,7 @@ def test_every_drop_reason_that_grounding_produces_is_assigned_to_a_class() -> N
 
 
 def _scores(name: str, extraction: PageExtraction | None = None) -> Scores:
-    gold = next(item for item in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if item.name == name)
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == name)
     extraction = extraction or _extraction(name)
     return score_page(gold, extraction, _ground(name, extraction))
 
@@ -164,7 +162,7 @@ def test_a_recorded_answer_with_only_guard_drops_is_fully_quote_grounded() -> No
 
 def test_a_scorer_given_an_unassigned_drop_reason_fails_loudly() -> None:
     """recorded · a drop with a reason outside both classes is refused by the scorer (negative)."""
-    gold = next(item for item in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if item.name == "aa-ferienbeschaeftigung")
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == "aa-ferienbeschaeftigung")
     grounded = _ground("aa-ferienbeschaeftigung")
     item = grounded.documents[0]
     diagnostics = replace(grounded.diagnostics, dropped_items=(DroppedItem("invented", item),))

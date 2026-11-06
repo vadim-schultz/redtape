@@ -23,7 +23,7 @@ LABELS: dict[str, dict[str, Any]] = {
     "alpha": {
         "page_kind": "service",
         "documents": [{"name": "Reisepass", "role": "required"}, {"name": "Meldebescheinigung", "role": "required"}],
-        "domain_codes": ["housing"],
+        "category_codes": ["home-and-housing"],
     },
     "beta": {"page_kind": "login_or_error"},
     "gamma": {"page_kind": "other"},
@@ -72,8 +72,8 @@ def write_long_gold(directory: Path, *, count: int, characters: int = 25_000) ->
     for number in range(count):
         name = f"long-{number:02d}"
         (directory / f"{name}.html").write_text(long_page_html(characters), encoding="utf-8")
-        labels = {"source_url": f"{SOURCE}{name}", "documents": [], "dependencies": [], "domain_codes": []}
-        labels |= {"situation_codes": [], "page_kind": "other"}
+        labels = {"source_url": f"{SOURCE}{name}", "documents": [], "dependencies": [], "category_codes": []}
+        labels |= {"page_kind": "other"}
         (directory / f"{name}.gold.json").write_text(json.dumps(labels), encoding="utf-8")
     return directory
 
@@ -83,8 +83,8 @@ def write_gold(directory: Path, *, names: Sequence[str] = tuple(PAGES)) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     for name in names:
         (directory / f"{name}.html").write_text(PAGES[name], encoding="utf-8")
-        labels = {"source_url": f"{SOURCE}{name}", "documents": [], "dependencies": [], "domain_codes": []}
-        labels |= {"situation_codes": [], **LABELS[name]}
+        labels = {"source_url": f"{SOURCE}{name}", "documents": [], "dependencies": [], "category_codes": []}
+        labels |= LABELS[name]
         (directory / f"{name}.gold.json").write_text(json.dumps(labels), encoding="utf-8")
     return directory
 

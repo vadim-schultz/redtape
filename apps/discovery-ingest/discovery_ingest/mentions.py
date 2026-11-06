@@ -7,17 +7,26 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
 from discovery_ingest.pvog.models import PvogSourcePath
 
 MentionRole = Literal["required", "form", "issued"]
 MAX_MENTION_ITEMS = 100
 MAX_CONDITION_LENGTH = 300
 MAX_CATEGORY_CODES = 5
-# Compatibility bounds retained for old readers while workers drain.
-MAX_DOMAIN_CODES = 2
-MAX_SITUATION_CODES = 3
+RETIRED_AXIS_FIELDS: frozenset[str] = frozenset(
+    {"domain_codes", "situation_codes", "direct_domain_confidence", "direct_situation_confidence"}
+)
 Code = Annotated[str, Field(min_length=1, max_length=64)]
+
+
+def refuse_retired_axis_fields(value: object) -> object:
+    """Return ``value`` unchanged, or raise naming every retired domain or situation field it still carries."""
+    if not isinstance(value, dict):
+        return value
+    retired = sorted(RETIRED_AXIS_FIELDS & value.keys())
+    if retired:
+        raise ValueError(f"retired field(s) {', '.join(retired)}; send category_codes instead")
+    return value
 
 
 class MentionDraft(BaseModel):
@@ -40,37 +49,9 @@ class MentionDraft(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
-        """Translate old axis fields once while old workers drain, through the crosswalk given as context."""
-        if not isinstance(value, dict):
-            return value
-        legacy_fields = {"domain_codes", "situation_codes", "direct_domain_confidence", "direct_situation_confidence"}
-        if not legacy_fields & value.keys():
-            return value
-        if "category_codes" in value:
-            raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        crosswalk = crosswalk_from(info)
-        domains = tuple(value.get("domain_codes") or ())
-        situations = tuple(value.get("situation_codes") or ())
-        categories = crosswalk.legacy_categories("domain", domains) + crosswalk.legacy_categories(
-            "life_situation", situations
-        )
-        direct = max(
-            (
-                confidence
-                for confidence in (
-                    value.get("direct_domain_confidence"),
-                    value.get("direct_situation_confidence"),
-                )
-                if confidence is not None
-            ),
-            default=None,
-        )
-        translated = {key: item for key, item in value.items() if key not in legacy_fields}
-        translated["category_codes"] = list(dict.fromkeys(categories)) or None
-        if direct is not None:
-            translated["direct_category_confidence"] = direct
-        return translated
+    def _refuse_retired_axes(cls, value: object) -> object:
+        """Refuse the retired domain and situation fields by name, before any category code is read."""
+        return refuse_retired_axis_fields(value)
 
 
 class MentionItem(MentionDraft):

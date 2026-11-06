@@ -19,10 +19,8 @@
     }
   ],
   "dependencies": [],
-  "domain_codes": [
-    "law-justice"
-  ],
-  "situation_codes": [
-    "illness-care"
+  "category_codes": [
+    "law-and-justice",
+    "illness-and-care"
   ]
 }

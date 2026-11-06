@@ -9,26 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from discovery_ingest.extract.llm.normalise import name_slug
-from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code
-from discovery_ingest.pvog.category_mapping import LegacyAxis, MachineCrosswalk
-from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
-
-_LEGACY_AXES: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
-    ("domain", "domain_codes"),
-    ("life_situation", "situation_codes"),
-)
-
-
-def _canonical_for_legacy(
-    crosswalk: MachineCrosswalk, title: object, legacy: tuple[LegacyAxis, str]
-) -> tuple[str, ...]:
-    """Return the canonical categories for one legacy (axis, code) pair; a code with none refuses the entry."""
-    axis, code = legacy
-    categories = crosswalk.legacy_categories(axis, (code,))
-    if not categories:
-        raise ValueError(f"{title!r}: unknown {axis} code {code!r}")
-    return categories
-
+from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code, refuse_retired_axis_fields
 
 MANUAL_EXTRACTOR = "manual"
 """The extractor name of every row the tool writes; the API's manual override keys on the same value."""
@@ -86,25 +67,9 @@ class CurationCandidate(_Strict):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
-        """Translate compatibility-axis fields, through the crosswalk given as context, before validating manual codes."""
-        if not isinstance(value, dict):
-            return value
-        legacy_fields = {"domain_codes", "situation_codes"}
-        if not legacy_fields & value.keys():
-            return value
-        if "category_codes" in value:
-            raise ValueError("legacy domain/situation fields cannot be combined with category_codes")
-        crosswalk = crosswalk_from(info)
-        categories = [
-            category
-            for axis, field_name in _LEGACY_AXES
-            for code in value.get(field_name) or ()
-            for category in _canonical_for_legacy(crosswalk, value.get("title_de"), (axis, code))
-        ]
-        translated = {key: item for key, item in value.items() if key not in legacy_fields}
-        translated["category_codes"] = list(dict.fromkeys(categories))
-        return translated
+    def _refuse_retired_axes(cls, value: object) -> object:
+        """Refuse the retired domain and situation fields by name, as the mentions do."""
+        return refuse_retired_axis_fields(value)
 
     @model_validator(mode="after")
     def _no_self_edge(self) -> Self:

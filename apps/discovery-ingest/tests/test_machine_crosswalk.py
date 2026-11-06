@@ -111,18 +111,22 @@ def test_client_refuses_a_failed_taxonomy_status_with_a_crosswalk_error() -> Non
         _taxonomy_client(httpx.MockTransport(handler)).crosswalk()
 
 
-def test_legacy_vocabulary_translates_through_the_crosswalk_it_is_given() -> None:
-    """legacy translation · a legacy domain term resolves to the categories the crosswalk gives it."""
+def test_legacy_vocabulary_without_categories_is_refused_not_translated() -> None:
+    """legacy vocabulary · a taxonomy that names only the retired domains is refused; nothing is translated."""
     legacy = {"domains": [{"code": "housing", "name_i18n": {"de": "Wohnen"}, "description_i18n": {}}]}
 
-    taxonomy = Taxonomy.model_validate(legacy, context=CROSSWALK)
-
-    assert taxonomy.category_codes == ("home-and-housing",)
-
-
-def test_legacy_vocabulary_without_a_crosswalk_is_refused() -> None:
-    """legacy translation · legacy fields with no crosswalk to translate them are refused, not dropped."""
-    legacy = {"domains": [{"code": "housing", "name_i18n": {"de": "Wohnen"}, "description_i18n": {}}]}
-
-    with pytest.raises(ValidationError, match="crosswalk"):
+    with pytest.raises(ValidationError, match="categories"):
         Taxonomy.model_validate(legacy)
+
+
+def test_served_crosswalk_without_a_legacy_section_parses_and_maps_leaves() -> None:
+    """machine crosswalk · the served crosswalk needs only the PVOG leaves; the retired legacy section is not read."""
+    body = copy.deepcopy(VOCABULARY)
+    crosswalk = body["crosswalk"]
+    assert isinstance(crosswalk, dict)
+    crosswalk.pop("legacy_crosswalk", None)
+
+    evidence = parse_crosswalk(body).evidence_for_path(RETIREMENT_PATH)
+
+    assert evidence is not None
+    assert evidence.category_codes == ("retirement",)

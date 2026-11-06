@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, TypeAdapter, model_validator
-
-from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
+from pydantic import BaseModel, ConfigDict
 
 DIGEST_LENGTH = 8
 
@@ -32,29 +29,6 @@ class Taxonomy(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     categories: tuple[TaxonomyTerm, ...]
-
-    @model_validator(mode="before")
-    @classmethod
-    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
-        """Translate a legacy vocabulary fixture at the input boundary, through the crosswalk given as context."""
-        if not isinstance(value, dict) or "categories" in value:
-            return value
-        crosswalk = crosswalk_from(info)
-        legacy_terms: list[TaxonomyTerm] = []
-        legacy_axes: tuple[tuple[Literal["domain", "life_situation"], str], ...] = (
-            ("domain", "domains"),
-            ("life_situation", "situations"),
-        )
-        for axis, field_name in legacy_axes:
-            raw_terms = value.get(field_name)
-            if not isinstance(raw_terms, list):
-                continue
-            terms = TypeAdapter(tuple[TaxonomyTerm, ...]).validate_python(raw_terms)
-            for term in terms:
-                for code in crosswalk.legacy_categories(axis, (term.code,)):
-                    if code not in {item.code for item in legacy_terms}:
-                        legacy_terms.append(term.model_copy(update={"code": code}))
-        return {**value, "categories": tuple(legacy_terms)}
 
     @property
     def category_codes(self) -> tuple[str, ...]:

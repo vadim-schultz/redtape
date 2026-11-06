@@ -1,7 +1,7 @@
 {
-  "domains": [
+  "categories": [
     {
-      "code": "identity-civil-status",
+      "code": "identity-and-documents",
       "name_i18n": {
         "de": "Identität & Personenstand",
         "en": "Identity & civil status"
@@ -9,10 +9,13 @@
       "description_i18n": {
         "de": "Ausweise, Urkunden und Personenstandsnachweise.",
         "en": "ID documents, certificates and civil status records."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "housing",
+      "code": "home-and-housing",
       "name_i18n": {
         "de": "Wohnen",
         "en": "Housing"
@@ -20,10 +23,13 @@
       "description_i18n": {
         "de": "Wohnsitz, Miete und Eigentum.",
         "en": "Residence, renting and property."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "vehicles-mobility",
+      "code": "mobility-and-vehicles",
       "name_i18n": {
         "de": "Fahrzeuge & Mobilität",
         "en": "Vehicles & mobility"
@@ -31,10 +37,13 @@
       "description_i18n": {
         "de": "Auto, Motorrad, Boot und Führerscheine.",
         "en": "Car, motorbike, boat and licences."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "work-employment",
+      "code": "work-and-employment",
       "name_i18n": {
         "de": "Arbeit & Beruf",
         "en": "Work & employment"
@@ -42,10 +51,13 @@
       "description_i18n": {
         "de": "Arbeitsverhältnis, Arbeitslosigkeit und Berufsnachweise.",
         "en": "Employment, unemployment and professional credentials."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "family-children",
+      "code": "family-and-relationships",
       "name_i18n": {
         "de": "Familie & Kinder",
         "en": "Family & children"
@@ -53,10 +65,13 @@
       "description_i18n": {
         "de": "Kinder, Elternschaft und Familienleistungen.",
         "en": "Children, parenthood and family benefits."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "education",
+      "code": "education-and-training",
       "name_i18n": {
         "de": "Bildung",
         "en": "Education"
@@ -64,10 +79,13 @@
       "description_i18n": {
         "de": "Schule, Ausbildung und Studium.",
         "en": "School, vocational training and university."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "health-insurance",
+      "code": "health-and-care",
       "name_i18n": {
         "de": "Gesundheit & Versicherung",
         "en": "Health & insurance"
@@ -75,10 +93,13 @@
       "description_i18n": {
         "de": "Krankenversicherung, Pflege und Gesundheitsnachweise.",
         "en": "Health insurance, care and medical records."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "taxes-finance",
+      "code": "taxes-and-finance",
       "name_i18n": {
         "de": "Steuern & Finanzen",
         "en": "Taxes & finance"
@@ -86,10 +107,13 @@
       "description_i18n": {
         "de": "Steuererklärung, Steuer-ID und Bankangelegenheiten.",
         "en": "Tax returns, tax ID and banking matters."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "residence-migration",
+      "code": "residence-and-migration",
       "name_i18n": {
         "de": "Aufenthalt & Migration",
         "en": "Residence & migration"
@@ -97,10 +121,13 @@
       "description_i18n": {
         "de": "Aufenthaltstitel, Visa und Einbürgerung.",
         "en": "Residence permits, visas and naturalisation."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "retirement-old-age",
+      "code": "retirement-and-old-age",
       "name_i18n": {
         "de": "Rente & Alter",
         "en": "Retirement & old age"
@@ -108,18 +135,10 @@
       "description_i18n": {
         "de": "Rentenanträge und Leistungen im Alter.",
         "en": "Pension applications and old-age benefits."
-      }
-    },
-    {
-      "code": "self-employment-business",
-      "name_i18n": {
-        "de": "Selbstständigkeit & Gewerbe",
-        "en": "Self-employment & business"
       },
-      "description_i18n": {
-        "de": "Gewerbeanmeldung, Freiberuf und Unternehmensgründung.",
-        "en": "Trade registration, freelancing and starting a business."
-      }
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "social-benefits",
@@ -130,10 +149,13 @@
       "description_i18n": {
         "de": "Bürgergeld, Wohngeld und weitere Sozialleistungen.",
         "en": "Citizen's income, housing benefit and other social benefits."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "law-justice",
+      "code": "law-and-justice",
       "name_i18n": {
         "de": "Recht & Justiz",
         "en": "Law & justice"
@@ -141,10 +163,11 @@
       "description_i18n": {
         "de": "Führungszeugnis, Vollmachten und Gerichtsverfahren.",
         "en": "Certificates of good conduct, powers of attorney and court matters."
-      }
-    }
-  ],
-  "situations": [
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
+    },
     {
       "code": "moving-house",
       "name_i18n": {
@@ -154,10 +177,13 @@
       "description_i18n": {
         "de": "Ummelden und Wohnsitz wechseln.",
         "en": "Registering a new address."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "birth-of-child",
+      "code": "birth-and-parenthood",
       "name_i18n": {
         "de": "Geburt eines Kindes",
         "en": "Birth of a child"
@@ -165,10 +191,13 @@
       "description_i18n": {
         "de": "Nachweise und Anträge rund um die Geburt.",
         "en": "Certificates and applications around a birth."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "marriage",
+      "code": "marriage-and-partnership",
       "name_i18n": {
         "de": "Heirat / Lebenspartnerschaft",
         "en": "Marriage / civil partnership"
@@ -176,10 +205,13 @@
       "description_i18n": {
         "de": "Eheschließung oder Lebenspartnerschaft anmelden.",
         "en": "Registering a marriage or civil partnership."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "separation-divorce",
+      "code": "separation-and-divorce",
       "name_i18n": {
         "de": "Trennung & Scheidung",
         "en": "Separation & divorce"
@@ -187,10 +219,13 @@
       "description_i18n": {
         "de": "Trennung, Scheidung und deren Folgen.",
         "en": "Separation, divorce and their consequences."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "death-of-relative",
+      "code": "death-and-estate",
       "name_i18n": {
         "de": "Todesfall",
         "en": "Death of a relative"
@@ -198,7 +233,10 @@
       "description_i18n": {
         "de": "Sterbeurkunde, Erbe und Nachlass.",
         "en": "Death certificate, inheritance and estate."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "job-loss",
@@ -209,7 +247,10 @@
       "description_i18n": {
         "de": "Arbeitslosmeldung und Leistungen bei Arbeitslosigkeit.",
         "en": "Registering as unemployed and unemployment benefits."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "new-job",
@@ -220,10 +261,13 @@
       "description_i18n": {
         "de": "Nachweise für Berufseinstieg und neue Arbeitgeber.",
         "en": "Paperwork for a first job or a new employer."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "going-self-employed",
+      "code": "self-employment",
       "name_i18n": {
         "de": "Selbstständig machen",
         "en": "Going self-employed"
@@ -231,7 +275,10 @@
       "description_i18n": {
         "de": "Gewerbe anmelden und Selbstständigkeit starten.",
         "en": "Registering a business and starting self-employment."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "studying",
@@ -242,7 +289,10 @@
       "description_i18n": {
         "de": "Einschreibung, BAföG und Studiennachweise.",
         "en": "Enrolment, student finance and study records."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "starting-school",
@@ -253,7 +303,10 @@
       "description_i18n": {
         "de": "Schulanmeldung und Schuleingangsuntersuchung.",
         "en": "School registration and school entry examination."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "renting-home",
@@ -264,7 +317,10 @@
       "description_i18n": {
         "de": "Mietvertrag, Kaution und Vermieterbestätigungen.",
         "en": "Rental contract, deposit and landlord confirmations."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "buying-property",
@@ -275,10 +331,13 @@
       "description_i18n": {
         "de": "Kauf, Baugenehmigung und Grundbuch.",
         "en": "Purchase, building permit and land register."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "buying-vehicle",
+      "code": "vehicle-registration",
       "name_i18n": {
         "de": "Fahrzeug kaufen / zulassen",
         "en": "Buying and registering a vehicle"
@@ -286,10 +345,13 @@
       "description_i18n": {
         "de": "Zulassung, Versicherung und Kennzeichen.",
         "en": "Registration, insurance and number plates."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "getting-licence",
+      "code": "driving-licence",
       "name_i18n": {
         "de": "Führerschein / Bootsschein erwerben",
         "en": "Getting a driving or boating licence"
@@ -297,7 +359,10 @@
       "description_i18n": {
         "de": "Fahrerlaubnis und Sportbootführerschein.",
         "en": "Driving licence and boating licence."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "immigration",
@@ -308,7 +373,10 @@
       "description_i18n": {
         "de": "Anmeldung, Aufenthalt und erste Behördengänge.",
         "en": "Registration, residence and first visits to authorities."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "naturalisation",
@@ -319,10 +387,13 @@
       "description_i18n": {
         "de": "Antrag auf die deutsche Staatsangehörigkeit.",
         "en": "Applying for German citizenship."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
-      "code": "illness-care",
+      "code": "illness-and-care",
       "name_i18n": {
         "de": "Krankheit / Pflegebedürftigkeit",
         "en": "Illness / care needs"
@@ -330,7 +401,10 @@
       "description_i18n": {
         "de": "Krankengeld, Pflegegrad und Schwerbehinderung.",
         "en": "Sick pay, care level and disability status."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     },
     {
       "code": "retirement",
@@ -341,7 +415,10 @@
       "description_i18n": {
         "de": "Rentenantrag und Übergang in den Ruhestand.",
         "en": "Pension application and transition to retirement."
-      }
+      },
+      "parent_code": null,
+      "icon": null,
+      "source_parent_codes": []
     }
   ]
 }

@@ -12,7 +12,6 @@ from discovery_ingest.extract.llm.ground import Grounded, ground
 from discovery_ingest.extract.llm.schema import PageExtraction
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 
-from crosswalk_fakes import CROSSWALK
 from llm_fakes import page
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -23,7 +22,7 @@ LINK = "https://portal.example/formulare/erkl%C3%A4rung%20alt.pdf"
 
 
 def _taxonomy() -> Taxonomy:
-    return Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"), context=CROSSWALK)
+    return Taxonomy.model_validate_json((GOLD_DIR / "taxonomy.json").read_text(encoding="utf-8"))
 
 
 def _ground(documents: list[dict[str, Any]], text: str = TEXT, links: tuple[str, ...] = ()) -> Grounded:
@@ -37,7 +36,7 @@ def _doc(name: str, quote: str, **extra: Any) -> dict[str, Any]:
 
 
 def _recorded_page() -> Any:
-    gold = next(item for item in load_gold(GOLD_DIR, crosswalk=CROSSWALK) if item.name == "aa-ferienbeschaeftigung")
+    gold = next(item for item in load_gold(GOLD_DIR) if item.name == "aa-ferienbeschaeftigung")
     return clean_page(gold.html, gold.source_url)
 
 

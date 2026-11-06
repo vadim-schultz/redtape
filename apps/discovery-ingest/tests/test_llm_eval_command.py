@@ -16,7 +16,7 @@ from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.operations import eval as evaluation
 from discovery_ingest.operations.eval import EvalRuntime
 
-from crosswalk_fakes import CROSSWALK, VOCABULARY
+from crosswalk_fakes import VOCABULARY
 from eval_fakes import ANSWERS, MODEL, PAGES, FakeLlm, write_gold, write_long_gold
 from ledger_fakes import FakeLedger, guard_for
 from llm_fakes import taxonomy
@@ -41,7 +41,7 @@ def _wire(
 ) -> FakeLedger:
     ledger = ledger or FakeLedger(remaining=9000)
     guard = guard_for(monkeypatch, ledger)
-    runtime = EvalRuntime(llm, guard, vocabulary or taxonomy(), CROSSWALK)
+    runtime = EvalRuntime(llm, guard, vocabulary or taxonomy())
     monkeypatch.setattr(evaluation, "_runtime", lambda _settings, _model, _stack: runtime)
     return ledger
 
@@ -436,7 +436,7 @@ def test_the_committed_real_gold_set_runs_end_to_end_and_reports_the_offline_cle
     _wire(
         monkeypatch,
         llm,
-        vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8"), context=CROSSWALK),
+        vocabulary=Taxonomy.model_validate_json(REAL_TAXONOMY.read_text(encoding="utf-8")),
     )
 
     code = main(

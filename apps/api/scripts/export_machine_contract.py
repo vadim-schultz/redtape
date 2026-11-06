@@ -106,7 +106,6 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "taxonomy_read.VocabularyResponse": (taxonomy_read.VocabularyResponse, "serialization"),
     "taxonomy_read.CrosswalkRead": (taxonomy_read.CrosswalkRead, "serialization"),
     "taxonomy_read.PvogLeafMappingRead": (taxonomy_read.PvogLeafMappingRead, "serialization"),
-    "taxonomy_read.LegacyMappingRead": (taxonomy_read.LegacyMappingRead, "serialization"),
 }
 """Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
 
