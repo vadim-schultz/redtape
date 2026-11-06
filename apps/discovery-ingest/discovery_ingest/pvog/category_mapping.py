@@ -1,4 +1,4 @@
-"""The validated PVOG crosswalk that the machine taxonomy serves, and the evidence and legacy lookups it backs."""
+"""The validated PVOG crosswalk that the machine taxonomy serves, and the evidence lookup it backs."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from typing import Literal
 from discovery_ingest.pvog.models import PvogSourcePath
 
 CategoryEvidenceState = Literal["mapped", "review"]
-LegacyAxis = Literal["domain", "life_situation"]
 
 
 class CrosswalkError(RuntimeError):
@@ -50,11 +49,6 @@ class MachineCrosswalk:
     pvog_source_version: str
     source_parents: Mapping[str, tuple[str, ...]]
     leaves: Mapping[str, LeafEntry]
-    legacy: Mapping[tuple[LegacyAxis, str], tuple[str, ...]]
-
-    def get(self) -> MachineCrosswalk:
-        """Return this crosswalk; a crosswalk already held is its own lookup."""
-        return self
 
     def evidence_for_path(self, path: PvogSourcePath) -> PvogCategoryEvidence | None:
         """Map a complete PVOG path to canonical evidence; never infer a category from a bare leaf."""
@@ -72,10 +66,6 @@ class MachineCrosswalk:
             mapping_version=self.artifact_version,
             source_path=path,
         )
-
-    def legacy_categories(self, axis: LegacyAxis, codes: tuple[str, ...]) -> tuple[str, ...]:
-        """Translate compatibility-axis codes through the legacy crosswalk, keeping the first occurrence of each category."""
-        return tuple(dict.fromkeys(category for code in codes for category in self.legacy.get((axis, code), ())))
 
     def _parent_is_source(self, parent_code: str | None, category_codes: tuple[str, ...]) -> bool:
         """Return whether ``parent_code`` is a PVOG source parent of at least one of ``category_codes``."""

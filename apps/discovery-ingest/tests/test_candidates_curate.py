@@ -14,7 +14,6 @@ from discovery_ingest.emit_models import CandidateSummary
 from discovery_ingest.extract.clean import clean_page
 from discovery_ingest.extract.llm.normalise import name_slug
 
-from crosswalk_fakes import CROSSWALK
 from curate_fakes import (
     ANMELDUNG,
     AUSWEIS,
@@ -92,7 +91,7 @@ def test_page_for_an_unknown_candidate_prints_nothing_and_exits_1(api: Api, caps
 
 def test_plan_turns_a_curated_candidate_into_one_tag_mention_and_its_edges() -> None:
     """plan · one manual tag mention with the codes; ``requires`` makes the candidate the parent, ``required_by`` the child."""
-    plan = plan_curation(CurationFile.model_validate(_file(entry()), context=CROSSWALK), _staged())
+    plan = plan_curation(CurationFile.model_validate(_file(entry())), _staged())
 
     (tag,) = plan.mentions
     assert (tag.extractor, tag.extractor_version, tag.source_field, tag.role) == (
@@ -150,7 +149,7 @@ def test_unknown_taxonomy_code_fails_the_whole_file(
     api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """curate · a typo in a code refuses the file (exit 2), posts nothing and names the entry and the code."""
-    path = write_file(tmp_path, entry(domain_codes=["identity-civil"]))
+    path = write_file(tmp_path, entry(category_codes=["identity-civil"]))
 
     code, out, err = _run(capsys, "curate", "--file", str(path))
 

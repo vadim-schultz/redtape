@@ -9,16 +9,13 @@ import pytest
 from discovery_ingest.extract.llm.evaluation.gold import GoldError, GoldPage, load_gold
 from discovery_ingest.extract.llm.evaluation.metrics import cleaner_recall
 
-from crosswalk_fakes import CROSSWALK
-
 PAGE = "<html lang='de'><body><main><h1>Antrag</h1><p>Bitte bringen Sie Ihren Reisepass mit.</p></main></body></html>"
 GOLD = {
     "source_url": "https://portal.example/antrag",
     "page_kind": "service",
     "documents": [{"name": "Reisepass", "role": "required", "condition": "bei Zuzug", "is_optional": True}],
     "dependencies": [{"parent": "Antrag", "requires": "Reisepass"}],
-    "domain_codes": ["housing"],
-    "situation_codes": [],
+    "category_codes": ["home-and-housing"],
 }
 
 
@@ -33,26 +30,26 @@ def test_the_loader_pairs_each_html_with_its_gold_labels_in_name_order(tmp_path:
     _write(tmp_path, "b-page")
     _write(tmp_path, "a-page")
 
-    pages = load_gold(tmp_path, crosswalk=CROSSWALK)
+    pages = load_gold(tmp_path)
 
     assert [page.name for page in pages] == ["a-page", "b-page"]
     first = pages[0]
     assert isinstance(first, GoldPage) and "Reisepass" in first.html
     assert first.documents[0].condition == "bei Zuzug" and first.documents[0].is_optional
-    assert [page.name for page in load_gold(tmp_path, limit=1, crosswalk=CROSSWALK)] == ["a-page"]
+    assert [page.name for page in load_gold(tmp_path, limit=1)] == ["a-page"]
 
 
 def test_the_loader_rejects_a_missing_page_an_unknown_role_and_a_missing_directory(tmp_path: Path) -> None:
     """load_gold · a gold file without html, a role outside the schema and no directory raise GoldError naming the page."""
     _write(tmp_path, "no-html", html=None)
     with pytest.raises(GoldError, match="no-html"):
-        load_gold(tmp_path, crosswalk=CROSSWALK)
+        load_gold(tmp_path)
     (tmp_path / "no-html.gold.json").unlink()
     _write(tmp_path, "bad-role", gold={**GOLD, "documents": [{"name": "X", "role": "boss"}]})
     with pytest.raises(GoldError, match="bad-role"):
-        load_gold(tmp_path, crosswalk=CROSSWALK)
+        load_gold(tmp_path)
     with pytest.raises(GoldError, match="not a directory"):
-        load_gold(tmp_path / "missing", crosswalk=CROSSWALK)
+        load_gold(tmp_path / "missing")
 
 
 def test_cleaner_recall_counts_gold_names_whose_slug_is_in_the_cleaned_text() -> None:

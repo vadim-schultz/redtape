@@ -14,7 +14,6 @@ from discovery_ingest.curation_staged import StagedIndex
 from discovery_ingest.emit_models import CandidateSummary
 from discovery_ingest.extract.llm.normalise import name_slug
 
-from crosswalk_fakes import CROSSWALK
 from curate_fakes import (
     ANMELDUNG,
     AUSWEIS,
@@ -72,9 +71,7 @@ def test_batches_split_at_the_bound_and_refuse_a_bound_below_one() -> None:
 def test_a_missing_neighbour_gets_a_manual_mention_only_when_create_is_set() -> None:
     """plan · ``create`` adds one ``manual:neighbour`` mention (role required, the edge's excerpt); a staged one adds none."""
     missing = edge("Geburtsurkunde", EXCERPT_REQUIRES, create=True)
-    file = CurationFile.model_validate(
-        {"version": 1, "curator": "t", "candidates": [entry(requires=[missing])]}, context=CROSSWALK
-    )
+    file = CurationFile.model_validate({"version": 1, "curator": "t", "candidates": [entry(requires=[missing])]})
 
     plan = plan_curation(file, _index())
 
