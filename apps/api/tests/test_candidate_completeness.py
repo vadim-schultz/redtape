@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterator
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 from app.features.discovery.repository import candidate_completeness
@@ -12,8 +14,13 @@ from app.features.discovery.repository.candidate_completeness import (
     completeness_order,
     completeness_subquery,
 )
-from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateMention
+from app.features.discovery.tags import MIN_SUGGESTED_SCORE, llm_evidence_score
+from app.main import create_app
+from app.models.discovery import CatalogueService, DiscoveryArtifactKind, DiscoveryCandidateMention
 from app.shared.list_query import SortOrder
+from litestar import Litestar
+from litestar.testing import TestClient
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -22,6 +29,149 @@ from completeness_world import Row
 
 SNAPSHOT, SCREENSHOT = DiscoveryArtifactKind.HTML_SNAPSHOT, DiscoveryArtifactKind.SCREENSHOT
 TAGGED = Row(0, ["housing"])
+URL = "/api/v1/candidates"
+HOUSING, MOVING, WORK, RETIRE = "home-and-housing", "moving-house", "work-and-employment", "retirement"
+PARITY_PROCEDURES = 7
+PARITY_ARTIFACTS = ((4, SNAPSHOT), (4, SCREENSHOT), (5, SNAPSHOT), (6, SCREENSHOT))
+"""Artifacts as (procedure index, kind): a candidate has one when it mentions the procedure."""
+
+
+class Member(NamedTuple):
+    """One candidate of the parity world: its mentions as (procedure index, codes) and the candidates it requires."""
+
+    key: str
+    mentions: tuple[tuple[int, tuple[str, ...] | None], ...] = ()
+    requires: tuple[str, ...] = ()
+
+
+PARITY_WORLD = (
+    Member("alpha", ((0, (HOUSING, MOVING)), (1, (HOUSING, MOVING)), (4, None)), requires=("hotel",)),
+    Member("bravo", ((0, (HOUSING, MOVING)), (1, (HOUSING, MOVING)), (2, (HOUSING, MOVING)))),
+    Member("charlie", ((0, (HOUSING,)), (1, (HOUSING,)), (2, (HOUSING,)), (3, (HOUSING,)))),
+    Member("delta", ((3, (WORK,)), (2, (WORK,))), requires=("hotel",)),
+    Member("echo", ((6, (RETIRE,)),)),
+    Member("foxtrot", ((5, None),)),
+    Member("golf"),
+    Member("hotel", ((1, (WORK,)),)),
+    Member("india", ((0, (HOUSING,)), (4, None)), requires=("hotel",)),
+)
+
+
+class Expected(NamedTuple):
+    """The four-flag reading of one candidate: its flag count, whether all four hold, its confidence and mentions."""
+
+    completeness: int
+    complete: bool
+    confidence: float
+    mentions: int
+
+
+@pytest.fixture
+def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    seed_canonical_taxonomy(db_session)
+    monkeypatch.setattr("app.main.provide_session", lambda: db_session)
+    with TestClient(create_app()) as test_client:
+        yield test_client
+
+
+def _build_parity_world(session: Session) -> None:
+    procs = world.procedures(session, PARITY_PROCEDURES)
+    owners = {member.key: world.candidate(session, procs[0], member.key) for member in PARITY_WORLD}
+    for member in PARITY_WORLD:
+        world.mentioned(session, owners[member.key], procs, [Row(index, codes) for index, codes in member.mentions])
+        for required in member.requires:
+            world.edge(session, owners[member.key], owners[required])
+    _add_artifacts(session, procs)
+
+
+def _add_artifacts(session: Session, procs: list[CatalogueService]) -> None:
+    for index, kind in PARITY_ARTIFACTS:
+        world.artifact(session, procs[index], kind)
+
+
+def _procedures_with(member: Member, code: str) -> int:
+    return len({index for index, codes in member.mentions if codes and code in codes})
+
+
+def _category_scores(member: Member) -> dict[str, float]:
+    """Score every code with the LLM evidence curve over its share of the procedures that carry any code."""
+    tagged = len({index for index, codes in member.mentions if codes})
+    codes = {code for _, row_codes in member.mentions for code in row_codes or ()}
+    scores: dict[str, float] = {}
+    for code in codes:
+        procedures = _procedures_with(member, code)
+        scores[code] = llm_evidence_score(procedures, procedures / tagged)
+    return scores
+
+
+def _artifact_kinds(member: Member) -> set[DiscoveryArtifactKind]:
+    return {kind for index, _ in member.mentions for owner, kind in PARITY_ARTIFACTS if owner == index}
+
+
+def _four_flags(member: Member, members: tuple[Member, ...]) -> tuple[bool, bool, bool, bool]:
+    """Return the four flags of ``member``: a category, an edge, a snapshot and a screenshot."""
+    kinds = _artifact_kinds(member)
+    has_category = any(score >= MIN_SUGGESTED_SCORE for score in _category_scores(member).values())
+    has_edges = bool(member.requires) or any(member.key in other.requires for other in members)
+    return has_category, has_edges, SNAPSHOT in kinds, SCREENSHOT in kinds
+
+
+def _expected(member: Member, members: tuple[Member, ...]) -> Expected:
+    """Apply the four-flag rule to one member of the world, from its definition and not from the database."""
+    flags = _four_flags(member, members)
+    return Expected(
+        completeness=sum(flags),
+        complete=all(flags),
+        confidence=max(_category_scores(member).values(), default=0.0),
+        mentions=len(member.mentions),
+    )
+
+
+def _expected_world() -> dict[str, Expected]:
+    return {member.key: _expected(member, PARITY_WORLD) for member in PARITY_WORLD}
+
+
+def _completeness_rank(value: Expected) -> tuple[int, int]:
+    return (-value.completeness, -value.mentions)
+
+
+def _default_order(expected: dict[str, Expected]) -> list[str]:
+    """Confidence, then completeness, then mentions, all best first; the key breaks the rest (titles equal keys)."""
+    return sorted(expected, key=lambda key: (-expected[key].confidence, *_completeness_rank(expected[key]), key))
+
+
+def _completeness_order(expected: dict[str, Expected]) -> list[str]:
+    return sorted(expected, key=lambda key: (*_completeness_rank(expected[key]), key))
+
+
+def _public_keys(client: TestClient[Litestar], **params: str) -> list[str]:
+    response = client.get(URL, params={"limit": 100, **params})
+    assert response.status_code == 200, response.text
+    return [item["key"] for item in response.json()["items"]]
+
+
+def test_public_order_and_complete_follow_the_four_flag_rule(client: TestClient[Litestar], db_session: Session) -> None:
+    _build_parity_world(db_session)
+    expected = _expected_world()
+
+    complete = set(_public_keys(client, **{"filter[complete]": "yes"}))
+
+    assert complete == {key for key, value in expected.items() if value.complete}
+    assert set(_public_keys(client, **{"filter[complete]": "no"})) == set(expected) - complete
+    assert _public_keys(client) == _default_order(expected)
+    assert _public_keys(client, sort_by="completeness", sort_order="desc") == _completeness_order(expected)
+
+
+@pytest.mark.parametrize("value", ["maybe", "true"])
+def test_an_invalid_complete_value_answers_422_naming_the_parameter(
+    client: TestClient[Litestar], db_session: Session, value: str
+) -> None:
+    _build_parity_world(db_session)
+
+    response = client.get(URL, params={"filter[complete]": value})
+
+    assert response.status_code == 422
+    assert "filter[complete]" in str(response.json())
 
 
 def _subject(session: Session, procs: int = 2) -> tuple[list, object]:
