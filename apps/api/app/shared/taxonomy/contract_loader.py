@@ -116,6 +116,7 @@ def _pvog_leaf_mappings(payload: ContractPayload) -> tuple[PvogLeafMapping, ...]
             confidence=mapping.confidence,
             state=mapping.state,
             reason=mapping.reason,
+            accepted_on=mapping.accepted_on,
         )
         for mapping in payload.pvog_leaf_mappings
     )
