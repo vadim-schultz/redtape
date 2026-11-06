@@ -99,7 +99,7 @@ run for most chapters (Actions quota), and every live gate waits for the release
 [`loops/crawlers.md`](../operations/loops/crawlers.md); plan: [`.plans/crawlers/`](../../.plans/crawlers/00-architecture.md).
 
 **Update, 2026-10-30 — public candidate view built on the loop branch.** `/candidates` and `/candidates/:id` (public,
-read-only, unreviewed) list the staged document candidates ranked by a five-flag completeness, with ingress and egress
+read-only, unreviewed) list the staged document candidates ranked by a four-flag completeness, with ingress and egress
 cards, a flow diagram and a screenshot proxy. Five showcase candidates were completed by hand (`manual`) and 16 of 17
 queued screenshots were collected. The admin documents table meets the DataTable contract, and the catalogue and
 coverage pages differ. The release PR to `main` is pending; the manual smoke and the deploy (API first, then web) are not

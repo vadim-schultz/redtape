@@ -125,7 +125,7 @@ The target public contract has one taxonomy:
 - a root filter includes all active descendants;
 - a subcategory filter targets that category node and does not require a second axis;
 - document/candidate reads expose canonical category tags with `code`, localized `name`, and `confidence`;
-- legacy `domain`, `group`, and `situation` inputs are accepted only during the explicit compatibility window and are translated through the frozen crosswalk;
+- legacy `domain`, `group`, and `situation` inputs are refused from the compatibility boundary (release day, decision O4) with a 422 that names the parameter, and are not translated;
 - `/matrix` is retired only after no runtime or contract consumer remains.
 
 Unknown category codes remain explicit validation errors. The API must not expose PVOG leaf codes as category chips.

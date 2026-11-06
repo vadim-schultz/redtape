@@ -75,7 +75,7 @@ Each source is rendered as one card. Reuse the document-card visual language whe
 
 The suite preserves stable category metadata and source boundaries for future pgvector/entity work but adds no vector columns, embeddings, entity extraction, or ranking model.
 
-## Open decisions before implementation
+## Decisions before implementation
 
 ### O1 — Final root and child inventory
 
@@ -91,6 +91,8 @@ Choose one deterministic rule for multiple old links mapping to one category:
 
 The choice must be applied consistently to documents, candidates, and mention-derived evidence.
 
+**Decided (remediation C12, 2026-11-06): maximum confidence.** Evidence: `score_combination = "max"` in `apps/api/scripts/category_backfill.py`. The projected provenance records `"score_combination": "max"`, and `_combine_confidence` returns `max(left, right)`. `test_replay_keeps_promotion_source_and_provenance` in `apps/api/tests/test_category_backfill.py` pins that provenance value.
+
 ### O3 — External classification storage
 
 Confirm whether the target uses one generalized `document_external_classification` relation or a dedicated PVOG table. The generalized relation is preferred because it prevents a future source-specific column from returning to the document-category link.
@@ -99,17 +101,29 @@ Confirm whether the target uses one generalized `document_external_classificatio
 
 Set the release or deployment boundary after which `domain`, `group`, and `situation` query parameters stop being accepted. Until then, unknown or ambiguous legacy values must produce a diagnosable response and never an empty result that looks valid.
 
+**Decided (remediation C12, 2026-11-06): 422 after the boundary.** The user chose the boundary: release day, the day PR 370 merges to `main`. From that boundary, `domain`, `group`, and `situation` parameters answer 422 that names the parameter. Evidence: `apps/api/app/shared/retired_taxonomy.py` (the retired axes and the diagnostic), `apps/api/app/shared/list_query/parse.py` and `apps/api/app/features/documents/query.py` (the 422 path), and `test_retired_document_filter_is_rejected_with_a_retirement_diagnostic` and `test_retired_candidate_filter_is_rejected_with_a_retirement_diagnostic` in `apps/api/tests/test_legacy_taxonomy_retirement.py`. The date decision is in the remediation ledger's C8 entry. Still open: the 404 and 422 window for cached web bundles, which is recorded after the production payload check (remediation C8).
+
 ### O5 — Category links on list cards
 
 The frontend chapter must confirm whether list cards remain whole-card links. If so, it must use a linked title/action region plus independent category chip links. A nested anchor is not an acceptable implementation.
+
+**Decided (remediation C12, 2026-11-06): default confirmed.** List cards keep a linked title region, and the category chips are independent links. Evidence: `DocumentCard.tsx` in `apps/web/src/features/documents/components/DocumentsListView/` wraps only the title in `Link asChild` around a `RouterLink`, and renders the chips as a sibling (`DocumentTagBadges`), so no anchor nests in another. `DocumentCard.test.tsx` pins that a chip click does not navigate to the item page. Remediation C11 recorded the same check.
 
 ### O6 — Accordion URL state
 
 Decide whether expanded accordion items are local-only or reflected in the URL. The default should be local state with stable defaults; only add URL state if deep-linking to evidence or sources is a demonstrated requirement.
 
+**Decided (remediation C12, 2026-11-06): local state with stable defaults.** Evidence: `CandidateDetailContent.tsx` in `apps/web/src/features/candidates/components/CandidateDetailView/` renders `Accordion.Root multiple defaultValue={DEFAULT_OPEN}`, where `DEFAULT_OPEN` is ingress, egress, and flow. The candidates feature reads no URL state (no `useSearchParams` and no hash), so no deep link to evidence or sources exists. No deep-link need has been shown.
+
 ### O7 — Empty source behavior
 
 The sources accordion remains present with a localized empty state when no sources exist, or is omitted only if the product explicitly chooses that behavior. The choice must be consistent with evidence and dependency sections.
+
+**Reopened (remediation C12, 2026-11-06): the shipped behaviour differs from the default.** The sources accordion is present: `CandidateDetailContent.tsx` always renders the `sources` section. But `CandidateSources.tsx` has no empty state. With no sources it renders an empty list, and no `candidates.sources_empty` copy exists in `apps/web/src/i18n/fallback/en.json` or `de.json`. The default (a localized empty state) is not shipped. C12 does not change the default. The remediation gaps file needs O7 reopened, which is a chief-of-staff action.
+
+### Archive owner and drop date (open)
+
+The user has not supplied an owner or a drop date for `legacy_taxonomy_archive` (`apps/api/scripts/legacy_taxonomy_archive.py`). Both stay open. The archive is kept, and no drop is scheduled. Remediation C13 confirms both values once they are supplied.
 
 ## Migration risks
 

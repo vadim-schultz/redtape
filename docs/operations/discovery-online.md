@@ -219,12 +219,11 @@ says `ledger_unavailable`.
 The Coverage screen counts completed `llm_extract` tasks by outcome (`extracted`, `no_documents`, `login_wall`,
 `no_content`) and shows the neuron meter next to them.
 
-**Optional situation codes.** `situation_codes` may come back as an empty list; the extraction is still staged and
-counted as `extracted`, not dropped, when every other field is usable. `domain_codes` stays required. Confirmed at
-`PageExtraction.situation_codes` in
+**Optional category codes.** `category_codes` may come back as an empty list; the extraction is still staged and
+counted as `extracted`, not dropped, when every other field is usable. The model output has no domain or situation
+fields: a payload that still uses the retired fields is rejected. Confirmed at `PageExtraction.category_codes` in
 [`apps/discovery-ingest/discovery_ingest/extract/llm/schema.py`](../../apps/discovery-ingest/discovery_ingest/extract/llm/schema.py)
-(`default_factory=list`, no `min_length`), unlike `domain_codes` on the line above it, which keeps its required
-`Field(max_length=...)` with no default.
+(`default_factory=list`, no `min_length`, at most 5 codes).
 
 **Queueing.** A render drain with `LLM_ENQUEUE=true` and `LLM_MODEL` queues one `llm_extract` task per stored snapshot
 (priority 200). `LLM_MODEL` defaults to the X16 choice `@cf/qwen/qwen3-30b-a3b-fp8` (override it with

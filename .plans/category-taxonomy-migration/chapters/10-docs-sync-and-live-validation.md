@@ -20,7 +20,7 @@ todos:
     status: complete
   - id: live-validation
     content: "Record read-only post-deploy category, UI, PVOG, and data-parity observations."
-    status: complete
+    status: partial
   - id: follow-up
     content: "Record any unresolved mapping, source, or compatibility issues without changing production data from the validation run."
     status: complete
@@ -79,7 +79,7 @@ Keep historical matrix plans as historical records where useful. Mark them as su
 ### Web behavior
 
 - Search appears before category browsing.
-- Root and subcategory chips use the red semantic token and XS presentation.
+- Root and subcategory chips use the red semantic token and the `sm` badge size (`CategoryChip`).
 - Chip links reach the same category-filtered document list as front-page selection.
 - No chip is nested inside another interactive element.
 - The document view does not show staged/unreviewed or completeness copy.
