@@ -15,8 +15,11 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 - **Integration order:** C0, C1, C2, C4, C6, C9, C8, C7, C3, C11, C5, C10, C12, C13, C14
 - **Parallel batches:** B0 = C0 (C8 at any time before C7); B1 = C1, C6 (C5 when unblocked); B2 = C2, C4, C9; B3 = C3, C7, C11, C5; B4 = C10; B5 = C12; B6 = C13; B7 = C14
 - **Environment:** corporate build block, [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), passed to every implementer. `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate mirror. Revert that file before committing.
-- **Status:** planned. No chapter has started.
-- **Current work:** none. This session wrote the suite only (D-R7).
+- **Status:** in progress. Pre-flight recorded. C0 implementer running.
+- **Current work:** C0 in `.claude/worktrees/ct-c0` (branch `feat/ct-remediation-c0`). C8 evidence gathering (read-only).
+- **Isolation:** each implementer gets a worktree `.claude/worktrees/ct-cN` on branch `feat/ct-remediation-cN`, created from the loop branch tip. Chief of staff integrates with `git merge --no-ff` in the declared integration order. Implementers never push or merge to the loop branch.
+- **CI serialization:** `flock .git/redtape-ci.lock ./ci.sh` for every full local CI run, because all worktrees share the Postgres container and the `redtape_migrations` database.
+- **Test databases:** narrow runs use `redtape_pytest_<cid>` through an explicit `DATABASE_URL`. See the environment finding below.
 - **Conflicts and failures:** none recorded.
 - **Concurrency reductions:** none recorded.
 
@@ -24,11 +27,12 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 
 | Check | Expected evidence | Recorded |
 | --- | --- | --- |
-| PR 369 merged with a merge commit | Merge commit SHA on `main` | pending |
-| Loop branch `./ci.sh` before C0 | Exit code and failing test names (expected: the seeded round-trip test in C0 scope) | pending |
+| PR 369 merged with a merge commit | Merge commit SHA on `main` | Met. Merge commit `eafd8e85d0d0e884d1042f69162f01f8cf3852ac` (parents `a5322d4` and `ce70420`), merged 2026-11-06T08:17:20Z. The loop branch merged `origin/main` at `855fb77` (no content change; identical tree). |
+| Loop branch `./ci.sh` before C0 | Exit code and failing test names (expected: the seeded round-trip test in C0 scope) | Baseline on `855fb77`: API pytest 1482 passed, 30 skipped. The round-trip test passes here because the developer `redtape` database is seeded, so the C0 failure does not reproduce on this database. Web and discovery-ingest steps: see the final result row below. |
+| Baseline final `./ci.sh` exit code | Exit code | pending (baseline run in progress) |
 | Production alembic revision | Revision ID; expected to be the revision before `20261105_retire_legacy_taxonomy` (see C13) | pending (C13) |
 | Archive owner and drop date | Name and date supplied by the user | pending (C12 records, C13 confirms) |
-| D-R4 completeness decision | Choice (four or five flags) and the user's confirmation | pending |
+| D-R4 completeness decision | Choice (four or five flags) and the user's confirmation | Four flags, confirmed by the user on 2026-11-06. C5 is unblocked. |
 | Worker runs send category codes only | Run IDs, versions, and the codes they send (read-only) | pending (C8) |
 | Web bundle versions on the new contract | Bundle version and the boundary date for 404 or 422 | pending (C8) |
 
@@ -220,6 +224,14 @@ Status: planned.
 - [ ] Release recorded here.
 
 Status: planned.
+
+## Chief-of-staff findings (2026-11-06)
+
+- **Environment (production database).** `apps/api/.env` sets `DATABASE_URL` to the production Supabase pooler. `app/config.py` loads that file on import. `ci.sh` overrides `DATABASE_URL` for every step, so CI is safe. Any ad-hoc pytest, alembic, or script run must set `DATABASE_URL` explicitly to a local `127.0.0.1` database. Never run a write command without that override.
+- **Deploy path (C14 premise).** `render.yaml` defines the `redtape-api` web service. Its `startCommand` is `sh scripts/start.sh`, and that script runs `alembic upgrade head` on every start. Any Render deploy from `main` therefore runs the C3 retirement migration against production. C14's check "merging to `main` triggers no deploy" is expected to fail. This needs user review before any merge.
+- **PR 370 body.** The body says "take a production backup", which conflicts with D-R1 (the free tier has no backups). C14 must update the body.
+- **Skipped backfill tests.** `apps/api/tests/test_category_backfill.py` is skipped as a module (`pytestmark = pytest.mark.skip(...)`). The baseline's 30 skips include it. C2 must replace the skip with tests that run. A skipped test does not satisfy a red or green step.
+- **Worker runs (C8, pending).** The five `discovery-*.yml` drains are scheduled. The most recent scheduled drain (run 42191335818, on `eafd8e8`) claimed zero tasks. Older run logs are not reachable through `gh run view --log`, so C8 needs the run-log zip endpoint or production records.
 
 ## Known behaviour (recorded, not changed)
 

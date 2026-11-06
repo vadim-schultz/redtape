@@ -12,7 +12,7 @@ This file records decisions that chapters must consume. A chapter may add a deci
 | D-R1 | **Recovery source.** The free tier has no backups. The archive schema `legacy_taxonomy_archive` in the same database is the only recovery source for retired rows. Integrity is proven by count and checksum (chapter 03), not by `pg_dump`. | Accepted by user | C3 verifies in-transaction. C13 forbids `pg_dump` and writes. Supersedes the earlier `pg_dump` rehearsal. |
 | D-R2 | **Single source under `apps/api`.** The contract lives in the API source tree. Ingest reads no file. It fetches the PVOG leaf crosswalk from the machine taxonomy endpoint once per harvest. | Accepted by user | C1 moves the artifact. C4 adds the fetch and deletes the `.plans` copy. |
 | D-R3 | **Worker-suggested categories.** Codes suggested by worker models are accepted automatically when their LLM-only score is at or above `MIN_SUGGESTED_SCORE` (0.05). Accepted codes carry confidence. No gate, parity check, or backfill needs a human. Calibration is deferred to a later suite. | Accepted by user | Amends the earlier architecture section 5 for the automatic floor only. The floor stays as an automatic inclusion rule. |
-| D-R4 | **Completeness denominator.** Five completeness flags became four (`has_category` replaces `has_domain` and `has_situation`). | **Open** (see below) | Blocks C5. |
+| D-R4 | **Completeness denominator.** Five completeness flags became four (`has_category` replaces `has_domain` and `has_situation`). | **Accepted by user 2026-11-06: four flags** | Unblocks C5. C5 records the rule in this file. |
 | D-R5 | **Artifact freeze scope.** The inventory and the legacy crosswalk are frozen. Migrations read only those. PVOG leaf states may be amended in place, with a reason and date. | Accepted in this suite | C1 and C9. The C9 edit must not change the frozen-section hash. |
 | D-R6 | **Loop branch.** Stay on `feat/plans-category-taxonomy-migration`. Chapters integrate there. PR 370 is the release PR into `main`. | Accepted by user; **deliberate deviation** from the chief-of-staff default, which expects a suite-specific loop branch | Every chapter integrates on the shared branch. |
 | D-R7 | **Plan-only session.** This session writes suite documents only. Implementers are launched in a later session. | Accepted | No chapter code runs in this session. |
@@ -22,11 +22,10 @@ This file records decisions that chapters must consume. A chapter may add a deci
 
 ## Open decisions
 
-### D-R4 — Completeness denominator (blocks C5)
+### D-R4 — Completeness denominator (decided 2026-11-06: four flags)
 
 - **Options:** four flags (`has_category`, `has_edges`, `has_snapshot`, `has_screenshot`) or five flags (restore `has_domain` and `has_situation` as separate checks).
-- **Default:** four flags. C5 records the rule as accepted, with a before-and-after ordering report for the fixture set.
-- **Blocked until:** the user confirms the default or chooses five flags. C5 does not start before that.
+- **Decision:** four flags, confirmed by the user on 2026-11-06. C5 records the rule as accepted, with a before-and-after ordering report for the fixture set.
 - **Affects:** the completeness repository, public order, `filter[complete]`, the parity fixture, and `docs/operations/candidate-view.md`.
 - **Reason it is open:** the earlier suite left the choice to product. The review found that the change was made without a recorded decision.
 
@@ -82,6 +81,7 @@ O2 and O4 are decided in substance. O5 to O7 are marked decided in C12, which mu
 | Cached web bundles call removed parameters | C8 records the 404 and 422 window in the ledger. |
 | Completeness public order changes without a decision | C5 is blocked until D-R4 is confirmed. |
 | Database loss (no backups) | Out of scope. Needs a separate infrastructure decision. Recorded in the architecture. |
+| Deploy from `main` runs the retirement migration on Render startup | `render.yaml` and `apps/api/scripts/start.sh` run `alembic upgrade head` on every start. C14 must not merge until the user approves a deploy plan that includes C13 evidence. Open item for the user. |
 
 ## Rejected alternatives
 
