@@ -22,8 +22,7 @@
     }
   ],
   "dependencies": [],
-  "domain_codes": [
-    "health-insurance"
-  ],
-  "situation_codes": []
+  "category_codes": [
+    "health-and-care"
+  ]
 }

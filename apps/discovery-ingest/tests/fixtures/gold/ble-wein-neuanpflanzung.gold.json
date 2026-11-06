@@ -16,8 +16,7 @@
     }
   ],
   "dependencies": [],
-  "domain_codes": [
-    "self-employment-business"
-  ],
-  "situation_codes": []
+  "category_codes": [
+    "work-and-employment"
+  ]
 }
