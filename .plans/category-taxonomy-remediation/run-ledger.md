@@ -183,7 +183,12 @@ Each section records: branch or worktree, red happy and negative results, green 
 - O4 boundary date: **release day** (the day PR 370 merges to `main`), chosen by the user on 2026-11-06.
 - 404 and 422 window for cached bundles: open. It is recorded when the payload check is complete.
 - Gate: the payload check and the cached-bundle window remain open. C7 stays blocked until they close.
-- Status: **partial (blocks C7).**
+- **Production result, second set (2026-11-06, about 15:52).** From `.git/ci-logs/c8_queries_2.sql`:
+  - `discovery_candidate_mention` in production still has the legacy columns `domain_codes`, `situation_codes`, `direct_domain_confidence`, and `direct_situation_confidence`. It has no `category_codes` column, so this production schema is still pre-cutover.
+  - Task status by kind: `llm_extract` 279 completed and 5 failed. `fetch_url` 1951 completed and 242 failed. `render_page` 474 completed, 203 failed, and 1147 pending. `enrich_metadata` 1290 completed. `harvest_payload` 1290 completed. `capture_screenshot` 97 completed.
+  - Three `worker_drain` runs are still `running`. They started on 2026-10-28 at 08:24, 08:50, and 11:16 UTC, so they are stale by nine days. Not touched. The user should review them.
+  - The category-code queries failed, because the column does not exist in production. The count of legacy values per extractor is still unknown. It is the deciding query for C8, and `.git/ci-logs/c8_queries_3.sql` asks for it.
+- Status: **partial (blocks C7).** The next input is the output of `c8_queries_3.sql`. If `with_domain_codes` or `with_situation_codes` is non-zero for a version that is still deployed, C7 stays blocked until that worker is updated or drained.
 
 ### C9 — Review-state leaves accepted (M8)
 
@@ -215,13 +220,18 @@ Each section records: branch or worktree, red happy and negative results, green 
 ### C11 — API and web spec cleanup (L5, L6, L7)
 
 - Branch or worktree: pending
-- Red happy (URL filter and name lookup share one traversal): pending
-- Red negative (unknown URL codes still dropped): pending
-- Green: pending
-- Refactor outcome (`SourceCard` decision recorded): pending
-- Gate (web and ingest): pending
-- Integration commit: pending
-- Status: planned
+- Branch or worktree: `feat/ct-remediation-c11`, commits `e9db605` (web: `refactor(taxonomy): share one category traversal for URL filters and names`) and `ce8940c` (ingest docstring). The worktree is at `.worktrees/ct-c11`.
+- Red happy (URL filter and name lookup share one traversal): red. The shared traversal test failed with `TypeError: flattenCategories is not a function`, because the traversal was still duplicated.
+- Red negative (unknown URL codes still dropped): passes on unchanged code. It is a regression guard, not a red driver. This is a recorded deviation, the same pattern as C2.
+- Green: `flattenCategories` now lives in `apps/web/src/utils/categoryTree.ts`, typed on `children`, so shared code imports no feature type. `taxonomy/utils/categoryNames.ts` and `documents/utils/filterParams.ts` both import it, and the duplicate `flattenCategoryCodes` is removed. The chief of staff approved the new shared module on 2026-11-06. Reason: the repo's boundary lint rule forbids a cross-feature import, and the architecture baseline may only shrink. The chief of staff also approved the edit to `categoryFilter.test.ts`, which sits outside `touches`.
+- Behaviour change (observed): a non-list taxonomy used to throw in `filterParams`. It now yields no known codes, and unknown codes are dropped. No test pins this.
+- Refactor outcome: `withToggledCategory` mixed the parent-drop rule with the URL write, so `codesAfterToggle` was extracted with a guard clause. Behaviour is identical.
+- L5 decision (accepted): `SourceCard` stays inline in `CandidateSources.tsx`. The card is `SourceItem`, with a `SourceTitle` helper. There is no second card variant in the candidates feature.
+- O5 check (recorded): `DocumentCard` (list) has one linked title and sibling chip links, with no nested anchors. `RequirementItem` is a whole-card link with no nested links. Chip size is `sm`. Chip opacity was removed by C6.
+- L7: the `taxonomy()` docstring in `candidates_api.py` now says the `/taxonomy` route serves the active canonical category vocabulary, with source parent codes.
+- Gate: the full `./ci.sh` exited 0 on the committed worktree tree (run 3, under the shared lock). API 1503 passed and 25 skipped. Web 1058 passed and 1 expected fail. Ingest 1818 passed. One discovery-coverage route test (`app · renders the discovery coverage page`) timed out once under load on run 2. It passes alone and on run 3. This is a flake to watch.
+- Integration commit: `74a9581` (`merge: integrate C11 API and web spec cleanup (L5, L6, L7)`). The loop CI for C11 is running (`.git/ci-logs/integrate-c11.log`).
+- Status: **integrated**; the loop CI result is pending.
 
 ### C12 — Docs and decision sync (L1, L2, L3, L8)
 
@@ -277,6 +287,7 @@ Status: planned.
 
 ## Chief-of-staff findings (2026-11-06)
 
+- **Editable install (2026-11-06).** A C11 CI run re-pointed the root `.venv` editable install of `redtape-api` into `.worktrees/ct-c11`. The chief of staff repointed it to `apps/api` in the main checkout (`uv pip install --no-deps -e apps/api`). Lockfiles are unchanged. `ci.sh` uses `apps/api/.venv`, so the root venv is not used by CI.
 - **Environment leak (incident, 2026-11-06 about 15:00).** The chief of staff sourced `probe.env` into its persistent shell. That exported ten variables: object-store, Cloudflare, and discovery-API values, plus a truncated `DATABASE_URL`. The loop CI for C3 (`.git/ci-logs/integrate-c3.log`, `CI_EXIT=1`) inherited them. Six object-store tests in `test_config_object_store.py` and `test_object_store_probe.py` failed, because the store read as configured. The variables were unset, and the loop CI was rerun with C6. Rule: load secrets only in a subshell that exits after the command.
 
 - **Environment (production database).** `apps/api/.env` sets `DATABASE_URL` to the production Supabase pooler. `app/config.py` loads that file on import. `ci.sh` overrides `DATABASE_URL` for every step, so CI is safe. Any ad-hoc pytest, alembic, or script run must set `DATABASE_URL` explicitly to a local `127.0.0.1` database. Never run a write command without that override.
