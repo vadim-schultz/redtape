@@ -887,7 +887,7 @@
     "confidence": 0.65,
     "leaf_code": "1020100",
     "reason": "Adoption und Pflegekinder is broader than birth.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -923,7 +923,7 @@
     "confidence": 0.65,
     "leaf_code": "1030100",
     "reason": "Schule is broader than starting school.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -933,7 +933,7 @@
     "confidence": 0.65,
     "leaf_code": "1030200",
     "reason": "Berufsausbildung straddles study and work; combine scores with max.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -952,7 +952,7 @@
     "confidence": 0.65,
     "leaf_code": "1040300",
     "reason": "One PVOG leaf bundles job search and unemployment; combine scores with max.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -962,7 +962,7 @@
     "confidence": 0.65,
     "leaf_code": "1040400",
     "reason": "Recognition of foreign qualifications spans migration and work; combine scores with max.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -971,7 +971,7 @@
     "confidence": 0.65,
     "leaf_code": "1040500",
     "reason": "Professional permissions are source work evidence.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -990,7 +990,7 @@
     "confidence": 0.65,
     "leaf_code": "1050200",
     "reason": "Wohnen und Umzug bundles both product subcategories; combine scores with max.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -999,7 +999,7 @@
     "confidence": 0.65,
     "leaf_code": "1060400",
     "reason": "Grundsteuer und Grunderwerbsteuer",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1009,7 +1009,7 @@
     "confidence": 0.65,
     "leaf_code": "1060600",
     "reason": "Fahrzeugsteuern spans tax and vehicle evidence; combine scores with max.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1018,7 +1018,7 @@
     "confidence": 0.65,
     "leaf_code": "1060700",
     "reason": "Erbschaftsteuer and Schenkungsteuer include estate evidence.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1036,7 +1036,7 @@
     "confidence": 0.65,
     "leaf_code": "1080200",
     "reason": "Asyl is a broader migration source.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1054,7 +1054,7 @@
     "confidence": 0.65,
     "leaf_code": "1080400",
     "reason": "Integration is broader migration evidence.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1081,7 +1081,7 @@
     "confidence": 0.65,
     "leaf_code": "1130100",
     "reason": "Gesundheitsvorsorge is broader health evidence.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [
@@ -1117,7 +1117,7 @@
     "confidence": 0.65,
     "leaf_code": "1140100",
     "reason": "Existenzsicherung and state support are broader social evidence.",
-    "state": "review"
+    "state": "mapped"
    },
    {
     "category_codes": [

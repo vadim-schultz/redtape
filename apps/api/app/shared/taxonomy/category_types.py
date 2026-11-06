@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel
@@ -51,6 +52,7 @@ class PvogLeafMapping:
     confidence: float
     state: PVOGMappingState
     reason: str
+    accepted_on: date | None
 
 
 class _CategoryPayload(BaseModel):
@@ -79,6 +81,8 @@ class _PvogLeafMappingPayload(BaseModel):
     confidence: float
     state: PVOGMappingState
     reason: str
+    # Optional here so that validation can name the leaf that has no acceptance date.
+    accepted_on: date | None = None
 
 
 class ContractPayload(BaseModel):

@@ -147,7 +147,7 @@ def validate_pvog_leaf_mappings(
     mappings: Sequence[PvogLeafMapping],
     categories: Sequence[CategoryDefinition],
 ) -> None:
-    """Reject duplicate leaf mappings, unknown targets, invalid scores, or missing reasons."""
+    """Reject duplicate leaf mappings, unknown targets, invalid scores, or missing reasons or acceptance dates."""
     active_codes = _active_codes(categories)
     seen: set[str] = set()
     for mapping in mappings:
@@ -158,15 +158,22 @@ def validate_pvog_leaf_mappings(
 
 
 def _check_leaf(mapping: PvogLeafMapping, active_codes: set[str]) -> None:
-    """Reject a leaf mapping with no target, an unknown target, a bad confidence, or no reason."""
+    """Reject a leaf mapping with no target, an unknown target, a bad confidence, or no acceptance record."""
     if not mapping.category_codes:
         raise TaxonomyContractError(f"PVOG leaf mapping has no target: {mapping.leaf_code}")
     if any(target not in active_codes for target in mapping.category_codes):
         raise TaxonomyContractError(f"unknown target in PVOG leaf mapping: {mapping.leaf_code}")
     if not 0 <= mapping.confidence <= 1:
         raise TaxonomyContractError(f"invalid PVOG leaf confidence: {mapping.leaf_code}")
+    _check_acceptance(mapping)
+
+
+def _check_acceptance(mapping: PvogLeafMapping) -> None:
+    """Reject a leaf without a reason or an acceptance date, whatever its state (invariant 10, D-R9)."""
     if not mapping.reason.strip():
         raise TaxonomyContractError(f"PVOG leaf mapping has no reason: {mapping.leaf_code}")
+    if mapping.accepted_on is None:
+        raise TaxonomyContractError(f"PVOG leaf mapping has no acceptance date: {mapping.leaf_code}")
 
 
 def _active_codes(categories: Sequence[CategoryDefinition]) -> set[str]:

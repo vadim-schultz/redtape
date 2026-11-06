@@ -5,12 +5,15 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
 from app.models import Category
+from app.shared.taxonomy import contract_loader
+from app.shared.taxonomy.contract_loader import load_contract
 from scripts.seed_data.category_contract import (
     CATEGORY_INVENTORY,
     LEGACY_CROSSWALK,
@@ -23,7 +26,6 @@ from sqlalchemy.orm import Session
 
 CODE_PATTERN = r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
 API_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
 APP_ARTIFACT = API_ROOT / "app" / "shared" / "taxonomy" / "category_contract_v1.json"
 ACTIVE_CODE_COUNT = 34
 SCRIPTS_IMPORT_BLOCKER = """
@@ -160,5 +162,50 @@ def test_unusable_contract_artifact_raises_on_first_use(
         for _ in range(2):
             with pytest.raises(TaxonomyContractError, match="category contract artifact"):
                 active_category_codes()
+    finally:
+        contract_loader.load_contract.cache_clear()
+
+
+def _load_contract_with_leaf_edited(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, leaf_code: str, edit: Callable[[dict[str, object]], None]
+) -> None:
+    """Point the loader at a copy of the artifact in which one PVOG leaf entry is edited."""
+    payload = json.loads(APP_ARTIFACT.read_text(encoding="utf-8"))
+    leaf = next(entry for entry in payload["pvog_leaf_mappings"] if entry["leaf_code"] == leaf_code)
+    edit(leaf)
+    artifact = tmp_path / "category_contract_v1.json"
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(contract_loader, "ARTIFACT_PATH", artifact)
+    contract_loader.load_contract.cache_clear()
+
+
+def test_every_pvog_leaf_is_mapped_with_a_reason_and_an_acceptance_date() -> None:
+    """Happy path (D-R9): each PVOG leaf is mapped, with a non-empty reason and an accepted_on date."""
+    for mapping in load_contract().pvog_leaf_mappings:
+        assert mapping.state == "mapped", mapping.leaf_code
+        assert mapping.reason.strip(), mapping.leaf_code
+        assert mapping.accepted_on is not None, mapping.leaf_code
+
+
+def test_pvog_leaf_without_accepted_on_fails_validation_naming_the_leaf(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Negative path (D-R9): a leaf with no acceptance date fails artifact validation and names the leaf."""
+    _load_contract_with_leaf_edited(tmp_path, monkeypatch, "1020100", lambda leaf: leaf.pop("accepted_on", None))
+    try:
+        with pytest.raises(TaxonomyContractError, match="1020100"):
+            load_contract()
+    finally:
+        contract_loader.load_contract.cache_clear()
+
+
+def test_pvog_review_leaf_without_reason_fails_validation_naming_the_leaf(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Negative path (D-R9): a leaf left in review without a reason fails artifact validation and names the leaf."""
+    _load_contract_with_leaf_edited(tmp_path, monkeypatch, "1020100", lambda leaf: leaf.update(reason=""))
+    try:
+        with pytest.raises(TaxonomyContractError, match="1020100"):
+            load_contract()
     finally:
         contract_loader.load_contract.cache_clear()
