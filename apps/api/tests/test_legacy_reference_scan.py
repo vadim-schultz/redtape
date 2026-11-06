@@ -76,7 +76,6 @@ REASON_HISTORICAL_TEST = (
     "Historical migration test: it rolls the pre-C9 link tables and group tier back to reach an older revision."
 )
 REASON_RETIRED_MODULE = "Retired pre-C9 test module, skipped at module level. Deleting it is a follow-up, outside C10."
-REASON_C12_DOC = "C12: this active doc still describes the retired fields. C12 rewrites it to category codes."
 REASON_SCANNER_VOCABULARY = (
     "Scanner fixture: a retired identifier written on purpose so the planted-identifier test has a line to find."
 )
@@ -238,25 +237,6 @@ ALLOWANCES: tuple[LineAllowance, ...] = (
         REASON_NEGATIVE_CONTRACT,
         r'^  "(domain|situation)_codes",',
         r'^  "direct_(domain|situation)_confidence",',
-    ),
-    # Active docs that C12 rewrites.
-    *_allow(
-        "apps/discovery-ingest/README.md",
-        REASON_C12_DOC,
-        r"`(domain|situation)_codes` \(at most 2\)",
-    ),
-    *_allow(
-        "apps/discovery-ingest/tests/fixtures/gold/README.md",
-        REASON_C12_DOC,
-        r"`(domain|situation)_codes` and `",
-    ),
-    *_allow(
-        "docs/operations/discovery-online.md",
-        REASON_C12_DOC,
-        r"`(domain|situation)_codes` may come back",
-        r"`(domain|situation)_codes` stays required",
-        r"PageExtraction\.(domain|situation)_codes",
-        r"unlike `(domain|situation)_codes` on the line above",
     ),
     # API tests: C3 gate, negative contracts, historical fixtures and retired skipped modules.
     *_allow(
