@@ -12,20 +12,10 @@ export interface CategoryChipProps {
   to: string;
 }
 
-function opacityFor(confidence: number): number {
-  return 0.5 + 0.5 * confidence;
-}
-
 /** Render one compact red category link with a visible keyboard focus state. */
 export default function CategoryChip({ category, to }: CategoryChipProps) {
   return (
-    <Badge
-      asChild
-      size="sm"
-      colorPalette="primary"
-      variant="subtle"
-      style={{ opacity: opacityFor(category.confidence) }}
-    >
+    <Badge asChild size="sm" colorPalette="primary" variant="subtle">
       <Link
         asChild
         _focusVisible={{
