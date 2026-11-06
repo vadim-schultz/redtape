@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from discovery_ingest.harvest.pvog import LeafHints
 
+from crosswalk_fakes import CROSSWALK
+
 
 def _expected(code: str | None) -> LeafHints:
     """The source-only values available without a complete PVOG path."""
@@ -29,12 +31,12 @@ def test_leaf_hints_from_payload_keeps_leaf_without_a_complete_pvog_path(code: s
     if code is not None:
         payload["_personal_matter_code"] = code
 
-    assert LeafHints.from_payload(payload) == _expected(code)
+    assert LeafHints.from_payload(payload, CROSSWALK) == _expected(code)
 
 
 def test_leaf_hints_keeps_an_empty_code_as_the_leaf_code_without_any_mapping() -> None:
     """LeafHints · an empty stashed code remains source-only."""
-    hints = LeafHints.from_payload({"_personal_matter_code": ""})
+    hints = LeafHints.from_payload({"_personal_matter_code": ""}, CROSSWALK)
 
     assert hints.leaf_code == ""
     assert hints.category_codes is None
@@ -42,4 +44,6 @@ def test_leaf_hints_keeps_an_empty_code_as_the_leaf_code_without_any_mapping() -
 
 def test_leaf_hints_ignores_a_non_string_code() -> None:
     """LeafHints · a stashed value that is not a string is no code at all."""
-    assert LeafHints.from_payload({"_personal_matter_code": 1180100}) == LeafHints(None, None, None, None, None)
+    assert LeafHints.from_payload({"_personal_matter_code": 1180100}, CROSSWALK) == LeafHints(
+        None, None, None, None, None
+    )

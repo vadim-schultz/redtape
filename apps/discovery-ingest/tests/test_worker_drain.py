@@ -19,6 +19,7 @@ from discovery_ingest.worker.policy import DrainPolicy
 from pydantic import SecretStr
 
 from capture_fakes import FakeCamera, shot
+from crosswalk_fakes import VOCABULARY
 from drain_deps_for import deps_for
 from render_fakes import FakeApi, robots_fetcher, task_json
 from run_stub import run_response
@@ -612,6 +613,8 @@ def test_worker_drain_dispatches_harvest_payload_and_counts_it_completed(
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         stub = run_response(request)
         path = request.url.path
         if stub is not None:

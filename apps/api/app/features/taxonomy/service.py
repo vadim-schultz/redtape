@@ -6,11 +6,13 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from uuid import UUID
 
+from app.features.taxonomy.crosswalk import crosswalk_read
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.i18n_resolution import pick_i18n
 from app.models.taxonomy import Category
 from app.schema.taxonomy.read import CategoryNodeRead, CategoryTagRead, VocabularyResponse, VocabularyTerm
 from app.shared.locale import ResolvedLocale
+from app.shared.taxonomy.contract_loader import load_contract
 
 
 class TaxonomyCodeError(ValueError):
@@ -62,8 +64,9 @@ class TaxonomyService:
         return set(self._repo.ids_for_category_codes(codes))
 
     def vocabulary(self) -> VocabularyResponse:
-        """Return the active canonical category vocabulary with source parent metadata."""
+        """Return the active canonical category vocabulary, its source parent metadata, and the PVOG crosswalk."""
         return VocabularyResponse(
+            crosswalk=crosswalk_read(load_contract()),
             categories=[
                 VocabularyTerm(
                     code=category.code,

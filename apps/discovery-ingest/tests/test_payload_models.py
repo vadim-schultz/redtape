@@ -28,7 +28,7 @@ from discovery_ingest.govdata.ckan import GovDataCkanClient, GovDataCkanError
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, map_govdata_record
 from discovery_ingest.govdata.models import GovDataRow
 from discovery_ingest.leika.client import FixtureStammtextSource, LeikaClientError
-from discovery_ingest.pvog.client import PvogClient, PvogClientError, PvogMappingError, map_pvog_record
+from discovery_ingest.pvog.client import PvogClient, PvogClientError, PvogMappingError, PvogStash, map_pvog_record
 from discovery_ingest.pvog.models import PvogRecord
 from discovery_ingest.schemas import TASK_KINDS, WORKER_DEFAULT_TASK_KINDS, CatalogueBatchItem
 from discovery_ingest.worker.handler_table import handler_table
@@ -50,9 +50,12 @@ CATALOGUE_ID = uuid.UUID("22222222-2222-2222-2222-222222222202")
 FIM_BASE = "https://fimportal.de"
 
 
-def map_pvog(row: dict[str, object], **kwargs: object) -> CatalogueBatchItem:
-    """Map a raw service row by way of the typed PVOG record."""
-    return map_pvog_record(PvogRecord.model_validate(row), **kwargs)  # type: ignore[arg-type]
+def map_pvog(
+    row: dict[str, object], *, jurisdiction_id: uuid.UUID, personal_matter_code: str | None = None
+) -> CatalogueBatchItem:
+    """Map a raw service row by way of the typed PVOG record, stamped with the served mapping version."""
+    stash = PvogStash("category-contract-v1", personal_matter_code)
+    return map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=jurisdiction_id, stash=stash)
 
 
 def map_govdata(row: dict[str, object], **kwargs: object) -> CatalogueBatchItem:

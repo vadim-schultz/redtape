@@ -11,7 +11,8 @@ from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError, model_va
 from discovery_ingest.extract.decode import decode_html
 from discovery_ingest.extract.llm.schema import Code, Name, PageKind, Role
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
-from discovery_ingest.pvog.category_mapping import categories_for_legacy_codes
+from discovery_ingest.pvog.category_mapping import MachineCrosswalk
+from discovery_ingest.pvog.crosswalk_lookup import LegacyContext, crosswalk_from
 
 GOLD_SUFFIX = ".gold.json"
 
@@ -58,12 +59,13 @@ class GoldPage(_Strict):
 
     @model_validator(mode="before")
     @classmethod
-    def _translate_legacy_axes(cls, value: object) -> object:
-        """Translate old gold labels through the frozen crosswalk."""
+    def _translate_legacy_axes(cls, value: object, info: LegacyContext) -> object:
+        """Translate old gold labels through the crosswalk given as context."""
         if not isinstance(value, dict) or "category_codes" in value:
             return value
-        domains = categories_for_legacy_codes("domain", tuple(value.get("domain_codes") or ()))
-        situations = categories_for_legacy_codes("life_situation", tuple(value.get("situation_codes") or ()))
+        crosswalk = crosswalk_from(info)
+        domains = crosswalk.legacy_categories("domain", tuple(value.get("domain_codes") or ()))
+        situations = crosswalk.legacy_categories("life_situation", tuple(value.get("situation_codes") or ()))
         return {
             **{key: item for key, item in value.items() if key not in {"domain_codes", "situation_codes"}},
             "category_codes": tuple(dict.fromkeys((*domains, *situations))),
@@ -80,23 +82,23 @@ def _labels(directory: Path, name: str) -> dict[str, JsonValue]:
     return labels
 
 
-def _read(directory: Path, name: str) -> GoldPage:
+def _read(directory: Path, name: str, crosswalk: MachineCrosswalk) -> GoldPage:
     html_path = directory / f"{name}.html"
     if not html_path.is_file():
         raise GoldError(f"{name}: no {html_path.name} beside the gold labels")
     html = decode_html(html_path.read_bytes(), None)
     try:
-        return GoldPage.model_validate({**_labels(directory, name), "name": name, "html": html})
+        return GoldPage.model_validate({**_labels(directory, name), "name": name, "html": html}, context=crosswalk)
     except ValidationError as err:
         raise GoldError(f"{name}: {err}") from err
 
 
-def load_gold(directory: Path, *, limit: int | None = None) -> list[GoldPage]:
+def load_gold(directory: Path, *, crosswalk: MachineCrosswalk, limit: int | None = None) -> list[GoldPage]:
     """Return the labelled pages of ``directory`` in name order, the first ``limit`` of them when given."""
     if not directory.is_dir():
         raise GoldError(f"gold set not found: {directory} is not a directory")
     names = sorted(path.name.removesuffix(GOLD_SUFFIX) for path in directory.glob(f"*{GOLD_SUFFIX}"))
-    return [_read(directory, name) for name in names[:limit]]
+    return [_read(directory, name, crosswalk) for name in names[:limit]]
 
 
 class DocumentCase(_Strict):

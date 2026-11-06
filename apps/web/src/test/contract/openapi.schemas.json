@@ -2395,6 +2395,36 @@
     "title": "ClaimedTaskRead",
     "type": "object"
   },
+  "CrosswalkRead": {
+    "properties": {
+      "artifact_version": {
+        "type": "string"
+      },
+      "legacy_crosswalk": {
+        "items": {
+          "$ref": "#/components/schemas/LegacyMappingRead"
+        },
+        "type": "array"
+      },
+      "pvog_leaf_mappings": {
+        "items": {
+          "$ref": "#/components/schemas/PvogLeafMappingRead"
+        },
+        "type": "array"
+      },
+      "pvog_source_version": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "artifact_version",
+      "legacy_crosswalk",
+      "pvog_leaf_mappings",
+      "pvog_source_version"
+    ],
+    "title": "CrosswalkRead",
+    "type": "object"
+  },
   "DiscoveryArtifactKind": {
     "description": "What an object-store artifact holds.",
     "enum": [
@@ -3278,6 +3308,56 @@
     "title": "JurisdictionPathNode",
     "type": "object"
   },
+  "LegacyMappingRead": {
+    "properties": {
+      "axis": {
+        "enum": [
+          "domain",
+          "life_situation"
+        ],
+        "type": "string"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "score_combination": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_code": {
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "mapped",
+          "intentionally_unmapped",
+          "manual_review"
+        ],
+        "type": "string"
+      },
+      "target_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "axis",
+      "reason",
+      "source_code",
+      "state",
+      "target_codes"
+    ],
+    "title": "LegacyMappingRead",
+    "type": "object"
+  },
   "LlmOutcomesRead": {
     "properties": {
       "extracted": {
@@ -3642,6 +3722,43 @@
       "payload"
     ],
     "title": "PreviewedSuggestion",
+    "type": "object"
+  },
+  "PvogLeafMappingRead": {
+    "properties": {
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "confidence": {
+        "maximum": 1.0,
+        "minimum": 0.0,
+        "type": "number"
+      },
+      "leaf_code": {
+        "type": "string"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "mapped",
+          "review"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "category_codes",
+      "confidence",
+      "leaf_code",
+      "reason",
+      "state"
+    ],
+    "title": "PvogLeafMappingRead",
     "type": "object"
   },
   "PvogSourcePath": {
@@ -4489,10 +4606,14 @@
           "$ref": "#/components/schemas/VocabularyTerm"
         },
         "type": "array"
+      },
+      "crosswalk": {
+        "$ref": "#/components/schemas/CrosswalkRead"
       }
     },
     "required": [
-      "categories"
+      "categories",
+      "crosswalk"
     ],
     "title": "VocabularyResponse",
     "type": "object"

@@ -11,6 +11,8 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 
+from crosswalk_fakes import VOCABULARY
+
 FIXTURES = Path(__file__).parent / "fixtures"
 GOVDATA = FIXTURES / "govdata"
 PVOG = FIXTURES / "pvog"
@@ -80,6 +82,8 @@ def test_govdata_fetch_posts_each_page_as_it_arrives(monkeypatch: pytest.MonkeyP
     events: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         url = str(request.url)
         if url.endswith("/package_show?id=ozg-leistungen-und-zugehorige-onlinedienste"):
             return httpx.Response(200, json=package_show)
@@ -110,6 +114,8 @@ def test_govdata_fetch_failure_names_the_source_and_exits_1(
     """govdata fetch · a failed CKAN request prints the source-failure message and exits 1."""
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         return httpx.Response(500)
 
     monkeypatch.setattr(
@@ -132,6 +138,8 @@ def test_pvog_run_posts_nothing_when_a_late_page_fails(
     posts: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if request.url.host == "pvog.fitko.net":
             query = request.url.params
             if query.get("facades") == "true":
@@ -210,6 +218,8 @@ def test_worker_drain_omitted_max_tasks_keeps_the_default_claim_size(
     """worker drain · omitted --max-tasks keeps the default claim size."""
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         if str(request.url).endswith("/tasks/claim"):
             seen.append(json.loads(request.content.decode())["limit"])
             return httpx.Response(200, json={"items": []})
@@ -237,6 +247,8 @@ def test_worker_drain_zero_max_tasks_exits_before_claiming(
     claim_requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/taxonomy"):
+            return httpx.Response(200, json=VOCABULARY)
         url = str(request.url)
         if url.endswith("/tasks/claim"):
             claim_requests.append(request)

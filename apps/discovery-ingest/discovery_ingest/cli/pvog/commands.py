@@ -10,6 +10,7 @@ from discovery_ingest.cli.context import api_client, settings_of
 from discovery_ingest.cli.errors import HELP_OPTIONS, fail, handles_api_errors, show_help_without_subcommand
 from discovery_ingest.cli.render import echo_skip
 from discovery_ingest.operations.catalogue import NothingToIngest, PvogSource, ingest
+from discovery_ingest.pvog.category_mapping import CrosswalkError
 from discovery_ingest.pvog.client import PvogClient, PvogClientError
 
 pvog_app = typer.Typer(
@@ -41,9 +42,19 @@ def pvog_run(
 ) -> None:
     """Upsert rows from PVOG Suchdienst API."""
     settings = settings_of(ctx)
-    source = PvogSource(PvogClient(settings.pvog_api_base_url), jurisdiction_id, max_pages=max_pages)
+    client = api_client(ctx)
     try:
-        ingest(source, api_client(ctx), on_skip=echo_skip)
+        crosswalk = client.candidates.crosswalk()
+    except CrosswalkError as err:
+        fail(str(err))
+    source = PvogSource(
+        PvogClient(settings.pvog_api_base_url),
+        jurisdiction_id,
+        max_pages=max_pages,
+        mapping_version=crosswalk.artifact_version,
+    )
+    try:
+        ingest(source, client, on_skip=echo_skip)
     except (PvogClientError, NothingToIngest) as err:
         fail(str(err))
 

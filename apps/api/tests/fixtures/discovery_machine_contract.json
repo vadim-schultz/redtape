@@ -3567,10 +3567,394 @@
     "type": "object"
    }
   },
+  "taxonomy_read.CrosswalkRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "LegacyMappingRead": {
+      "description": "One disposition of a legacy domain or life-situation code, served until the compatibility axes are retired.",
+      "properties": {
+       "axis": {
+        "enum": [
+         "domain",
+         "life_situation"
+        ],
+        "title": "Axis",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "score_combination": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Score Combination"
+       },
+       "source_code": {
+        "title": "Source Code",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "intentionally_unmapped",
+         "manual_review"
+        ],
+        "title": "State",
+        "type": "string"
+       },
+       "target_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Target Codes",
+        "type": "array"
+       }
+      },
+      "required": [
+       "axis",
+       "source_code",
+       "state",
+       "target_codes",
+       "reason",
+       "score_combination"
+      ],
+      "title": "LegacyMappingRead",
+      "type": "object"
+     },
+     "PvogLeafMappingRead": {
+      "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+      "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
+       "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+       },
+       "leaf_code": {
+        "title": "Leaf Code",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "review"
+        ],
+        "title": "State",
+        "type": "string"
+       }
+      },
+      "required": [
+       "leaf_code",
+       "category_codes",
+       "confidence",
+       "state",
+       "reason"
+      ],
+      "title": "PvogLeafMappingRead",
+      "type": "object"
+     }
+    },
+    "description": "The frozen PVOG leaf crosswalk with its source and artifact versions, and the legacy crosswalk.",
+    "properties": {
+     "artifact_version": {
+      "title": "Artifact Version",
+      "type": "string"
+     },
+     "legacy_crosswalk": {
+      "items": {
+       "$ref": "#/$defs/LegacyMappingRead"
+      },
+      "title": "Legacy Crosswalk",
+      "type": "array"
+     },
+     "pvog_leaf_mappings": {
+      "items": {
+       "$ref": "#/$defs/PvogLeafMappingRead"
+      },
+      "title": "Pvog Leaf Mappings",
+      "type": "array"
+     },
+     "pvog_source_version": {
+      "title": "Pvog Source Version",
+      "type": "string"
+     }
+    },
+    "required": [
+     "artifact_version",
+     "legacy_crosswalk",
+     "pvog_leaf_mappings",
+     "pvog_source_version"
+    ],
+    "title": "CrosswalkRead",
+    "type": "object"
+   }
+  },
+  "taxonomy_read.LegacyMappingRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One disposition of a legacy domain or life-situation code, served until the compatibility axes are retired.",
+    "properties": {
+     "axis": {
+      "enum": [
+       "domain",
+       "life_situation"
+      ],
+      "title": "Axis",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "score_combination": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Score Combination"
+     },
+     "source_code": {
+      "title": "Source Code",
+      "type": "string"
+     },
+     "state": {
+      "enum": [
+       "mapped",
+       "intentionally_unmapped",
+       "manual_review"
+      ],
+      "title": "State",
+      "type": "string"
+     },
+     "target_codes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Target Codes",
+      "type": "array"
+     }
+    },
+    "required": [
+     "axis",
+     "reason",
+     "score_combination",
+     "source_code",
+     "state",
+     "target_codes"
+    ],
+    "title": "LegacyMappingRead",
+    "type": "object"
+   }
+  },
+  "taxonomy_read.PvogLeafMappingRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+    "properties": {
+     "category_codes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Category Codes",
+      "type": "array"
+     },
+     "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+     },
+     "leaf_code": {
+      "title": "Leaf Code",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "state": {
+      "enum": [
+       "mapped",
+       "review"
+      ],
+      "title": "State",
+      "type": "string"
+     }
+    },
+    "required": [
+     "category_codes",
+     "confidence",
+     "leaf_code",
+     "reason",
+     "state"
+    ],
+    "title": "PvogLeafMappingRead",
+    "type": "object"
+   }
+  },
   "taxonomy_read.VocabularyResponse": {
    "mode": "serialization",
    "schema": {
     "$defs": {
+     "CrosswalkRead": {
+      "description": "The frozen PVOG leaf crosswalk with its source and artifact versions, and the legacy crosswalk.",
+      "properties": {
+       "artifact_version": {
+        "title": "Artifact Version",
+        "type": "string"
+       },
+       "legacy_crosswalk": {
+        "items": {
+         "$ref": "#/$defs/LegacyMappingRead"
+        },
+        "title": "Legacy Crosswalk",
+        "type": "array"
+       },
+       "pvog_leaf_mappings": {
+        "items": {
+         "$ref": "#/$defs/PvogLeafMappingRead"
+        },
+        "title": "Pvog Leaf Mappings",
+        "type": "array"
+       },
+       "pvog_source_version": {
+        "title": "Pvog Source Version",
+        "type": "string"
+       }
+      },
+      "required": [
+       "artifact_version",
+       "pvog_source_version",
+       "pvog_leaf_mappings",
+       "legacy_crosswalk"
+      ],
+      "title": "CrosswalkRead",
+      "type": "object"
+     },
+     "LegacyMappingRead": {
+      "description": "One disposition of a legacy domain or life-situation code, served until the compatibility axes are retired.",
+      "properties": {
+       "axis": {
+        "enum": [
+         "domain",
+         "life_situation"
+        ],
+        "title": "Axis",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "score_combination": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Score Combination"
+       },
+       "source_code": {
+        "title": "Source Code",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "intentionally_unmapped",
+         "manual_review"
+        ],
+        "title": "State",
+        "type": "string"
+       },
+       "target_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Target Codes",
+        "type": "array"
+       }
+      },
+      "required": [
+       "axis",
+       "source_code",
+       "state",
+       "target_codes",
+       "reason",
+       "score_combination"
+      ],
+      "title": "LegacyMappingRead",
+      "type": "object"
+     },
+     "PvogLeafMappingRead": {
+      "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+      "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
+       "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+       },
+       "leaf_code": {
+        "title": "Leaf Code",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "review"
+        ],
+        "title": "State",
+        "type": "string"
+       }
+      },
+      "required": [
+       "leaf_code",
+       "category_codes",
+       "confidence",
+       "state",
+       "reason"
+      ],
+      "title": "PvogLeafMappingRead",
+      "type": "object"
+     },
      "VocabularyTerm": {
       "description": "An active canonical category with every stored translation, for machine consumers.",
       "properties": {
@@ -3634,7 +4018,7 @@
       "type": "object"
      }
     },
-    "description": "The closed canonical category vocabulary in contract order.",
+    "description": "The closed canonical category vocabulary in contract order, with the crosswalk that maps onto it.",
     "properties": {
      "categories": {
       "items": {
@@ -3642,10 +4026,14 @@
       },
       "title": "Categories",
       "type": "array"
+     },
+     "crosswalk": {
+      "$ref": "#/$defs/CrosswalkRead"
      }
     },
     "required": [
-     "categories"
+     "categories",
+     "crosswalk"
     ],
     "title": "VocabularyResponse",
     "type": "object"

@@ -23,6 +23,8 @@ from discovery_ingest.curation_pages import candidate_procedures
 from discovery_ingest.curation_run import Totals
 from discovery_ingest.operations.candidate_pages import write_cleaned_texts
 from discovery_ingest.operations.curation import check_curation, run_curation
+from discovery_ingest.pvog.category_mapping import CrosswalkError
+from discovery_ingest.pvog.crosswalk_lookup import FetchedCrosswalk
 
 NOT_CHECKED = "warning: --no-check-pages: excerpts were not compared with the page text"
 TOTAL_FIELDS = (
@@ -150,11 +152,13 @@ def candidates_curate(
     ] = True,
 ) -> None:
     """Apply a reviewed curation file as manual tags and edges."""
+    client = api_client(ctx)
     try:
-        file = load_curation_file(Path(file_path))
+        file = load_curation_file(Path(file_path), FetchedCrosswalk(client.candidates.crosswalk))
     except CurationError as err:
         _refuse(err.problems)
-    client = api_client(ctx)
+    except CrosswalkError as err:
+        _refuse([str(err)])
     reads, problems = check_curation(client, file, check_pages=check_pages)
     if problems:
         _refuse(problems)
