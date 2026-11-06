@@ -45,12 +45,12 @@ it("DocumentTags · renders nothing when categories are empty", () => {
   expect(container.querySelector("a, ul")).not.toBeInTheDocument();
 });
 
-it("DocumentTags · threads each tag's confidence through to its badge's opacity", () => {
+it("DocumentTags · renders chips without confidence opacity", () => {
   renderWithProviders(
     <DocumentTags
       categories={[category("identity-and-documents", "Identity", 0.4)]}
     />,
   );
 
-  expect(screen.getByText("Identity").closest("a")!.style.opacity).toBe("0.7");
+  expect(screen.getByText("Identity").closest("a")!.style.opacity).toBe("");
 });
