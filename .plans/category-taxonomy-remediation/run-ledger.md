@@ -188,7 +188,18 @@ Each section records: branch or worktree, red happy and negative results, green 
   - Task status by kind: `llm_extract` 279 completed and 5 failed. `fetch_url` 1951 completed and 242 failed. `render_page` 474 completed, 203 failed, and 1147 pending. `enrich_metadata` 1290 completed. `harvest_payload` 1290 completed. `capture_screenshot` 97 completed.
   - Three `worker_drain` runs are still `running`. They started on 2026-10-28 at 08:24, 08:50, and 11:16 UTC, so they are stale by nine days. Not touched. The user should review them.
   - The category-code queries failed, because the column does not exist in production. The count of legacy values per extractor is still unknown. It is the deciding query for C8, and `.git/ci-logs/c8_queries_3.sql` asks for it.
-- Status: **partial (blocks C7).** The next input is the output of `c8_queries_3.sql`. If `with_domain_codes` or `with_situation_codes` is non-zero for a version that is still deployed, C7 stays blocked until that worker is updated or drained.
+- **Production result, third set (2026-11-06, about 16:09). This fails the C8 gate.** From `.git/ci-logs/c8_queries_3.sql`:
+  - Mentions: 6106 in total. By extractor and version: `pvog-payload` `1`, 5808 mentions, 0 with legacy axes. `manual` `1`, 5 mentions, all 5 with both legacy axes. `llm` `ext-5+clean-4+tax:23890ed8`, 293 mentions, 251 with `domain_codes` and 135 with `situation_codes`.
+  - Legacy values are the old domain and situation codes (for example `retirement-old-age`, `work-employment`, `retirement`, `illness-care`). They are not category codes.
+  - Verdict: a worker that is still running writes legacy axis values. C7 stays blocked by the C8 negative path.
+  - Cause, from the repo: the `ext-5` prompt is from commit `63e4a73` (2026-10-29). `ext-6`, which rejects legacy output and emits category codes, is from commit `92b131b` (2026-11-04). That commit is on the loop branch only, not on `origin/main` (`eafd8e8`). The scheduled LLM drain checks out `main`, so it runs `ext-5`.
+  - Live writer: `DISCOVERY_LLM_SCHEDULE` is `enabled` (set 2026-11-01). The scheduled run `42216787640` ran on 2026-11-06 at 12:19 UTC on `eafd8e8`. The drain has run daily since 2026-11-02.
+  - Release ordering consequence: the workers check out `main` at run time. When PR 370 merges, `ext-6` workers start posting category codes to the API. Those writes must not arrive before the API has the category schema and migrations (API first). The release must therefore pause all discovery schedules first, then deploy the API, then re-enable the workers.
+  - Retirement consequence (checked in `20261105_retire_legacy_taxonomy.py`): `_project_mention_categories` projects the legacy mention axes into `category_codes` before `_drop_legacy_taxonomy` drops the four legacy columns. The 298 stored legacy rows are therefore projected, not lost. Unmapped codes abort the migration through the gate. C13 must count them.
+  - Manual rows: 5 manual mentions with legacy axes. The same projection covers them. The user should decide whether they are test data or real curation.
+  - Stale runs: three `worker_drain` runs are still `running`, from 2026-10-28. Not touched.
+  - Next input: `.git/ci-logs/c8_queries_4.sql`, which dates the `ext-5` rows. If none were written after 2026-11-04, the legacy writer has stopped being used since that date, but the schedule is still enabled.
+- Status: **partial (blocks C7).** The gate fails while the scheduled `ext-5` drain is enabled. It can close once the schedule is paused and `c8_queries_4.sql` confirms no later `ext-5` writes. The earlier input was the output of `c8_queries_3.sql`. If `with_domain_codes` or `with_situation_codes` is non-zero for a version that is still deployed, C7 stays blocked until that worker is updated or drained.
 
 ### C9 — Review-state leaves accepted (M8)
 
