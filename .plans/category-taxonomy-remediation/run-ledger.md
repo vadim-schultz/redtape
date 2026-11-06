@@ -329,6 +329,7 @@ Status: planned.
 
 ## Chief-of-staff findings (2026-11-06)
 
+- **Load-sensitive test flakes (2026-11-06).** Two tests failed once under load and passed on rerun. First, the discovery-coverage route test during the C11 integration run. Second, `ColorModeSwitch · click switches to dark and sets the dark class` during the C7 loop run (`.git/ci-logs/integrate-c7.log`, `CI_EXIT=1`). The second passed alone 3 of 3 times. Neither change touches the code under test. A rerun of the C7 loop CI is queued (`.git/ci-logs/integrate-c7-rerun.log`). If either test fails again, investigate before integrating anything else.
 - **Editable install (2026-11-06).** A C11 CI run re-pointed the root `.venv` editable install of `redtape-api` into `.worktrees/ct-c11`. The chief of staff repointed it to `apps/api` in the main checkout (`uv pip install --no-deps -e apps/api`). Lockfiles are unchanged. `ci.sh` uses `apps/api/.venv`, so the root venv is not used by CI.
 - **Environment leak (incident, 2026-11-06 about 15:00).** The chief of staff sourced `probe.env` into its persistent shell. That exported ten variables: object-store, Cloudflare, and discovery-API values, plus a truncated `DATABASE_URL`. The loop CI for C3 (`.git/ci-logs/integrate-c3.log`, `CI_EXIT=1`) inherited them. Six object-store tests in `test_config_object_store.py` and `test_object_store_probe.py` failed, because the store read as configured. The variables were unset, and the loop CI was rerun with C6. Rule: load secrets only in a subshell that exits after the command.
 
