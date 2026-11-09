@@ -3,7 +3,7 @@
 Simpler than the per-candidate ``candidate_completeness_flags`` subquery, by design: ``DiscoveryCandidateMention``,
 ``DiscoveryCandidateEdge`` and ``DiscoveryArtifact`` all carry ``catalogue_service_id`` directly, so each flag is a
 plain existence/non-empty check against that column — no join through ``DiscoveryDocumentCandidate`` and no
-consensus-threshold ``axis_acceptance`` logic. This feeds only the task queue's claim-order tie-break within a
+consensus-threshold ``category_acceptance`` logic. This feeds only the task queue's claim-order tie-break within a
 priority tier (chapter 4); it is not a redefinition of "complete" and never touches the canonical per-candidate
 ``completeness_subquery``/``completeness_order`` used by candidate-browsing lists.
 """
@@ -22,7 +22,7 @@ from app.models.discovery import DiscoveryArtifactKind
 from app.models.discovery import DiscoveryCandidateEdge as Edge
 from app.models.discovery import DiscoveryCandidateMention as Mention
 
-FLAG_NAMES = ("has_domain", "has_situation", "has_edges", "has_snapshot", "has_screenshot")
+FLAG_NAMES = ("has_category", "has_edges", "has_snapshot", "has_screenshot")
 
 
 def _code_flag(column: InstrumentedAttribute[list[str] | None]) -> Subquery:
@@ -53,8 +53,7 @@ def page_completeness_subquery() -> Subquery:
     ``catalogue_service_id`` and ``coalesce(page_completeness, 0)`` to cover it.
     """
     holders = (
-        _code_flag(Mention.domain_codes),
-        _code_flag(Mention.situation_codes),
+        _code_flag(Mention.category_codes),
         _edge_flag(),
         _artifact_flag(DiscoveryArtifactKind.HTML_SNAPSHOT),
         _artifact_flag(DiscoveryArtifactKind.SCREENSHOT),

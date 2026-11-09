@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import dataclasses
 import json
+from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal, get_args
 
 from app.features.discovery.budget_resources import BudgetResource
+from app.features.taxonomy.crosswalk import contract_vocabulary
 from app.main import create_app
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
@@ -42,10 +44,12 @@ from app.schema.discovery import (
     read,
 )
 from app.schema.taxonomy import read as taxonomy_read
+from app.shared.taxonomy.contract_loader import load_contract
 from pydantic import BaseModel
 
 REGENERATE_COMMAND = "python -m scripts.export_machine_contract"
 FIXTURE_PATH = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "discovery_machine_contract.json"
+VOCABULARY_PATH = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "machine_vocabulary.json"
 MACHINE_PREFIX = "/api/v1/discovery/machine"
 HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete"})
 
@@ -100,6 +104,8 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "candidate_sources.CandidateSourceListResponse": (candidate_sources.CandidateSourceListResponse, "serialization"),
     "taxonomy_read.VocabularyTerm": (taxonomy_read.VocabularyTerm, "serialization"),
     "taxonomy_read.VocabularyResponse": (taxonomy_read.VocabularyResponse, "serialization"),
+    "taxonomy_read.CrosswalkRead": (taxonomy_read.CrosswalkRead, "serialization"),
+    "taxonomy_read.PvogLeafMappingRead": (taxonomy_read.PvogLeafMappingRead, "serialization"),
 }
 """Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
 
@@ -174,16 +180,31 @@ def contract_document() -> dict[str, object]:
     }
 
 
+def _as_text(document: Mapping[str, object]) -> str:
+    """Return a fixture document as stable, indented JSON with a trailing newline."""
+    return json.dumps(document, indent=1, sort_keys=True) + "\n"
+
+
 def render_contract() -> str:
     """Return the fixture as stable, indented JSON with a trailing newline."""
-    return json.dumps(contract_document(), indent=1, sort_keys=True) + "\n"
+    return _as_text(contract_document())
+
+
+def render_vocabulary() -> str:
+    """Return the served vocabulary the artifact yields by itself, as stable indented JSON with a trailing newline.
+
+    The ingest tests read it as the machine crosswalk; it needs no database, so the export runs anywhere.
+    """
+    return _as_text(contract_vocabulary(load_contract()).model_dump(mode="json"))
 
 
 def main() -> None:
-    """Write the fixture file and print its path."""
+    """Write the fixture files and print their paths."""
     FIXTURE_PATH.parent.mkdir(parents=True, exist_ok=True)
     FIXTURE_PATH.write_text(render_contract(), encoding="utf-8")
+    VOCABULARY_PATH.write_text(render_vocabulary(), encoding="utf-8")
     print(f"wrote {FIXTURE_PATH}")
+    print(f"wrote {VOCABULARY_PATH}")
 
 
 if __name__ == "__main__":

@@ -20,8 +20,7 @@ USAGE = {"prompt_tokens": 1000, "completion_tokens": 200, "total_tokens": 1200}
 _REAL_HTTPX_CLIENT = httpx.Client
 ANSWER = {
     "page_kind": "form",
-    "domain_codes": ["housing"],
-    "situation_codes": [],
+    "category_codes": ["home-and-housing"],
     "documents": [
         {"name": "Personalausweis oder Reisepass", "role": "required", "quote": "Personalausweis oder Reisepass"},
         {"name": "Phantom", "role": "required", "quote": "this sentence is not on the page"},

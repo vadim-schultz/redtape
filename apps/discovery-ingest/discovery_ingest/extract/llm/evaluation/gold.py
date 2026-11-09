@@ -53,8 +53,7 @@ class GoldPage(_Strict):
     page_kind: PageKind
     documents: tuple[GoldDocument, ...]
     dependencies: tuple[GoldDependency, ...]
-    domain_codes: tuple[Code, ...]
-    situation_codes: tuple[Code, ...]
+    category_codes: tuple[Code, ...]
 
 
 def _labels(directory: Path, name: str) -> dict[str, JsonValue]:
@@ -96,7 +95,7 @@ class DocumentCase(_Strict):
     page_name: str
     document_name: str
     document_text: str
-    gold_situation_codes: tuple[Code, ...]
+    gold_category_codes: tuple[Code, ...]
 
 
 def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
@@ -106,7 +105,7 @@ def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
             page_name=page.name,
             document_name=document.name,
             document_text=document.document_text,
-            gold_situation_codes=page.situation_codes,
+            gold_category_codes=page.category_codes,
         )
         for page in pages
         for document in page.documents
@@ -115,6 +114,5 @@ def document_cases(pages: Sequence[GoldPage]) -> list[DocumentCase]:
 
 
 def unknown_codes(page: GoldPage, taxonomy: Taxonomy) -> list[str]:
-    """Return the domain and situation codes of ``page`` that the vocabulary does not contain."""
-    unknown_domains = [code for code in page.domain_codes if code not in taxonomy.domain_codes]
-    return unknown_domains + [code for code in page.situation_codes if code not in taxonomy.situation_codes]
+    """Return the category codes of ``page`` that the vocabulary does not contain."""
+    return [code for code in page.category_codes if code not in taxonomy.category_codes]

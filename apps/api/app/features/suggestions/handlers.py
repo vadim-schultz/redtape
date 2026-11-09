@@ -19,7 +19,7 @@ PayloadT = TypeVar("PayloadT", bound=NewDocumentPayload | NewRequirementPayload)
 
 
 class UnknownTaxonomyCodeError(ValueError):
-    """Raised when a domain or situation code does not exist."""
+    """Raised when a canonical category code does not exist."""
 
 
 class UnknownDocumentError(ValueError):
@@ -153,10 +153,9 @@ class NewDocumentHandler:
         self._suggestions = deps.suggestions
 
     def validate(self, payload: NewDocumentPayload, *, jurisdiction_id: UUID) -> None:
-        """Check that every domain and situation code exists; the jurisdiction is not used here."""
+        """Check that every canonical category code exists; the jurisdiction is not used here."""
         try:
-            self._taxonomy.resolve_domain_ids(payload.domain_codes)
-            self._taxonomy.resolve_situation_ids(payload.situation_codes)
+            self._taxonomy.require_category_codes(payload.category_codes)
         except TaxonomyCodeError as exc:
             raise UnknownTaxonomyCodeError(str(exc)) from exc
 

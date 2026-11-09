@@ -156,13 +156,17 @@ it("DocumentsListPage · a single page shows no pager", async () => {
 
 it("DocumentsListPage · an empty filtered result offers to clear the chips and the search", async () => {
   stubCandidatesApi(() => json(candidatePage([])));
-  const { user } = renderAt("/documents?domain=identity&q=zzz&sort_by=title");
+  const { user } = renderAt(
+    "/documents?category=identity-and-documents&q=zzz&sort_by=title",
+  );
 
   expect(await screen.findByText("No documents found")).toBeInTheDocument();
   expect(
     screen.getByText(/filters or search hide every document/i),
   ).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Clear filters" }));
+  await user.click(
+    screen.getByRole("button", { name: "Clear filters and search" }),
+  );
 
   expect([...urlParams().keys()]).toEqual(["sort_by"]);
 });
@@ -173,5 +177,7 @@ it("DocumentsListPage · an empty unfiltered result has no clear action", async 
 
   expect(await screen.findByText("No documents found")).toBeInTheDocument();
   expect(screen.getByText("No documents have been found yet.")).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Clear filters and search" }),
+  ).toBeNull();
 });

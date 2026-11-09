@@ -9,7 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from discovery_ingest.extract.llm.normalise import name_slug
-from discovery_ingest.mentions import MAX_CONDITION_LENGTH, MAX_DOMAIN_CODES, MAX_SITUATION_CODES, Code
+from discovery_ingest.mentions import MAX_CATEGORY_CODES, MAX_CONDITION_LENGTH, Code, refuse_retired_axis_fields
 
 MANUAL_EXTRACTOR = "manual"
 """The extractor name of every row the tool writes; the API's manual override keys on the same value."""
@@ -44,8 +44,7 @@ class CurationCandidate(_Strict):
     candidate_id: UUID
     catalogue_service_id: UUID
     title_de: Title
-    domain_codes: list[Code] = Field(default_factory=list, max_length=MAX_DOMAIN_CODES)
-    situation_codes: list[Code] = Field(default_factory=list, max_length=MAX_SITUATION_CODES)
+    category_codes: list[Code] = Field(default_factory=list, max_length=MAX_CATEGORY_CODES)
     tag_note: Excerpt | None = None
     requires: list[CurationEdge] = Field(default_factory=list)
     required_by: list[CurationEdge] = Field(default_factory=list)
@@ -53,7 +52,7 @@ class CurationCandidate(_Strict):
     @property
     def tag_count(self) -> int:
         """Return how many codes the entry assigns."""
-        return len(self.domain_codes) + len(self.situation_codes)
+        return len(self.category_codes)
 
     def edges(self) -> list[tuple[str, str, CurationEdge]]:
         """Return ``(parent title, required title, edge)``: ``requires`` makes this candidate the parent."""
@@ -65,6 +64,12 @@ class CurationCandidate(_Strict):
         if self.tag_count and not self.tag_note:
             raise ValueError(f"{self.title_de!r}: tag_note is required when codes are given")
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def _refuse_retired_axes(cls, value: object) -> object:
+        """Refuse the retired domain and situation fields by name, as the mentions do."""
+        return refuse_retired_axis_fields(value)
 
     @model_validator(mode="after")
     def _no_self_edge(self) -> Self:

@@ -37,8 +37,10 @@ class CardRelations:
 
     @classmethod
     def build(cls, card_filter: PublicCandidateFilter) -> CardRelations:
-        """Build the relations; the best scores are those among ``card_filter``'s selected codes."""
-        return cls(mention_stats(), completeness_subquery(), best_scores(tag_scores_subquery(), card_filter.selected))
+        """Build the relations; the best scores are those among ``card_filter``'s selected categories."""
+        return cls(
+            mention_stats(), completeness_subquery(), best_scores(tag_scores_subquery(), card_filter.category_codes)
+        )
 
     @property
     def mention_count(self) -> ColumnElement[int]:

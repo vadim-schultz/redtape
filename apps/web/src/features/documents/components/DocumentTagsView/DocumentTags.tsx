@@ -1,35 +1,25 @@
 import { Wrap } from "@chakra-ui/react";
 
-import type { TaggedTerm } from "../../../taxonomy/types";
+import CategoryChip from "../../../../components/data-display/CategoryChip";
+import type { CategoryTag } from "../../../taxonomy/types";
 import { buildDocumentsHref } from "../../utils/buildDocumentsHref";
-import TagBadge from "./TagBadge";
 
 export interface DocumentTagsProps {
-  domains: TaggedTerm[];
-  lifeSituations: TaggedTerm[];
+  categories: CategoryTag[];
 }
 
-type Axis = "domain" | "situation";
+export default function DocumentTags({ categories }: DocumentTagsProps) {
+  if (categories.length === 0) return null;
 
-const toBadges = (axis: Axis, items: TaggedTerm[]) =>
-  items.map(({ code, name, confidence }) => (
-    <TagBadge
-      key={`${axis}:${code}`}
-      to={buildDocumentsHref({ [axis]: code })}
-      name={name}
-      confidence={confidence}
-    />
-  ));
-
-export default function DocumentTags({
-  domains,
-  lifeSituations,
-}: DocumentTagsProps) {
-  const badges = [
-    ...toBadges("domain", domains),
-    ...toBadges("situation", lifeSituations),
-  ];
-  if (badges.length === 0) return null;
-
-  return <Wrap gap={2}>{badges}</Wrap>;
+  return (
+    <Wrap gap={2}>
+      {categories.map((category) => (
+        <CategoryChip
+          key={category.code}
+          category={category}
+          to={buildDocumentsHref({ category: category.code })}
+        />
+      ))}
+    </Wrap>
+  );
 }

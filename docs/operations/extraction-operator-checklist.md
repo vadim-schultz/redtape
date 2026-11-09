@@ -198,7 +198,7 @@ for the web). The API seeds translations on every boot (`scripts/seed_i18n`); ch
 keys exist. Then, as an allowlisted admin, open a staged candidate produced by OP9 and check: conditions, the optional
 chip and the `issued` chip, tag chips with "n of total procedures", edges both ways, Coverage `llm_extract` chips and the
 neuron meter, light and dark, `de` and `en`, and 360 px. Record the candidate id. Also confirm that `GET /machine/taxonomy`
-answers 200 with 13 domains and 18 situations, and open a candidate with no suggested codes to confirm it renders.
+answers 200 with the active canonical category vocabulary, and open a candidate with no suggested codes to confirm it renders.
 
 **OP12: Backfill and drain, once a day.** Requeue in slices and drain with the local command; watch `neurons_used` and
 the stop reason (the ledger caps stop overspend, the dashboard confirms it; a `llm_quota` stop means Cloudflare's own
@@ -246,7 +246,7 @@ edges are never emitted.
 
 - `discovery_admin.documents.role_issued`, `discovery_admin.tasks.note_no_content`, `discovery_admin.tasks.note_no_documents`
 - `discovery_admin.document.col_condition`, `discovery_admin.document.optional`
-- `discovery_admin.document.tags.title`, `.domains`, `.situations`, `.support`, `.empty`, `.accepted`
+- `discovery_admin.document.tags.title`, `.categories`, `.support`, `.empty`, `.accepted`
 - `discovery_admin.document.edges.title`, `.requires`, `.required_by`, `.empty`, `.basis_explicit`, `.basis_derived_single_issued`, `.procedure`
 - `discovery_admin.coverage.llm.title`, `.extracted`, `.no_documents`, `.login_wall`, `.no_content`
 

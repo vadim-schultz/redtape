@@ -7,7 +7,7 @@ import { CandidateTagBadges } from "../CandidateTagBadges";
 export interface CandidateHeaderProps {
   candidate: Pick<
     CandidateDetail,
-    "title" | "description" | "description_source" | "domains" | "situations"
+    "title" | "description" | "description_source" | "categories"
   >;
 }
 
@@ -34,8 +34,7 @@ function Description({
 
 /** Title, the quoted description with its attribution (omitted when absent), and the tags. */
 export default function CandidateHeader({ candidate }: CandidateHeaderProps) {
-  const { title, description, description_source, domains, situations } =
-    candidate;
+  const { title, description, description_source, categories } = candidate;
 
   return (
     <VStack align="stretch" gap={3}>
@@ -45,7 +44,7 @@ export default function CandidateHeader({ candidate }: CandidateHeaderProps) {
       {description ? (
         <Description text={description} source={description_source} />
       ) : null}
-      <CandidateTagBadges domains={domains} situations={situations} />
+      <CandidateTagBadges categories={categories} />
     </VStack>
   );
 }

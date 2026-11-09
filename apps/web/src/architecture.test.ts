@@ -289,7 +289,7 @@ describe("features do not reach another feature outside its public surface (W-B)
     const source = `
       import type { TaxonomyTerm } from "../../taxonomy/types";
       import { useAuth } from "../../auth/contexts/AuthContext";
-      import { useDomainsQuery } from "../../taxonomy/hooks/useDomainsQuery";
+      import { useCategoryTreeQuery } from "../../taxonomy/hooks/useCategoryTreeQuery";
     `;
     expect(crossFeatureImports(file, source)).toEqual([]);
   });

@@ -3,8 +3,8 @@
 ## Scope
 
 - SPA bootstrapping, routing, API client (typed from OpenAPI or hand-written contracts), error and loading states.
-- **Information architecture:** jurisdiction picker, domain × life-situation matrix page and list filters ([document matrix](#document-matrix)), document search/list, document detail, dependency list, full **tree** visualization (library choice: React Flow vs lightweight tree — decide in a child plan).
-- **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; domain text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
+- **Information architecture:** jurisdiction picker, canonical category tree and list filters, document search/list, document detail, dependency list, full **tree** visualization (library choice: React Flow vs lightweight tree — decide in a child plan).
+- **Localization:** no hardcoded user-visible strings; load **`GET /api/v1/translations`** (and refetch on locale change); send **`Accept-Language`** on API calls; category text comes **already localized** from graph endpoints. Spec: [../i18n-localization/README.md](../i18n-localization/README.md).
 - **Social flows:** proposal form (URL, file upload, preview), proposal list/detail, voting UI.
 - **Moderation (later):** audit log views for privileged roles.
 - Accessibility and Chakra theming aligned with product branding — executable visual chapters in [`.plans/web-frontend/`](../../../../.plans/web-frontend/) (red palette, Iceberg headings, Wave 2 screen polish).
@@ -30,11 +30,11 @@ Implementation-ready chapters (Vitest, theme, shell, list/detail styling): [`.pl
 
 ## Floating navigation
 
-Toolbar replaced by two floating buttons (brand R, burger menu with colour switch and language submenu); matrix view removed. Planned: [`.plans/floating-nav/`](../../../../.plans/floating-nav/00-architecture.md).
+Toolbar replaced by two floating buttons (brand R, burger menu with colour switch and language submenu); the former matrix view is retired. Planned: [`.plans/floating-nav/`](../../../../.plans/floating-nav/00-architecture.md).
 
-## Document matrix
+## Document categories
 
-Browse by domain × life situation (matrix page at `/matrix`, URL-backed list filters, tags on document detail): [`.plans/document-matrix/`](../../../../.plans/document-matrix/00-architecture.md). Shipped.
+Browse by canonical category (URL-backed list filters and category links on document detail): [`.plans/category-taxonomy-migration/`](../../../../.plans/category-taxonomy-migration/00-architecture.md). Shipped.
 
 ## Links
 

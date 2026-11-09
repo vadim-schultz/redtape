@@ -1,4 +1,4 @@
-"""The SQL scoring blocks: usable tag codes per candidate for the bulk completeness path, plus the shared relations."""
+"""The SQL scoring blocks: usable category codes per candidate for the bulk completeness path, plus the shared relations."""
 
 from __future__ import annotations
 
@@ -13,25 +13,21 @@ from app.features.discovery.tags import (
     LLM_SCORE_STEP,
     MANUAL_EXTRACTOR,
     MIN_SUGGESTED_SCORE,
-    TagAxis,
 )
 from app.models.discovery import DiscoveryCandidateMention as Mention
 
 NOISY_OR_CLAMP = 1e-9
 """How far below ``1`` a confidence is clamped in SQL, so ``ln(1 - c)`` stays finite for a ``1.0`` source."""
 
-
-def _confidence_column(axis: TagAxis) -> ColumnElement[float]:
-    """Cast the axis' direct-confidence column so it type-checks as a plain float expression."""
-    return cast(axis.confidence_column, Float)
+CATEGORY_CTE = "category"
 
 
-def exploded_codes(axis: TagAxis, name: str = "exploded") -> CTE:
-    """Return one row per mention code of ``axis``; ``name`` keeps the CTEs of two relations in one query apart."""
-    code = func.unnest(axis.column).label("code")
-    confidence = _confidence_column(axis).label("confidence")
+def exploded_categories(name: str = "exploded") -> CTE:
+    """Return one row per canonical category code of a mention; ``name`` keeps two relations apart in one query."""
+    confidence = cast(Mention.direct_category_confidence, Float).label("confidence")
+    code = func.unnest(Mention.category_codes).label("code")
     stmt = select(Mention.candidate_id, Mention.catalogue_service_id, Mention.extractor, confidence, code)
-    return stmt.cte(f"{axis.value}_{name}")
+    return stmt.cte(f"{CATEGORY_CTE}_{name}")
 
 
 def tagged_procedures(exploded: CTE) -> Subquery:
@@ -90,7 +86,7 @@ def code_support(exploded: CTE) -> Select:
     """Return one row per ``(candidate_id, code)`` with whether it clears the inclusion floor (``usable``).
 
     Used only by the bulk completeness path — the single-candidate detail path scores codes directly in
-    Python (:func:`candidate_axis_support`), where the exact score (not just whether it clears the floor)
+    Python (:func:`candidate_category_support`), where the exact score (not just whether it clears the floor)
     matters.
     """
     support, tagged = support_rows(exploded), tagged_procedures(exploded)
@@ -121,12 +117,12 @@ def manual_support(exploded: CTE) -> Select:
     return stmt.group_by(*keys)
 
 
-def axis_acceptance(axis: TagAxis) -> Subquery:
-    """Return ``(candidate_id, codes)`` for the candidates with usable codes on ``axis``.
+def category_acceptance() -> Subquery:
+    """Return ``(candidate_id, codes)`` for the candidates with usable category codes.
 
     The codes of the manual mentions replace the consensus; ``codes`` is sorted and never empty.
     """
-    exploded = exploded_codes(axis)
+    exploded = exploded_categories()
     manual = _manual_branch(exploded).subquery()
     consensus = _consensus(exploded).subquery()
     joined = manual.join(consensus, manual.c.candidate_id == consensus.c.candidate_id, full=True)

@@ -57,12 +57,8 @@ export const queryKeys = {
   },
   taxonomy: {
     all: ["taxonomy"] as const,
-    domains: (locale: string) =>
-      [...queryKeys.taxonomy.all, "domains", locale] as const,
-    lifeSituations: (locale: string) =>
-      [...queryKeys.taxonomy.all, "life-situations", locale] as const,
-    lifeSituationGroups: (locale: string) =>
-      [...queryKeys.taxonomy.all, "life-situation-groups", locale] as const,
+    categories: (locale: string) =>
+      [...queryKeys.taxonomy.all, "categories", locale] as const,
   },
   discoveryAdmin: {
     all: ["discovery-admin"] as const,

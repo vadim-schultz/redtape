@@ -7,6 +7,7 @@ from collections.abc import Mapping
 
 from app.shared.list_query.errors import InvalidParam, attempt, raise_if_any
 from app.shared.list_query.model import FilterValue, ListQuery, ListQuerySpec, SortOrder
+from app.shared.retired_taxonomy import retired_taxonomy_message
 
 SEARCH_MAX_LENGTH = 200
 _FILTER_PARAM = re.compile(r"^filter\[(?P<field>[^\[\]]+)\]$")
@@ -39,6 +40,8 @@ def _search(raw: Mapping[str, str]) -> str | None:
 
 
 def _filter_value(spec: ListQuerySpec, param: str, field_name: str, raw: str) -> FilterValue:
+    if field_name in spec.retired_filters:
+        raise InvalidParam(param, retired_taxonomy_message([param]))
     parser = spec.filters.get(field_name)
     if parser is None:
         raise InvalidParam(param, f"Unknown filter; allowed: {', '.join(sorted(spec.filters))}")
@@ -59,9 +62,14 @@ def _filters(errors: list[InvalidParam], raw: Mapping[str, str], spec: ListQuery
     return {name: value for name, value in parsed.items() if value is not None}
 
 
+def _bare_retired_params(raw: Mapping[str, str], spec: ListQuerySpec) -> list[InvalidParam]:
+    """Name every bare retired key (``domain=``) so it cannot be ignored into an unfiltered list."""
+    return [InvalidParam(key, retired_taxonomy_message([key])) for key in raw if key in spec.retired_filters]
+
+
 def parse_list_query(raw: Mapping[str, str], spec: ListQuerySpec) -> ListQuery:
     """Validate ``raw`` against ``spec``; raise ``ValidationException`` listing every problem."""
-    errors: list[InvalidParam] = []
+    errors: list[InvalidParam] = _bare_retired_params(raw, spec)
     query = ListQuery(
         sort_by=attempt(errors, _sort_by, raw, spec),
         sort_order=attempt(errors, _sort_order, raw),

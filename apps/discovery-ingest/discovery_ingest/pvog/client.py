@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import TypeVar
 from urllib.parse import urlencode
 from uuid import UUID
@@ -12,7 +13,7 @@ from pydantic import BaseModel, JsonValue
 
 from discovery_ingest.catalogue_scope import FEDERAL_ARS
 from discovery_ingest.page_budget import PageBudget
-from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
+from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord, PvogSourcePath
 from discovery_ingest.schemas import CatalogueBatchItem
 
 BOOTSTRAP_PERSONAL_MATTER = "Geburt"
@@ -64,6 +65,7 @@ class PvogClient:
             return
         bootstrap = self._fetch_page(bootstrap_url, PvogBootstrap)
         budget.spend_page()
+        paths = bootstrap.leaf_paths()
 
         for code in bootstrap.leaf_codes():
             page_index = 0
@@ -85,6 +87,9 @@ class PvogClient:
                     if lb_id is None or lb_id in seen_lb_ids:
                         continue
                     seen_lb_ids.add(lb_id)
+                    path = paths.get(code)
+                    if path is not None:
+                        record.attach_source_path(path)
                     yield code, record
                 if is_last or not records:
                     break
@@ -146,25 +151,27 @@ def _build_v7_url(
     return f"{base_url.rstrip('/')}/v7/servicedescriptions/{ars}?{query}"
 
 
-def map_pvog_record(
-    record: PvogRecord,
-    *,
-    jurisdiction_id: UUID,
-    personal_matter_code: str | None = None,
-) -> CatalogueBatchItem:
-    """Map one PVOG Suchdienst row to a machine batch item.
+@dataclass(frozen=True, slots=True)
+class PvogStash:
+    """The PVOG facts a catalogue row keeps beside its payload, and the served mapping version that stamps the path."""
 
-    ``personal_matter_code``, when given, is stashed into the stored ``raw_payload`` under the
-    reserved ``_personal_matter_code`` key so a later harvest step can derive ``situation_codes``
-    from it (no existing PVOG field uses an underscore-prefixed key).
+    mapping_version: str
+    personal_matter_code: str | None = None
+    personal_matter_path: PvogSourcePath | None = None
+
+
+def map_pvog_record(record: PvogRecord, *, jurisdiction_id: UUID, stash: PvogStash) -> CatalogueBatchItem:
+    """Map one PVOG Suchdienst row to a machine batch item, keeping the PVOG facts of ``stash`` in its raw payload.
+
+    Later harvest maps only complete PVOG evidence through the served crosswalk, so the path is stored beside the
+    Lebenslage code it was captured with, and stamped with the mapping version the crosswalk was served under.
     """
     external_id = _external_id_for_record(record)
     title = record.title
     if title is None:
         raise PvogMappingError("row has no title (title, name, or leistungsname)")
     raw_payload: dict[str, object] = dict(record.raw)
-    if personal_matter_code is not None:
-        raw_payload["_personal_matter_code"] = personal_matter_code
+    raw_payload.update(_stashed(record, stash))
     return CatalogueBatchItem(
         source="pvog",
         external_id=external_id,
@@ -174,6 +181,21 @@ def map_pvog_record(
         portal_url=record.portal_url,
         raw_payload=raw_payload,
     )
+
+
+def _stashed(record: PvogRecord, stash: PvogStash) -> dict[str, object]:
+    """Return the reserved keys of a row's stored payload: the Lebenslage code and, when complete, its path and version."""
+    stashed: dict[str, object] = {}
+    if stash.personal_matter_code is not None:
+        stashed["_personal_matter_code"] = stash.personal_matter_code
+    source_path = stash.personal_matter_path or record.source_path
+    if source_path is None:
+        return stashed
+    if stash.personal_matter_code is not None and source_path.leaf_code not in {None, stash.personal_matter_code}:
+        raise PvogMappingError("personal matter code does not match its PVOG source path")
+    stashed["_pvog_source_path"] = source_path.as_raw()
+    stashed["_pvog_category_mapping_version"] = stash.mapping_version
+    return stashed
 
 
 def _external_id_for_record(record: PvogRecord) -> str:

@@ -36,19 +36,32 @@ it("candidate detail renders every section for a populated candidate", async () 
   expect(
     await screen.findByRole("heading", { level: 1, name: "Passport" }),
   ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Documents you need first" }),
+  ).toHaveAttribute("aria-expanded", "true");
   const ingress = screen.getByRole("region", {
     name: "Documents you need first",
   });
   expect(within(ingress).getByText("Birth certificate")).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Documents that need this one" }),
+  ).toHaveAttribute("aria-expanded", "true");
   const egress = screen.getByRole("region", {
     name: "Documents that need this one",
   });
   expect(within(egress).getByText("Residence permit")).toBeVisible();
-  const image = screen.getByRole("img", { name: /Passport/ });
-  expect(image.getAttribute("src")).toMatch(
-    /\/api\/v1\/candidates\/c1\/screenshot$/,
+  expect(screen.getByRole("button", { name: "Flow" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
   );
-  expect(screen.getByRole("heading", { name: "Evidence" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Evidence" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  expect(screen.getByRole("button", { name: "Sources" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
 });
 
 it("item page shows the flow between the lists and the evidence", async () => {
@@ -57,15 +70,32 @@ it("item page shows the flow between the lists and the evidence", async () => {
 
   await screen.findByRole("heading", { level: 1, name: "Passport" });
   const names = screen
-    .getAllByRole("heading", { level: 2, hidden: true })
-    .map((heading) => heading.textContent);
+    .getAllByRole("button")
+    .map((button) => button.textContent);
   const wanted = [
     "Documents you need first",
     "Documents that need this one",
     "Flow",
     "Evidence",
+    "Sources",
   ];
   expect(names.filter((name) => wanted.includes(name ?? ""))).toEqual(wanted);
+});
+
+it("sources expand by keyboard and render subordinate source cards", async () => {
+  stubCandidateDetailApi(() => json(populated));
+  const { user } = renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  const trigger = screen.getByRole("button", { name: "Sources" });
+  trigger.focus();
+  await user.keyboard("{Enter}");
+
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("article").querySelector("a")).toHaveAttribute(
+    "href",
+    "https://portal.example/passport",
+  );
 });
 
 it("candidate detail makes no screenshot request without a screenshot", async () => {
@@ -125,12 +155,15 @@ const BANNER_STATES: [string, () => Response, string][] = [
 ];
 
 it.each(BANNER_STATES)(
-  "candidate detail keeps the banner when %s",
+  "candidate detail hides staging and completeness metadata when %s",
   async (_state, respond, marker) => {
     stubCandidateDetailApi(respond);
     renderPage();
 
     expect((await screen.findAllByText(marker)).length).toBeGreaterThan(0);
-    expect(screen.getByText(BANNER)).toBeInTheDocument();
+    expect(screen.queryByText(BANNER)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Completeness" }),
+    ).not.toBeInTheDocument();
   },
 );

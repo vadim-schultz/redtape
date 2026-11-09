@@ -2,7 +2,7 @@ import DocumentTagsPanel from "../components/DocumentTagsPanel";
 import { useTagNames } from "../hooks/useTagNames";
 import type { DiscoveryCandidateDetailResponse } from "../types";
 
-/** The suggested domain and situation tags of a candidate, named from the taxonomy. */
+/** The suggested canonical categories of a candidate, named from the category tree. */
 export default function DocumentTagsSection({
   data,
 }: {
@@ -12,8 +12,7 @@ export default function DocumentTagsSection({
 
   return (
     <DocumentTagsPanel
-      domains={data.suggested_domain_codes}
-      situations={data.suggested_situation_codes}
+      categories={data.suggested_category_codes}
       {...tagNames}
     />
   );

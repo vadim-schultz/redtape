@@ -62,7 +62,7 @@ def api_key(db_session: Session) -> ApiKey:
 def service(db_session: Session) -> SuggestionService:
     events = EventLogService(EventLogRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    documents = DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    documents = DocumentPromotion(DocumentRepository(db_session))
     return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, events)
 
 

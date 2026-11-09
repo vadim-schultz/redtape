@@ -145,30 +145,30 @@ def test_admin_candidate_detail_returns_mentions_with_procedure_titles(
     assert row["portal_url"] == "https://example.gov/service"
 
 
-def test_admin_candidate_detail_shows_mention_conditions_codes_and_suggested_tags(
+def test_admin_candidate_detail_shows_mention_conditions_categories_and_suggested_tags(
     client: TestClient[Litestar], db_session: Session
 ) -> None:
     first = _catalogue(db_session, external_id="svc-a")
     second = _catalogue(db_session, external_id="svc-b")
     candidate = _candidate(db_session, first, key="personalausweis")
-    for catalogue, situations in ((first, ["moving-house"]), (second, ["moving-house", "birth-of-child"])):
+    for catalogue, categories in (
+        (first, ["moving-house"]),
+        (second, ["moving-house", "birth-and-parenthood"]),
+    ):
         row = _mention(db_session, candidate, catalogue)
         row.condition, row.is_optional = "bei Zuzug", False
-        row.domain_codes, row.situation_codes = ["housing"], situations
+        row.category_codes = ["home-and-housing", *categories]
     db_session.flush()
 
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
 
     mention = next(m for m in body["mentions"] if m["catalogue_service_id"] == str(first.id))
     assert (mention["condition"], mention["is_optional"]) == ("bei Zuzug", False)
-    assert (mention["domain_codes"], mention["situation_codes"]) == (["housing"], ["moving-house"])
-    assert body["suggested_domain_codes"] == [
-        {"code": "housing", "procedures": 2, "share": 1.0, "score": pytest.approx(0.85)}
-    ]
-    # Both codes clear the small inclusion floor (D8: no axis-specific difference anymore).
-    assert body["suggested_situation_codes"] == [
+    assert mention["category_codes"] == ["home-and-housing", "moving-house"]
+    assert body["suggested_category_codes"] == [
+        {"code": "home-and-housing", "procedures": 2, "share": 1.0, "score": pytest.approx(0.85)},
         {"code": "moving-house", "procedures": 2, "share": 1.0, "score": pytest.approx(0.85)},
-        {"code": "birth-of-child", "procedures": 1, "share": 0.5, "score": pytest.approx(0.25)},
+        {"code": "birth-and-parenthood", "procedures": 1, "share": 0.5, "score": pytest.approx(0.25)},
     ]
 
 
@@ -181,8 +181,8 @@ def test_admin_candidate_detail_has_empty_suggestions_and_codes_without_tagged_m
 
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
 
-    assert (body["suggested_domain_codes"], body["suggested_situation_codes"]) == ([], [])
-    assert body["mentions"][0]["domain_codes"] == []
+    assert body["suggested_category_codes"] == []
+    assert body["mentions"][0]["category_codes"] == []
     assert (body["mentions"][0]["condition"], body["mentions"][0]["is_optional"]) == (None, None)
 
 
@@ -475,3 +475,34 @@ def test_admin_candidate_detail_includes_the_jurisdiction_name(
     body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
 
     assert body["jurisdiction_name_i18n"] == {"en": "Testland"}
+
+
+def test_admin_candidate_detail_never_suggests_a_pvog_leaf_as_a_category(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    leaf_only = _mention(db_session, candidate, catalogue, "leaf-only")
+    leaf_only.pvog_leaf_code = "1050200"
+    db_session.flush()
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert body["suggested_category_codes"] == []
+    assert body["mentions"][0]["category_codes"] == []
+    assert body["mentions"][0]["pvog_leaf_code"] == "1050200"
+
+
+def test_admin_candidate_detail_reports_unknown_stored_category_codes(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    catalogue = _catalogue(db_session)
+    candidate = _candidate(db_session, catalogue, key="personalausweis")
+    mention = _mention(db_session, candidate, catalogue, "stale-category")
+    mention.category_codes = ["moving-house", "retired-category"]
+    db_session.flush()
+
+    body = client.get(f"{CANDIDATES_URL}/{candidate.id}", headers=_auth()).json()
+
+    assert body["mentions"][0]["category_codes"] == ["moving-house"]
+    assert body["mentions"][0]["unknown_category_codes"] == ["retired-category"]

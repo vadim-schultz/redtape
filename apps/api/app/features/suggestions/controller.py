@@ -39,7 +39,7 @@ _STATUS_BY_ERROR: dict[type[Exception], int] = {
 
 
 def with_tally(read: SuggestionRead, *, tally: Tally, my_vote: int | None = None) -> SuggestionRead:
-    """Compose voting data into a suggestion response (controller-level composition, like the matrix endpoint)."""
+    """Compose voting data into a suggestion response at the controller boundary."""
     return read.model_copy(update={"tally": tally, "my_vote": my_vote})
 
 

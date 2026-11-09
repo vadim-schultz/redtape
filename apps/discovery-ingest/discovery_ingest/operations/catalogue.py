@@ -13,7 +13,7 @@ from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.govdata.client import GovDataMappingError, GovDataOzgClient, map_govdata_record
 from discovery_ingest.govdata.models import GovDataRow
 from discovery_ingest.operations.results import IngestResult
-from discovery_ingest.pvog.client import PvogMappingError, map_pvog_record
+from discovery_ingest.pvog.client import PvogMappingError, PvogStash, map_pvog_record
 from discovery_ingest.pvog.models import PvogRecord
 from discovery_ingest.schemas import CatalogueBatchItem
 
@@ -125,11 +125,14 @@ class PvogSource:
 
     name = "PVOG"
 
-    def __init__(self, walk: PvogRecordWalk, jurisdiction_id: UUID, *, max_pages: int | None) -> None:
-        """Keep the row walk, the jurisdiction of the federal rows and the optional page cap."""
+    def __init__(
+        self, walk: PvogRecordWalk, jurisdiction_id: UUID, *, max_pages: int | None, mapping_version: str
+    ) -> None:
+        """Keep the row walk, the jurisdiction of the federal rows, the optional page cap and the served mapping version."""
         self._walk = walk
         self._jurisdiction_id = jurisdiction_id
         self._max_pages = max_pages
+        self._mapping_version = mapping_version
 
     def batches(self) -> Iterator[SourceBatch]:
         """Walk the federal scope and yield every mapped row as one batch."""
@@ -137,7 +140,13 @@ class PvogSource:
         skipped: list[str] = []
         for code, row in self._walk.iter_records(ars=FEDERAL_ARS, max_pages=self._max_pages):
             try:
-                items.append(map_pvog_record(row, jurisdiction_id=self._jurisdiction_id, personal_matter_code=code))
+                items.append(
+                    map_pvog_record(
+                        row,
+                        jurisdiction_id=self._jurisdiction_id,
+                        stash=PvogStash(self._mapping_version, code, row.source_path),
+                    )
+                )
             except PvogMappingError as err:
                 skipped.append(str(err))
         yield SourceBatch(items=items, skipped=skipped)

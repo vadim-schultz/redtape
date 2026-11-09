@@ -66,6 +66,7 @@
     "empty_title": "No documents found",
     "empty_description": "No documents have been found yet.",
     "empty_filtered_description": "Your filters or search hide every document. Clear them to see the full list.",
+    "empty_clear": "Clear filters and search",
     "not_found": "Document not found",
     "count_one": "{count} document",
     "count_other": "{count} documents",
@@ -84,10 +85,7 @@
     "confidence_high": "high"
   },
   "candidates": {
-    "banner_title": "Staged and unreviewed",
-    "banner_body": "These candidates are model output from public pages. Nobody has checked them yet, and some may be wrong.",
-    "flag_domain": "Domain",
-    "flag_situation": "Situation",
+    "flag_category": "Category",
     "flag_edges": "Dependencies",
     "flag_snapshot": "Snapshot",
     "flag_screenshot": "Screenshot",
@@ -95,9 +93,9 @@
     "flag_missing": "missing",
     "from_source": "From the source page: {source}",
     "ingress": "Documents you need first",
-    "ingress_empty": "No documents staged",
+    "ingress_empty": "No documents listed",
     "egress": "Documents that need this one",
-    "egress_empty": "No documents staged",
+    "egress_empty": "No documents listed",
     "optional": "Optional",
     "condition_label": "Condition: {condition}",
     "evidence": "Evidence",
@@ -108,11 +106,9 @@
     "source_role_required": "Required",
     "source_role_form": "Form",
     "source_role_issued": "Issued",
-    "checklist_title": "Completeness",
-    "checklist_count": "{count} of 5",
     "flow": "Flow",
     "flow_summary": "{ingress} documents needed first, {egress} documents that need this one",
-    "flow_empty": "No dependencies staged for this document",
+    "flow_empty": "No dependencies listed for this document",
     "flow_more": "+{count} more, see the list above",
     "back_to_list": "Back to the list",
     "not_found_title": "Candidate not found"
@@ -141,11 +137,10 @@
     "forbidden_body": "You don't have permission to view this page."
   },
   "filters": {
-    "domain": "Domain",
-    "situation": "Life situation",
+    "category": "Categories",
     "clear": "Clear filters",
-    "remove_domain": "Remove domain filter: {name}",
-    "remove_situation": "Remove situation filter: {name}"
+    "chip": "Filter by {name}",
+    "browse": "Browse categories"
   },
   "discovery_admin": {
     "menu_unavailable": "Discovery unavailable",
@@ -236,6 +231,8 @@
       "col_extractor": "Extractor",
       "col_host": "Source host",
       "col_procedure": "Procedure",
+      "col_taxonomy_diagnostics": "Taxonomy diagnostics",
+      "unknown_category_codes": "Unknown category code(s): {codes}",
       "emit_title": "Emit preview",
       "emit_would_create": "Would create a new document suggestion.",
       "emit_title_label": "Title",
@@ -254,8 +251,7 @@
       "optional": "Optional",
       "tags": {
         "title": "Suggested tags",
-        "domains": "Domains",
-        "situations": "Life situations",
+        "categories": "Categories",
         "support": "{name} · {procedures} of {total} procedures",
         "empty": "No consensus yet.",
         "accepted": "Meets the thresholds"

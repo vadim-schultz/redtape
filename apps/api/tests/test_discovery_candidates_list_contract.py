@@ -13,7 +13,7 @@ from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import Subquery
 
@@ -24,7 +24,7 @@ from test_discovery_machine_api import _issue_key
 URL = "/api/v1/discovery/admin/candidates"
 MACHINE_URL = "/api/v1/discovery/machine/candidates"
 NEW_KEYS = ("jurisdiction", "status", "roles", "completeness")
-FLAGS = ("has_domain", "has_situation", "has_edges", "has_snapshot", "has_screenshot")
+FLAGS = ("has_category", "has_edges", "has_snapshot", "has_screenshot")
 Client = TestClient[Litestar]
 
 
@@ -35,7 +35,7 @@ def scene(db_session: Session) -> Scene:
 
 @pytest.fixture
 def taxonomy(db_session: Session) -> None:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
 
 
 def _named(session: Session, name: str) -> Jurisdiction:
@@ -151,8 +151,8 @@ def test_candidate_list_filters_by_complete_and_each_flag(client: Client, scene:
     ]
     assert _keys(client, **{"filter[has_snapshot]": "yes", "sort_by": "title"}) == ["full", "snap-only"]
     assert _keys(client, **{"filter[has_edges]": "yes", "sort_by": "title"}) == ["full", "full-needs"]
-    assert _get(client, **{"filter[has_domain]": "yes", "limit": 1})["total"] == 1
-    assert _get(client, **{"filter[has_situation]": "no", "limit": 1})["total"] == 4
+    assert _get(client, **{"filter[has_category]": "yes", "limit": 1})["total"] == 1
+    assert _get(client, **{"filter[has_category]": "no", "limit": 1})["total"] == 4
 
 
 def test_candidate_list_filters_by_jurisdiction(client: Client, db_session: Session) -> None:
@@ -177,24 +177,22 @@ def test_candidate_list_rejects_a_jurisdiction_that_is_not_a_uuid(client: Client
 
 
 @pytest.mark.usefixtures("taxonomy")
-def test_candidate_list_filters_by_an_accepted_domain_code(client: Client, scene: Scene) -> None:
+def test_candidate_list_filters_by_a_category_and_its_descendants(client: Client, scene: Scene) -> None:
     scene.complete_candidate("accepted")
     lonely = scene.candidate("lonely")
-    scene.mention(lonely, scene.procedure(), domains=[HOUSING], situations=[MOVING])
+    scene.mention(lonely, scene.procedure(), categories=[HOUSING, MOVING])
 
-    domain = _keys(client, **{"filter[domain]": HOUSING})
-    situation = _keys(client, **{"filter[situation]": MOVING})
-    other = _get(client, **{"filter[domain]": "identity-civil-status"})
+    housing = _keys(client, **{"filter[category]": HOUSING})
+    moving = _keys(client, **{"filter[category]": MOVING})
+    other = _get(client, **{"filter[category]": "identity-documents"})
 
-    # situation-tag-hierarchy chapter 1: both axes now run the same scoring engine (D8), so "lonely"'s
-    # single mention clears the inclusion floor on either axis, the same way.
-    assert set(domain) == {"accepted", "lonely"}
-    assert set(situation) == {"accepted", "lonely"}
+    assert set(housing) == {"accepted", "lonely"}
+    assert set(moving) == {"accepted", "lonely"}
     assert other["items"] == []
 
 
 @pytest.mark.usefixtures("taxonomy")
-@pytest.mark.parametrize("key", ["filter[domain]", "filter[situation]"])
+@pytest.mark.parametrize("key", ["filter[category]"])
 def test_candidate_list_rejects_an_unknown_taxonomy_code(client: Client, scene: Scene, key: str) -> None:
     scene.complete_candidate("accepted")
 
@@ -271,7 +269,7 @@ def test_candidate_list_rows_carry_the_completeness_flags(client: Client, scene:
         read = expected[uuid.UUID(item["id"])]
         assert item["completeness"] == read.completeness and item["complete"] is read.complete
         assert item["flags"] == {name: getattr(read, name) for name in FLAGS}
-    assert {item["key"]: item["completeness"] for item in items}["full"] == 5
+    assert {item["key"]: item["completeness"] for item in items}["full"] == 4
 
 
 def test_candidate_list_stays_admin_only(client: Client, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,4 +1,4 @@
-"""Completeness of every candidate in one query: five flags, their count, and the accepted tag codes (D1, D6)."""
+"""Completeness of every candidate in one query: four flags, their count, and the accepted category codes (D1, D6)."""
 
 from __future__ import annotations
 
@@ -23,23 +23,21 @@ __all__ = [
     "completeness_subquery",
 ]
 
-CODE_FIELDS = ("accepted_domain_codes", "accepted_situation_codes")
+CODE_FIELDS = ("accepted_category_codes",)
 
 
 @dataclass(frozen=True)
 class CandidateCompleteness:
-    """The completeness of one candidate: five flags, how many hold, and the accepted tag codes."""
+    """The completeness of one candidate: four flags, how many hold, and the accepted category codes."""
 
     candidate_id: UUID
-    has_domain: bool
-    has_situation: bool
+    has_category: bool
     has_edges: bool
     has_snapshot: bool
     has_screenshot: bool
     completeness: int
     complete: bool
-    accepted_domain_codes: tuple[str, ...]
-    accepted_situation_codes: tuple[str, ...]
+    accepted_category_codes: tuple[str, ...]
 
     @classmethod
     def from_row(cls, row: Row) -> Self:

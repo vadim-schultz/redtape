@@ -25,7 +25,11 @@ from app.models.locality import Locality
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType, SuggestionEvent
 from app.models.suggestion_vote import SuggestionVote
-from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup
+from app.models.taxonomy import (
+    Category,
+    CategoryExternalMapping,
+    DocumentExternalClassification,
+)
 from app.models.user import AppUser, UserRole
 
 __all__ = [
@@ -33,6 +37,8 @@ __all__ = [
     "AppUser",
     "Base",
     "CatalogueService",
+    "Category",
+    "CategoryExternalMapping",
     "DiscoveryClaim",
     "DiscoveryClaimKind",
     "DiscoveryEntity",
@@ -45,13 +51,11 @@ __all__ = [
     "DiscoveryTaskKind",
     "DiscoveryTaskStatus",
     "Document",
+    "DocumentExternalClassification",
     "DocumentRequirement",
-    "Domain",
     "EventType",
     "Jurisdiction",
     "JurisdictionKind",
-    "LifeSituation",
-    "LifeSituationGroup",
     "Locality",
     "Suggestion",
     "SuggestionEvent",

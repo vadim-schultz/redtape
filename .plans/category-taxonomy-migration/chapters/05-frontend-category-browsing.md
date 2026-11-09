@@ -1,13 +1,15 @@
 ---
 name: "Chapter 5 — Frontend category browsing and linked chips"
 overview: "Replace dual-axis browse controls with search-first category navigation and compact red category chips that link to canonical filtered results."
+id: C5
 depends_on:
-  - 03-category-api-and-backend-filters
-  - 04-ingest-and-llm-category-contract
+  - C3
+  - C4
 touches:
   - apps/web/src/features/taxonomy/
   - apps/web/src/features/documents/
   - apps/web/src/features/candidates/
+  - apps/web/src/features/discovery-admin/
   - apps/web/src/components/
   - apps/web/src/app/queryKeys.ts
   - apps/web/src/i18n/fallback/
@@ -17,16 +19,16 @@ execution: chapter-implementer
 todos:
   - id: taxonomy-client
     content: "Replace domain/group/situation queries with one category tree client, type model, and query key."
-    status: pending
+    status: complete
   - id: search-first
     content: "Make search primary and category browsing secondary with stable root/subcategory URL semantics."
-    status: pending
+    status: complete
   - id: category-chips
     content: "Render compact red linked category chips on document cards and detail headers without nested interactive markup."
-    status: pending
+    status: complete
   - id: tests
     content: "Update filter, URL, tag, card, detail, contract, translation, accessibility, and responsive tests."
-    status: pending
+    status: complete
 ---
 
 # Chapter 5 — Frontend category browsing and linked chips

@@ -100,7 +100,7 @@ def test_plan_turns_a_curated_candidate_into_one_tag_mention_and_its_edges() -> 
         "manual:tags",
         "issued",
     )
-    assert (tag.domain_codes, tag.situation_codes) == (["identity-civil-status"], ["moving-house"])
+    assert tag.category_codes == ["identity-and-documents", "moving-house"]
     assert tag.title_i18n == {"de": "Meldebescheinigung"} and tag.excerpt == EXCERPT_REQUIRES
     assert [(e.parent_title_i18n["de"], e.required_title_i18n["de"]) for e in plan.edges] == [
         ("Meldebescheinigung", "Personalausweis"),
@@ -149,7 +149,7 @@ def test_unknown_taxonomy_code_fails_the_whole_file(
     api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """curate · a typo in a code refuses the file (exit 2), posts nothing and names the entry and the code."""
-    path = write_file(tmp_path, entry(domain_codes=["identity-civil"]))
+    path = write_file(tmp_path, entry(category_codes=["identity-civil"]))
 
     code, out, err = _run(capsys, "curate", "--file", str(path))
 
@@ -195,17 +195,17 @@ def test_ungrounded_excerpt_is_refused_unless_pages_are_not_checked(
 def test_self_edge_and_duplicate_edge_are_refused(
     api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str], requires: list[dict[str, object]]
 ) -> None:
-    """curate · a self edge and a repeated edge fail validation before any call."""
+    """curate · a self edge and a repeated edge fail validation before any write call."""
     code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, entry(requires=requires))))
 
-    assert code == 2 and api.requests == [] and "Meldebescheinigung" in err
+    assert code == 2 and api.posts == [] and "Meldebescheinigung" in err
 
 
 def test_more_than_eight_candidates_is_refused(api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """curate · nine entries are refused before any call; the message names the bound."""
+    """curate · nine entries are refused before any write call; the message names the bound."""
     code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, *[entry() for _ in range(9)])))
 
-    assert code == 2 and api.requests == [] and "at most 8" in err
+    assert code == 2 and api.posts == [] and "at most 8" in err
 
 
 def test_skipped_edges_exit_non_zero(api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -221,7 +221,7 @@ def test_skipped_edges_exit_non_zero(api: Api, tmp_path: Path, capsys: pytest.Ca
 def test_curation_file_with_an_unknown_key_is_rejected(
     api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """curate · ``extra="forbid"``: an unknown key refuses the file before any call and is named."""
+    """curate · ``extra="forbid"``: an unknown key refuses the file before any write call and is named."""
     code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, entry(), bogus=1)))
 
-    assert code == 2 and api.requests == [] and "bogus" in err
+    assert code == 2 and api.posts == [] and "bogus" in err

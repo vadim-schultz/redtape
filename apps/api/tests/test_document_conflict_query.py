@@ -9,8 +9,6 @@ from contextlib import contextmanager
 import pytest
 from app.features.documents.promotion import DocumentPromotion
 from app.features.documents.repository import DocumentRepository
-from app.features.taxonomy.repository import TaxonomyRepository
-from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.url_normalization import normalize_url
@@ -27,7 +25,7 @@ def jurisdiction(db_session: Session) -> Jurisdiction:
 
 
 def _promotion(db_session: Session) -> DocumentPromotion:
-    return DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    return DocumentPromotion(DocumentRepository(db_session))
 
 
 def _document(db_session: Session, jurisdiction: Jurisdiction, slug: str, official_url: str | None = None) -> Document:

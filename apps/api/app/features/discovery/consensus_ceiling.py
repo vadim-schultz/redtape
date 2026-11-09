@@ -12,8 +12,7 @@ HISTORICAL_CONSENSUS_FLOOR_PROCEDURES = 2
 
 Frozen here rather than imported: ``situation-tag-hierarchy`` chapter 1 replaced the accept/reject
 floor this constant once fed (``app.features.discovery.tags``) with a continuous score, so this module
-keeps its own copy to keep reproducing the same point-in-time measurement, not to track the engine —
-the same precedent ``scripts/situation_tag_coverage_variants.py`` already set.
+keeps its own copy to reproduce the same point-in-time measurement, not to track the engine.
 """
 
 CandidateMention = tuple[UUID, UUID]

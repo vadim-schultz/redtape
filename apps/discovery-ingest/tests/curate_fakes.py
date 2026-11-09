@@ -12,6 +12,8 @@ from typing import Any
 import httpx
 import pytest
 
+from crosswalk_fakes import VOCABULARY
+
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
 _REAL_HTTPX_CLIENT = httpx.Client
@@ -32,10 +34,6 @@ STAGED = {
     MELDE: ("Meldebescheinigung", ["issued"]),
     AUSWEIS: ("Personalausweis", ["required"]),
     ANMELDUNG: ("Anmeldung einer Wohnung", ["form", "required"]),
-}
-TAXONOMY = {
-    "domains": [{"code": "identity-civil-status", "name_i18n": {"de": "Identität"}, "description_i18n": {}}],
-    "situations": [{"code": "moving-house", "name_i18n": {"de": "Umzug"}, "description_i18n": {}}],
 }
 
 
@@ -60,7 +58,7 @@ class Api:
         self.requests.append(request)
         path = request.url.path.removeprefix("/api/v1/discovery/machine")
         routes = {
-            ("GET", "/taxonomy"): lambda: httpx.Response(200, json=TAXONOMY),
+            ("GET", "/taxonomy"): lambda: httpx.Response(200, json=VOCABULARY),
             ("GET", "/candidates/"): lambda: self._staged(),
             ("GET", "/candidates/sources"): lambda: self._sources(request),
             ("GET", "/artifacts"): lambda: self._artifacts(),
@@ -165,8 +163,7 @@ def entry(**changes: object) -> dict[str, object]:
         "candidate_id": str(MELDE),
         "catalogue_service_id": str(SERVICE),
         "title_de": "Meldebescheinigung",
-        "domain_codes": ["identity-civil-status"],
-        "situation_codes": ["moving-house"],
+        "category_codes": ["identity-and-documents", "moving-house"],
         "tag_note": "issued when moving",
         "requires": [edge("Personalausweis", EXCERPT_REQUIRES)],
         "required_by": [edge("Anmeldung einer Wohnung", EXCERPT_REQUIRED_BY)],

@@ -27,11 +27,8 @@ function readSeed(locale: string): Record<string, string> {
 }
 
 const CANDIDATE_KEYS = [
-  "banner_title",
-  "banner_body",
   "from_source",
-  "flag_domain",
-  "flag_situation",
+  "flag_category",
   "flag_edges",
   "flag_snapshot",
   "flag_screenshot",
@@ -51,8 +48,6 @@ const CANDIDATE_KEYS = [
   "source_role_required",
   "source_role_form",
   "source_role_issued",
-  "checklist_title",
-  "checklist_count",
   "flow",
   "flow_summary",
   "flow_empty",
@@ -68,8 +63,6 @@ const RETIRED_CANDIDATE_KEYS = [
     "title",
     "subtitle",
     "search_label",
-    "filter_domain",
-    "filter_situation",
     "complete_only",
     "clear_filters",
     "count_one",
@@ -262,8 +255,10 @@ describe("discovery admin artifact strings", () => {
 const DOCUMENT_KEYS = [
   "documents.role_issued",
   "document.col_condition",
+  "document.col_taxonomy_diagnostics",
+  "document.unknown_category_codes",
   "document.optional",
-  ...["title", "domains", "situations", "support", "empty", "accepted"].map(
+  ...["title", "categories", "support", "empty", "accepted"].map(
     (key) => `document.tags.${key}`,
   ),
   ...[
@@ -299,4 +294,26 @@ describe("discovery admin extraction strings", () => {
       en["discovery_admin.document.tags.empty"],
     );
   });
+});
+
+const EMPTY_STATE_KEYS = ["ingress_empty", "egress_empty", "flow_empty"].map(
+  (key) => `candidates.${key}`,
+);
+
+const STAGED_WORDING = /staged|vorgemerkt|hinterlegt/i;
+
+describe("candidate empty states", () => {
+  it.each(["en", "de"])(
+    "carry no staged wording in the fallback or the API seed for %s",
+    (locale) => {
+      const bundle = fallbackBundle(locale);
+      const seed = readSeed(locale);
+
+      for (const key of EMPTY_STATE_KEYS) {
+        expect(bundle[key], key).toBeTruthy();
+        expect(bundle[key], key).not.toMatch(STAGED_WORDING);
+        expect(seed[key], key).not.toMatch(STAGED_WORDING);
+      }
+    },
+  );
 });

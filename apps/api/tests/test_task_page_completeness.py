@@ -38,8 +38,7 @@ def _mention(
     procedure: CatalogueService,
     owner: DiscoveryDocumentCandidate,
     *,
-    domain: list[str] | None = None,
-    situation: list[str] | None = None,
+    categories: list[str] | None = None,
 ) -> None:
     session.add(
         DiscoveryCandidateMention(
@@ -50,8 +49,7 @@ def _mention(
             source_field=f"details[{uuid.uuid4().hex[:8]}]",
             extractor="llm",
             extractor_version="1",
-            domain_codes=domain,
-            situation_codes=situation,
+            category_codes=categories or [],
         )
     )
     session.flush()
@@ -106,23 +104,23 @@ def _completeness_of(session: Session, catalogue_service_id: uuid.UUID) -> int:
     return session.scalar(stmt)
 
 
-def test_a_page_with_every_signal_is_five_of_five(db_session: Session) -> None:
+def test_a_page_with_every_signal_is_four_of_four(db_session: Session) -> None:
     procs = world.procedures(db_session, 1)
     page = procs[0]
     parent, required = _owner(db_session, page), _owner(db_session, page)
-    _mention(db_session, page, parent, domain=["housing"], situation=["moving-house"])
+    _mention(db_session, page, parent, categories=["home-and-housing", "moving-house"])
     _edge(db_session, page, parent, required)
     _artifact(db_session, page, SNAPSHOT)
     _artifact(db_session, page, SCREENSHOT)
 
-    assert _completeness_of(db_session, page.id) == 5
+    assert _completeness_of(db_session, page.id) == 4
 
 
 def test_a_page_with_only_some_signals_counts_only_those(db_session: Session) -> None:
     procs = world.procedures(db_session, 1)
     page = procs[0]
     owner = _owner(db_session, page)
-    _mention(db_session, page, owner, domain=["housing"])
+    _mention(db_session, page, owner, categories=["home-and-housing"])
     _artifact(db_session, page, SNAPSHOT)
 
     assert _completeness_of(db_session, page.id) == 2
@@ -132,10 +130,10 @@ def test_a_page_with_nothing_coalesces_to_zero_and_chips_never_leak_to_another_p
     procs = world.procedures(db_session, 2)
     bare, busy = procs
     owner = _owner(db_session, busy)
-    _mention(db_session, busy, owner, domain=["housing"], situation=["moving-house"])
+    _mention(db_session, busy, owner, categories=["home-and-housing", "moving-house"])
     _edge(db_session, busy, owner, _owner(db_session, busy))
     _artifact(db_session, busy, SNAPSHOT)
     _artifact(db_session, busy, SCREENSHOT)
 
     assert _completeness_of(db_session, bare.id) == 0
-    assert _completeness_of(db_session, busy.id) == 5
+    assert _completeness_of(db_session, busy.id) == 4

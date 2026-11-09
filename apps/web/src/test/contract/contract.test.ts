@@ -45,7 +45,12 @@ import {
 } from "../../features/suggestions/types";
 
 import { API_SCHEMAS } from "./apiSchemas";
-import { diffEnum, diffFields, type SchemaRegistry } from "./schemaMatch";
+import {
+  diffEnum,
+  diffFields,
+  propertyNames,
+  type SchemaRegistry,
+} from "./schemaMatch";
 
 type Keys<T> = Record<keyof T, true>;
 
@@ -204,8 +209,7 @@ const CANDIDATE_DETAIL: Keys<DiscoveryCandidateDetailResponse> = {
   candidate: true,
   jurisdiction_name_i18n: true,
   mentions: true,
-  suggested_domain_codes: true,
-  suggested_situation_codes: true,
+  suggested_category_codes: true,
 };
 
 const MENTION: Keys<DiscoveryCandidateMention> = {
@@ -223,8 +227,12 @@ const MENTION: Keys<DiscoveryCandidateMention> = {
   extractor_version: true,
   condition: true,
   is_optional: true,
-  domain_codes: true,
-  situation_codes: true,
+  category_codes: true,
+  unknown_category_codes: true,
+  pvog_leaf_code: true,
+  direct_category_confidence: true,
+  pvog_source_path: true,
+  pvog_mapping_version: true,
   created_at: true,
 };
 
@@ -355,3 +363,27 @@ it.fails(
     expectFields(API_SCHEMAS, "TagSupportRead", TAG_SUPPORT);
   },
 );
+
+// The retired axis names remain here only as a negative contract assertion. The output payloads and
+// candidate contracts must not advertise them; the request schema is deliberately not in this list.
+const FORBIDDEN_LEGACY_FIELDS = [
+  "domain_codes",
+  "situation_codes",
+  "situation_leaf_codes",
+  "direct_domain_confidence",
+  "direct_situation_confidence",
+];
+
+it.each([
+  ["PreviewedDocumentPayload"],
+  ["PreviewedSuggestion"],
+  ["CandidateMentionItem"],
+  ["CandidateMentionRead"],
+  ["CandidateDetailResponse"],
+  ["CandidateListItemRead"],
+])("contract · %s advertises no legacy axis field", (apiName) => {
+  const advertised = new Set(propertyNames(API_SCHEMAS, apiName));
+  expect(
+    FORBIDDEN_LEGACY_FIELDS.filter((field) => advertised.has(field)),
+  ).toEqual([]);
+});

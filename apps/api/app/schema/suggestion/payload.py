@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.shared.category_codes import ACTIVE_CATEGORY_CODES
+from app.shared.retired_taxonomy import RETIRED_TAXONOMY_FIELDS, retired_taxonomy_message
 from app.url_normalization import validate_url
 
 _LOCALE_CODE_RE = re.compile(r"^[a-zA-Z]{2,5}$")
@@ -53,10 +55,19 @@ class NewDocumentPayload(BaseModel):
     title_i18n: dict[str, str]
     description_i18n: dict[str, str] | None = None
     official_url: str | None = None
-    domain_codes: list[str] = Field(default_factory=list)
-    situation_codes: list[str] = Field(default_factory=list)
+    category_codes: list[str] = Field(default_factory=list)
     tag_confidence: dict[str, float] | None = None
-    situation_leaf_codes: dict[str, str] | None = None
+    pvog_leaf_codes: dict[str, str] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_retired_fields(cls, value: object) -> object:
+        """Reject retired axis fields with a validation error; a retired field is never silently translated."""
+        if isinstance(value, dict):
+            retired = sorted(RETIRED_TAXONOMY_FIELDS & value.keys())
+            if retired:
+                raise ValueError(retired_taxonomy_message(retired))
+        return value
 
     @field_validator("title_i18n")
     @classmethod
@@ -76,28 +87,31 @@ class NewDocumentPayload(BaseModel):
     def _check_official_url(cls, value: str | None) -> str | None:
         return None if value is None else validate_url(value)
 
-    @field_validator("domain_codes", "situation_codes")
+    @field_validator("category_codes")
     @classmethod
     def _check_codes(cls, value: list[str]) -> list[str]:
-        return _validate_codes(value)
+        checked = _validate_codes(value)
+        unknown = sorted(set(checked) - ACTIVE_CATEGORY_CODES)
+        if unknown:
+            raise ValueError(f"unknown or inactive category code(s): {', '.join(unknown)}")
+        return checked
 
     @model_validator(mode="after")
     def _check_tag_confidence_keys(self) -> NewDocumentPayload:
         if self.tag_confidence is None:
             return self
-        known = set(self.domain_codes) | set(self.situation_codes)
-        unknown = sorted(set(self.tag_confidence) - known)
+        unknown = sorted(set(self.tag_confidence) - set(self.category_codes))
         if unknown:
-            raise ValueError(f"tag_confidence keys not in domain_codes/situation_codes: {unknown}")
+            raise ValueError(f"tag_confidence keys not in category_codes: {unknown}")
         return self
 
     @model_validator(mode="after")
-    def _check_situation_leaf_codes_keys(self) -> NewDocumentPayload:
-        if self.situation_leaf_codes is None:
+    def _check_pvog_leaf_codes_keys(self) -> NewDocumentPayload:
+        if self.pvog_leaf_codes is None:
             return self
-        unknown = sorted(set(self.situation_leaf_codes) - set(self.situation_codes))
+        unknown = sorted(set(self.pvog_leaf_codes) - set(self.category_codes))
         if unknown:
-            raise ValueError(f"situation_leaf_codes keys not in situation_codes: {unknown}")
+            raise ValueError(f"pvog_leaf_codes keys not in category_codes: {unknown}")
         return self
 
 

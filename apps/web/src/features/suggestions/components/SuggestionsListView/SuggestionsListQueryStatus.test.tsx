@@ -15,8 +15,7 @@ const suggestions: SuggestionRead[] = [
     payload: {
       title_i18n: { en: "Residency permit" },
       official_url: "https://example.gov",
-      domain_codes: [],
-      situation_codes: [],
+      category_codes: [],
     },
     source_url: null,
     submitted_by: { kind: "user", display_name: "Ada" },
@@ -31,8 +30,7 @@ const suggestions: SuggestionRead[] = [
     payload: {
       title_i18n: { en: "Passport renewal" },
       official_url: "https://example.gov",
-      domain_codes: [],
-      situation_codes: [],
+      category_codes: [],
     },
     source_url: null,
     submitted_by: { kind: "crawler", display_name: "crawler-de-federal" },

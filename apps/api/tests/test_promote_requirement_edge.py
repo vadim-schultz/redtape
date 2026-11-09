@@ -51,7 +51,7 @@ def taxonomy_service(db_session: Session) -> TaxonomyService:
 
 @pytest.fixture
 def document_promotion(db_session: Session, taxonomy_service: TaxonomyService) -> DocumentPromotion:
-    return DocumentPromotion(DocumentRepository(db_session), taxonomy_service)
+    return DocumentPromotion(DocumentRepository(db_session))
 
 
 @pytest.fixture

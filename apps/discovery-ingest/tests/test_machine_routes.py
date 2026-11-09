@@ -19,6 +19,7 @@ from discovery_ingest.candidate_sources import SourceQuery
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.edges import EdgeItem
 from discovery_ingest.mentions import MentionItem
+from discovery_ingest.pvog.category_mapping import CrosswalkError
 from discovery_ingest.schemas import (
     CatalogueBatchItem,
     ClaimAppendRequest,
@@ -133,6 +134,7 @@ ROUTES: list[tuple[str, Call, str, str]] = [
         "/candidates/sources",
     ),
     ("candidates.taxonomy", lambda c: c.candidates.taxonomy(), "GET", "/taxonomy"),
+    ("candidates.crosswalk", lambda c: _crosswalk_or_none(c), "GET", "/taxonomy"),
     ("tasks.claim", lambda c: c.tasks.claim(limit=5, kinds=("fetch_url",)), "POST", "/tasks/claim"),
     (
         "tasks.summary",
@@ -171,6 +173,14 @@ ROUTES: list[tuple[str, Call, str, str]] = [
     ("budget.adjust", lambda c: c.budget.adjust(RESOURCE, -2.0), "POST", f"/budgets/{RESOURCE}/adjust"),
     ("budget.exhaust", lambda c: c.budget.exhaust(RESOURCE), "POST", f"/budgets/{RESOURCE}/exhaust"),
 ]
+
+
+def _crosswalk_or_none(client: DiscoveryIngestClient) -> object:
+    """Call the crosswalk route; the recording client answers ``{}``, which is an invalid crosswalk and is refused."""
+    try:
+        return client.candidates.crosswalk()
+    except CrosswalkError:
+        return None
 
 
 def _recording_client(status: int = 200) -> tuple[DiscoveryIngestClient, list[httpx.Request]]:

@@ -150,11 +150,11 @@ def candidates_curate(
     ] = True,
 ) -> None:
     """Apply a reviewed curation file as manual tags and edges."""
+    client = api_client(ctx)
     try:
         file = load_curation_file(Path(file_path))
     except CurationError as err:
         _refuse(err.problems)
-    client = api_client(ctx)
     reads, problems = check_curation(client, file, check_pages=check_pages)
     if problems:
         _refuse(problems)

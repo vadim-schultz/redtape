@@ -41,8 +41,7 @@ function candidate(
     completeness: 4,
     complete: false,
     flags: {
-      has_domain: true,
-      has_situation: true,
+      has_category: true,
       has_edges: true,
       has_snapshot: true,
       has_screenshot: false,
@@ -333,7 +332,7 @@ it("source filter in the toolbar still sends filter source", async () => {
   );
 });
 
-it("readiness column shows five flags per row and names the missing one", async () => {
+it("readiness column shows four flags per row and names the missing one", async () => {
   stubCandidatesFetch(() => page([candidate()], 1));
   renderPage();
 
@@ -341,9 +340,9 @@ it("readiness column shows five flags per row and names the missing one", async 
     name: "Screenshot: missing",
   });
   const row = missing.closest("tr") as HTMLElement;
-  expect(within(row).getAllByRole("listitem")).toHaveLength(5);
+  expect(within(row).getAllByRole("listitem")).toHaveLength(4);
   expect(
-    within(row).getByRole("listitem", { name: "Domain: present" }),
+    within(row).getByRole("listitem", { name: "Category: present" }),
   ).toBeInTheDocument();
 });
 

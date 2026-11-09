@@ -27,15 +27,36 @@ function SourceItem({ source }: { source: CandidateSource }) {
 
   return (
     <VStack as="li" align="flex-start" gap={1}>
-      <HStack gap={2}>
-        <SourceTitle source={source} />
-        <Badge size="sm" variant="subtle">
-          {t(`candidates.source_role_${source.role}`)}
-        </Badge>
-      </HStack>
-      <Text color="muted" textStyle="caption">
-        {source.excerpt}
-      </Text>
+      <VStack
+        as="article"
+        align="flex-start"
+        gap={1}
+        borderWidth="1px"
+        borderColor="border"
+        borderRadius="md"
+        p={3}
+        width="100%"
+      >
+        <HStack gap={2}>
+          <SourceTitle source={source} />
+          <Badge size="sm" variant="subtle">
+            {t(`candidates.source_role_${source.role}`)}
+          </Badge>
+          {source.is_optional ? (
+            <Badge size="sm" variant="subtle">
+              {t("candidates.optional")}
+            </Badge>
+          ) : null}
+        </HStack>
+        <Text color="muted" textStyle="caption">
+          {source.excerpt}
+        </Text>
+        {source.condition ? (
+          <Text color="muted" textStyle="caption">
+            {t("candidates.condition_label", { condition: source.condition })}
+          </Text>
+        ) : null}
+      </VStack>
     </VStack>
   );
 }

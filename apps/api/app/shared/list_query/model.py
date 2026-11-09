@@ -25,6 +25,7 @@ class ListQuerySpec:
 
     sort_keys: frozenset[str]
     filters: Mapping[str, FilterParser]
+    retired_filters: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)

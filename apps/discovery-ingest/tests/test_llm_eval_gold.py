@@ -15,8 +15,7 @@ GOLD = {
     "page_kind": "service",
     "documents": [{"name": "Reisepass", "role": "required", "condition": "bei Zuzug", "is_optional": True}],
     "dependencies": [{"parent": "Antrag", "requires": "Reisepass"}],
-    "domain_codes": ["housing"],
-    "situation_codes": [],
+    "category_codes": ["home-and-housing"],
 }
 
 

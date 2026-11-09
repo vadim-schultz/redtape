@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Self
 
-from pydantic import BeforeValidator, Field, ModelWrapValidatorHandler, PrivateAttr, model_validator
+from pydantic import AliasChoices, BeforeValidator, Field, ModelWrapValidatorHandler, PrivateAttr, model_validator
 
 from discovery_ingest.json_types import JsonObject, JsonValue
 from discovery_ingest.lenient import (
@@ -21,10 +21,47 @@ from discovery_ingest.lenient import (
 )
 
 
+class PvogSourcePath(WireModel):
+    """The root, parent and leaf path discovered in a PVOG bootstrap tree."""
+
+    root_code: StrText = None
+    root_label: LenientText = None
+    parent_code: StrText = None
+    parent_label: LenientText = None
+    leaf_code: StrText = None
+    leaf_label: LenientText = None
+    source_version: LenientText = None
+
+    @property
+    def has_parent_path(self) -> bool:
+        """Return whether the path has the identifiers needed for source mapping."""
+        return bool(self.root_code and self.parent_code and self.leaf_code)
+
+    def as_raw(self) -> JsonObject:
+        """Return the populated path fields for inclusion in a raw source payload."""
+        values: JsonObject = {}
+        for key, value in (
+            ("root_code", self.root_code),
+            ("root_label", self.root_label),
+            ("parent_code", self.parent_code),
+            ("parent_label", self.parent_label),
+            ("leaf_code", self.leaf_code),
+            ("leaf_label", self.leaf_label),
+            ("source_version", self.source_version),
+        ):
+            if value:
+                values[key] = value
+        return values
+
+
 class PersonalMatterNode(WireModel):
-    """One node of the Lebenslagen tree: its code and its children."""
+    """One node of the Lebenslagen tree: its code, label and children."""
 
     code: StrText = None
+    label: LenientText = Field(
+        default=None,
+        validation_alias=AliasChoices("label", "name", "title"),
+    )
     children: Annotated[list[PersonalMatterNode], BeforeValidator(dicts_only)] = Field(default_factory=list)
     _has_children: bool = PrivateAttr(default=False)
 
@@ -57,11 +94,54 @@ class PvogBootstrap(WireModel):
     """The facades bootstrap page: the whole Lebenslagen tree for one jurisdiction."""
 
     facades: Annotated[PvogFacades, BeforeValidator(dict_or_empty)] = Field(default_factory=PvogFacades)
+    source_version: LenientText = Field(
+        default=None,
+        validation_alias=AliasChoices("sourceVersion", "version", "apiVersion"),
+    )
 
     def leaf_codes(self) -> list[str]:
         """Return the sorted, unique leaf personal matter codes."""
         codes = [code for node in self.facades.personal_matters for code in node.leaf_codes()]
         return sorted(set(codes))
+
+    def leaf_paths(self) -> dict[str, PvogSourcePath]:
+        """Return each leaf code with its discovered root/parent path and source version."""
+        paths: dict[str, PvogSourcePath] = {}
+        for root in self.facades.personal_matters:
+            _collect_leaf_paths(root, root=root, parent=None, source_version=self.source_version, paths=paths)
+        return paths
+
+    def path_for(self, leaf_code: str) -> PvogSourcePath:
+        """Return the source path for ``leaf_code`` or fail when it is absent."""
+        try:
+            return self.leaf_paths()[leaf_code]
+        except KeyError as err:
+            raise ValueError(f"PVOG bootstrap has no leaf path for {leaf_code}") from err
+
+
+def _collect_leaf_paths(
+    node: PersonalMatterNode,
+    *,
+    root: PersonalMatterNode,
+    parent: PersonalMatterNode | None,
+    source_version: str | None,
+    paths: dict[str, PvogSourcePath],
+) -> None:
+    """Collect leaf paths while preserving the existing leaf-only traversal semantics."""
+    if not node._has_children:
+        if node.code:
+            paths[node.code] = PvogSourcePath(
+                root_code=root.code,
+                root_label=root.label,
+                parent_code=parent.code if parent else None,
+                parent_label=parent.label if parent else None,
+                leaf_code=node.code,
+                leaf_label=node.label,
+                source_version=source_version,
+            )
+        return
+    for child in node.children:
+        _collect_leaf_paths(child, root=root, parent=node, source_version=source_version, paths=paths)
 
 
 class PvogLink(WireModel):
@@ -94,6 +174,7 @@ class PvogRecord(WireModel):
     beschreibung: LenientText = None
     teaser: LenientText = None
     _raw: JsonObject = PrivateAttr(default_factory=dict)
+    _source_path: PvogSourcePath | None = PrivateAttr(default=None)
 
     @model_validator(mode="wrap")
     @classmethod
@@ -108,6 +189,15 @@ class PvogRecord(WireModel):
     def raw(self) -> JsonObject:
         """Return a copy of the untouched row."""
         return dict(self._raw)
+
+    @property
+    def source_path(self) -> PvogSourcePath | None:
+        """Return the optional bootstrap path associated with this service row."""
+        return self._source_path
+
+    def attach_source_path(self, path: PvogSourcePath) -> None:
+        """Associate the bootstrap path used to discover this row."""
+        self._source_path = path
 
     @property
     def dedupe_id(self) -> str | None:

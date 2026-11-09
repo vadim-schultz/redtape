@@ -39,7 +39,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     (next: string) => {
       window.localStorage.setItem("locale", next);
       setLocaleState(next);
-      // Ensure domain reads re-fetch when locale changes.
+      // Ensure localized reads re-fetch when locale changes.
       queryClient.invalidateQueries();
     },
     [queryClient],

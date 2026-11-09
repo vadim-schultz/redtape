@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy import Enum as SAEnum
@@ -16,6 +16,18 @@ from app.models.discovery.mixins import CreatedAtMixin
 if TYPE_CHECKING:
     from app.models.discovery.catalogue_service import CatalogueService
     from app.models.discovery.discovery_document_candidate import DiscoveryDocumentCandidate
+
+
+class PvogSourcePathData(TypedDict, total=False):
+    """Typed PVOG path fields retained with a mention during the storage transition."""
+
+    root_code: str
+    root_label: str
+    parent_code: str
+    parent_label: str
+    leaf_code: str
+    leaf_label: str
+    source_version: str
 
 
 class DiscoveryCandidateMention(CreatedAtMixin, Base):
@@ -55,13 +67,31 @@ class DiscoveryCandidateMention(CreatedAtMixin, Base):
     extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
     condition: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_optional: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    domain_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
-    situation_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
-    direct_domain_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    direct_situation_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    category_codes: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)), nullable=True)
+    direct_category_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     pvog_leaf_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     candidate: Mapped[DiscoveryDocumentCandidate] = relationship(
         "DiscoveryDocumentCandidate", back_populates="mentions"
     )
     catalogue_service: Mapped[CatalogueService] = relationship("CatalogueService")
+
+    @property
+    def pvog_source_path(self) -> PvogSourcePathData | None:
+        """Return captured PVOG path metadata carried through the current request."""
+        return getattr(self, "_pvog_source_path", None)
+
+    @pvog_source_path.setter
+    def pvog_source_path(self, value: PvogSourcePathData | None) -> None:
+        """Keep PVOG path metadata available to the current evidence pipeline."""
+        self._pvog_source_path = value
+
+    @property
+    def pvog_mapping_version(self) -> str | None:
+        """Return the frozen mapping version carried through the current request."""
+        return getattr(self, "_pvog_mapping_version", None)
+
+    @pvog_mapping_version.setter
+    def pvog_mapping_version(self, value: str | None) -> None:
+        """Keep the frozen mapping version available to the current evidence pipeline."""
+        self._pvog_mapping_version = value

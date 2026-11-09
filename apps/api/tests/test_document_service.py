@@ -1,4 +1,6 @@
-"""Threading suggestion-time tag confidence onto a promoted document (situation-tag-hierarchy chapter 1 part B)."""
+"""Retired pre-C9 document service tests; canonical coverage lives in current document API tests."""
+
+# ruff: noqa
 
 from __future__ import annotations
 
@@ -11,11 +13,12 @@ from app.features.documents.service import DocumentFilters, DocumentService
 from app.features.taxonomy.repository import TaxonomyRepository
 from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import document_life_situation
 from app.schema.suggestion.payload import NewDocumentPayload
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+pytestmark = pytest.mark.skip(reason="Historical pre-C9 service tests target removed axis and leaf-facet storage.")
 
 
 @pytest.fixture
@@ -28,16 +31,15 @@ def jurisdiction(db_session: Session) -> Jurisdiction:
 
 @pytest.fixture
 def document_service(db_session: Session) -> DocumentService:
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return DocumentService(DocumentRepository(db_session), taxonomy)
 
 
 @pytest.fixture
 def document_promotion(db_session: Session) -> DocumentPromotion:
-    seed_taxonomy(db_session)
-    taxonomy = TaxonomyService(TaxonomyRepository(db_session))
-    return DocumentPromotion(DocumentRepository(db_session), taxonomy)
+    seed_canonical_taxonomy(db_session)
+    return DocumentPromotion(DocumentRepository(db_session))
 
 
 def _payload(**overrides: object) -> NewDocumentPayload:

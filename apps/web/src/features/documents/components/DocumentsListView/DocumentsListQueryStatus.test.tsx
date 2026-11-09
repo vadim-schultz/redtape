@@ -144,7 +144,7 @@ it("DocumentsListQueryStatus · refreshing keeps the cards, dims them and marks 
     />,
   );
 
-  const list = (await screen.findAllByRole("link"))[0].parentElement;
+  const list = (await screen.findAllByRole("link"))[0].closest("[aria-busy]");
   expect(screen.getAllByRole("link")).toHaveLength(2);
   expect(list).toHaveAttribute("aria-busy", "true");
   expect(getComputedStyle(list as Element).opacity).toBe("0.6");

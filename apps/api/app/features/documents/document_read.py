@@ -5,18 +5,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
-from app.features.documents.repository import TagConfidenceMaps
 from app.features.taxonomy.service import TaxonomyService
 from app.i18n_resolution import pick_i18n
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Category
 from app.schema.document.read import (
+    CategoryTagRead,
     DocumentDetail,
     DocumentSummary,
     JurisdictionPathNode,
     RequirementRead,
-    TaggedTermRead,
 )
 from app.shared.locale import ResolvedLocale
 
@@ -51,9 +50,9 @@ class DocumentReadMapper:
         )
 
     def detail(
-        self, doc: Document, path: Sequence[Jurisdiction], locale: ResolvedLocale, confidence: TagConfidenceMaps
+        self, doc: Document, path: Sequence[Jurisdiction], locale: ResolvedLocale, confidence: dict[UUID, float]
     ) -> DocumentDetail:
-        """Map a document, its jurisdiction path, relations and persisted tag confidence to the detail view."""
+        """Map a document, its jurisdiction path, categories and persisted category confidence to the detail view."""
         summary = self.summary(doc, locale)
         return DocumentDetail(
             id=doc.id,
@@ -64,8 +63,7 @@ class DocumentReadMapper:
             jurisdiction_id=doc.jurisdiction_id,
             jurisdiction_path=[self.path_node(j, locale) for j in path],
             requirements=[self.requirement(edge, locale) for edge in doc.outgoing_requirements],
-            domains=self._tagged_term_reads(doc.domains, confidence.domains, locale),
-            life_situations=self._tagged_term_reads(doc.life_situations, confidence.life_situations, locale),
+            categories=self._category_tags(doc.categories, confidence, locale),
         )
 
     def requirement(self, edge: DocumentRequirement, locale: ResolvedLocale) -> RequirementRead:
@@ -86,13 +84,11 @@ class DocumentReadMapper:
             openplz_type=jurisdiction.openplz_type,
         )
 
-    def _tagged_term_reads(
-        self, terms: Sequence[Domain | LifeSituation], confidence: dict[UUID, float], locale: ResolvedLocale
-    ) -> list[TaggedTermRead]:
+    def _category_tags(
+        self, categories: Sequence[Category], confidence: dict[UUID, float], locale: ResolvedLocale
+    ) -> list[CategoryTagRead]:
+        """Map canonical document links to localized tags with persisted confidence."""
         return [
-            TaggedTermRead.from_term_read(
-                self._taxonomy.to_term_read(term, locale=locale),
-                confidence.get(term.id, 1.0),
-            )
-            for term in terms
+            self._taxonomy.to_category_tag(category, locale=locale, confidence=confidence.get(category.id, 1.0))
+            for category in sorted(categories, key=lambda item: (-confidence.get(item.id, 1.0), item.code))
         ]

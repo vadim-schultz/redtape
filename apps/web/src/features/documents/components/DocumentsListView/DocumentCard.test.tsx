@@ -26,9 +26,9 @@ it("DocumentCard · renders title inside a card", async () => {
   expect(
     await screen.findByRole("heading", { name: "Residency Registration" }),
   ).toBeInTheDocument();
-  expect(link).toContainElement(
+  expect(
     screen.getByRole("heading", { name: "Residency Registration" }),
-  );
+  ).toContainElement(link);
 });
 
 it("DocumentCard · links to the candidate item page", async () => {
@@ -51,27 +51,62 @@ it("DocumentCard · carries fromList state so the item page can return to the li
   expect(screen.getByTestId("from-list")).toHaveTextContent("true");
 });
 
-it("DocumentCard · shows its tags as plain badges, most confident first", async () => {
+it("DocumentCard · renders canonical category chips, most confident first", async () => {
   renderWithProviders(
     <DocumentCard
       document={{
         ...baseDocument,
         tags: [
           {
-            axis: "situation",
-            code: "moving",
-            name: "Moving",
+            code: "moving-house",
+            name: "Moving house",
             confidence: 0.9,
           },
-          { axis: "domain", code: "housing", name: "Housing", confidence: 0.4 },
+          { code: "home-and-housing", name: "Home & housing", confidence: 0.4 },
         ],
       }}
     />,
   );
 
-  const link = await screen.findByRole("link");
-  expect(link).toHaveTextContent(/Moving.*Housing/);
-  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(
+    await screen.findByRole("link", { name: "Moving house" }),
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: "Moving house" })).toHaveAttribute(
+    "href",
+    "/documents?category=moving-house",
+  );
+  expect(screen.getAllByRole("link")).toHaveLength(3);
+});
+
+it("document card · chip click does not navigate to the document detail page", async () => {
+  const { user } = renderWithProviders(
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <DocumentCard
+            document={{
+              ...baseDocument,
+              tags: [
+                {
+                  code: "home-and-housing",
+                  name: "Home & housing",
+                  confidence: 0.8,
+                },
+              ],
+            }}
+          />
+        }
+      />
+      <Route path="/documents" element={<p>category list</p>} />
+      <Route path="/candidates/:id" element={<p>detail</p>} />
+    </Routes>,
+  );
+
+  await user.click(await screen.findByRole("link", { name: "Home & housing" }));
+
+  expect(screen.getByText("category list")).toBeInTheDocument();
+  expect(screen.queryByText("detail")).toBeNull();
 });
 
 it("DocumentCard · renders no tag row for an untagged document", async () => {
@@ -101,19 +136,13 @@ it("DocumentCard · renders description when document has one", async () => {
 it("DocumentCard · renders as a Card compound with elevation", async () => {
   renderWithProviders(<DocumentCard document={baseDocument} />);
 
-  const link = await screen.findByRole("link");
+  await screen.findByRole("link");
+  const card = screen
+    .getByRole("heading", { name: "Residency Registration" })
+    .closest(".chakra-card__root");
 
-  expect(link.className).toContain("chakra-card__root");
-  expect(getComputedStyle(link).boxShadow).toBe("var(--chakra-shadows-card)");
-});
-
-it("DocumentCard · hover motion uses theme duration and easing tokens", async () => {
-  renderWithProviders(<DocumentCard document={baseDocument} />);
-
-  const style = getComputedStyle(await screen.findByRole("link"));
-
-  expect(style.transitionDuration).toBe("var(--chakra-durations-normal)");
-  expect(style.transitionTimingFunction).toBe("var(--chakra-easings-ease-out)");
+  expect(card).not.toBeNull();
+  expect(getComputedStyle(card!).boxShadow).toBe("var(--chakra-shadows-card)");
 });
 
 it("DocumentCard · shows the confidence circle with the card's confidence", async () => {

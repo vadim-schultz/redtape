@@ -6,8 +6,7 @@ import type { DocumentFilters as DocumentFiltersState } from "../../../hooks/use
 import type { FilterTaxonomy } from "../../../hooks/useFilterTaxonomy";
 
 import { hasSelectedChips } from "../../../utils/hasSelectedChips";
-import FilterGroup from "./FilterGroup";
-import { SituationFilterView } from "./SituationFilterView";
+import CategoryFilterView from "./CategoryFilterView";
 
 export interface DocumentFiltersProps {
   taxonomy: FilterTaxonomy;
@@ -24,20 +23,8 @@ export default function DocumentFilters({
 
   return (
     <VStack align="stretch" gap={4}>
-      <FilterGroup
-        heading={t("filters.domain")}
-        terms={taxonomy.domains}
-        selected={filters.domains}
-        onToggle={filters.toggleDomain}
-      />
-      <VStack align="stretch" gap={2}>
-        <Text textStyle="subsectionHeader">{t("filters.situation")}</Text>
-        <SituationFilterView
-          groups={taxonomy.groups}
-          situations={taxonomy.situations}
-          filters={filters}
-        />
-      </VStack>
+      <Text textStyle="subsectionHeader">{t("filters.category")}</Text>
+      <CategoryFilterView categories={taxonomy.categories} filters={filters} />
       {hasSelectedChips(filters) ? (
         <Button alignSelf="start" variant="ghost" onClick={filters.clear}>
           {t("filters.clear")}

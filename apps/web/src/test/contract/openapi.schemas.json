@@ -356,22 +356,6 @@
     "title": "ArtifactUploadForm",
     "type": "object"
   },
-  "AxisCount": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "count": {
-        "type": "integer"
-      }
-    },
-    "required": [
-      "code",
-      "count"
-    ],
-    "title": "AxisCount",
-    "type": "object"
-  },
   "BudgetAdjustRequest": {
     "properties": {
       "delta": {
@@ -465,11 +449,11 @@
   },
   "CandidateCard": {
     "properties": {
-      "complete": {
-        "type": "boolean"
-      },
-      "completeness": {
-        "type": "integer"
+      "categories": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryTagRead"
+        },
+        "type": "array"
       },
       "confidence": {
         "type": "number"
@@ -494,15 +478,6 @@
           }
         ]
       },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
-      "flags": {
-        "$ref": "#/components/schemas/CandidateFlags"
-      },
       "id": {
         "format": "uuid",
         "type": "string"
@@ -513,30 +488,16 @@
       "mention_count": {
         "type": "integer"
       },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
-      "status": {
-        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
-      },
       "title": {
         "type": "string"
       }
     },
     "required": [
-      "complete",
-      "completeness",
+      "categories",
       "confidence",
-      "domains",
-      "flags",
       "id",
       "key",
       "mention_count",
-      "situations",
-      "status",
       "title"
     ],
     "title": "CandidateCard",
@@ -568,11 +529,11 @@
   },
   "CandidateDetail": {
     "properties": {
-      "complete": {
-        "type": "boolean"
-      },
-      "completeness": {
-        "type": "integer"
+      "categories": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryTagRead"
+        },
+        "type": "array"
       },
       "confidence": {
         "type": "number"
@@ -597,12 +558,6 @@
           }
         ]
       },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "egress": {
         "items": {
           "$ref": "#/components/schemas/CandidateNeighbour"
@@ -612,9 +567,6 @@
       "egress_truncated": {
         "default": false,
         "type": "boolean"
-      },
-      "flags": {
-        "$ref": "#/components/schemas/CandidateFlags"
       },
       "id": {
         "format": "uuid",
@@ -646,36 +598,22 @@
           }
         ]
       },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/CandidateTag"
-        },
-        "type": "array"
-      },
       "sources": {
         "items": {
           "$ref": "#/components/schemas/CandidateSource"
         },
         "type": "array"
       },
-      "status": {
-        "$ref": "#/components/schemas/DiscoveryCandidateStatus"
-      },
       "title": {
         "type": "string"
       }
     },
     "required": [
-      "complete",
-      "completeness",
+      "categories",
       "confidence",
-      "domains",
-      "flags",
       "id",
       "key",
       "mention_count",
-      "situations",
-      "status",
       "title"
     ],
     "title": "CandidateDetail",
@@ -698,13 +636,7 @@
         },
         "type": "array"
       },
-      "suggested_domain_codes": {
-        "items": {
-          "$ref": "#/components/schemas/TagSupportRead"
-        },
-        "type": "array"
-      },
-      "suggested_situation_codes": {
+      "suggested_category_codes": {
         "items": {
           "$ref": "#/components/schemas/TagSupportRead"
         },
@@ -715,8 +647,7 @@
       "candidate",
       "jurisdiction_name_i18n",
       "mentions",
-      "suggested_domain_codes",
-      "suggested_situation_codes"
+      "suggested_category_codes"
     ],
     "title": "CandidateDetailResponse",
     "type": "object"
@@ -1024,7 +955,7 @@
       "suggestion": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/SuggestionCreate"
+            "$ref": "#/components/schemas/PreviewedSuggestion"
           },
           {
             "type": "null"
@@ -1096,7 +1027,7 @@
   },
   "CandidateFlags": {
     "properties": {
-      "has_domain": {
+      "has_category": {
         "type": "boolean"
       },
       "has_edges": {
@@ -1105,18 +1036,14 @@
       "has_screenshot": {
         "type": "boolean"
       },
-      "has_situation": {
-        "type": "boolean"
-      },
       "has_snapshot": {
         "type": "boolean"
       }
     },
     "required": [
-      "has_domain",
+      "has_category",
       "has_edges",
       "has_screenshot",
-      "has_situation",
       "has_snapshot"
     ],
     "title": "CandidateFlags",
@@ -1233,6 +1160,20 @@
         "format": "uuid",
         "type": "string"
       },
+      "category_codes": {
+        "maxLength": 5,
+        "oneOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "condition": {
         "maxLength": 300,
         "minLength": 1,
@@ -1245,34 +1186,11 @@
           }
         ]
       },
-      "direct_domain_confidence": {
+      "direct_category_confidence": {
+        "maximum": 1,
         "oneOf": [
           {
             "type": "number"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "direct_situation_confidence": {
-        "oneOf": [
-          {
-            "type": "number"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "domain_codes": {
-        "maxLength": 2,
-        "oneOf": [
-          {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           {
             "type": "null"
@@ -1325,22 +1243,28 @@
           }
         ]
       },
-      "role": {
-        "$ref": "#/components/schemas/DiscoveryMentionRole"
-      },
-      "situation_codes": {
-        "maxLength": 3,
+      "pvog_mapping_version": {
         "oneOf": [
           {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "type": "string"
           },
           {
             "type": "null"
           }
         ]
+      },
+      "pvog_source_path": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PvogSourcePath"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "role": {
+        "$ref": "#/components/schemas/DiscoveryMentionRole"
       },
       "source_field": {
         "maxLength": 200,
@@ -1401,6 +1325,12 @@
         "format": "uuid",
         "type": "string"
       },
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "condition": {
         "oneOf": [
           {
@@ -1415,11 +1345,15 @@
         "format": "date-time",
         "type": "string"
       },
-      "domain_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
+      "direct_category_confidence": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "excerpt": {
         "type": "string"
@@ -1463,23 +1397,53 @@
         },
         "type": "object"
       },
+      "pvog_leaf_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pvog_mapping_version": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pvog_source_path": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PvogSourcePath"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "role": {
         "$ref": "#/components/schemas/DiscoveryMentionRole"
       },
-      "situation_codes": {
+      "source_field": {
+        "type": "string"
+      },
+      "unknown_category_codes": {
         "items": {
           "type": "string"
         },
         "type": "array"
-      },
-      "source_field": {
-        "type": "string"
       }
     },
     "required": [
       "catalogue_service_id",
+      "category_codes",
       "created_at",
-      "domain_codes",
       "excerpt",
       "extractor",
       "extractor_version",
@@ -1487,8 +1451,8 @@
       "procedure_source",
       "procedure_title_i18n",
       "role",
-      "situation_codes",
-      "source_field"
+      "source_field",
+      "unknown_category_codes"
     ],
     "title": "CandidateMentionRead",
     "type": "object"
@@ -1781,26 +1745,6 @@
       "source_url"
     ],
     "title": "CandidateSourceRead",
-    "type": "object"
-  },
-  "CandidateTag": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "confidence": {
-        "type": "number"
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "confidence",
-      "name"
-    ],
-    "title": "CandidateTag",
     "type": "object"
   },
   "CatalogueBatchItem": {
@@ -2203,6 +2147,72 @@
     "title": "CatalogueSummaryChips",
     "type": "object"
   },
+  "CategoryNodeRead": {
+    "properties": {
+      "children": {
+        "items": {
+          "$ref": "#/components/schemas/CategoryNodeRead"
+        },
+        "type": "array"
+      },
+      "code": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "name": {
+        "type": "string"
+      },
+      "parent_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code",
+      "description",
+      "name"
+    ],
+    "title": "CategoryNodeRead",
+    "type": "object"
+  },
+  "CategoryTagRead": {
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "confidence",
+      "name"
+    ],
+    "title": "CategoryTagRead",
+    "type": "object"
+  },
   "ClaimAppendRequest": {
     "properties": {
       "confidence": {
@@ -2383,6 +2393,29 @@
       "target_url"
     ],
     "title": "ClaimedTaskRead",
+    "type": "object"
+  },
+  "CrosswalkRead": {
+    "properties": {
+      "artifact_version": {
+        "type": "string"
+      },
+      "pvog_leaf_mappings": {
+        "items": {
+          "$ref": "#/components/schemas/PvogLeafMappingRead"
+        },
+        "type": "array"
+      },
+      "pvog_source_version": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "artifact_version",
+      "pvog_leaf_mappings",
+      "pvog_source_version"
+    ],
+    "title": "CrosswalkRead",
     "type": "object"
   },
   "DiscoveryArtifactKind": {
@@ -2774,14 +2807,14 @@
   },
   "DocumentDetail": {
     "properties": {
-      "description": {
-        "type": "string"
-      },
-      "domains": {
+      "categories": {
         "items": {
-          "$ref": "#/components/schemas/TaggedTermRead"
+          "$ref": "#/components/schemas/CategoryTagRead"
         },
         "type": "array"
+      },
+      "description": {
+        "type": "string"
       },
       "id": {
         "format": "uuid",
@@ -2794,12 +2827,6 @@
       "jurisdiction_path": {
         "items": {
           "$ref": "#/components/schemas/JurisdictionPathNode"
-        },
-        "type": "array"
-      },
-      "life_situations": {
-        "items": {
-          "$ref": "#/components/schemas/TaggedTermRead"
         },
         "type": "array"
       },
@@ -2838,12 +2865,6 @@
   },
   "DocumentListResponse": {
     "properties": {
-      "available_leaf_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
       "items": {
         "items": {
           "$ref": "#/components/schemas/DocumentSummary"
@@ -3280,40 +3301,6 @@
     "title": "JurisdictionPathNode",
     "type": "object"
   },
-  "LifeSituationGroupedRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "group_code": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "description",
-      "group_code",
-      "name"
-    ],
-    "title": "LifeSituationGroupedRead",
-    "type": "object"
-  },
   "LlmOutcomesRead": {
     "properties": {
       "extracted": {
@@ -3425,61 +3412,14 @@
     "title": "LocationNode",
     "type": "object"
   },
-  "MatrixCell": {
-    "properties": {
-      "count": {
-        "type": "integer"
-      },
-      "domain": {
-        "type": "string"
-      },
-      "situation": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "count",
-      "domain",
-      "situation"
-    ],
-    "title": "MatrixCell",
-    "type": "object"
-  },
-  "MatrixResponse": {
-    "properties": {
-      "cells": {
-        "items": {
-          "$ref": "#/components/schemas/MatrixCell"
-        },
-        "type": "array"
-      },
-      "domains": {
-        "items": {
-          "$ref": "#/components/schemas/AxisCount"
-        },
-        "type": "array"
-      },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/AxisCount"
-        },
-        "type": "array"
-      },
-      "total": {
-        "type": "integer"
-      }
-    },
-    "required": [
-      "cells",
-      "domains",
-      "situations",
-      "total"
-    ],
-    "title": "MatrixResponse",
-    "type": "object"
-  },
   "NewDocumentPayload": {
     "properties": {
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "description_i18n": {
         "oneOf": [
           {
@@ -3493,12 +3433,6 @@
           }
         ]
       },
-      "domain_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
       "official_url": {
         "oneOf": [
           {
@@ -3509,13 +3443,7 @@
           }
         ]
       },
-      "situation_codes": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "situation_leaf_codes": {
+      "pvog_leaf_codes": {
         "oneOf": [
           {
             "additionalProperties": {
@@ -3620,6 +3548,237 @@
       "id"
     ],
     "title": "PipelineEntityRow",
+    "type": "object"
+  },
+  "PreviewedDocumentPayload": {
+    "properties": {
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description_i18n": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "official_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pvog_leaf_codes": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "tag_confidence": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title_i18n": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    },
+    "required": [
+      "title_i18n"
+    ],
+    "title": "PreviewedDocumentPayload",
+    "type": "object"
+  },
+  "PreviewedSuggestion": {
+    "properties": {
+      "jurisdiction_id": {
+        "oneOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "kind": {
+        "$ref": "#/components/schemas/SuggestionKind"
+      },
+      "municipality_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "payload": {
+        "$ref": "#/components/schemas/PreviewedDocumentPayload"
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "kind",
+      "payload"
+    ],
+    "title": "PreviewedSuggestion",
+    "type": "object"
+  },
+  "PvogLeafMappingRead": {
+    "properties": {
+      "category_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "confidence": {
+        "maximum": 1.0,
+        "minimum": 0.0,
+        "type": "number"
+      },
+      "leaf_code": {
+        "type": "string"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "mapped",
+          "review"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "category_codes",
+      "confidence",
+      "leaf_code",
+      "reason",
+      "state"
+    ],
+    "title": "PvogLeafMappingRead",
+    "type": "object"
+  },
+  "PvogSourcePath": {
+    "properties": {
+      "leaf_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "leaf_label": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_label": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "root_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "root_label": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_version": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [],
+    "title": "PvogSourcePath",
     "type": "object"
   },
   "RequirementRead": {
@@ -4014,40 +4173,6 @@
     "title": "TagSupportRead",
     "type": "object"
   },
-  "TaggedTermRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "confidence": {
-        "type": "number"
-      },
-      "description": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "confidence",
-      "description",
-      "name"
-    ],
-    "title": "TaggedTermRead",
-    "type": "object"
-  },
   "Tally": {
     "properties": {
       "down": {
@@ -4357,36 +4482,6 @@
     "title": "TaskSummaryResponse",
     "type": "object"
   },
-  "TermRead": {
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "icon": {
-        "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "name": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "code",
-      "description",
-      "name"
-    ],
-    "title": "TermRead",
-    "type": "object"
-  },
   "TranslationBundle": {
     "properties": {
       "locale": {
@@ -4449,22 +4544,19 @@
   },
   "VocabularyResponse": {
     "properties": {
-      "domains": {
+      "categories": {
         "items": {
           "$ref": "#/components/schemas/VocabularyTerm"
         },
         "type": "array"
       },
-      "situations": {
-        "items": {
-          "$ref": "#/components/schemas/VocabularyTerm"
-        },
-        "type": "array"
+      "crosswalk": {
+        "$ref": "#/components/schemas/CrosswalkRead"
       }
     },
     "required": [
-      "domains",
-      "situations"
+      "categories",
+      "crosswalk"
     ],
     "title": "VocabularyResponse",
     "type": "object"
@@ -4480,17 +4572,44 @@
         },
         "type": "object"
       },
+      "icon": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "name_i18n": {
         "additionalProperties": {
           "type": "string"
         },
         "type": "object"
+      },
+      "parent_code": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_parent_codes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
       }
     },
     "required": [
       "code",
       "description_i18n",
-      "name_i18n"
+      "name_i18n",
+      "source_parent_codes"
     ],
     "title": "VocabularyTerm",
     "type": "object"

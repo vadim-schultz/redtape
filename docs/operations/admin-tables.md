@@ -27,7 +27,7 @@ in `apps/api/app/shared/list_query/` and the typed specs in `apps/web/src/servic
   endpoints; they declare no sort or filter and are not paged. Coverage tables are static summaries.
 - The toolbar sits in the table header, not above the table: search and "clear filters" are a header
   slot of `DiscoveryDataTable`, and active filters appear as removable chips. The documents table
-  also has a Ready quick filter (`filter[complete]=yes`, the five completeness flags of the
+  also has an internal Ready quick filter (`filter[complete]=yes`, the four completeness flags of the
   [public candidate view](candidate-view.md)).
 - A cell that holds a long title is bounded: `DataTableColumn.maxWidth` clips it with an ellipsis,
   and a tooltip shows the whole text on hover and on keyboard focus. The documents Title column

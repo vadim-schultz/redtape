@@ -18,15 +18,13 @@ def term(code: str, name_de: str, name_en: str, description: str = "") -> Taxono
 
 
 def taxonomy() -> Taxonomy:
-    """A two-by-two vocabulary shaped like ``GET /machine/taxonomy``."""
+    """A small category vocabulary shaped like ``GET /machine/taxonomy``."""
     return Taxonomy(
-        domains=(
-            term("housing", "Wohnen", "Housing", "Rent, registration and home ownership"),
-            term("identity-civil-status", "Identität", "Identity", "Identity papers"),
-        ),
-        situations=(
+        categories=(
+            term("home-and-housing", "Wohnen", "Home and housing", "Rent, registration and home ownership"),
+            term("identity-and-documents", "Identität", "Identity and documents", "Identity papers"),
             term("moving-house", "Umzug", "Moving house", "Changing the home address"),
-            term("birth-of-child", "Geburt", "Birth of a child"),
+            term("birth-and-parenthood", "Geburt", "Birth and parenthood"),
         ),
     )
 

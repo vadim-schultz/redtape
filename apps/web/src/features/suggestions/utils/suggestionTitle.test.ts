@@ -20,8 +20,7 @@ it("suggestionTitle · new_document uses the locale title", () => {
     payload: {
       title_i18n: { en: "Residency permit", de: "Aufenthaltstitel" },
       official_url: "https://example.gov",
-      domain_codes: [],
-      situation_codes: [],
+      category_codes: [],
     },
   };
 
@@ -35,8 +34,7 @@ it("suggestionTitle · new_document falls back to any available locale", () => {
     payload: {
       title_i18n: { en: "Residency permit" },
       official_url: "https://example.gov",
-      domain_codes: [],
-      situation_codes: [],
+      category_codes: [],
     },
   };
 

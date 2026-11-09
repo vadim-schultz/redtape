@@ -107,13 +107,13 @@ def test_a_procedure_the_candidate_is_not_mentioned_on_is_refused(
 def test_more_than_sixty_edges_are_refused_before_any_call(
     api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """curate · 61 edges over eight candidates fail the file bound before any call."""
+    """curate · 61 edges over eight candidates fail the file bound before any write call."""
     many = [edge(f"Nachweis {n}", EXCERPT_REQUIRES) for n in range(8)]
     candidates = [entry(requires=many, required_by=many[:1]) for _ in range(7)] + [entry(requires=many[:5])]
 
     code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, *candidates)))
 
-    assert code == 2 and api.requests == [] and "at most 60" in err
+    assert code == 2 and api.posts == [] and "at most 60" in err
 
 
 def test_unknown_codes_reported_by_the_api_exit_1(api: Api, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -156,4 +156,4 @@ def test_codes_without_a_tag_note_are_refused_before_any_call(
     """curate · a curator must say why the codes were chosen: no ``tag_note`` refuses the file."""
     code, _, err = _run(capsys, "curate", "--file", str(write_file(tmp_path, entry(tag_note=None))))
 
-    assert code == 2 and api.requests == [] and "tag_note" in err
+    assert code == 2 and api.posts == [] and "tag_note" in err

@@ -1,113 +1,109 @@
-"""Locale-resolved taxonomy reads, the matrix assembly, and the code-to-id resolution other features use."""
+"""Canonical category reads and the category-code resolution that filters and writes share."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
 from uuid import UUID
 
-from app.features.taxonomy.repository import TaxonomyRepository, TermModel
+from app.features.taxonomy.crosswalk import crosswalk_read
+from app.features.taxonomy.repository import TaxonomyRepository
 from app.i18n_resolution import pick_i18n
-from app.models.taxonomy import Domain, LifeSituation, LifeSituationGroup
-from app.schema.taxonomy.read import (
-    AxisCount,
-    LifeSituationGroupedRead,
-    MatrixCell,
-    MatrixResponse,
-    TermRead,
-    VocabularyResponse,
-    VocabularyTerm,
-)
+from app.models.taxonomy import Category
+from app.schema.taxonomy.read import CategoryNodeRead, CategoryTagRead, VocabularyResponse, VocabularyTerm
 from app.shared.locale import ResolvedLocale
+from app.shared.taxonomy.contract_loader import load_contract
 
 
 class TaxonomyCodeError(ValueError):
-    """Raised when a term code does not exist."""
+    """Raised when a category code is not an active canonical category."""
 
 
 class TaxonomyService:
-    """Locale-resolved taxonomy reads and code → id resolution for other features."""
+    """Read the canonical category tree and resolve category codes for list filters and writes."""
 
     def __init__(self, repository: TaxonomyRepository) -> None:
         """Bind the service to its taxonomy repository."""
         self._repo = repository
 
-    def list_domains(self, *, locale: ResolvedLocale) -> list[TermRead]:
-        """List the domain terms in the requested locale."""
-        return self._list(Domain, locale)
+    def list_categories(self, *, locale: ResolvedLocale) -> list[CategoryNodeRead]:
+        """Return the active category tree with localized names and descriptions."""
+        rows = self._repo.list_categories()
+        by_parent: dict[UUID | None, list[Category]] = defaultdict(list)
+        by_id = {row.id: row for row in rows}
+        for row in rows:
+            if row.parent_id is None or row.parent_id in by_id:
+                by_parent[row.parent_id].append(row)
+        return [self._category_node(row, by_parent, locale) for row in by_parent[None]]
 
-    def list_situations(self, *, locale: ResolvedLocale) -> list[TermRead]:
-        """List the life-situation terms in the requested locale."""
-        return self._list(LifeSituation, locale)
+    def category_names(self, *, locale: ResolvedLocale) -> dict[str, str]:
+        """Return localized names for every active canonical category."""
+        return {category.code: pick_i18n(category.name_i18n, locale) for category in self._repo.list_categories()}
 
-    def list_situation_groups(self, *, locale: ResolvedLocale) -> list[TermRead]:
-        """List the life-situation group terms in the requested locale."""
-        return self._list(LifeSituationGroup, locale)
+    def require_category_codes(self, codes: Sequence[str]) -> None:
+        """Raise :class:`TaxonomyCodeError` naming every code that is not an active canonical category."""
+        unique = tuple(dict.fromkeys(codes))
+        unknown = sorted(set(unique) - self.known_category_codes(unique))
+        if unknown:
+            raise TaxonomyCodeError(f"Unknown category code(s): {', '.join(unknown)}")
 
-    def list_situations_with_group(self, *, locale: ResolvedLocale) -> list[LifeSituationGroupedRead]:
-        """Every situation, locale-resolved, carrying its group's stable ``code``."""
-        rows = self._repo.list_situations_with_group()
-        return [
-            LifeSituationGroupedRead(
-                **self.to_term_read(situation, locale=locale).model_dump(),
-                group_code=group_code,
-            )
-            for situation, group_code in rows
-        ]
+    def expand_category_codes(self, codes: Sequence[str]) -> tuple[str, ...]:
+        """Return the selected category codes and all their active descendants in tree order.
 
-    def resolve_domain_ids(self, codes: Sequence[str]) -> list[UUID]:
-        """Map domain codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
-        return self._resolve(Domain, codes)
+        An unknown or inactive code raises :class:`TaxonomyCodeError`; a filter never silently drops it.
+        """
+        self.require_category_codes(codes)
+        return self._repo.category_descendant_codes(tuple(dict.fromkeys(codes)))
 
-    def resolve_situation_ids(self, codes: Sequence[str]) -> list[UUID]:
-        """Map life-situation codes to ids, in input order; an unknown code raises TaxonomyCodeError."""
-        return self._resolve(LifeSituation, codes)
+    def resolve_category_ids(self, codes: Sequence[str]) -> list[UUID]:
+        """Resolve active category codes to ids in tree order; inactive and unknown codes are absent."""
+        return list(self._repo.ids_for_category_codes(codes).values())
+
+    def known_category_codes(self, codes: Iterable[str]) -> set[str]:
+        """Return the subset of active canonical category codes."""
+        return set(self._repo.ids_for_category_codes(codes))
 
     def vocabulary(self) -> VocabularyResponse:
-        """Return both vocabularies in sort order with every stored translation."""
+        """Return the active canonical category vocabulary, its source parent metadata, and the PVOG crosswalk."""
         return VocabularyResponse(
-            domains=self._terms(Domain),
-            situations=self._terms(LifeSituation),
+            crosswalk=crosswalk_read(load_contract()),
+            categories=[
+                VocabularyTerm(
+                    code=category.code,
+                    parent_code=self._parent_code(category),
+                    name_i18n=category.name_i18n,
+                    description_i18n=category.description_i18n,
+                    icon=category.icon,
+                    source_parent_codes=sorted(
+                        mapping.external_code
+                        for mapping in category.external_mappings
+                        if mapping.external_level == "parent"
+                    ),
+                )
+                for category in self._repo.list_categories()
+            ],
         )
 
-    def known_domain_codes(self, codes: Iterable[str]) -> set[str]:
-        """Return the subset of ``codes`` that is a domain code."""
-        return set(self._repo.ids_for_codes(Domain, codes))
+    def to_category_tag(self, category: Category, *, locale: ResolvedLocale, confidence: float) -> CategoryTagRead:
+        """Convert a category row and its persisted confidence into a localized category tag."""
+        return CategoryTagRead(code=category.code, name=pick_i18n(category.name_i18n, locale), confidence=confidence)
 
-    def known_situation_codes(self, codes: Iterable[str]) -> set[str]:
-        """Return the subset of ``codes`` that is a life-situation code."""
-        return set(self._repo.ids_for_codes(LifeSituation, codes))
-
-    def get_matrix(self, document_ids: Sequence[UUID]) -> MatrixResponse:
-        """Matrix over the given in-scope documents; `total` is their number, tagged or not."""
-        return MatrixResponse(
-            total=len(document_ids),
-            cells=[MatrixCell(domain=d, situation=s, count=n) for d, s, n in self._repo.matrix_counts(document_ids)],
-            situations=[AxisCount(code=c, count=n) for c, n in self._repo.situation_counts(document_ids)],
-            domains=[AxisCount(code=c, count=n) for c, n in self._repo.domain_counts(document_ids)],
+    def _category_node(
+        self,
+        category: Category,
+        by_parent: Mapping[UUID | None, Sequence[Category]],
+        locale: ResolvedLocale,
+    ) -> CategoryNodeRead:
+        """Build one category node and recursively map its direct children."""
+        return CategoryNodeRead(
+            code=category.code,
+            parent_code=self._parent_code(category),
+            name=pick_i18n(category.name_i18n, locale),
+            description=pick_i18n(category.description_i18n, locale),
+            icon=category.icon,
+            children=[self._category_node(child, by_parent, locale) for child in by_parent.get(category.id, ())],
         )
 
-    def to_term_read(self, term: Domain | LifeSituation | LifeSituationGroup, *, locale: ResolvedLocale) -> TermRead:
-        """Convert a taxonomy row into a term read resolved to the locale."""
-        return TermRead(
-            code=term.code,
-            name=pick_i18n(term.name_i18n, locale),
-            description=pick_i18n(term.description_i18n, locale),
-            icon=term.icon,
-        )
-
-    def _terms(self, model: TermModel) -> list[VocabularyTerm]:
-        return [
-            VocabularyTerm(code=t.code, name_i18n=t.name_i18n, description_i18n=t.description_i18n)
-            for t in self._repo.list_terms(model)
-        ]
-
-    def _list(self, model: TermModel, locale: ResolvedLocale) -> list[TermRead]:
-        terms = self._repo.list_terms(model)
-        return [self.to_term_read(term, locale=locale) for term in terms]
-
-    def _resolve(self, model: TermModel, codes: Sequence[str]) -> list[UUID]:
-        ids = self._repo.ids_for_codes(model, codes)
-        unknown = sorted(set(codes) - ids.keys())
-        if unknown:
-            raise TaxonomyCodeError(f"Unknown {model.__tablename__} code(s): {', '.join(unknown)}")
-        return [ids[code] for code in codes]
+    def _parent_code(self, category: Category) -> str | None:
+        """Return the parent code for a category loaded by the repository."""
+        return None if category.parent is None else category.parent.code

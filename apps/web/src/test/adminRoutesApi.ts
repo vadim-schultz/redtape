@@ -30,8 +30,7 @@ const candidate = {
   completeness: 4,
   complete: false,
   flags: {
-    has_domain: true,
-    has_situation: true,
+    has_category: true,
     has_edges: true,
     has_snapshot: true,
     has_screenshot: false,
@@ -67,8 +66,7 @@ const detail = {
   candidate: { ...candidate, mention_count: 1 },
   jurisdiction_name_i18n: { en: "Germany" },
   mentions: [mention({ excerpt: "Bitte Geburtsurkunde mitbringen" })],
-  suggested_domain_codes: [],
-  suggested_situation_codes: [],
+  suggested_category_codes: [],
 };
 
 const skippedPreview = {

@@ -9,7 +9,7 @@ from discovery_ingest.extract.llm.client import ChatMessage
 from discovery_ingest.extract.llm.prompt_template import PAGE_CLOSE, PAGE_OPEN, system_text
 from discovery_ingest.extract.llm.taxonomy import Taxonomy, TaxonomyTerm
 
-PROMPT_VERSION = "ext-5"
+PROMPT_VERSION = "ext-6"
 
 
 def _term_line(term: TaxonomyTerm) -> str:
@@ -29,7 +29,7 @@ def system_message() -> ChatMessage:
 
 def user_message(clean_page: CleanPage, taxonomy: Taxonomy) -> ChatMessage:
     """Return the user message: the vocabulary and the cleaned page text."""
-    vocabulary = "\n\n".join([_section("Domains", taxonomy.domains), _section("Life situations", taxonomy.situations)])
+    vocabulary = _section("Canonical categories", taxonomy.active_categories)
     return {"role": "user", "content": f"{vocabulary}\n\n{PAGE_OPEN}\n{clean_page.text}\n{PAGE_CLOSE}"}
 
 

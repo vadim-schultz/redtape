@@ -120,13 +120,13 @@ it("app redirects /candidates to the documents list without a guard", async () =
   ).not.toBeInTheDocument();
 });
 
-it("app drops the old /candidates filter params instead of misreading them", async () => {
+it("app drops unsupported /candidates filter params instead of misreading them", async () => {
   window.localStorage.setItem("locale", "en");
   const fetchMock = stubCandidatesApi(() =>
     json({ items: [], total: 0, offset: 0, limit: 20 }),
   );
   renderAppAt(
-    "/candidates?domain=x&complete=yes&sort_by=completeness",
+    "/candidates?category=x&complete=yes&sort_by=completeness",
     createFakeAuthGateway({ session: null }),
   );
 
@@ -135,7 +135,6 @@ it("app drops the old /candidates filter params instead of misreading them", asy
   ).toBeInTheDocument();
   await waitFor(() => expect(listCalls(fetchMock)).not.toHaveLength(0));
   for (const url of listCalls(fetchMock)) {
-    expect(url.search).not.toContain("domain");
     expect(url.search).not.toContain("complete");
     expect(url.search).not.toContain("completeness");
   }

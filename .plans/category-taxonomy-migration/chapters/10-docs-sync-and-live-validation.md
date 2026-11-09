@@ -1,28 +1,29 @@
 ---
 name: "Chapter 10 — Docs sync and live validation"
 overview: "Synchronize category migration documentation and record read-only post-deploy evidence for taxonomy, search, chips, hidden technical metadata, accordions, sources, and PVOG provenance."
+id: C10
 depends_on:
-  - 09-legacy-retirement
+  - C9
 touches:
   - docs/
   - .plans/
   - apps/api/tests/
   - apps/web/src/
   - .github/
-execution: chapter-implementer
+execution: chief-of-staff
 todos:
   - id: docs-sync
     content: "Remove stale active matrix/domain/life-situation instructions and document the canonical category and provenance boundaries."
-    status: pending
+    status: complete
   - id: static-validation
     content: "Run link, contract, translation, and reference checks after cleanup."
-    status: pending
+    status: complete
   - id: live-validation
     content: "Record read-only post-deploy category, UI, PVOG, and data-parity observations."
-    status: pending
+    status: partial
   - id: follow-up
     content: "Record any unresolved mapping, source, or compatibility issues without changing production data from the validation run."
-    status: pending
+    status: complete
 ---
 
 # Chapter 10 — Docs sync and live validation
@@ -78,7 +79,7 @@ Keep historical matrix plans as historical records where useful. Mark them as su
 ### Web behavior
 
 - Search appears before category browsing.
-- Root and subcategory chips use the red semantic token and XS presentation.
+- Root and subcategory chips use the red semantic token and the `sm` badge size (`CategoryChip`).
 - Chip links reach the same category-filtered document list as front-page selection.
 - No chip is nested inside another interactive element.
 - The document view does not show staged/unreviewed or completeness copy.

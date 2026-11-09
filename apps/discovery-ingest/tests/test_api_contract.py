@@ -37,6 +37,7 @@ UNPAIRED_MODULES = (
     "budget_models",
     "candidate_sources",
     "extract.llm.taxonomy",
+    "pvog.crosswalk_wire",
 )
 
 
@@ -99,10 +100,14 @@ PAIRS: tuple[Pair, ...] = (
     Pair("budget_models.BudgetReservation", "budgets.BudgetReserveResponse", "response"),
     Pair("candidate_sources.CandidateSourceRead", "candidate_sources.CandidateSourceRead", "response"),
     Pair("candidate_sources.CandidateSourcePage", "candidate_sources.CandidateSourceListResponse", "response"),
-    Pair("extract.llm.taxonomy.Taxonomy", "taxonomy_read.VocabularyResponse", "response"),
+    Pair("extract.llm.taxonomy.Taxonomy", "taxonomy_read.VocabularyResponse", "response", reads_subset=True),
+    Pair("pvog.crosswalk_wire.ServedVocabulary", "taxonomy_read.VocabularyResponse", "response"),
+    Pair("pvog.crosswalk_wire.ServedCategory", "taxonomy_read.VocabularyTerm", "response", reads_subset=True),
+    Pair("pvog.crosswalk_wire.ServedCrosswalk", "taxonomy_read.CrosswalkRead", "response"),
+    Pair("pvog.crosswalk_wire.ServedLeafMapping", "taxonomy_read.PvogLeafMappingRead", "response"),
     Pair("extract.llm.taxonomy.TaxonomyTerm", "taxonomy_read.VocabularyTerm", "response"),
 )
-"""The 40 ingest-to-API pairs: 13 requests and 27 responses. Unpaired wire models are listed in ``UNPAIRED``."""
+"""The 39 ingest-to-API pairs: 13 requests and 26 responses. Unpaired wire models are listed in ``UNPAIRED``."""
 
 UNPAIRED: dict[str, str] = {
     "schemas.DrainReport": "a CLI report, never on the wire",

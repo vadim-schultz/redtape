@@ -1,30 +1,16 @@
 import type {
   CandidateCard,
   CandidateListResponse,
-  TaxonomyTag,
 } from "../../candidates/types";
 import type {
-  DocumentAxis,
   DocumentListResponse,
   DocumentSummary,
   DocumentTag,
 } from "../types";
 
-function toTags(axis: DocumentAxis, tags: TaxonomyTag[]): DocumentTag[] {
-  return tags.map(({ code, name, confidence }) => ({
-    axis,
-    code,
-    name,
-    confidence,
-  }));
-}
-
-/** Both axes' tags in one list, most confident first. */
-function mergedTags(card: CandidateCard): DocumentTag[] {
-  return [
-    ...toTags("domain", card.domains),
-    ...toTags("situation", card.situations),
-  ].sort((a, b) => b.confidence - a.confidence);
+/** Canonical category tags in the API's confidence order. */
+function categoryTags(card: CandidateCard): DocumentTag[] {
+  return [...card.categories].sort((a, b) => b.confidence - a.confidence);
 }
 
 /** A candidate card as the documents list shows it. */
@@ -33,7 +19,7 @@ export function toDocumentSummary(card: CandidateCard): DocumentSummary {
     id: card.id,
     title: card.title,
     description: card.description,
-    tags: mergedTags(card),
+    tags: categoryTags(card),
     confidence: card.confidence,
   };
 }

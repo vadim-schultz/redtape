@@ -13,13 +13,13 @@ Redtape helps people navigate **which official documents** they need for German 
    Users or a **crawler** can **propose** additional required documents; the community **votes** proposals up or down. Proposals require **evidence**: a link to an official or trustworthy website and/or a **screenshot** (uploaded or captured automatically after submission). All social actions are **logged** for transparency, future **moderator** roles, and dispute resolution.
 
 3. **Mobile personal vault**  
-   A multi-platform app (Flutter) gives access to the public dependency data and lets users organize **their own** important documents **on device** (by domain, life situation, etc.). Storage modes: **strictly local**, or **bring-your-own cloud** via pluggable adapters—so the backend does not need to store personal document blobs for that path. **Reminders** support time-sensitive rules (validity windows, deadlines relative to events or other papers).
+   A multi-platform app (Flutter) gives access to the public dependency data and lets users organize **their own** important documents **on device** by canonical category. Storage modes: **strictly local**, or **bring-your-own cloud** via pluggable adapters—so the backend does not need to store personal document blobs for that path. **Reminders** support time-sensitive rules (validity windows, deadlines relative to events or other papers).
 
 ## Core user journeys (MVP direction)
 
-- Choose jurisdiction → browse or search documents → open a document → see **direct dependencies** → navigate deeper or open **full tree** view.
+- Choose jurisdiction → search or browse documents through the secondary category tree → open a document → see **direct dependencies** → navigate deeper or open **full tree** view.
 - Submit a **proposal** with URL and/or image; vote on others’ proposals; see proposal detail including crawler-captured preview when available.
-- Mobile: add items to a **local vault**, tag by situation, set **reminders**; optionally connect a cloud provider for sync (user-controlled).
+- Mobile: add items to a **local vault**, tag by canonical category, set **reminders**; optionally connect a cloud provider for sync (user-controlled).
 
 ## Geographic and data model stance
 
@@ -28,7 +28,7 @@ Redtape helps people navigate **which official documents** they need for German 
 
 ## Localization (cross-cutting, MVP)
 
-- **Single source of truth in PostgreSQL** for MVP locales **German (`de`)** and **English (`en`)**: domain copy in JSONB on entities (e.g. `title_i18n`, `description_i18n`, `name_i18n`), **all UI strings** in an `ui_translation` table (dot-notation keys). No parallel “Git JSON + DB” split for MVP; seed files may be used only as input to load the DB.
+- **Single source of truth in PostgreSQL** for MVP locales **German (`de`)** and **English (`en`)**: entity copy in JSONB (e.g. `title_i18n`, `description_i18n`, `name_i18n`), **all UI strings** in an `ui_translation` table (dot-notation keys). No parallel “Git JSON + DB” split for MVP; seed files may be used only as input to load the DB.
 - Clients negotiate locale with **`Accept-Language`** (optional **`?locale=`** for debugging). Changing language refetches the UI bundle and graph payloads so the experience stays dynamic.
 - Full conventions, schema sketch, and API shapes: [directions/i18n-localization/README.md](directions/i18n-localization/README.md). Build order: early roadmap steps in [02-incremental-mvp-roadmap.md](02-incremental-mvp-roadmap.md) (Wave 0 continued) **before** shipping user-visible copy beyond placeholders.
 
@@ -49,7 +49,8 @@ Redtape helps people navigate **which official documents** they need for German 
 | Proposal | A user- or crawler-suggested addition or change, subject to evidence and votes. |
 | Audit log | Append-only record of social and moderation actions for accountability. |
 | Locale | Request language for API and UI (`de`, `en`, …); drives which JSONB keys / `ui_translation` rows are selected. |
-| UI translation | A row in `ui_translation` (key + locale + value) for chrome, errors, and labels—not document domain copy. |
+| UI translation | A row in `ui_translation` (key + locale + value) for chrome, errors, and labels—not document entity text. |
+| Category | A canonical browse-tree node with a stable code and localized labels; it is separate from search, requirements, entities, and source provenance. |
 
 ## Related plans
 

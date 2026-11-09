@@ -13,20 +13,13 @@ const populated = {
   egress: [],
 };
 
-function cssText(): string {
-  return Array.from(document.styleSheets)
-    .flatMap((sheet) => Array.from(sheet.cssRules))
-    .map((rule) => rule.cssText)
-    .join("\n");
-}
-
 it("flow diagram shows the empty note without dependencies", () => {
   const { container } = renderWithProviders(
     <FlowSection candidate={{ title: "Passport", ingress: [], egress: [] }} />,
   );
 
   expect(
-    screen.getByText("No dependencies staged for this document"),
+    screen.getByText("No dependencies listed for this document"),
   ).toBeInTheDocument();
   expect(container.querySelector("svg")).toBeNull();
   expect(screen.queryByRole("group")).toBeNull();
@@ -40,18 +33,14 @@ it("flow diagram section shows the diagram when there are neighbours", () => {
 
   expect(container.querySelector("svg")).not.toBeNull();
   expect(
-    screen.queryByText("No dependencies staged for this document"),
+    screen.queryByText("No dependencies listed for this document"),
   ).toBeNull();
 });
 
-it("flow diagram is hidden below the md breakpoint", () => {
-  renderWithProviders(<FlowSection candidate={populated} />);
+it("flow diagram remains present below the md breakpoint", () => {
+  const { container } = renderWithProviders(
+    <FlowSection candidate={populated} />,
+  );
 
-  const heading = screen.getByRole("heading", { name: "Flow", hidden: true });
-  const section = heading.closest("section")!;
-  expect(section).toContainElement(heading);
-  const className = section.className.split(" ").pop()!;
-  const css = cssText();
-  expect(css).toMatch(new RegExp(`\\.${className}[^{]*\\{[^}]*display: none`));
-  expect(css).toMatch(/@media[^{]*min-width[^{]*\{[^}]*display: block/);
+  expect(container.querySelector("svg")).not.toBeNull();
 });

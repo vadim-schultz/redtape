@@ -14,10 +14,21 @@ const session: AuthSession = {
   email: "admin@example.com",
 };
 
+const categoryTree = [
+  {
+    code: "home-and-housing",
+    name: "Wohnen",
+    description: "",
+    icon: null,
+    parent_code: null,
+    children: [],
+  },
+];
+
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 afterEach(() => vi.unstubAllGlobals());
 
-function detailWithDomain(): DiscoveryCandidateDetailResponse {
+function detailWithCategory(): DiscoveryCandidateDetailResponse {
   return {
     candidate: {
       id: "cand-1",
@@ -33,14 +44,19 @@ function detailWithDomain(): DiscoveryCandidateDetailResponse {
     },
     jurisdiction_name_i18n: { en: "Germany" },
     mentions: [],
-    suggested_domain_codes: [
-      tag({ code: "housing", procedures: 3, share: 0.75, accepted: true }),
+    suggested_category_codes: [
+      tag({
+        code: "home-and-housing",
+        procedures: 3,
+        share: 0.75,
+        accepted: true,
+      }),
     ],
-    suggested_situation_codes: [],
   };
 }
 
-it("DocumentTagsSection · renders the suggested tag chips of its candidate", async () => {
+/** Serve the signed-in user and, when `categories` is given, the canonical category tree. */
+function stubApi(categories: Response) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input?: unknown) => {
@@ -55,14 +71,35 @@ it("DocumentTagsSection · renders the suggested tag chips of its candidate", as
           }),
         );
       }
+      if (pathname.endsWith("/api/v1/categories")) return categories;
       return new Response("", { status: 503 });
     }),
   );
-  renderWithProviders(<DocumentTagsSection data={detailWithDomain()} />, {
+}
+
+function renderSection() {
+  renderWithProviders(<DocumentTagsSection data={detailWithCategory()} />, {
     authGateway: createFakeAuthGateway({ session }),
   });
+}
+
+it("DocumentTagsSection · names the suggested categories from the canonical tree", async () => {
+  stubApi(new Response(JSON.stringify(categoryTree)));
+
+  renderSection();
+
+  expect(await screen.findByText("Wohnen · 3 of 4 procedures")).toHaveAttribute(
+    "data-accepted",
+    "true",
+  );
+});
+
+it("DocumentTagsSection · a failed category tree still lists the suggested codes", async () => {
+  stubApi(new Response("", { status: 503 }));
+
+  renderSection();
 
   expect(
-    await screen.findByText("housing · 3 of 4 procedures"),
-  ).toHaveAttribute("data-accepted", "true");
+    await screen.findByText("home-and-housing · 3 of 4 procedures"),
+  ).toBeInTheDocument();
 });

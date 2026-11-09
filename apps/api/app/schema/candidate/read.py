@@ -7,26 +7,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.discovery import DiscoveryCandidateStatus, DiscoveryEdgeBasis, DiscoveryMentionRole
-
-
-class CandidateTag(BaseModel):
-    """A taxonomy code of a candidate with its localized name and its score in ``[0, 1]``."""
-
-    model_config = ConfigDict(from_attributes=False)
-
-    code: str
-    name: str
-    confidence: float
+from app.models.discovery import DiscoveryEdgeBasis, DiscoveryMentionRole
+from app.schema.taxonomy.read import CategoryTagRead
 
 
 class CandidateFlags(BaseModel):
-    """The five completeness flags of a candidate."""
+    """The four completeness flags of a candidate."""
 
     model_config = ConfigDict(from_attributes=False)
 
-    has_domain: bool
-    has_situation: bool
+    has_category: bool
     has_edges: bool
     has_snapshot: bool
     has_screenshot: bool
@@ -42,12 +32,7 @@ class CandidateCard(BaseModel):
     title: str
     description: str | None
     description_source: str | None
-    status: DiscoveryCandidateStatus
-    domains: list[CandidateTag]
-    situations: list[CandidateTag]
-    completeness: int
-    complete: bool
-    flags: CandidateFlags
+    categories: list[CategoryTagRead]
     mention_count: int
     confidence: float
 

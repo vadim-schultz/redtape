@@ -946,10 +946,16 @@
       "title": "EmitConflictRead",
       "type": "object"
      },
-     "NewDocumentPayload": {
-      "additionalProperties": false,
-      "description": "Payload for a `new_document` suggestion; pure validation, no database lookups.",
+     "PreviewedDocumentPayload": {
+      "description": "The canonical ``new_document`` fields an emit preview shows; legacy axis inputs are never output.",
       "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
        "description_i18n": {
         "anyOf": [
          {
@@ -965,13 +971,6 @@
         "default": null,
         "title": "Description I18N"
        },
-       "domain_codes": {
-        "items": {
-         "type": "string"
-        },
-        "title": "Domain Codes",
-        "type": "array"
-       },
        "official_url": {
         "anyOf": [
          {
@@ -984,14 +983,7 @@
         "default": null,
         "title": "Official Url"
        },
-       "situation_codes": {
-        "items": {
-         "type": "string"
-        },
-        "title": "Situation Codes",
-        "type": "array"
-       },
-       "situation_leaf_codes": {
+       "pvog_leaf_codes": {
         "anyOf": [
          {
           "additionalProperties": {
@@ -1004,7 +996,7 @@
          }
         ],
         "default": null,
-        "title": "Situation Leaf Codes"
+        "title": "Pvog Leaf Codes"
        },
        "tag_confidence": {
         "anyOf": [
@@ -1032,44 +1024,61 @@
       "required": [
        "title_i18n"
       ],
-      "title": "NewDocumentPayload",
+      "title": "PreviewedDocumentPayload",
       "type": "object"
      },
-     "NewRequirementPayload": {
-      "additionalProperties": false,
-      "description": "Payload for a `new_requirement` suggestion; pure validation, no database lookups.",
+     "PreviewedSuggestion": {
+      "description": "The suggestion an emit would create, with the canonical payload only.",
       "properties": {
-       "notes_i18n": {
+       "jurisdiction_id": {
         "anyOf": [
          {
-          "additionalProperties": {
-           "type": "string"
-          },
-          "type": "object"
+          "format": "uuid",
+          "type": "string"
          },
          {
           "type": "null"
          }
         ],
         "default": null,
-        "title": "Notes I18N"
+        "title": "Jurisdiction Id"
        },
-       "parent_document_id": {
-        "format": "uuid",
-        "title": "Parent Document Id",
-        "type": "string"
+       "kind": {
+        "$ref": "#/$defs/SuggestionKind"
        },
-       "required_document_id": {
-        "format": "uuid",
-        "title": "Required Document Id",
-        "type": "string"
+       "municipality_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Municipality Code"
+       },
+       "payload": {
+        "$ref": "#/$defs/PreviewedDocumentPayload"
+       },
+       "source_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Url"
        }
       },
       "required": [
-       "parent_document_id",
-       "required_document_id"
+       "kind",
+       "payload"
       ],
-      "title": "NewRequirementPayload",
+      "title": "PreviewedSuggestion",
       "type": "object"
      },
      "SkipReason": {
@@ -1088,69 +1097,6 @@
       ],
       "title": "SkipReason",
       "type": "string"
-     },
-     "SuggestionCreate": {
-      "additionalProperties": false,
-      "description": "`POST /api/v1/suggestions` body; `payload`'s shape is discriminated on `kind`.",
-      "properties": {
-       "jurisdiction_id": {
-        "anyOf": [
-         {
-          "format": "uuid",
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Jurisdiction Id"
-       },
-       "kind": {
-        "$ref": "#/$defs/SuggestionKind",
-        "default": "new_document"
-       },
-       "municipality_code": {
-        "anyOf": [
-         {
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Municipality Code"
-       },
-       "payload": {
-        "anyOf": [
-         {
-          "$ref": "#/$defs/NewDocumentPayload"
-         },
-         {
-          "$ref": "#/$defs/NewRequirementPayload"
-         }
-        ],
-        "title": "Payload"
-       },
-       "source_url": {
-        "anyOf": [
-         {
-          "type": "string"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Source Url"
-       }
-      },
-      "required": [
-       "payload"
-      ],
-      "title": "SuggestionCreate",
-      "type": "object"
      },
      "SuggestionKind": {
       "description": "What a suggestion proposes to add to the catalogue.",
@@ -1190,7 +1136,7 @@
      "suggestion": {
       "anyOf": [
        {
-        "$ref": "#/$defs/SuggestionCreate"
+        "$ref": "#/$defs/PreviewedSuggestion"
        },
        {
         "type": "null"
@@ -1517,8 +1463,100 @@
       ],
       "title": "DiscoveryMentionRole",
       "type": "string"
+     },
+     "PvogSourcePath": {
+      "description": "Captured PVOG root, parent and leaf labels for one mention.",
+      "properties": {
+       "leaf_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Code"
+       },
+       "leaf_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Label"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Code"
+       },
+       "parent_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Label"
+       },
+       "root_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Code"
+       },
+       "root_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Label"
+       },
+       "source_version": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Version"
+       }
+      },
+      "title": "PvogSourcePath",
+      "type": "object"
      }
     },
+    "additionalProperties": false,
     "description": "One occurrence of a document in a procedure.",
     "properties": {
      "artifact_id": {
@@ -1539,6 +1577,24 @@
       "title": "Catalogue Service Id",
       "type": "string"
      },
+     "category_codes": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "minLength": 1,
+         "type": "string"
+        },
+        "maxItems": 5,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Category Codes"
+     },
      "condition": {
       "anyOf": [
        {
@@ -1553,9 +1609,11 @@
       "default": null,
       "title": "Condition"
      },
-     "direct_domain_confidence": {
+     "direct_category_confidence": {
       "anyOf": [
        {
+        "maximum": 1,
+        "minimum": 0,
         "type": "number"
        },
        {
@@ -1563,37 +1621,7 @@
        }
       ],
       "default": null,
-      "title": "Direct Domain Confidence"
-     },
-     "direct_situation_confidence": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "default": null,
-      "title": "Direct Situation Confidence"
-     },
-     "domain_codes": {
-      "anyOf": [
-       {
-        "items": {
-         "maxLength": 64,
-         "minLength": 1,
-         "type": "string"
-        },
-        "maxItems": 2,
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "default": null,
-      "title": "Domain Codes"
+      "title": "Direct Category Confidence"
      },
      "excerpt": {
       "minLength": 1,
@@ -1652,26 +1680,33 @@
       "default": null,
       "title": "Pvog Leaf Code"
      },
-     "role": {
-      "$ref": "#/$defs/DiscoveryMentionRole"
-     },
-     "situation_codes": {
+     "pvog_mapping_version": {
       "anyOf": [
        {
-        "items": {
-         "maxLength": 64,
-         "minLength": 1,
-         "type": "string"
-        },
-        "maxItems": 3,
-        "type": "array"
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
        },
        {
         "type": "null"
        }
       ],
       "default": null,
-      "title": "Situation Codes"
+      "title": "Pvog Mapping Version"
+     },
+     "pvog_source_path": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/PvogSourcePath"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "role": {
+      "$ref": "#/$defs/DiscoveryMentionRole"
      },
      "source_field": {
       "maxLength": 200,
@@ -1706,6 +1741,7 @@
    "schema": {
     "$defs": {
      "CandidateMentionItem": {
+      "additionalProperties": false,
       "description": "One occurrence of a document in a procedure.",
       "properties": {
        "artifact_id": {
@@ -1726,6 +1762,24 @@
         "title": "Catalogue Service Id",
         "type": "string"
        },
+       "category_codes": {
+        "anyOf": [
+         {
+          "items": {
+           "maxLength": 64,
+           "minLength": 1,
+           "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Category Codes"
+       },
        "condition": {
         "anyOf": [
          {
@@ -1740,9 +1794,11 @@
         "default": null,
         "title": "Condition"
        },
-       "direct_domain_confidence": {
+       "direct_category_confidence": {
         "anyOf": [
          {
+          "maximum": 1,
+          "minimum": 0,
           "type": "number"
          },
          {
@@ -1750,37 +1806,7 @@
          }
         ],
         "default": null,
-        "title": "Direct Domain Confidence"
-       },
-       "direct_situation_confidence": {
-        "anyOf": [
-         {
-          "type": "number"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Direct Situation Confidence"
-       },
-       "domain_codes": {
-        "anyOf": [
-         {
-          "items": {
-           "maxLength": 64,
-           "minLength": 1,
-           "type": "string"
-          },
-          "maxItems": 2,
-          "type": "array"
-         },
-         {
-          "type": "null"
-         }
-        ],
-        "default": null,
-        "title": "Domain Codes"
+        "title": "Direct Category Confidence"
        },
        "excerpt": {
         "minLength": 1,
@@ -1839,26 +1865,33 @@
         "default": null,
         "title": "Pvog Leaf Code"
        },
-       "role": {
-        "$ref": "#/$defs/DiscoveryMentionRole"
-       },
-       "situation_codes": {
+       "pvog_mapping_version": {
         "anyOf": [
          {
-          "items": {
-           "maxLength": 64,
-           "minLength": 1,
-           "type": "string"
-          },
-          "maxItems": 3,
-          "type": "array"
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
          },
          {
           "type": "null"
          }
         ],
         "default": null,
-        "title": "Situation Codes"
+        "title": "Pvog Mapping Version"
+       },
+       "pvog_source_path": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/PvogSourcePath"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "role": {
+        "$ref": "#/$defs/DiscoveryMentionRole"
        },
        "source_field": {
         "maxLength": 200,
@@ -1896,6 +1929,97 @@
       ],
       "title": "DiscoveryMentionRole",
       "type": "string"
+     },
+     "PvogSourcePath": {
+      "description": "Captured PVOG root, parent and leaf labels for one mention.",
+      "properties": {
+       "leaf_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Code"
+       },
+       "leaf_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Leaf Label"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Code"
+       },
+       "parent_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Parent Label"
+       },
+       "root_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Code"
+       },
+       "root_label": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Root Label"
+       },
+       "source_version": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Source Version"
+       }
+      },
+      "title": "PvogSourcePath",
+      "type": "object"
      }
     },
     "description": "Batch of mentions recorded in one transaction.",
@@ -3090,10 +3214,10 @@
    "schema": {
     "$defs": {
      "CandidateFlags": {
-      "description": "The five completeness flags of a candidate.",
+      "description": "The four completeness flags of a candidate.",
       "properties": {
-       "has_domain": {
-        "title": "Has Domain",
+       "has_category": {
+        "title": "Has Category",
         "type": "boolean"
        },
        "has_edges": {
@@ -3104,18 +3228,13 @@
         "title": "Has Screenshot",
         "type": "boolean"
        },
-       "has_situation": {
-        "title": "Has Situation",
-        "type": "boolean"
-       },
        "has_snapshot": {
         "title": "Has Snapshot",
         "type": "boolean"
        }
       },
       "required": [
-       "has_domain",
-       "has_situation",
+       "has_category",
        "has_edges",
        "has_snapshot",
        "has_screenshot"
@@ -3258,10 +3377,10 @@
    "schema": {
     "$defs": {
      "CandidateFlags": {
-      "description": "The five completeness flags of a candidate.",
+      "description": "The four completeness flags of a candidate.",
       "properties": {
-       "has_domain": {
-        "title": "Has Domain",
+       "has_category": {
+        "title": "Has Category",
         "type": "boolean"
        },
        "has_edges": {
@@ -3272,18 +3391,13 @@
         "title": "Has Screenshot",
         "type": "boolean"
        },
-       "has_situation": {
-        "title": "Has Situation",
-        "type": "boolean"
-       },
        "has_snapshot": {
         "title": "Has Snapshot",
         "type": "boolean"
        }
       },
       "required": [
-       "has_domain",
-       "has_situation",
+       "has_category",
        "has_edges",
        "has_snapshot",
        "has_screenshot"
@@ -3453,12 +3567,203 @@
     "type": "object"
    }
   },
+  "taxonomy_read.CrosswalkRead": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "PvogLeafMappingRead": {
+      "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+      "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
+       "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+       },
+       "leaf_code": {
+        "title": "Leaf Code",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "review"
+        ],
+        "title": "State",
+        "type": "string"
+       }
+      },
+      "required": [
+       "leaf_code",
+       "category_codes",
+       "confidence",
+       "state",
+       "reason"
+      ],
+      "title": "PvogLeafMappingRead",
+      "type": "object"
+     }
+    },
+    "description": "The frozen PVOG leaf crosswalk with its source and artifact versions.",
+    "properties": {
+     "artifact_version": {
+      "title": "Artifact Version",
+      "type": "string"
+     },
+     "pvog_leaf_mappings": {
+      "items": {
+       "$ref": "#/$defs/PvogLeafMappingRead"
+      },
+      "title": "Pvog Leaf Mappings",
+      "type": "array"
+     },
+     "pvog_source_version": {
+      "title": "Pvog Source Version",
+      "type": "string"
+     }
+    },
+    "required": [
+     "artifact_version",
+     "pvog_leaf_mappings",
+     "pvog_source_version"
+    ],
+    "title": "CrosswalkRead",
+    "type": "object"
+   }
+  },
+  "taxonomy_read.PvogLeafMappingRead": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+    "properties": {
+     "category_codes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Category Codes",
+      "type": "array"
+     },
+     "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+     },
+     "leaf_code": {
+      "title": "Leaf Code",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "state": {
+      "enum": [
+       "mapped",
+       "review"
+      ],
+      "title": "State",
+      "type": "string"
+     }
+    },
+    "required": [
+     "category_codes",
+     "confidence",
+     "leaf_code",
+     "reason",
+     "state"
+    ],
+    "title": "PvogLeafMappingRead",
+    "type": "object"
+   }
+  },
   "taxonomy_read.VocabularyResponse": {
    "mode": "serialization",
    "schema": {
     "$defs": {
+     "CrosswalkRead": {
+      "description": "The frozen PVOG leaf crosswalk with its source and artifact versions.",
+      "properties": {
+       "artifact_version": {
+        "title": "Artifact Version",
+        "type": "string"
+       },
+       "pvog_leaf_mappings": {
+        "items": {
+         "$ref": "#/$defs/PvogLeafMappingRead"
+        },
+        "title": "Pvog Leaf Mappings",
+        "type": "array"
+       },
+       "pvog_source_version": {
+        "title": "Pvog Source Version",
+        "type": "string"
+       }
+      },
+      "required": [
+       "artifact_version",
+       "pvog_source_version",
+       "pvog_leaf_mappings"
+      ],
+      "title": "CrosswalkRead",
+      "type": "object"
+     },
+     "PvogLeafMappingRead": {
+      "description": "One PVOG leaf and the canonical categories it maps to, with its confidence and review state.",
+      "properties": {
+       "category_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Category Codes",
+        "type": "array"
+       },
+       "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+       },
+       "leaf_code": {
+        "title": "Leaf Code",
+        "type": "string"
+       },
+       "reason": {
+        "title": "Reason",
+        "type": "string"
+       },
+       "state": {
+        "enum": [
+         "mapped",
+         "review"
+        ],
+        "title": "State",
+        "type": "string"
+       }
+      },
+      "required": [
+       "leaf_code",
+       "category_codes",
+       "confidence",
+       "state",
+       "reason"
+      ],
+      "title": "PvogLeafMappingRead",
+      "type": "object"
+     },
      "VocabularyTerm": {
-      "description": "A domain or life situation with every stored translation, for machine consumers.",
+      "description": "An active canonical category with every stored translation, for machine consumers.",
       "properties": {
        "code": {
         "title": "Code",
@@ -3471,43 +3776,71 @@
         "title": "Description I18N",
         "type": "object"
        },
+       "icon": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Icon"
+       },
        "name_i18n": {
         "additionalProperties": {
          "type": "string"
         },
         "title": "Name I18N",
         "type": "object"
+       },
+       "parent_code": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Parent Code"
+       },
+       "source_parent_codes": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Source Parent Codes",
+        "type": "array"
        }
       },
       "required": [
        "code",
+       "parent_code",
        "name_i18n",
-       "description_i18n"
+       "description_i18n",
+       "icon",
+       "source_parent_codes"
       ],
       "title": "VocabularyTerm",
       "type": "object"
      }
     },
-    "description": "Both closed vocabularies in sort order.",
+    "description": "The closed canonical category vocabulary in contract order, with the crosswalk that maps onto it.",
     "properties": {
-     "domains": {
+     "categories": {
       "items": {
        "$ref": "#/$defs/VocabularyTerm"
       },
-      "title": "Domains",
+      "title": "Categories",
       "type": "array"
      },
-     "situations": {
-      "items": {
-       "$ref": "#/$defs/VocabularyTerm"
-      },
-      "title": "Situations",
-      "type": "array"
+     "crosswalk": {
+      "$ref": "#/$defs/CrosswalkRead"
      }
     },
     "required": [
-     "domains",
-     "situations"
+     "categories",
+     "crosswalk"
     ],
     "title": "VocabularyResponse",
     "type": "object"
@@ -3516,7 +3849,7 @@
   "taxonomy_read.VocabularyTerm": {
    "mode": "serialization",
    "schema": {
-    "description": "A domain or life situation with every stored translation, for machine consumers.",
+    "description": "An active canonical category with every stored translation, for machine consumers.",
     "properties": {
      "code": {
       "title": "Code",
@@ -3529,18 +3862,50 @@
       "title": "Description I18N",
       "type": "object"
      },
+     "icon": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Icon"
+     },
      "name_i18n": {
       "additionalProperties": {
        "type": "string"
       },
       "title": "Name I18N",
       "type": "object"
+     },
+     "parent_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Code"
+     },
+     "source_parent_codes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Source Parent Codes",
+      "type": "array"
      }
     },
     "required": [
      "code",
      "description_i18n",
-     "name_i18n"
+     "icon",
+     "name_i18n",
+     "parent_code",
+     "source_parent_codes"
     ],
     "title": "VocabularyTerm",
     "type": "object"

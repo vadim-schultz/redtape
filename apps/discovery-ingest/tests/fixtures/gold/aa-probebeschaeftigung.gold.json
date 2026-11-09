@@ -25,10 +25,8 @@
     }
   ],
   "dependencies": [],
-  "domain_codes": [
-    "work-employment"
-  ],
-  "situation_codes": [
+  "category_codes": [
+    "work-and-employment",
     "new-job"
   ]
 }

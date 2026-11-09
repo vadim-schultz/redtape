@@ -8,12 +8,48 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
+from scripts.seed_data.category_contract import (
+    CATEGORY_CONTRACT_VERSION,
+    CATEGORY_INVENTORY,
+    LEGACY_CROSSWALK,
+    PVOG_LEAF_MAPPINGS,
+    PVOG_SOURCE_VERSION,
+    CategoryDefinition,
+    LegacyMapping,
+    PvogLeafMapping,
+    TaxonomyContractError,
+    validate_category_inventory,
+    validate_legacy_crosswalk,
+    validate_pvog_leaf_mappings,
+)
+
+__all__ = [
+    "CATEGORY_CONTRACT_VERSION",
+    "CATEGORY_INVENTORY",
+    "LEGACY_CROSSWALK",
+    "PVOG_LEAF_MAPPINGS",
+    "PVOG_SOURCE_VERSION",
+    "CategoryDefinition",
+    "LegacyMapping",
+    "PvogLeafMapping",
+    "TaxonomyContractError",
+    "validate_category_inventory",
+    "validate_legacy_crosswalk",
+    "validate_pvog_leaf_mappings",
+]
+
 TAXONOMY_NAMESPACE = uuid.UUID("44444444-4444-4444-4444-444444444400")
 
 
 def term_id(code: str) -> uuid.UUID:
     """Derive the stable UUID of a taxonomy term from its code, so reseeding updates the same row."""
     return uuid.uuid5(TAXONOMY_NAMESPACE, code)
+
+
+def category_mapping_id(category_code: str, external_level: str, external_code: str, source_version: str) -> uuid.UUID:
+    """Derive a stable UUID for one category-to-source mapping."""
+    key = f"mapping:{category_code}:{external_level}:{external_code}:{source_version}"
+    return uuid.uuid5(TAXONOMY_NAMESPACE, key)
 
 
 @dataclass(frozen=True)
@@ -387,3 +423,11 @@ SITUATION_GROUP_CODES: dict[str, str] = {
     "illness-care": "health-care",
     "retirement": "retirement",
 }
+
+validate_category_inventory(CATEGORY_INVENTORY)
+validate_legacy_crosswalk(
+    LEGACY_CROSSWALK,
+    CATEGORY_INVENTORY,
+    expected_sources={("domain", term.code) for term in DOMAINS}
+    | {("life_situation", term.code) for term in SITUATIONS},
+)

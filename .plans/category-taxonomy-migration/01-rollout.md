@@ -44,6 +44,48 @@ flowchart TD
   C9 --> C10[10 docs sync and live validation]
 ```
 
+## Scheduling matrix
+
+| ID | Chapter | Depends on | Touches | Execution | Gate | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| C1 | PVOG taxonomy contract | — | API seed data, discovery PVOG, ingest tests, suite artifacts | chapter-implementer | Mapping tests + artifact review | integrated |
+| C2 | Category schema and data migration | C1 | API models, migrations, seed/backfill scripts, repositories, API tests | chapter-implementer | Migration round-trip + `./ci.sh` | integrated |
+| C3 | Category API and backend filters | C2 | API taxonomy, document/candidate/discovery filters and schemas, contract fixture | chapter-implementer | API tests + `./ci.sh` | integrated |
+| C4 | Ingest and LLM category contract | C1, C3 | API discovery/suggestion contracts, discovery-ingest PVOG/LLM/curation, tests | chapter-implementer | Contract/eval tests + `./ci.sh` | integrated |
+| C5 | Frontend category browsing | C3, C4 | Web taxonomy, documents, candidates, components, translations, tests | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | integrated (gate repaired; root CI red on C4 ingest tests) |
+| C6 | Admin and suggestion contract cutover | C3, C4, C5 | API discovery/suggestions, web admin/suggestions/candidates, contract tests | chapter-implementer | Contract tests + `./ci.sh` | integrated |
+| C7 | Public document metadata cleanup | C5, C6 | Public web candidate/detail surfaces, API candidate/discovery DTOs, tests | chapter-implementer | DTO/UI regression tests + `./ci.sh` | integrated |
+| C8 | Accordion view and source cards | C7 | Web candidate detail, flow, source cards, translations, tests | chapter-implementer | Accessibility/component tests + `./ci.sh` | integrated |
+| C9 | Legacy taxonomy retirement | C8 | API/web legacy taxonomy, migrations, contracts, docs, suite ledger | chapter-implementer | Reference scan + migration gate + `./ci.sh` | integrated |
+| C10 | Docs sync and live validation | C9 | Active docs, validation tests, deployed-app evidence, suite ledger | chief-of-staff | Link/contract/reference checks + read-only live validation | integrated (docs); live validation partial |
+
+## Parallel batches
+
+The dependency graph and declared file ownership permit one chapter per batch:
+
+| Batch | Chapters | Why this is safe |
+| --- | --- | --- |
+| B1 | C1 | No prerequisite; freezes the vocabulary consumed by every later chapter. |
+| B2 | C2 | C1 is integrated; schema and backfill depend on the frozen artifact and share seed files with C1. |
+| B3 | C3 | C2 is integrated; API filters depend on target persistence. |
+| B4 | C4 | C1 and C3 are integrated; ingest contracts share API discovery and PVOG boundaries with prerequisites. |
+| B5 | C5 | C3 and C4 are integrated; frontend clients depend on the final API and machine vocabulary. |
+| B6 | C6 | C3–C5 are integrated; admin and suggestion DTOs overlap shared candidate contracts. |
+| B7 | C7 | C5 and C6 are integrated; public DTO and detail cleanup shares candidate surfaces with C6. |
+| B8 | C8 | C7 is integrated; accordion composition depends on the cleaned public detail surface. |
+| B9 | C9 | C8 is integrated; retirement is a final compatibility and parity gate. |
+| B10 | C10 | C9 is integrated; documentation and live validation are chief-of-staff-owned release evidence. |
+
+No intentional concurrency reduction is recorded: there are no independent ready chapters after applying both `depends_on` and `touches`.
+
+## Integration order and critical path
+
+Integrate completed work into `feat/plans-category-taxonomy-migration` in this order:
+
+`C1 → C2 → C3 → C4 → C5 → C6 → C7 → C8 → C9 → C10`
+
+The critical path is the same ten-chapter chain. A failed chapter blocks only its declared dependents; no unrelated chapter can currently be scheduled because every later chapter depends on the preceding contract surface.
+
 ## Execution order
 
 1. Chapter 1 freezes the product vocabulary, PVOG snapshot, source mapping, and old-code crosswalk. It is the only chapter allowed to settle names and category membership.
@@ -63,16 +105,16 @@ Chapters 3 and 4 must not be merged in a way that leaves machine workers with a 
 
 | # | Chapter | App(s) | Gate | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [PVOG taxonomy contract](chapters/01-pvog-taxonomy-contract.md) | api, discovery-ingest | mapping tests + artifact review | planned |
-| 2 | [Category schema and data migration](chapters/02-category-schema-and-data-migration.md) | api | migration round-trip + `./ci.sh` | planned |
-| 3 | [Category API and backend filters](chapters/03-category-api-and-backend-filters.md) | api | API tests + `./ci.sh` | planned |
-| 4 | [Ingest and LLM category contract](chapters/04-ingest-and-llm-category-contract.md) | api, discovery-ingest | contract/eval tests + `./ci.sh` | planned |
-| 5 | [Frontend category browsing](chapters/05-frontend-category-browsing.md) | web | Vitest + typecheck/build + `./ci.sh` | planned |
-| 6 | [Admin and suggestion cutover](chapters/06-admin-and-suggestion-contract-cutover.md) | api, web | contract tests + `./ci.sh` | planned |
-| 7 | [Public document metadata cleanup](chapters/07-public-document-metadata-cleanup.md) | api, web | DTO/UI regression tests + `./ci.sh` | planned |
-| 8 | [Accordion view and source cards](chapters/08-accordion-document-view-and-source-cards.md) | web | accessibility/component tests + `./ci.sh` | planned |
-| 9 | [Legacy retirement](chapters/09-legacy-retirement.md) | api, web | reference scan + migration gate + `./ci.sh` | planned |
-| 10 | [Docs sync and live validation](chapters/10-docs-sync-and-live-validation.md) | docs, deployed apps | link check + read-only live checks | planned |
+| 1 | [PVOG taxonomy contract](chapters/01-pvog-taxonomy-contract.md) | api, discovery-ingest | mapping tests + artifact review | integrated |
+| 2 | [Category schema and data migration](chapters/02-category-schema-and-data-migration.md) | api | migration round-trip + `./ci.sh` | integrated |
+| 3 | [Category API and backend filters](chapters/03-category-api-and-backend-filters.md) | api | API tests + `./ci.sh` | integrated |
+| 4 | [Ingest and LLM category contract](chapters/04-ingest-and-llm-category-contract.md) | api, discovery-ingest | contract/eval tests + `./ci.sh` | integrated |
+| 5 | [Frontend category browsing](chapters/05-frontend-category-browsing.md) | web | Vitest + typecheck/build + `./ci.sh` | integrated |
+| 6 | [Admin and suggestion cutover](chapters/06-admin-and-suggestion-contract-cutover.md) | api, web | contract tests + `./ci.sh` | integrated |
+| 7 | [Public document metadata cleanup](chapters/07-public-document-metadata-cleanup.md) | api, web | DTO/UI regression tests + `./ci.sh` | integrated |
+| 8 | [Accordion view and source cards](chapters/08-accordion-document-view-and-source-cards.md) | web | accessibility/component tests + `./ci.sh` | integrated |
+| 9 | [Legacy retirement](chapters/09-legacy-retirement.md) | api, web | reference scan + migration gate + `./ci.sh` | integrated |
+| 10 | [Docs sync and live validation](chapters/10-docs-sync-and-live-validation.md) | docs, deployed apps | link check + read-only live checks | integrated (docs); live validation partial |
 
 ## Parallel-safe ownership
 

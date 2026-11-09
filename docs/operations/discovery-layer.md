@@ -19,7 +19,7 @@ emits, votes or promotes a candidate.
 | Machine emit routes, `candidates emit`, the admin Emit panel and the emit preview | Kept and working. They create `pending` suggestions; no schedule calls them. |
 | Suggestion API, voting (`PUT`/`DELETE /api/v1/suggestions/{id}/vote`) and promotion at +3 votes | Kept and unchanged. Nobody is directed to them. |
 | Web `/suggest` (submit form) and its menu link | Removed. `/suggestions` and `/suggestions/:id` remain (the admin Emit panel links to them). |
-| `document` table, `GET /api/v1/documents`, `GET /api/v1/matrix`, web `/documents/:id` | Kept, but empty: the sample documents are gone and the list no longer reads them. |
+| `document` table, `GET /api/v1/documents`, web `/documents/:id` | Kept, but empty: the sample documents are gone and the list no longer reads them. Category filtering is the only taxonomy browse contract. |
 
 Decisions D1, D3 and the open seam S5 are in
 [gaps-and-decisions.md](../../.plans/document-browse-confidence/gaps-and-decisions.md). The sections below
@@ -106,7 +106,7 @@ authorization boundary; the browser does not contain an email allowlist.
 | `/admin/discovery/catalogue` | Shows catalogue rows with their own summary chips (total, source, pipeline stage) that filter the table, a Title column and a stage filter. |
 | `/admin/discovery/coverage` | Shows the dedicated coverage summary and the budgets. |
 | `/admin/discovery/tasks` | Shows the crawler task queue: kind, status and source filters; columns for attempts, retry time and result note. |
-| `/admin/discovery/documents` | Lists document candidates: toolbar in the table header, every column sorts, filters appear as removable chips, a Ready quick filter (the five completeness flags), long titles clipped with a tooltip, paging. |
+| `/admin/discovery/documents` | Lists document candidates: toolbar in the table header, every column sorts, filters appear as removable chips, an internal Ready quick filter (the four completeness flags), long titles clipped with a tooltip, paging. |
 | `/admin/discovery/documents/<candidate-id>` | Shows one candidate: mentions, evidence artifacts, emit preview and suggestion state. |
 | `/admin/discovery/pipeline/<catalogue-service-id>` | Shows pipeline stages, row details and the stored artifacts. |
 | `/admin/discovery/unknown` | Shows the explicit Page not found fallback; it must not leave an empty outlet. |
@@ -118,7 +118,7 @@ The staged candidates also have a **public** read-only view, outside this admin 
 
 | Web route | Behavior |
 | --- | --- |
-| `/documents` | Lists every staged candidate as a document card with a confidence circle (search, sort, life-area, life-situation and domain chips, paging). `/candidates` redirects here. |
+| `/documents` | Lists every staged candidate as a document card with a confidence circle (search, sort, category chips, paging). `/candidates` redirects here. |
 | `/candidates/<candidate-id>` | Shows one candidate: tags, ingress and egress cards, the flow diagram, the screenshot and the sources. |
 
 The public API routes, the deploy order, the screenshot cadence, the showcase candidates and the
@@ -128,6 +128,18 @@ The emit preview is a subview of the pipeline page, not a top-level route. Every
 visible loading, success, empty, and error feedback. A `401` sends the session to login, a `403` shows
 the forbidden view, a `503` explains that discovery is disabled, and network/API failures offer the
 existing retry action.
+
+## Taxonomy and public presentation
+
+The canonical category tree is the only product browse taxonomy. Search is primary and category
+browsing is secondary. Discovery mentions and admin views may retain source evidence, PVOG leaf/path
+metadata, confidence, and internal completeness flags, but those technical fields are not rendered
+on the public `/documents` list or candidate detail page. Public category chips use canonical
+category codes and link to the same category-filtered list as the front-page browse control.
+
+PVOG identifiers are external source classifications, not category chips. A missing or stale
+category mapping is reported for review; it is not converted into a guessed product category.
+Embeddings and entity identification remain separate future capabilities.
 
 If the probe fails with `503`, a 5xx status, or a network error, the app retries it twice. If it still
 fails, the menu shows a muted **Discovery unavailable** hint instead of the links. A `401` or `403`
@@ -225,7 +237,7 @@ The crawl layer is **document-first**: it builds document nodes before any edge 
 | --- | --- |
 | Procedure | A catalogue service (a Leistung, for example "Anmeldung einer Wohnung"). Staging context, never a document node |
 | Candidate | A deduplicated document name harvested from one or more sources, not yet emitted. Status `staged`, then `emitted` |
-| Mention | One occurrence of a candidate in a procedure: role (`required`, `form` or `issued`), excerpt, source field, extractor and version, optional artifact; extracted mentions also carry a condition, an optional flag and the page's domain and life-situation codes |
+| Mention | One occurrence of a candidate in a procedure: role (`required`, `form` or `issued`), excerpt, source field, extractor and version, optional artifact; extracted mentions also carry a condition, an optional flag and the page's canonical category codes |
 | Edge | A staged `parent requires required` link between two candidates, with the procedure as provenance, a condition and an optional flag. Staged only (see below) |
 | Key | `slugify(pick_title(title_i18n))`, the same rule promotion uses, so two candidates never collide at promotion without colliding as candidates |
 
@@ -262,18 +274,18 @@ snapshot and stages the result; it emits nothing. Architecture, decisions and th
   requirements, and candidate emit (above) still carries documents only.
 - **Conditions.** A mention keeps the page's condition ("bei Zuzug aus dem Ausland") and an optional flag. Names stay
   German and verbatim; no translation is made.
-- **Taxonomy route.** `GET /machine/taxonomy` returns the closed vocabulary (13 domains, 18 life situations, with
-  German and English names) that the worker puts in the prompt. The model tags the page, not each document; the page's
+- **Taxonomy route.** `GET /machine/taxonomy` returns the closed vocabulary of canonical category codes, with German
+  and English names, that the worker puts in the prompt. The model tags the page, not each document; the page's
   codes are copied onto its mentions.
 - **Tag confidence score.** Every code of a candidate has a combined confidence score — the noisy-OR of its
   LLM-evidence curve and any direct-source confidence (a PVOG leaf, a curator's manual override). The public
   list and its chip filters use **every** score, with no floor: the score only orders and colours
   ([candidate-view.md](candidate-view.md)). The floor `MIN_SUGGESTED_SCORE` (0.05), a noise floor and not a
   precision claim, applies now only to the emit payload (the codes a `new_document` suggestion carries) and to the
-  completeness flags `has_domain` and `has_situation`. The admin candidate detail shows each code with its support
+  completeness flag `has_category`. The admin candidate detail shows each code with its support
   (`procedures`, `share`, `score`); nothing is written to a document automatically.
 - **Re-extraction is deliberate.** The task key is `llm:` plus eight hex digits of the model, `PROMPT_VERSION`
-  (`ext-5`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
+  (`ext-6`) and `CLEAN_VERSION` (`clean-4`). The identity of a task is the catalogue row, the kind, the target URL and
   that key, so a re-render under the same versions queues no second task; only `llm requeue` after a model, prompt or
   cleaner change queues one. LLM mentions use a fixed `source_field`, so a re-run updates them in place.
 
@@ -330,10 +342,10 @@ an allowlisted email and live under `/api/v1/discovery/admin`.
 | `GET /machine/candidates/sources` | Catalogue rows with at least one candidate mention and the newest `html_snapshot` url of each (`missing=screenshot`, `host`, `candidate_id`, repeated `catalogue_service_id` up to 20, `offset`, `limit`); read-only; the input of `capture requeue`; see [candidate-view.md](candidate-view.md#screenshot-cadence) |
 | `POST /machine/candidates/mentions` | Post mentions for a candidate (role, condition, optional flag, tag codes; the response counts `unknown_codes`) |
 | `POST /machine/candidates/edges` | Post staged edges: answers `{edges_created, edges_updated, edges_skipped, skipped}` |
-| `GET /machine/taxonomy` | The closed vocabulary of domain and life-situation codes the prompt uses |
+| `GET /machine/taxonomy` | The closed vocabulary of canonical category codes the prompt uses |
 | `GET /machine/candidates`, `GET …/{id}/emit-preview`, `POST /machine/candidates/emit` | Select, preview and emit candidates (50 per call) |
 | `GET /machine/budgets`, `POST …/budgets/{resource}/{reserve,adjust,exhaust}` | The budget ledger; a denied reserve answers 409 |
-| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by` including `completeness`, `sort_order`, `filter[status\|role\|source\|min_mentions\|jurisdiction\|domain\|situation]` and the yes/no completeness flags `filter[has_domain\|has_situation\|has_edges\|has_snapshot\|has_screenshot\|complete]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
+| `GET /admin/candidates`, `GET …/{id}`, `GET …/{id}/emit-preview` | Candidate list (canonical `q`, `sort_by` including `completeness`, `sort_order`, `filter[status\|role\|source\|min_mentions\|jurisdiction\|category]` and the yes/no completeness flags `filter[has_category\|has_edges\|has_snapshot\|has_screenshot\|complete]`; legacy `status`, `role`, `source`, `min_mentions`, `sort` still accepted and overridden by the canonical form; unknown fields or invalid values answer 422 listing each bad parameter), detail and preview |
 | `GET /admin/tasks` | Crawler queue (canonical `q` over the target URL, `sort_by` `target\|kind\|status\|source\|priority\|attempts` with `sort_order`, `filter[status\|source\|kind]`; legacy `status`, `source`, `kind` still accepted and overridden by the canonical form; ties fall back to the queue order; invalid values answer 422) |
 | `GET /admin/catalogue` | Imported catalogue (canonical `q` over the external id, `sort_by` `external_id\|title\|source\|stage` with `sort_order`, `filter[source\|stage]`; legacy `source` still accepted; newest first by default; paged with `offset` and `limit`; `total` and the summary follow the filter) |
 | `GET /admin/candidates/{id}/edges` | Staged edges of a candidate, both directions, with basis, condition and the procedure |

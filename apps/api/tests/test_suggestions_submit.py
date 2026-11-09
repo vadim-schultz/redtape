@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from litestar import Litestar
 from litestar.testing import TestClient
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 from auth_support import use_jwt_verifier
@@ -204,10 +205,10 @@ def test_returns_422_for_an_unknown_municipality_code(client: TestClient[Litesta
     assert response.status_code == 422
 
 
-def test_returns_422_for_an_unknown_domain_code(client: TestClient[Litestar], country: Jurisdiction) -> None:
+def test_returns_422_for_an_unknown_category_code(client: TestClient[Litestar], country: Jurisdiction) -> None:
     token = _token_for()
     body = _payload(country)
-    body["payload"]["domain_codes"] = ["not-a-real-code"]  # type: ignore[index]
+    body["payload"]["category_codes"] = ["not-a-real-code"]  # type: ignore[index]
 
     response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
 
@@ -223,3 +224,35 @@ def test_ignores_client_supplied_status_and_submitter_fields(
     response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 422
+
+
+def test_category_codes_round_trip_with_their_confidence_and_pvog_leaf_codes(
+    client: TestClient[Litestar], country: Jurisdiction, db_session: Session
+) -> None:
+    seed_canonical_taxonomy(db_session)
+    token = _token_for()
+    payload = {
+        "title_i18n": {"en": "Residency permit"},
+        "official_url": "https://example.gov/residency",
+        "category_codes": ["moving-house"],
+        "tag_confidence": {"moving-house": 0.85},
+        "pvog_leaf_codes": {"moving-house": "1050200"},
+    }
+
+    response = client.post(URL, json=_payload(country, payload=payload), headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 201
+    stored = response.json()["payload"]
+    assert {key: stored[key] for key in payload} == payload
+
+
+def test_an_unknown_category_code_is_a_422_that_names_the_code(
+    client: TestClient[Litestar], country: Jurisdiction
+) -> None:
+    token = _token_for()
+    body = _payload(country, payload={"title_i18n": {"en": "Residency permit"}, "category_codes": ["retired-code"]})
+
+    response = client.post(URL, json=body, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 422
+    assert "retired-code" in response.text

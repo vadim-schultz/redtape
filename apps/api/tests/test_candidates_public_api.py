@@ -19,10 +19,13 @@ from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus
 from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
 from litestar import Litestar
 from litestar.testing import TestClient
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
 from candidates_public_world import HOUSING, MOVING, Scene
+
+WORK = "work-and-employment"
+RARE = "retirement"
 
 URL = "/api/v1/candidates"
 INTERNALS = {"extractor", "extractor_version", "artifact_id", "catalogue_service_id"}
@@ -31,7 +34,7 @@ INTERNALS = {"extractor", "extractor_version", "artifact_id", "catalogue_service
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
     """A client with no auth patches and no token: the routes under test must be public."""
-    seed_taxonomy(db_session)
+    seed_canonical_taxonomy(db_session)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     with TestClient(create_app()) as test_client:
         yield test_client
@@ -104,13 +107,37 @@ def test_candidates_list_is_public_and_ranks_by_completeness(client: TestClient[
     assert response.json()["total"] == 3
 
 
-def test_candidates_list_shows_staged_and_emitted_candidates(client: TestClient[Litestar], scene: Scene) -> None:
+def test_candidates_list_omits_staging_status(client: TestClient[Litestar], scene: Scene) -> None:
     scene.candidate("staged-one")
     scene.candidate("emitted-one", status=DiscoveryCandidateStatus.EMITTED)
 
-    statuses = {item["key"]: item["status"] for item in client.get(URL).json()["items"]}
+    items = client.get(URL).json()["items"]
 
-    assert statuses == {"staged-one": "staged", "emitted-one": "emitted"}
+    assert all("status" not in item for item in items)
+
+
+def test_candidate_detail_retains_confidence_and_categories(client: TestClient[Litestar], scene: Scene) -> None:
+    owner = scene.candidate("canonical-tags")
+    scene.mention(owner, scene.procedure(), categories=[HOUSING, MOVING])
+
+    detail = client.get(f"{URL}/{owner.id}").json()
+
+    assert detail["confidence"] > 0
+    assert [tag["code"] for tag in detail["categories"]] == ["home-and-housing", "moving-house"]
+
+
+def test_public_candidate_responses_omit_staging_and_completeness_metadata(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    owner = scene.candidate("subject")
+    scene.complete_candidate("complete")
+
+    listing = client.get(URL).json()
+    detail = client.get(f"{URL}/{owner.id}").json()
+    presentation_fields = {"status", "completeness", "complete", "flags"}
+
+    assert all(presentation_fields.isdisjoint(item) for item in listing["items"])
+    assert presentation_fields.isdisjoint(detail)
 
 
 def test_candidates_list_filters_by_complete(client: TestClient[Litestar], scene: Scene) -> None:
@@ -130,23 +157,43 @@ def _keys_of(body: dict) -> list[str]:
     return [item["key"] for item in body["items"]]
 
 
-def test_candidates_list_filters_by_the_presence_of_a_domain_and_situation(
-    client: TestClient[Litestar], scene: Scene
-) -> None:
+def test_candidates_list_filters_by_the_presence_of_a_category(client: TestClient[Litestar], scene: Scene) -> None:
     scene.complete_candidate("accepted")
     lonely = scene.candidate("one-procedure-only")
-    scene.mention(lonely, scene.procedure(), domains=[HOUSING], situations=[MOVING])
+    scene.mention(lonely, scene.procedure(), categories=[HOUSING, MOVING])
 
-    domain = client.get(URL, params={"filter[domain]": HOUSING}).json()
-    situation = client.get(URL, params={"filter[situation]": MOVING}).json()
+    body = client.get(URL, params={"filter[category]": HOUSING}).json()
 
-    # document-browse-confidence chapter 2: a chip matches by the presence of the code, whatever its score,
-    # so the one-procedure mention matches on either axis; tests/test_candidates_browse.py pins the sub-floor case.
-    assert (set(_keys_of(domain)), domain["total"]) == ({"accepted", "one-procedure-only"}, 2)
-    assert (set(_keys_of(situation)), situation["total"]) == ({"accepted", "one-procedure-only"}, 2)
+    # A chip matches by the presence of the code, whatever its score; a parent code matches its children too.
+    assert (set(_keys_of(body)), body["total"]) == ({"accepted", "one-procedure-only"}, 2)
 
 
-@pytest.mark.parametrize("param", ["filter[domain]", "filter[situation]", "filter[complete]", "filter[nope]"])
+def test_candidates_category_filter_returns_canonical_tags_and_confidence(
+    client: TestClient[Litestar], scene: Scene
+) -> None:
+    owner = scene.candidate("canonical-tags")
+    scene.mention(owner, scene.procedure(), categories=[HOUSING, MOVING])
+
+    response = client.get(URL, params={"filter[category]": "home-and-housing"})
+
+    assert response.status_code == 200
+    [item] = response.json()["items"]
+    assert [(tag["code"], tag["confidence"]) for tag in item["categories"]] == [
+        ("home-and-housing", 0.5),
+        ("moving-house", 0.5),
+    ]
+
+
+def test_candidates_unknown_category_filter_returns_422(
+    client: TestClient[Litestar],
+) -> None:
+    response = client.get(URL, params={"filter[category]": "not-a-category"})
+
+    assert response.status_code == 422
+    assert "filter[category]" in str(response.json())
+
+
+@pytest.mark.parametrize("param", ["filter[category]", "filter[complete]", "filter[nope]"])
 def test_candidates_list_rejects_an_unknown_filter_value(client: TestClient[Litestar], param: str) -> None:
     response = client.get(URL, params={param: "nope"})
 
@@ -479,26 +526,27 @@ def test_candidate_card_lists_every_tag_with_its_confidence_most_confident_first
     owner = scene.candidate("tagged")
     first, second = scene.procedure(), scene.procedure()
     for procedure in (first, second):
-        scene.mention(owner, procedure, domains=[HOUSING], situations=[MOVING])
-    scene.mention(owner, first, domains=["work"])
+        scene.mention(owner, procedure, categories=[HOUSING, MOVING])
+    scene.mention(owner, first, categories=[WORK])
 
     body = client.get(URL).json()
 
-    assert _tags(body, "tagged", "domains") == [(HOUSING, 0.85), ("work", 0.25)]
-    assert _tags(body, "tagged", "situations") == [(MOVING, 0.85)]
+    tags = _tags(body, "tagged", "categories")
+    assert dict(tags) == {HOUSING: 0.85, MOVING: 0.85, WORK: 0.25}
+    assert tags[-1] == (WORK, 0.25)
 
 
 def test_candidate_card_keeps_a_tag_below_the_old_inclusion_floor(client: TestClient[Litestar], scene: Scene) -> None:
     owner = scene.candidate("weak")
     procedures = [scene.procedure() for _ in range(12)]
-    scene.mention(owner, procedures[0], domains=["rare"])
+    scene.mention(owner, procedures[0], categories=[RARE])
     for procedure in procedures[1:]:
-        scene.mention(owner, procedure, domains=[HOUSING])
+        scene.mention(owner, procedure, categories=[HOUSING])
 
-    tags = dict(_tags(client.get(URL).json(), "weak", "domains"))
+    tags = dict(_tags(client.get(URL).json(), "weak", "categories"))
 
-    assert 0 < tags["rare"] < MIN_SUGGESTED_SCORE
-    assert tags[HOUSING] > tags["rare"]
+    assert 0 < tags[RARE] < MIN_SUGGESTED_SCORE
+    assert tags[HOUSING] > tags[RARE]
 
 
 def test_candidate_card_without_mentions_lists_no_tags(client: TestClient[Litestar], scene: Scene) -> None:
@@ -506,4 +554,17 @@ def test_candidate_card_without_mentions_lists_no_tags(client: TestClient[Litest
 
     body = client.get(URL).json()
 
-    assert (_tags(body, "untagged", "domains"), _tags(body, "untagged", "situations")) == ([], [])
+    assert _tags(body, "untagged", "categories") == []
+
+
+def test_candidate_detail_never_lists_a_pvog_leaf_as_a_category(
+    client: TestClient[Litestar], scene: Scene, db_session: Session
+) -> None:
+    owner = scene.candidate("leaf-only")
+    mention = scene.mention(owner, scene.procedure())
+    mention.pvog_leaf_code = "1050200"
+    db_session.flush()
+
+    detail = client.get(f"{URL}/{owner.id}").json()
+
+    assert detail["categories"] == []

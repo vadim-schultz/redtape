@@ -1,8 +1,9 @@
 ---
 name: "Chapter 2 — Category schema and data migration"
 overview: "Add the self-referential category schema, preserve external classifications, and backfill document links from both legacy axes without data loss."
+id: C2
 depends_on:
-  - 01-pvog-taxonomy-contract
+  - C1
 touches:
   - apps/api/app/models/taxonomy.py
   - apps/api/app/models/document.py

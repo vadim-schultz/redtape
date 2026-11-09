@@ -1,9 +1,8 @@
 import type { DocumentFilters } from "../hooks/useDocumentFilters";
 
-/** True while at least one domain, life-area or situation chip narrows the list. */
+/** Return whether at least one category narrows the list. */
 export function hasSelectedChips(
-  filters: Pick<DocumentFilters, "domains" | "groups" | "situations">,
+  filters: Pick<DocumentFilters, "categories">,
 ): boolean {
-  const { domains, groups, situations } = filters;
-  return domains.length + groups.length + situations.length > 0;
+  return filters.categories.length > 0;
 }

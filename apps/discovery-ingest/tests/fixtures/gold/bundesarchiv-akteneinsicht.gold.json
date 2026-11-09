@@ -37,8 +37,7 @@
       "requires": "Nachweis des Verwandtschaftsverhältnisses"
     }
   ],
-  "domain_codes": [
-    "law-justice"
-  ],
-  "situation_codes": []
+  "category_codes": [
+    "law-and-justice"
+  ]
 }

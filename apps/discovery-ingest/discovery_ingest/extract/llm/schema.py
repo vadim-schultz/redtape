@@ -5,7 +5,7 @@ from __future__ import annotations
 import unicodedata
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter, model_validator
 
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.json_types import JsonObject, JsonSchema
@@ -13,8 +13,7 @@ from discovery_ingest.json_types import JsonObject, JsonSchema
 MAX_NAME_LENGTH = 120
 MAX_QUOTE_LENGTH = 300
 MAX_CONDITION_LENGTH = 300
-MAX_DOMAIN_CODES = 2
-MAX_SITUATION_CODES = 3
+MAX_CATEGORY_CODES = 5
 MAX_DOCUMENTS = 40
 MAX_DEPENDENCIES = 40
 
@@ -68,10 +67,17 @@ class PageExtraction(_Strict):
     """Everything the model says about one page."""
 
     page_kind: PageKind
-    domain_codes: list[Code] = Field(max_length=MAX_DOMAIN_CODES)
-    situation_codes: list[Code] = Field(default_factory=list, max_length=MAX_SITUATION_CODES)
+    category_codes: list[Code] = Field(default_factory=list, max_length=MAX_CATEGORY_CODES)
     documents: list[DocumentItem] = Field(max_length=MAX_DOCUMENTS)
     dependencies: list[DependencyItem] = Field(max_length=MAX_DEPENDENCIES)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_legacy_axes(cls, value: object) -> object:
+        """Reject model output that still uses the retired dual-axis fields."""
+        if isinstance(value, dict) and {"domain_codes", "situation_codes"} & value.keys():
+            raise ValueError("legacy domain/situation output is rejected; use category_codes")
+        return value
 
 
 def _restrict_codes(code_property: JsonObject, codes: tuple[str, ...]) -> None:
@@ -95,6 +101,5 @@ def _property(schema: JsonObject, name: str) -> JsonObject:
 def build_json_schema(taxonomy: Taxonomy) -> JsonSchema:
     """Return the JSON schema for ``response_format`` with the vocabulary as code enums (a hint; grounding decides)."""
     schema = TypeAdapter(JsonSchema).validate_python(PageExtraction.model_json_schema())
-    _restrict_codes(_property(schema, "domain_codes"), taxonomy.domain_codes)
-    _restrict_codes(_property(schema, "situation_codes"), taxonomy.situation_codes)
+    _restrict_codes(_property(schema, "category_codes"), taxonomy.category_codes)
     return schema

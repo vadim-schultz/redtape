@@ -29,19 +29,17 @@ from test_discovery_admin_api import _jurisdiction
 
 
 class Row(NamedTuple):
-    """One mention of a fixture: procedure index, codes per axis, the extractor, and any direct confidence.
+    """One mention of a fixture: procedure index, canonical categories, the extractor, and any direct confidence.
 
-    ``domain_confidence``/``situation_confidence`` stay ``None`` for an LLM-extracted assertion (the default,
-    scored via the LLM-evidence curve); a non-``None`` value simulates a direct source (PVOG, a future vote).
+    ``category_confidence`` stays ``None`` for an LLM-extracted assertion (the default, scored via the LLM-evidence
+    curve); a non-``None`` value simulates a direct source (PVOG, a future vote).
     ``leaf_code`` simulates the PVOG leaf code a direct-confidence mention stashes (chapter 3).
     """
 
     procedure: int
-    domains: list[str] | None = None
-    situations: list[str] | None = None
+    categories: list[str] | None = None
     extractor: str = "llm"
-    domain_confidence: float | None = None
-    situation_confidence: float | None = None
+    category_confidence: float | None = None
     leaf_code: str | None = None
 
 
@@ -83,10 +81,8 @@ def mention(session: Session, owner: DiscoveryDocumentCandidate, procedure: Cata
             source_field=f"details[{uuid.uuid4().hex[:8]}]",
             extractor=row.extractor,
             extractor_version="1",
-            domain_codes=row.domains,
-            situation_codes=row.situations,
-            direct_domain_confidence=row.domain_confidence,
-            direct_situation_confidence=row.situation_confidence,
+            category_codes=row.categories,
+            direct_category_confidence=row.category_confidence,
             pvog_leaf_code=row.leaf_code,
         )
     )

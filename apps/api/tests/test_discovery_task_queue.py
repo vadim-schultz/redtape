@@ -101,7 +101,7 @@ def _seed_task(
 
 
 def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) -> None:
-    """Add exactly ``count`` page-completeness chips (domain, situation, edge, snapshot, screenshot order)."""
+    """Add exactly ``count`` page-completeness signals (category, edge, snapshot, screenshot order)."""
     owner = DiscoveryDocumentCandidate(
         jurisdiction_id=catalogue.jurisdiction_id, key=f"k-{uuid.uuid4().hex[:8]}", title_i18n={"de": "x"}
     )
@@ -117,26 +117,13 @@ def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) ->
                 catalogue_service_id=catalogue.id,
                 role=DiscoveryMentionRole.REQUIRED,
                 excerpt="x",
-                source_field="domain",
+                source_field="categories[0]",
                 extractor="llm",
                 extractor_version="1",
-                domain_codes=["housing"],
+                category_codes=["home-and-housing"],
             )
         )
     if count >= 2:
-        db_session.add(
-            DiscoveryCandidateMention(
-                candidate_id=owner.id,
-                catalogue_service_id=catalogue.id,
-                role=DiscoveryMentionRole.REQUIRED,
-                excerpt="x",
-                source_field="situation",
-                extractor="llm",
-                extractor_version="1",
-                situation_codes=["moving-house"],
-            )
-        )
-    if count >= 3:
         db_session.add(
             DiscoveryCandidateEdge(
                 parent_candidate_id=owner.id,
@@ -148,7 +135,7 @@ def _page_chips(db_session: Session, catalogue: CatalogueService, count: int) ->
                 extractor_version="1",
             )
         )
-    for index, kind in enumerate((DiscoveryArtifactKind.HTML_SNAPSHOT, DiscoveryArtifactKind.SCREENSHOT), start=4):
+    for index, kind in enumerate((DiscoveryArtifactKind.HTML_SNAPSHOT, DiscoveryArtifactKind.SCREENSHOT), start=3):
         if count < index:
             continue
         sha = uuid.uuid4().hex + uuid.uuid4().hex
@@ -214,7 +201,7 @@ def test_list_pending_tasks_for_claim_still_respects_priority_over_completeness(
 ) -> None:
     bare = _catalogue(db_session, external_id=f"urgent-bare-{uuid.uuid4().hex[:8]}")
     done = _catalogue(db_session, external_id=f"relaxed-done-{uuid.uuid4().hex[:8]}")
-    _page_chips(db_session, done, 5)
+    _page_chips(db_session, done, 4)
     urgent = _seed_task(db_session, bare, DiscoveryTaskKind.EXTRACT_PAGE, path="urgent", priority=10)
     relaxed = _seed_task(db_session, done, DiscoveryTaskKind.EXTRACT_PAGE, path="relaxed", priority=100)
 

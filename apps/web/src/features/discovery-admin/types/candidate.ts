@@ -1,4 +1,4 @@
-import type { CompletenessFlags } from "../../candidates/types";
+import type { CompletenessFlags } from "../../../components/data-display/CompletenessChips/types";
 
 import type { DiscoveryMentionArtifact } from "./artifact";
 import type {
@@ -37,6 +37,16 @@ export type DiscoveryCandidateListResponse = {
   limit: number;
 };
 
+export type PvogSourcePath = {
+  root_code: string | null;
+  root_label: string | null;
+  parent_code: string | null;
+  parent_label: string | null;
+  leaf_code: string | null;
+  leaf_label: string | null;
+  source_version: string | null;
+};
+
 /** One occurrence of a candidate in a procedure. */
 export type DiscoveryCandidateMention = {
   id: string;
@@ -54,8 +64,12 @@ export type DiscoveryCandidateMention = {
   /** When the document applies ("bei Zuzug aus dem Ausland"), as the page states it. */
   condition: string | null;
   is_optional: boolean | null;
-  domain_codes: string[];
-  situation_codes: string[];
+  category_codes: string[];
+  unknown_category_codes: string[];
+  pvog_leaf_code: string | null;
+  direct_category_confidence: number | null;
+  pvog_source_path: PvogSourcePath | null;
+  pvog_mapping_version: string | null;
   created_at: string;
 };
 
@@ -72,6 +86,5 @@ export type DiscoveryCandidateDetailResponse = {
   candidate: DiscoveryCandidateRecord;
   jurisdiction_name_i18n: Record<string, string>;
   mentions: DiscoveryCandidateMention[];
-  suggested_domain_codes: DiscoveryTagSupport[];
-  suggested_situation_codes: DiscoveryTagSupport[];
+  suggested_category_codes: DiscoveryTagSupport[];
 };

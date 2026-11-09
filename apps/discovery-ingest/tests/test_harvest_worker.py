@@ -11,10 +11,13 @@ from typing import Any
 import httpx
 import pytest
 from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.pvog.crosswalk_lookup import FetchedCrosswalk
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
-from discovery_ingest.worker.harvest import handle_harvest_payload
+from discovery_ingest.worker.harvest import HarvestPayloadHandler
 from pydantic import SecretStr
+
+from crosswalk_fakes import CROSSWALK, VOCABULARY
 
 API_BASE = "https://redtape.test"
 TASK_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -38,6 +41,8 @@ class _Api:
         path = request.url.path
         if path == f"{MACHINE}/catalogue/{CATALOGUE_ID}":
             return self._catalogue()
+        if path == f"{MACHINE}/taxonomy":
+            return httpx.Response(200, json=VOCABULARY)
         if path.endswith("/candidates/mentions"):
             return self._mentions(json.loads(request.content.decode())["items"])
         if path.endswith("/fail"):
@@ -84,7 +89,8 @@ def _run(monkeypatch: pytest.MonkeyPatch, api: Callable[[httpx.Request], httpx.R
         lease_expires_at=datetime.now(UTC),
     )
     client = DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
-    return handle_harvest_payload(task, client=client, fetcher=PoliteUrlFetcher(min_interval_per_host_s=0))
+    handler = HarvestPayloadHandler(FetchedCrosswalk(lambda: CROSSWALK))
+    return handler(task, client=client, fetcher=PoliteUrlFetcher(min_interval_per_host_s=0))
 
 
 def _documents_payload(count: int) -> dict[str, object]:

@@ -1,28 +1,12 @@
-import { Heading, Text, VStack } from "@chakra-ui/react";
-import { useId } from "react";
+import { Text, VStack } from "@chakra-ui/react";
 
-import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CandidateNeighbour } from "../../types";
 import NeighbourCard from "./NeighbourCard";
 
-export type NeighbourKind = "ingress" | "egress";
-
 export interface NeighbourSectionProps {
-  kind: NeighbourKind;
   items: CandidateNeighbour[];
+  emptyText: string;
 }
-
-/** Plain-language heading and empty text of each direction (D2). */
-const KEYS = {
-  ingress: {
-    title: "candidates.ingress",
-    empty: "candidates.ingress_empty",
-  },
-  egress: {
-    title: "candidates.egress",
-    empty: "candidates.egress_empty",
-  },
-} as const;
 
 function NeighbourList({
   items,
@@ -44,21 +28,10 @@ function NeighbourList({
   );
 }
 
-/** One direction of the dependency graph as a list of linked neighbour cards. */
+/** Render one dependency direction inside its parent accordion item. */
 export default function NeighbourSection({
-  kind,
   items,
+  emptyText,
 }: NeighbourSectionProps) {
-  const { t } = useLocale();
-  const headingId = useId();
-  const keys = KEYS[kind];
-
-  return (
-    <VStack as="section" align="stretch" gap={3} aria-labelledby={headingId}>
-      <Heading as="h2" id={headingId} textStyle="sectionHeader">
-        {t(keys.title)}
-      </Heading>
-      <NeighbourList items={items} emptyText={t(keys.empty)} />
-    </VStack>
-  );
+  return <NeighbourList items={items} emptyText={emptyText} />;
 }

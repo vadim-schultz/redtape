@@ -18,7 +18,10 @@ it("candidate detail renders header, description and attribution", () => {
     screen.getByText("From the source page: Apply for a passport"),
   ).toBeInTheDocument();
   expect(screen.getByText("Identity")).toBeInTheDocument();
-  expect(screen.getByText("Moving")).toBeInTheDocument();
+  expect(screen.getByText("Identity").closest("a")).toHaveAttribute(
+    "href",
+    "/documents?category=identity-and-documents",
+  );
 });
 
 it("candidate detail omits an absent description", () => {

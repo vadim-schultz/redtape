@@ -1,8 +1,9 @@
 ---
 name: "Chapter 9 — Legacy taxonomy retirement"
 overview: "Retire the old domain/life-situation axes and dormant matrix aggregation only after all category parity, compatibility, and provenance gates pass."
+id: C9
 depends_on:
-  - 08-accordion-document-view-and-source-cards
+  - C8
 touches:
   - apps/api/app/models/taxonomy.py
   - apps/api/app/models/document.py
@@ -22,16 +23,16 @@ execution: chapter-implementer
 todos:
   - id: reference-scan
     content: "Prove no active runtime, worker, frontend, contract, migration, or documentation consumer requires the old axes."
-    status: pending
+    status: complete
   - id: api-retirement
     content: "Remove dormant matrix and legacy taxonomy routes/fields after the compatibility cutoff."
-    status: pending
+    status: complete
   - id: data-retirement
     content: "Archive/drop legacy tables and links in a separately reviewed migration with backup and rollback evidence."
-    status: pending
+    status: partial
   - id: tests
     content: "Add no-reference, migration, contract, and post-cutover compatibility tests."
-    status: pending
+    status: complete
 ---
 
 # Chapter 9 — Legacy taxonomy retirement

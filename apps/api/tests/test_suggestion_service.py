@@ -12,7 +12,6 @@ from app.features.suggestions.service import (
     MissingSourceUrlError,
     SuggestionService,
     UnknownJurisdictionError,
-    UnknownTaxonomyCodeError,
 )
 from app.features.suggestions.submitters import CrawlerSubmitter, HumanSubmitter
 from app.features.taxonomy.repository import TaxonomyRepository
@@ -21,13 +20,13 @@ from app.models.api_key import ApiKey
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.suggestion import SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType
-from app.models.taxonomy import Domain, LifeSituation
+from app.models.taxonomy import Category
 from app.models.user import AppUser
 from app.schema.suggestion.create import SuggestionCreate
 from app.schema.suggestion.payload import NewDocumentPayload
 from app.url_normalization import normalize_url
 from pydantic import ValidationError
-from scripts.seed_taxonomy import seed_taxonomy
+from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -71,16 +70,11 @@ def api_key(db_session: Session) -> ApiKey:
 
 
 @pytest.fixture
-def domain_code(db_session: Session) -> str:
-    # tags={}: this suite only resolves codes, not documents.
-    seed_taxonomy(db_session)
+def category_code(db_session: Session) -> str:
+    """Return one seeded canonical category code for a suggestion payload."""
+    seed_canonical_taxonomy(db_session)
     db_session.flush()
-    return db_session.scalars(select(Domain.code)).first()
-
-
-@pytest.fixture
-def situation_code(db_session: Session, domain_code: str) -> str:
-    return db_session.scalars(select(LifeSituation.code)).first()
+    return db_session.scalars(select(Category.code)).first()
 
 
 @pytest.fixture
@@ -90,7 +84,7 @@ def event_log_service(db_session: Session) -> EventLogService:
 
 @pytest.fixture
 def service(db_session: Session, event_log_service: EventLogService) -> SuggestionService:
-    documents = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    documents = DocumentPromotion(DocumentRepository(db_session))
     taxonomy = TaxonomyService(TaxonomyRepository(db_session))
     return compose_suggestion_service(SuggestionRepository(db_session), documents, taxonomy, event_log_service)
 
@@ -201,30 +195,20 @@ def test_rejects_an_unknown_municipality_code(service: SuggestionService, user: 
         service.create(submitter=HumanSubmitter(user.id), request=request)
 
 
-def test_rejects_an_unknown_domain_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
-    request = _request(jurisdiction=country, payload=_payload(domain_codes=["no-such-domain"]))
-
-    with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=HumanSubmitter(user.id), request=request)
+def test_rejects_an_unknown_category_code() -> None:
+    with pytest.raises(ValidationError, match="unknown or inactive category code"):
+        _payload(category_codes=["no-such-category"])
 
 
-def test_rejects_an_unknown_situation_code(service: SuggestionService, country: Jurisdiction, user: AppUser) -> None:
-    request = _request(jurisdiction=country, payload=_payload(situation_codes=["no-such-situation"]))
-
-    with pytest.raises(UnknownTaxonomyCodeError):
-        service.create(submitter=HumanSubmitter(user.id), request=request)
-
-
-def test_accepts_known_domain_and_situation_codes(
+def test_accepts_a_known_category_code(
     service: SuggestionService,
     country: Jurisdiction,
     user: AppUser,
-    domain_code: str,
-    situation_code: str,
+    category_code: str,
 ) -> None:
     request = _request(
         jurisdiction=country,
-        payload=_payload(domain_codes=[domain_code], situation_codes=[situation_code]),
+        payload=_payload(category_codes=[category_code]),
     )
 
     suggestion = service.create(submitter=HumanSubmitter(user.id), request=request).suggestion

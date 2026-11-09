@@ -37,8 +37,8 @@ export default function DocumentsListView({
       <DocumentsListHeader title={title} />
 
       <VStack align="stretch" gap={6} mt={6}>
-        {toolbar.filters}
         <DocumentListControls list={list} />
+        {toolbar.filters}
         <DocumentsListQueryStatus {...result} />
         <Pagination
           offset={list.state.offset}

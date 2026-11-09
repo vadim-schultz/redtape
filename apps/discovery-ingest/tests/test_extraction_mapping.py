@@ -34,11 +34,10 @@ def dep(parent: str, requires: str, **extra: Any) -> DependencyItem:
 def grounded(
     documents: list[DocumentItem],
     dependencies: list[DependencyItem] | None = None,
-    domains: tuple[str, ...] = (),
-    situations: tuple[str, ...] = (),
+    categories: tuple[str, ...] = (),
 ) -> Grounded:
     diagnostics = Diagnostics("service", {}, 0, 0)
-    return Grounded(tuple(documents), tuple(dependencies or ()), domains, situations, diagnostics)
+    return Grounded(tuple(documents), tuple(dependencies or ()), categories, diagnostics)
 
 
 ISSUED = doc("Meldebescheinigung", "issued", ISSUED_QUOTE)
@@ -46,7 +45,7 @@ ISSUED = doc("Meldebescheinigung", "issued", ISSUED_QUOTE)
 
 def test_documents_become_mentions_with_source_field_llm_the_page_codes_and_the_extractor_version() -> None:
     document = doc("Personalausweis", url="https://portal.example/a", condition="bei Zuzug", is_optional=True)
-    mentions, edges = to_items(grounded([document], domains=("housing",), situations=("moving-house",)), ctx())
+    mentions, edges = to_items(grounded([document], categories=("home-and-housing", "moving-house")), ctx())
     assert edges == []
     assert mentions == [
         MentionItem(
@@ -61,8 +60,7 @@ def test_documents_become_mentions_with_source_field_llm_the_page_codes_and_the_
             official_url="https://portal.example/a",
             condition="bei Zuzug",
             is_optional=True,
-            domain_codes=["housing"],
-            situation_codes=["moving-house"],
+            category_codes=["home-and-housing", "moving-house"],
         )
     ]
 
@@ -81,7 +79,7 @@ def test_the_staged_items_serialise_to_the_route_shape() -> None:
     mentions, edges = to_items(grounded([ISSUED, doc("Personalausweis")]), ctx())
     body = MentionsRequest(items=mentions).model_dump(mode="json")
     assert body["items"][0]["role"] == "issued"
-    assert {"condition", "is_optional", "domain_codes", "situation_codes"} <= set(body["items"][0])
+    assert {"condition", "is_optional", "category_codes"} <= set(body["items"][0])
     assert set(edges[0].model_dump(mode="json")) == {
         "catalogue_service_id",
         "parent_title_i18n",
@@ -105,7 +103,7 @@ def test_the_item_types_reject_what_the_routes_reject() -> None:
             source_field="llm",
             extractor="llm",
             extractor_version=VERSION,
-            domain_codes=["a", "b", "c"],
+            category_codes=["a", "b", "c", "d", "e", "f"],
         )
     with pytest.raises(ValidationError):
         EdgeItem(

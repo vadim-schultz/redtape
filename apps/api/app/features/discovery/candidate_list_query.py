@@ -28,6 +28,7 @@ from app.shared.list_query import (
     uuid_filter,
 )
 from app.shared.paging import PageParams
+from app.shared.retired_taxonomy import RETIRED_TAXONOMY_AXES
 
 CODE_MAX_LENGTH = 64
 
@@ -47,10 +48,10 @@ CANDIDATE_LIST_SPEC = ListQuerySpec(
         "source": enum_filter(DiscoverySource),
         "min_mentions": min_int_filter(0),
         "jurisdiction": uuid_filter,
-        "domain": text_filter(CODE_MAX_LENGTH),
-        "situation": text_filter(CODE_MAX_LENGTH),
+        "category": text_filter(CODE_MAX_LENGTH),
         **{name: enum_filter(FlagChoice) for name in FLAG_FILTERS},
     },
+    retired_filters=RETIRED_TAXONOMY_AXES,
 )
 
 
@@ -61,8 +62,7 @@ def _flag(query: ListQuery, name: str) -> bool | None:
 
 def _completeness_from(query: ListQuery) -> CompletenessFilter:
     flags = {name: _flag(query, name) for name in FLAG_FILTERS}
-    domain, situation = query.filter_value("domain", str), query.filter_value("situation", str)
-    return CompletenessFilter(**flags, domain=domain, situation=situation)
+    return CompletenessFilter(**flags, category=query.filter_value("category", str))
 
 
 def _jurisdiction_from(query: ListQuery) -> UUID | None:

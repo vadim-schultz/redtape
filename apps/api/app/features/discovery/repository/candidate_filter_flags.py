@@ -1,4 +1,4 @@
-"""Filters of the admin candidate list that read the completeness model: the flags and the accepted tag codes."""
+"""Filters of the admin candidate list that read the completeness model: the flags and the accepted category codes."""
 
 from __future__ import annotations
 
@@ -19,16 +19,14 @@ def accepted(code: str, accepted_codes: ColumnElement) -> ColumnElement[bool]:
 
 @dataclass(frozen=True, slots=True)
 class CompletenessFilter:
-    """Optional yes/no filters on the five flags and on ``complete``, and accepted domain and situation codes."""
+    """Optional yes/no filters on the four flags and on ``complete``, and one accepted category code."""
 
     complete: bool | None = None
-    has_domain: bool | None = None
-    has_situation: bool | None = None
+    has_category: bool | None = None
     has_edges: bool | None = None
     has_snapshot: bool | None = None
     has_screenshot: bool | None = None
-    domain: str | None = None
-    situation: str | None = None
+    category: str | None = None
 
     @property
     def is_set(self) -> bool:
@@ -44,8 +42,6 @@ class CompletenessFilter:
         return [completeness.c[name].is_(value) for name, value in wanted if value is not None]
 
     def _code_conditions(self, completeness: Subquery) -> list[ColumnElement[bool]]:
-        pairs = (
-            (self.domain, completeness.c.accepted_domain_codes),
-            (self.situation, completeness.c.accepted_situation_codes),
-        )
-        return [accepted(code, codes) for code, codes in pairs if code is not None]
+        if self.category is None:
+            return []
+        return [accepted(self.category, completeness.c.accepted_category_codes)]

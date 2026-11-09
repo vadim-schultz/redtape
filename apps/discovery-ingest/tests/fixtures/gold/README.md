@@ -22,7 +22,7 @@ No page was written by hand and none is synthetic.
 
 ## What the labels mean
 
-The rule is the one in the extraction prompt. The labels were drafted against `ext-1`; the prompt is now `ext-5`
+The rule is the one in the extraction prompt. The labels were drafted against `ext-1`; the prompt is now `ext-6`
 (`PROMPT_VERSION` in `extract/llm/prompt.py`), and the labels still wait for a human review.
 
 - A name is copied verbatim from the page, atomic ("A oder B" is two names).
@@ -34,7 +34,7 @@ The rule is the one in the extraction prompt. The labels were drafted against `e
 - `condition` and `is_optional` explain the label. Scoring ignores them.
 - `dependencies` hold only what the page states ("dem Antrag beizufügen").
   Edges derived from a single issued document are not labelled here.
-- `domain_codes` and `situation_codes` come from `taxonomy.json`, a copy of
+- `category_codes` come from `taxonomy.json`, a copy of
   `apps/api/scripts/seed_data/taxonomy.py` in the shape of
   `GET /machine/taxonomy`. Pages that are not procedures carry no codes.
 - `source_url` in each label file is the final URL, the base the cleaner

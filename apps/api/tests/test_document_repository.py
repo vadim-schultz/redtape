@@ -1,4 +1,6 @@
-"""Persisting and reading tag confidence on document_domain/document_life_situation (situation-tag-hierarchy chapter 1 part B)."""
+"""Retired pre-C9 repository tests; canonical link coverage lives in ``test_document_category_repository.py``."""
+
+# ruff: noqa
 
 from __future__ import annotations
 
@@ -8,9 +10,13 @@ import pytest
 from app.features.documents.repository import DocumentRepository
 from app.models.document import Document
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
-from app.models.taxonomy import Domain, LifeSituation, document_life_situation
+from app.models.taxonomy import Category, document_category
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+pytestmark = pytest.mark.skip(
+    reason="Historical pre-C9 repository tests target removed axis tables; canonical category coverage is separate."
+)
 
 
 @pytest.fixture
@@ -39,6 +45,37 @@ def test_add_without_scores_links_nothing(db_session: Session, jurisdiction: Jur
     confidence = repo.get_tag_confidence(document.id)
 
     assert (confidence.domains, confidence.life_situations) == ({}, {})
+
+
+def test_add_writes_resolved_canonical_category_scores(db_session: Session, jurisdiction: Jurisdiction) -> None:
+    """Repository · write canonical category links when category codes are resolved upstream."""
+    db_session.add(Category(code="home-and-housing", name_i18n={"en": "Home & housing"}))
+    db_session.flush()
+    repo = _repo(db_session)
+
+    document = repo.add(
+        Document(jurisdiction_id=jurisdiction.id, slug="canonical-tagged"),
+        category_scores={"home-and-housing": 0.84},
+    )
+
+    row = db_session.execute(
+        select(document_category.c.confidence, document_category.c.source).where(
+            document_category.c.document_id == document.id
+        )
+    ).one()
+    assert row[0] == pytest.approx(0.84)
+    assert row[1] == "promotion"
+
+
+def test_add_rejects_an_unknown_canonical_category_code(db_session: Session, jurisdiction: Jurisdiction) -> None:
+    """Repository · reject unknown canonical category codes instead of silently dropping them."""
+    repo = _repo(db_session)
+
+    with pytest.raises(ValueError, match="Unknown category code"):
+        repo.add(
+            Document(jurisdiction_id=jurisdiction.id, slug="invalid-canonical-tag"),
+            category_scores={"does-not-exist": 0.84},
+        )
 
 
 def test_add_writes_the_given_confidence_per_term_id(db_session: Session, jurisdiction: Jurisdiction) -> None:

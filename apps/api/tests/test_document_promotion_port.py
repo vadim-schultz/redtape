@@ -9,8 +9,6 @@ from pathlib import Path
 from app.features.documents.promotion import DocumentPromotion, PromotionPort
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
-from app.features.taxonomy.repository import TaxonomyRepository
-from app.features.taxonomy.service import TaxonomyService
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from sqlalchemy.orm import Session
 
@@ -67,7 +65,7 @@ def test_promotion_port_covers_every_call_the_suggestion_feature_makes() -> None
 
 
 def test_document_promotion_satisfies_the_port_at_runtime(db_session: Session) -> None:
-    promotion = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    promotion = DocumentPromotion(DocumentRepository(db_session))
 
     assert isinstance(promotion, PromotionPort)
 
@@ -78,7 +76,7 @@ def test_resolve_jurisdiction_id_by_municipality_code_by_id_and_unknown(db_sessi
     municipality = Jurisdiction(kind=JurisdictionKind.MUNICIPALITY, name_i18n={"en": "Town"}, code=code)
     db_session.add_all([country, municipality])
     db_session.flush()
-    promotion = DocumentPromotion(DocumentRepository(db_session), TaxonomyService(TaxonomyRepository(db_session)))
+    promotion = DocumentPromotion(DocumentRepository(db_session))
 
     by_code = promotion.resolve_jurisdiction_id(jurisdiction_id=None, municipality_code=code)
     by_id = promotion.resolve_jurisdiction_id(jurisdiction_id=country.id, municipality_code=None)

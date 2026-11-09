@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from app.features.documents.repository import DocumentRepository
-from app.features.taxonomy.service import TaxonomyService
 from app.models.document import Document, DocumentRequirement
 from app.schema.suggestion.payload import NewDocumentPayload
 
@@ -22,8 +20,13 @@ class PromotionPort(Protocol):
         """Ids of documents in the jurisdiction that already hold the slug or the normalized URL."""
         ...
 
-    def create_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
-        """Persist the document an approved `new_document` suggestion describes."""
+    def create_document(
+        self,
+        payload: NewDocumentPayload,
+        jurisdiction_id: UUID,
+        slug: str,
+    ) -> Document:
+        """Persist a document and its canonical category scores."""
         ...
 
     def create_requirement(
@@ -54,10 +57,9 @@ class PromotionPort(Protocol):
 class DocumentPromotion:
     """Creates documents and requirement edges from approved suggestions; the only document write path."""
 
-    def __init__(self, repository: DocumentRepository, taxonomy: TaxonomyService) -> None:
-        """Bind the promotion writes to the repository and the taxonomy lookups."""
+    def __init__(self, repository: DocumentRepository) -> None:
+        """Bind the promotion writes to the document repository."""
         self._repo = repository
-        self._taxonomy = taxonomy
 
     def find_conflicts(self, *, jurisdiction_id: UUID, slug: str, normalized_url: str | None) -> list[UUID]:
         """Ids of documents in `jurisdiction_id` whose slug or normalized official URL matches (slug only if no URL)."""
@@ -65,15 +67,18 @@ class DocumentPromotion:
             jurisdiction_id=jurisdiction_id, slug=slug, normalized_url=normalized_url
         )
 
-    def create_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
-        """Build and persist a `Document` from an approved suggestion's payload; `slug` is never recomputed."""
-        domain_scores, situation_scores, situation_leaf_codes = self._resolve_tags(payload)
+    def create_document(
+        self,
+        payload: NewDocumentPayload,
+        jurisdiction_id: UUID,
+        slug: str,
+    ) -> Document:
+        """Build and persist a document; `slug` is never recomputed."""
         document = self._build_document(payload, jurisdiction_id, slug)
         return self._repo.add(
             document,
-            domain_scores=domain_scores,
-            situation_scores=situation_scores,
-            situation_leaf_codes=situation_leaf_codes,
+            category_scores=self._category_scores(payload),
+            pvog_leaf_codes=payload.pvog_leaf_codes,
         )
 
     def create_requirement(
@@ -126,36 +131,15 @@ class DocumentPromotion:
             return None
         return jurisdiction_id
 
-    def _resolve_tags(
-        self, payload: NewDocumentPayload
-    ) -> tuple[dict[UUID, float], dict[UUID, float], dict[UUID, str]]:
-        """Resolve each axis' codes to ids and pair them with their given confidence, defaulting to `1.0`.
+    @staticmethod
+    def _category_scores(payload: NewDocumentPayload) -> dict[str, float]:
+        """Return each category's confidence.
 
-        A code missing from `payload.tag_confidence` (including when it's `None` entirely, e.g. a
-        hand-written admin creation) is treated as fully confident — the same default the link tables'
-        own `server_default` uses for a row written without this service at all.
+        A code missing from `payload.tag_confidence` (including when it is `None`, e.g. a hand-written admin
+        creation) is fully confident, the same default the link table uses.
         """
         confidence = payload.tag_confidence or {}
-        domain_ids = self._taxonomy.resolve_domain_ids(payload.domain_codes)
-        situation_ids = self._taxonomy.resolve_situation_ids(payload.situation_codes)
-        domain_scores = self._scores(payload.domain_codes, domain_ids, confidence)
-        situation_scores = self._scores(payload.situation_codes, situation_ids, confidence)
-        situation_leaf_codes = self._leaf_codes(payload.situation_codes, situation_ids, payload.situation_leaf_codes)
-        return domain_scores, situation_scores, situation_leaf_codes
-
-    def _scores(self, codes: Sequence[str], ids: Sequence[UUID], confidence: dict[str, float]) -> dict[UUID, float]:
-        return {term_id: confidence.get(code, 1.0) for code, term_id in zip(codes, ids, strict=True)}
-
-    def _leaf_codes(
-        self, codes: Sequence[str], ids: Sequence[UUID], leaf_codes: dict[str, str] | None
-    ) -> dict[UUID, str]:
-        """Resolve `payload.situation_leaf_codes` (code -> leaf code) to the term id it belongs to.
-
-        A code missing from `leaf_codes` (including when it's `None` entirely) simply has no leaf code —
-        unlike `tag_confidence`, there is no default to fall back to; the facet is optional.
-        """
-        given = leaf_codes or {}
-        return {term_id: given[code] for code, term_id in zip(codes, ids, strict=True) if code in given}
+        return {code: confidence.get(code, 1.0) for code in payload.category_codes}
 
     def _build_document(self, payload: NewDocumentPayload, jurisdiction_id: UUID, slug: str) -> Document:
         return Document(

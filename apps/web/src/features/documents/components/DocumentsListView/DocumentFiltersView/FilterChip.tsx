@@ -6,9 +6,9 @@ export interface FilterChipProps {
   label: string;
   pressed: boolean;
   onToggle: () => void;
-  /** The filter stage the chip belongs to; domains are `plain`. */
+  /** The filter stage the chip belongs to; roots are `plain`. */
   tone?: ChipTone;
-  /** A life-area chip that is not selected itself but has situations selected inside. */
+  /** A root chip that is not selected itself but has a child selected inside. */
   partial?: boolean;
 }
 

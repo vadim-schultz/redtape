@@ -1,6 +1,7 @@
 ---
 name: "Chapter 1 — PVOG-grounded category contract"
 overview: "Freeze the small product category tree, preserve PVOG hierarchy/provenance, and publish the crosswalk that every later migration chapter consumes."
+id: C1
 depends_on: []
 touches:
   - apps/api/scripts/seed_data/

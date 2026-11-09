@@ -12,6 +12,7 @@ from discovery_ingest.extract.clean import CleanPage
 from discovery_ingest.extract.llm import prompt
 from discovery_ingest.extract.llm.prompt import PROMPT_VERSION, build_messages, extractor_version
 from discovery_ingest.extract.llm.prompt_template import system_text
+from discovery_ingest.extract.llm.schema import MAX_CATEGORY_CODES
 
 from llm_fakes import page, taxonomy
 
@@ -36,11 +37,11 @@ def test_the_user_message_carries_the_cleaned_text_and_the_whole_vocabulary() ->
     user = _user()
     assert TEXT in user
     for expected in (
-        "housing",
+        "home-and-housing",
         "Wohnen",
-        "Housing",
+        "Home and housing",
         "Rent, registration and home ownership",
-        "birth-of-child",
+        "birth-and-parenthood",
         "Geburt",
     ):
         assert expected in user
@@ -57,8 +58,7 @@ def test_the_system_message_states_the_task_the_rules_and_the_untrusted_content_
         "falls vorhanden",
         "login_or_error",
         "empty list",
-        "at most 2",
-        "at most 3",
+        f"at most {MAX_CATEGORY_CODES}",
     ):
         assert expected in system
 
@@ -156,8 +156,7 @@ def test_the_system_message_limits_codes_to_a_procedure_the_page_clearly_describ
     for page_type in ("a start page", "a list", "a login page", "a general information page"):
         assert page_type in system
     assert "When unsure give none." in system
-    assert "at most 2" in system
-    assert "at most 3" in system
+    assert f"at most {MAX_CATEGORY_CODES}" in system
 
 
 def test_the_non_document_and_code_rules_take_no_earlier_rule_away() -> None:
@@ -174,10 +173,10 @@ def test_the_non_document_and_code_rules_take_no_earlier_rule_away() -> None:
         assert kept in system
 
 
-def test_the_prompt_version_is_ext_5() -> None:
-    """prompt · the wording changed, so recorded answers of ext-4 are not reused."""
-    assert PROMPT_VERSION == "ext-5"
-    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-5+clean-4+tax:")
+def test_the_prompt_version_is_ext_6() -> None:
+    """prompt · the wording changed to category codes, so recorded ext-5 answers are not reused."""
+    assert PROMPT_VERSION == "ext-6"
+    assert extractor_version(page(TEXT), taxonomy()).startswith("ext-6+clean-4+tax:")
 
 
 def test_page_text_never_reaches_the_system_message() -> None:
@@ -203,9 +202,9 @@ def test_the_extractor_version_changes_with_the_prompt_the_cleaner_or_the_vocabu
 ) -> None:
     base = extractor_version(page(TEXT), taxonomy())
     older_cleaner = replace(page(TEXT), version="clean-0")
-    fewer_domains = taxonomy().model_copy(update={"domains": taxonomy().domains[:1]})
+    fewer_categories = taxonomy().model_copy(update={"categories": taxonomy().categories[:1]})
     assert extractor_version(older_cleaner, taxonomy()) != base
-    assert extractor_version(page(TEXT), fewer_domains) != base
+    assert extractor_version(page(TEXT), fewer_categories) != base
     monkeypatch.setattr(prompt, "PROMPT_VERSION", "ext-next")
     assert extractor_version(page(TEXT), taxonomy()) != base
 
@@ -229,6 +228,7 @@ WORDING_DIGESTS = {
     "ext-3": "9be145f7d8b8",
     "ext-4": "e1a1d7cce51b",
     "ext-5": "c300e072d7d0",
+    "ext-6": "a4d758a1c331",
 }
 
 

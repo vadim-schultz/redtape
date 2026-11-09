@@ -65,7 +65,7 @@ class EvalRefused(Exception):
 
 @dataclass(frozen=True, slots=True)
 class EvalRuntime:
-    """The three live pieces of a run: the model client, the budget ledger and the tag vocabulary."""
+    """The live pieces of a run: the model client, the budget ledger and the tag vocabulary."""
 
     client: LlmClient
     guard: BudgetGuard
@@ -96,11 +96,12 @@ def _runtime(settings: IngestSettings, model: str, stack: ExitStack) -> EvalRunt
     return EvalRuntime(client, BudgetGuard(api.budget), api.candidates.taxonomy())
 
 
-def _pages(options: EvalOptions, taxonomy: Taxonomy) -> list[GoldPage] | str:
+def _pages(options: EvalOptions, runtime: EvalRuntime) -> list[GoldPage] | str:
     try:
         pages = load_gold(Path(options.gold_dir), limit=options.limit)
     except GoldError as err:
         return str(err)
+    taxonomy = runtime.taxonomy
     wrong = {page.name: unknown_codes(page, taxonomy) for page in pages if unknown_codes(page, taxonomy)}
     return f"gold labels use codes outside the taxonomy: {wrong}" if wrong else pages
 
@@ -150,7 +151,7 @@ def run_eval(settings: IngestSettings, options: EvalOptions) -> EvalResult:
             runtime = _runtime(settings, options.model, stack)
         except DiscoveryMachineApiError as err:
             raise EvalRefused(f"the Discovery API refused the taxonomy request: {err}", EXIT_USAGE) from err
-        pages = _pages(options, runtime.taxonomy)
+        pages = _pages(options, runtime)
         meter = _meter(options, runtime.guard)
         if isinstance(pages, str):
             raise EvalRefused(pages, EXIT_USAGE)

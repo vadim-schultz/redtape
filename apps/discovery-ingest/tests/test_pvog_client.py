@@ -12,15 +12,31 @@ from discovery_ingest.pvog.client import (
     PvogClient,
     PvogClientError,
     PvogMappingError,
+    PvogStash,
     _build_v7_url,
     map_pvog_record,
 )
-from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord
+from discovery_ingest.pvog.models import PvogBootstrap, PvogPage, PvogRecord, PvogSourcePath
+from discovery_ingest.schemas import CatalogueBatchItem
+
+from crosswalk_fakes import CROSSWALK
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "pvog"
 FEDERAL_ARS = "000000000000"
 FEDERAL_JURISDICTION = uuid.UUID("11111111-1111-1111-1111-111111111101")
 BASE = "https://pvog.fitko.net/suchdienst/api"
+
+
+def _map(
+    record: PvogRecord,
+    *,
+    jurisdiction_id: uuid.UUID,
+    personal_matter_code: str | None = None,
+    personal_matter_path: PvogSourcePath | None = None,
+) -> CatalogueBatchItem:
+    """Map ``record`` stamped with the served mapping version, as the catalogue run does."""
+    stash = PvogStash(CROSSWALK.artifact_version, personal_matter_code, personal_matter_path)
+    return map_pvog_record(record, jurisdiction_id=jurisdiction_id, stash=stash)
 
 
 def _load_fixture(name: str) -> dict[str, object]:
@@ -153,7 +169,7 @@ def test_pvog_client_paginates_until_service_descriptions_last() -> None:
 def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
     """map_pvog_record · LeiKa id and portal URI from live v7 row."""
     row = _load_fixture("live_shape_row.json")
-    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
+    item = _map(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert item.source == "pvog"
     assert item.external_id == "pvog:leika:99001040001000"
@@ -166,7 +182,7 @@ def test_map_pvog_record_live_shape_leika_and_portal_url() -> None:
 def test_map_pvog_record_rejects_row_without_id_and_leika() -> None:
     """map_pvog_record · rejects row without lb id and LeiKa key."""
     with pytest.raises(PvogMappingError, match="external id"):
-        map_pvog_record(PvogRecord.model_validate({"name": "orphan"}), jurisdiction_id=FEDERAL_JURISDICTION)
+        _map(PvogRecord.model_validate({"name": "orphan"}), jurisdiction_id=FEDERAL_JURISDICTION)
 
 
 def test_pvog_client_fetches_full_personal_matter_vocabulary() -> None:
@@ -183,9 +199,7 @@ def test_map_pvog_record_stashes_personal_matter_code_into_raw_payload() -> None
     """map_pvog_record · stashes the given Lebenslage code into raw_payload under a reserved key."""
     row = _load_fixture("live_shape_row.json")
 
-    item = map_pvog_record(
-        PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code="1040300"
-    )
+    item = _map(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code="1040300")
 
     assert item.raw_payload["_personal_matter_code"] == "1040300"
     assert row.get("_personal_matter_code") is None
@@ -195,15 +209,102 @@ def test_map_pvog_record_leaves_raw_payload_unchanged_without_a_personal_matter_
     """map_pvog_record · leaves raw_payload unchanged when no code is given."""
     row = _load_fixture("live_shape_row.json")
 
-    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
+    item = _map(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert "_personal_matter_code" not in item.raw_payload
+
+
+def test_pvog_bootstrap_path_preserves_root_parent_leaf_and_source_version() -> None:
+    """PVOG · bootstrap path preserves root, parent, leaf and source version."""
+    payload = {
+        "sourceVersion": "v7",
+        "facades": {
+            "personalMatters": [
+                {
+                    "code": "ROOT",
+                    "label": "Root",
+                    "children": [
+                        {
+                            "code": "PARENT",
+                            "label": "Parent",
+                            "children": [{"code": "LEAF", "label": "Leaf"}],
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+    bootstrap = PvogBootstrap.model_validate(payload)
+
+    assert bootstrap.path_for("LEAF") == PvogSourcePath(
+        root_code="ROOT",
+        root_label="Root",
+        parent_code="PARENT",
+        parent_label="Parent",
+        leaf_code="LEAF",
+        leaf_label="Leaf",
+        source_version="v7",
+    )
+    pages = {
+        _bootstrap_url(): payload,
+        _search_url("LEAF"): {
+            "serviceDescriptions": {
+                "content": [{"id": "LEAF-ROW", "title": "Leaf service"}],
+                "last": True,
+            }
+        },
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = pages.get(str(request.url))
+        return httpx.Response(200, json=response) if response is not None else httpx.Response(404)
+
+    client = PvogClient(BASE, http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    records = list(client.iter_records(ars=FEDERAL_ARS))
+    item = _map(records[0][1], jurisdiction_id=FEDERAL_JURISDICTION, personal_matter_code=records[0][0])
+
+    assert [code for code, _record in records] == ["LEAF"]
+    assert item.raw_payload["_pvog_source_path"] == bootstrap.path_for("LEAF").as_raw()
+
+
+def test_pvog_missing_parent_metadata_does_not_invent_a_product_category() -> None:
+    """PVOG · missing parent metadata retains the leaf fact without a category hint."""
+    path = PvogSourcePath(
+        root_code=None,
+        root_label=None,
+        parent_code=None,
+        parent_label=None,
+        leaf_code="1010100",
+        leaf_label=None,
+        source_version="v7",
+    )
+
+    assert CROSSWALK.evidence_for_path(path) is None
+
+
+def test_map_pvog_record_stamps_the_mapping_version_it_is_given_on_a_stored_path() -> None:
+    """map_pvog_record · a stored source path carries the mapping version the caller passes, not a stored constant."""
+    row = _load_fixture("v7_page_cli_single.json")["serviceDescriptions"]["content"][0]
+    path = PvogSourcePath(
+        root_code="1",
+        root_label="Lebenslagen für Bürgerinnen und Bürger",
+        parent_code="118",
+        parent_label="Altersvorsorge und Ruhestand",
+        leaf_code="1180100",
+        leaf_label="Altersvorsorge",
+        source_version="v7",
+    )
+
+    stash = PvogStash("category-contract-v2", "1180100", path)
+    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION, stash=stash)
+
+    assert item.raw_payload["_pvog_category_mapping_version"] == "category-contract-v2"
 
 
 def test_pvog_client_maps_fixture_row_to_batch_upsert_dto() -> None:
     """PvogClient · maps v7 CLI fixture row to batch upsert DTO."""
     row = _load_fixture("v7_page_cli_single.json")["serviceDescriptions"]["content"][0]
-    item = map_pvog_record(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
+    item = _map(PvogRecord.model_validate(row), jurisdiction_id=FEDERAL_JURISDICTION)
 
     assert item.source == "pvog"
     assert item.external_id == "pvog:leika:99001040001000"
