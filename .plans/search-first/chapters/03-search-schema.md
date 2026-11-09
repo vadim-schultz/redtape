@@ -36,10 +36,10 @@ Persist what search needs: per-candidate search text with full-text vectors, one
 ## Design decisions
 
 - Models live in `apps/api/app/models/search.py` (one module, about 100 lines, split if it grows) and are exported from `app/models/__init__.py` so `alembic/env.py` and `create_all` see them.
-- `candidate_search_text(candidate_id FK→discovery_document_candidate ON DELETE CASCADE, locale String(16), text Text, tsv_german tsvector, tsv_simple tsvector, content_hash String(64), updated_at timestamptz)`, primary key `(candidate_id, locale)`. GIN indexes on both vectors. The tsvectors are ordinary columns written by the builder (chapter 4), not generated columns, because `unaccent()` is not immutable.
-- `candidate_embedding(candidate_id FK ON DELETE CASCADE, model String(100), locale String(16), dim Integer, text_hash String(64), embedding Vector(EMBEDDING_DIM), created_at timestamptz)`, primary key `(candidate_id, model, locale)`. HNSW index `USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)`. `locale` holds the canonical text's locale code, `de` today (documented as a constant on the model); per-locale vectors can be added later as extra rows without a schema change.
-- `embedding_task(id uuid PK, candidate_id FK ON DELETE CASCADE, model, text_hash, status enum(pending|claimed|completed|failed), priority int default 100, attempt_count int default 0, not_before, claimed_at, claimed_by_api_key_id FK api_key ON DELETE SET NULL, lease_expires_at, last_error Text, created_at, updated_at)`. Partial unique index on `(candidate_id, model)` where `status in ('pending','claimed')`; index `(status, priority, created_at)` as on `discovery_task`. Native enum named `embedding_task_status`, values via `enum_values` like the existing discovery enums.
-- The vector dimension comes from the chapter 1 probe (`EMBEDDING_DIM`); the migration hardcodes the literal number (migrations are frozen snapshots and do not import app settings), and a model test asserts the model and migration agree.
+- `candidate_search_text(candidate_id FK→discovery_document_candidate ON DELETE CASCADE, locale String(16), text Text, tsv_native tsvector, tsv_simple tsvector, content_hash String(64), updated_at timestamptz)`, primary key `(candidate_id, locale)`. `tsv_native` is built with the text-search configuration for the row's locale (`german` for `de`; see chapter 4's `TS_CONFIG_BY_LOCALE`), `tsv_simple` with `simple`. GIN indexes on both vectors. The tsvectors are ordinary columns written by the builder (chapter 4), not generated columns, because `unaccent()` is not immutable.
+- `candidate_embedding(candidate_id FK ON DELETE CASCADE, model String(100), locale String(16), dim Integer, text_hash String(64), embedding Vector(EMBEDDING_DIM), created_at timestamptz)`, primary key `(candidate_id, model, locale)`. Chapter 16 adds one row per translated locale, so the table is sized for up to seven rows per candidate. HNSW index `USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)` (`halfvec_cosine_ops` if the chapter 1 decision chose `halfvec`). `locale` holds the canonical text's locale code, `de` today (documented as a constant on the model); per-locale vectors can be added later as extra rows without a schema change.
+- `embedding_task(id uuid PK, candidate_id FK ON DELETE CASCADE, model, locale, text_hash, status enum(pending|claimed|completed|failed), priority int default 100, attempt_count int default 0, not_before, claimed_at, claimed_by_api_key_id FK api_key ON DELETE SET NULL, lease_expires_at, last_error Text, created_at, updated_at)`. Partial unique index on `(candidate_id, model, locale)` where `status in ('pending','claimed')`; index `(status, priority, created_at)` as on `discovery_task`. Native enum named `work_task_status` (generic, so chapter 13's translation tasks reuse it), values via `enum_values` like the existing discovery enums.
+- The vector type and dimension (`vector(N)` or `halfvec(N)`) come from the chapter 1 decision (`EMBEDDING_DIM`); the migration hardcodes the literal number (migrations are frozen snapshots and do not import app settings), and a model test asserts the model and migration agree.
 - The migration `CREATE EXTENSION IF NOT EXISTS vector` and `unaccent`. On Supabase the extension must already be enabled (operator action, rollout); the migration fails loudly if it cannot be created.
 - Migration id follows the convention `YYYYMMDD_search_schema`, a single head after `20261105_retire_legacy_taxonomy` (or the then-current head).
 - `scripts/check_migrations.sh` (single head, upgrade, downgrade −1, upgrade, `alembic check`) must pass; if autogenerate drift is reported for `Vector` or HNSW, add the minimal `env.py` rendering/compare hook rather than suppressing `alembic check`.
@@ -62,7 +62,7 @@ Persist what search needs: per-candidate search text with full-text vectors, one
 
 - `search text · stores a de row with both tsvectors and finds it by tsquery` asserts a GIN-backed `@@` match.
 - `embedding · stores a vector and orders by cosine distance` asserts nearest-first ordering for three known vectors.
-- `embedding task · enqueues one pending task per candidate and model` and a completed one does not block a new pending one.
+- `embedding task · enqueues one pending task per candidate, model and locale` and a completed one does not block a new pending one.
 - `migration · upgrade, downgrade and upgrade round trip` asserts the HNSW and GIN indexes exist (`pg_indexes`).
 
 ### Negative path
@@ -99,7 +99,7 @@ Record the migration id, the round-trip result, `alembic check` output, and esti
 
 ## Out of scope
 
-Writing any row (chapter 4), the machine API (chapter 5), queries (chapter 8), translated text, aliases, entity tables.
+Writing any row (chapter 4), the machine API (chapter 5), queries (chapter 8), the translation tables (chapter 13), aliases, entity tables.
 
 ## Git workflow
 

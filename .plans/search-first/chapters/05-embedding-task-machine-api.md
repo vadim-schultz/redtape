@@ -42,7 +42,7 @@ Give embedding workers a small, safe HTTP contract. Workers never see the databa
 ## Design decisions
 
 - Routes under the existing machine prefix, authenticated by the same `X-API-Key` dependency as `machine_controller.py`:
-  - `POST /api/v1/discovery/machine/embeddings/claim` `{limit, model}` → tasks `{task_id, candidate_id, text, text_hash, lease_expires_at}`;
+  - `POST /api/v1/discovery/machine/embeddings/claim` `{limit, model}` → tasks `{task_id, candidate_id, locale, text, text_hash, lease_expires_at}` (the text is the search text of that locale: German canonical text, or translated text once chapter 16 lands);
   - `POST …/embeddings/complete` `{items: [{task_id, text_hash, model, vector}]}` → per-item `stored | stale | rejected`;
   - `POST …/embeddings/fail` `{task_id, error, retryable}`; `POST …/embeddings/release` `{task_ids}`;
   - `GET …/embeddings/summary` → `pending_ready`, `claimed`, `failed`, `stale_candidates` for the workflow's early exit.
@@ -50,13 +50,13 @@ Give embedding workers a small, safe HTTP contract. Workers never see the databa
 - **Complete** per item, in one transaction:
   1. unknown task or not claimed by this key → `rejected`;
   2. `model` differs from the task's, or vector length differs from `EMBEDDING_DIM`, or any value is not finite → `rejected` (the task is failed non-retryably, with the reason);
-  3. `text_hash` differs from the candidate's current `candidate_search_text.content_hash` → `stale`: discard the vector, mark the task completed, and enqueue a fresh task for the current hash;
+  3. `text_hash` differs from the current `candidate_search_text.content_hash` for the task's `(candidate, locale)` → `stale`: discard the vector, mark the task completed, and enqueue a fresh task for the current hash;
   4. otherwise upsert `candidate_embedding` by `(candidate_id, model, locale)` and complete the task.
   One bad item never fails the batch.
 - **Fail** reuses the retry policy of `discovery/task_retry.py` (`MAX_ATTEMPTS = 3`, backoff 5 min / 30 min / 3 h) when `retryable`; otherwise marks failed. **Release** returns tasks to pending and gives the attempt back (`hand_back` semantics), used on quota stops.
 - Writes (`claim` is a write, `complete` writes rows) honour the database soft limit through `features/discovery/db_headroom.py`: answer 507 as the existing machine writes do.
 - Request size: `limit` is capped (default 50); `complete` bodies are bounded (about 50 vectors × `EMBEDDING_DIM` floats). A larger body is rejected with 413.
-- Retry constants and lease helpers are imported from the existing discovery modules; if they are bound to `DiscoveryTask`, extract the small generic part rather than copying it, and keep the discovery behaviour unchanged (its tests must still pass).
+- Retry constants and lease helpers are imported from the existing discovery modules; if they are bound to `DiscoveryTask`, extract the small generic part rather than copying it, and keep the discovery behaviour unchanged (its tests must still pass). The claim, lease, reclaim and retry mechanics live in a generic `features/search/leased_queue.py` parameterised by the task model; chapter 14 reuses it for translation tasks.
 - New schemas in `app/schema/search/`; the machine contract fixture (`scripts/export_machine_contract.py`, consumed by the ingest tests) is regenerated.
 
 ## Files

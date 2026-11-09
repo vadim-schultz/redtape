@@ -495,20 +495,21 @@ the slipped web refactors, and record the remaining T3/G2 and C8 gates without m
 Status: Chapters 1–3 are integrated; C8 remains operator-blocked and the release gate is open.
 CoS orchestration: [`docs/operations/loops/codebase-audit-remediation.md`](../docs/operations/loops/codebase-audit-remediation.md).
 
-### [search-first/](search-first/) — Hybrid search, centred search bar, seven-language interface
+### [search-first/](search-first/) — Hybrid search, centred search bar, translations, seven-language interface
 
 Make search the primary way into redtape: pgvector embeddings of candidates computed by background
 workers on Cloudflare Workers AI (Qwen3-Embedding), hybrid retrieval (Postgres full-text + vector
-search fused with Reciprocal Rank Fusion), a centred raised search bar without sort controls, a shared
-confidence/similarity ring, and a seven-language interface (de, en, tr, ru, uk, pl, ro). Translating
-the documents themselves, Arabic/right-to-left layout and entity resolution are out of scope; the
-design keeps seams for them. Twelve chapters.
+search fused with Reciprocal Rank Fusion and blended with confidence into one combined score), a
+centred raised search bar without sort controls, a shared confidence/similarity ring, document
+text translated once by workers and stored (searchable per language, shown in a pop-over beside the
+German original), and a seven-language interface (de, en, tr, ru, uk, pl, ro). Arabic/right-to-left
+layout and entity resolution are out of scope; the design keeps seams for them. Eighteen chapters.
 
 | Doc | What it is |
 | --- | --- |
-| [00-architecture.md](search-first/00-architecture.md) | Data model, embedding pipeline, query path, API and UI contract, i18n contract, seams |
-| [01-rollout.md](search-first/01-rollout.md) | Twelve chapters, dependency graph, invariants, batches, operator actions |
-| [gaps-and-decisions.md](search-first/gaps-and-decisions.md) | Settled decisions D1–D10 and open seams O1–O12 |
+| [00-architecture.md](search-first/00-architecture.md) | Data model, embedding and translation pipelines, query path, API and UI contract, languages, seams |
+| [01-rollout.md](search-first/01-rollout.md) | Eighteen chapters, dependency graph, invariants, batches, operator actions |
+| [gaps-and-decisions.md](search-first/gaps-and-decisions.md) | Settled decisions D1–D15 and open seams O1–O15 |
 | [run-ledger.md](search-first/run-ledger.md) | Per-chapter evidence template and post-deploy validation |
 | [chapters/](search-first/chapters/) | One executable plan per chapter |
 

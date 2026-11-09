@@ -51,8 +51,8 @@ Replace the title `ILIKE` with real search for `q`, while leaving browse (no `q`
 - **`QueryEmbedder` port** (`Protocol`, in the style of `shared/object_store/port.py`) in `features/search/query_embedder.py`: `embed(query: NormalisedQuery) -> QueryVector | None`. Implementations: `CloudflareQueryEmbedder` (sync `httpx`, timeout `QUERY_EMBED_TIMEOUT_S`, instruction prefix `Instruct: <task>\nQuery: <q>`, secrets scrubbed), `UnavailableQueryEmbedder` (no token configured), and an in-memory fake for tests. An in-process LRU cache keyed by `(model, normalised query)` wraps the real one.
 - **Budget.** Each uncached embed reserves a small neuron amount through `BudgetService.reserve` (`features/discovery/budgets.py`, `repository/budgets.py:reserve_ledger`); an exhausted reservation returns `None` (fallback), it does not raise.
 - **Query normalisation** (`features/search/query.py`): NFC, trim, collapse whitespace, length cap, locale-aware lower-casing (Turkish dotted/dotless I) in application code, not `lower()` in SQL.
-- **Keyword leg** (`keyword.py`): `websearch_to_tsquery('german', q)` against `tsv_german` and `websearch_to_tsquery('simple', unaccent(q))` against `tsv_simple`, over the `de` row regardless of request locale (D6), ranked by `ts_rank_cd`; the existing `title_matches` stays as an extra match signal so exact titles never regress. Top `SEARCH_TOP_N`.
-- **Vector leg** (`vector.py`): `embedding <=> :qvec` (cosine distance), restricted to the configured model, similarity `1 − distance ≥ SEARCH_MIN_SIMILARITY`, `ORDER BY distance LIMIT SEARCH_TOP_N`, with `SET LOCAL hnsw.iterative_scan = relaxed_order` (pgvector 0.8 or later; if the server is older, the chapter records it and falls back to exact scan, which is milliseconds at this size). A setting bypasses the index for diagnosis.
+- **Keyword leg** (`keyword.py`), locale-aware: against the rows of the request locale, `websearch_to_tsquery(<configuration for the locale>, q)` on `tsv_native`; always also `websearch_to_tsquery('german', q)` against the `de` row (German terms and proper nouns) and `websearch_to_tsquery('simple', unaccent(q))` against `tsv_simple` of both. A candidate's keyword score is its best `ts_rank_cd` across those rows. Until chapter 16 only `de` rows exist, so the extra rows contribute nothing and the code path is the same. The existing `title_matches` stays as an extra match signal so exact titles never regress. Top `SEARCH_TOP_N`.
+- **Vector leg** (`vector.py`): `embedding <=> :qvec` (cosine distance), restricted to the configured model and to rows of the request locale or `de` (the best similarity per candidate wins, deduplicated before ranking), similarity `1 − distance ≥ SEARCH_MIN_SIMILARITY`, `ORDER BY distance LIMIT SEARCH_TOP_N`, with `SET LOCAL hnsw.iterative_scan = relaxed_order` (pgvector 0.8 or later; if the server is older, the chapter records it and falls back to exact scan, which is milliseconds at this size). A setting bypasses the index for diagnosis.
 - **Fusion** (`fusion.py`), one statement:
 
   ```sql
@@ -65,7 +65,7 @@ Replace the title `ILIKE` with real search for `q`, while leaving browse (no `q`
   ```
 
   Both legs apply the same category and `complete` filters (the category expansion stays in the service). The joined relation exposes `candidate_id`, `rrf`, `cos` to `CardRelations`; confidence still comes from `CardRelations.confidence`.
-- **Ordering and paging.** `ORDER BY rrf DESC, confidence DESC, id`; the fused list is capped at `SEARCH_FUSED_TOP_K`; `offset`/`limit` page within it; `total` is the fused size. An explicit `sort_by` from an API client wins over the fused order.
+- **Relevance, not the final order.** This chapter produces a normalised relevance in 0..1 (`rrf / (legs / (k + 1))`, the best possible fused score, with `legs` = 2 in hybrid mode and 1 in keyword-only mode) and the cosine for each fused candidate, and caps the pool at `SEARCH_FUSED_TOP_K` (the relevance gate). The final ordering is the combined score of chapter 12; until it lands the interim order is `ORDER BY relevance DESC, confidence DESC, id`. `total` is the pool size. An explicit `sort_by` from an API client wins over any default order.
 - **Response.** `search_mode` on the list (`browse | hybrid | keyword`) and `similarity` on each card: `(cos − cutoff) / (1 − cutoff)` clipped to 0..1, `null` when `cos` is null (keyword-only match, keyword mode, browse).
 - **Fallback.** Flag off (`SEARCH_HYBRID_ENABLED=false`): the legacy title-match behaviour, `search_mode: "keyword"`. Flag on but the embedder returns `None` (timeout, error, no token, budget): keyword leg only, still the new full-text, `search_mode: "keyword"`. Never a 5xx for an embedder problem.
 - **Abuse limits.** A rate limit on the list route when `q` is present (Litestar `RateLimitConfig`), keyed by the client IP taken correctly behind the Render proxy (open seam O12); `q` length cap already exists.
@@ -93,6 +93,7 @@ Replace the title `ILIKE` with real search for `q`, while leaving browse (no `q`
 - `fusion · results are deduplicated by candidate id` and the vector-only and keyword-only matches both appear.
 - `search api · a German phrase and a Turkish paraphrase both find the expected candidate` (fake embedder with fixed vectors).
 - `search api · category filter applies to both legs` and a root filter includes descendants.
+- `search api · a Turkish query matches Turkish-locale rows through the turkish configuration and German rows through german` (fixture rows for both locales).
 - `search api · no q is unchanged browse` (confidence descending, `search_mode: "browse"`).
 - `search api · similarity is rescaled and null for keyword-only matches`.
 - `embedder · caches a repeated query and sends the instruction prefix`.
@@ -137,7 +138,7 @@ Record `EXPLAIN` output (HNSW and GIN used), p50/p95 latency for hybrid and fall
 
 ## Out of scope
 
-Web changes (chapters 9 and 10), tuning of `k`, cut-off and HNSW parameters (chapter 12), per-locale vectors, translated text, enabling the flag in production.
+Web changes (chapters 9 and 10), the combined ordering (chapter 12), tuning of `k`, cut-off and HNSW parameters (chapter 18), producing translated text and per-locale vectors (chapters 13–16), enabling the flag in production.
 
 ## Git workflow
 

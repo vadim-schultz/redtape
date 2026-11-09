@@ -122,7 +122,7 @@ Record bundle sizes before and after lazy loading and the parity coverage in [..
 
 ## Out of scope
 
-Adding locale files (chapter 11), the language switcher redesign, right-to-left layout, translating documents.
+Adding locale files (chapter 11), the language switcher redesign, right-to-left layout.
 
 ## Git workflow
 

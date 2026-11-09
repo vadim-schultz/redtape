@@ -46,7 +46,7 @@ Let users see two different things on each result: how much evidence supports it
 
 - **One ring component.** `features/documents/components/ConfidenceCircleView/ConfidenceCircle.tsx` is a Chakra `ProgressCircle` with traffic-light bands from `features/documents/utils/confidenceBand.ts` (low below 0.4, high from 0.7) and an aria label from `documents.confidence_aria`. Extract the ring into a shared `ScoreRing` (`components/data-display/ScoreRing.tsx`, props `value`, `label`, `palette`; at most 3 props). `ConfidenceCircle` becomes a thin wrapper with exactly today's output (the existing `ConfidenceCircle.test.tsx` and its use at `DocumentCard.tsx` stay green and unchanged), and `SimilarityCircle` is a second thin wrapper with `documents.similarity_aria` ("Similarity {percent}%, {band}"). The band words reuse `documents.confidence_low|mid|high` unless a neutral `band_*` rename is cleaner; either way both locales' files and the parity test stay consistent.
 - **Two rings on a card**, each with a short visible caption or tooltip so users can tell them apart. The caption wording must stay correct whatever the confidence ring is eventually renamed (open seam O8: it is labelled "Confidence" but the product owner describes it as effectively completeness; renaming is a separate follow-up).
-- **Scale.** The API sends `similarity` already rescaled to 0..1 relative to the cut-off (chapter 8). The same 0.4/0.7 bands are used for now; thresholds are re-checked against the golden set in chapter 12 (O7).
+- **Scale.** The API sends `similarity` already rescaled to 0..1 relative to the cut-off (chapter 8). The same 0.4/0.7 bands are used for now; thresholds are re-checked against the golden set in chapter 18 (O7).
 - **Degraded mode.** In `search_mode: "keyword"`, and for cards whose `similarity` is `null`, no similarity ring is rendered (not a 0% ring). A subtle, non-blocking hint explains that semantic matching is unavailable, shown once above the list, not per card. In `browse` mode only the confidence ring shows.
 - **Types and mapping.** `features/candidates/types/index.ts`: `CandidateCard.similarity?: number | null`, list `search_mode`. `features/documents/services/documentMapper.ts` maps to `DocumentSummary.similarity` and the list's mode; `useDocumentsListQuery` passes the mode through. The contract test (`src/test/contract/`) and `openapi.schemas.json` already carry the new fields from chapter 8.
 - **Counts.** A plural-aware result count (`documents.result_count` family with `_one/_other` in `en` and `de`; other locales get their forms in chapter 11) using the chapter 7 `t(key, { count })`.
@@ -111,7 +111,7 @@ Record screenshots (hybrid with two rings, keyword mode, `de` and `ru`, desktop 
 
 ## Out of scope
 
-Relabelling the confidence ring, tuning thresholds (chapter 12), new locales (chapter 11), any API change beyond consuming chapter 8's fields.
+Relabelling the confidence ring, tuning thresholds (chapter 18), new locales (chapter 11), the translation pop-over (chapter 17), any API change beyond consuming chapter 8's and chapter 12's fields.
 
 ## Git workflow
 

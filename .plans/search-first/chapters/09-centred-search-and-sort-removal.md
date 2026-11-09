@@ -4,6 +4,7 @@ overview: "Replace the small search box and sort controls with a centred, raised
 id: C9
 depends_on:
   - C7
+  - C12
 touches:
   - apps/web/src/features/documents/
   - apps/web/src/components/data-display/ListSearchBox.tsx
@@ -15,7 +16,7 @@ touches:
 execution: chapter-implementer
 todos:
   - id: pin-default-order
-    content: "Characterise the API's no-sort ordering and pin it to confidence descending."
+    content: "Characterise the API's no-sort ordering and pin it to the combined score."
     status: pending
   - id: search-hero
     content: "Add the SearchHero component: centred, raised, rounded, with a round arrow button."
@@ -34,7 +35,7 @@ todos:
 # Chapter 9 — Centred search and sort removal
 
 **Repo:** `redtape` (`apps/web`, one API ordering fix)
-**Depends on:** [Chapter 7](07-web-locale-foundation.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [Chapter 7](07-web-locale-foundation.md), [Chapter 12](12-combined-ranking-score.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 ## Goal
 
@@ -42,7 +43,7 @@ Make search the visual centre of `/documents`: a bold, raised, rounded bar in th
 
 ## Design decisions
 
-- **Pin the default order first (open seam O6).** The two code paths disagree: `candidates/repository/public_order.py` documents confidence-first ordering, while `candidates/list_query.py` (about lines 54–64) documents completeness-first when no sort is sent, and the UI today sends an explicit `sort_by=confidence&sort_order=desc` only when the user picks a non-default sort. Write a characterisation test of what `GET /api/v1/candidates` returns with no sort, then make the server default **confidence descending** (with the existing completeness, mention and deterministic tie-breaks) in one place. The UI then sends no sort parameters. Removing the control before this is pinned could silently change the order users see (invariant 10).
+- **Pin the default order first (open seam O6).** The two code paths disagree: `candidates/repository/public_order.py` documents confidence-first ordering, while `candidates/list_query.py` (about lines 54–64) documents completeness-first when no sort is sent, and the UI today sends an explicit `sort_by=confidence&sort_order=desc` only when the user picks a non-default sort. Write a characterisation test of what `GET /api/v1/candidates` returns with no sort, then make the server default the **combined score** from chapter 12 (relevance blended with confidence when `q` is present, confidence alone when browsing, with the existing deterministic tie-breaks) in one place, deleting the disagreeing branch. The UI then sends no sort parameters. Removing the control before this is pinned could silently change the order users see (invariant 10).
 - **`SearchHero`** (new, in `features/documents/components/SearchHeroView/`, about 3 props: `value`, `onSubmit`, `label`): horizontally centred in the panel, `maxW` about 640 px, larger input (`size="lg"`), fully rounded (`borderRadius="full"`), raised (`shadow="raised"`), the submit control a round `IconButton` (`rounded="full"`) with a right arrow (`LuArrowRight` from the existing `react-icons` set) placed at the input's end via an input group, `aria-label` from `documents.search_submit`. `<form role="search">`, draft-until-submit behaviour copied from `ListSearchBox` (typing does not fetch), an empty submit clears `q`, and the input has `dir="auto"` so mixed-language queries render correctly. Layout works at phone width with a 16 px gutter and at German and Russian text lengths.
 - **`ListSearchBox`** (`components/data-display/`) is shared: check its other consumers first. If it is used elsewhere, leave it and add `SearchHero` beside it; if the documents page is its only consumer, replace it and remove the old component.
 - **`shadow.raised`**: new semantic token under `src/theme/semantic-tokens/` with light and dark values (`mode()` helper as the others), no hardcoded colours in components.
@@ -55,7 +56,7 @@ Make search the visual centre of `/documents`: a bold, raised, rounded bar in th
 
 | Path | Change |
 | --- | --- |
-| `apps/api/app/features/candidates/repository/public_order.py`, `list_query.py` | Pin confidence-descending default (one place). |
+| `apps/api/app/features/candidates/repository/public_order.py`, `list_query.py` | Consume chapter 12's combined-score default; remove the disagreeing no-sort branch (one place). |
 | `apps/api/tests/test_candidates_public_api.py` (or a new ordering test) | Characterise and pin the no-sort order. |
 | `apps/web/src/features/documents/components/SearchHeroView/` | `SearchHero.tsx`, `index.ts`, test. |
 | `apps/web/src/features/documents/components/DocumentsListView/DocumentsListView.tsx`, `DocumentListControls.tsx` | Replace the controls row. |
@@ -70,7 +71,7 @@ Make search the visual centre of `/documents`: a bold, raised, rounded bar in th
 
 ### Happy path
 
-- `api · no sort_by returns confidence descending` (pins the default; fails first on the code path that disagrees).
+- `api · no sort_by returns the combined-score order` (pins the default: relevance and confidence with `q`, confidence alone when browsing; fails first on the code path that disagrees).
 - `SearchHero · submits on button click and Enter and sets q` and `typing alone does not fetch`.
 - `SearchHero · is a search landmark with a labelled round submit button` and the input has `dir="auto"`.
 - `DocumentsListPage · renders the hero and category chips and no sort control`.

@@ -51,8 +51,8 @@ Remove the infrastructure unknowns before any schema work: the database must be 
   - `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`;
   - `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN` (optional; empty means the query embedder is unavailable and search degrades to keyword).
 - Embedding client in `discovery_ingest/extract/embedding/`: `CloudflareEmbeddingClient.embed(texts)` over the existing endpoint table (`extract/llm/endpoints.py`, add `ai/run/{model}` use for embeddings), reusing the `Throttle`, the error taxonomy in `extract/llm/classify.py` and `errors.py`, and secret scrubbing. Batching, metering and the drain are chapter 6.
-- `python -m discovery_ingest embed probe` prints one JSON report (model, dimension, largest accepted batch, latency, token count, neurons) in the style of `llm probe`. It never prints the token.
-- The gate is a recorded decision: the probe's dimension is written to [../run-ledger.md](../run-ledger.md) and set as the `EMBEDDING_DIM` default.
+- `python -m discovery_ingest embed probe` prints one JSON report (model, dimension, which reduced dimensions the `dimensions` (Matryoshka) parameter accepts, largest accepted batch, latency, token count, neurons) in the style of `llm probe`. It never prints the token.
+- The gate is a recorded decision: the probe's dimension, the chosen column type (`vector` or `halfvec`) and any reduced dimension are written to [../run-ledger.md](../run-ledger.md) together with a storage estimate for seven locale rows per candidate (about 4000 candidates × 7 × bytes per row, plus the HNSW index) checked against the search storage budget (rollout invariant 11). `EMBEDDING_DIM` is set from that decision.
 
 ## Files
 

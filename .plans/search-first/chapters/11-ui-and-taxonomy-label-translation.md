@@ -5,7 +5,8 @@ id: C11
 depends_on:
   - C2
   - C7
-  - C10
+  - C13
+  - C17
 touches:
   - apps/discovery-ingest/discovery_ingest/i18n/
   - apps/discovery-ingest/discovery_ingest/cli/i18n/
@@ -42,28 +43,28 @@ todos:
 # Chapter 11 — UI and taxonomy-label translation
 
 **Repo:** `redtape` (`apps/discovery-ingest`, `apps/api/scripts`, `apps/web`)
-**Depends on:** [Chapter 2](02-backend-locale-foundation.md), [Chapter 7](07-web-locale-foundation.md), [Chapter 10](10-results-presentation.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
+**Depends on:** [Chapter 2](02-backend-locale-foundation.md), [Chapter 7](07-web-locale-foundation.md), [Chapter 13](13-translation-schema-and-core.md), [Chapter 17](17-translation-read-path-and-popover.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 ## Goal
 
-Produce complete, mechanically valid translations of the interface into Turkish, Russian, Ukrainian, Polish and Romanian, ready for human review. It runs after the last UI copy change (chapters 9 and 10) so no key changes afterwards. **Documents are not translated here.**
+Produce complete, mechanically valid translations of the interface into Turkish, Russian, Ukrainian, Polish and Romanian, ready for human review. It runs after the last UI copy change (chapters 9, 10 and 17) so no key changes afterwards. Document text is translated by chapters 13–15; this chapter covers interface strings and taxonomy labels.
 
 ## Design decisions
 
-- **Command.** `python -m discovery_ingest i18n translate-ui --locale <code>` (new `discovery_ingest/i18n/` module and `cli/i18n/`). It reads the `en` and `de` seed files (`apps/api/scripts/seed_data/translations/`), and translates through the existing `LlmClient` and `NeuronMeter` (`extract/llm/`), batches of about 40 keys, JSON-schema output, using both `en` and `de` as sources plus the key path as context. It is resumable (skips keys already present) so later copy changes only translate the delta.
-- **Glossary** (`i18n/glossary.py` or a data file): fixed renderings for domain terms (for example *Antrag*, *Bürgeramt*, *Nachweis*, the category names) per locale, injected into every prompt and checked after generation.
-- **Validators** (`i18n/validate.py`), each a small pure function: the placeholder set equals the source's; the plural family has every category `Intl.PluralRules` requires for the locale (the command expands `key_one` and `key_other` into the target's forms, for example Russian `one/few/many/other`); no HTML or markdown introduced; length within a sane ratio of the source (flags text that would break layouts); no untranslated copies of the English source unless allow-listed (brand names, codes). Failures trigger one repair request, then are reported and left absent rather than written wrong.
+- **Command.** `python -m discovery_ingest i18n translate-ui --locale <code>` (new `discovery_ingest/i18n/` module and `cli/i18n/`). It reads the `en` and `de` seed files (`apps/api/scripts/seed_data/translations/`), and translates through the translation core from chapter 13 (`discovery_ingest/translation/`: engine, glossary, base validators, `NeuronMeter` metering), in batches of about 40 keys, using both `en` and `de` as sources plus the key path as context. It is resumable (skips keys already present) so later copy changes only translate the delta.
+- **Glossary** (shared with document translation): the core's per-locale glossary (chapter 13) already fixes domain terms such as *Antrag*, *Bürgeramt* and *Nachweis*; this chapter adds the category names and interface terms, so labels and document text use the same words.
+- **Validators** (the core's base validators plus UI-specific ones in `i18n/validate_ui.py`), each a small pure function: the placeholder set equals the source's; the plural family has every category `Intl.PluralRules` requires for the locale (the command expands `key_one` and `key_other` into the target's forms, for example Russian `one/few/many/other`); no HTML or markdown introduced; length within a sane ratio of the source (flags text that would break layouts); no untranslated copies of the English source unless allow-listed (brand names, codes). Failures trigger one repair request, then are reported and left absent rather than written wrong.
 - **Output.** `scripts/seed_data/translations/{tr,ru,uk,pl,ro}.json` (same nested structure as `en.json`), the same files mirrored into `apps/web/src/i18n/fallback/` (the existing parity test ties the two copies), and `scripts/seed_data/translations/review.json`: per locale `status` (`machine` or `reviewed`), `reviewed_by`, `reviewed_on`, model, command version.
 - **Taxonomy labels (D8).** `scripts/seed_data/taxonomy_translations.py` maps category code → `{locale: (name, description)}`; `seed_taxonomy.py` merges it into `name_i18n` / `description_i18n`. The frozen `category_contract_v1.json` is not edited. The same translator and validators produce it. Existing `pick_i18n` serves the right label with the chapter 2 fallback chain.
 - **Enabling is a guarded, explicit step.** `scripts/enable_locale.py <code>` sets `supported_locale.enabled = true` only if the manifest says `reviewed` and the computed completeness is 100; otherwise it refuses with the reason. Seeds never flip `enabled` (chapter 2).
 - **Cost.** A few thousand short strings once; charged to the shared neuron ledger through `NeuronMeter` and recorded in the ledger file. Quota stops end the run cleanly and a re-run continues.
-- **Not in scope but tempting:** machine translation of candidate titles or excerpts, a human review UI, right-to-left support.
+- **Not in scope but tempting:** a human review UI, right-to-left support.
 
 ## Files
 
 | Path | Change |
 | --- | --- |
-| `apps/discovery-ingest/discovery_ingest/i18n/translate.py`, `glossary.py`, `validate.py`, `manifest.py` | Translator, glossary, validators, manifest. |
+| `apps/discovery-ingest/discovery_ingest/i18n/translate_ui.py`, `plural.py`, `validate_ui.py`, `manifest.py` | UI translation flow, plural expansion, UI validators and manifest on top of the chapter 13 core. |
 | `apps/discovery-ingest/discovery_ingest/cli/i18n/` | `translate-ui` command, registered in `cli/main.py`. |
 | `apps/api/scripts/seed_data/translations/{tr,ru,uk,pl,ro}.json`, `review.json` | Generated data and manifest. |
 | `apps/api/scripts/seed_data/taxonomy_translations.py`, `seed_taxonomy.py` | Taxonomy label translations and merge. |
@@ -122,7 +123,7 @@ Record strings translated per locale, validator rejections and repairs, neurons 
 
 ## Out of scope
 
-Translating candidates, excerpts or any document text; machine-translation provenance; Arabic and right-to-left; a review UI; changing English or German copy.
+Translating candidates, excerpts or any document text (chapters 13–15); Arabic and right-to-left; a review UI; changing English or German copy.
 
 ## Git workflow
 

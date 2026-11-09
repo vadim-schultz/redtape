@@ -45,10 +45,10 @@ Make `candidate_search_text` the single, always-current source of text for keywo
   2. then up to `K` best mention excerpts (default 4) ordered by score descending, then mention id, so the order is deterministic;
   3. each excerpt and the whole text are Unicode NFC-normalised, whitespace-collapsed and truncated (about 1500 characters in total, truncating on a word boundary).
   A candidate with no usable text gets no row and no task.
-- The `de` row also stores `tsv_german = to_tsvector('german', unaccent(text))` and `tsv_simple = to_tsvector('simple', unaccent(text))`, computed in SQL on upsert. Only the `de` row is written (D6); `locale` stays in the key.
+- Each row stores `tsv_native` (`to_tsvector(<config for the locale>, unaccent(text))`, `german` for `de`; the locale-to-configuration map `TS_CONFIG_BY_LOCALE` is one constant: `de` german, `en` english, `tr` turkish, `ru` russian, `ro` romanian, `pl` and `uk` simple) and `tsv_simple` (`to_tsvector('simple', unaccent(text))`), both computed in SQL on upsert. The builder is locale-parameterised (`build(candidate, locale)`); this chapter writes only the `de` row, and chapter 16 adds the translated locales through the same code path.
 - `content_hash = sha256(RECIPE_VERSION + "\n" + text)`.
 - **Hooks.** After a candidate upsert or a mention write (`features/discovery`: the candidate emit path in `candidate_emit*.py`, `mention_rows.py`, `candidate_service.py`; confirm the exact call sites by reading the write paths), call `SearchTextService.refresh(candidate_id)` in the same transaction. It is a no-op when the hash is unchanged (no tsvector rewrite, no task).
-- **Enqueue.** If the new hash differs from `candidate_embedding.text_hash` for the configured model (or no embedding exists), upsert an `embedding_task`: insert pending if none open; if an open pending task exists, update its `text_hash` to the new one; if the open task is `claimed`, leave it (the stale result will be rejected and re-enqueued by chapter 5). Idempotent through the partial unique index.
+- **Enqueue.** If the new hash differs from `candidate_embedding.text_hash` for the configured model (or no embedding exists), upsert an `embedding_task` for `(candidate, model, locale)`: insert pending if none open; if an open pending task exists, update its `text_hash` to the new one; if the open task is `claimed`, leave it (the stale result will be rejected and re-enqueued by chapter 5). Idempotent through the partial unique index.
 - **Backfill.** `apps/api/scripts/backfill_search.py`: keyset pagination over candidates by id, batched commits, resumable by a `--after` id, prints counts (written, unchanged, skipped-empty, enqueued). It calls the same `refresh`; it holds no logic of its own.
 - Writing is subject to the existing DB soft-limit (`db_headroom`): the backfill stops with a clear message when the database is at its limit, as machine writes do.
 - No boolean flag parameters in service functions: separate named functions (`refresh`, `refresh_many`) instead.
@@ -115,7 +115,7 @@ Record backfill counts and text-length percentiles (p50, p95) in [../run-ledger.
 
 ## Out of scope
 
-Claiming or storing embeddings, translated or alias text, any query path, document translation.
+Claiming or storing embeddings, translated or alias text (chapter 16), any query path, producing translations (chapters 13–15).
 
 ## Git workflow
 

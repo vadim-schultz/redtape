@@ -48,7 +48,7 @@ Compute embeddings whenever free neurons are available, without the worker ever 
 
 - The embedding queue is not a `discovery_task` kind, so this is a sibling drain beside `worker/drain.py` rather than a new entry in `handler_table.py`. It reuses `DrainPolicy` (`neuron_budget`, `time_budget_seconds`, `max_tasks`, `max_batches`), the stop reasons (`queue_empty`, `batch_limit`, `time_budget`, `llm_budget`, `llm_quota`, `db_limit`, `error`) and the `DrainReport` JSON the workflows already parse.
 - Client: `discovery_ingest/client/embedding_api.py` (methods for the five routes) in the style of the other `*_api.py` modules, over the existing `http_client.py` (`X-API-Key`, scrubbed errors).
-- Embedding: extend chapter 1's `CloudflareEmbeddingClient` with batching to `min(probe batch limit, 50)` and the same `Throttle`. **Documents are embedded raw** (no instruction prefix); the instruction prefix is for queries only (chapter 8).
+- Embedding: extend chapter 1's `CloudflareEmbeddingClient` with batching to `min(probe batch limit, 50)` and the same `Throttle`. **Documents are embedded raw** (no instruction prefix); the instruction prefix is for queries only (chapter 8). Tasks carry a `locale` and the text for that locale (German canonical text now, translated text after chapter 16); the drain treats them identically and posts back by task id.
 - Metering: add the model's price (about 1075 neurons per million input tokens, confirm from the probe and Cloudflare's price page) to `extract/llm/prices.py`. Reserve before each batch through `NeuronMeter`/`ledger_reserve.py` using a conservative token estimate (characters ÷ 3), settle to the reported usage, refund on failure. Output tokens are not billed for embeddings.
 - Per-batch flow: claim → embed → `complete`. Per-item results: `stored` and `stale` need nothing more; `rejected` is logged with the reason. A `LlmQuotaExceeded`-style error or an exhausted reservation raises the stop reason and **releases** the unprocessed tasks so attempts are not burned; a retryable HTTP error fails the batch's tasks as retryable; an auth error stops the drain as infrastructure.
 - CLI: `python -m discovery_ingest embed drain [--max-tasks N --time-budget S --neuron-budget N]` prints one JSON `DrainReport`; exit codes follow the existing convention.
@@ -115,7 +115,7 @@ After merge (operator): set `DISCOVERY_EMBED_SCHEDULE=enabled`, run the chapter 
 
 ## Out of scope
 
-Query embedding (chapter 8), translating text, per-locale embeddings, a Cloudflare-hosted worker runtime.
+Query embedding (chapter 8), producing per-locale text (chapters 13–16), a Cloudflare-hosted worker runtime.
 
 ## Git workflow
 

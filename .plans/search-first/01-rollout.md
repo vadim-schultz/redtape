@@ -1,6 +1,6 @@
 ---
 name: Search-first — Rollout
-overview: "Twelve chapters add pgvector and embedding workers, hybrid RRF search, a centred search bar without sort controls, and a seven-language interface, with a flag-guarded rollout after an offline evaluation."
+overview: "Eighteen chapters add pgvector and embedding workers, hybrid RRF search with a combined confidence score, document translation workers and a translation pop-over, a centred search bar without sort controls, and a seven-language interface, with a flag-guarded rollout after an offline evaluation."
 isProject: false
 ---
 
@@ -13,17 +13,19 @@ isProject: false
 
 ## Invariants
 
-1. Document embeddings are produced only by background drain workers on free neurons, never in a request path.
+1. Document embeddings and document translations are produced only by background workers on free neurons, never in a read path. Only the query embedding runs at request time.
 2. A failing, slow or over-budget query embedder never fails a search: the response degrades to keyword-only with `search_mode: "keyword"`.
-3. Without `q`, results are ordered by confidence descending, always. With `q`, by fused rank with confidence as the tie-break.
+3. Ordering is the combined score (`(1 − w) · relevance + w · confidence`); without `q` it equals the confidence, so browse order is unchanged. An explicit `sort_by` from an API client wins.
 4. Results are deduplicated by one subject id (the candidate id today) so entity resolution can replace it later.
-5. An embedding is stored only if its `text_hash` still matches the candidate's current canonical text; stale results are discarded and re-queued.
-6. Workers never hold `DATABASE_URL`; they use the machine API. The only Cloudflare credential on the API host is a Workers-AI-scoped token for query embedding (decision D1).
-7. Neuron spend (embedding drain, query embedding, translation) is metered against the one shared ledger; a quota stop releases tasks without consuming attempts.
-8. A locale is not served until it is enabled, and is enabled only after a recorded native-speaker review and 100% key coverage.
-9. No chapter translates documents, adds right-to-left support, or implements entity resolution.
-10. The sort controls are removed from the UI only after the API default ordering is pinned to confidence descending.
-11. Every implementation chapter uses red → green → refactor, runs its named narrow checks, then the root `./ci.sh`.
+5. A vector or a translation is stored only if its source hash still matches the current text; stale results are discarded and re-queued.
+6. Workers never hold `DATABASE_URL`; they use the machine API. The only Cloudflare credential on the API host is a Workers-AI-scoped token for query embedding (decision D1, accepted).
+7. Neuron spend (embedding drain, translation drain, query embedding, UI translation) is metered against one shared ledger; a quota stop releases tasks without consuming attempts; the translate drain never takes the ledger below the query-embedding floor.
+8. A locale is not served until it is enabled, and is enabled only after a recorded native-speaker review of its interface strings and 100% key coverage.
+9. Translations are stored once, labelled machine-made, shown only as a secondary pop-over beside the German original, and a human translation is never overwritten by a machine one. No live translation.
+10. The sort controls are removed from the UI only after the API default ordering is pinned to the combined score.
+11. Search storage (search text, embeddings, indexes, translations) stays within the agreed budget; it is estimated in chapter 1, measured in chapters 3 and 16, and re-checked in chapter 18.
+12. Every implementation chapter uses red → green → refactor, runs its named narrow checks, then the root `./ci.sh`.
+13. No chapter adds right-to-left support or implements entity resolution.
 
 ## Dependency graph
 
@@ -37,16 +39,31 @@ flowchart TD
   C3 --> C8[08 hybrid query path]
   C4 --> C8
   C6 --> C8
+  C8 --> C12[12 combined ranking score]
   C2[02 backend locale foundation] --> C7[07 web locale foundation]
   C7 --> C9[09 centred search and sort removal]
+  C12 --> C9
   C8 --> C10[10 results presentation]
   C9 --> C10
+  C3 --> C13[13 translation schema and core]
+  C5 --> C14[14 translation queue and machine API]
+  C13 --> C14
+  C13 --> C15[15 translation drain worker]
+  C14 --> C15
+  C6 --> C16[16 translated text in search and embeddings]
+  C14 --> C16
+  C10 --> C17[17 translation read path and pop-over]
+  C13 --> C17
   C2 --> C11[11 UI and taxonomy-label translation]
   C7 --> C11
-  C10 --> C11
-  C8 --> C12[12 evaluation, tuning and rollout]
-  C10 --> C12
-  C11 --> C12
+  C13 --> C11
+  C17 --> C11
+  C8 --> C18[18 evaluation, tuning and rollout]
+  C10 --> C18
+  C11 --> C18
+  C12 --> C18
+  C16 --> C18
+  C17 --> C18
 ```
 
 ## Scheduling matrix
@@ -56,15 +73,21 @@ flowchart TD
 | C1 | Infra and embedding probe | — | docker-compose, API CI workflow, API settings and test setup, ingest embedding client and probe | chapter-implementer | Probe report + `./ci.sh` | planned |
 | C2 | Backend locale foundation | — | API locale constants, resolution, seed, schemas | chapter-implementer | API tests + `./ci.sh` | planned |
 | C3 | Search schema | C1 | API models, migration | chapter-implementer | Migration round-trip + `./ci.sh` | planned |
-| C4 | Search-text builder, hooks and backfill | C3 | API `features/search`, discovery write paths, scripts | chapter-implementer | API tests + `./ci.sh` | planned |
-| C5 | Embedding task machine API | C4 | API `features/search` machine routes, contract fixture | chapter-implementer | API + contract tests + `./ci.sh` | planned |
+| C4 | Search-text builder, hooks and backfill | C3 | API `features/search`, discovery write hooks, scripts | chapter-implementer | API tests + `./ci.sh` | planned |
+| C5 | Embedding task machine API | C4 | API `features/search` machine routes and leased queue, contract fixture | chapter-implementer | API + contract tests + `./ci.sh` | planned |
 | C6 | Embedding drain worker | C1, C5 | discovery-ingest worker, client, CLI, GHA workflow, ops docs | chapter-implementer | Ingest tests + `./ci.sh` | planned |
 | C7 | Web locale foundation | C2 | web i18n, contexts, formatters, fonts, tests | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
-| C8 | Hybrid query path | C3, C4, C6 | API `features/search`, `features/candidates`, schema, OpenAPI snapshot, web contract fixture | chapter-implementer | API tests + `./ci.sh` | planned |
-| C9 | Centred search and sort removal | C7 | web documents feature, theme token, i18n keys, API default ordering | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
+| C8 | Hybrid query path | C3, C4, C6 | API `features/search` query modules, `features/candidates`, schema, OpenAPI snapshot, web contract fixture | chapter-implementer | API tests + `./ci.sh` | planned |
+| C9 | Centred search and sort removal | C7, C12 | web documents feature, theme token, i18n keys, API default ordering | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
 | C10 | Results presentation | C8, C9 | web documents, shared `ScoreRing`, candidate types and mapper, i18n keys | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
-| C11 | UI and taxonomy-label translation | C2, C7, C10 | discovery-ingest `i18n` command, API seed data, web fallback bundles | chapter-implementer | Validator tests + parity tests + `./ci.sh` | planned |
-| C12 | Evaluation, tuning and rollout | C8, C10, C11 | eval fixtures and script, settings defaults, ops docs, STATUS | chief-of-staff | Eval report + read-only live validation | planned |
+| C11 | UI and taxonomy-label translation | C2, C7, C13, C17 | discovery-ingest `i18n` command, API seed data, web fallback bundles | chapter-implementer | Validator + parity tests + `./ci.sh` | planned |
+| C12 | Combined ranking score | C8 | API `features/search/scoring`, `features/candidates` ordering and schema, OpenAPI snapshot, web contract fixture | chapter-implementer | API tests + `./ci.sh` | planned |
+| C13 | Translation schema and core | C3 | API models, migration, settings; ingest translation core and probe | chapter-implementer | Migration round-trip + probe + `./ci.sh` | planned |
+| C14 | Translation queue and machine API | C5, C13 | API `features/translation`, discovery write hooks, scripts, contract fixture | chapter-implementer | API + contract tests + `./ci.sh` | planned |
+| C15 | Translation drain worker | C13, C14 | discovery-ingest worker, client, CLI, GHA workflow, ops docs | chapter-implementer | Ingest tests + `./ci.sh` | planned |
+| C16 | Translated text in search text and embedding tasks | C6, C14 | API `features/search` builder and enqueue, settings, scripts | chapter-implementer | API tests + `./ci.sh` | planned |
+| C17 | Translation read path and pop-over | C10, C13 | API `features/candidates` read path and schema; web documents and candidates, i18n keys | chapter-implementer | API + Vitest + typecheck/build + `./ci.sh` | planned |
+| C18 | Evaluation, tuning and rollout | C8, C10, C11, C12, C16, C17 | eval fixtures and script, settings defaults, ops docs, STATUS | chief-of-staff | Eval report + read-only live validation | planned |
 
 ## Parallel batches
 
@@ -72,21 +95,24 @@ flowchart TD
 | --- | --- | --- |
 | B1 | C1, C2 | C1 owns infra, settings and the ingest embedding client; C2 owns locale code and seeds. No shared files (C1 edits `config.py`; C2 does not). |
 | B2 | C3, C7 | C3 is API models and a migration; C7 is web i18n and fonts. Disjoint apps. |
-| B3 | C4, C9 | C4 is API `features/search` and discovery write hooks; C9 is the web documents feature. C9 depends on C7 because both edit the web i18n bundles and `fallback/index.ts`. |
-| B4 | C5 | Machine routes build on the builder's enqueue contract from C4. |
-| B5 | C6 | Needs the claim/complete contract from C5. |
-| B6 | C8 | Needs vectors from C6 to validate against and the schema/builder from C3/C4. |
-| B7 | C10 | Needs the API fields from C8 and the cleared documents UI from C9. |
-| B8 | C11 | Translates final copy; runs after C10 so no UI key changes afterwards. |
-| B9 | C12 | Evaluation and rollout need everything. |
+| B3 | C4, C13 | C4 is API `features/search` and discovery write hooks; C13 is API models plus a second migration (after C3's) and the ingest translation core. Merge C3's migration first so there is a single head. |
+| B4 | C5 | Machine routes and the generic leased queue build on the builder's enqueue contract from C4; C14 reuses that queue. |
+| B5 | C6, C14 | C6 is the ingest embed drain; C14 is API translation routes. Different apps. Both regenerate or extend the machine contract only in their own sections; merge sequentially. |
+| B6 | C8, C15, C16 | C8 adds query modules and edits the candidates feature; C15 is ingest only; C16 edits the search builder and enqueue. C8 and C16 share `features/search` and `config.py`: merge in dependency order (C16 after C8 if they conflict). |
+| B7 | C12 | The scoring module and ordering sit on C8's fused relation. |
+| B8 | C9 | Needs C12's default ordering and C7's locale plumbing (both edit web i18n bundles). |
+| B9 | C10 | Needs the API fields from C8 and C12 and the cleared documents UI from C9. |
+| B10 | C17 | Needs C10's card layout and C13's tables; API and web in one chapter because the contract is small. |
+| B11 | C11 | Translates final copy; runs after C17 so no UI key changes afterwards; uses the C13 translation core. |
+| B12 | C18 | Evaluation and rollout need everything. |
 
-If two chapters in a batch must touch a shared file (`config.py`, an i18n bundle, `openapi.schemas.json`), the loop branch merges them sequentially in dependency order.
+If two chapters in a batch must touch a shared file (`config.py`, an i18n bundle, `openapi.schemas.json`, the machine contract fixture), the loop branch merges them sequentially in dependency order.
 
 ## Integration order and critical path
 
-`C1 → C2 → C3 → C7 → C4 → C9 → C5 → C6 → C8 → C10 → C11 → C12`
+`C1 → C2 → C3 → C7 → C4 → C13 → C5 → C6 → C14 → C8 → C15 → C16 → C12 → C9 → C10 → C17 → C11 → C18`
 
-The critical path for the search capability is `C1 → C3 → C4 → C5 → C6 → C8 → C10 → C12`. The i18n track (`C2 → C7`) and the UI shell (`C9`) run beside it. C11 is last before C12 because any copy added by C9 and C10 must exist before strings are translated.
+The critical path is `C1 → C3 → C4 → C5 → C6 → C8 → C12 → C9 → C10 → C17 → C11 → C18`. The translation track (`C13 → C14 → C15/C16`) runs beside the search track and feeds the evaluation. C11 is last before C18 because any copy added by C9, C10 and C17 must exist before strings are translated.
 
 ## Per-chapter gates
 
@@ -105,19 +131,27 @@ Each chapter must:
 | Action | Needed by | Where recorded |
 | --- | --- | --- |
 | Confirm `vector` is available on Supabase (`select * from pg_available_extensions where name = 'vector'`) and enable it; record the pgvector version | C1 gate, before C3 deploys | run ledger |
-| Create a Workers-AI-only API token, store it as a Render secret for query embedding (D1), and as the GHA secret the embed drain uses | C6 (drain) and C8 (query) | run ledger |
-| Set the repo variable `DISCOVERY_EMBED_SCHEDULE=enabled` | after C6 is merged and backfill ran | run ledger |
-| Native-speaker review of each new locale's UI strings and taxonomy labels, recorded in the review manifest | C11, before any locale is enabled | run ledger |
-| Run the backfill, then the embed drain until the queue is empty; then set `SEARCH_HYBRID_ENABLED=true` | C12 | run ledger |
+| Create a Workers-AI-only API token; store it as a Render secret for query embedding (D1) and as the GHA secret the embed and translate drains use | C6, C15 (drains), C8 (query) | run ledger |
+| Review the translation probe sample sheets with native speakers and confirm the engine decision | C13 gate | run ledger |
+| Set the repo variables `DISCOVERY_EMBED_SCHEDULE=enabled` and `DISCOVERY_TRANSLATE_SCHEDULE=enabled` | after C6 / C15 are merged and backfills ran | run ledger |
+| Native-speaker review of each new locale's interface strings and taxonomy labels, recorded in the review manifest | C11, before any locale is enabled | run ledger |
+| Run the backfills and drains in the order given in C18, then set `SEARCH_HYBRID_ENABLED=true` | C18 | run ledger |
 
 ## Data checkpoints
 
 Before C8 is enabled in an environment:
 
 - `candidate_search_text` has a `de` row for every candidate that has a title;
-- `candidate_embedding` covers at least 99% of candidates at the current hash, and the stale count is recorded;
+- `candidate_embedding` covers at least 99% of candidates at the current hash for each embedded locale, and the stale count is recorded;
 - the HNSW index exists and `EXPLAIN` shows it used for the vector leg;
-- the evaluation report (C12) shows hybrid at least matching keyword on German queries.
+- search storage is within budget;
+- the evaluation report (C18) shows hybrid at least matching keyword on German queries.
+
+Before translations are served or searched:
+
+- the chapter 13 probe has been reviewed and the engine decision recorded;
+- translated candidates per locale and the validator failure rate are recorded;
+- no `human` row was overwritten (checked by a query in the ledger).
 
 Before any new locale is enabled:
 
@@ -129,10 +163,10 @@ Before any new locale is enabled:
 
 The documentation suite lands first on a docs branch (`docs/search-first-plan-suite`). Each implementation chapter branches from the loop branch `feat/plans-search-first` and opens one PR into it. Use conventional commits and never commit directly to `main`.
 
-The release branch may merge to `main` only after C1–C11 are green and merged. C12 records the evaluation and the controlled enablement; the flag `SEARCH_HYBRID_ENABLED` stays `false` in `main` until C12's gate passes.
+The release branch may merge to `main` only after C1–C17 are green and merged. C18 records the evaluation and the controlled enablement; the flag `SEARCH_HYBRID_ENABLED` stays `false` in `main` until C18's gate passes.
 
 `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror; revert that file before committing, as in the previous suites. C1 adds a new API dependency, so commit its `uv.lock` change from a clean resolve.
 
 ## Out of scope
 
-This rollout does not include translating documents, Arabic or right-to-left layout, entity resolution, searching the dormant `document` table, per-language embeddings (unless C12 shows they are needed), or a separate search service.
+This rollout does not include Arabic or right-to-left layout, entity resolution, searching the dormant `document` table, live translation, translating every mention excerpt, or a separate search service.

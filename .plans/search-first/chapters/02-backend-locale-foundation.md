@@ -112,7 +112,7 @@ Record the seeded locale rows and the computed completeness values in [../run-le
 
 ## Out of scope
 
-Web changes, translating any strings, enabling a locale, document translation, right-to-left support.
+Web changes, translating any strings (chapter 11), enabling a locale, document translation (chapters 13 to 15), right-to-left support.
 
 ## Git workflow
 
