@@ -28,7 +28,9 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 
 API_ROOT = Path(__file__).resolve().parent.parent
+CURRENT_HEAD = "20261105_retire_legacy_taxonomy"
 PRE_RETIREMENT = "20261104_category_backfill"
+PRE_CATEGORY_SCHEMA = "20261104_document_normalized_url"
 ARCHIVE = "legacy_taxonomy_archive"
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost"})
 RETIRED_TABLES = ("domain", "life_situation_group", "life_situation", "document_domain", "document_life_situation")
@@ -211,6 +213,24 @@ def _seed_extra_domain(connection: Connection, document_id: uuid.UUID, code: str
     )
 
 
+def _prepare_unstamped_canonical_schema(database_url: str) -> None:
+    """Create the canonical schema, then restore the Alembic stamp before testing adoption."""
+    assert _alembic(database_url, "downgrade", PRE_CATEGORY_SCHEMA).returncode == 0
+    assert _alembic(database_url, "upgrade", "20261104_category_schema").returncode == 0
+    with _connect(database_url) as connection:
+        connection.execute(
+            sa.text("UPDATE alembic_version SET version_num = :version"),
+            {"version": PRE_CATEGORY_SCHEMA},
+        )
+
+
+def _prepare_partial_canonical_schema(database_url: str) -> None:
+    """Create one canonical table without its companion tables to test drift rejection."""
+    assert _alembic(database_url, "downgrade", PRE_CATEGORY_SCHEMA).returncode == 0
+    with _connect(database_url) as connection:
+        connection.execute(sa.text("CREATE TABLE category (id uuid PRIMARY KEY)"))
+
+
 def _checksum(connection: Connection, select_sql: str) -> tuple[int, str]:
     """Return ``(row_count, content_checksum)`` for the rows of ``select_sql``, independent of row order."""
     row = connection.execute(sa.text(CHECKSUM_SQL.format(select=select_sql))).one()
@@ -271,6 +291,35 @@ def _mention_categories(connection: Connection, mention_id: uuid.UUID) -> tuple[
         {"id": mention_id},
     ).one()
     return list(row.category_codes), float(row.direct_category_confidence)
+
+
+def test_upgrade_adopts_an_existing_empty_canonical_schema(pre_retirement_db: str) -> None:
+    """Migration · adopt an exact empty canonical schema left behind with an older Alembic stamp."""
+    _prepare_unstamped_canonical_schema(pre_retirement_db)
+
+    result = _alembic(pre_retirement_db, "upgrade", "head")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    with _connect(pre_retirement_db) as connection:
+        assert connection.execute(sa.text("SELECT count(*) FROM category")).scalar_one() == 34
+        assert connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar_one() == CURRENT_HEAD
+        assert not any(_table_exists(connection, table) for table in RETIRED_TABLES)
+
+
+def test_upgrade_rejects_a_partial_canonical_schema(pre_retirement_db: str) -> None:
+    """Migration · reject a partial canonical schema instead of creating through unexplained drift."""
+    _prepare_partial_canonical_schema(pre_retirement_db)
+
+    result = _alembic(pre_retirement_db, "upgrade", "head")
+
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "canonical taxonomy schema drift" in output
+    with _connect(pre_retirement_db) as connection:
+        assert (
+            connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar_one() == PRE_CATEGORY_SCHEMA
+        )
+        assert all(_table_exists(connection, table) for table in RETIRED_TABLES)
 
 
 def test_retirement_archives_verifies_projects_and_drops_the_legacy_tables(pre_retirement_db: str) -> None:

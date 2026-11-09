@@ -9,11 +9,12 @@ The following backfill revision is forward-only at the data level; downgrading t
 revision removes only the additive target projection.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import Connection
 
 revision: str = "20261104_category_schema"
 down_revision: str | None = "20261104_document_normalized_url"
@@ -21,10 +22,87 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 CODE_PATTERN = r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+CANONICAL_TABLE_COLUMNS: dict[str, frozenset[str]] = {
+    "category": frozenset(
+        {"id", "parent_id", "code", "name_i18n", "description_i18n", "icon", "sort_order", "is_active"}
+    ),
+    "category_external_mapping": frozenset(
+        {
+            "id",
+            "category_id",
+            "source",
+            "external_level",
+            "external_code",
+            "source_version",
+            "mapping_confidence",
+            "mapping_state",
+            "reason",
+        }
+    ),
+    "document_category": frozenset({"document_id", "category_id", "confidence", "source", "provenance"}),
+    "document_external_classification": frozenset(
+        {
+            "id",
+            "document_id",
+            "source",
+            "external_level",
+            "external_code",
+            "source_version",
+            "source_label",
+            "source_path",
+            "captured_at",
+        }
+    ),
+}
 
 
 def upgrade() -> None:
     """Create the additive canonical taxonomy schema."""
+    bind = op.get_bind()
+    state = _canonical_schema_state(bind)
+    if state == "absent":
+        _create_canonical_schema()
+        return
+    if state == "adoptable":
+        return
+    raise RuntimeError(
+        "canonical taxonomy schema drift: expected no pre-existing canonical tables "
+        f"or an exact empty schema, got {state}"
+    )
+
+
+def _canonical_schema_state(bind: Connection) -> str:
+    """Classify pre-existing canonical tables before the expand migration runs."""
+    inspector = sa.inspect(bind)
+    expected_tables = set(CANONICAL_TABLE_COLUMNS)
+    existing_tables = {table for table in expected_tables if inspector.has_table(table)}
+    checks: tuple[tuple[str, Callable[[], bool]], ...] = (
+        ("absent", lambda: not existing_tables),
+        ("partial", lambda: existing_tables != expected_tables),
+        ("column drift", lambda: _has_column_drift(inspector)),
+        ("non-empty", lambda: _has_rows(bind)),
+    )
+    return next((state for state, check in checks if check()), "adoptable")
+
+
+def _has_column_drift(inspector: sa.Inspector) -> bool:
+    """Return whether an existing canonical table has an unexpected column set."""
+    return any(
+        {column["name"] for column in inspector.get_columns(table)} != expected_columns
+        for table, expected_columns in CANONICAL_TABLE_COLUMNS.items()
+    )
+
+
+def _has_rows(bind: Connection) -> bool:
+    """Return whether an existing canonical table contains data that this migration did not create."""
+    return any(
+        bind.execute(sa.text(f"SELECT 1 FROM {table} LIMIT 1")).first() is not None
+        for table in CANONICAL_TABLE_COLUMNS
+    )
+
+
+def _create_canonical_schema() -> None:
+    """Create the additive canonical taxonomy schema on a fresh database."""
     op.create_table(
         "category",
         sa.Column("id", sa.Uuid(as_uuid=True), primary_key=True),

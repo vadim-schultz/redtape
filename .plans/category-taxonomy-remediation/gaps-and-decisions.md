@@ -22,6 +22,9 @@ This file records decisions that chapters must consume. A chapter may add a deci
 | D-R11 | **C4 scope (2026-11-06, user).** The touch set is widened to the crosswalk consumers. The legacy crosswalk is served from the machine response until C7 removes it. | Accepted by user | C4 is integrated. C7 must also remove the legacy crosswalk from the machine response, which is a new API touch for C7. |
 | D-R12 | **`accepted_on` (2026-11-06, user).** The 32 leaves that were already `mapped` get `accepted_on` `2026-11-06`. | Accepted by user | C9 is integrated. The date is not persisted (DD4), and it is observed only. |
 | D-R13 | **Leaves `1040100` and `1060700` (2026-11-06, user).** Keep the current targets (`education-and-training`, `death-and-estate`). They are exempt from the harvest-evidence assertion by name. | Accepted by user | C9 is integrated. A later harvest path for either leaf needs its own decision. |
+| D-R14 | **Canonical schema drift (2026-11-09).** Production contains the exact empty canonical taxonomy tables and indexes while `alembic_version` remains at `20261104_document_normalized_url`. | Accepted for the release candidate | The expand migration adopts only that exact empty schema and rejects partial, column-drifted, or non-empty pre-existing tables. |
+
+**D-R14 detail:** The drift affects the expand migration and the production startup path. The release candidate now adopts the exact empty objects so the backfill and retirement revisions can continue; any unexpected shape or existing data aborts before mutation. The existing downgrade remains the rollback boundary for the additive schema and drops the adopted tables, which are empty at this gate.
 
 ## Open decisions
 
@@ -36,7 +39,7 @@ This file records decisions that chapters must consume. A chapter may add a deci
 
 - **Required:** a named owner for `legacy_taxonomy_archive` and a date after which the archive schema may be dropped.
 - **Who decides:** the user. Chapter 12 records both values. Chapter 13 confirms them against the release candidate.
-- **Until then:** the archive is kept. No drop is scheduled.
+- **Decision (2026-11-09):** owner `punasika`; drop date `2026-11-16`. The archive is kept until that date.
 
 ### PR 369 merge (pre-flight)
 

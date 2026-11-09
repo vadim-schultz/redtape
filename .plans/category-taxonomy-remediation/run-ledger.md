@@ -15,9 +15,9 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 - **Integration order:** C0, C1, C2, C4, C6, C9, C8, C7, C3, C11, C5, C10, C12, C13, C14
 - **Parallel batches:** B0 = C0 (C8 at any time before C7); B1 = C1, C6 (C5 when unblocked); B2 = C2, C4, C9; B3 = C3, C7, C11, C5; B4 = C10; B5 = C12; B6 = C13; B7 = C14
 - **Environment:** corporate build block, [corporate-build-env.md](../../.cursor/skills/chief-of-staff/corporate-build-env.md), passed to every implementer. `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate mirror. Revert that file before committing.
-- **Status:** in progress. Integrated on the loop: C0, C1, C2, C3, C4, C5, C9. The loop tip is `51cc760`. The loop CI after C3 is running.
-- **Running:** C6 follow-up commit (approved touch extension, see the C6 section). C11 (`.worktrees/ct-c11`, from `d12da5f`).
-- **Blocked:** C7 (waits on C8's payload evidence, which needs a database path from a machine that can reach Supabase). C10, C12, and C13 depend on C7 or on production access. C14 needs user approval.
+- **Status:** in progress. C0 through C12 are integrated on the loop; the current local tip is `48dbba2`.
+- **Running:** none.
+- **Blocked:** C13 cannot complete because the production database connection is unreachable from this environment. C14 also awaits the archive owner/drop date, C13 evidence, and explicit user approval before any merge.
 - **Worktree location:** `.worktrees/ct-cN`, not `.claude/worktrees/`. Reason: each worktree's Python venv holds about 1,980 `*.json` files, and the sandbox deny-glob `**/.claude/*.json` pushed the mount count past its 4,096 limit. Finished worktrees were removed with user approval, and their branches were kept.
 - **Isolation:** each implementer gets a worktree `.claude/worktrees/ct-cN` on branch `feat/ct-remediation-cN`, created from the loop branch tip. Chief of staff integrates with `git merge --no-ff` in the declared integration order. Implementers never push or merge to the loop branch.
 - **CI serialization:** `flock .git/redtape-ci.lock ./ci.sh` for every full local CI run, because all worktrees share the Postgres container and the `redtape_migrations` database.
@@ -32,10 +32,10 @@ Chapter PRs and chapter commits integrate into the loop branch only. Chapter imp
 | PR 369 merged with a merge commit | Merge commit SHA on `main` | Met. Merge commit `eafd8e85d0d0e884d1042f69162f01f8cf3852ac` (parents `a5322d4` and `ce70420`), merged 2026-11-06T08:17:20Z. The loop branch merged `origin/main` at `855fb77` (no content change; identical tree). |
 | Loop branch `./ci.sh` before C0 | Exit code and failing test names (expected: the seeded round-trip test in C0 scope) | Baseline on `855fb77`: API pytest 1482 passed, 30 skipped. The round-trip test passes here because the developer `redtape` database is seeded, so the C0 failure does not reproduce on this database. Web and discovery-ingest steps: see the final result row below. |
 | Baseline final `./ci.sh` exit code | Exit code | `./ci.sh` on `855fb77` exited 0: API 1482 passed and 30 skipped; migration round trip passed; web checks passed; discovery-skill checks passed; discovery-ingest 1789 passed. |
-| Production alembic revision | Revision ID; expected to be the revision before `20261105_retire_legacy_taxonomy` (see C13) | pending (C13) |
-| Archive owner and drop date | Name and date supplied by the user | pending (C12 records, C13 confirms) |
+| Production alembic revision | Revision ID; expected to be the revision before `20261105_retire_legacy_taxonomy` (see C13) | `20261104_document_normalized_url` (SQL editor, 2026-11-09). Canonical schema objects exist separately but are empty and unstamped; D-R14 and the migration guard cover this drift. |
+| Archive owner and drop date | Name and date supplied by the user | Owner `punasika`; drop date `2026-11-16` (user decision on 2026-11-09; C13 must confirm against the release candidate) |
 | D-R4 completeness decision | Choice (four or five flags) and the user's confirmation | Four flags, confirmed by the user on 2026-11-06. C5 is unblocked. |
-| Worker runs send category codes only | Run IDs, versions, and the codes they send (read-only) | pending (C8) |
+| Worker runs send category codes only | Run IDs, versions, and the codes they send (read-only) | No legacy mentions after `2026-11-06 12:23:46.044453+00`; no `llm_extract` claims after that timestamp. Three stale zero-claim runs from 2026-10-28 remain open and need operational cleanup. |
 | Web bundle versions on the new contract | Bundle version and the boundary date for 404 or 422 | pending (C8) |
 
 ## Baseline (preflight output, read-only)
@@ -44,14 +44,14 @@ These rows come from `retirement_preflight` (C3) run against the release candida
 
 | Measure | Source table or scope | Recorded |
 | --- | --- | --- |
-| Row count per legacy table (`domain`, `life_situation_group`, `life_situation`, document link tables) | Each table | pending |
-| Content checksum per legacy table | Each table | pending |
-| Mention axis counts (`domain_codes`, `situation_codes`) | Mention rows | pending |
-| Backfill dry-run: unmapped rows | Backfill report | pending |
-| Backfill dry-run: ambiguous rows | Backfill report | pending |
-| Backfill dry-run: conflict rows | Backfill report | pending |
-| Backfill dry-run: null confidence | Backfill report | pending |
-| Promotions run after C2 | Promotion-written `document_category` rows (`source='promotion'`) | pending |
+| Row count per legacy table (`domain`, `life_situation_group`, `life_situation`, document link tables) | Each table | `domain=13`, `life_situation_group=8`, `life_situation=18`, `document_domain=0`, `document_life_situation=0`; mention axes=6106. |
+| Content checksum per legacy table | Each table | `domain=801bce21a0c2a32b91ab6d1b337e70a6`, `life_situation_group=88351575479b2321a06176c2a440b49c`, `life_situation=8438a9312750b7f32c812c2220f0e996`, `document_domain=''`, `document_life_situation=''`, mention axes=`dd8182ac4410ae3885d8827364cd774c`. |
+| Mention axis counts (`domain_codes`, `situation_codes`) | Mention rows | 293 LLM mentions (`251` with domain, `135` with situation), 5 manual mentions (both axes), 5808 PVOG mentions (neither axis). The axis values occur on 256 rows: 140 with both axes and 116 domain-only; all 256 lack direct confidence. |
+| Backfill dry-run: unmapped rows | Backfill report | 0: document legacy link tables are empty; all observed mention values map through the frozen crosswalk. |
+| Backfill dry-run: ambiguous rows | Backfill report | 0: document legacy link tables are empty; no observed crosswalk value is in a non-mapped state. |
+| Backfill dry-run: conflict rows | Backfill report | 0: document legacy link tables are empty; no duplicate crosswalk value was observed. |
+| Backfill dry-run: null confidence | Backfill report | 0 for legacy document links. The 256 mention rows have null direct axis confidence; projection preserves that as an observation and does not gate the document-link backfill. |
+| Promotions run after C2 | Promotion-written `document_category` rows (`source='promotion'`) | 0: `document_category` exists but is empty. |
 
 ## Chapter evidence
 
@@ -315,7 +315,9 @@ These checks are read-only or release steps. The chief of staff performs them. N
 - [ ] Archive owner and drop date recorded.
 - [ ] No writes. No `pg_dump`. The free tier has no backups.
 
-Status: planned.
+- Read-only attempt on 2026-11-09: `apps/api/scripts/retirement_preflight.py` was started with the production `.env`, produced no report, and was stopped after the database connection remained unreachable for more than four minutes. No migration or other write ran.
+- SQL-editor equivalent on 2026-11-09 supplied the complete evidence above. It found the exact empty canonical schema, three stale zero-claim runs from 2026-10-28, and no legacy writes or LLM claims after the final drain timestamp. The canonical schema drift is covered by D-R14 and the guarded migration tests.
+- Status: **partial**. The production evidence is complete and the archive owner/drop date is recorded; the release candidate still needs to be deployed or otherwise exercised against this exact database state before C14.
 
 ### C14 — Release gate and PR
 
@@ -325,7 +327,8 @@ Status: planned.
 - [ ] User approval recorded before merge.
 - [ ] Release recorded here.
 
-Status: planned.
+- Local full CI on 2026-11-09 after D-R14 guard: passed. API 1519 passed and 25 skipped; migrations, web, discovery-skill, and discovery-ingest checks passed, with 1818 ingest tests passed.
+- Status: **blocked** on the release-candidate production exercise, release/deploy-path review, and explicit user approval. No PR update or merge was performed.
 
 ## Decisions log (2026-11-06, user and chief of staff)
 
