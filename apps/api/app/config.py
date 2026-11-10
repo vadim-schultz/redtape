@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     embedding_dim: int = Field(
         default=1024,
         gt=0,
-        description="Output dimension of the embedding model (chapter 1 probe); fixes the `vector(N)` column width.",
+        description="Native output dimension of the model (chapter 1 probe); fixes the `halfvec(N)` width. The model ignores `dimensions`.",
     )
     search_hybrid_enabled: bool = Field(
         default=False,

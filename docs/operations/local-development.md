@@ -121,6 +121,8 @@ API talks to must offer `vector` (and the contrib extension `unaccent`):
   `dimensions` parameter honours, the largest accepted batch, latency, tokens and neurons. It calls Workers AI
   outside the neuron ledger, so it counts against the account's free allocation but not the budget table; a full run
   costs a few neurons. The report fixes `EMBEDDING_DIM` (API setting) and the column type for the search schema.
+  The recorded run: dimension 1024, the model ignores `dimensions` (no reduced size is available), batches up to 256
+  accepted; so `EMBEDDING_DIM=1024` with a `halfvec(1024)` column.
 
 The new API settings (`EMBEDDING_MODEL`, `EMBEDDING_DIM`, `SEARCH_HYBRID_ENABLED`, `RRF_K`, `SEARCH_TOP_N`,
 `SEARCH_FUSED_TOP_K`, `SEARCH_MIN_SIMILARITY`, `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`,
