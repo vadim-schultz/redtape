@@ -1,0 +1,8 @@
+usage: discovery_ingest embed [-h] {probe} ...
+
+positional arguments:
+  {probe}
+    probe     Probe the embedding model and print one JSON report
+
+options:
+  -h, --help  show this help message and exit

@@ -21,6 +21,7 @@ from tests.crawlers_docs_support import (
     SCHEDULED_JOBS,
     WORKFLOWS,
     missing_terms,
+    other_cloudflare_settings,
     read,
     unqualified_lines,
 )
@@ -83,7 +84,7 @@ def test_storage_credentials_stay_out_of_render_yaml_and_the_drain_workflows() -
 
 
 def test_crawl_docs_document_the_cloudflare_browser_budget_the_release_on_limit_rule_and_the_token_scope() -> None:
-    """Browser limits release tasks, and the Cloudflare token is deliberately not a Render variable."""
+    """Browser limits release tasks, and the Browser Run token is deliberately not a Render variable or an API setting."""
     assert not missing_terms(
         DISCOVERY_ONLINE,
         (
@@ -99,7 +100,7 @@ def test_crawl_docs_document_the_cloudflare_browser_budget_the_release_on_limit_
     checklist = read(DEPLOYMENT_CHECKLIST)
     assert "CLOUDFLARE_BROWSER_API_TOKEN" in checklist
     assert "not a Render variable" in checklist
-    assert "cloudflare" not in " ".join(Settings.model_fields)
+    assert not other_cloudflare_settings()
     assert "CLOUDFLARE" not in read(RENDER_YAML)
 
 

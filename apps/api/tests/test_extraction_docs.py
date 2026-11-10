@@ -6,7 +6,7 @@ import re
 
 import pytest
 from app.config import Settings
-from tests.crawlers_docs_support import unqualified_lines
+from tests.crawlers_docs_support import other_cloudflare_settings, unqualified_lines
 from tests.extraction_docs_support import (
     CHECKLIST,
     DEPLOYMENT_CHECKLIST,
@@ -86,13 +86,13 @@ def test_extraction_docs_state_that_nothing_is_emitted_automatically_and_that_ed
 
 
 def test_extraction_docs_state_that_the_workers_ai_token_is_not_a_render_variable_and_the_plan_stays_free() -> None:
-    """The token never reaches Render or the API, and the account stays on Workers Free."""
+    """The token is not a Render variable yet (search-first D1 lifts that for query embedding) and the plan stays free."""
     checklist = squashed(DEPLOYMENT_CHECKLIST)
     assert "CLOUDFLARE_AI_API_TOKEN" in checklist and "**not a Render variable**" in checklist
     assert "Workers **Free**" in checklist and "Workers Paid" in checklist
     assert "BUDGET_NEURONS_DAILY" in checklist and "an API variable" in checklist
     assert "CLOUDFLARE" not in read(REPO_ROOT / "render.yaml")
-    assert "cloudflare" not in " ".join(Settings.model_fields)
+    assert not other_cloudflare_settings()
     assert not missing(CHECKLIST, ("Workers Free", "Do not upgrade to Workers Paid", "OP3"))
 
 

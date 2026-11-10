@@ -93,6 +93,45 @@ class Settings(BaseSettings):
         description="Database size above which machine write routes answer 507: 95 percent of the 500 MB read-only limit.",
     )
 
+    embedding_model: str = Field(
+        default="@cf/qwen/qwen3-embedding-0.6b",
+        description="Workers AI embedding model; documents and queries must use the same one.",
+    )
+    embedding_dim: int = Field(
+        default=1024,
+        gt=0,
+        description="Native output dimension of the model (chapter 1 probe); fixes the `halfvec(N)` width. The model ignores `dimensions`.",
+    )
+    search_hybrid_enabled: bool = Field(
+        default=False,
+        description="Serve hybrid (full-text + vector) search; off keeps keyword-only search.",
+    )
+    rrf_k: int = Field(default=60, gt=0, description="Reciprocal Rank Fusion constant `k` in `1 / (k + rank)`.")
+    search_top_n: int = Field(default=50, gt=0, description="Candidates each search leg (keyword, vector) returns.")
+    search_fused_top_k: int = Field(default=100, gt=0, description="Candidates kept after fusing the two legs.")
+    search_min_similarity: float = Field(
+        default=0.3,
+        ge=0,
+        le=1,
+        description="Minimum cosine similarity (0..1) for a vector-leg hit; tuned in the search evaluation.",
+    )
+    query_embed_timeout_s: float = Field(
+        default=1.2,
+        gt=0,
+        description="Hard timeout in seconds for embedding one query; on expiry search degrades to keyword-only.",
+    )
+    query_embed_cache_size: int = Field(
+        default=512, ge=0, description="Entries of the in-process query-embedding cache; 0 disables it."
+    )
+    cloudflare_account_id: str = Field(
+        default="", description="Cloudflare account id for query embedding; empty disables the query embedder."
+    )
+    cloudflare_ai_api_token: str = Field(
+        default="",
+        repr=False,
+        description="Workers-AI-scoped token for query embedding; empty means search degrades to keyword-only.",
+    )
+
     @property
     def auth_enabled(self) -> bool:
         """Return whether JWT auth is on: both the Supabase JWKS URL and issuer are set."""
