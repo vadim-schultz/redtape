@@ -36,6 +36,7 @@ from app.models.taxonomy import (
     CategoryExternalMapping,
     DocumentExternalClassification,
 )
+from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
 from app.models.user import AppUser, UserRole
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "Base",
     "CandidateEmbedding",
     "CandidateSearchText",
+    "CandidateTranslation",
     "CatalogueService",
     "Category",
     "CategoryExternalMapping",
@@ -73,6 +75,8 @@ __all__ = [
     "SuggestionStatus",
     "SuggestionVote",
     "SupportedLocale",
+    "TranslationSource",
+    "TranslationTask",
     "UITranslation",
     "UserRole",
     "WorkTaskStatus",

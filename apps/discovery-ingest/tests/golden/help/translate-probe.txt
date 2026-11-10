@@ -1,0 +1,14 @@
+usage: discovery_ingest translate probe [-h] --locale LOCALE [--sample SAMPLE] [--engine ENGINE] [--model MODEL]
+                                        [--sheet SHEET] [--max-usage MAX_USAGE] [--daily-budget DAILY_BUDGET]
+
+options:
+  -h, --help            show this help message and exit
+  --locale LOCALE       Target locale code, for example tr
+  --sample SAMPLE       Real candidates to translate
+  --engine ENGINE       A registered engine (default TRANSLATION_ENGINE)
+  --model MODEL         Model override for the engine
+  --sheet SHEET         Spot-check sheet (CSV); default translation-probe/<engine>-<locale>.csv
+  --max-usage MAX_USAGE
+                        Stop after this much usage (neurons or characters)
+  --daily-budget DAILY_BUDGET
+                        Neurons a day for translation, for the days projection

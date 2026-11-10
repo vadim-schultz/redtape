@@ -28,6 +28,9 @@ dev = [
 where = ["."]
 include = ["discovery_ingest*"]
 
+[tool.setuptools.package-data]
+discovery_ingest = ["translation/glossary_data/*.json"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 120

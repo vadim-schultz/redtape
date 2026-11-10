@@ -1,0 +1,8 @@
+usage: discovery_ingest translate [-h] {probe} ...
+
+positional arguments:
+  {probe}
+    probe     Translate a fixed sample of the public candidates and print one JSON report (nothing is stored)
+
+options:
+  -h, --help  show this help message and exit

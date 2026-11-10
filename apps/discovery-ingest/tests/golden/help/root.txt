@@ -1,9 +1,9 @@
 usage: discovery_ingest [-h]
-                        {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture,embed}
+                        {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture,embed,translate}
                         ...
 
 positional arguments:
-  {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture,embed}
+  {govdata,pvog,fim,leika,worker,candidates,budget,browser,llm,artifacts,capture,embed,translate}
     govdata             GovData OZG catalogue ingest
     pvog                PVOG Suchdienst catalogue ingest
     fim                 FIM Portal enrich
@@ -16,6 +16,7 @@ positional arguments:
     artifacts           Stored page snapshots and screenshots
     capture             Screenshots of the pages candidates were found on
     embed               Workers AI embeddings
+    translate           Document translation engines
 
 options:
   -h, --help            show this help message and exit

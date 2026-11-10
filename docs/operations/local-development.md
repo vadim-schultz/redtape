@@ -124,6 +124,15 @@ API talks to must offer `vector` (and the contrib extension `unaccent`):
   The recorded run: dimension 1024, the model ignores `dimensions` (no reduced size is available), batches up to 256
   accepted; so `EMBEDDING_DIM=1024` with a `halfvec(1024)` column.
 
+- **Translation probe**: `python -m discovery_ingest translate probe --locale <code> --sample 50 --engine llm` (run
+  from `apps/discovery-ingest`; needs `DISCOVERY_API_URL`, which it only reads the public candidate list from,
+  plus `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN`) translates a fixed, reproducible sample of the real cards
+  (German title and card description) with the chosen engine, validates every result and prints one JSON report: pass
+  rate per check, usage per unit in the engine's own unit, latency, and the projected usage and days for the whole
+  corpus. It writes nothing to a database; the spot-check sheet for native speakers lands in
+  `translation-probe/<engine>-<locale>.csv` (override with `--sheet`; the folder is git-ignored). Like the embedding
+  probe it calls Workers AI outside the neuron ledger; `--max-usage` (default 3000 neurons) caps what one run may spend.
+
 The new API settings (`EMBEDDING_MODEL`, `EMBEDDING_DIM`, `SEARCH_HYBRID_ENABLED`, `RRF_K`, `SEARCH_TOP_N`,
 `SEARCH_FUSED_TOP_K`, `SEARCH_MIN_SIMILARITY`, `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`,
 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`) are listed with their defaults in

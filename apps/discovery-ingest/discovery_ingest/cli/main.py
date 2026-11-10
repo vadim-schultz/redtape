@@ -18,6 +18,7 @@ from discovery_ingest.cli.govdata import govdata_app
 from discovery_ingest.cli.leika import leika_app
 from discovery_ingest.cli.llm import llm_app
 from discovery_ingest.cli.pvog import pvog_app
+from discovery_ingest.cli.translate import translate_app
 from discovery_ingest.cli.worker import worker_app
 
 PROG_NAME = "discovery_ingest"
@@ -42,6 +43,7 @@ app.add_typer(llm_app, name="llm")
 app.add_typer(artifacts_app, name="artifacts")
 app.add_typer(capture_app, name="capture")
 app.add_typer(embed_app, name="embed")
+app.add_typer(translate_app, name="translate")
 
 
 @app.callback(invoke_without_command=True)

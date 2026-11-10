@@ -1,0 +1,15 @@
+{
+  "terms": {
+    "Antrag": "заява",
+    "Bürgeramt": "громадянський офіс (Bürgeramt)",
+    "Nachweis": "підтвердний документ",
+    "Bescheinigung": "довідка",
+    "Genehmigung": "дозвіл",
+    "Anmeldung": "реєстрація",
+    "Ummeldung": "перереєстрація",
+    "Gebühr": "збір",
+    "Kindergeld": "допомога на дитину (Kindergeld)",
+    "Wohngeld": "житлова допомога (Wohngeld)"
+  },
+  "keep": []
+}
