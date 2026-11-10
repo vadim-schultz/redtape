@@ -28,6 +28,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | --- | --- | --- | --- | --- | --- | --- |
 | 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) (+ [#373](https://github.com/vadim-schultz/redtape/pull/373) typer pin) | pass | pass | yes (64ef112) | none |
 | 02-backend-locale-foundation | `feat/search-backend-locales` | [#374](https://github.com/vadim-schultz/redtape/pull/374) | pass | pass | yes (5ccabc4) | none |
+| 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
 
 ## Baseline
 
@@ -61,10 +62,10 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 3 — Search schema
 
-- Status: pending
-- Migration id and round-trip result: pending
-- `alembic check` with `Vector` and HNSW: pending
-- Table and index sizes at current row count: pending
+- Status: merged into loop branch (#375); refactor gate: smells found -> refactorings applied (`_candidate_id()` extracted in migration; test helper); data-design gate: no `apply` findings (accepted-risk: no index on `embedding_task.candidate_id`, redundant `dim`; observed for C4/C5: use matching `index_where` on enqueue upsert, retry cap/backoff and claim fencing)
+- Migration id and round-trip result: `20261110_search_schema` (parent `20261105_retire_legacy_taxonomy`); `scripts/check_migrations.sh` passes (single head, upgrade, downgrade -1, upgrade, `alembic check`). Migration creates `vector` and `unaccent` extensions; on Supabase both are available but not installed, so the deploy role needs permission to create extensions, or an operator enables them first.
+- `alembic check` with `Vector` and HNSW: passes with no hook; detects `halfvec(512)` vs `halfvec(1024)` drift and a dropped GIN index
+- Table and index sizes (scratch DB, synthetic rows, `halfvec(1024)`, HNSW m=16 ef_construction=64): de only, 4,713 rows: embedding 27.4 MB (HNSW 12 MB), search text 26.2 MB (each GIN 5.1 MB), tasks 1.2 MB. Seven locales, 32,991 rows: embedding 191 MB (HNSW 86 MB), search text 133 MB (synthetic 60-word text, pessimistic), tasks 8.1 MB. Worst case 58.7 + 332 = about 391 MB vs 475 MB soft limit (about 84 MB margin); the C1 estimate of about 275 MB assumed shorter text. Re-check with real text lengths (C4 backfill, C16, C18). Levers: `EMBEDDING_LOCALES`, prune tool. HNSW `REINDEX` not measured.
 
 ### Chapter 4 — Search-text builder, hooks and backfill
 
