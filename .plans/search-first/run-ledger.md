@@ -26,6 +26,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 | chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
 | --- | --- | --- | --- | --- | --- | --- |
+| 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) | pass | fail (Discovery ingest CI: typer 0.29 drift, pre-existing) | no (open) | live embed probe not run (needs `CLOUDFLARE_AI_API_TOKEN`); ingest CI red on loop branch |
 
 ## Baseline
 
@@ -44,8 +45,8 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 1 — Infra and embedding probe
 
-- Status: pending
-- pgvector version (local image, CI image, Supabase): pending
+- Status: PR #372 open, not merged (blocked)
+- pgvector version (local image, CI image, Supabase): local/CI `pgvector/pgvector:pg16`, vector 0.8.7 on PG 16.15; Supabase not checked (operator action)
 - Probe: model, output dimension, supported reduced dimensions, batch limit, latency, neurons per 1k tokens: pending
 - Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and projected total database size for seven locales versus `DB_SOFT_LIMIT_BYTES`: pending
 
