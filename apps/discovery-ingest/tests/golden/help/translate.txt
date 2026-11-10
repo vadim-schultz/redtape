@@ -1,8 +1,10 @@
-usage: discovery_ingest translate [-h] {probe} ...
+usage: discovery_ingest translate [-h] {probe,drain,summary} ...
 
 positional arguments:
-  {probe}
+  {probe,drain,summary}
     probe     Translate a fixed sample of the public candidates and print one JSON report (nothing is stored)
+    drain     Claim translation tasks, translate them with TRANSLATION_ENGINE and post the text.
+    summary   Print the translation queue counts per locale; exit 3 when ``--require-pending`` finds nothing ready.
 
 options:
   -h, --help  show this help message and exit

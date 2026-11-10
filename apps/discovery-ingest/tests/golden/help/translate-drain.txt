@@ -1,0 +1,8 @@
+usage: discovery_ingest translate drain [-h] [--max-tasks MAX_TASKS] [--max-batches MAX_BATCHES] [--time-budget-seconds TIME_BUDGET_SECONDS] [--neuron-budget NEURON_BUDGET]
+
+options:
+  -h, --help        show this help message and exit
+  --max-tasks MAX_TASKS  Tasks per claim request, grouped by locale into one prompt each (1-50, default 10)
+  --max-batches MAX_BATCHES  Maximum claim/translate batches (positive, default 1)
+  --time-budget-seconds TIME_BUDGET_SECONDS  Optional positive wall-clock budget for the whole drain
+  --neuron-budget NEURON_BUDGET  Neurons this run may spend when the engine is billed in neurons: it stops once the budget is reached, and never takes the day's ledger below QUERY_EMBED_RESERVE (positive, default 2500)
