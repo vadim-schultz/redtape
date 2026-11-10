@@ -118,7 +118,7 @@ def test_title_locales_merge_without_overwriting(client: TestClient[Litestar], d
     catalogue = _catalogue(db_session)
     _post(client, key, _item(catalogue, title_i18n={"de": "Personalausweis"}))
 
-    _post(client, key, _item(catalogue, title_i18n={"de": "Anderer Text", "en": "Personalausweis", "fr": "  "}))
+    _post(client, key, _item(catalogue, title_i18n={"de": "Anderer Text", "en": "Personalausweis", "tr": "  "}))
 
     candidate = db_session.scalars(select(DiscoveryDocumentCandidate)).one()
     assert candidate.title_i18n == {"de": "Personalausweis", "en": "Personalausweis"}
@@ -433,3 +433,17 @@ def test_a_manual_mention_keeps_only_the_active_categories_it_names(
     assert response.status_code == 200
     assert response.json()["unknown_codes"] == 1
     assert _only_mention(db_session).category_codes == ["moving-house"]
+
+
+def test_mentions_batch_rejects_an_unsupported_title_locale_without_writes(
+    client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session)
+
+    response = _post(client, key, _item(catalogue, title_i18n={"fr": "Carte d'identite"}))
+
+    assert response.status_code == 422
+    assert "unsupported locale code: 'fr'" in response.text
+    assert _count(db_session, DiscoveryDocumentCandidate) == 0

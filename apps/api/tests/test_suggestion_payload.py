@@ -45,9 +45,22 @@ def test_rejects_an_empty_title_map() -> None:
         NewDocumentPayload.model_validate(_payload(title_i18n={}))
 
 
-def test_rejects_invalid_locale_codes() -> None:
-    with pytest.raises(ValidationError):
-        NewDocumentPayload.model_validate(_payload(title_i18n={"english": "Hello"}))
+@pytest.mark.parametrize("key", ["english", "fr", "x", "d3", "", "de-AT"])
+def test_an_unsupported_locale_key_is_rejected_naming_the_key(key: str) -> None:
+    with pytest.raises(ValidationError, match=f"unsupported locale code: {key!r}"):
+        NewDocumentPayload.model_validate(_payload(title_i18n={key: "Hello"}))
+
+
+@pytest.mark.parametrize("key", ["de", "en", "tr", "ru", "uk", "pl", "ro", "TR", "Uk"])
+def test_every_supported_locale_key_is_accepted_and_lowercased(key: str) -> None:
+    payload = NewDocumentPayload.model_validate(_payload(title_i18n={key: "Hello"}))
+
+    assert list(payload.title_i18n) == [key.lower()]
+
+
+def test_the_preview_payload_rejects_an_unsupported_locale_key() -> None:
+    with pytest.raises(ValidationError, match="unsupported locale code: 'fr'"):
+        PreviewedDocumentPayload.model_validate(_payload(title_i18n={"fr": "Bonjour"}))
 
 
 def test_rejects_control_characters_in_title() -> None:
