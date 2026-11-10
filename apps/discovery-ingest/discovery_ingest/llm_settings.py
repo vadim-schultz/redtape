@@ -14,6 +14,9 @@ DEFAULT_MAX_TOKENS = 4000
 DEFAULT_LLM_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
 """The choice of decision X16 (Qwen3-30B, 2026-10-30); ``LLM_MODEL`` overrides it and an empty ``LLM_MODEL`` means no model."""
 
+DEFAULT_EMBEDDING_MODEL = "@cf/qwen/qwen3-embedding-0.6b"
+"""The embedding model of the search-first suite; ``EMBEDDING_MODEL`` overrides it and must match the API's setting."""
+
 
 class LlmSettings(CloudflareAccountSettings):
     """Cloudflare Workers AI credentials and call limits, read from the process environment only.
@@ -27,6 +30,7 @@ class LlmSettings(CloudflareAccountSettings):
     llm_model: str = Field(default=DEFAULT_LLM_MODEL, validation_alias="LLM_MODEL")
     llm_max_tokens: int = Field(default=DEFAULT_MAX_TOKENS, gt=0, validation_alias="LLM_MAX_TOKENS")
     llm_input_chars: int = Field(default=DEFAULT_MAX_CHARS, gt=0, validation_alias="LLM_INPUT_CHARS")
+    embedding_model: str = Field(default=DEFAULT_EMBEDDING_MODEL, min_length=1, validation_alias="EMBEDDING_MODEL")
     llm_enqueue: bool = Field(default=False, validation_alias="LLM_ENQUEUE")
     llm_request_timeout_seconds: float = Field(default=60.0, gt=0, validation_alias="LLM_REQUEST_TIMEOUT_SECONDS")
 

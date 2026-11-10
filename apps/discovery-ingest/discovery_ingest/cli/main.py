@@ -11,6 +11,7 @@ from discovery_ingest.cli.budget import budget_app
 from discovery_ingest.cli.candidates import candidates_app
 from discovery_ingest.cli.capture import capture_app
 from discovery_ingest.cli.context import CliContext
+from discovery_ingest.cli.embed import embed_app
 from discovery_ingest.cli.errors import HELP_OPTIONS, show_help_without_subcommand
 from discovery_ingest.cli.fim import fim_app
 from discovery_ingest.cli.govdata import govdata_app
@@ -40,6 +41,7 @@ app.add_typer(browser_app, name="browser")
 app.add_typer(llm_app, name="llm")
 app.add_typer(artifacts_app, name="artifacts")
 app.add_typer(capture_app, name="capture")
+app.add_typer(embed_app, name="embed")
 
 
 @app.callback(invoke_without_command=True)

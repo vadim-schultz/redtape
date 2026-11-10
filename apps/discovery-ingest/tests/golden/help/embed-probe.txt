@@ -1,0 +1,5 @@
+usage: discovery_ingest embed probe [-h] [--model MODEL]
+
+options:
+  -h, --help     show this help message and exit
+  --model MODEL  A Workers AI embedding model id (default EMBEDDING_MODEL)
