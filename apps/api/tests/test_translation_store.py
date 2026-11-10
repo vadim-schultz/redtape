@@ -6,6 +6,7 @@ import hashlib
 import json
 import uuid
 
+import boto3
 import pytest
 from app.features.translation.store import (
     StoredObject,
@@ -15,7 +16,8 @@ from app.features.translation.store import (
     TranslationStore,
 )
 from app.models.translation import TranslationSource
-from app.shared.object_store import InMemoryObjectStore, ObjectStoreUnavailableError
+from app.shared.object_store import InMemoryObjectStore, ObjectStoreUnavailableError, S3Config, S3ObjectStore
+from moto import mock_aws
 
 CANDIDATE_ID = uuid.UUID("11111111-2222-3333-4444-555555555555")
 
@@ -122,3 +124,26 @@ def test_reading_a_corrupt_or_foreign_object_raises_the_invalid_error(body: byte
 
     with pytest.raises(TranslationObjectInvalidError):
         store.read("translations/v1/x")
+
+
+def test_a_round_trip_through_the_real_s3_adapter_keeps_the_key_layout_hash_and_missing_semantics() -> None:
+    """store · the same contract holds over the S3 adapter (moto stands in for R2): layout, hash, read, delete."""
+    config = S3Config(
+        endpoint_url=None,
+        region="us-east-1",
+        bucket="translations",
+        access_key_id="k",
+        secret_access_key="s",
+        force_path_style=True,
+    )
+    with mock_aws():
+        boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="translations")
+        store = TranslationStore(S3ObjectStore.from_config(config))
+        stored = store.write(CANDIDATE_ID, _payload())
+
+        assert store.read(stored.key) == _payload()
+        assert stored.key == f"translations/v1/{CANDIDATE_ID}/en/card/{stored.content_sha256}.json"
+        store.delete(stored.key)
+        store.delete(stored.key)
+        with pytest.raises(TranslationObjectMissingError):
+            store.read(stored.key)
