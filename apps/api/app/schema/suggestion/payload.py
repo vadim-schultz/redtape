@@ -20,7 +20,8 @@ MAX_NOTES_LENGTH = 1000
 MAX_CODES = 20
 
 
-def _validate_i18n_value(value: str, *, max_len: int) -> str:
+def validate_i18n_value(value: str, *, max_len: int) -> str:
+    """Return ``value`` trimmed; raise :exc:`ValueError` for a control character or a length over ``max_len``."""
     if _CONTROL_CHAR_RE.search(value):
         raise ValueError("value must not contain control characters")
     trimmed = value.strip()
@@ -30,7 +31,7 @@ def _validate_i18n_value(value: str, *, max_len: int) -> str:
 
 
 def _validate_i18n_map(value: dict[str, str], *, max_len: int) -> dict[str, str]:
-    return {validate_locale_key(key): _validate_i18n_value(val, max_len=max_len) for key, val in value.items()}
+    return {validate_locale_key(key): validate_i18n_value(val, max_len=max_len) for key, val in value.items()}
 
 
 def _validate_codes(value: list[str]) -> list[str]:

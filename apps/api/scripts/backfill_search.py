@@ -8,35 +8,21 @@ the last id a previous run printed. It stops cleanly when the database is at its
 from __future__ import annotations
 
 import argparse
-import enum
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Protocol
 from uuid import UUID
 
 from app.db import SessionLocal
-from app.features.discovery.db_headroom import SOFT_LIMIT_DETAIL, DatabaseSoftLimitError, db_headroom
+from app.features.discovery.db_headroom import db_headroom
 from app.features.search.repository import LengthStats, SearchTextRepository
 from app.features.search.results import RefreshTotals
 from app.features.search.service import SearchTextService
 from app.models.search import CANONICAL_LOCALE
 from sqlalchemy.orm import Session
 
-DEFAULT_BATCH_SIZE = 200
+from scripts.backfill_common import DEFAULT_BATCH_SIZE, Headroom, StopReason, room_stop
 
-
-class Headroom(Protocol):
-    """Whatever can say the database has room for more writes."""
-
-    def ensure_room(self) -> None:
-        """Raise :class:`DatabaseSoftLimitError` when the database is at its soft limit."""
-
-
-class StopReason(enum.StrEnum):
-    """Why a run ended."""
-
-    FINISHED = "finished"
-    DB_LIMIT = SOFT_LIMIT_DETAIL
+__all__ = ["DEFAULT_BATCH_SIZE", "Headroom", "StopReason"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,12 +57,10 @@ def run_backfill(session: Session, options: BackfillOptions, headroom: Headroom)
 
 
 def _has_room(headroom: Headroom, report: BackfillReport) -> bool:
-    try:
-        headroom.ensure_room()
-    except DatabaseSoftLimitError:
-        report.stopped = StopReason.DB_LIMIT
-        return False
-    return True
+    stop = room_stop(headroom)
+    if stop is not None:
+        report.stopped = stop
+    return stop is None
 
 
 def _refresh_batch(session: Session, service: SearchTextService, ids: Sequence[UUID], report: BackfillReport) -> None:

@@ -11,9 +11,9 @@ from app.config import settings
 from app.features.discovery.task_retry import FailureKind
 from app.features.search.clock import Clock, utc_now
 from app.features.search.embedding_repository import EmbeddingRepository, TextKey
-from app.features.search.errors import TaskNotOwnedError
 from app.features.search.leased_queue import LeasedQueue
-from app.features.search.task_settle import fail_task, release_task
+from app.features.search.leased_settle import fail_owned, release_owned
+from app.features.search.task_settle import fail_task
 from app.features.search.text import BuiltText
 from app.models.search import EmbeddingTask
 from app.schema.search.machine import (
@@ -60,24 +60,14 @@ class EmbeddingQueue:
 
     def fail(self, api_key_id: UUID, request: EmbeddingFailRequest) -> EmbeddingFailResponse:
         """Record the worker's failure of a task it holds; raise :exc:`TaskNotOwnedError` for any other task."""
-        task = self._leased.owned(request.task_id, api_key_id)
-        if task is None:
-            raise TaskNotOwnedError()
         kind = FailureKind.RETRYABLE if request.retryable else FailureKind.PERMANENT
-        fail_task(task, request.error, kind, self._clock())
+        task = fail_owned(self._leased, api_key_id, request.task_id, request.error, kind, self._clock())
         return EmbeddingFailResponse(task_id=task.id, status=task.status, last_error=request.error)
 
     def release(self, api_key_id: UUID, task_ids: list[UUID], reason: str) -> EmbeddingReleaseResponse:
         """Hand back every listed task the key holds without consuming an attempt; report the rest as skipped."""
-        unique_ids = list(dict.fromkeys(task_ids))
-        tasks = [task for task_id in unique_ids if (task := self._leased.owned(task_id, api_key_id))]
-        for task in tasks:
-            release_task(task, reason)
-        released = {task.id for task in tasks}
-        return EmbeddingReleaseResponse(
-            released=[task_id for task_id in unique_ids if task_id in released],
-            skipped=[task_id for task_id in unique_ids if task_id not in released],
-        )
+        released, skipped = release_owned(self._leased, api_key_id, task_ids, reason)
+        return EmbeddingReleaseResponse(released=released, skipped=skipped)
 
     def summary(self, model: str | None = None) -> EmbeddingSummaryResponse:
         """Count the queue of ``model`` (the configured one by default) without leasing anything."""

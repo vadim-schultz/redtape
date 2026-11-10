@@ -12,6 +12,7 @@ from app.features.discovery.mention_rows import PreparedMention, new_mention, re
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.search.service import SearchTextService
 from app.features.taxonomy.service import TaxonomyService
+from app.features.translation.enqueue import TranslationEnqueuer
 from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate
 from app.schema.discovery.candidates import (
     CandidateMentionItem,
@@ -49,18 +50,25 @@ class CandidateService:
     """Record mentions and keep one candidate per jurisdiction and key."""
 
     def __init__(
-        self, repository: DiscoveryRepository, taxonomy: TaxonomyService, search_text: SearchTextService
+        self,
+        repository: DiscoveryRepository,
+        taxonomy: TaxonomyService,
+        search_text: SearchTextService,
+        translation: TranslationEnqueuer,
     ) -> None:
-        """Bind the service to ``repository``, the ``taxonomy`` that vets codes and the ``search_text`` it keeps current."""
+        """Bind to ``repository``, the ``taxonomy`` that vets codes, the ``search_text`` kept current and ``translation``."""
         self._repo = repository
         self._taxonomy = taxonomy
         self._search_text = search_text
+        self._translation = translation
 
     def record_mentions(self, body: CandidateMentionsRequest) -> CandidateMentionsResponse:
         """Record every item or none: lookups and keys are checked before the first write."""
         prepared = self._prepare(body.items)
         outcomes = [self._record(entry) for entry in prepared]
-        self._search_text.refresh_many(sorted({outcome.candidate_id for outcome in outcomes}))
+        candidate_ids = sorted({outcome.candidate_id for outcome in outcomes})
+        self._search_text.refresh_many(candidate_ids)
+        self._translation.enqueue_many(candidate_ids)
         return _tally(prepared, outcomes)
 
     def _prepare(self, items: list[CandidateMentionItem]) -> list[PreparedMention]:

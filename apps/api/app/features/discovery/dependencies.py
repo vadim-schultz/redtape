@@ -34,6 +34,7 @@ from app.features.suggestions.dependencies import (
 )
 from app.features.suggestions.service import SuggestionService
 from app.features.taxonomy.service import TaxonomyService
+from app.features.translation.enqueue import TranslationEnqueuer
 from app.shared.object_store import ObjectStore
 from app.shared.object_store.http import InjectedObjectStore
 from app.shared.object_store.provider import get_object_store
@@ -63,8 +64,9 @@ def provide_discovery_candidate_service(
     discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
 ) -> CandidateService:
     """Build the candidate service with the taxonomy it tags against."""
+    session = discovery_repository.session
     return CandidateService(
-        discovery_repository, taxonomy_service, SearchTextService.for_session(discovery_repository.session)
+        discovery_repository, taxonomy_service, SearchTextService.for_session(session), TranslationEnqueuer(session)
     )
 
 

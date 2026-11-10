@@ -35,6 +35,7 @@ from app.features.discovery.machine_controller import DiscoveryMachineController
 from app.features.discovery.taxonomy_machine_controller import DiscoveryTaxonomyMachineController
 from app.features.search.errors import TaskNotOwnedError
 from app.features.search.router import embedding_machine_router
+from app.features.translation.router import translation_machine_router
 
 
 def _invalid_payload_is_422(request: Request, exc: ValidationException) -> Response:
@@ -94,6 +95,7 @@ discovery_machine_router = Router(
         DiscoveryBudgetMachineController,
         DiscoveryTaxonomyMachineController,
         embedding_machine_router,
+        translation_machine_router,
     ],
     dependencies=router_dependencies,
     exception_handlers=DISCOVERY_ERROR_HANDLERS,
