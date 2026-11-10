@@ -59,3 +59,37 @@ def test_search_settings_reject_an_invalid_dimension_k_or_similarity(overrides: 
 def test_the_ai_token_is_not_shown_in_the_settings_repr() -> None:
     """config · the Workers AI token stays out of logs and tracebacks."""
     assert "super-secret" not in repr(_settings(cloudflare_ai_api_token="super-secret"))
+
+
+def test_query_path_settings_load_defaults_and_accept_overrides() -> None:
+    """config · query embedding neurons, index bypass, rate limit and proxy hops have safe defaults."""
+    defaults = _settings()
+
+    assert defaults.query_embed_neurons > 0
+    assert defaults.search_vector_index_enabled is True
+    assert defaults.search_rate_limit_per_minute > 0
+    assert defaults.trusted_proxy_hops == 1
+    assert (defaults.query_embed_breaker_failures, defaults.query_embed_breaker_cooldown_s) == (3, 30.0)
+
+    tuned = _settings(search_vector_index_enabled=False, search_rate_limit_per_minute=5, trusted_proxy_hops=2)
+    assert (tuned.search_vector_index_enabled, tuned.search_rate_limit_per_minute, tuned.trusted_proxy_hops) == (
+        False,
+        5,
+        2,
+    )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"query_embed_neurons": 0},
+        {"search_rate_limit_per_minute": 0},
+        {"trusted_proxy_hops": -1},
+        {"query_embed_breaker_failures": 0},
+        {"query_embed_breaker_cooldown_s": 0},
+    ],
+)
+def test_query_path_settings_reject_invalid_values(overrides: dict[str, object]) -> None:
+    """config · rejects a zero reservation, a zero rate limit and a negative hop count."""
+    with pytest.raises(ValidationError):
+        _settings(**overrides)

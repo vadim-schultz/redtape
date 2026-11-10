@@ -135,6 +135,8 @@ API talks to must offer `vector` (and the contrib extension `unaccent`):
 
 The new API settings (`EMBEDDING_MODEL`, `EMBEDDING_DIM`, `SEARCH_HYBRID_ENABLED`, `RRF_K`, `SEARCH_TOP_N`,
 `SEARCH_FUSED_TOP_K`, `SEARCH_MIN_SIMILARITY`, `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`,
+`QUERY_EMBED_NEURONS`, `QUERY_EMBED_BREAKER_FAILURES`, `QUERY_EMBED_BREAKER_COOLDOWN_S`,
+`SEARCH_VECTOR_INDEX_ENABLED`, `SEARCH_RATE_LIMIT_PER_MINUTE`, `TRUSTED_PROXY_HOPS`,
 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`) are listed with their defaults in
 [`apps/api/.env.example`](../../apps/api/.env.example). None is needed locally: with the defaults hybrid search is off.
 

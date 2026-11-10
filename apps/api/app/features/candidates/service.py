@@ -9,6 +9,7 @@ from uuid import UUID
 from app.features.candidates.card_builder import CardContext, card_for
 from app.features.candidates.detail import Evidence, detail_of
 from app.features.candidates.repository import CardRow, PublicCandidateFilter, PublicCandidateRepository
+from app.features.candidates.search_plan import SearchPlanner
 from app.features.discovery.errors import CandidateNotFoundError
 from app.features.discovery.repository import EdgeRow, Page
 from app.features.taxonomy.service import TaxonomyService
@@ -31,21 +32,22 @@ def _unknown_codes(key: str, codes: Sequence[str], known: Callable[[Sequence[str
 class CandidateReadService:
     """Read staged candidates for anyone: cards ranked by completeness, and one candidate with its evidence."""
 
-    def __init__(self, repository: PublicCandidateRepository, taxonomy: TaxonomyService) -> None:
-        """Bind the service to the public ``repository`` and the taxonomy lookups."""
+    def __init__(self, repository: PublicCandidateRepository, taxonomy: TaxonomyService, search: SearchPlanner) -> None:
+        """Bind the service to the public ``repository``, the taxonomy lookups and the ``search`` planner."""
         self._repo = repository
         self._taxonomy = taxonomy
+        self._search = search
 
     def list_candidates(
         self, card_filter: PublicCandidateFilter, page: Page, locale: ResolvedLocale
     ) -> CandidateListResponse:
         """Return one page of cards; an unknown category code in the filter is a validation error."""
-        card_filter = self._resolve_filter(card_filter)
+        card_filter, mode = self._search.plan(self._resolve_filter(card_filter), locale.code)
         rows = self._repo.list_card_rows(card_filter, page)
         context = self._context([row.candidate.id for row in rows], locale)
         items = [card_for(row, context) for row in rows]
         total = self._repo.count_cards(card_filter)
-        return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
+        return CandidateListResponse(items=items, total=total, offset=page.offset, limit=page.limit, search_mode=mode)
 
     def candidate_detail(self, candidate_id: UUID, locale: ResolvedLocale) -> CandidateDetail:
         """Return one candidate with ingress, egress, sources and screenshot reference; 404 when unknown."""
@@ -70,6 +72,7 @@ class CandidateReadService:
             tag_scores=self._repo.tag_scores_for(candidate_ids),
             descriptions=self._repo.best_descriptions(candidate_ids),
             category_names=self._taxonomy.category_names(locale=locale),
+            min_similarity=self._search.params.min_similarity,
         )
 
     def _resolve_filter(self, card_filter: PublicCandidateFilter) -> PublicCandidateFilter:

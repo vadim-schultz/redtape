@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -124,6 +126,35 @@ class Settings(BaseSettings):
     )
     query_embed_cache_size: int = Field(
         default=512, ge=0, description="Entries of the in-process query-embedding cache; 0 disables it."
+    )
+    query_embed_neurons: Decimal = Field(
+        default=Decimal("0.1"),
+        gt=0,
+        decimal_places=2,
+        description="Neurons reserved on the shared ledger for each uncached query embedding (the ledger counts hundredths).",
+    )
+    query_embed_breaker_failures: int = Field(
+        default=3, gt=0, description="Consecutive query-embedding misses that open the circuit breaker."
+    )
+    query_embed_breaker_cooldown_s: float = Field(
+        default=30.0,
+        gt=0,
+        description="Seconds the circuit breaker skips the embedder before it lets one probe through.",
+    )
+    search_vector_index_enabled: bool = Field(
+        default=True,
+        description="Let the vector leg use the HNSW index; false forces an exact scan, a setting for diagnosis.",
+    )
+    search_rate_limit_per_minute: int = Field(
+        default=30, gt=0, description="Searches (list requests with `q`) one client may make per minute; then 429."
+    )
+    trusted_proxy_hops: int = Field(
+        default=1,
+        ge=0,
+        description=(
+            "Proxies in front of the API that each append the address they saw to `X-Forwarded-For`; the client is the "
+            "entry that many places from the right. 0 ignores the header and uses the socket peer."
+        ),
     )
     cloudflare_account_id: str = Field(
         default="", description="Cloudflare account id for query embedding; empty disables the query embedder."

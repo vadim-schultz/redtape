@@ -488,6 +488,16 @@
       "mention_count": {
         "type": "integer"
       },
+      "similarity": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "title": {
         "type": "string"
       }
@@ -592,6 +602,16 @@
         "oneOf": [
           {
             "$ref": "#/components/schemas/CandidateScreenshot"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "similarity": {
+        "oneOf": [
+          {
+            "type": "number"
           },
           {
             "type": "null"
@@ -4262,6 +4282,16 @@
     "title": "RunStartRequest",
     "type": "object"
   },
+  "SearchMode": {
+    "description": "``browse`` has no query, ``hybrid`` fuses both legs, ``keyword`` is full text alone (flag off or no vector).",
+    "enum": [
+      "browse",
+      "hybrid",
+      "keyword"
+    ],
+    "title": "SearchMode",
+    "type": "string"
+  },
   "SkipReason": {
     "description": "Why an emit item (claim or candidate) was not turned into a suggestion.",
     "enum": [
@@ -5284,6 +5314,9 @@
       "offset": {
         "type": "integer"
       },
+      "search_mode": {
+        "$ref": "#/components/schemas/SearchMode"
+      },
       "total": {
         "type": "integer"
       }
@@ -5292,6 +5325,7 @@
       "items",
       "limit",
       "offset",
+      "search_mode",
       "total"
     ],
     "title": "CandidateListResponse",

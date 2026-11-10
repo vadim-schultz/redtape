@@ -33,11 +33,12 @@ class PublicSortKey(enum.StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class RankColumns:
-    """The columns a public ordering reads: completeness model, mention count and the card confidence."""
+    """The columns a public ordering reads: completeness model, mention count, card confidence and search relevance."""
 
     completeness: Subquery
     mention_count: MentionCount
     confidence: ColumnElement[float]
+    relevance: ColumnElement[float] | None = None
 
 
 Rank = Callable[[RankColumns, SortOrder], Ordering]
@@ -49,6 +50,12 @@ def _by_confidence(columns: RankColumns, order: SortOrder) -> Ordering:
 
 def _by_completeness(columns: RankColumns, order: SortOrder) -> Ordering:
     return (*completeness_order(columns.completeness, columns.mention_count, order), *tie_break())
+
+
+def by_relevance(columns: RankColumns, _order: SortOrder) -> Ordering:
+    """Search relevance, then confidence, both best first: the interim order of a search until the combined score."""
+    relevance = columns.confidence if columns.relevance is None else columns.relevance
+    return (relevance.desc(), columns.confidence.desc(), *tie_break())
 
 
 def _by_default(columns: RankColumns, _order: SortOrder) -> Ordering:

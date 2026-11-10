@@ -12,6 +12,7 @@ from app.features.candidates.list_query import PUBLIC_CANDIDATE_SPEC, public_fil
 from app.features.candidates.screenshot_service import CACHE_CONTROL, ScreenshotReply, ScreenshotService
 from app.features.candidates.service import CandidateReadService
 from app.features.discovery.repository import Page
+from app.features.search.rate_limit import SEARCH_RATE_LIMIT
 from app.schema.candidate import CandidateDetail, CandidateListResponse
 from app.shared.list_query import ListQuery, provide_list_query
 from app.shared.locale import ResolvedLocale
@@ -32,11 +33,11 @@ class CandidatesController(Controller):
     path = "/"
     dependencies = {"list_query": provide_list_query(PUBLIC_CANDIDATE_SPEC)}
 
-    @get("/", sync_to_thread=True)
+    @get("/", sync_to_thread=True, middleware=[SEARCH_RATE_LIMIT.middleware])
     def list_candidates(
         self, candidate_service: CandidateReadService, page: PageParams, locale: ResolvedLocale, list_query: ListQuery
     ) -> CandidateListResponse:
-        """Page through the public candidates, ranked by completeness and filtered to the public spec."""
+        """Page through the public candidates; with ``q`` ranked by search relevance (throttled), else by confidence."""
         return candidate_service.list_candidates(
             public_filter_from(list_query), Page(offset=page.offset, limit=page.limit), locale
         )
