@@ -2,7 +2,7 @@ import { Box, Text, VStack } from "@chakra-ui/react";
 import { useState } from "react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
-import { formatRelativeTime } from "../../../../utils/relativeTime";
+import { formatRelativeTime } from "../../../../utils/format/formatRelativeTime";
 
 export interface CandidateScreenshotProps {
   /** The proxy URL, or `null` when the detail says there is no screenshot: no request is made. */

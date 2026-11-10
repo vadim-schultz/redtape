@@ -1,7 +1,7 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
 import type { DiscoveryArtifact } from "../../types";
 import { formatBytes } from "../../utils/formatBytes";
-import { formatDate } from "../../utils/formatDate";
+import { formatDate } from "../../../../utils/format/formatDate";
 import { hostOf } from "../../utils/hostOf";
 import SnapshotDownloadCell from "./cells/SnapshotDownloadCell";
 import { headerLabels, type ColumnContext } from "./columnContext";

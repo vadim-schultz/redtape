@@ -1,4 +1,4 @@
-import { formatNumber } from "./formatNumber";
+import { formatNumber } from "../../../utils/format/formatNumber";
 
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 const STEP = 1024;
