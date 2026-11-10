@@ -31,6 +31,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
 | 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
 | 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
+| 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | live probe, spot checks and D13 pending (operator) |
 
 ## Baseline
 
@@ -134,12 +135,13 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 13 — Translation schema and core
 
-- Status: pending
-- Migration id and round-trip result: pending
-- Engine port, registry and conformance suite: adapters passing (`llm`, optional `mt`): pending
-- Translation object store round trip (write, read, content hash, key layout): pending
-- Probe reports per locale and engine (validator pass rate, usage per unit, projected corpus cost, days at budget share): pending
-- Native-speaker spot-check notes and engine decision (D13): pending
+- Status: merged into loop branch (#378); live probe runs, native-speaker spot checks and the D13 engine decision are PENDING (operator). Refactor gate: smells found -> refactorings applied (error-category table, `_reserve_neurons`, answer parsing and validators split, `use_ledger` flag removed, provider leak out of probe). Data-design gate: no `apply` findings (accepted-risk: index row is the only key index since `ObjectStore` has no `list`; no CHECK constraints on hash widths; observed: prompt/glossary version not pinned in payload (D10), `translation_task` completed-row retention for C14/C15)
+- Migration id and round-trip result: `20261111_translation_schema` (parent `20261110_search_schema`); `check_migrations.sh` passes (single head, upgrade, downgrade -1, upgrade, `alembic check` clean). Reuses `work_task_status`; adds `translation_source`.
+- Engine port, registry and conformance suite: `llm` adapter passes `translation_engine_contract.py`; three deliberately broken fakes (dropped unit, mangled placeholder, leaked token) each fail their own check; a fake characters-unit adapter registers with no other changes; `meter_for_unit("characters")` raises "no meter for unit characters". No MT adapter added (the probe decides).
+- Translation object store round trip: in-memory and S3 (moto) pass write/read/delete/missing; key `translations/v1/{candidate_id}/{locale}/card/{content_sha256}.json`; canonical sorted-key UTF-8 JSON; key sha256 and `size_bytes` match the bytes; a re-translation gets a new key.
+- Probe reports per locale and engine: pending. Run from `apps/discovery-ingest` per locale `en tr ru uk pl ro`: `uv run python -m discovery_ingest translate probe --locale <L> --sample 50 --engine llm > translation-probe/report-llm-<L>.json`; needs `DISCOVERY_API_URL` (public `GET /api/v1/candidates/?locale=de`, about 40 requests, no key), `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`; the model needs a row in `extract/llm/prices.py` or it exits 2; `--max-usage` 3000 and `--daily-budget` 9500 neurons by default; spot-check sheets at `apps/discovery-ingest/translation-probe/llm-<L>.csv`
+- Native-speaker spot-check notes and engine decision (D13): pending. The glossary renderings for the six locales were drafted by the implementer and need native review.
+- Incident (reported by the implementer): one early `pytest` run in `apps/api` started without a scratch `DATABASE_URL`, hung about 2 min and was killed. `Settings` loads `apps/api/.env`, and `tests/conftest.py` runs `CREATE EXTENSION IF NOT EXISTS` and `Base.metadata.create_all` on the configured database. If that `.env` points at Supabase and the connection succeeded, tables or extensions may have been created outside Alembic. Unverified; check with the SQL in the orchestration notes.
 
 ### Chapter 14 — Translation queue and machine API
 
@@ -196,3 +198,5 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Object storage | translation objects and bytes; R2 Class A and B usage under the caps | pending |
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
+
+**Last orchestration:** 2026-11-10 — stopped after chapter 13 by user request (6 of 18 merged: C1, C2, C3, C7, C4, C13); next in order: C5
