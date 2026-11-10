@@ -22,7 +22,7 @@ todos:
     content: "Add claim, complete, fail, release and summary routes on the shared leased queue."
     status: pending
   - id: complete-rules
-    content: "Store a translation once; discard stale results; never overwrite a human translation; validate and bound the text."
+    content: "Write the translation object to R2 once, then move the index row; discard stale results; never overwrite a human translation; validate and bound the text; hand back on store outage."
     status: pending
   - id: hook
     content: "Publish a translation-stored event that later chapters subscribe to."
@@ -51,17 +51,18 @@ Give translation workers the same safe contract the embedding workers have, and 
 - **Priority.** Higher-confidence candidates first: priority is derived from the candidate's confidence band at enqueue time (a single-candidate evaluation of the existing score relation, not the list query); stale re-translations get a lower priority than first translations; all locales of one candidate share a priority so a candidate is finished across languages before lower-priority ones start (fair share).
 - **Routes** under the machine prefix and API-key dependency, built on chapter 5's `leased_queue.py`:
   - `POST …/translations/claim` `{limit}` → tasks `{task_id, candidate_id, locale, source_locale: "de", title, description, source_hash, lease_expires_at}`;
-  - `POST …/translations/complete` `{items: [{task_id, source_hash, title, description, model}]}` → per item `stored | stale | rejected`;
+  - `POST …/translations/complete` `{items: [{task_id, source_hash, title, description, engine, model}]}` → per item `stored | stale | rejected | unavailable`;
   - `POST …/translations/fail`, `…/release`, `GET …/translations/summary` (`pending_ready`, `claimed`, `failed`, `stale`, `translated` per locale).
 - **Complete rules**, per item, in one transaction:
   1. unknown task, or not claimed by this key → `rejected`;
   2. text fails bounds (title non-empty and at most 300 characters, description at most 4000, control characters stripped by the same validators the suggestion payloads use) → `rejected`, task failed non-retryably with the reason;
   3. `source_hash` differs from the current hash → `stale`: discard, complete the task, enqueue a fresh one;
   4. a `human` row already exists for `(candidate, locale)` → `rejected` with reason `human_exists` (never overwritten, invariant 9);
-  5. otherwise upsert `candidate_translation` with `source = mt`, the model and hash, and complete the task.
-- **Event.** After a translation is stored the service calls `on_translation_stored(candidate_id, locale)` through a small subscriber list. This chapter ships the mechanism and a no-op default; chapter 16 subscribes the search-text refresh, so translated text becomes searchable without a code change here.
+  5. otherwise write the payload through `TranslationStore` (a content-addressed, idempotent put), then upsert the `candidate_translation` index row with `source = mt`, `engine`, `model`, the hash, the object key, `content_sha256` and `size_bytes`, and complete the task. After commit, delete the replaced object if there was one (best effort; a failure is logged and does not fail the item). If the commit fails after the put, the object is an unreferenced orphan, which is harmless;
+  6. object storage not configured, over its Class A cap, or erroring → `unavailable`: the task is released without consuming an attempt (the same hand-back semantics as budget stops), so the drain retries it later. Checks 1–4 run before any write, so a stale, rejected or human-protected item never costs an R2 operation.
+- **Event.** After a translation is stored the service calls `on_translation_stored(candidate_id, locale, payload)` through a small subscriber list; the payload is the in-memory `TranslationPayload`, so subscribers never re-read R2 on the live path. This chapter ships the mechanism and a no-op default; chapter 16 subscribes the search-text refresh, so translated text becomes searchable without a code change here.
 - **Backfill.** `apps/api/scripts/backfill_translations.py`: keyset pagination over candidates, resumable by `--after`, optional `--locale`, prints counts (enqueued, up to date, stale). It calls the same `enqueue`.
-- Writes honour the database soft limit (507); `limit` and body sizes are bounded (413).
+- Writes honour the database soft limit (507); `limit` and body sizes are bounded (413). The complete route gets its object store from the same ledger-metered provider the artifact upload route uses (`features/discovery/dependencies.py`), so translation puts count against the R2 Class A cap.
 
 ## Files
 
@@ -69,6 +70,7 @@ Give translation workers the same safe contract the embedding workers have, and 
 | --- | --- |
 | `apps/api/app/features/translation/enqueue.py`, `queue.py`, `service.py`, `machine_controller.py`, `router.py` | Feature. |
 | `apps/api/app/features/search/leased_queue.py` | Reused; extend only if a gap appears. |
+| `apps/api/app/features/translation/store.py` | Reused from chapter 13; no change expected. |
 | `apps/api/app/schema/translation/machine.py` | Request and response models. |
 | `apps/api/app/features/discovery/candidate_emit*.py`, `mention_rows.py`, `candidate_service.py` | One-line enqueue calls beside chapter 4's hook. |
 | `apps/api/app/main.py`, `features/discovery/router.py` | Router registration. |
@@ -83,7 +85,8 @@ Give translation workers the same safe contract the embedding workers have, and 
 - `enqueue · a changed source hash re-queues at lower priority; a claimed task is left alone`.
 - `priority · higher-confidence candidates are claimed first and all locales of one candidate stay together`.
 - `claim · two concurrent claimers never receive the same task` (reusing the shared queue).
-- `complete · stores a translation once and completes the task`; the stored-event subscriber is called once.
+- `complete · writes the object, then stores the index row with engine, model, key and content hash, completes the task`; the stored-event subscriber is called once with the payload.
+- `complete · replacing a stale translation moves the index row to the new object and deletes the old one`; a failing delete does not fail the item.
 - `summary · reports pending_ready and translated counts per locale`.
 - `backfill · enqueues only missing or stale translations and is idempotent`.
 
@@ -93,6 +96,9 @@ Give translation workers the same safe contract the embedding workers have, and 
 - `complete · a human translation is never overwritten` (`rejected: human_exists`).
 - `complete · over-long, empty or control-character text is rejected without failing other items`.
 - `complete · a task claimed by another key is rejected`.
+- `complete · an unconfigured or failing object store yields unavailable, writes no index row, and releases the task without consuming an attempt`.
+- `complete · stale, rejected and human-protected items perform no object-store write`.
+- `complete · a failure after the put leaves no index row and only an unreferenced object`.
 - `fail · retryable failures back off and stop at the attempt cap`.
 - `routes · 507 at the database soft limit, 413 on oversize bodies, 401 without a key`.
 
@@ -121,7 +127,7 @@ uv run python scripts/export_machine_contract.py
 cd ../.. && ./ci.sh
 ```
 
-Record the regenerated contract, the concurrency result and the backfill counts in [../run-ledger.md](../run-ledger.md).
+Record the regenerated contract, the concurrency result, the backfill counts and the object-store outage test in [../run-ledger.md](../run-ledger.md).
 
 ## Out of scope
 

@@ -46,10 +46,10 @@ Translate every candidate's title and description into each target locale once, 
 ## Design decisions
 
 - A sibling drain beside `worker/drain.py` and chapter 6's embed drain, reusing `DrainPolicy`, the stop reasons (`queue_empty`, `batch_limit`, `time_budget`, `llm_budget`, `llm_quota`, `db_limit`, `error`) and the `DrainReport` the workflows parse. Client methods in `client/translation_api.py` in the style of the other `*_api.py` modules.
-- **Batching.** Claim up to about 10 tasks per batch, group by locale (one prompt per locale and batch), translate through chapter 13's `Translator` with the per-locale glossary, run the base validators.
+- **Batching.** Claim up to about 10 tasks per batch, group by locale (one prompt per locale and batch), translate through the engine built from `TRANSLATION_ENGINE` (chapter 13's `TranslationEngine` port and registry; the drain names no provider) with the per-locale glossary, run the base validators.
 - **Validation and repair.** A unit that fails a validator gets one repair request that states the violated rule; if it still fails the task is failed non-retryably with the reason (a human can review those), never stored. Valid results are posted with `complete`.
-- **Per-item settlement.** `stored` and `stale` need nothing more; `rejected` is logged with the reason and counted in the report.
-- **Budget.** Reserve before each batch through `NeuronMeter`/`ledger_reserve.py` (estimate from characters), settle to the reported usage, refund on failure. **Reserved floor:** the drain stops with `llm_budget` when the ledger's remaining neurons would fall below `QUERY_EMBED_RESERVE`, so request-time query embedding (decision D1) always has headroom; the embed drain (chapter 6) is cheap and unaffected. A quota error stops with `llm_quota` and **releases** unprocessed tasks without consuming attempts.
+- **Per-item settlement.** `stored` and `stale` need nothing more; `rejected` is logged with the reason and counted in the report; `unavailable` (object storage down, chapter 14) is counted and the task has already been handed back, so the drain stops the batch cleanly instead of retrying in a loop. Results are posted with the engine's `name` and `model`.
+- **Budget.** Reserve before each batch through the `UsageMeter` that matches the engine's usage unit (today `NeuronUsageMeter` over `NeuronMeter`/`ledger_reserve.py`, estimating with the engine's `estimate(batch)`), settle to the reported usage, refund on failure. **Reserved floor:** for a neuron-metered engine the drain stops with `llm_budget` when the ledger's remaining neurons would fall below `QUERY_EMBED_RESERVE`, so request-time query embedding (decision D1) always has headroom; an engine billed in another unit is bounded by its own meter instead and the floor does not apply to it; the embed drain (chapter 6) is cheap and unaffected. A quota error stops with `llm_quota` and **releases** unprocessed tasks without consuming attempts.
 - **Ordering and fairness.** Tasks arrive in priority order from chapter 14 (high-confidence candidates first, all locales of a candidate together), so a partially complete run still leaves the most important candidates fully translated.
 - **CLI.** `python -m discovery_ingest translate drain [--max-tasks N --time-budget S --neuron-budget N]` prints one JSON `DrainReport`; exit codes as the other drains.
 - **Workflow** `.github/workflows/discovery-translate.yml` copies `discovery-drain.yml`: `schedule` plus `workflow_dispatch`, gated by repo variable `DISCOVERY_TRANSLATE_SCHEDULE == 'enabled'`, shared `concurrency: discovery-pipeline` (`cancel-in-progress: false`), `budget show --require-remaining …` precheck, `wait_for_api`, early exit when `GET …/translations/summary` reports `pending_ready = 0`, the drain with `tee drain-report.json`, a step summary, failure only if `succeeded` is false, an `if: always()` minutes report. It is scheduled after the embed drain within the same day so fresh translations are embedded promptly; cadence and per-run caps are chosen against `docs/operations/gha-budget.md` and the chapter 13 projection (record both in the ledger).
@@ -77,12 +77,15 @@ Translate every candidate's title and description into each target locale once, 
 - `translate drain · stored and stale outcomes are both counted`.
 - `translate drain · meter reserves before and settles to usage`.
 - `translate drain · stops with queue_empty`.
+- `translate drain · builds the engine from the registry and posts its name and model` (a fake registered adapter proves the drain names no provider).
 
 ### Negative path
 
 - `translate drain · a unit that still fails validation after repair is failed non-retryably and never stored`.
 - `translate drain · stops with llm_budget when the reserved query-embedding floor would be breached`.
 - `translate drain · quota exhaustion stops with llm_quota and releases unprocessed tasks without burning attempts`.
+- `translate drain · an unavailable item ends the batch with the tasks already handed back`.
+- `translate drain · an engine with a non-neuron usage unit is metered by its own meter and skips the query-embedding floor` (fake engine and meter).
 - `translate drain · a 5xx fails the batch retryably; a 401 stops as infrastructure; 507 stops with db_limit`.
 - `translate drain · a short response (fewer results than units) fails the batch, not individual silently dropped items`.
 - `secrets · the token never appears in logs or the report`.

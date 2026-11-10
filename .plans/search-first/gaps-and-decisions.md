@@ -58,15 +58,15 @@ Results dedupe on a single subject id. `candidate_search_text` is keyed `(candid
 
 ### D11 — Translations are stored once, secondary, labelled and protected
 
-A translation is written once per `(candidate, locale)` by a worker and read from the database; nothing translates at read time. It is shown only in a pop-over beside the German original (chapter 17), always with a "machine translation" note. It is re-translated only when the German source changes (stale translations keep serving, flagged), at low priority. A `human` row is never overwritten by a machine one. Rollback: remove locales from `TRANSLATION_TARGET_LOCALES` (reads are by locale); stored rows are additive and harmless.
+A translation is written once per `(candidate, locale)` by a worker, stored in R2 with a thin index row in Postgres (D17), and read back from storage; nothing translates at read time. It is shown only in a pop-over beside the German original (chapter 17), always with a "machine translation" note. It is re-translated only when the German source changes (stale translations keep serving, flagged), at low priority. A `human` row is never overwritten by a machine one. Rollback: remove locales from `TRANSLATION_TARGET_LOCALES` (reads are by locale); stored objects and rows are additive and harmless.
 
-### D12 — Per-locale vectors with storage controls
+### D12 — Per-locale vectors with storage controls (revised)
 
-Translated text is embedded per locale (`candidate_embedding` has one row per embedded locale). Because seven rows per candidate could approach 200 MB, chapter 1 decides `vector` versus `halfvec` and a reduced Matryoshka dimension from a storage estimate; `EMBEDDING_LOCALES` limits which locales get vectors; `prune_embeddings.py` reclaims a locale; chapter 18 drops locales whose vectors do not improve results (O10).
+Translated text is embedded per locale (`candidate_embedding` has one row per embedded locale). The budget is the existing `DB_SOFT_LIMIT_BYTES` guard; the product owner reports about 83 MB used of 500 MB with the corpus nearly complete, so seven locales of vectors (on the order of 200 MB with HNSW) fit but are the dominant cost. Chapter 1 still decides `vector` versus `halfvec` and a reduced Matryoshka dimension from the measured projection, and must show the projected total under the soft limit with margin; `EMBEDDING_LOCALES` limits which locales get vectors; `prune_embeddings.py` reclaims a locale; chapter 18 drops locales whose vectors do not improve results (O10). Vectors stay in Postgres (pgvector needs them there); translation text does not (D17).
 
 ### D13 — The translation engine is chosen by a probe, and cost is not assumed to fit
 
-Chapter 13's probe compares an LLM translator with a dedicated machine-translation model on a fixed sample, reports validator pass rate, neurons per unit and the projected neurons and days for the whole corpus, and writes a sheet for native-speaker spot checks. The engine, model and pace are recorded here after that gate. If the cost does not fit the neuron budget share the options are a cheaper engine, fewer locales, or priority-limited coverage (highest confidence first).
+Chapter 13's probe compares the registered engines (the Cloudflare LLM adapter and, if useful, a Cloudflare machine-translation adapter; any later adapter such as Azure Translator is probed the same way with `--engine`) on a fixed sample, reports validator pass rate, neurons per unit and the projected neurons and days for the whole corpus, and writes a sheet for native-speaker spot checks. The engine, model and pace are recorded here after that gate. If the cost does not fit the neuron budget share the options are a cheaper engine, fewer locales, or priority-limited coverage (highest confidence first).
 
 ### D14 — The translation unit is the title and the card description
 
@@ -74,7 +74,25 @@ Only the German title and the card description (best mention excerpt) are transl
 
 ### D15 — Translation never starves query embedding
 
-Request-time query embedding (D1) shares the daily neuron ledger. The translate drain stops before the ledger's remaining neurons fall below `QUERY_EMBED_RESERVE`.
+Request-time query embedding (D1) shares the daily neuron ledger. While the translation engine is neuron-metered (D16), the translate drain stops before the ledger's remaining neurons fall below `QUERY_EMBED_RESERVE`.
+
+### D16 — Translation engines are adapters; Cloudflare first, Azure Translator later
+
+Cloudflare Workers AI stays the engine for now because it is a known provider for the team. A `TranslationEngine` port, a name-keyed registry, `TRANSLATION_ENGINE` selection and a shared adapter conformance suite (chapter 13) make [Azure AI Translator](https://learn.microsoft.com/en-us/azure/ai-services/translator/how-to/create-translator-resource) or any other provider a drop-in: one adapter module, one registry line, credentials as a GitHub secret and a conformance run. The port declares the usage unit (`neurons` or `characters`) and the drain meters through a `UsageMeter` chosen by that unit, so a character-billed provider does not pretend to be neurons; the query-embedding floor (D15) applies only to neuron-metered engines. Each stored translation records `engine` and `model`; switching engines translates only new and stale units, it does not rewrite existing rows. No Azure code, credentials or probe ships in this suite (O17).
+
+Rejected: wiring Cloudflare calls straight into the drain (a provider swap would touch the queue, the drain and the metering), and building the Azure adapter now (unneeded cost and a second credential to manage).
+
+### D17 — Translation text lives in R2, the database keeps an index (new)
+
+Translated title and description are stored as small JSON objects in the Cloudflare R2 bucket already used for screenshots and snapshots (10 GB free, S3 API, existing metered `ObjectStore`), keyed by candidate, locale and unit; Postgres keeps a thin `candidate_translation` index row (source hash, provenance, engine, model, object key, content hash, size). Consequences:
+
+- translation text never counts toward the 500 MB database or the soft limit; the derived `candidate_search_text` rows and tsvectors that full-text search and embeddings need stay in Postgres and are rebuildable from R2;
+- the list response carries only a `translation` summary (`locale`, `source`, `stale`), so a page makes no R2 calls; the pop-over fetches the stored text on first open through `GET /api/v1/candidates/{id}/translation` with `ETag` revalidation (a stored read, not a model call; the earlier "no request on open" rule is replaced by "no translation work on open");
+- writes happen only in the API (workers hold no R2 credential); an unavailable store hands the task back without burning an attempt;
+- R2 operations are metered against the existing Class A and B caps;
+- the unit segment in the key is the seam for full-document translations later (O16).
+
+Rollback: stop enqueueing (`TRANSLATION_TARGET_LOCALES` empty); objects and index rows are additive. A move back into Postgres would be a one-off copy from the objects.
 
 ## Open seams
 
@@ -92,6 +110,8 @@ Request-time query embedding (D1) shares the daily neuron ledger. The translate 
 | O10 | Which locales keep vectors (D12) | C18 | C18 |
 | O11 | Arabic and right-to-left layout | product | later suite |
 | O12 | Real client IP behind the Render proxy for rate limiting (`X-Forwarded-For` handling) | C8 | C8 |
-| O13 | Search storage budget figure (the agreed ceiling for invariant 11) | product | C1 estimate, agreed before C3 |
+| O13 | Search storage budget. Resolved: the existing `DB_SOFT_LIMIT_BYTES` is the budget (baseline about 83 MB of 500 MB, per the product owner); C1's projection must land under it with margin | product | resolved; verified in C1 |
 | O14 | The `SEARCH_CONFIDENCE_WEIGHT` default (0.3 is a starting value) | C18 | C18 |
 | O15 | Human corrections of translations (an edit path that sets `source = human`) | later | not scheduled |
+| O16 | Full-document translations: units beyond `card`, their size accounting against `object_store_max_bytes`, cost probe and chunking | later | separate suite; D17 keeps the key layout open |
+| O17 | Adopting Azure AI Translator: resource and key (operator), GitHub secret, adapter module, character ledger and monthly cap, glossary mapping (dynamic dictionary or equivalent), data-processing and region review, probe comparison against the Cloudflare engine | later | separate small suite; D16 keeps the seam |

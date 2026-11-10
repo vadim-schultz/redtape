@@ -22,7 +22,8 @@
 | Candidate count and text sizes | Row count of `discovery_document_candidate`; p50/p95 canonical text and translation-unit length | pending |
 | Current search behaviour | `q` title-match results for a fixed set of German queries, kept as the keyword baseline | pending |
 | No-sort ordering | What `GET /api/v1/candidates` returns with no `sort_by` (open seam O6) | pending |
-| Database size | `pg_database_size`, against `DB_SOFT_LIMIT_BYTES`; agreed search storage budget (O13) | pending |
+| Database size | `pg_database_size` against `DB_SOFT_LIMIT_BYTES` (product owner's figure: about 83 MB of 500 MB; record the measured value) | pending |
+| Object storage | Bucket bytes and objects today (screenshots, snapshots), R2 Class A and B usage this month against the caps | pending |
 | Neuron ledger | Daily neuron budget and current usage | pending |
 | UI baseline | Screenshots of `/documents` (de) at desktop and mobile width | pending |
 | Locale bundles | Key counts per locale file and per prefix | pending |
@@ -34,7 +35,7 @@
 - Status: pending
 - pgvector version (local image, CI image, Supabase): pending
 - Probe: model, output dimension, supported reduced dimensions, batch limit, latency, neurons per 1k tokens: pending
-- Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and storage estimate for seven locales versus budget: pending
+- Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and projected total database size for seven locales versus `DB_SOFT_LIMIT_BYTES`: pending
 
 ### Chapter 2 — Backend locale foundation
 
@@ -113,13 +114,16 @@
 
 - Status: pending
 - Migration id and round-trip result: pending
-- Probe reports per locale and engine (validator pass rate, neurons per unit, projected corpus cost, days at budget share): pending
+- Engine port, registry and conformance suite: adapters passing (`llm`, optional `mt`): pending
+- Translation object store round trip (write, read, content hash, key layout): pending
+- Probe reports per locale and engine (validator pass rate, usage per unit, projected corpus cost, days at budget share): pending
 - Native-speaker spot-check notes and engine decision (D13): pending
 
 ### Chapter 14 — Translation queue and machine API
 
 - Status: pending
 - Backfill counts (enqueued, up to date, stale): pending
+- Object-store outage test (task handed back, attempt not burned): pending
 - Priority ordering evidence (high-confidence first, all locales together): pending
 - Contract fixture regenerated: pending
 
@@ -141,9 +145,10 @@
 ### Chapter 17 — Translation read path and pop-over
 
 - Status: pending
-- Query-count test (constant per page): pending
+- Query-count test (constant per page) and zero object-store calls on a list page: pending
+- R2 reads for one pop-over open, and `304` on revalidation without a store read: pending
 - Screenshots (trigger, open pop-over, stale note, phone width; `tr`, `ru`): pending
-- Zero-request check on open: pending
+- Pop-over network check (one stored-text request on first open, none on second open, no model call): pending
 
 ### Chapter 18 — Evaluation, tuning and rollout
 
@@ -161,9 +166,11 @@
 | `GET /api/v1/candidates?q=…` with the flag off | `search_mode: "keyword"`, legacy behaviour | pending |
 | Same with the flag on | `search_mode: "hybrid"`, similarity and score present | pending |
 | Query with the embedder token removed | `search_mode: "keyword"`, HTTP 200 | pending |
-| `Accept-Language: tr` list | `translation` present for translated candidates, `null` for `de` readers | pending |
+| `Accept-Language: tr` list | `translation` summary present for translated candidates, `null` for `de` readers | pending |
+| `GET /api/v1/candidates/{id}/translation?locale=tr` | stored text with `ETag`; `304` on revalidation | pending |
 | Queue summaries (embeddings, translations) | `pending_ready` near 0 after the drains | pending |
 | Neuron ledger | Query-embedding floor intact after a translate run | pending |
-| Database size | within the search storage budget and well under `DB_SOFT_LIMIT_BYTES` | pending |
+| Database size | under `DB_SOFT_LIMIT_BYTES` with margin (baseline about 83 MB) | pending |
+| Object storage | translation objects and bytes; R2 Class A and B usage under the caps | pending |
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |

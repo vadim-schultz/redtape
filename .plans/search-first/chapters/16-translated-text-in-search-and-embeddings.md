@@ -41,14 +41,14 @@ Close the weakness recorded in D6: until now only German text was searchable, so
 
 ## Design decisions
 
-- **Per-locale search text.** `SearchTextService.refresh_locale(candidate_id, locale)` (chapter 4's builder, locale-parameterised) builds the text of a non-`de` locale from the stored `candidate_translation` row: the translated title, then the translated description. It upserts `candidate_search_text(candidate, locale)` with `tsv_native` in the locale's configuration (`TS_CONFIG_BY_LOCALE`: `en` english, `tr` turkish, `ru` russian, `ro` romanian, `pl` and `uk` simple) and `tsv_simple`, plus the content hash. Polish and Ukrainian have no built-in Postgres configuration (open seam O9): they use `simple` with `unaccent`, so they match on exact word forms only; chapter 18 records how much that costs in recall.
+- **Per-locale search text.** `SearchTextService.refresh_locale(candidate_id, locale)` (chapter 4's builder, locale-parameterised) builds the text of a non-`de` locale from the translated payload: the translated title, then the translated description. The payload comes from chapter 14's `on_translation_stored` event on the live path (no object-store read) and from `TranslationStore.read` through the index row's `storage_key` on the backfill and rebuild path. The text is derived and rebuildable from R2. It upserts `candidate_search_text(candidate, locale)` with `tsv_native` in the locale's configuration (`TS_CONFIG_BY_LOCALE`: `en` english, `tr` turkish, `ru` russian, `ro` romanian, `pl` and `uk` simple) and `tsv_simple`, plus the content hash. Polish and Ukrainian have no built-in Postgres configuration (open seam O9): they use `simple` with `unaccent`, so they match on exact word forms only; chapter 18 records how much that costs in recall.
 - **Immediate searchability.** The refresh is subscribed to chapter 14's `on_translation_stored` event, so a translation is keyword-searchable as soon as it is stored, without waiting for the embed drain.
 - **Embedding tasks per locale.** If the new hash differs from the stored embedding's `text_hash` for `(candidate, model, locale)`, enqueue an `embedding_task` for that locale (chapter 4's idempotent enqueue; chapter 5 and 6 already carry `locale` and the text through claim and complete). **Translated text is what the task carries**, as requested: the embedding of a Turkish row is computed from Turkish text.
 - **Storage control.** `EMBEDDING_LOCALES` (validated subset of the supported locales; default `de` plus all translation targets) decides which locales get embedding tasks. Search-text rows and tsvectors are always written (cheap); vectors are the expensive part. This is the lever chapter 18 uses to drop a locale whose vectors do not earn their space.
 - **Prune tool.** `apps/api/scripts/prune_embeddings.py --locale <code>` deletes that locale's `candidate_embedding` rows and open embedding tasks (and prints the bytes reclaimed); re-enabling a locale is a backfill. Storage per locale is measured after the first backfill and recorded (rollout invariant 11).
 - **Stale and human translations.** A stale translation keeps serving search until it is re-translated (the pop-over flags it); a `human` translation is treated exactly like a machine one for search.
 - **Retrieval needs no change.** Chapter 8's legs are already locale-aware: the keyword leg reads the request locale's rows with that locale's configuration plus the German row, and the vector leg reads rows of the request locale or `de` and keeps the best similarity per candidate. This chapter supplies the data and verifies the behaviour end to end.
-- **Backfill.** `backfill_search.py` gains `--locale` (repeatable): builds rows from existing translations and enqueues embedding tasks; idempotent and resumable, as in chapter 4.
+- **Backfill.** `backfill_search.py` gains `--locale` (repeatable): reads existing translation objects from R2 (one metered Class B read per translation, a few thousand per locale), builds rows and enqueues embedding tasks; idempotent and resumable, as in chapter 4. An index row whose object is missing is reported and skipped, not fatal.
 
 ## Files
 
@@ -70,13 +70,14 @@ Close the weakness recorded in D6: until now only German text was searchable, so
 - `enqueue · a changed locale hash enqueues one embedding task for (candidate, model, locale)`; unchanged enqueues nothing.
 - `gating · a locale outside EMBEDDING_LOCALES gets search text but no embedding task`.
 - `retrieval · a Turkish query finds a candidate through its Turkish row (keyword) and through its tr vector (fixture embedder), and a German-term query still finds the German row`.
-- `backfill · builds rows for existing translations and is idempotent`.
+- `backfill · builds rows from existing translation objects (in-memory store) and is idempotent`.
 - `prune · removes one locale's vectors and tasks and reports the space reclaimed`.
 
 ### Negative path
 
 - `refresh_locale · a missing or empty translated title produces no row`.
 - `refresh_locale · an unsupported locale is an error`.
+- `backfill · an index row whose object is missing is reported and skipped; other rows still process`.
 - `retrieval · Polish and Ukrainian use the simple configuration and match exact word forms only` (documents the limit rather than hiding it).
 - `prune · other locales and German rows are untouched`.
 - `settings · EMBEDDING_LOCALES with an unsupported code fails at load`.

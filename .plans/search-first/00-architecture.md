@@ -25,8 +25,9 @@ flowchart LR
   V --> F
   F --> S[Combined score: relevance + confidence]
   S --> R[Ranked cards with two rings and a translation pop-over]
-  T[Translation workers] --> X[(candidate_translation)]
+  T[Translation workers: engine adapters] --> X[(Translation objects in R2 + index rows)]
   X --> P[(per-locale search text + embeddings)]
+  X --> R
   W[Embedding workers] --> P
   P --> K
   P --> V
@@ -41,9 +42,10 @@ Seven interface languages: **de** (source), **en**, **tr**, **ru**, **uk**, **pl
 | **Candidate** | A row in `discovery_document_candidate`: the pool the public `/documents` list reads through `GET /api/v1/candidates`. The dormant `document` table is not searched. |
 | **Search subject** | The thing a result identifies and dedupes on. Today the candidate id; later a canonical entity id (entity resolution, out of scope). |
 | **Translation unit** | The two fields a card shows: the German title and the card description (best mention excerpt). The only text that is translated. |
-| **Stored translation** | A `candidate_translation` row: title and description in one target locale, made once by a worker, with provenance (`mt` or `human`) and the hash of the source it was made from. |
+| **Stored translation** | A JSON object in the Cloudflare R2 bucket (title and description in one target locale, made once by a worker) plus a thin `candidate_translation` index row in Postgres (source hash, provenance `mt` or `human`, engine, model, object key). The text lives in R2, not in the database. |
+| **Translation engine** | An adapter behind the `TranslationEngine` port that turns German units into one target language. Cloudflare Workers AI today; Azure AI Translator can be plugged in later without touching the queue, API or UI. |
 | **Stale translation** | A stored translation whose source hash differs from the current German unit. Still served, flagged, re-translated at low priority. |
-| **Search text** | The derived, per-locale text of a candidate that full-text search and embeddings read (`candidate_search_text`). `de` is built from the title and best mention excerpts; other locales from the stored translation. |
+| **Search text** | The derived, per-locale text of a candidate that full-text search and embeddings read (`candidate_search_text`). `de` is built from the title and best mention excerpts; other locales from the stored translation. Rebuildable from R2. |
 | **Content hash** | SHA-256 of a search text plus a recipe version. Decides whether an embedding is current. |
 | **Embedding task / translation task** | A leased unit of work for a worker: embed one `(candidate, model, locale)` text, or translate one `(candidate, locale)` unit. |
 | **RRF** | Reciprocal Rank Fusion: `score(c) = Σ 1 / (k + rank_leg(c))` over the legs that returned `c`; `k` defaults to 60. |
@@ -90,9 +92,13 @@ erDiagram
 
 Both: `(id, candidate_id FK, locale, <model or source_hash>, status work_task_status, priority, attempt_count, not_before, claimed_at, lease_expires_at, claimed_by_api_key_id, last_error, timestamps)`. Partial unique index on the open states, so enqueue is idempotent: `(candidate_id, model, locale)` for embeddings, `(candidate_id, locale)` for translations. They are dedicated tables, not new `discovery_task` kinds: `discovery_task` requires `catalogue_service_id` and `target_url`, and its claim takes no row lock. A shared leased-queue helper (`FOR UPDATE SKIP LOCKED`, lease, reclaim, retry) serves both.
 
-### `candidate_translation`
+### `candidate_translation` (index row) and translation objects
 
-`(candidate_id FK, locale, title, description, source_hash, source mt|human, model, created_at, updated_at)`, primary key `(candidate_id, locale)`. Written once; re-written only when `source_hash` changes, never over a `human` row.
+Translation text is **not stored in Postgres**. The product owner chose Cloudflare R2 (S3 API, already used for screenshots and snapshots, 10 GB free) so translations never compete with vectors for the 500 MB database, and so full-document translations can follow in the same place.
+
+- **Index row**, `candidate_translation(candidate_id FK, locale, source_hash, source mt|human, engine, model, storage_key, content_sha256, size_bytes, created_at, updated_at)`, primary key `(candidate_id, locale)`. About 200 bytes a row. It answers every question that must be cheap: does a translation exist, is it stale (`source_hash` against the current German unit), who made it, and which object holds the text. The port has no `list` operation (a billed Class A call), so the database is the only index of keys.
+- **Object**, key `translations/v1/{candidate_id}/{locale}/card/{content_sha256}.json`, body `{"schema": 1, "unit": "card", "locale", "title", "description", "source_hash", "source", "engine", "model"}`. The key is content-addressed, so a re-translation writes a new object and the old one is deleted after the index row moves (best effort; an orphan is harmless and bounded). The `card` path segment is the unit name: a later full-text package adds units (for example `body`) beside it without moving anything.
+- Written once; re-written only when `source_hash` changes, never over a `human` row. All writes go through the API (workers hold no R2 credential, as with artifacts), through the existing metered `ObjectStore`, so translation traffic counts against the R2 Class A and B caps.
 
 ## 5. Pipelines
 
@@ -109,10 +115,12 @@ Qwen3-Embedding is instruction-aware: **queries** are embedded with an instructi
 ### Translation
 
 1. When a candidate's translation unit is new or changes, a `translation_task` is enqueued per target locale, highest confidence first, all locales of one candidate together.
-2. The translate drain claims tasks through the machine API, translates title and description with the shared translation core (engine, per-locale glossary, validators; one repair attempt), reserves neurons, and posts results.
-3. The API validates and stores the translation once (`stored`), discards results whose source hash is stale, and never overwrites a human translation.
-4. A stored translation triggers the search-text refresh for that locale: it is keyword-searchable immediately and an embedding task for that locale's text is queued, so **the embedding is computed from the translated text**.
-5. The translate drain stops before it would take the neuron ledger below the floor reserved for request-time query embedding.
+2. The translate drain claims tasks through the machine API and translates title and description with the engine selected by `TRANSLATION_ENGINE` (an adapter behind the `TranslationEngine` port, with the shared per-locale glossary and validators; one repair attempt). It reserves usage against the engine's meter and posts results.
+3. The API validates the result, writes the translation object to R2 and then moves the index row (`stored`), discards results whose source hash is stale, never overwrites a human translation, and hands the task back without burning an attempt if the object store is unavailable.
+4. A stored translation triggers the search-text refresh for that locale from the in-memory result: it is keyword-searchable immediately and an embedding task for that locale's text is queued, so **the embedding is computed from the translated text**.
+5. For neuron-metered engines the translate drain stops before it would take the neuron ledger below the floor reserved for request-time query embedding.
+
+**Engine adapters.** `TranslationEngine` is a small port (translate a batch of units into one locale, estimate its usage, declare the usage unit: `neurons` or `characters`). Adapters are registered by name; `TRANSLATION_ENGINE` selects one; a shared conformance suite proves any adapter keeps placeholders, numbers and citations, covers every target locale code, reports usage in its unit and maps provider errors onto the quota, transient, unauthorised and permanent categories the drains already understand. Each stored translation records which `engine` and `model` made it. Azure AI Translator is a planned later adapter; nothing else in the pipeline changes when it arrives.
 
 ## 6. Query path
 
@@ -142,11 +150,12 @@ flowchart TD
 `GET /api/v1/candidates` keeps its path and parameters (`q`, `filter[category]`, `filter[complete]`, `offset`, `limit`, `sort_by`, `sort_order`). Additions:
 
 - list response: `search_mode: "browse" | "hybrid" | "keyword"`;
-- each card: `similarity: number | null` (0..1, `(cosine − cutoff) / (1 − cutoff)` clipped; `null` outside hybrid matches), `score: number` (the combined score, equals the confidence when browsing), and `translation: {locale, title, description, source, stale} | null` for the request locale when it is not `de` and a stored translation exists;
+- each card: `similarity: number | null` (0..1, `(cosine − cutoff) / (1 − cutoff)` clipped; `null` outside hybrid matches), `score: number` (the combined score, equals the confidence when browsing), and `translation: {locale, source, stale} | null` for the request locale when it is not `de` and a stored translation exists (availability and provenance only; the text is not in the list, so a page makes no object-store call);
 - `sort_by=combined` is the default; the existing keys keep working;
+- `GET /api/v1/candidates/{id}/translation?locale=` returns the stored text `{locale, title, description, source, stale, engine}` read from R2 (one object read, `ETag` from `content_sha256`, `If-None-Match` answered `304` without touching the store, short `max-age`); `404` when no row exists, `503` when object storage is not configured;
 - `GET /locales` computes `completeness_pct`; `GET /translations` serves only enabled locales.
 
-Machine API (workers): `POST /api/v1/discovery/machine/embeddings/{claim,complete,fail,release}` + summary, and the same for `…/translations/…`, authenticated by the existing `X-API-Key` dependency; `complete` returns a per-item result (`stored | stale | rejected`) instead of failing the whole batch.
+Machine API (workers): `POST /api/v1/discovery/machine/embeddings/{claim,complete,fail,release}` + summary, and the same for `…/translations/…`, authenticated by the existing `X-API-Key` dependency; `complete` returns a per-item result (`stored | stale | rejected | unavailable`) instead of failing the whole batch.
 
 ## 8. Frontend contract
 
@@ -154,7 +163,7 @@ Machine API (workers): `POST /api/v1/discovery/machine/embeddings/{claim,complet
 - **Sorting.** The sort select and direction button are removed. Results are always best-first by the combined score. Stale `sort_by`/`sort_order` URL parameters are ignored.
 - **Category browse** stays: chips under the search bar, `filter[category]` as today.
 - **Result cards** show two rings from one shared `ScoreRing` (Chakra `ProgressCircle`): the existing confidence ring and a new similarity ring. In `keyword` mode the similarity ring is omitted, not shown as 0, and a subtle hint says semantic matching is unavailable.
-- **Translation pop-over.** The German text stays primary. A small language button next to the title opens a pop-over with the stored translation in the reader's language, a "machine translation, may contain errors" note, and a note when stale. It makes no request (the data arrives with the list), is keyboard accessible, and sits outside the card link.
+- **Translation pop-over.** The German text stays primary. A small language button next to the title opens a pop-over with the stored translation in the reader's language, a "machine translation, may contain errors" note, and a note when stale. Opening it reads the stored translation once (`GET …/translation`, cached per candidate and locale, never a model call), shows a loading state and an error state with retry, is keyboard accessible, and sits outside the card link. The trigger itself comes from the list's `translation` summary.
 - Layout and copy are checked at German and Russian text lengths and at mobile width.
 
 ## 9. Interface languages
@@ -169,12 +178,15 @@ Machine API (workers): `POST /api/v1/discovery/machine/embeddings/{claim,complet
 ## 10. Cost and limits
 
 - **Neurons.** `@cf/qwen/qwen3-embedding-0.6b` is about 1075 neurons per million input tokens; embedding every candidate in seven locales is a few thousand neurons in total against a 9,500/day free budget. **Translation is the expensive part** (generation): its full-corpus cost per engine is projected by the chapter 13 probe before anything is queued, and the plan does not assume it fits. Embedding, query embedding and translation share one ledger; the translate drain keeps a floor so request-time query embedding is never starved.
-- **Database.** Vectors are about 4 KB per row at 1024 dimensions; seven rows per candidate plus HNSW could approach 200 MB, a large share of the 500 MB Supabase free-tier cap and the `DB_SOFT_LIMIT_BYTES` guard (writes answer 507). Controls: `halfvec` (half the size) and/or a reduced Matryoshka dimension, decided in chapter 1; `EMBEDDING_LOCALES` to embed only the locales that earn their space; a prune tool; and a search storage budget (rollout invariant 11) checked in chapters 1, 3, 16 and 18. Translations and search text rows are small by comparison.
+- **Database.** The budget is the existing `DB_SOFT_LIMIT_BYTES` guard (writes answer 507); there is no separate figure. Today the database holds about 83 MB of the 500 MB Supabase free tier and the corpus is nearly complete, so growth comes from this suite alone. Vectors are about 4 KB per row at 1024 dimensions; seven rows per candidate plus HNSW is on the order of 200 MB, which fits but is the dominant cost, so chapter 1 still decides `vector` versus `halfvec` and a reduced Matryoshka dimension from the measured projection; `EMBEDDING_LOCALES` and a prune tool remain as levers. Translation text is kept out of the database entirely (R2, below); the search-text rows and tsvectors derived from it are small and rebuildable. Rollout invariant 11 is checked in chapters 1, 3, 16 and 18.
+- **Object storage (R2).** About 24,000 small objects (4,000 candidates × six locales, a couple of KB each) is a few tens of MB against 10 GB, and about 24,000 Class A writes against the 1M monthly allowance; reads happen only when a reader opens a pop-over. The existing `object_store_max_bytes` check stays artifact-only; translation bytes are reported in the run ledger and counted when full-text translations arrive.
 - **GitHub Actions minutes.** The embed and translate drains exit early when the queue summary reports no ready work.
 
 ## 11. Seams kept for later work
 
-- **Entity resolution.** Results dedupe on a single subject id (the candidate id today). `candidate_embedding` is keyed by `(candidate_id, model, locale)`; nearest-neighbour search over the same vectors is how candidate-to-candidate resolution would start. The search-text builder is where canonical names and aliases would be added. Translation rows carry provenance so a resolution step can prefer human text.
+- **Entity resolution.** Results dedupe on a single subject id (the candidate id today). `candidate_embedding` is keyed by `(candidate_id, model, locale)`; nearest-neighbour search over the same vectors is how candidate-to-candidate resolution would start. The search-text builder is where canonical names and aliases would be added. Translation index rows carry provenance (`source`, `engine`, `model`) so a resolution step can prefer human text.
+- **Full-document translation.** The object layout has a unit segment (`card` today); a later package adds `body` units beside it in the same bucket, with its own index rows, size accounting and cost probe.
+- **Translation engines.** The `TranslationEngine` port, the registry and the conformance suite are the seam for Azure AI Translator or any other provider.
 - **Right-to-left languages.** `localeMeta.ts` is the one place a text-direction field would go.
 
 ## 12. Non-goals

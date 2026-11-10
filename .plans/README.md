@@ -501,7 +501,7 @@ Make search the primary way into redtape: pgvector embeddings of candidates comp
 workers on Cloudflare Workers AI (Qwen3-Embedding), hybrid retrieval (Postgres full-text + vector
 search fused with Reciprocal Rank Fusion and blended with confidence into one combined score), a
 centred raised search bar without sort controls, a shared confidence/similarity ring, document
-text translated once by workers and stored (searchable per language, shown in a pop-over beside the
+text translated once by workers (pluggable translation engines, Cloudflare first) and stored in R2 (searchable per language, shown in a pop-over beside the
 German original), and a seven-language interface (de, en, tr, ru, uk, pl, ro). Arabic/right-to-left
 layout and entity resolution are out of scope; the design keeps seams for them. Eighteen chapters.
 
@@ -509,7 +509,7 @@ layout and entity resolution are out of scope; the design keeps seams for them. 
 | --- | --- |
 | [00-architecture.md](search-first/00-architecture.md) | Data model, embedding and translation pipelines, query path, API and UI contract, languages, seams |
 | [01-rollout.md](search-first/01-rollout.md) | Eighteen chapters, dependency graph, invariants, batches, operator actions |
-| [gaps-and-decisions.md](search-first/gaps-and-decisions.md) | Settled decisions D1–D15 and open seams O1–O15 |
+| [gaps-and-decisions.md](search-first/gaps-and-decisions.md) | Settled decisions D1–D17 and open seams O1–O17 |
 | [run-ledger.md](search-first/run-ledger.md) | Per-chapter evidence template and post-deploy validation |
 | [chapters/](search-first/chapters/) | One executable plan per chapter |
 

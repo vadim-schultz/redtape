@@ -21,9 +21,9 @@ isProject: false
 6. Workers never hold `DATABASE_URL`; they use the machine API. The only Cloudflare credential on the API host is a Workers-AI-scoped token for query embedding (decision D1, accepted).
 7. Neuron spend (embedding drain, translation drain, query embedding, UI translation) is metered against one shared ledger; a quota stop releases tasks without consuming attempts; the translate drain never takes the ledger below the query-embedding floor.
 8. A locale is not served until it is enabled, and is enabled only after a recorded native-speaker review of its interface strings and 100% key coverage.
-9. Translations are stored once, labelled machine-made, shown only as a secondary pop-over beside the German original, and a human translation is never overwritten by a machine one. No live translation.
+9. Translations are stored once (text in R2, a thin index row in Postgres), labelled machine-made, shown only as a secondary pop-over beside the German original, and a human translation is never overwritten by a machine one. No live translation. Translation engines are adapters behind one port; no code outside the adapter names a provider.
 10. The sort controls are removed from the UI only after the API default ordering is pinned to the combined score.
-11. Search storage (search text, embeddings, indexes, translations) stays within the agreed budget; it is estimated in chapter 1, measured in chapters 3 and 16, and re-checked in chapter 18.
+11. Database growth from this suite (search text, tsvectors, embeddings, indexes, translation index rows) stays under the existing `DB_SOFT_LIMIT_BYTES` with margin; the baseline is about 83 MB of 500 MB. It is projected in chapter 1, measured in chapters 3 and 16, and re-checked in chapter 18. Translation text is kept in R2, not the database.
 12. Every implementation chapter uses red → green → refactor, runs its named narrow checks, then the root `./ci.sh`.
 13. No chapter adds right-to-left support or implements entity resolution.
 
@@ -83,10 +83,10 @@ flowchart TD
 | C11 | UI and taxonomy-label translation | C2, C7, C13, C17 | discovery-ingest `i18n` command, API seed data, web fallback bundles | chapter-implementer | Validator + parity tests + `./ci.sh` | planned |
 | C12 | Combined ranking score | C8 | API `features/search/scoring`, `features/candidates` ordering and schema, OpenAPI snapshot, web contract fixture | chapter-implementer | API tests + `./ci.sh` | planned |
 | C13 | Translation schema and core | C3 | API models, migration, settings; ingest translation core and probe | chapter-implementer | Migration round-trip + probe + `./ci.sh` | planned |
-| C14 | Translation queue and machine API | C5, C13 | API `features/translation`, discovery write hooks, scripts, contract fixture | chapter-implementer | API + contract tests + `./ci.sh` | planned |
+| C14 | Translation queue and machine API | C5, C13 | API `features/translation` (writes translation objects to R2), discovery write hooks, scripts, contract fixture | chapter-implementer | API + contract tests + `./ci.sh` | planned |
 | C15 | Translation drain worker | C13, C14 | discovery-ingest worker, client, CLI, GHA workflow, ops docs | chapter-implementer | Ingest tests + `./ci.sh` | planned |
 | C16 | Translated text in search text and embedding tasks | C6, C14 | API `features/search` builder and enqueue, settings, scripts | chapter-implementer | API tests + `./ci.sh` | planned |
-| C17 | Translation read path and pop-over | C10, C13 | API `features/candidates` read path and schema; web documents and candidates, i18n keys | chapter-implementer | API + Vitest + typecheck/build + `./ci.sh` | planned |
+| C17 | Translation read path and pop-over | C10, C13 | API `features/candidates` read path, stored-text route and schema; web documents, hooks and candidates, i18n keys | chapter-implementer | API + Vitest + typecheck/build + `./ci.sh` | planned |
 | C18 | Evaluation, tuning and rollout | C8, C10, C11, C12, C16, C17 | eval fixtures and script, settings defaults, ops docs, STATUS | chief-of-staff | Eval report + read-only live validation | planned |
 
 ## Parallel batches
@@ -132,7 +132,9 @@ Each chapter must:
 | --- | --- | --- |
 | Confirm `vector` is available on Supabase (`select * from pg_available_extensions where name = 'vector'`) and enable it; record the pgvector version | C1 gate, before C3 deploys | run ledger |
 | Create a Workers-AI-only API token; store it as a Render secret for query embedding (D1) and as the GHA secret the embed and translate drains use | C6, C15 (drains), C8 (query) | run ledger |
+| Confirm the R2 bucket and credentials already used for artifacts are present on the API host (translations reuse them; no new bucket) | C14 | run ledger |
 | Review the translation probe sample sheets with native speakers and confirm the engine decision | C13 gate | run ledger |
+| Later, not in this suite: Azure Translator resource, key and region (O17) | when an Azure adapter is scheduled | run ledger |
 | Set the repo variables `DISCOVERY_EMBED_SCHEDULE=enabled` and `DISCOVERY_TRANSLATE_SCHEDULE=enabled` | after C6 / C15 are merged and backfills ran | run ledger |
 | Native-speaker review of each new locale's interface strings and taxonomy labels, recorded in the review manifest | C11, before any locale is enabled | run ledger |
 | Run the backfills and drains in the order given in C18, then set `SEARCH_HYBRID_ENABLED=true` | C18 | run ledger |
@@ -144,14 +146,15 @@ Before C8 is enabled in an environment:
 - `candidate_search_text` has a `de` row for every candidate that has a title;
 - `candidate_embedding` covers at least 99% of candidates at the current hash for each embedded locale, and the stale count is recorded;
 - the HNSW index exists and `EXPLAIN` shows it used for the vector leg;
-- search storage is within budget;
+- the projected and measured database size is under `DB_SOFT_LIMIT_BYTES` with margin;
 - the evaluation report (C18) shows hybrid at least matching keyword on German queries.
 
 Before translations are served or searched:
 
 - the chapter 13 probe has been reviewed and the engine decision recorded;
 - translated candidates per locale and the validator failure rate are recorded;
-- no `human` row was overwritten (checked by a query in the ledger).
+- no `human` row was overwritten (checked by a query in the ledger);
+- the number of translation index rows equals the number of stored translation objects within tolerance (orphans from replaced objects are counted and small).
 
 Before any new locale is enabled:
 
