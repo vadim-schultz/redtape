@@ -33,6 +33,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.models.search import WorkTaskStatus
 from app.schema.discovery import (
     artifacts,
     budgets,
@@ -43,6 +44,7 @@ from app.schema.discovery import (
     machine,
     read,
 )
+from app.schema.search import machine as search_machine
 from app.schema.taxonomy import read as taxonomy_read
 from app.shared.taxonomy.contract_loader import load_contract
 from pydantic import BaseModel
@@ -76,6 +78,11 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "candidate_emit.CandidateEmitRequest": (candidate_emit.CandidateEmitRequest, "validation"),
     "budgets.BudgetReserveRequest": (budgets.BudgetReserveRequest, "validation"),
     "budgets.BudgetAdjustRequest": (budgets.BudgetAdjustRequest, "validation"),
+    "search_machine.EmbeddingClaimRequest": (search_machine.EmbeddingClaimRequest, "validation"),
+    "search_machine.EmbeddingCompleteItem": (search_machine.EmbeddingCompleteItem, "validation"),
+    "search_machine.EmbeddingCompleteRequest": (search_machine.EmbeddingCompleteRequest, "validation"),
+    "search_machine.EmbeddingFailRequest": (search_machine.EmbeddingFailRequest, "validation"),
+    "search_machine.EmbeddingReleaseRequest": (search_machine.EmbeddingReleaseRequest, "validation"),
     # Responses the ingest package validates: serialized by the API.
     "machine.CatalogueMachineRead": (machine.CatalogueMachineRead, "serialization"),
     "machine.EntityUpsertResponse": (machine.EntityUpsertResponse, "serialization"),
@@ -106,6 +113,13 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "taxonomy_read.VocabularyResponse": (taxonomy_read.VocabularyResponse, "serialization"),
     "taxonomy_read.CrosswalkRead": (taxonomy_read.CrosswalkRead, "serialization"),
     "taxonomy_read.PvogLeafMappingRead": (taxonomy_read.PvogLeafMappingRead, "serialization"),
+    "search_machine.EmbeddingClaimResponse": (search_machine.EmbeddingClaimResponse, "serialization"),
+    "search_machine.ClaimedEmbeddingTask": (search_machine.ClaimedEmbeddingTask, "serialization"),
+    "search_machine.EmbeddingCompleteResponse": (search_machine.EmbeddingCompleteResponse, "serialization"),
+    "search_machine.EmbeddingItemResult": (search_machine.EmbeddingItemResult, "serialization"),
+    "search_machine.EmbeddingFailResponse": (search_machine.EmbeddingFailResponse, "serialization"),
+    "search_machine.EmbeddingReleaseResponse": (search_machine.EmbeddingReleaseResponse, "serialization"),
+    "search_machine.EmbeddingSummaryResponse": (search_machine.EmbeddingSummaryResponse, "serialization"),
 }
 """Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
 
@@ -126,6 +140,8 @@ ENUMS: dict[str, list[str]] = {
     "DiscoveryRunKind": _values(DiscoveryRunKind),
     "BudgetResource": _values(BudgetResource),
     "LEGACY_TASK_KINDS": [str(kind.value) for kind in LEGACY_TASK_KINDS],
+    "EmbeddingOutcome": _values(search_machine.EmbeddingOutcome),
+    "WorkTaskStatus": _values(WorkTaskStatus),
     "StopReason": list(get_args(machine.StopReason)),
     "EdgeSkipReason": list(get_args(candidate_edges.EdgeSkipReason)),
 }

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import UUID
 
 from app.features.discovery.errors import TaskNotClaimedError
@@ -11,7 +11,7 @@ from app.features.discovery.lookups import require_task
 from app.features.discovery.repository import DiscoveryRepository, NewEvent, TaskTarget
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
-from app.features.discovery.task_lease import clear_lease, hand_back
+from app.features.discovery.task_lease import clear_lease, hand_back, lease
 from app.features.discovery.task_retry import MAX_ATTEMPTS, settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
@@ -22,8 +22,6 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
-
-TASK_LEASE_MINUTES = 15
 
 
 class TaskQueue:
@@ -92,9 +90,7 @@ class TaskQueue:
 
     def _lease(self, task: DiscoveryTask, api_key: ApiKey, now: datetime) -> DiscoveryTask:
         task.status = DiscoveryTaskStatus.CLAIMED
-        task.claimed_at = now
-        task.claimed_by_api_key_id = api_key.id
-        task.lease_expires_at = now + timedelta(minutes=TASK_LEASE_MINUTES)
+        lease(task, api_key.id, now)
         task.attempt_count += 1
         self._repo.record_event(_claimed_event(task, api_key))
         return task
