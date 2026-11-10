@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.discovery import DiscoveryMentionRole
+from app.schema.locale.keys import LocaleKeyedMap
 from app.shared.retired_taxonomy import RETIRED_TAXONOMY_FIELDS, retired_taxonomy_message
 
 MAX_MENTION_ITEMS = 100
@@ -34,7 +35,7 @@ class CandidateMentionItem(BaseModel):
     model_config = {"extra": "forbid"}
 
     catalogue_service_id: UUID
-    title_i18n: dict[str, str] = Field(min_length=1)
+    title_i18n: LocaleKeyedMap = Field(min_length=1)
     role: DiscoveryMentionRole
     excerpt: str = Field(min_length=1)
     source_field: str = Field(min_length=1, max_length=200)
