@@ -29,6 +29,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) (+ [#373](https://github.com/vadim-schultz/redtape/pull/373) typer pin) | pass | pass | yes (64ef112) | none |
 | 02-backend-locale-foundation | `feat/search-backend-locales` | [#374](https://github.com/vadim-schultz/redtape/pull/374) | pass | pass | yes (5ccabc4) | none |
 | 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
+| 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
 
 ## Baseline
 
@@ -89,9 +90,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 7 — Web locale foundation
 
-- Status: pending
-- Bundle size before and after lazy loading: pending
-- Parity test coverage (keys, placeholders, plurals): pending
+- Status: merged into loop branch (#376); refactor gate: smells found -> refactorings applied (`LocaleProvider` hooks extracted, `translate`/`lookup`/`interpolate`, formatter helpers); data-design gate: not applicable (web only)
+- Bundle size before and after lazy loading: before `AppBootstrap` 715,529 B raw / 198.07 kB gzip, total JS 1.14 MB; after (de, en only) 716,552 B raw / 198,456 B gzip, no locale chunks. With five stand-in locale files: lazy `AppBootstrap` 716,961 B raw + five 12 KB chunks, vs eager 776,194 B raw / 204,007 B gzip (about 59 KB raw, 5.5 KB gzip kept out of entry per five locales).
+- Parity test coverage (keys, placeholders, plurals): `de` and `en`, 367 keys each, 11 plural-family members, 0 problems; unit cases for missing/extra keys, placeholder mismatch, missing Slavic plural forms; enforces automatically when C11 adds locale files. Web locale list is checked against the API `SUPPORTED_LOCALES`.
+- Fonts: Latin-ext for tr/pl/ro in Space Grotesk, Cyrillic (incl. ї є і ґ) via Inter fallback; checked in headless Chrome against the built CSS (not the running app)
+- Deviations: locale query moved to `services/localesApi.ts` (provider ordering); inline `lang` script also reads browser language
 
 ### Chapter 8 — Hybrid query path
 
