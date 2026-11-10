@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { initialLocale } from "../i18n/initialLocale";
-import { fallbackBundle } from "../i18n/fallback";
+import { useLocaleBundle } from "../hooks/useLocaleBundle";
 import { useRemoteTranslations } from "../hooks/useRemoteTranslations";
 
 export type LocaleContextValue = {
@@ -30,9 +30,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale;
   }, [locale]);
 
+  const bundle = useLocaleBundle(locale);
   const translations = useMemo(
-    () => ({ ...fallbackBundle(locale), ...remote }),
-    [locale, remote],
+    () => ({ ...bundle, ...remote }),
+    [bundle, remote],
   );
 
   const setLocale = useCallback(

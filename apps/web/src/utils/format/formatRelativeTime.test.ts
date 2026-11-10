@@ -51,3 +51,15 @@ it("formatTimeUntil · returns null when unset, due or past", () => {
 it("formatTimeUntil · an unparseable date returns null instead of a false minimum", () => {
   expect(formatTimeUntil("garbage", "en", RETRY_NOW)).toBeNull();
 });
+
+it("formatRelativeTime · uses Russian plural forms", () => {
+  const then = new Date("2026-09-28T11:55:00Z").toISOString();
+
+  expect(formatRelativeTime(then, "ru", NOW)).toBe("5 минут назад");
+});
+
+it("formatRelativeTime · an unknown locale uses the default locale and does not throw", () => {
+  const then = new Date("2026-09-28T11:55:00Z").toISOString();
+
+  expect(formatRelativeTime(then, "fr", NOW)).toBe("vor 5 Minuten");
+});
