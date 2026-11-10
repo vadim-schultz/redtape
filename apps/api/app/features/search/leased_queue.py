@@ -8,7 +8,7 @@ from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.features.discovery.task_retry import MAX_ATTEMPTS
 from app.features.search.task_settle import lease_task
@@ -43,17 +43,25 @@ class LeasedQueue(Generic[TaskT]):
         self._session = session
         self._model: type[TaskT] = model
 
-    def claim(self, api_key_id: UUID, now: datetime, limit: int, scope: Sequence[ColumnElement[bool]]) -> list[TaskT]:
+    def claim(
+        self,
+        api_key_id: UUID,
+        now: datetime,
+        limit: int,
+        scope: Sequence[ColumnElement[bool]],
+        grouping: Sequence[InstrumentedAttribute[UUID]] = (),
+    ) -> list[TaskT]:
         """Reclaim expired leases, then lease up to ``limit`` ready tasks matching ``scope`` to ``api_key_id``.
 
-        Tasks come out by priority, then age, then id, so the order is stable for every claimer.
+        Tasks come out by priority, then ``grouping`` (columns whose equal values must stay together, such as the
+        candidate of per-locale tasks), then age, then id, so the order is stable for every claimer.
         """
         self.reclaim_expired(now)
         model = self._model
         stmt = (
             select(model)
             .where(*ready_clause(model, now), *scope)
-            .order_by(model.priority, model.created_at, model.id)
+            .order_by(model.priority, *grouping, model.created_at, model.id)
             .limit(limit)
             .with_for_update(skip_locked=True)
             .execution_options(populate_existing=True)

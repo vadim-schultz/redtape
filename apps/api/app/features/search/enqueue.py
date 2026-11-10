@@ -5,16 +5,14 @@ from __future__ import annotations
 import enum
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.features.discovery.repository.base import SessionRepository
+from app.features.search.task_states import OPEN_TASK_PREDICATE
 from app.features.search.text import BuiltText
 from app.models.search import CandidateEmbedding, EmbeddingTask, WorkTaskStatus
-
-OPEN_TASK_PREDICATE = text("status in ('pending', 'claimed')")
-"""The predicate of the partial unique index ``uq_embedding_task_open``; ``ON CONFLICT`` must repeat it to infer it."""
 
 
 class EnqueueOutcome(enum.StrEnum):

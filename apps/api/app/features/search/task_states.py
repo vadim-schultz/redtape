@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final, Protocol
 
+from sqlalchemy import text
+
 from app.features.search.errors import InvalidTaskMoveError
 from app.models.search import WorkTaskStatus
 
@@ -15,6 +17,8 @@ TRANSITIONS: Final[Mapping[WorkTaskStatus, frozenset[WorkTaskStatus]]] = {
     WorkTaskStatus.FAILED: frozenset(),
 }
 """``claimed`` leaves by completion, failure, release, retry or lease expiry; ``completed`` and ``failed`` are final."""
+OPEN_TASK_PREDICATE: Final = text("status in ('pending', 'claimed')")
+"""The predicate of every partial unique index on open tasks; ``ON CONFLICT`` must repeat it to infer the index."""
 
 
 class HasStatus(Protocol):
