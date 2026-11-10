@@ -33,6 +33,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
 | 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | native-speaker spot checks pending (manual) |
 | 05-embedding-task-machine-api | `feat/embedding-task-api` | [#380](https://github.com/vadim-schultz/redtape/pull/380) | pass | pass | yes (6d58b2c) | none |
+| 06-embedding-drain-worker | `feat/embedding-drain-worker` | [#382](https://github.com/vadim-schultz/redtape/pull/382) | pass | pass | yes (cc27440) | operator steps pending (secrets, backfill, first dispatch) |
 
 ## Baseline
 
@@ -88,10 +89,13 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 6 — Embedding drain worker
 
-- Status: pending
-- First drain report (claimed, completed, stale, neurons): pending
-- Cadence chosen and Actions minutes per run: pending
-- Backfill completion (embedded / total, stale count): pending
+- Status: merged into loop branch (#382); refactor gate: smells found -> refactorings applied (`remaining_of`, `drain_loop.py`/`report.py` extracted, `_fail_tasks`, `_close_tally`, `Embedder` Protocol moved to `client.py`, embedding price single-sourced in `prices.py`); data-design gate: 1 `apply` (transport failure on claim/complete/fail crashed the drain and left the batch leased; `refusals_as_stops()` turns it into a stop, releases the batch, still prints the report; 3 negative tests); accepted-risk: one poison text fails a whole 50-batch on a provider 4xx (trigger: any `failed` from a 4xx), ledger over-charged by the conservative estimate after a crash between reserve and settle, worker/API `EMBEDDING_MODEL` mismatch looks like `queue_empty` (trigger: Render `EMBEDDING_MODEL` ever set); observed: no retry jitter or queue-age alert
+- First drain report (claimed, completed, stale, neurons): PENDING (operator; no live call made)
+- Cadence chosen and Actions minutes per run: `10 6,18 * * *` (every 12 hours, deviation from the 6-hour default, rationale in `docs/operations/gha-budget.md`), gated by `DISCOVERY_EMBED_SCHEDULE`. Estimates, not measured: idle run about 1.5-2 min (3 ledger minutes), working run at 3,000 neurons about 5-8 min (7-10 ledger minutes); idle-only month about 180 ledger minutes against the 1,000-minute allowance
+- Backfill completion (embedded / total, stale count): PENDING (operator)
+- Red run: new tests failed on import (`ModuleNotFoundError`), workflow/CLI tests errored, 7 CLI-contract help tests failed; three transport-failure tests failed red with `httpx.ReadTimeout`
+- Deviations: no separate batching method (claim cap 50 = `EMBED_BATCH_LIMIT`); embedding price in its own table (a `NEURON_PRICES` row would break `known_models()` and `LLM_MODEL` validation); `stale` added to `DrainReport`/`Tally`; 409 on fail/release counted `skipped`; `embed drain` not recorded as a discovery run; CLI contract 22 -> 24 commands (`embed summary [--require-pending]`, `embed drain`); `--neuron-budget` default 3000; workflow not dispatched (file not on `main` yet), covered by a structural test
+- Operator actions after merge: (1) secrets `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN` exist; (2) apply C3's migration to Supabase (`vector`, `unaccent`) and run the C4 backfill; (3) after release reaches `main`, dispatch `discovery-embed.yml` once, then set `DISCOVERY_EMBED_SCHEDULE=enabled`; (4) record first report, measured minutes and embedded/total here; (5) keep `EMBEDDING_MODEL` identical on Render and in the workers
 
 ### Chapter 7 — Web locale foundation
 
@@ -214,4 +218,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-10 — resumed; chapter 5 merged (7 of 18: C1, C2, C3, C7, C4, C13, C5); next in order: C6
+**Last orchestration:** 2026-11-10 — resumed; chapter 6 merged (8 of 18: C1, C2, C3, C7, C4, C13, C5, C6); next in order: C14
