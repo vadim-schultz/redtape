@@ -45,10 +45,12 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 1 — Infra and embedding probe
 
-- Status: PR #372 open, not merged (blocked)
+- Status: PR #372 open; gate decision recorded; waiting on ingest CI fix (typer pin)
 - pgvector version (local image, CI image, Supabase): local/CI `pgvector/pgvector:pg16`, vector 0.8.7 on PG 16.15; Supabase not checked (operator action)
 - Probe (2026-11-10, `embed probe` from PR #372, live Workers AI): model `@cf/qwen/qwen3-embedding-0.6b`, dimension 1024; reduced dimensions 768/512/256/128 NOT honoured (`dimensions` returned 1024); batches 1–256 all accepted (no rejection up to 256); single-text latency 359 ms (batch 256: 3.6 s); 7,931 tokens, 8.52 neurons, 1.07 neurons per 1k tokens. Request/response shape assumed by the client confirmed.
-- Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and projected total database size for seven locales versus `DB_SOFT_LIMIT_BYTES`: pending
+- pgvector on Supabase (operator, 2026-11-10): `vector` 0.8.0 available, not yet installed (C3 migration runs `CREATE EXTENSION`); `unaccent` 1.1 available, not installed.
+- Measured baseline: `pg_database_size` 58,707,091 bytes (about 58.7 MB, not the 83 MB estimate); 4,713 candidates.
+- Gate decision: `EMBEDDING_DIM=1024`, column type `halfvec(1024)` (pgvector 0.8 supports halfvec and iterative HNSW scans); no reduced dimension (the model ignores `dimensions`). Projection for 4,713 x 7 = 32,991 rows: halfvec(1024) table+HNSW about 175 MB, plus search text/tsvectors about 41 MB (estimate, C3 measures), plus 58.7 MB baseline = about 275 MB versus `DB_SOFT_LIMIT_BYTES` 475 MB (about 200 MB margin). `vector(1024)` would be about 440 MB total (thin margin), so it is not chosen.
 
 ### Chapter 2 — Backend locale foundation
 
