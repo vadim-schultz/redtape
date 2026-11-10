@@ -30,6 +30,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 02-backend-locale-foundation | `feat/search-backend-locales` | [#374](https://github.com/vadim-schultz/redtape/pull/374) | pass | pass | yes (5ccabc4) | none |
 | 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
 | 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
+| 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
 
 ## Baseline
 
@@ -70,9 +71,10 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 4 — Search-text builder, hooks and backfill
 
-- Status: pending
-- Backfill counts (rows written, tasks enqueued, skipped for empty text): pending
-- Recipe version and hash stability check: pending
+- Status: merged into loop branch (#377); refactor gate: smells found -> refactorings applied (`upsert_search_text` helpers, `_upsert_pending` split, `BackfillReport` middle man removed, `RefreshTotals` Counter); data-design gate: 1 `apply` (A->B->A stale pending task retired, with happy and negative tests); accepted-risk: concurrent mention writers can lose an excerpt until next write/backfill, hot-candidate fan-out; observed: no reconcile for failed tasks or `EMBEDDING_MODEL` change (C5/C6/C18), retry cap and claim fencing (C5; skip re-queue when embedding already at current hash), `RECIPE_VERSION` bump needs a backfill (C18 runbook)
+- Backfill counts (local scratch corpus only: synthetic 4,000 candidates / 17,849 mentions; NOT real data): run 1 processed 4000, written 3999, skipped empty 1, enqueued 3999; run 2 written 0, unchanged 3999, enqueued 0. `de` text length p50 1,117 / p95 1,499 chars (cap 1,500; synthetic, upper bound). Sizes: search text table 9.2 MB + two GIN 8.2 MB = 17 MB, tasks 1.3 MB. Real-corpus numbers come from the first real backfill (script prints the same line).
+- Recipe version and hash stability check: `RECIPE_VERSION = "v1"`, `content_hash = sha256("v1\n" + text)`; deterministic with mention-order ties, idempotent re-run (0 rewrites via `xmin`, 0 task changes), a version bump changes every hash
+- Interpretation: mention ordering uses `direct_category_confidence` desc (mentions have no score column); changing it needs a `RECIPE_VERSION` bump
 
 ### Chapter 5 — Embedding task machine API
 
