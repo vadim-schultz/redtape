@@ -12,7 +12,8 @@ from discovery_ingest.extract.llm.errors import LlmError
 from discovery_ingest.extract.llm.meter import Reservation
 from discovery_ingest.worker.batch import BatchResult
 from discovery_ingest.worker.embed_refusal import refusal
-from discovery_ingest.worker.embed_settle import Failure, fail_batch, record_results, refusals_as_stops, release_batch
+from discovery_ingest.worker.embed_settle import record_results
+from discovery_ingest.worker.lease_settle import Failure, fail_batch, refusals_as_stops, release_batch
 from discovery_ingest.worker.llm_answer import denial_reason
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.stop import StopDrain
@@ -55,7 +56,7 @@ def _settle(ctx: EmbedContext, tasks: Tasks, tally: Tally) -> StopDrain | None:
         with refusals_as_stops():
             _embed_and_complete(ctx, tasks, tally)
     except StopDrain as stop:
-        tally.released += release_batch(ctx.client, tasks, f"{stop.reason}: {stop}")
+        tally.released += release_batch(ctx.client.embeddings, tasks, f"{stop.reason}: {stop}")
         return stop
     return None
 
@@ -87,7 +88,7 @@ def _embed(ctx: EmbedContext, tasks: Tasks, reservation: Reservation, tally: Tal
 
 
 def _fail_tasks(ctx: EmbedContext, tasks: Tasks, failure: Failure, tally: Tally) -> None:
-    for label in fail_batch(ctx.client, tasks, failure):
+    for label in fail_batch(ctx.client.embeddings, tasks, failure):
         tally.record(label)
 
 

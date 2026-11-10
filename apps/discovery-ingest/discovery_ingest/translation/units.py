@@ -35,13 +35,25 @@ class TranslationUnit:
 
 
 @dataclass(frozen=True, slots=True)
+class Correction:
+    """The rules an earlier translation of the unit with this ``key`` broke, for the repair request."""
+
+    key: str
+    problems: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class TranslationBatch:
-    """Units that go to one target locale in one call, with the glossary of that locale."""
+    """Units that go to one target locale in one call, with the glossary of that locale.
+
+    ``corrections`` is empty for a first translation; a repair request lists, per unit, the rules it must now keep.
+    """
 
     source_locale: str
     target_locale: str
     units: tuple[TranslationUnit, ...]
     glossary: Glossary
+    corrections: tuple[Correction, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,7 +6,7 @@ Every limit becomes the :class:`StopDrain` the drains already act on; the engine
 from __future__ import annotations
 
 from discovery_ingest.translation.engine import TranslationEngine
-from discovery_ingest.translation.errors import QuotaExceeded, Unauthorised
+from discovery_ingest.translation.errors import QuotaExceeded, TranslationEngineError, Unauthorised, UnusableOutputError
 from discovery_ingest.translation.meter import UsageDenied, UsageMeter, UsageReservation
 from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome
 from discovery_ingest.worker.stop import StopDrain
@@ -15,6 +15,7 @@ DENIAL_TEXT = {
     "run_budget": "the run's usage budget is used up",
     "ledger": "the day's usage ledger is used up",
     "ledger_unavailable": "the usage ledger did not answer",
+    "floor": "the usage kept for query embedding would be used",
 }
 
 
@@ -31,12 +32,29 @@ class MeteredTranslator:
         reservation = self._reserve(batch)
         try:
             outcome = self._engine.translate(batch)
-        except QuotaExceeded as err:
-            raise self._quota_stop(reservation, err) from err
-        except Unauthorised as err:
-            raise self._auth_stop(reservation, err) from err
+        except TranslationEngineError as err:
+            stop = self._refused(reservation, err)
+            if stop is None:
+                raise
+            raise stop from err
         self._meter.settle(reservation, outcome.usage)
         return outcome
+
+    def _refused(self, reservation: UsageReservation, err: TranslationEngineError) -> StopDrain | None:
+        """Return the stop a refused call ends the drain with, or ``None`` when only the batch fails.
+
+        An unusable answer was billed, so its reservation stays; any other refused call was not, so it is refunded.
+        """
+        match err:
+            case QuotaExceeded():
+                return self._quota_stop(reservation, err)
+            case Unauthorised():
+                return self._auth_stop(reservation, err)
+            case UnusableOutputError():
+                return None
+            case _:
+                self._meter.refund(reservation)
+                return None
 
     def _reserve(self, batch: TranslationBatch) -> UsageReservation:
         answer = self._meter.reserve(self._engine.estimate(batch), self._engine.name)

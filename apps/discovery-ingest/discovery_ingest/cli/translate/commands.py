@@ -1,11 +1,12 @@
-"""``translate``: document translation: ``probe`` costs an engine on a fixed sample of real candidates and writes a spot-check sheet."""
+"""``translate probe``: cost an engine on a fixed sample of real candidates and write a spot-check sheet."""
 
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, HELP_OPTIONS, fail, show_help_without_subcommand
+from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, fail
+from discovery_ingest.cli.translate.app import translate_app
 from discovery_ingest.operations.translate_probe import TranslateProbeRequest, translate_probe
 from discovery_ingest.translation.locale_codes import UnmappedLocaleError, require_coverage
 from discovery_ingest.translation.registry import UnknownEngineError, require_registered
@@ -14,21 +15,6 @@ from discovery_ingest.translation.settings import ProbeSourceSettings, load_tran
 DEFAULT_SAMPLE = 50
 DEFAULT_MAX_USAGE = 3000.0
 DEFAULT_DAILY_BUDGET = 9500.0
-
-translate_app = typer.Typer(
-    name="translate",
-    help="Document translation engines",
-    add_completion=False,
-    pretty_exceptions_enable=False,
-    rich_markup_mode=None,
-    context_settings=HELP_OPTIONS,
-)
-
-
-@translate_app.callback(invoke_without_command=True)
-def translate_group(ctx: typer.Context) -> None:
-    """Document translation engines."""
-    show_help_without_subcommand(ctx)
 
 
 def _engine_for(engine: str | None, locale: str) -> str:

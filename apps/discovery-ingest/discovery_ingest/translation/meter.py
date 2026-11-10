@@ -26,9 +26,9 @@ class UsageReservation:
 
 @dataclass(frozen=True, slots=True)
 class UsageDenied:
-    """The call must not go out: the run budget, the day's ledger or an unreachable ledger left nothing to spend."""
+    """The call must not go out: the run budget, the day's ledger, an unreachable ledger or the reserved floor left nothing to spend."""
 
-    reason: Literal["run_budget", "ledger", "ledger_unavailable"]
+    reason: Literal["run_budget", "ledger", "ledger_unavailable", "floor"]
 
 
 class NoMeterForUnitError(LookupError):
@@ -56,6 +56,11 @@ class UsageMeter(Protocol):
 
     def remaining(self) -> float | None:
         """Return what the run may still spend, or ``None`` when unknown."""
+        ...
+
+    @property
+    def used(self) -> float:
+        """Return what this run has spent so far, in the meter's unit."""
         ...
 
 
