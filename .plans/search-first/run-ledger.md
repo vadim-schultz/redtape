@@ -35,6 +35,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 05-embedding-task-machine-api | `feat/embedding-task-api` | [#380](https://github.com/vadim-schultz/redtape/pull/380) | pass | pass | yes (6d58b2c) | none |
 | 06-embedding-drain-worker | `feat/embedding-drain-worker` | [#382](https://github.com/vadim-schultz/redtape/pull/382) | pass | pass | yes (cc27440) | operator steps pending (secrets, backfill, first dispatch) |
 | 14-translation-queue-and-machine-api | `feat/translation-task-api` | [#384](https://github.com/vadim-schultz/redtape/pull/384) | pass (`ci.sh` copy with scratch DB names `redtape_c14_*`) | pass | yes (e262174) | operator steps pending (narrow target locales, backfill, R2 vars) |
+| 08-hybrid-query-path | `feat/hybrid-search` | [#386](https://github.com/vadim-schultz/redtape/pull/386) | pass (`ci.sh` copy with scratch DB names `redtape_c8_*`) | pass | yes (21a86d4) | operator steps pending (Render token, flag, XFF check) |
 
 ## Baseline
 
@@ -108,11 +109,14 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 8 — Hybrid query path
 
-- Status: pending
-- `EXPLAIN` for vector leg (HNSW used) and keyword leg (GIN used): pending
-- Latency p50/p95, hybrid and fallback: pending
-- Fallback behaviour under timeout, error and exhausted budget: pending
-- OpenAPI snapshot and web contract fixture regenerated: pending
+- Status: merged into loop branch (#386); refactor gate: smells found -> refactorings applied (`_nearest`/`_best_rows`/`_hits`/`_best_pool` extracted, `FusedSearch(retrieval, pool)` replaces paired optionals, `SearchPlan` NamedTuple, typed `Retrieval` decided in `SearchPlanner`); data-design gate: 4 `apply` (circuit breaker `CircuitBreakerQueryEmbedder`: 3 misses open it for 30 s then one probe; similarity cut-off moved out of the HNSW-ordered inner query via HAVING; pgvector < 0.8 silently ignores `hnsw.iterative_scan` so a version check falls back to an exact scan with a warning; neuron reservation commits in its own short transaction before the HTTP call; each with tests); accepted-risk: request waits on Workers AI (D1), httpx per-phase timeout not a hard deadline (trigger: embed p99 > 2x `QUERY_EMBED_TIMEOUT_S`), 0.1 neuron not refunded on failure, rate-limit counter per process (trigger: more than one API instance), legs evaluated twice for count and page; observed: `title_matches` seq scan over `jsonb_each_text`, **`tsv_native` built from `unaccent(text)` breaks Turkish suffix stemming (C16 should revisit; the query path mirrors the builder so they stay consistent)**
+- `EXPLAIN` evidence (SYNTHETIC: 4,000 candidates, 28,000 search-text and embedding rows, 7 locales, `halfvec(1024)`, HNSW m=16 ef_construction=64, pgvector 0.8.7): keyword leg uses `BitmapOr` of both GIN indexes (de 6.5 ms, tr 10.8 ms at 28k rows); the planner picks an exact `Seq Scan` for the vector leg at this size (13.7 ms de, 16.1 ms tr); HNSW is used when forced (`Index Scan using ix_candidate_embedding_hnsw`, 2.3-5.3 ms), and `SEARCH_VECTOR_INDEX_ENABLED=false` forces exact. HNSW tuning is for C18. An HNSW-starvation test under a selective filter was inconclusive.
+- Latency p50/p95 (SYNTHETIC, in-process, fake embedder; add about 359 ms per uncached live embedding call): browse 74/83 ms; browse + category 89/104; hybrid 123/153; hybrid + category 183/258; fallback keyword 96/136; fallback + category 163/255; legacy title match 81/95
+- Fallback behaviour under timeout, error and exhausted budget: parametrised over timeout, HTTP 500, missing token, exhausted ledger, embedder returning None, plus ledger `OperationalError`: all 200 with `search_mode: "keyword"`, keyword hit present, vector-only hit absent; exhausted budget leaves the ledger unchanged; logs never contain the token or account id
+- OpenAPI snapshot and web contract fixture regenerated: `CandidateCard.similarity` and `CandidateDetail.similarity` (nullable), `SearchMode` enum, required `CandidateListResponse.search_mode`; no web code changed
+- Deviations: fusion is `UNION ALL` + `GROUP BY candidate_id` + `SUM(1/(k+rank))` rather than `FULL OUTER JOIN`; embedder split over six modules to stay near 100 lines; circuit breaker added (`QUERY_EMBED_BREAKER_FAILURES`, `QUERY_EMBED_BREAKER_COOLDOWN_S`); new settings `QUERY_EMBED_NEURONS` (0.1), `SEARCH_VECTOR_INDEX_ENABLED`, `SEARCH_RATE_LIMIT_PER_MINUTE` (30), `TRUSTED_PROXY_HOPS` (1); `LiveLimitMiddleware` reads the limit per request; blank `q` is browse; docs in `docs/operations/candidate-view.md` and `local-development.md`
+- O12 (client IP for rate limiting): implemented as the `X-Forwarded-For` entry `TRUSTED_PROXY_HOPS` places from the right; the real proxy depth in front of Render is UNVERIFIED (operator check below), so O12 is not closed in `gaps-and-decisions.md`
+- Operator actions after merge: (1) set `CLOUDFLARE_ACCOUNT_ID` and a Workers-AI-scoped `CLOUDFLARE_AI_API_TOKEN` on Render (O3); (2) after C3 migration, C4 backfill and the embed drain, set `SEARCH_HYBRID_ENABLED=true` (default `false` keeps today's title match); (3) verify the real client IP behind Render with a spoofed `X-Forwarded-For` and set `TRUSTED_PROXY_HOPS` and `SEARCH_RATE_LIMIT_PER_MINUTE`; (4) tune `QUERY_EMBED_TIMEOUT_S`, `SEARCH_MIN_SIMILARITY`, `SEARCH_FUSED_TOP_K` in C18
 
 ### Chapter 9 — Centred search and sort removal
 
@@ -221,4 +225,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-10 — resumed; chapter 14 merged (9 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14); next in order: C8
+**Last orchestration:** 2026-11-10 — resumed; chapter 8 merged (10 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8); next in order: C15
