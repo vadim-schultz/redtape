@@ -27,6 +27,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) (+ [#373](https://github.com/vadim-schultz/redtape/pull/373) typer pin) | pass | pass | yes (64ef112) | none |
+| 02-backend-locale-foundation | `feat/search-backend-locales` | [#374](https://github.com/vadim-schultz/redtape/pull/374) | pass | pass | yes (5ccabc4) | none |
 
 ## Baseline
 
@@ -54,9 +55,9 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 2 — Backend locale foundation
 
-- Status: pending
-- Locale rows seeded (enabled flags): pending
-- Resolution and validation tests: pending
+- Status: merged into loop branch (#374); refactor gate: smells found -> refactorings applied (`pick_i18n` loops extracted, seed split); data-design gate: reviewed, no `apply` findings (observed: stored `completeness_pct` now dead; accepted-risk: uncached `/locales` count)
+- Locale rows seeded (enabled flags): 7 rows; de, en enabled; tr, ru, uk, pl, ro disabled. `ui_translation`: de 367 keys, en 367 keys; computed completeness de/en 100.0, others 0.0
+- Resolution and validation tests: added (fallback chain, seed idempotence preserving `enabled`, locale-key validation rejects `fr`); non-German readers now fall back `en` before `de`
 
 ### Chapter 3 — Search schema
 
