@@ -75,10 +75,13 @@ function pluralProblems(locale: string, bundle: Bundle): string[] {
 
 /** Every way `locales` drifts from `en`: key sets, `{placeholder}` names and plural forms. */
 export function parityProblems(locales: Record<string, Bundle>): string[] {
-  const en = locales.en;
-  return Object.entries(locales).flatMap(([locale, bundle]) => [
-    ...(locale === "en" ? [] : keySetProblems(locale, bundle, en)),
-    ...(locale === "en" ? [] : placeholderProblems(locale, bundle, en)),
-    ...pluralProblems(locale, bundle),
+  const { en, ...others } = locales;
+  const vsEn = Object.entries(others).flatMap(([locale, bundle]) => [
+    ...keySetProblems(locale, bundle, en),
+    ...placeholderProblems(locale, bundle, en),
   ]);
+  const plurals = Object.entries(locales).flatMap(([locale, bundle]) =>
+    pluralProblems(locale, bundle),
+  );
+  return [...vsEn, ...plurals];
 }

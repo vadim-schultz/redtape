@@ -1,9 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Redtape</title>
+    <script>
+      // Set <html lang> before first paint: stored locale, then the browser
+      // language, then the default. Keep the list in step with localeMeta.ts.
+      (function () {
+        var supported = ["de", "en", "tr", "ru", "uk", "pl", "ro"];
+        var stored = null;
+        try {
+          stored = localStorage.getItem("locale");
+        } catch (e) {}
+        var browser = (navigator.language || "").split("-")[0].toLowerCase();
+        var pick = function (code) {
+          return supported.indexOf(code) > -1 ? code : null;
+        };
+        document.documentElement.lang = pick(stored) || pick(browser) || "de";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
