@@ -26,7 +26,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 | chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) | pass | fail (Discovery ingest CI: typer 0.29 drift, pre-existing) | no (open) | live embed probe not run (needs `CLOUDFLARE_AI_API_TOKEN`); ingest CI red on loop branch |
+| 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) (+ [#373](https://github.com/vadim-schultz/redtape/pull/373) typer pin) | pass | pass | yes (64ef112) | none |
 
 ## Baseline
 
@@ -45,7 +45,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 1 — Infra and embedding probe
 
-- Status: PR #372 open; gate decision recorded; waiting on ingest CI fix (typer pin)
+- Status: merged into loop branch (#372); refactor gate: Long Function in `CloudflareEmbeddingClient.embed` -> Extract Function; data-design gate: not applicable
 - pgvector version (local image, CI image, Supabase): local/CI `pgvector/pgvector:pg16`, vector 0.8.7 on PG 16.15; Supabase not checked (operator action)
 - Probe (2026-11-10, `embed probe` from PR #372, live Workers AI): model `@cf/qwen/qwen3-embedding-0.6b`, dimension 1024; reduced dimensions 768/512/256/128 NOT honoured (`dimensions` returned 1024); batches 1–256 all accepted (no rejection up to 256); single-text latency 359 ms (batch 256: 3.6 s); 7,931 tokens, 8.52 neurons, 1.07 neurons per 1k tokens. Request/response shape assumed by the client confirmed.
 - pgvector on Supabase (operator, 2026-11-10): `vector` 0.8.0 available, not yet installed (C3 migration runs `CREATE EXTENSION`); `unaccent` 1.1 available, not installed.
