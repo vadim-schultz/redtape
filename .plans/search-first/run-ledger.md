@@ -32,6 +32,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
 | 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
 | 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | native-speaker spot checks pending (manual) |
+| 05-embedding-task-machine-api | `feat/embedding-task-api` | [#380](https://github.com/vadim-schultz/redtape/pull/380) | pass | pass | yes (6d58b2c) | none |
 
 ## Baseline
 
@@ -79,10 +80,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 5 — Embedding task machine API
 
-- Status: pending
-- Contract fixture regenerated: pending
-- Claim concurrency test (two claimers, no overlap): pending
-- Generic leased queue extraction; existing discovery queue tests unchanged: pending
+- Status: merged into loop branch (#380); refactor gate: smells found -> refactorings applied (`search/clock.py` extracted, `FailureKind` replaces flag argument, `VECTOR_CHECKS` table, `reclaim_expired` split, `ready_clause`, `release` built once); data-design gate: 2 `apply` (complete holds `FOR SHARE` on the search-text row so a concurrent rewrite cannot be lost; locked `owned()` check makes settle atomic with reclaim; each with happy and negative tests); accepted-risk: zombie worker with same API key can settle a reclaimed claim (no lease token), replayed `complete` answers `rejected` (C6 must treat as non-fatal), `summary.stale_candidates` full join (revisit above 200k rows); observed: no retry jitter or age alert
+- Contract fixture regenerated: `discovery_machine_contract.json` (+5 routes, 12 models) and the web `openapi.schemas.json`; contract tests pass
+- Claim concurrency test (two claimers, no overlap): `test_two_concurrent_claimers_never_receive_the_same_task` (disjoint ids, union = all six; `lock_timeout` makes a missing `SKIP LOCKED` fail)
+- Generic leased queue extraction; existing discovery queue tests unchanged: `features/search/leased_queue.py` (`LeasedQueue`, reusable by C14); lease and retry policy shared via `discovery/task_lease.py` and `task_retry.py`; `test_discovery_task_queue.py` unedited and green. SQL clauses stay per table (different native status enums)
+- Deviations: `fail`/`release` answer 409 for unknown and foreign tasks; `release` takes optional `reason`; `complete` also marks stale when the hash differs from the leased hash; `summary` takes optional `model`; no recorded red run (tests written first, first run was green)
 
 ### Chapter 6 — Embedding drain worker
 
@@ -212,4 +214,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-10 — stopped after chapter 13 and the C13 live probes by user request (6 of 18 merged: C1, C2, C3, C7, C4, C13); next in order: C5
+**Last orchestration:** 2026-11-10 — resumed; chapter 5 merged (7 of 18: C1, C2, C3, C7, C4, C13, C5); next in order: C6
