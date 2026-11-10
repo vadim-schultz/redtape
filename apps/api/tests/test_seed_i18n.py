@@ -7,6 +7,7 @@ import pytest
 import scripts.seed_i18n as seed_i18n
 import sqlalchemy as sa
 from app.models.locale import SupportedLocale, UITranslation
+from app.shared.locale import SUPPORTED_LOCALES
 from scripts.seed_i18n import _flatten_dict, _load_nested_json, seed_supported_locales, seed_ui_translations
 from sqlalchemy.orm import Session
 
@@ -35,12 +36,44 @@ def test_load_nested_json_rejects_an_array_root(tmp_path: Path) -> None:
         _load_nested_json(path)
 
 
-def test_seed_supported_locales_creates_de_and_en_and_is_idempotent(db_session: Session) -> None:
+def _enabled_by_code(session: Session) -> dict[str, bool]:
+    rows = session.execute(sa.select(SupportedLocale.code, SupportedLocale.enabled)).all()
+    return {code: enabled for code, enabled in rows}
+
+
+def test_seed_supported_locales_creates_every_supported_locale_and_is_idempotent(db_session: Session) -> None:
     seed_supported_locales(db_session)
     seed_supported_locales(db_session)
 
-    codes = db_session.execute(sa.select(SupportedLocale.code).order_by(SupportedLocale.code)).scalars().all()
-    assert codes == ["de", "en"]
+    codes = db_session.execute(sa.select(SupportedLocale.code)).scalars().all()
+    assert sorted(codes) == sorted(spec.code for spec in SUPPORTED_LOCALES)
+    assert sorted(codes) == ["de", "en", "pl", "ro", "ru", "tr", "uk"]
+
+
+def test_seed_adds_the_new_locales_disabled_and_keeps_de_and_en_enabled(db_session: Session) -> None:
+    seed_supported_locales(db_session)
+
+    assert _enabled_by_code(db_session) == {
+        "de": True,
+        "en": True,
+        "tr": False,
+        "ru": False,
+        "uk": False,
+        "pl": False,
+        "ro": False,
+    }
+
+
+def test_seed_keeps_an_enabled_flag_flipped_by_an_operator(db_session: Session) -> None:
+    seed_supported_locales(db_session)
+    db_session.execute(sa.update(SupportedLocale).where(SupportedLocale.code == "tr").values(enabled=True))
+    db_session.execute(sa.update(SupportedLocale).where(SupportedLocale.code == "en").values(enabled=False))
+
+    seed_supported_locales(db_session)
+
+    enabled = _enabled_by_code(db_session)
+    assert enabled["tr"] is True
+    assert enabled["en"] is False
 
 
 def test_seed_supported_locales_restores_a_changed_name_native_on_rerun(db_session: Session) -> None:
@@ -79,3 +112,26 @@ def test_seed_ui_translations_rerun_adds_no_rows_but_overwrites_an_edited_value(
 
 def test_de_and_en_seed_files_have_the_same_keys() -> None:
     assert set(_flat_keys("de")) ^ set(_flat_keys("en")) == set()
+
+
+def test_a_translation_file_for_an_unknown_locale_fails_loudly_and_writes_nothing(
+    db_session: Session, tmp_path: Path
+) -> None:
+    (tmp_path / "de.json").write_text(json.dumps({"a": "x"}), encoding="utf-8")
+    (tmp_path / "fr.json").write_text(json.dumps({"a": "y"}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"fr\.json.*SUPPORTED_LOCALES"):
+        seed_ui_translations(db_session, root=tmp_path)
+
+    assert _translation_count(db_session) == 0
+
+
+def test_a_translation_file_for_a_supported_locale_is_seeded_from_a_custom_root(
+    db_session: Session, tmp_path: Path
+) -> None:
+    (tmp_path / "tr.json").write_text(json.dumps({"a": {"b": "x"}}), encoding="utf-8")
+
+    seed_ui_translations(db_session, root=tmp_path)
+
+    stored = db_session.execute(sa.select(UITranslation.key, UITranslation.locale, UITranslation.value)).all()
+    assert [tuple(row) for row in stored] == [("a.b", "tr", "x")]

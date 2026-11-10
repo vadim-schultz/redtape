@@ -7,9 +7,12 @@ from pathlib import Path
 
 from app.db import SessionLocal
 from app.models.locale import SupportedLocale, UITranslation
+from app.shared.locale import SUPPORTED_LOCALE_CODES, SUPPORTED_LOCALES
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+
+TRANSLATIONS_ROOT = Path(__file__).resolve().parent / "seed_data" / "translations"
 
 
 def _flatten_dict(data: dict[str, object], parent: str = "", sep: str = ".") -> dict[str, str]:
@@ -34,65 +37,61 @@ def _load_nested_json(path: Path) -> dict[str, object]:
 
 
 def seed_supported_locales(session: Session) -> None:
-    """Upsert the German and English locale rows, enabling them and refreshing their names on rerun."""
-    rows: list[dict[str, object]] = [
-        {
-            "code": "de",
-            "name_native": "Deutsch",
-            "name_english": "German",
-            "flag_emoji": "🇩🇪",
-            "enabled": True,
-            "completeness_pct": 100.0,
-        },
-        {
-            "code": "en",
-            "name_native": "English",
-            "name_english": "English",
-            "flag_emoji": "🇬🇧",
-            "enabled": True,
-            "completeness_pct": 100.0,
-        },
-    ]
-    for row in rows:
-        ins = pg_insert(SupportedLocale).values(**row)
+    """Upsert one row per entry of ``SUPPORTED_LOCALES``.
+
+    New rows take ``enabled`` from the entry (only de and en start enabled). A rerun refreshes the
+    names and flag but never ``enabled``, so an operator's flip survives the seed that runs on every boot.
+    """
+    for spec in SUPPORTED_LOCALES:
+        ins = pg_insert(SupportedLocale).values(
+            code=spec.code,
+            name_native=spec.name_native,
+            name_english=spec.name_english,
+            flag_emoji=spec.flag_emoji,
+            enabled=spec.enabled_by_default,
+        )
         stmt = ins.on_conflict_do_update(
             index_elements=[SupportedLocale.code],
             set_={
                 "name_native": ins.excluded.name_native,
                 "name_english": ins.excluded.name_english,
                 "flag_emoji": ins.excluded.flag_emoji,
-                "enabled": ins.excluded.enabled,
-                "completeness_pct": ins.excluded.completeness_pct,
             },
         )
         session.execute(stmt)
 
 
-def seed_ui_translations(session: Session) -> None:
-    """Upsert every translation file, one locale per file named by its stem, flattening nested keys with dots.
+def _translation_files(root: Path) -> list[Path]:
+    """Return the translation files under ``root``; raise when one names a locale outside ``SUPPORTED_LOCALES``."""
+    paths = sorted(root.glob("*.json"))
+    unknown = [path.name for path in paths if path.stem not in SUPPORTED_LOCALE_CODES]
+    if unknown:
+        msg = f"translation file(s) {', '.join(unknown)} name a locale not in SUPPORTED_LOCALES"
+        raise ValueError(msg)
+    return paths
 
-    Rerunning overwrites existing values in place, so the catalogue always matches the JSON files.
-    """
-    root = Path(__file__).resolve().parent / "seed_data" / "translations"
-    for path in sorted(root.glob("*.json")):
-        locale = path.stem
-        nested = _load_nested_json(path)
-        flat = _flatten_dict(nested)
-        for key, value in flat.items():
-            ins = pg_insert(UITranslation).values(
-                key=key,
-                locale=locale,
-                value=value,
-                context=None,
-            )
-            stmt = ins.on_conflict_do_update(
+
+def _upsert_translations(session: Session, locale: str, flat: dict[str, str]) -> None:
+    """Upsert every ``key -> value`` pair for ``locale``, overwriting an existing value in place."""
+    for key, value in flat.items():
+        ins = pg_insert(UITranslation).values(key=key, locale=locale, value=value, context=None)
+        session.execute(
+            ins.on_conflict_do_update(
                 index_elements=[UITranslation.key, UITranslation.locale],
-                set_={
-                    "value": ins.excluded.value,
-                    "updated_at": func.now(),
-                },
+                set_={"value": ins.excluded.value, "updated_at": func.now()},
             )
-            session.execute(stmt)
+        )
+
+
+def seed_ui_translations(session: Session, root: Path = TRANSLATIONS_ROOT) -> None:
+    """Upsert every translation file under ``root``, one locale per file named by its stem.
+
+    Nested keys are flattened with dots. Every file is checked against ``SUPPORTED_LOCALES`` before
+    any row is written, so an unknown locale fails loudly instead of being skipped. Rerunning
+    overwrites existing values in place, so the catalogue always matches the JSON files.
+    """
+    for path in _translation_files(root):
+        _upsert_translations(session, path.stem, _flatten_dict(_load_nested_json(path)))
 
 
 def main() -> None:

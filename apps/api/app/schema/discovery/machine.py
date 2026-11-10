@@ -18,6 +18,7 @@ from app.models.discovery import (
     DiscoveryTaskStatus,
 )
 from app.schema.discovery.emit import EmitCounts, EmitOutcome
+from app.schema.locale.keys import LocaleKeyedMap
 
 
 class CatalogueBatchItem(BaseModel):
@@ -26,8 +27,8 @@ class CatalogueBatchItem(BaseModel):
     source: DiscoverySource
     external_id: str = Field(min_length=1, max_length=200)
     jurisdiction_id: UUID
-    title_i18n: dict[str, str] = Field(min_length=1)
-    description_i18n: dict[str, str] | None = None
+    title_i18n: LocaleKeyedMap = Field(min_length=1)
+    description_i18n: LocaleKeyedMap | None = None
     portal_url: str | None = Field(default=None, max_length=500)
     raw_payload: dict[str, object] = Field(default_factory=dict)
 

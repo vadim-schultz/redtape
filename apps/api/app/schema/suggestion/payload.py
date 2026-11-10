@@ -7,23 +7,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schema.locale.keys import validate_locale_key
 from app.shared.category_codes import ACTIVE_CATEGORY_CODES
 from app.shared.retired_taxonomy import RETIRED_TAXONOMY_FIELDS, retired_taxonomy_message
 from app.url_normalization import validate_url
 
-_LOCALE_CODE_RE = re.compile(r"^[a-zA-Z]{2,5}$")
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 MAX_TITLE_LENGTH = 300
 MAX_DESCRIPTION_LENGTH = 4000
 MAX_NOTES_LENGTH = 1000
 MAX_CODES = 20
-
-
-def _validate_locale_key(key: str) -> str:
-    if not _LOCALE_CODE_RE.fullmatch(key):
-        raise ValueError(f"invalid locale code: {key!r}")
-    return key.lower()
 
 
 def _validate_i18n_value(value: str, *, max_len: int) -> str:
@@ -36,7 +30,7 @@ def _validate_i18n_value(value: str, *, max_len: int) -> str:
 
 
 def _validate_i18n_map(value: dict[str, str], *, max_len: int) -> dict[str, str]:
-    return {_validate_locale_key(key): _validate_i18n_value(val, max_len=max_len) for key, val in value.items()}
+    return {validate_locale_key(key): _validate_i18n_value(val, max_len=max_len) for key, val in value.items()}
 
 
 def _validate_codes(value: list[str]) -> list[str]:

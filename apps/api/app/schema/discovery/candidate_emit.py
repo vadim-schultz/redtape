@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.models.suggestion import SuggestionKind
 from app.schema.discovery.emit import EmitCounts, EmitOutcome, SkipReason
+from app.schema.locale.keys import LocaleKeyedMap
 from app.schema.suggestion.create import SuggestionCreate
 
 MAX_EMIT_CANDIDATES = 50
@@ -42,8 +43,8 @@ class CandidateEmitResponse(EmitCounts):
 class PreviewedDocumentPayload(BaseModel):
     """The canonical ``new_document`` fields an emit preview shows; legacy axis inputs are never output."""
 
-    title_i18n: dict[str, str]
-    description_i18n: dict[str, str] | None = None
+    title_i18n: LocaleKeyedMap
+    description_i18n: LocaleKeyedMap | None = None
     official_url: str | None = None
     category_codes: list[str] = Field(default_factory=list)
     tag_confidence: dict[str, float] | None = None
