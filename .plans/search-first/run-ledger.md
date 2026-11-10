@@ -31,7 +31,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
 | 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
 | 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
-| 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | spot checks pending; probe reruns for ru, pl, ro |
+| 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | native-speaker spot checks pending (manual) |
 
 ## Baseline
 
@@ -135,7 +135,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 13 — Translation schema and core
 
-- Status: merged into loop branch (#378); probe run for tr, en, uk, ro, partly pl (ru and pl to rerun); D13 decided (Cloudflare PoC); native-speaker spot checks PENDING. Refactor gate: smells found -> refactorings applied (error-category table, `_reserve_neurons`, answer parsing and validators split, `use_ledger` flag removed, provider leak out of probe). Data-design gate: no `apply` findings (accepted-risk: index row is the only key index since `ObjectStore` has no `list`; no CHECK constraints on hash widths; observed: prompt/glossary version not pinned in payload (D10), `translation_task` completed-row retention for C14/C15)
+- Status: merged into loop branch (#378); live probe complete for all six locales; D13 decided (Cloudflare PoC); native-speaker spot checks PENDING (manual). Refactor gate: smells found -> refactorings applied (error-category table, `_reserve_neurons`, answer parsing and validators split, `use_ledger` flag removed, provider leak out of probe). Data-design gate: no `apply` findings (accepted-risk: index row is the only key index since `ObjectStore` has no `list`; no CHECK constraints on hash widths; observed: prompt/glossary version not pinned in payload (D10), `translation_task` completed-row retention for C14/C15)
 - Migration id and round-trip result: `20261111_translation_schema` (parent `20261110_search_schema`); `check_migrations.sh` passes (single head, upgrade, downgrade -1, upgrade, `alembic check` clean). Reuses `work_task_status`; adds `translation_source`.
 - Engine port, registry and conformance suite: `llm` adapter passes `translation_engine_contract.py`; three deliberately broken fakes (dropped unit, mangled placeholder, leaked token) each fail their own check; a fake characters-unit adapter registers with no other changes; `meter_for_unit("characters")` raises "no meter for unit characters". No MT adapter added (the probe decides).
 - Translation object store round trip: in-memory and S3 (moto) pass write/read/delete/missing; key `translations/v1/{candidate_id}/{locale}/card/{content_sha256}.json`; canonical sorted-key UTF-8 JSON; key sha256 and `size_bytes` match the bytes; a re-translation gets a new key.
@@ -146,11 +146,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
   | tr | 42/50 | 0.84 | glossary 7, numbers 1 | 600 | 12.0 | 56,534 |
   | en | 43/45 | 0.86 | numbers 1, glossary 1, unusable output 5 | 463 | 10.3 | 48,472 |
   | uk | 41/50 | 0.82 | numbers 3, glossary 6 | 647 | 12.9 | 60,974 |
-  | pl | 15/20 (stopped early) | 0.75 | glossary 3, numbers 3 | 265 | 13.2 | 62,430 |
-  | ru | not run to completion | — | candidate-list read timed out before translating (API cold start); rerun | 0 | — | — |
+  | pl | 46/50 (rerun; first attempt stopped at 15/20 on a Workers AI timeout) | 0.92 | glossary 3, numbers 2 | 577 | 11.5 | 54,381 |
+  | ru | 40/50 (rerun; first attempt hit a candidate-API read timeout) | 0.80 | glossary 8, numbers 3 | 593 | 11.9 | 55,850 |
   | ro | 49/50 | 0.98 | glossary 1 | 648 | 13.0 | 61,093 |
 
-  About 340k neurons for all six locales, which is about 36 days at the 9,500-neuron daily share. The probe calls Workers AI outside the ledger; about 2,600 neurons were spent today on these runs (plus about 9 on the C1 embedding probe). Rerun `ru` and `pl`: `cd apps/discovery-ingest && set -a && . ~/.config/redtape/probe.env && set +a && export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt && uv run python -m discovery_ingest translate probe --locale <L> --sample 50 --engine llm > translation-probe/report-llm-<L>.json`.
+  About 337k neurons for all six locales (sum of the per-locale projections), which is about 35 days at the 9,500-neuron daily share. Pass rates 0.80 to 0.98; glossary adherence and number preservation are the main failures. The probe calls Workers AI outside the ledger; about 3,800 neurons were spent today on these runs (including one aborted `pl` run), plus about 9 on the C1 embedding probe. All six locales have now been probed.
 - Environment notes for running the probes behind the corporate proxy: Python's certificate store rejects the proxy's certificate, so export `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` (verification stays on); the Supabase database is not reachable from this network (so the incident below most likely only hung on connect). `apps/api/.env` is now a symlink to `~/.config/redtape/probe.env`, which was merged with the keys that only the old `.env` had; the originals are saved as `~/.config/redtape/api.env.pre-symlink` and `probe.env.bak`. Because the symlinked `.env` still holds `DATABASE_URL`, implementers must keep overriding `DATABASE_URL` with a scratch database for tests.
 - Native-speaker spot-check notes: pending. Sheets: `translation-probe/llm-<L>.csv`. The glossary renderings for the six locales were drafted by the implementer and need native review.
 - Engine decision (D13): Cloudflare `llm` adapter for the PoC, Azure later (recorded in `gaps-and-decisions.md`). Open consequence: the full corpus in six locales does not fit a free-tier pace; coverage must be priority-limited (C14/C15) and the locale list may need narrowing before the first drain is enabled.
