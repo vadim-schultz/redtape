@@ -1,0 +1,15 @@
+{
+  "terms": {
+    "Antrag": "application",
+    "Bürgeramt": "citizens' office (Bürgeramt)",
+    "Nachweis": "proof",
+    "Bescheinigung": "certificate",
+    "Genehmigung": "permit",
+    "Anmeldung": "registration",
+    "Ummeldung": "change of registration",
+    "Gebühr": "fee",
+    "Kindergeld": "child benefit",
+    "Wohngeld": "housing benefit"
+  },
+  "keep": []
+}

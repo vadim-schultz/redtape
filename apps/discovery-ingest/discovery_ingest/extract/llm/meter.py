@@ -51,13 +51,21 @@ class NeuronMeter:
         return self._used
 
     @property
+    def remaining_neurons(self) -> float:
+        """Neurons the run budget still allows, never below zero."""
+        return max(self._limit - self._used, 0.0)
+
+    @property
     def ledger_unavailable(self) -> bool:
         """Whether the ledger has failed to answer at any point of this run."""
         return self._guard.ledger_unavailable
 
     def reserve(self, model: str, input_chars: int, max_tokens: int) -> Reservation | Denied | LedgerUnavailable:
         """Reserve the estimate for one call; raises :class:`UnknownModelError` for a model without a price."""
-        neurons = estimate(model, input_chars, max_tokens)
+        return self.reserve_neurons(model, estimate(model, input_chars, max_tokens))
+
+    def reserve_neurons(self, model: str, neurons: int) -> Reservation | Denied | LedgerUnavailable:
+        """Reserve ``neurons`` for a call to ``model`` whose cost the caller has already estimated."""
         if self._run_budget_reached():
             return Denied("run_budget")
         granted = self._ledger_grant(neurons)
@@ -67,7 +75,11 @@ class NeuronMeter:
         """Replace the reservation by the real cost (reported neurons, else priced tokens); keep it when neither exists."""
         actual = actual_neurons(result)
         if actual is not None:
-            self._correct(reservation, actual - reservation.neurons)
+            self.settle_neurons(reservation, actual)
+
+    def settle_neurons(self, reservation: Reservation, actual: float) -> None:
+        """Replace the reservation by ``actual`` neurons, the cost the caller measured itself."""
+        self._correct(reservation, actual - reservation.neurons)
 
     def refund(self, reservation: Reservation) -> None:
         """Give back a reservation for a call the provider provably refused (quota or token), so nothing was billed."""

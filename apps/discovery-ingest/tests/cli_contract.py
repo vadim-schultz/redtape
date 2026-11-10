@@ -1,4 +1,4 @@
-"""The command line contract of ``python -m discovery_ingest``: the 21 commands as data.
+"""The command line contract of ``python -m discovery_ingest``: the 22 commands as data.
 
 Every row is a fact the workflows in ``.github/workflows`` and the operator docs rely on: command names,
 flags, value kinds, defaults, choices and repeatability. The adapters in ``cli_adapters.py`` read the real
@@ -31,6 +31,7 @@ GROUPS = (
     "artifacts",
     "capture",
     "embed",
+    "translate",
 )
 
 DEFAULT_GOLD_DIR = Path(discovery_ingest.__file__).resolve().parents[1] / "tests" / "fixtures" / "gold"
@@ -214,7 +215,20 @@ COMMANDS: tuple[CommandSpec, ...] = (
         ),
     ),
     CommandSpec("embed", "probe", (_opt("--model", "str"),)),
+    CommandSpec(
+        "translate",
+        "probe",
+        (
+            _opt("--locale", "str", required=True),
+            _opt("--sample", "int", default=50),
+            _opt("--engine", "str"),
+            _opt("--model", "str"),
+            _opt("--sheet", "path"),
+            _opt("--max-usage", "float", default=3000.0),
+            _opt("--daily-budget", "float", default=9500.0),
+        ),
+    ),
 )
 
-assert len(COMMANDS) == 21, "the contract documents exactly twenty-one commands"
+assert len(COMMANDS) == 22, "the contract documents exactly twenty-two commands"
 assert {spec.group for spec in COMMANDS} == set(GROUPS)

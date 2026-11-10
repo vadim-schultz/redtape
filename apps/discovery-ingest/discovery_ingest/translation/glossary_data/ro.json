@@ -1,0 +1,15 @@
+{
+  "terms": {
+    "Antrag": "cerere",
+    "Bürgeramt": "birou pentru cetățeni (Bürgeramt)",
+    "Nachweis": "dovadă",
+    "Bescheinigung": "adeverință",
+    "Genehmigung": "autorizație",
+    "Anmeldung": "înregistrare",
+    "Ummeldung": "schimbarea înregistrării",
+    "Gebühr": "taxă",
+    "Kindergeld": "alocație pentru copii (Kindergeld)",
+    "Wohngeld": "alocație de locuință (Wohngeld)"
+  },
+  "keep": []
+}

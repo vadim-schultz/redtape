@@ -1,0 +1,15 @@
+{
+  "terms": {
+    "Antrag": "wniosek",
+    "Bürgeramt": "urząd obsługi mieszkańców (Bürgeramt)",
+    "Nachweis": "dowód",
+    "Bescheinigung": "zaświadczenie",
+    "Genehmigung": "zezwolenie",
+    "Anmeldung": "zameldowanie",
+    "Ummeldung": "zmiana zameldowania",
+    "Gebühr": "opłata",
+    "Kindergeld": "świadczenie na dziecko (Kindergeld)",
+    "Wohngeld": "dodatek mieszkaniowy (Wohngeld)"
+  },
+  "keep": []
+}

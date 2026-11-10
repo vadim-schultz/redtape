@@ -218,3 +218,6 @@ build/
 **/android/local.properties
 # llm eval answer cache (apps/discovery-ingest)
 .llm-eval-cache/
+
+# translate probe spot-check sheets (local review artefacts)
+apps/discovery-ingest/translation-probe/

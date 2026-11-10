@@ -1,0 +1,15 @@
+{
+  "terms": {
+    "Antrag": "заявление",
+    "Bürgeramt": "служба по работе с гражданами (Bürgeramt)",
+    "Nachweis": "подтверждающий документ",
+    "Bescheinigung": "справка",
+    "Genehmigung": "разрешение",
+    "Anmeldung": "регистрация",
+    "Ummeldung": "перерегистрация",
+    "Gebühr": "сбор",
+    "Kindergeld": "детское пособие (Kindergeld)",
+    "Wohngeld": "жилищное пособие (Wohngeld)"
+  },
+  "keep": []
+}
