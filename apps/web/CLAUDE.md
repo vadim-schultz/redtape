@@ -12,7 +12,7 @@ src/
   contexts/       shared React contexts (plural, kept as is)
   hooks/          shared hooks: useApiQuery, useLocalesQuery, useSlowRequest, ...
   services/       shared HTTP client and error helpers
-  utils/          pure helpers shared by more than one feature (e.g. relativeTime)
+  utils/          pure helpers shared by more than one feature (e.g. format/)
   features/<name>/
     containers/   route pages; wire hooks to components
     components/   presentational; one <X>View/ folder per view

@@ -1,6 +1,6 @@
 import type { DiscoveryBudget, DiscoveryBudgetsResponse } from "../../types";
 import { formatBytes } from "../../utils/formatBytes";
-import { formatNumber } from "../../utils/formatNumber";
+import { formatNumber } from "../../../../utils/format/formatNumber";
 import { generalBudgetsOf } from "../../utils/neuronBudget";
 import { translateOrRaw } from "../../utils/translateOrRaw";
 import type { MetricContext } from "./metricModel";

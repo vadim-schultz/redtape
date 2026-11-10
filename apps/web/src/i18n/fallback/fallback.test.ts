@@ -2,21 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { fallbackBundle } from "./index";
-
-type Nested = { [key: string]: string | Nested };
-
-function flatten(tree: Nested, prefix = ""): Record<string, string> {
-  return Object.entries(tree).reduce<Record<string, string>>(
-    (acc, [key, value]) => {
-      const path = prefix ? `${prefix}.${key}` : key;
-      return typeof value === "string"
-        ? { ...acc, [path]: value }
-        : { ...acc, ...flatten(value, path) };
-    },
-    {},
-  );
-}
+import { fallbackBundle, flatten, type Nested } from "./index";
 
 function readSeed(locale: string): Record<string, string> {
   const file = resolve(

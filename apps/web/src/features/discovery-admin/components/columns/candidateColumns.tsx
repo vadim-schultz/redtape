@@ -1,6 +1,6 @@
 import type { DataTableColumn } from "../../../../components/data-display/DataTable";
 import { EMPTY_VALUE } from "../../../../utils/emptyValue";
-import { formatRelativeTime } from "../../../../utils/relativeTime";
+import { formatRelativeTime } from "../../../../utils/format/formatRelativeTime";
 import type {
   CandidateFilterKey,
   CandidateSortKey,

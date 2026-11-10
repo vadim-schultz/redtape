@@ -1,3 +1,5 @@
+import { intlTag } from "../../i18n/localeMeta";
+
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["day", 86_400],
   ["hour", 3_600],
@@ -15,6 +17,10 @@ function pickUnit(
   return null;
 }
 
+function relativeFormatter(locale: string): Intl.RelativeTimeFormat {
+  return new Intl.RelativeTimeFormat(intlTag(locale), { numeric: "auto" });
+}
+
 /** "5 minutes ago" for a past ISO date; "just now" once it rounds to zero. */
 export function formatRelativeTime(
   isoDate: string,
@@ -26,7 +32,7 @@ export function formatRelativeTime(
     (now.getTime() - new Date(isoDate).getTime()) / 1000,
   );
   const picked = pickUnit(elapsedSeconds);
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const formatter = relativeFormatter(locale);
   if (!picked) return formatter.format(0, "second");
 
   const [unit, value] = picked;
@@ -47,8 +53,5 @@ export function formatTimeUntil(
   if (secondsAhead <= 0) return null;
 
   const [unit, value] = pickUnit(secondsAhead) ?? ["minute", 1];
-  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-    value,
-    unit,
-  );
+  return relativeFormatter(locale).format(value, unit);
 }

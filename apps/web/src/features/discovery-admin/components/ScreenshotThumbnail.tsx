@@ -2,7 +2,7 @@ import { Image, Link, Text } from "@chakra-ui/react";
 
 import { useLocale } from "../../../contexts/LocaleContext";
 import type { DiscoveryArtifact } from "../types";
-import { formatDate } from "../utils/formatDate";
+import { formatDate } from "../../../utils/format/formatDate";
 
 /** A lazy thumbnail linking to the full image in a new tab; the URL stays an opaque string. */
 export default function ScreenshotThumbnail({

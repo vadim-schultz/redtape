@@ -32,6 +32,6 @@ describe("useCountLabel", () => {
   it("falls back to the raw key for an unknown namespace without throwing", async () => {
     renderLabel("nope", 3);
 
-    expect(await screen.findByText("nope.count_other")).toBeInTheDocument();
+    expect(await screen.findByText("nope.count")).toBeInTheDocument();
   });
 });
