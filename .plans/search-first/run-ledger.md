@@ -15,6 +15,18 @@
 - Conflicts/failures: none.
 - Current work: none.
 
+## Merge ledger (chief of staff)
+
+**Loop branch:** `feat/plans-search-first`
+**Release branch:** `main`
+**Release MR/PR:** _(filled when opened)_
+**Execution order:** the rollout's "Integration order" (C1 → C2 → C3 → C7 → C4 → C13 → C5 → C6 → C14 → C8 → C15 → C16 → C12 → C9 → C10 → C17 → C11 → C18). C18 is `chief-of-staff` execution (operator actions, live validation) and is not run by an implementer.
+
+Chapter MRs merge into the loop branch only. The chapter-implementer **does not** edit this file; chapter evidence above is filled by the chief of staff from implementer returns.
+
+| chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Baseline
 
 | Check | Expected evidence | Recorded |
