@@ -16,7 +16,7 @@ from typing import get_args
 
 import httpx
 import pytest
-from discovery_ingest import artifacts, edges, mentions, schemas
+from discovery_ingest import artifacts, edges, embedding_models, mentions, schemas
 from discovery_ingest.budget_models import BUDGET_RESOURCES
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.json_types import JsonObject, JsonValue
@@ -35,6 +35,7 @@ UNPAIRED_MODULES = (
     "edges",
     "emit_models",
     "budget_models",
+    "embedding_models",
     "candidate_sources",
     "extract.llm.taxonomy",
     "pvog.crosswalk_wire",
@@ -106,8 +107,20 @@ PAIRS: tuple[Pair, ...] = (
     Pair("pvog.crosswalk_wire.ServedCrosswalk", "taxonomy_read.CrosswalkRead", "response"),
     Pair("pvog.crosswalk_wire.ServedLeafMapping", "taxonomy_read.PvogLeafMappingRead", "response"),
     Pair("extract.llm.taxonomy.TaxonomyTerm", "taxonomy_read.VocabularyTerm", "response"),
+    Pair("embedding_models.EmbeddingClaimRequest", "search_machine.EmbeddingClaimRequest", "request"),
+    Pair("embedding_models.ClaimedEmbeddingTask", "search_machine.ClaimedEmbeddingTask", "response"),
+    Pair("embedding_models.EmbeddingClaimResponse", "search_machine.EmbeddingClaimResponse", "response"),
+    Pair("embedding_models.EmbeddingCompleteItem", "search_machine.EmbeddingCompleteItem", "request"),
+    Pair("embedding_models.EmbeddingCompleteRequest", "search_machine.EmbeddingCompleteRequest", "request"),
+    Pair("embedding_models.EmbeddingItemResult", "search_machine.EmbeddingItemResult", "response"),
+    Pair("embedding_models.EmbeddingCompleteResponse", "search_machine.EmbeddingCompleteResponse", "response"),
+    Pair("embedding_models.EmbeddingFailRequest", "search_machine.EmbeddingFailRequest", "request"),
+    Pair("embedding_models.EmbeddingFailResponse", "search_machine.EmbeddingFailResponse", "response"),
+    Pair("embedding_models.EmbeddingReleaseRequest", "search_machine.EmbeddingReleaseRequest", "request"),
+    Pair("embedding_models.EmbeddingReleaseResponse", "search_machine.EmbeddingReleaseResponse", "response"),
+    Pair("embedding_models.EmbeddingSummary", "search_machine.EmbeddingSummaryResponse", "response"),
 )
-"""The 39 ingest-to-API pairs: 13 requests and 26 responses. Unpaired wire models are listed in ``UNPAIRED``."""
+"""The 51 ingest-to-API pairs: 18 requests and 33 responses. Unpaired wire models are listed in ``UNPAIRED``."""
 
 UNPAIRED: dict[str, str] = {
     "schemas.DrainReport": "a CLI report, never on the wire",
@@ -125,6 +138,8 @@ ENUM_SETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("StopReason", get_args(schemas.StopReason)),
     ("EdgeSkipReason", get_args(edges.EdgeSkipReason)),
     ("BudgetResource", BUDGET_RESOURCES),
+    ("EmbeddingOutcome", get_args(embedding_models.EmbeddingOutcome)),
+    ("WorkTaskStatus", get_args(embedding_models.WorkTaskStatus)),
     ("LEGACY_TASK_KINDS", schemas.LEGACY_TASK_KINDS),
 )
 
@@ -145,6 +160,10 @@ ROUTE_BODY: dict[tuple[str, str], str] = {
     ("POST", "/api/v1/discovery/machine/tasks/{task_id}/fail"): "machine.TaskFailRequest",
     ("POST", "/api/v1/discovery/machine/budgets/{resource}/reserve"): "budgets.BudgetReserveRequest",
     ("POST", "/api/v1/discovery/machine/budgets/{resource}/adjust"): "budgets.BudgetAdjustRequest",
+    ("POST", "/api/v1/discovery/machine/embeddings/claim"): "search_machine.EmbeddingClaimRequest",
+    ("POST", "/api/v1/discovery/machine/embeddings/complete"): "search_machine.EmbeddingCompleteRequest",
+    ("POST", "/api/v1/discovery/machine/embeddings/fail"): "search_machine.EmbeddingFailRequest",
+    ("POST", "/api/v1/discovery/machine/embeddings/release"): "search_machine.EmbeddingReleaseRequest",
 }
 """The routes that carry a JSON body, mapped to the API request model that validates it."""
 

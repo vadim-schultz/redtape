@@ -1,0 +1,15 @@
+usage: discovery_ingest embed drain [-h] [--max-tasks MAX_TASKS] [--max-batches MAX_BATCHES]
+                                    [--time-budget-seconds TIME_BUDGET_SECONDS]
+                                    [--neuron-budget NEURON_BUDGET]
+
+options:
+  -h, --help            show this help message and exit
+  --max-tasks MAX_TASKS
+                        Tasks per claim request, which is also the embedding batch (1-50, default 50)
+  --max-batches MAX_BATCHES
+                        Maximum claim/embed batches (positive, default 1)
+  --time-budget-seconds TIME_BUDGET_SECONDS
+                        Optional positive wall-clock budget for the whole drain
+  --neuron-budget NEURON_BUDGET
+                        Workers AI neurons this run may spend: it stops once the budget is reached, and the last call
+                        may pass it by its own cost (positive, default 3000)
