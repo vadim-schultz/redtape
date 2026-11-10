@@ -1,0 +1,5 @@
+usage: discovery_ingest embed summary [-h] [--require-pending]
+
+options:
+  -h, --help        show this help message and exit
+  --require-pending  Exit 3 when no embedding task is ready (the workflow skips the drain)

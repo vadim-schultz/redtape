@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 import httpx
 
@@ -17,6 +18,8 @@ from discovery_ingest.extract.llm.payloads import Body
 from discovery_ingest.llm_settings import LlmSettings
 
 DEFAULT_MIN_INTERVAL_SECONDS = 0.2
+EMBED_BATCH_LIMIT = 50
+"""Most texts of one call: the machine API's claim size, below the 256 the probe of 2026-11-10 saw accepted."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +32,14 @@ class EmbeddingResult:
     input_tokens: int | None
     neurons: float | None
     latency_ms: int
+
+
+class Embedder(Protocol):
+    """What the probe and the drain need from an embedding client."""
+
+    def embed(self, texts: Sequence[str], *, dimensions: int | None = None) -> EmbeddingResult:
+        """Return the vectors of ``texts``, reduced to ``dimensions`` when given."""
+        ...
 
 
 def embed_body(texts: Sequence[str], dimensions: int | None) -> Body:

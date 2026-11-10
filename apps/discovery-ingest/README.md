@@ -20,6 +20,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
 | `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, category tag agreement and neurons per page |
 | `llm requeue [--host H] [--limit N] [--dry-run]` | Queue `llm_extract` for the latest snapshot of each catalogue row under the current model, prompt and cleaner versions |
+| `embed probe`, `embed drain`, `embed summary` | Probe the Workers AI embedding model; drain the embedding queue (claim text, embed, post vectors); print the queue counts; see [Drain embeddings](#drain-embeddings) |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger (`--resource`, `--require-remaining RESOURCE=N` exits 3 when short, `--strict` exits 4 when the API is unreachable); add Actions minutes to it |
 
@@ -292,6 +293,37 @@ defaults to 50 and is refused above 200. A page that staged mentions then gets o
 workflow does not set `LLM_ENQUEUE` or `LLM_MODEL`: to queue after scheduled renders add both to the `env` of its
 job. The operator steps are in
 [`docs/operations/extraction-operator-checklist.md`](../../docs/operations/extraction-operator-checklist.md).
+
+### Drain embeddings
+
+`embed drain` computes the document embeddings that hybrid search reads. It is a sibling of `worker drain`: the
+embedding queue is not a `discovery_task` kind, and the worker never touches the database. Each batch is claimed
+(`POST /machine/embeddings/claim`), embedded raw (no instruction prefix; that is for queries) on Workers AI with
+`EMBEDDING_MODEL` (default `@cf/qwen/qwen3-embedding-0.6b`, 1024 dimensions) and posted back
+(`POST /machine/embeddings/complete`). `--max-tasks` (1-50, default 50) is both the claim size and the embedding batch.
+
+```bash
+python -m discovery_ingest embed summary                  # queue counts as JSON; --require-pending exits 3 when none is ready
+python -m discovery_ingest embed drain --max-tasks 50 --max-batches 60 --time-budget-seconds 600 --neuron-budget 3000
+```
+
+The command prints one `DrainReport` JSON (the same shape as `worker drain`, plus `stale`) and exits 1 only when
+`succeeded` is false. It exits 2 for a missing `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_AI_API_TOKEN` or an out-of-range
+bound, and 1 before claiming anything when the neuron ledger cannot be read. `EMBEDDING_MODEL` must equal the API's
+setting: a different model has an empty queue, which looks like `queue_empty`.
+
+Every batch reserves `characters / 3` tokens at 1,075 neurons per million input tokens (output is not billed), then
+settles to the neurons the API reported (the priced token count when it reports none) and refunds a refused call. A
+spent run budget or day (`llm_budget`), a provider quota error (`llm_quota`, the ledger is told) and the database soft
+limit (`db_limit`) **release** the batch in hand, so no attempt is consumed. A rejected Workers AI token, a refused or
+unreachable machine API ends the run as `error` (exit 1) and releases the batch. A provider `5xx` or `429` without the
+quota code fails the batch's tasks retryably; any other provider rejection, or an answer with fewer vectors than texts,
+is a failure of the batch, never of single silently dropped texts. Per posted vector the API answers `stored`, `stale`
+(the text changed meanwhile; the API queued the new text, counted in `completed` and `stale`) or `rejected` (logged with
+its reason, counted in `failed`; a replayed `complete` answers `rejected` for a finished task).
+
+The workflow `discovery-embed.yml` runs the drain twice a day when the repository variable `DISCOVERY_EMBED_SCHEDULE` is
+`enabled`; see [`docs/operations/scheduled-jobs.md`](../../docs/operations/scheduled-jobs.md).
 
 ### Run a browser drain on your machine
 

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
 
-from discovery_ingest.extract.embedding.client import EmbeddingResult
+from discovery_ingest.extract.embedding.client import Embedder, EmbeddingResult
 from discovery_ingest.extract.embedding.probe_report import BatchCheck, DimensionCheck, EmbedProbeReport
 from discovery_ingest.extract.llm.errors import LlmError, LlmRequestError
 
@@ -19,14 +17,6 @@ SAMPLE_TEXTS = (
     "Gewerbeanmeldung für Einzelunternehmer",
     "Wohngeld: Antrag auf Mietzuschuss",
 )
-
-
-class Embedder(Protocol):
-    """What the probe needs from the client."""
-
-    def embed(self, texts: Sequence[str], *, dimensions: int | None = None) -> EmbeddingResult:
-        """Return the vectors of ``texts``, reduced to ``dimensions`` when given."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)

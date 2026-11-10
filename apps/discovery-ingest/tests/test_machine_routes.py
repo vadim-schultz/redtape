@@ -18,6 +18,7 @@ from discovery_ingest.budget_models import BudgetResource
 from discovery_ingest.candidate_sources import SourceQuery
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.edges import EdgeItem
+from discovery_ingest.embedding_models import EmbeddingCompleteItem
 from discovery_ingest.mentions import MentionItem
 from discovery_ingest.pvog.category_mapping import CrosswalkError
 from discovery_ingest.schemas import (
@@ -172,6 +173,18 @@ ROUTES: list[tuple[str, Call, str, str]] = [
     ("budget.reserve", lambda c: c.budget.reserve(RESOURCE, 10.0), "POST", f"/budgets/{RESOURCE}/reserve"),
     ("budget.adjust", lambda c: c.budget.adjust(RESOURCE, -2.0), "POST", f"/budgets/{RESOURCE}/adjust"),
     ("budget.exhaust", lambda c: c.budget.exhaust(RESOURCE), "POST", f"/budgets/{RESOURCE}/exhaust"),
+    ("embeddings.claim", lambda c: c.embeddings.claim("model-x", limit=5), "POST", "/embeddings/claim"),
+    (
+        "embeddings.complete",
+        lambda c: c.embeddings.complete(
+            [EmbeddingCompleteItem(task_id=ID, text_hash="h", model="model-x", vector=[0.5])]
+        ),
+        "POST",
+        "/embeddings/complete",
+    ),
+    ("embeddings.fail", lambda c: c.embeddings.fail(ID, error="boom", retryable=True), "POST", "/embeddings/fail"),
+    ("embeddings.release", lambda c: c.embeddings.release([ID], "limit"), "POST", "/embeddings/release"),
+    ("embeddings.summary", lambda c: c.embeddings.summary("model-x"), "GET", "/embeddings/summary"),
 ]
 
 

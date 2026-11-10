@@ -55,10 +55,32 @@ only when the usage report shows headroom.
 | `api-lint-test.yml`, `web-ci.yml`, `discovery-ingest-ci.yml` | `pull_request` and `push` to `main`, path filtered. A new push cancels the superseded PR run. |
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
 | `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 45 ledger minutes. |
+| `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-render.yml` | Daily 05:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-drain`. |
 | `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
 `keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to `main` is what saves minutes.
+
+## Embedding drain cadence (search-first, chapter 6)
+
+`discovery-embed.yml` runs **twice a day** (06:10 and 18:10 UTC), not every six hours. The cost that decides it is the
+idle run, because the queue is empty most of the time once the backfill is done: an idle run still pays for checkout,
+`pip install`, the ledger check, the Render wake-up (`wait_for_api`, up to a minute on a cold start) and the queue
+precheck, and the job is billed in whole minutes.
+
+| Run | Estimate (not yet measured) | Ledger minutes (`ceil(elapsed / 60) + 1`) |
+| --- | --- | --- |
+| Idle (the queue precheck skips the drain) | 1.5 to 2 minutes | 3 |
+| Working, 3,000 neurons (about 2,700 texts of 1,500 characters, 54 batches of 50) | 5 to 8 minutes: about 1 s to embed a batch of 50 and a few seconds to post 50 vectors of 1024 numbers, plus the same setup | 7 to 10 |
+
+At two runs a day an always-idle month is about 60 runs, so about 180 ledger minutes (about 120 billed minutes) of the
+1,000-minute drain allowance; every six hours would double that. A working run per day finishes about 2,700 texts, so
+the German backfill of about 4,700 candidates takes two days and the six translated locales follow as translation lands
+(the neuron ledger, 9,500 a day shared with `llm_extract` and later translation, is the real limit, not minutes). To
+backfill faster, dispatch the workflow by hand or run `embed drain` on a laptop (it costs no Actions minutes and shares
+the same ledger). **The measured minutes per run are recorded by the operator after the first runs** (the `Report
+Actions minutes` step writes them to the ledger; `python -m discovery_ingest budget show --resource actions_minutes`
+shows the total). If the allowance is tight, drop the schedule to once a day.
 
 ## Operator checklist
 

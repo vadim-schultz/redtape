@@ -1,0 +1,147 @@
+name: Discovery embed
+
+on:
+  schedule:
+    # Twice a day, 06:10 and 18:10 UTC, after the other discovery drains. Runs only when the repository variable
+    # DISCOVERY_EMBED_SCHEDULE equals "enabled" (see the job condition). An idle run (nothing queued) is the cost
+    # that sets the cadence: see docs/operations/gha-budget.md.
+    - cron: "10 6,18 * * *"
+  workflow_dispatch:
+    inputs:
+      max_tasks:
+        description: "Tasks per claim request, which is also the embedding batch (1-50)"
+        required: false
+        default: "50"
+        type: string
+      max_batches:
+        description: "Maximum claim/embed batches"
+        required: false
+        default: "60"
+        type: string
+      time_budget_seconds:
+        description: "Wall-clock budget in seconds"
+        required: false
+        default: "600"
+        type: string
+      neuron_budget:
+        description: "Workers AI neurons this run may spend (about 1.1 neurons per 1,000 characters of text; the day allows 9500)"
+        required: false
+        default: "3000"
+        type: string
+
+permissions:
+  contents: read
+
+# The same group as the rest of the discovery pipeline: scheduled drains never overlap.
+concurrency:
+  group: discovery-pipeline
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    name: Drain embedding tasks
+    if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_EMBED_SCHEDULE == 'enabled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+      MAX_TASKS: ${{ inputs.max_tasks || '50' }}
+      MAX_BATCHES: ${{ inputs.max_batches || '60' }}
+      TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '600' }}
+      NEURON_BUDGET: ${{ inputs.neuron_budget || '3000' }}
+    steps:
+      - name: Record the job start time
+        run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Check the Actions minutes and the neurons budgets
+        id: budget
+        run: |
+          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or fewer than
+          # 100 neurons left today (one batch of 50 long texts reserves about 30); skip the drain without failing the
+          # run. An unreachable ledger lets the job go on, and the drain itself refuses to start without a readable one.
+          code=0
+          python -m discovery_ingest budget show --resource actions_minutes --resource neurons --require-remaining actions_minutes=20 --require-remaining neurons=100 || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Discovery embed skipped: the Actions minutes or the neurons are used up" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
+      - name: Wait for Render API health
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Skip when no embedding task is ready
+        id: queue
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          # Exit 3 means GET /embeddings/summary reports pending_ready = 0: nothing to embed, so the drain step and
+          # its Actions minutes are saved. Any other failure fails the job.
+          code=0
+          python -m discovery_ingest embed summary --require-pending || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Discovery embed skipped: nothing to embed (no embedding task is ready)" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
+      - name: Drain embedding tasks
+        if: steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest embed drain --max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" --neuron-budget "${NEURON_BUDGET}" | tee drain-report.json
+
+      - name: Write drain report to job summary
+        if: always() && steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          if [ -s drain-report.json ]; then
+            {
+              echo "### Embedding drain report"
+              echo
+              echo '```json'
+              cat drain-report.json
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "### Embedding drain report" >> "${GITHUB_STEP_SUMMARY}"
+            echo "No report was produced; see the drain step log." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Fail the job when the drain did not succeed
+        if: steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          # llm_budget, llm_quota, db_limit, time_budget, batch_limit and queue_empty all succeed; only an
+          # infrastructure error (a rejected token, an API failure) sets succeeded to false.
+          python -c "import json,sys; sys.exit(0 if json.load(open('drain-report.json')).get('succeeded') else 1)"
+
+      - name: Report Actions minutes to the budget ledger
+        if: always()
+        continue-on-error: true
+        run: |
+          # Whole minutes since the first step, rounded up, plus one for runner setup and rounding.
+          started="${DRAIN_STARTED_AT:-$(date +%s)}"
+          elapsed=$(( $(date +%s) - started ))
+          minutes=$(( (elapsed + 59) / 60 + 1 ))
+          python -m discovery_ingest budget report-minutes --minutes "${minutes}"
