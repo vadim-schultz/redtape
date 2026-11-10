@@ -28,7 +28,7 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 
 API_ROOT = Path(__file__).resolve().parent.parent
-CURRENT_HEAD = "20261105_retire_legacy_taxonomy"
+CURRENT_HEAD = "20261110_search_schema"
 PRE_RETIREMENT = "20261104_category_backfill"
 PRE_CATEGORY_SCHEMA = "20261104_document_normalized_url"
 ARCHIVE = "legacy_taxonomy_archive"
@@ -387,7 +387,7 @@ def test_downgrade_recreates_the_empty_legacy_shape_and_keeps_the_archive(pre_re
     with _connect(pre_retirement_db) as connection:
         archived = {name: _checksum(connection, f"SELECT * FROM {ARCHIVE}.{name}") for name in SOURCES}
 
-    result = _alembic(pre_retirement_db, "downgrade", "-1")
+    result = _alembic(pre_retirement_db, "downgrade", PRE_RETIREMENT)
 
     assert result.returncode == 0, result.stderr
     with _connect(pre_retirement_db) as connection:
