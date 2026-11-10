@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261110_search_schema"
+HEAD_REVISION = "20261111_translation_schema"
 BUDGET_REVISION = "20261028_budget_ledger"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"

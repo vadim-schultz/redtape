@@ -5,6 +5,8 @@ from __future__ import annotations
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.shared.locale import DEFAULT_LOCALE, SUPPORTED_LOCALE_CODES
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment / `.env`."""
@@ -132,6 +134,24 @@ class Settings(BaseSettings):
         description="Workers-AI-scoped token for query embedding; empty means search degrades to keyword-only.",
     )
 
+    translation_target_locales: str = Field(
+        default="en tr ru uk pl ro",
+        description=(
+            "Locales whose document text is translated, separated by spaces or commas. A subset of the supported "
+            "locales without `de`; empty switches translation off. Translating a locale does not enable it for the UI."
+        ),
+    )
+    translation_unit_recipe_version: str = Field(
+        default="v1",
+        min_length=1,
+        description="Version of how a translation unit (title and card description) is built; bumping it makes every translation stale.",
+    )
+
+    @property
+    def translation_target_locale_codes(self) -> tuple[str, ...]:
+        """Return the target locale codes of :attr:`translation_target_locales`, in order."""
+        return tuple(self.translation_target_locales.replace(",", " ").split())
+
     @property
     def auth_enabled(self) -> bool:
         """Return whether JWT auth is on: both the Supabase JWKS URL and issuer are set."""
@@ -159,6 +179,19 @@ class Settings(BaseSettings):
     def discovery_enabled(self) -> bool:
         """Return whether discovery is on: an admin email is configured or machine clients opted in."""
         return bool(self.discovery_admin_email_set) or self.discovery_machine_opt_in
+
+    @model_validator(mode="after")
+    def _check_translation_targets(self) -> Settings:
+        codes = self.translation_target_locale_codes
+        allowed = SUPPORTED_LOCALE_CODES - {DEFAULT_LOCALE}
+        unknown = sorted(set(codes) - allowed)
+        if unknown:
+            raise ValueError(
+                f"translation_target_locales: {unknown} are not target locales; allowed: {sorted(allowed)}"
+            )
+        if len(set(codes)) != len(codes):
+            raise ValueError("translation_target_locales: a locale is listed twice")
+        return self
 
     @model_validator(mode="after")
     def _check_vote_thresholds(self) -> Settings:

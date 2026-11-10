@@ -14,9 +14,8 @@ from app.models.search import EMBEDDING_DIM, WorkTaskStatus
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
-from test_check_migrations_script import API_ROOT, _fresh_database
+from test_check_migrations_script import API_ROOT, CURRENT_HEAD, _fresh_database
 
-REVISION = "20261110_search_schema"
 PARENT = "20261105_retire_legacy_taxonomy"
 TABLES = ("candidate_search_text", "candidate_embedding", "embedding_task")
 INDEXES = (
@@ -146,4 +145,4 @@ def test_upgrade_downgrade_upgrade_round_trip_restores_the_schema(migrated: tupl
     _alembic(url, "upgrade", "head")
 
     assert (_present(engine, "tables"), _present(engine, "indexes"), _present(engine, "enums")) == before
-    assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    assert _scalars(engine, "select version_num from alembic_version") == [CURRENT_HEAD]
