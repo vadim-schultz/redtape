@@ -27,6 +27,7 @@ from app.features.discovery.service import DiscoveryMachineService
 from app.features.discovery.task_queue import TaskQueue
 from app.features.documents.dependencies import router_dependencies as document_dependencies
 from app.features.events.dependencies import router_dependencies as event_dependencies
+from app.features.search.service import SearchTextService
 from app.features.suggestions.dependencies import (
     provide_suggestion_repository,
     provide_suggestion_service,
@@ -62,7 +63,9 @@ def provide_discovery_candidate_service(
     discovery_repository: DiscoveryRepository, taxonomy_service: TaxonomyService
 ) -> CandidateService:
     """Build the candidate service with the taxonomy it tags against."""
-    return CandidateService(discovery_repository, taxonomy_service)
+    return CandidateService(
+        discovery_repository, taxonomy_service, SearchTextService.for_session(discovery_repository.session)
+    )
 
 
 def provide_discovery_edge_service(discovery_repository: DiscoveryRepository) -> EdgeService:
