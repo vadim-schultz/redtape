@@ -34,6 +34,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | native-speaker spot checks pending (manual) |
 | 05-embedding-task-machine-api | `feat/embedding-task-api` | [#380](https://github.com/vadim-schultz/redtape/pull/380) | pass | pass | yes (6d58b2c) | none |
 | 06-embedding-drain-worker | `feat/embedding-drain-worker` | [#382](https://github.com/vadim-schultz/redtape/pull/382) | pass | pass | yes (cc27440) | operator steps pending (secrets, backfill, first dispatch) |
+| 14-translation-queue-and-machine-api | `feat/translation-task-api` | [#384](https://github.com/vadim-schultz/redtape/pull/384) | pass (`ci.sh` copy with scratch DB names `redtape_c14_*`) | pass | yes (e262174) | operator steps pending (narrow target locales, backfill, R2 vars) |
 
 ## Baseline
 
@@ -164,11 +165,13 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 14 — Translation queue and machine API
 
-- Status: pending
-- Backfill counts (enqueued, up to date, stale): pending
-- Object-store outage test (task handed back, attempt not burned): pending
-- Priority ordering evidence (high-confidence first, all locales together): pending
-- Contract fixture regenerated: pending
+- Status: merged into loop branch (#384); refactor gate: smells found -> refactorings applied (`_refuse` dispatch table, `_store_text` split, `plan.py` extracted, `QueueCounts`, `fail`/`release` shared in `search/leased_settle.py`, `OPEN_TASK_PREDICATE`, `scripts/backfill_common.py`); data-design gate: no `apply` findings (lock order candidate share lock -> task lock -> index row, mutation-checked; blob written before index row); accepted-risk: R2 puts inside `complete` hold locks (trigger: mention-route lock waits or R2 put p95 > ~1 s), orphan objects after failed delete (trigger: bucket bytes vs sum of index `size_bytes`), same-key zombie and replayed `complete` answers `rejected`, mention-batch fan-out of up to 600 upserts; observed: `unavailable` carries no `not_before` (C15 must stop on it), completed/failed tasks never pruned, staleness only via the `record_mentions` hook, a `TRANSLATION_UNIT_RECIPE_VERSION` bump needs a backfill (C18 runbook), **C5 `EmbeddingCompletion` locks task then search-text row `FOR SHARE` while writers lock search text then task: inverse order, possible deadlock (not changed here)**, future human-edit endpoint (O15) PK conflict, R2 ledger reserve shares the request transaction
+- Backfill counts (enqueued, up to date, stale): scratch DB only, synthetic (41 candidates, 6 locales): run 1 `enqueued=209 up_to_date=30 stale=18 missing=191 human_protected=1 no_source=6`; run 2 `enqueued=0` (idempotent). Real counts PENDING (operator)
+- Object-store outage test (task handed back, attempt not burned): store `None` and `ObjectStoreQuotaError` on put both give `unavailable`, task back to `pending`, `attempt_count == 0`, no index row; a failure after the put leaves one orphan object
+- Priority ordering evidence (high-confidence first, all locales together): claim orders by priority, candidate id (new optional `LeasedQueue.claim(grouping=...)`), age, id; scratch-corpus claim of 25 went candidate by candidate in descending confidence with all locales together; re-translations (priority >= 10000) sort last; mutation-checked
+- Contract fixture regenerated: `discovery_machine_contract.json` (+5 routes, 13 models, `TranslationOutcome`) and web `openapi.schemas.json`
+- Deviations: claim scoped to current `TRANSLATION_TARGET_LOCALES` (empty list claims nothing); `human_exists` completes its task, a bounds failure fails permanently; `CandidateService` takes a 4th constructor argument (`TranslationEnqueuer`); `validate_i18n_value` made public (validators reject, not strip, control characters); local CI ran a copy of `ci.sh` with scratch DB names because the original drops the shared `redtape_migrations`/`redtape_pytest` databases and an auto-mode check denied it
+- Operator actions after merge: (1) narrow `TRANSLATION_TARGET_LOCALES` on Render and in worker settings before the first backfill (D13); (2) after deploy run `uv run python -m scripts.backfill_translations` in `apps/api` against production and record counts; (3) confirm R2 object-store variables on Render (without them every `complete` answers `unavailable`)
 
 ### Chapter 15 — Translation drain worker
 
@@ -218,4 +221,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-10 — resumed; chapter 6 merged (8 of 18: C1, C2, C3, C7, C4, C13, C5, C6); next in order: C14
+**Last orchestration:** 2026-11-10 — resumed; chapter 14 merged (9 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14); next in order: C8
