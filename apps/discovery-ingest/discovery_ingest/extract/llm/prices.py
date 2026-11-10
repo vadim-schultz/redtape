@@ -40,6 +40,14 @@ The Mistral and Scout rows were fetched on 2026-10-29 and reproduce the neurons 
 """
 
 
+EMBEDDING_NEURONS_PER_MILLION_INPUT_TOKENS: dict[str, float] = {"@cf/qwen/qwen3-embedding-0.6b": 1075.0}
+"""Cloudflare's price of an embedding model: inputs only, output tokens are not billed.
+
+The embed probe of 2026-11-10 measured 1.07 neurons per thousand input tokens (8.52 neurons for 7,931 tokens), which
+confirms the 1,075 of the pricing page.
+"""
+
+
 class UnknownModelError(ValueError):
     """The model has no price row; a model is refused rather than guessed."""
 
@@ -77,6 +85,23 @@ def cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Return the neurons that ``input_tokens`` and ``output_tokens`` cost on ``model``."""
     price = _price(model)
     return (input_tokens * price.per_million_input + output_tokens * price.per_million_output) / 1e6
+
+
+def _embedding_price(model: str) -> float:
+    try:
+        return EMBEDDING_NEURONS_PER_MILLION_INPUT_TOKENS[model]
+    except KeyError:
+        raise UnknownModelError(f"no neuron price for embedding model {model}") from None
+
+
+def estimate_embedding(model: str, input_chars: int) -> int:
+    """Return the neurons to reserve for embedding ``input_chars`` of text: characters over three, priced, rounded up."""
+    return max(1, math.ceil(embedding_cost(model, math.ceil(input_chars / CHARS_PER_TOKEN))))
+
+
+def embedding_cost(model: str, input_tokens: int) -> float:
+    """Return the neurons that ``input_tokens`` cost on the embedding ``model``."""
+    return input_tokens * _embedding_price(model) / 1e6
 
 
 def actual_neurons(result: LlmResult) -> float | None:

@@ -1,18 +1,20 @@
-"""Neurons per embedding call: what the provider reported, else the input tokens priced from the table below."""
+"""Neurons per embedding call: what the provider reported, else the input tokens priced from ``extract/llm/prices.py``."""
 
 from __future__ import annotations
 
 from discovery_ingest.extract.embedding.client import EmbeddingResult
+from discovery_ingest.extract.llm.prices import EMBEDDING_NEURONS_PER_MILLION_INPUT_TOKENS, embedding_cost
 
-NEURONS_PER_MILLION_INPUT_TOKENS: dict[str, float] = {"@cf/qwen/qwen3-embedding-0.6b": 1075.0}
-"""Cloudflare's price of an embedding model (inputs only); the probe's reported neurons confirm or correct the row."""
+
+def reported_neurons(result: EmbeddingResult) -> float | None:
+    """Return what ``result`` cost (the reported figure, else its tokens priced), or ``None`` with nothing to go on."""
+    if result.neurons is not None:
+        return result.neurons
+    if result.input_tokens is None or result.model not in EMBEDDING_NEURONS_PER_MILLION_INPUT_TOKENS:
+        return None
+    return embedding_cost(result.model, result.input_tokens)
 
 
 def neurons_of(result: EmbeddingResult) -> float:
-    """Return the neurons ``result`` cost: the reported figure, else its tokens priced, else 0 (nothing to go on)."""
-    if result.neurons is not None:
-        return result.neurons
-    price = NEURONS_PER_MILLION_INPUT_TOKENS.get(result.model)
-    if price is None or result.input_tokens is None:
-        return 0.0
-    return result.input_tokens * price / 1e6
+    """Return the neurons ``result`` cost, or 0 when neither the response nor the price table says."""
+    return reported_neurons(result) or 0.0

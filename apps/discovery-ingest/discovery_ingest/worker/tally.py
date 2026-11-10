@@ -10,11 +10,14 @@ COMPLETED_RENDER_ENQUEUE_FAILED = "completed_render_enqueue_failed"
 """A fetch that completed but could not enqueue its follow-up ``render_page``: counted as both."""
 COMPLETED_CAPTURE_ENQUEUE_FAILED = "completed_capture_enqueue_failed"
 """An extraction that completed but could not enqueue its ``capture_screenshot``: counted as both."""
+STALE = "stale"
+"""An embedding whose text changed while it was computed: the task is completed and the API queues the new text."""
 _COUNTERS = {
     COMPLETED: ("completed",),
     FAILED: ("failed",),
     COMPLETED_RENDER_ENQUEUE_FAILED: ("completed", "render_enqueue_failed"),
     COMPLETED_CAPTURE_ENQUEUE_FAILED: ("completed", "capture_enqueue_failed"),
+    STALE: ("completed", "stale"),
 }
 
 
@@ -28,6 +31,7 @@ class Tally:
     failed: int = 0
     skipped: int = 0
     released: int = 0
+    stale: int = 0
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
     llm_enqueue_failed: int = 0
