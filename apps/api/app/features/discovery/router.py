@@ -33,6 +33,8 @@ from app.features.discovery.errors import (
 )
 from app.features.discovery.machine_controller import DiscoveryMachineController
 from app.features.discovery.taxonomy_machine_controller import DiscoveryTaxonomyMachineController
+from app.features.search.errors import TaskNotOwnedError
+from app.features.search.router import embedding_machine_router
 
 
 def _invalid_payload_is_422(request: Request, exc: ValidationException) -> Response:
@@ -64,6 +66,7 @@ DISCOVERY_ERROR_HANDLERS: ExceptionHandlersMap = {
     UnsupportedArtifactTypeError: _answers_with(HTTP_415_UNSUPPORTED_MEDIA_TYPE),
     StorageCapExceededError: _answers_with(HTTP_507_INSUFFICIENT_STORAGE),
     TaskNotClaimedError: _answers_with(HTTP_409_CONFLICT),
+    TaskNotOwnedError: _answers_with(HTTP_409_CONFLICT),
     DiscoveryNotFoundError: _not_found_is_404,
     InvalidDiscoveryInputError: _invalid_input_is_422,
     ValidationException: _invalid_payload_is_422,
@@ -90,6 +93,7 @@ discovery_machine_router = Router(
         DiscoveryArtifactMachineController,
         DiscoveryBudgetMachineController,
         DiscoveryTaxonomyMachineController,
+        embedding_machine_router,
     ],
     dependencies=router_dependencies,
     exception_handlers=DISCOVERY_ERROR_HANDLERS,

@@ -95,4 +95,7 @@ async def require_db_headroom(_: ASGIConnection, __: BaseRouteHandler) -> None:
 
 
 DB_WRITE_GUARDS = [require_db_headroom]
-"""Attached to every machine route that creates rows; settle routes (complete, fail, release, claim) stay exempt."""
+"""Attached to every machine route that creates rows; discovery settle routes (complete, fail, release, claim) stay exempt.
+
+The embedding routes guard ``claim`` and ``complete`` (they write rows) and leave ``fail``, ``release`` and ``summary`` open.
+"""

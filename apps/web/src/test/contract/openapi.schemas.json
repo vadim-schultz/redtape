@@ -2335,6 +2335,41 @@
     "title": "ClaimRow",
     "type": "object"
   },
+  "ClaimedEmbeddingTask": {
+    "properties": {
+      "candidate_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "lease_expires_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "text": {
+        "type": "string"
+      },
+      "text_hash": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "candidate_id",
+      "lease_expires_at",
+      "locale",
+      "task_id",
+      "text",
+      "text_hash"
+    ],
+    "title": "ClaimedEmbeddingTask",
+    "type": "object"
+  },
   "ClaimedTaskRead": {
     "properties": {
       "artifact_id": {
@@ -2935,6 +2970,258 @@
       "reason"
     ],
     "title": "EdgeSkip",
+    "type": "object"
+  },
+  "EmbeddingClaimRequest": {
+    "properties": {
+      "limit": {
+        "default": 50,
+        "maximum": 50.0,
+        "minimum": 1.0,
+        "type": "integer"
+      },
+      "model": {
+        "maxLength": 100,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "model"
+    ],
+    "title": "EmbeddingClaimRequest",
+    "type": "object"
+  },
+  "EmbeddingClaimResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ClaimedEmbeddingTask"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "EmbeddingClaimResponse",
+    "type": "object"
+  },
+  "EmbeddingCompleteItem": {
+    "properties": {
+      "model": {
+        "maxLength": 100,
+        "minLength": 1,
+        "type": "string"
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "text_hash": {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+      },
+      "vector": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "model",
+      "task_id",
+      "text_hash",
+      "vector"
+    ],
+    "title": "EmbeddingCompleteItem",
+    "type": "object"
+  },
+  "EmbeddingCompleteRequest": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/EmbeddingCompleteItem"
+        },
+        "maxItems": 50,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "EmbeddingCompleteRequest",
+    "type": "object"
+  },
+  "EmbeddingCompleteResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/EmbeddingItemResult"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "EmbeddingCompleteResponse",
+    "type": "object"
+  },
+  "EmbeddingFailRequest": {
+    "properties": {
+      "error": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "retryable": {
+        "default": false,
+        "type": "boolean"
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "error",
+      "task_id"
+    ],
+    "title": "EmbeddingFailRequest",
+    "type": "object"
+  },
+  "EmbeddingFailResponse": {
+    "properties": {
+      "last_error": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/WorkTaskStatus"
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "last_error",
+      "status",
+      "task_id"
+    ],
+    "title": "EmbeddingFailResponse",
+    "type": "object"
+  },
+  "EmbeddingItemResult": {
+    "properties": {
+      "outcome": {
+        "$ref": "#/components/schemas/EmbeddingOutcome"
+      },
+      "reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "outcome",
+      "task_id"
+    ],
+    "title": "EmbeddingItemResult",
+    "type": "object"
+  },
+  "EmbeddingOutcome": {
+    "description": "What completing one item did.",
+    "enum": [
+      "stored",
+      "stale",
+      "rejected"
+    ],
+    "title": "EmbeddingOutcome",
+    "type": "string"
+  },
+  "EmbeddingReleaseRequest": {
+    "properties": {
+      "reason": {
+        "default": "released",
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "task_ids": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "maxItems": 50,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "task_ids"
+    ],
+    "title": "EmbeddingReleaseRequest",
+    "type": "object"
+  },
+  "EmbeddingReleaseResponse": {
+    "properties": {
+      "released": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "skipped": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "released",
+      "skipped"
+    ],
+    "title": "EmbeddingReleaseResponse",
+    "type": "object"
+  },
+  "EmbeddingSummaryResponse": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "pending_ready": {
+        "type": "integer"
+      },
+      "stale_candidates": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "failed",
+      "pending_ready",
+      "stale_candidates"
+    ],
+    "title": "EmbeddingSummaryResponse",
     "type": "object"
   },
   "EmitConflictRead": {
@@ -4646,6 +4933,17 @@
     ],
     "title": "VoteRead",
     "type": "object"
+  },
+  "WorkTaskStatus": {
+    "description": "Lifecycle of a leased worker task; shared by every dedicated work queue.",
+    "enum": [
+      "pending",
+      "claimed",
+      "completed",
+      "failed"
+    ],
+    "title": "WorkTaskStatus",
+    "type": "string"
   },
   "candidate_read_CandidateListResponse": {
     "properties": {

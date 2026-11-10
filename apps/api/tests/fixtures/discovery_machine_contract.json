@@ -56,6 +56,11 @@
    "unknown_parent",
    "unknown_required"
   ],
+  "EmbeddingOutcome": [
+   "stored",
+   "stale",
+   "rejected"
+  ],
   "LEGACY_TASK_KINDS": [
    "fetch_url",
    "enrich_metadata"
@@ -71,6 +76,12 @@
    "db_limit",
    "llm_budget",
    "llm_quota"
+  ],
+  "WorkTaskStatus": [
+   "pending",
+   "claimed",
+   "completed",
+   "failed"
   ]
  },
  "forms": {
@@ -3567,6 +3578,514 @@
     "type": "object"
    }
   },
+  "search_machine.ClaimedEmbeddingTask": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One leased task with the text to embed and the hash that identifies it.",
+    "properties": {
+     "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+     },
+     "lease_expires_at": {
+      "format": "date-time",
+      "title": "Lease Expires At",
+      "type": "string"
+     },
+     "locale": {
+      "title": "Locale",
+      "type": "string"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "text_hash": {
+      "title": "Text Hash",
+      "type": "string"
+     }
+    },
+    "required": [
+     "candidate_id",
+     "lease_expires_at",
+     "locale",
+     "task_id",
+     "text",
+     "text_hash"
+    ],
+    "title": "ClaimedEmbeddingTask",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingClaimRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Claim up to ``limit`` pending embedding tasks of ``model``.",
+    "properties": {
+     "limit": {
+      "default": 50,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+     },
+     "model": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model"
+    ],
+    "title": "EmbeddingClaimRequest",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingClaimResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ClaimedEmbeddingTask": {
+      "description": "One leased task with the text to embed and the hash that identifies it.",
+      "properties": {
+       "candidate_id": {
+        "format": "uuid",
+        "title": "Candidate Id",
+        "type": "string"
+       },
+       "lease_expires_at": {
+        "format": "date-time",
+        "title": "Lease Expires At",
+        "type": "string"
+       },
+       "locale": {
+        "title": "Locale",
+        "type": "string"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       },
+       "text": {
+        "title": "Text",
+        "type": "string"
+       },
+       "text_hash": {
+        "title": "Text Hash",
+        "type": "string"
+       }
+      },
+      "required": [
+       "task_id",
+       "candidate_id",
+       "locale",
+       "text",
+       "text_hash",
+       "lease_expires_at"
+      ],
+      "title": "ClaimedEmbeddingTask",
+      "type": "object"
+     }
+    },
+    "description": "The tasks one claim leased.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ClaimedEmbeddingTask"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "EmbeddingClaimResponse",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingCompleteItem": {
+   "mode": "validation",
+   "schema": {
+    "description": "The vector a worker computed for one task; its length is checked per item, not by the schema.",
+    "properties": {
+     "model": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     },
+     "text_hash": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Text Hash",
+      "type": "string"
+     },
+     "vector": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Vector",
+      "type": "array"
+     }
+    },
+    "required": [
+     "task_id",
+     "text_hash",
+     "model",
+     "vector"
+    ],
+    "title": "EmbeddingCompleteItem",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingCompleteRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "EmbeddingCompleteItem": {
+      "description": "The vector a worker computed for one task; its length is checked per item, not by the schema.",
+      "properties": {
+       "model": {
+        "maxLength": 100,
+        "minLength": 1,
+        "title": "Model",
+        "type": "string"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       },
+       "text_hash": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Text Hash",
+        "type": "string"
+       },
+       "vector": {
+        "items": {
+         "type": "number"
+        },
+        "title": "Vector",
+        "type": "array"
+       }
+      },
+      "required": [
+       "task_id",
+       "text_hash",
+       "model",
+       "vector"
+      ],
+      "title": "EmbeddingCompleteItem",
+      "type": "object"
+     }
+    },
+    "description": "A batch of computed vectors.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/EmbeddingCompleteItem"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "EmbeddingCompleteRequest",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingCompleteResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "EmbeddingItemResult": {
+      "description": "The outcome of one item; ``reason`` explains a rejection.",
+      "properties": {
+       "outcome": {
+        "$ref": "#/$defs/EmbeddingOutcome"
+       },
+       "reason": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Reason"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       }
+      },
+      "required": [
+       "task_id",
+       "outcome"
+      ],
+      "title": "EmbeddingItemResult",
+      "type": "object"
+     },
+     "EmbeddingOutcome": {
+      "description": "What completing one item did.",
+      "enum": [
+       "stored",
+       "stale",
+       "rejected"
+      ],
+      "title": "EmbeddingOutcome",
+      "type": "string"
+     }
+    },
+    "description": "One result per submitted item, in request order.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/EmbeddingItemResult"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "EmbeddingCompleteResponse",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingFailRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "A worker's report that it could not embed a task.",
+    "properties": {
+     "error": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Error",
+      "type": "string"
+     },
+     "retryable": {
+      "default": false,
+      "title": "Retryable",
+      "type": "boolean"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "task_id",
+     "error"
+    ],
+    "title": "EmbeddingFailRequest",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingFailResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "WorkTaskStatus": {
+      "description": "Lifecycle of a leased worker task; shared by every dedicated work queue.",
+      "enum": [
+       "pending",
+       "claimed",
+       "completed",
+       "failed"
+      ],
+      "title": "WorkTaskStatus",
+      "type": "string"
+     }
+    },
+    "description": "The task after the failure: ``pending`` when it will be retried, ``failed`` otherwise.",
+    "properties": {
+     "last_error": {
+      "title": "Last Error",
+      "type": "string"
+     },
+     "status": {
+      "$ref": "#/$defs/WorkTaskStatus"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "last_error",
+     "status",
+     "task_id"
+    ],
+    "title": "EmbeddingFailResponse",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingItemResult": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "EmbeddingOutcome": {
+      "description": "What completing one item did.",
+      "enum": [
+       "stored",
+       "stale",
+       "rejected"
+      ],
+      "title": "EmbeddingOutcome",
+      "type": "string"
+     }
+    },
+    "description": "The outcome of one item; ``reason`` explains a rejection.",
+    "properties": {
+     "outcome": {
+      "$ref": "#/$defs/EmbeddingOutcome"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Reason"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "outcome",
+     "reason",
+     "task_id"
+    ],
+    "title": "EmbeddingItemResult",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingReleaseRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Hand claimed tasks back because a limit, not the text, stopped the work.",
+    "properties": {
+     "reason": {
+      "default": "released",
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+     },
+     "task_ids": {
+      "items": {
+       "format": "uuid",
+       "type": "string"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Task Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "task_ids"
+    ],
+    "title": "EmbeddingReleaseRequest",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingReleaseResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "The tasks that went back to the queue and the ones this key did not hold.",
+    "properties": {
+     "released": {
+      "items": {
+       "format": "uuid",
+       "type": "string"
+      },
+      "title": "Released",
+      "type": "array"
+     },
+     "skipped": {
+      "items": {
+       "format": "uuid",
+       "type": "string"
+      },
+      "title": "Skipped",
+      "type": "array"
+     }
+    },
+    "required": [
+     "released",
+     "skipped"
+    ],
+    "title": "EmbeddingReleaseResponse",
+    "type": "object"
+   }
+  },
+  "search_machine.EmbeddingSummaryResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.",
+    "properties": {
+     "claimed": {
+      "title": "Claimed",
+      "type": "integer"
+     },
+     "failed": {
+      "title": "Failed",
+      "type": "integer"
+     },
+     "pending_ready": {
+      "title": "Pending Ready",
+      "type": "integer"
+     },
+     "stale_candidates": {
+      "title": "Stale Candidates",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "claimed",
+     "failed",
+     "pending_ready",
+     "stale_candidates"
+    ],
+    "title": "EmbeddingSummaryResponse",
+    "type": "object"
+   }
+  },
   "taxonomy_read.CrosswalkRead": {
    "mode": "serialization",
    "schema": {
@@ -3980,6 +4499,26 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/claims"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/embeddings/claim"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/embeddings/complete"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/embeddings/fail"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/embeddings/release"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/embeddings/summary"
   },
   {
    "method": "POST",
