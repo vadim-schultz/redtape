@@ -47,7 +47,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 - Status: PR #372 open, not merged (blocked)
 - pgvector version (local image, CI image, Supabase): local/CI `pgvector/pgvector:pg16`, vector 0.8.7 on PG 16.15; Supabase not checked (operator action)
-- Probe: model, output dimension, supported reduced dimensions, batch limit, latency, neurons per 1k tokens: pending
+- Probe (2026-11-10, `embed probe` from PR #372, live Workers AI): model `@cf/qwen/qwen3-embedding-0.6b`, dimension 1024; reduced dimensions 768/512/256/128 NOT honoured (`dimensions` returned 1024); batches 1–256 all accepted (no rejection up to 256); single-text latency 359 ms (batch 256: 3.6 s); 7,931 tokens, 8.52 neurons, 1.07 neurons per 1k tokens. Request/response shape assumed by the client confirmed.
 - Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and projected total database size for seven locales versus `DB_SOFT_LIMIT_BYTES`: pending
 
 ### Chapter 2 — Backend locale foundation
