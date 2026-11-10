@@ -44,7 +44,7 @@ The full rule, including the manual override of the tag consensus, is section 3 
 | Web | `/documents` | The one document list, served by `GET /api/v1/candidates`: search, sort, category chips, a confidence circle per card, paging. |
 | Web | `/candidates` | Redirects to `/documents`. The old filter params are dropped, not translated. |
 | Web | `/candidates/:id` | One candidate: canonical category tags and five accordion sections for ingress, egress, flow, evidence and sources. Ingress, egress and flow open by default; evidence and sources start collapsed. Cards on `/documents` link here. |
-| API | `GET /api/v1/candidates` | `{items, total, offset, limit}`. Search, sorts and filters are in the browse contract below. |
+| API | `GET /api/v1/candidates` | `{items, total, offset, limit, search_mode}`. Search, sorts and filters are in the browse contract below. |
 | API | `GET /api/v1/candidates/{id}` | The detail with `ingress`, `egress`, `sources` and the `screenshot` reference. |
 | API | `GET /api/v1/candidates/{id}/screenshot` | The newest screenshot of the candidate's procedures, streamed from the object store. |
 
@@ -67,13 +67,16 @@ invalid value answers 422 and names each bad parameter.
 
 | Parameter | Behavior |
 | --- | --- |
-| `q` | Case-insensitive title search over all locales. No index. |
+| `q` | Search text, 1 to 200 characters. With `SEARCH_HYBRID_ENABLED=true` it runs hybrid retrieval (see [Search](#search-with-q)); off, the legacy case-insensitive title match over all locales, no index. |
 | `sort_by` | `confidence`, `completeness`, `mentions`, `title`, `created_at`. |
 | `sort_order` | `asc` or `desc`. Needs `sort_by`; alone it answers 422. |
 | `filter[category]` | CSV of canonical category codes (`a,b,c`), at most 20 codes. A candidate matches when it carries **any** of them, with **any** score; roots include active descendants. |
 | `filter[complete]` | `yes` or `no`, the four completeness flags. Kept for the API; the web list does not expose it. |
 | `offset`, `limit` | Paging; `limit` 1 to 100. |
 
+- Without `q` the order is as below. With `q` and hybrid search on, the default order is search relevance,
+  then confidence, then the tie-break (the combined score of chapter 12 replaces it later); an explicit
+  `sort_by` still wins. `total` is then the size of the relevance pool (at most `SEARCH_FUSED_TOP_K`).
 - Category codes combine with OR. More than 20 codes, a code longer than 64 characters, or an unknown
   taxonomy code answers 422 (per code).
 - Without `sort_by` the order is confidence descending, then completeness descending, then mentions
@@ -94,6 +97,38 @@ invalid value answers 422 and names each bad parameter.
   otherwise the LLM evidence curve and any direct-source confidence combine by noisy-OR.
 - The web bands the number: below 0.4 red, 0.4 up to 0.7 yellow, from 0.7 green
   (`apps/web/src/features/documents/utils/confidenceBand.ts`).
+
+## Search with `q`
+
+`GET /api/v1/candidates?q=...` retrieves with two legs and fuses them in one SQL statement
+(`apps/api/app/features/search/`). The keyword leg is Postgres full text over `candidate_search_text`
+(the request locale's configuration, `german` on the German row, `simple` + `unaccent` on every row of
+both) plus the old title match. The vector leg is a cosine search over `candidate_embedding` (HNSW with
+`SET LOCAL hnsw.iterative_scan = relaxed_order` so category filters do not starve it; at this corpus size the planner
+may prefer an exact scan, which is just as fast) cut off below `SEARCH_MIN_SIMILARITY`. Reciprocal Rank Fusion (`RRF_K`) combines them; both legs apply the same
+`filter[category]` and `filter[complete]`. The response carries `search_mode` and a `similarity`
+(0 to 1, `null` without a vector hit) on each card.
+
+| `search_mode` | When |
+| --- | --- |
+| `browse` | No `q` (or a blank one). Unchanged. |
+| `hybrid` | `SEARCH_HYBRID_ENABLED=true` and the query was embedded. |
+| `keyword` | Flag off (legacy title match), or flag on but the embedder returned nothing: a timeout, an error, no Workers AI credentials or an exhausted neuron budget. Never a 5xx for an embedder problem. |
+
+- **Query embedding** runs at request time (decision D1): the instruction-prefixed query goes to Workers AI with a
+  `QUERY_EMBED_TIMEOUT_S` timeout, results are cached in process by model and normalised query
+  (`QUERY_EMBED_CACHE_SIZE`), and each uncached call reserves `QUERY_EMBED_NEURONS` on the shared neuron ledger in a
+  short transaction of its own. A circuit breaker skips the provider for `QUERY_EMBED_BREAKER_COOLDOWN_S` after
+  `QUERY_EMBED_BREAKER_FAILURES` misses in a row (an outage costs each search no timeout and no reservation). It needs `CLOUDFLARE_ACCOUNT_ID` and a
+  Workers-AI-scoped `CLOUDFLARE_AI_API_TOKEN` on the API host; without them search stays keyword-only.
+- **Rate limit**: a list request with `q` counts against `SEARCH_RATE_LIMIT_PER_MINUTE` per client address and answers
+  429 beyond it. The client is the `X-Forwarded-For` entry `TRUSTED_PROXY_HOPS` places from the right (default 1: the
+  entry the proxy in front of the API appended, so a client-sent prefix cannot reset its allowance). The counter is
+  per process (one API instance on Render today). Operator check after the first deploy: send a request with a fake
+  `X-Forwarded-For` and confirm the limit still applies per real address; raise the hops if another proxy
+  (for example a CDN) sits in front of Render, set it to 0 when the API is reached directly.
+- `SEARCH_VECTOR_INDEX_ENABLED=false` forces an exact vector scan, for diagnosis only.
+- An older pgvector (before 0.8) has no iterative scan: the vector leg then falls back to an exact scan and logs a warning.
 
 ## Deploy order
 
