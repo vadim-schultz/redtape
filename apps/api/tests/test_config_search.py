@@ -56,6 +56,19 @@ def test_search_settings_reject_an_invalid_dimension_k_or_similarity(overrides: 
         _settings(**overrides)
 
 
+def test_the_confidence_weight_defaults_to_a_starting_value_and_accepts_the_whole_range() -> None:
+    """settings · SEARCH_CONFIDENCE_WEIGHT defaults to 0.3 and accepts 0 and 1."""
+    assert _settings().search_confidence_weight == 0.3
+    assert [_settings(search_confidence_weight=weight).search_confidence_weight for weight in (0, 1)] == [0, 1]
+
+
+@pytest.mark.parametrize("weight", [-0.01, 1.01, 2])
+def test_a_confidence_weight_outside_zero_to_one_fails_at_load(weight: float) -> None:
+    """settings · weight outside 0..1 fails at load."""
+    with pytest.raises(ValidationError):
+        _settings(search_confidence_weight=weight)
+
+
 def test_the_ai_token_is_not_shown_in_the_settings_repr() -> None:
     """config · the Workers AI token stays out of logs and tracebacks."""
     assert "super-secret" not in repr(_settings(cloudflare_ai_api_token="super-secret"))
