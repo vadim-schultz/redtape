@@ -113,6 +113,37 @@ def test_an_unreadable_answer_twice_stores_nothing_and_fails_the_batch(monkeypat
     assert (report.completed, report.failed) == (0, 2)
 
 
+def test_a_usage_limit_during_the_repair_still_posts_the_units_that_were_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """translate drain · the repair call hits the usage limit: the unit that was valid is posted; the other is released."""
+    api = TranslateApi([task(0, "tr"), task(1, "tr")])
+    calls: list[CliRequest] = []
+
+    def reply(request: CliRequest) -> CliResult:
+        calls.append(request)
+        if len(calls) > 1:
+            return CliResult(1, envelope(is_error=True, result="API Error: Rate limit reached"), "")
+        valid, lossy = units_in(request)
+        answer = {
+            "units": [
+                {"key": valid["key"], "title": f"[en] {valid['title']}", "description": f"[en] {valid['description']}"},
+                {
+                    "key": lossy["key"],
+                    "title": "[en] Reisepass beantragen",
+                    "description": f"[en] {lossy['description']}",
+                },
+            ]
+        }
+        return CliResult(0, envelope(answer), "")
+
+    _install(monkeypatch, FakeCli(reply))
+
+    report = _run(api, max_batches=1)
+
+    assert [item["task_id"] for item in api.posted()] == [task_id(0)]
+    assert api.bodies["release"][0]["task_ids"] == [task_id(1)] and not api.bodies["fail"]
+    assert (report.stop_reason, report.completed, report.released) == ("llm_quota", 1, 1)
+
+
 def test_a_failing_validator_is_repaired_once_through_the_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     """translate drain · a translation that loses its numbers is repaired by one more call; the repaired text is stored."""
     api = TranslateApi([task(0, "tr")])

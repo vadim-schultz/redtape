@@ -14,6 +14,7 @@ from discovery_ingest.translation.glossary import load_glossary
 from discovery_ingest.translation.repair import Checked, Translator, check_outcome, repair_once
 from discovery_ingest.translation.units import TranslationBatch, TranslationUnit
 from discovery_ingest.translation_models import ClaimedTranslationTask
+from discovery_ingest.worker.stop import StopDrain
 from discovery_ingest.worker.translate_settle import BatchState, GroupSettler, failure_of
 
 SOURCE_LOCALE = "de"
@@ -45,14 +46,14 @@ def batch_of(group: Tasks) -> TranslationBatch:
 
 @dataclass(frozen=True, slots=True)
 class CallResult:
-    """What one call came to: every unit checked, the repairs that worked, and any error that stopped a repair.
+    """What one call came to: every unit checked, the repairs that worked, and any error or stop that ended a repair.
 
     A unit still invalid after its repair is listed as checked; when a repair errored, those units fail with that error.
     """
 
     checked: tuple[Checked, ...]
     repaired: int = 0
-    repair_error: TranslationEngineError | None = None
+    repair_failure: TranslationEngineError | StopDrain | None = None
 
 
 def translate_call(translator: Translator, batch: TranslationBatch) -> CallResult:
@@ -67,8 +68,8 @@ def translate_call(translator: Translator, batch: TranslationBatch) -> CallResul
         return CallResult(tuple(checked))
     try:
         repaired = repair_once(translator, batch, failed)
-    except TranslationEngineError as err:
-        return CallResult(tuple(checked), repair_error=err)
+    except (TranslationEngineError, StopDrain) as err:
+        return CallResult(tuple(checked), repair_failure=err)
     return CallResult(_with_repairs(checked, repaired), repaired=sum(item.valid for item in repaired))
 
 
@@ -79,12 +80,19 @@ def _with_repairs(checked: list[Checked], repaired: list[Checked]) -> tuple[Chec
 
 
 def settle_call(state: BatchState, group: Tasks, answer: CallResult) -> None:
-    """Post the valid units of a call and fail the rest: invalid ones after their repair, or with the repair's error."""
+    """Post the valid units of a call, then settle the rest.
+
+    A stop is raised, so the rest is released; an error fails the rest with its category; no error fails the invalid
+    units after their repair.
+    """
     settler = GroupSettler(state, group)
     settler.post([item for item in answer.checked if item.valid])
     state.tally.repaired += answer.repaired
-    if answer.repair_error is not None:
-        settler.fail_unfinished(failure_of(answer.repair_error))
+    failure = answer.repair_failure
+    if isinstance(failure, StopDrain):
+        raise failure
+    if failure is not None:
+        settler.fail_unfinished(failure_of(failure))
     else:
         settler.fail_invalid([item for item in answer.checked if not item.valid])
 
