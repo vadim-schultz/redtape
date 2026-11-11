@@ -135,3 +135,100 @@ def test_a_translation_file_for_a_supported_locale_is_seeded_from_a_custom_root(
 
     stored = db_session.execute(sa.select(UITranslation.key, UITranslation.locale, UITranslation.value)).all()
     assert [tuple(row) for row in stored] == [("a.b", "tr", "x")]
+
+
+FIVE_LOCALES = ("tr", "ru", "uk", "pl", "ro")
+
+
+def _completeness(session: Session, code: str) -> float:
+    from app.features.locales.repository import LocalesRepository
+    from app.features.locales.service import completeness_pct
+
+    return completeness_pct(LocalesRepository(session).key_counts_by_locale("de"), code)
+
+
+def test_all_five_locale_files_seed_and_a_complete_locale_computes_to_100(db_session: Session, tmp_path: Path) -> None:
+    """seed · loads all five files; completeness is computed as 100 for a complete locale."""
+    (tmp_path / "de.json").write_text(
+        json.dumps({"a": "x", "n_one": "{count} x", "n_other": "{count} xs"}), encoding="utf-8"
+    )
+    forms = {"tr": ("one", "other"), "ru": ("one", "few", "many", "other"), "uk": ("one", "few", "many", "other")}
+    forms |= {"pl": ("one", "few", "many", "other"), "ro": ("one", "few", "other")}
+    for code in FIVE_LOCALES:
+        plurals = {f"n_{form}": "{count} y" for form in forms[code]}
+        (tmp_path / f"{code}.json").write_text(json.dumps({"a": "y", **plurals}), encoding="utf-8")
+
+    seed_ui_translations(db_session, root=tmp_path)
+
+    assert {code: _completeness(db_session, code) for code in FIVE_LOCALES} == dict.fromkeys(FIVE_LOCALES, 100.0)
+
+
+def test_a_locale_missing_a_key_computes_below_100(db_session: Session, tmp_path: Path) -> None:
+    """seed · completeness drops when the file lacks a key of the German source."""
+    (tmp_path / "de.json").write_text(json.dumps({"a": "x", "b": "y"}), encoding="utf-8")
+    (tmp_path / "tr.json").write_text(json.dumps({"a": "x"}), encoding="utf-8")
+
+    seed_ui_translations(db_session, root=tmp_path)
+
+    assert _completeness(db_session, "tr") == 50.0
+
+
+@pytest.mark.parametrize(
+    "code", [path.stem for path in sorted(TRANSLATIONS_DIR.glob("*.json")) if path.stem in FIVE_LOCALES]
+)
+def test_every_generated_locale_file_in_the_repository_is_complete_against_german(
+    db_session: Session, code: str
+) -> None:
+    """seed · each generated locale file present in the repository seeds to 100% completeness."""
+    seed_ui_translations(db_session)
+
+    assert _completeness(db_session, code) == 100.0
+
+
+def test_the_review_manifest_is_not_a_locale_file_and_is_validated_when_seeding(
+    db_session: Session, tmp_path: Path
+) -> None:
+    """seed · review.json beside the locale files is read as the manifest, never seeded as a locale."""
+    (tmp_path / "de.json").write_text(json.dumps({"a": "x"}), encoding="utf-8")
+    (tmp_path / "review.json").write_text(
+        json.dumps({"locales": {"ru": {"status": "machine", "model": "m", "command_version": "1"}}}), encoding="utf-8"
+    )
+
+    seed_ui_translations(db_session, root=tmp_path)
+
+    assert _translation_count(db_session) == 1
+
+
+def test_a_manifest_naming_an_unsupported_locale_fails_loudly_and_writes_nothing(
+    db_session: Session, tmp_path: Path
+) -> None:
+    """seed · a review.json entry for a locale outside SUPPORTED_LOCALES stops the seed before any row."""
+    (tmp_path / "de.json").write_text(json.dumps({"a": "x"}), encoding="utf-8")
+    (tmp_path / "review.json").write_text(
+        json.dumps({"locales": {"fr": {"status": "machine", "model": "m", "command_version": "1"}}}), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match=r"fr.*SUPPORTED_LOCALES"):
+        seed_ui_translations(db_session, root=tmp_path)
+
+    assert _translation_count(db_session) == 0
+
+
+def test_seeding_a_reviewed_manifest_never_enables_a_locale(db_session: Session, tmp_path: Path) -> None:
+    """seed · the manifest is read, but `enabled` only changes through enable_locale."""
+    (tmp_path / "de.json").write_text(json.dumps({"a": "x"}), encoding="utf-8")
+    (tmp_path / "ru.json").write_text(json.dumps({"a": "y"}), encoding="utf-8")
+    reviewed = {
+        "status": "reviewed",
+        "reviewed_by": "I. P.",
+        "reviewed_on": "2026-12-02",
+        "model": "m",
+        "command_version": "1",
+    }
+    (tmp_path / "review.json").write_text(json.dumps({"locales": {"ru": reviewed}}), encoding="utf-8")
+    seed_supported_locales(db_session)
+
+    seed_ui_translations(db_session, root=tmp_path)
+    seed_supported_locales(db_session)
+
+    assert _enabled_by_code(db_session)["ru"] is False
