@@ -19,16 +19,8 @@ export type DocumentListResponse = {
   limit: number;
 };
 
-/** Sort keys of the documents list, in the order the sort control offers them. */
-export const DOCUMENT_SORT_KEYS = [
-  "confidence",
-  "title",
-  "created_at",
-] as const;
-export type DocumentSortKey = (typeof DOCUMENT_SORT_KEYS)[number];
-
-/** Search, sort and page of the documents list; the taxonomy chips travel beside it. */
-export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;
+/** Search and page of the documents list (results are always best first, so there is no sort); the taxonomy chips travel beside it. */
+export type DocumentListQuery = ListQueryState<never, never>;
 
 /** Everything one page of the documents list depends on. */
 export type DocumentListRequest = {

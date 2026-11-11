@@ -1,4 +1,4 @@
-import { Box, HStack, VStack } from "@chakra-ui/react";
+import { Box, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
 import Pagination from "../../../../components/data-display/Pagination";
@@ -7,7 +7,6 @@ import type { DocumentList } from "../../hooks/useDocumentListState";
 import type { DocumentListResponse } from "../../types";
 
 import DocumentSearch from "./DocumentSearch";
-import DocumentSortControl from "./DocumentSortControl";
 import DocumentsListHeader from "./DocumentsListHeader";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
@@ -25,7 +24,7 @@ export interface DocumentsListViewProps {
   };
 }
 
-/** The documents page: heading, chips, search and sort, the cards and the pager. */
+/** The documents page: heading, the centred search bar, chips, the cards and the pager. */
 export default function DocumentsListView({
   title,
   toolbar,
@@ -38,10 +37,7 @@ export default function DocumentsListView({
       <DocumentsListHeader title={title} />
 
       <VStack align="stretch" gap={6} mt={6}>
-        <HStack gap={4} wrap="wrap">
-          <DocumentSearch list={list} />
-          <DocumentSortControl list={list} />
-        </HStack>
+        <DocumentSearch list={list} />
         {toolbar.filters}
         <DocumentsListQueryStatus {...result} />
         <Pagination

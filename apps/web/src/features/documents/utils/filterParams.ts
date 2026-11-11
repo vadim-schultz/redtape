@@ -27,13 +27,18 @@ export function readValidCategoryCodes(
   return readCodes(params, "category").filter((code) => known.has(code));
 }
 
-/** A copy of `params` without `names`; any change of the filters also leaves the current page. */
+/** Sort params the page no longer reads; a stale link may still carry them, and they are dropped on the next change. */
+const RETIRED_SORT_PARAMS = ["sort_by", "sort_order"];
+
+/** A copy of `params` without `names`; any change of the filters also leaves the current page and drops retired sort params. */
 export function withoutParams(
   params: URLSearchParams,
   names: string[],
 ): URLSearchParams {
   const next = new URLSearchParams(params);
-  [...names, "offset"].forEach((name) => next.delete(name));
+  [...names, "offset", ...RETIRED_SORT_PARAMS].forEach((name) =>
+    next.delete(name),
+  );
   return next;
 }
 

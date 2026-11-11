@@ -134,6 +134,22 @@ it("theme · the shell shadow is lighter than the card shadow and deepens in dar
   );
 });
 
+it("theme · the raised token has light and dark values", () => {
+  const conditions = system.tokens.getByName("shadows.raised")?.extensions
+    .conditions as Record<string, string> | undefined;
+
+  expect(conditions?.base).toBeTruthy();
+  expect(conditions?._dark).toBeTruthy();
+  expect(conditions?._dark).not.toBe(conditions?.base);
+  expect(conditions?.base).not.toBe(
+    system.tokens.getByName("shadows.card")?.extensions.conditions?.base,
+  );
+});
+
+it("theme · rejects an unregistered shadow role", () => {
+  expect(system.tokens.getByName("shadows.raisedRaw")).toBeUndefined();
+});
+
 it("theme · rejects an unregistered shell role", () => {
   expect(system.tokens.getByName("shadows.shellRaw")).toBeUndefined();
   expect(system._config.theme?.textStyles).not.toHaveProperty("tableHeaderRaw");
