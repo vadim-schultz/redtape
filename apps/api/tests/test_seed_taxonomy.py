@@ -284,3 +284,33 @@ def test_the_committed_translation_module_names_only_real_categories_and_target_
     for locales in TAXONOMY_TRANSLATIONS.values():
         assert set(locales) <= SUPPORTED_LOCALE_CODES - {"de", "en"}
         assert all(name.strip() and description.strip() for name, description in locales.values())
+
+
+TARGET_LOCALES = ("pl", "ro", "ru", "tr", "uk")
+
+
+def _unlabelled(labels: dict[str, dict[str, tuple[str, str]]]) -> list[str]:
+    """Return ``code:locale`` for every active category that lacks a label in one of the five target locales."""
+    return [
+        f"{category.code}:{locale}"
+        for category in CATEGORY_INVENTORY
+        for locale in TARGET_LOCALES
+        if locale not in labels.get(category.code, {})
+    ]
+
+
+def test_the_committed_translation_module_labels_every_category_in_all_five_target_locales() -> None:
+    """taxonomy · each of the 34 categories has a name and a description in tr, ru, uk, pl and ro."""
+    from scripts.seed_data.taxonomy_translations import TAXONOMY_TRANSLATIONS
+
+    assert _unlabelled(TAXONOMY_TRANSLATIONS) == []
+
+
+def test_a_category_without_a_label_in_a_target_locale_is_reported_by_code_and_locale() -> None:
+    """taxonomy · a module that lacks one label names the category and the locale."""
+    from scripts.seed_data.taxonomy_translations import TAXONOMY_TRANSLATIONS
+
+    first = CATEGORY_INVENTORY[0].code
+    without = {**TAXONOMY_TRANSLATIONS, first: {k: v for k, v in TAXONOMY_TRANSLATIONS[first].items() if k != "pl"}}
+
+    assert _unlabelled(without) == [f"{first}:pl"]
