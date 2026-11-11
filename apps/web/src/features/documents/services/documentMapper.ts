@@ -31,6 +31,7 @@ export function toDocumentSummary(
     tags: categoryTags(card),
     confidence: card.confidence,
     similarity: similarityIn(card, mode),
+    translation: card.translation ?? null,
   };
 }
 

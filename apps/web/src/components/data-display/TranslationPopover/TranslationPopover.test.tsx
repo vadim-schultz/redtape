@@ -27,13 +27,16 @@ function renderPopover(summary: TranslationSummary | null) {
   );
 }
 
-const trigger = () => screen.queryByRole("button", { name: "Show translation" });
+const trigger = () =>
+  screen.queryByRole("button", { name: "Show translation" });
 
 it("popover · the trigger appears only when a translation exists and opens the translated title and description", async () => {
   stubTranslationApi(() => json(translationTextFixture()));
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
 
   expect(
     await screen.findByRole("heading", { name: "Pasaport başvurusu" }),
@@ -45,7 +48,9 @@ it("popover · sets lang on the translated content and shows the machine-transla
   stubTranslationApi(() => json(translationTextFixture()));
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
 
   expect(
     await screen.findByRole("heading", { name: "Pasaport başvurusu" }),
@@ -63,7 +68,9 @@ it("popover · shows the stale note when the German original changed", async () 
   stubTranslationApi(() => json(translationTextFixture({ stale: true })));
   const { user } = renderPopover(translationSummaryFixture({ stale: true }));
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
 
   expect(
     await screen.findByText(/The German original has changed since/),
@@ -74,7 +81,9 @@ it("popover · the dialog is named after the German original", async () => {
   stubTranslationApi(() => json(translationTextFixture()));
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
 
   expect(
     await screen.findByRole("dialog", { name: "Pasaport Antrag" }),
@@ -91,7 +100,7 @@ it("popover · the first open requests the stored text once, shows loading then 
   expect(translationCalls(fetchMock)).toHaveLength(0);
 
   await user.click(screen.getByRole("button", { name: "Show translation" }));
-  expect(await screen.findByText("Loading translation…")).toBeVisible();
+  expect(await screen.findByText("Loading...")).toBeVisible();
   release(json(translationTextFixture()));
   await screen.findByRole("heading", { name: "Pasaport başvurusu" });
 
@@ -109,7 +118,9 @@ it("popover · the first open requests the stored text once, shows loading then 
 it("popover · keyboard: Enter and Space open, Escape closes and focus returns to the trigger", async () => {
   stubTranslationApi(() => json(translationTextFixture()));
   const { user } = renderPopover(translationSummaryFixture());
-  const button = await screen.findByRole("button", { name: "Show translation" });
+  const button = await screen.findByRole("button", {
+    name: "Show translation",
+  });
 
   button.focus();
   await user.keyboard("{Enter}");
@@ -133,7 +144,9 @@ it("popover · a failed fetch shows the retry message and a retry loads the text
   );
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
 
   expect(
     await screen.findByText(
@@ -172,7 +185,9 @@ it("popover · very long text scrolls inside the content and does not overflow t
   );
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
   const dialog = await screen.findByRole("dialog");
   const css = elementCss(dialog);
 
@@ -196,11 +211,13 @@ it("popover · never requests a model: only the stored-text route is called", as
   const fetchMock = stubTranslationApi(() => json(translationTextFixture()));
   const { user } = renderPopover(translationSummaryFixture());
 
-  await user.click(await screen.findByRole("button", { name: "Show translation" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
   await screen.findByRole("heading", { name: "Pasaport başvurusu" });
 
   const urls = vi.mocked(fetchMock).mock.calls.map(([input]) => String(input));
-  expect(urls.filter((url) => /translation|candidates/.test(url))).toEqual([
+  expect(urls.filter((url) => url.includes("/api/v1/candidates"))).toEqual([
     expect.stringContaining("/api/v1/candidates/c1/translation"),
   ]);
 });

@@ -267,19 +267,31 @@ it("card · a failed translation fetch keeps the German original visible", async
     { timeout: 4000 },
   );
 
-  expect(screen.getByRole("link", { name: "Residency Registration" })).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "Residency Registration" }),
+  ).toBeVisible();
   expect(screen.getByText("Adresse anmelden")).toBeVisible();
 });
 
 it("card · opening the translation does not navigate", async () => {
-  stubTranslationApi(() => json({ ...translationSummaryFixture(), title: "T", description: "D", engine: "llm" }));
+  stubTranslationApi(() =>
+    json({
+      ...translationSummaryFixture(),
+      title: "T",
+      description: "D",
+      engine: "llm",
+    }),
+  );
   const { user } = renderWithProviders(
     <Routes>
       <Route
         path="/"
         element={
           <DocumentCard
-            document={{ ...baseDocument, translation: translationSummaryFixture() }}
+            document={{
+              ...baseDocument,
+              translation: translationSummaryFixture(),
+            }}
           />
         }
       />

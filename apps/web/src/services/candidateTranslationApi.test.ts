@@ -11,7 +11,10 @@ it("translation api · asks for the locale on the path's query and in Accept-Lan
 
   const text = await fetchCandidateTranslation({ id: "c1", locale: "tr" });
 
-  const [input, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+  const [input, init] = fetchMock.mock.calls[0] as unknown as [
+    string,
+    RequestInit,
+  ];
   expect(new URL(input).pathname).toBe("/api/v1/candidates/c1/translation");
   expect(new URL(input).searchParams.get("locale")).toBe("tr");
   expect((init.headers as Record<string, string>)["Accept-Language"]).toBe(
@@ -35,6 +38,6 @@ it("translation api · escapes an id that is not path safe", async () => {
     () => undefined,
   );
 
-  const [input] = fetchMock.mock.calls[0] as [string];
+  const [input] = fetchMock.mock.calls[0] as unknown as [string];
   expect(new URL(input).pathname).toBe("/api/v1/candidates/a%2Fb/translation");
 });

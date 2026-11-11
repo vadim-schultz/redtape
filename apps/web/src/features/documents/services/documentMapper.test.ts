@@ -53,7 +53,9 @@ describe("mapper", () => {
   it("maps the translation summary of a card", () => {
     const summary = translationSummaryFixture({ stale: true });
 
-    const mapped = toDocumentSummary(candidateFixture({ translation: summary }));
+    const mapped = toDocumentSummary(
+      candidateFixture({ translation: summary }),
+    );
 
     expect(mapped.translation).toEqual(summary);
   });
