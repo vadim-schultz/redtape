@@ -9,7 +9,11 @@
     "Ummeldung": "adres değişikliği kaydı",
     "Gebühr": "harç",
     "Kindergeld": "çocuk parası (Kindergeld)",
-    "Wohngeld": "kira yardımı (Wohngeld)"
+    "Wohngeld": "kira yardımı (Wohngeld)",
+    "Dokument": "belge",
+    "Dokumente": "belge",
+    "Kategorie": "kategori",
+    "Kategorien": "kategori"
   },
   "keep": []
 }

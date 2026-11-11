@@ -1,0 +1,8 @@
+usage: discovery_ingest i18n [-h] {translate-ui} ...
+
+positional arguments:
+  {translate-ui}
+    translate-ui  Translate the interface strings and category labels the locale lacks; a rerun continues where this one stopped.
+
+options:
+  -h, --help  show this help message and exit

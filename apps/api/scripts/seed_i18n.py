@@ -12,6 +12,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
+from scripts.seed_data.review_manifest import MANIFEST_FILE, load_review_manifest
+
 TRANSLATIONS_ROOT = Path(__file__).resolve().parent / "seed_data" / "translations"
 
 
@@ -62,9 +64,18 @@ def seed_supported_locales(session: Session) -> None:
 
 
 def _translation_files(root: Path) -> list[Path]:
-    """Return the translation files under ``root``; raise when one names a locale outside ``SUPPORTED_LOCALES``."""
-    paths = sorted(root.glob("*.json"))
+    """Return the translation files under ``root``; raise when one names a locale outside ``SUPPORTED_LOCALES``.
+
+    ``review.json`` is the review manifest, not a locale. It is read here so that an entry for an unsupported locale
+    fails the seed before any row is written; it never changes ``enabled`` (``enable_locale.py`` does).
+    """
+    paths = sorted(path for path in root.glob("*.json") if path.name != MANIFEST_FILE)
     unknown = [path.name for path in paths if path.stem not in SUPPORTED_LOCALE_CODES]
+    unknown += [
+        f"{MANIFEST_FILE} ({code})"
+        for code in load_review_manifest(root / MANIFEST_FILE).locales
+        if code not in SUPPORTED_LOCALE_CODES
+    ]
     if unknown:
         msg = f"translation file(s) {', '.join(unknown)} name a locale not in SUPPORTED_LOCALES"
         raise ValueError(msg)

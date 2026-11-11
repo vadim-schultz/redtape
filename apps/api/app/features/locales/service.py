@@ -26,7 +26,7 @@ class LocalesService:
         return TranslationBundle(locale=code, translations=dict(rows))
 
 
-def _completeness_pct(counts: dict[str, int], code: str) -> float:
+def completeness_pct(counts: dict[str, int], code: str) -> float:
     """Return the share of the source locale's keys that ``code`` has, rounded to one decimal; 0 without a source."""
     total = counts.get(DEFAULT_LOCALE, 0)
     return round(100.0 * counts.get(code, 0) / total, 1) if total else 0.0
@@ -35,4 +35,4 @@ def _completeness_pct(counts: dict[str, int], code: str) -> float:
 def _read_with_completeness(row: SupportedLocale, counts: dict[str, int]) -> LocaleRead:
     """Map a locale row to its read model, replacing the stored completeness with the computed one."""
     read = LocaleRead.model_validate(row)
-    return read.model_copy(update={"completeness_pct": _completeness_pct(counts, row.code)})
+    return read.model_copy(update={"completeness_pct": completeness_pct(counts, row.code)})

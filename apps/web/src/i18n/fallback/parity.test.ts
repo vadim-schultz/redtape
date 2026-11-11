@@ -37,6 +37,26 @@ describe("parity", () => {
     expect(sortKeys).toEqual([]);
   });
 
+  it("fails the suite for a real locale file that loses a key or a placeholder", () => {
+    const en = localeFiles().en;
+    const [withPlaceholder] = Object.keys(en).filter((key) =>
+      en[key].includes("{"),
+    );
+    const [dropped] = Object.keys(en).filter((key) => key !== withPlaceholder);
+    const broken = {
+      ...en,
+      [withPlaceholder]: en[withPlaceholder].replace(/\{\w+\}/, ""),
+    };
+    delete broken[dropped];
+
+    const problems = parityProblems({ en, xx: broken });
+
+    expect(problems).toContain(`xx: missing key ${dropped}`);
+    expect(problems.join("\n")).toContain(
+      `xx: ${withPlaceholder} has placeholders`,
+    );
+  });
+
   it("names the key and locale when a key is missing or extra", () => {
     const problems = parityProblems({
       en: { a: "A", b: "B" },

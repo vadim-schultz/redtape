@@ -9,7 +9,9 @@
     "Ummeldung": "schimbarea înregistrării",
     "Gebühr": "taxă",
     "Kindergeld": "alocație pentru copii (Kindergeld)",
-    "Wohngeld": "alocație de locuință (Wohngeld)"
+    "Wohngeld": "alocație de locuință (Wohngeld)",
+    "Dokument": "document",
+    "Kategorie": "categorie"
   },
   "keep": []
 }

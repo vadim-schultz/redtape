@@ -94,7 +94,7 @@ class LlmTranslator:
 
 
 def _input_chars(batch: TranslationBatch) -> int:
-    units = sum(len(u.title) + len(u.description) for u in batch.units)
+    units = sum(len(u.title) + len(u.description) + len(u.context) for u in batch.units)
     glossary = sum(len(e.source) + len(e.rendering) for e in batch.glossary.terms)
     return units + glossary
 

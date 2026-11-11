@@ -27,11 +27,16 @@ class Usage:
 
 @dataclass(frozen=True, slots=True)
 class TranslationUnit:
-    """One piece of text to translate, or its translation: an opaque ``key``, a title and a description."""
+    """One piece of text to translate, or its translation: an opaque ``key``, a title and a description.
+
+    ``context`` is read-only background for the translator (where the text appears, another language of it); it is
+    never translated and never part of a result.
+    """
 
     key: str
     title: str
     description: str
+    context: str = ""
 
 
 @dataclass(frozen=True, slots=True)

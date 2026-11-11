@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { pluralCategories, resolvePlural } from "./plural";
@@ -121,5 +123,34 @@ describe("t · a missing plural form", () => {
     expect(
       translate({ item: "plain", item_other: "other" }, "en", "item"),
     ).toBe("plain");
+  });
+});
+
+const INGEST_PLURAL_FILE = resolve(
+  __dirname,
+  "../../../discovery-ingest/discovery_ingest/i18n/plural.py",
+);
+
+/** The `PLURAL_CATEGORIES` table of the UI translator: locale to its categories. */
+function ingestCategories(source: string): Record<string, string[]> {
+  const table = /PLURAL_CATEGORIES[^=]*=\s*\{([^}]*)\}/.exec(source)?.[1] ?? "";
+  return Object.fromEntries(
+    [...table.matchAll(/"(\w+)":\s*\(([^)]*)\)/g)].map(([, code, forms]) => [
+      code,
+      [...forms.matchAll(/"(\w+)"/g)].map((form) => form[1]),
+    ]),
+  );
+}
+
+describe("plural categories of the UI translator", () => {
+  it("match what Intl.PluralRules selects for every locale it generates", () => {
+    const table = ingestCategories(readFileSync(INGEST_PLURAL_FILE, "utf8"));
+
+    expect(Object.keys(table).sort()).toEqual(["pl", "ro", "ru", "tr", "uk"]);
+    for (const [code, forms] of Object.entries(table)) {
+      expect([...pluralCategories(code)].sort(), code).toEqual(
+        [...forms].sort(),
+      );
+    }
   });
 });

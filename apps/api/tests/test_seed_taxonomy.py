@@ -11,7 +11,9 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
+from app.i18n_resolution import pick_i18n
 from app.models import Category
+from app.shared.locale import ResolvedLocale
 from app.shared.taxonomy import contract_loader
 from app.shared.taxonomy.contract_loader import load_contract
 from scripts.seed_data.category_contract import (
@@ -209,3 +211,76 @@ def test_pvog_review_leaf_without_reason_fails_validation_naming_the_leaf(
             load_contract()
     finally:
         contract_loader.load_contract.cache_clear()
+
+
+def _row(session: Session, code: str) -> Category:
+    return session.execute(sa.select(Category).where(Category.code == code)).scalar_one()
+
+
+def test_translations_are_merged_into_the_name_and_description_beside_de_and_en(db_session: Session) -> None:
+    """taxonomy · a translated label lands in name_i18n and description_i18n; de and en are untouched."""
+    first = CATEGORY_INVENTORY[0]
+
+    seed_canonical_taxonomy(db_session, {first.code: {"tr": ("Aile", "Aile ve ilişkiler.")}})
+    db_session.flush()
+
+    row = _row(db_session, first.code)
+    assert row.name_i18n == {**first.name_i18n, "tr": "Aile"}
+    assert row.description_i18n == {**first.description_i18n, "tr": "Aile ve ilişkiler."}
+    assert set(first.name_i18n) == {"de", "en"}, "the frozen contract is not edited"
+
+
+def test_category_names_resolve_to_the_new_locale_and_fall_back_per_d5_when_missing(db_session: Session) -> None:
+    """taxonomy · category names resolve to the new locale and fall back per D5 (requested, en, de) when missing."""
+    first, second = CATEGORY_INVENTORY[0], CATEGORY_INVENTORY[1]
+    seed_canonical_taxonomy(db_session, {first.code: {"tr": ("Aile", "Aile ve ilişkiler.")}})
+    db_session.flush()
+    reader = ResolvedLocale(code="tr", enabled={"de", "en", "tr"})
+
+    assert pick_i18n(_row(db_session, first.code).name_i18n, reader) == "Aile"
+    assert pick_i18n(_row(db_session, second.code).name_i18n, reader) == second.name_i18n["en"]
+
+
+def test_reseeding_translations_is_idempotent_and_a_removed_locale_disappears(db_session: Session) -> None:
+    """taxonomy · the same translations seed to the same rows; dropping a locale from the module drops its label."""
+    first = CATEGORY_INVENTORY[0]
+    labels = {first.code: {"tr": ("Aile", "Aile ve ilişkiler.")}}
+    seed_canonical_taxonomy(db_session, labels)
+    seed_canonical_taxonomy(db_session, labels)
+    db_session.flush()
+    assert _row(db_session, first.code).name_i18n["tr"] == "Aile"
+
+    seed_canonical_taxonomy(db_session, {})
+    db_session.flush()
+    db_session.expire_all()
+
+    assert "tr" not in _row(db_session, first.code).name_i18n
+
+
+@pytest.mark.parametrize(
+    ("labels", "message"),
+    [
+        ({"no-such-category": {"tr": ("A", "B")}}, "no-such-category"),
+        ({CATEGORY_INVENTORY[0].code: {"fr": ("A", "B")}}, "fr"),
+        ({CATEGORY_INVENTORY[0].code: {"de": ("A", "B")}}, "de"),
+        ({CATEGORY_INVENTORY[0].code: {"tr": ("A", " ")}}, "tr"),
+    ],
+)
+def test_translations_for_an_unknown_category_an_unsupported_or_source_locale_or_a_blank_text_are_refused(
+    db_session: Session, labels: dict[str, dict[str, tuple[str, str]]], message: str
+) -> None:
+    """taxonomy · a label that would write a wrong key or blank text stops the seed naming the culprit."""
+    with pytest.raises(ValueError, match=message):
+        seed_canonical_taxonomy(db_session, labels)
+
+
+def test_the_committed_translation_module_names_only_real_categories_and_target_locales() -> None:
+    """taxonomy · every code, locale and text of taxonomy_translations.py is valid."""
+    from app.shared.locale import SUPPORTED_LOCALE_CODES
+    from scripts.seed_data.taxonomy_translations import TAXONOMY_TRANSLATIONS
+
+    codes = {category.code for category in CATEGORY_INVENTORY}
+    assert set(TAXONOMY_TRANSLATIONS) <= codes
+    for locales in TAXONOMY_TRANSLATIONS.values():
+        assert set(locales) <= SUPPORTED_LOCALE_CODES - {"de", "en"}
+        assert all(name.strip() and description.strip() for name, description in locales.values())

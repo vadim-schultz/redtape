@@ -22,6 +22,7 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `llm requeue [--host H] [--limit N] [--dry-run]` | Queue `llm_extract` for the latest snapshot of each catalogue row under the current model, prompt and cleaner versions |
 | `embed probe`, `embed drain`, `embed summary` | Probe the Workers AI embedding model; drain the embedding queue (claim text, embed, post vectors); print the queue counts; see [Drain embeddings](#drain-embeddings) |
 | `translate probe`, `translate drain`, `translate summary` | Cost a translation engine on a sample of real cards; drain the translation queue (claim German units, translate, validate, repair once, post the text); print the queue counts; see [Drain translations](#drain-translations) |
+| `i18n translate-ui` | Translate the interface strings and category labels into `tr`, `ru`, `uk`, `pl` or `ro` (resumable, charged to the neuron ledger, status `machine` until reviewed); see [docs/operations/locales.md](../../docs/operations/locales.md) |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger (`--resource`, `--require-remaining RESOURCE=N` exits 3 when short, `--strict` exits 4 when the API is unreachable); add Actions minutes to it |
 

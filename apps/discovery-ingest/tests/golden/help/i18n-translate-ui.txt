@@ -1,0 +1,8 @@
+usage: discovery_ingest i18n translate-ui [-h] --locale LOCALE [--repo-root REPO_ROOT] [--batch-size BATCH_SIZE] [--neuron-budget NEURON_BUDGET]
+
+options:
+  -h, --help  show this help message and exit
+  --locale LOCALE  Target locale: tr, ru, uk, pl or ro
+  --repo-root REPO_ROOT  The redtape checkout to read and write (default: this one)
+  --batch-size BATCH_SIZE  Strings per model call
+  --neuron-budget NEURON_BUDGET  Neurons this run may spend; it never takes the day's ledger below QUERY_EMBED_RESERVE
