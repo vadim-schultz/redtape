@@ -48,6 +48,8 @@ class Tally:
     browser_seconds_used: float = 0.0
     neurons_used: float = 0.0
     llm_calls: int = 0
+    tokens_used: int = 0
+    auth_mode: str | None = None
     ledger_unavailable: bool = False
 
     def record(self, outcome: str) -> None:

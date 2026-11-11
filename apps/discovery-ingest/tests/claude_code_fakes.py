@@ -9,11 +9,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from discovery_ingest.translation.adapters.claude_code import ClaudeCodeTranslator
 from discovery_ingest.translation.adapters.claude_code_cli import CliRequest, CliResult, CliTimeout
-from discovery_ingest.translation.engine import TranslationEngine
-
-from translation_harnesses import Behaviour
 
 MODEL = "claude-sonnet-5-5"
 SECRET = "sk-ant-api03-SECRET-0123456789"
@@ -68,46 +64,25 @@ class FakeCli:
         return self.reply(request)
 
 
-def _canned(returncode: int, stdout: str, stderr: str) -> Reply:
+def canned(returncode: int, stdout: str, stderr: str) -> Reply:
+    """A reply that ignores the request and always prints the same thing."""
     return lambda _request: CliResult(returncode, stdout, stderr)
 
 
-def _timeout(_request: CliRequest) -> CliResult:
+def timeout_reply(_request: CliRequest) -> CliResult:
+    """A call that never finishes in time."""
     raise CliTimeout(f"no answer within 240 seconds ({SECRET})")
 
 
-_CANNED: dict[Behaviour, Reply] = {
-    Behaviour.QUOTA: _canned(
-        1, envelope(is_error=True, result=f"Claude AI usage limit reached|1760000000 ({SECRET})"), ""
+QUOTA_REPLY = canned(1, envelope(is_error=True, result=f"Claude AI usage limit reached|1760000000 ({SECRET})"), "")
+UNAUTHORISED_REPLY = canned(
+    1, envelope(is_error=True, result=f"Not logged in · Please run /login ({SECRET})"), f"token {SECRET}"
+)
+PERMANENT_REPLY = canned(
+    1,
+    envelope(
+        is_error=True,
+        result="There's an issue with the selected model. It may not exist or you may not have access to it.",
     ),
-    Behaviour.UNAUTHORISED: _canned(
-        1, envelope(is_error=True, result=f"Not logged in · Please run /login ({SECRET})"), f"token {SECRET}"
-    ),
-    Behaviour.PERMANENT: _canned(
-        1,
-        envelope(
-            is_error=True,
-            result="There's an issue with the selected model. It may not exist or you may not have access to it.",
-        ),
-        "",
-    ),
-}
-
-
-def _reply_for(behaviour: Behaviour) -> Reply:
-    if behaviour is Behaviour.TRANSIENT:
-        return _timeout
-    if behaviour is Behaviour.SHORT:
-        return lambda request: answered(request, drop=1)
-    return _CANNED.get(behaviour, answered)
-
-
-class ClaudeCodeHarness:
-    """The Claude Code adapter over a scripted runner; the secret is an API key that must never reach an error message."""
-
-    name = "claude-code"
-    secret = SECRET
-
-    def build(self, behaviour: Behaviour) -> TranslationEngine:
-        """Return the adapter wired to a runner that answers with ``behaviour``."""
-        return ClaudeCodeTranslator(FakeCli(_reply_for(behaviour)), model=MODEL, environ={"PATH": "/usr/bin"})
+    "",
+)

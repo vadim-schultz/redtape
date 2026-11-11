@@ -204,6 +204,8 @@ class DrainReport(BaseModel):
     browser_seconds_used: float = 0.0
     neurons_used: float = 0.0
     llm_calls: int = 0
+    tokens_used: int = 0
+    auth_mode: str | None = None
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
     llm_enqueue_failed: int = 0

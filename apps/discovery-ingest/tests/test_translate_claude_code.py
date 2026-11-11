@@ -20,8 +20,9 @@ from discovery_ingest.translation.registry import EngineConfig, build_engine
 from discovery_ingest.translation.units import Usage
 
 import translation_engine_contract as contract
-from claude_code_fakes import MODEL, SECRET, ClaudeCodeHarness, FakeCli, Reply, answered, envelope, faithful, units_in
+from claude_code_fakes import MODEL, SECRET, FakeCli, Reply, answered, envelope, faithful, units_in
 from translation_fakes import batch, unit
+from translation_harnesses import ClaudeCodeHarness
 
 BATCH = batch(
     unit("a", "Antrag auf Kindergeld", "Bitte reichen Sie den Antrag ein."),
@@ -92,6 +93,21 @@ def test_an_answer_given_as_result_text_is_read_when_the_structured_output_is_ab
     translator, _ = _translator(reply)
 
     assert [r.key for r in translator.translate(BATCH).results] == ["a", "b"]
+
+
+def test_a_null_usage_block_does_not_make_a_good_answer_unreadable() -> None:
+    """translation engine · a usage block that is null or lacks counts is read as zero tokens; the answer stands."""
+
+    def reply(request: CliRequest) -> CliResult:
+        body = {"is_error": False, "usage": {"input_tokens": None}, "structured_output": faithful(units_in(request))}
+        return CliResult(0, json.dumps(body), "")
+
+    translator, cli = _translator(reply)
+
+    outcome = translator.translate(BATCH)
+
+    assert [r.key for r in outcome.results] == ["a", "b"] and outcome.usage == Usage("subscription", 0.0)
+    assert len(cli.requests) == 1
 
 
 def test_an_unreadable_answer_is_asked_again_once_and_a_second_unreadable_answer_is_rejected() -> None:

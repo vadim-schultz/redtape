@@ -12,6 +12,7 @@ from discovery_ingest.cli.context import api_client
 from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, fail, handles_api_errors
 from discovery_ingest.cli.translate.app import translate_app
 from discovery_ingest.operations.translate_drain import (
+    DEFAULT_CONCURRENCY,
     DEFAULT_NEURON_BUDGET,
     DEFAULT_TASKS_PER_BATCH,
     TranslateOptions,
@@ -64,9 +65,16 @@ def translate_drain(
             ),
         ),
     ] = DEFAULT_NEURON_BUDGET,
+    concurrency: Annotated[
+        int,
+        typer.Option(
+            "--concurrency",
+            help="Engine calls in flight at once, capped by the engine (claude-code 1-4, default 2; llm 1)",
+        ),
+    ] = DEFAULT_CONCURRENCY,
 ) -> None:
     """Claim translation tasks, translate them with TRANSLATION_ENGINE and post the text."""
-    options = TranslateOptions(max_tasks, max_batches, time_budget_seconds, neuron_budget)
+    options = TranslateOptions(max_tasks, max_batches, time_budget_seconds, neuron_budget, concurrency)
     _options_or_exit(options)
     try:
         report = run_translate(options, _settings(), api_client(ctx))

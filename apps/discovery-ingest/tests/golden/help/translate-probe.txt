@@ -9,6 +9,6 @@ options:
   --model MODEL         Model override for the engine
   --sheet SHEET         Spot-check sheet (CSV); default translation-probe/<engine>-<locale>.csv
   --max-usage MAX_USAGE
-                        Stop after this much usage (neurons or characters)
+                        Stop after this much usage (neurons, characters or tokens)
   --daily-budget DAILY_BUDGET
                         Neurons a day for translation, for the days projection

@@ -7,8 +7,12 @@ from typing import Literal
 
 from discovery_ingest.translation.glossary import Glossary
 
-UsageUnit = Literal["neurons", "characters"]
-"""What an engine is billed in; the drain meters through the :class:`UsageMeter` chosen by this unit."""
+UsageUnit = Literal["neurons", "characters", "subscription"]
+"""What an engine is billed in: Workers AI neurons, provider characters, or the tokens of a Claude Code allowance.
+
+The drain meters through the :class:`UsageMeter` chosen by this unit; a ``subscription`` engine brings its own meter and
+is never charged to the neuron ledger.
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +27,14 @@ class Usage:
         if other.unit != self.unit:
             raise ValueError(f"cannot add {other.unit} to {self.unit}")
         return Usage(self.unit, self.amount + other.amount)
+
+
+@dataclass(frozen=True, slots=True)
+class CallLimits:
+    """How an engine's calls are cut: the most units one call carries, and how many calls may be in flight at once."""
+
+    units_per_call: int
+    concurrency: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,8 +75,13 @@ class TranslationBatch:
 
 @dataclass(frozen=True, slots=True)
 class TranslationOutcome:
-    """One result per unit in the order of the batch, what the call cost, and the model that made it (``None`` if none)."""
+    """One result per unit in the order of the batch, what the call cost, and the model that made it.
+
+    ``model`` is ``None`` if the provider named none. ``auth`` says how the call was authenticated; it is ``None`` when
+    the provider has no login mode (an API key, for example).
+    """
 
     results: tuple[TranslationUnit, ...]
     usage: Usage
     model: str | None
+    auth: str | None = None
