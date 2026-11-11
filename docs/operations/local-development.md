@@ -133,6 +133,18 @@ API talks to must offer `vector` (and the contrib extension `unaccent`):
   `translation-probe/<engine>-<locale>.csv` (override with `--sheet`; the folder is git-ignored). Like the embedding
   probe it calls Workers AI outside the neuron ledger; `--max-usage` (default 3000 neurons) caps what one run may spend.
 
+- **Claude Code translation engine** (`TRANSLATION_ENGINE=claude-code`, search-first chapter 19): `translate drain` and
+  `translate probe` translate with the `claude` CLI on the Claude Code allowance instead of Workers AI neurons. It needs
+  the `claude` command on `PATH`, logged in with the account that holds the allowance (`claude auth status` shows
+  `loggedIn: true`); no key is read. `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the CLI's
+  environment, so a call never bills an API account. `CLAUDE_TRANSLATE_MODEL` picks the model (default
+  `claude-sonnet-5-5`). A call carries one locale's units, at most 20; `translate drain --concurrency` runs up to four
+  calls at once (default 2). The drain report shows `llm_calls`, `tokens_used` (input, output and prompt-cache tokens as
+  the CLI reports them; in the 2026-11-11 smoke a two-unit call reported about 12,000 tokens, most of them cache
+  creation) and `auth_mode` (`claude-login`). The neuron ledger is not written. A usage or rate limit stops the drain as
+  `llm_quota` and releases the batch without using an attempt; "not logged in" stops it as an error. For this engine
+  `--max-usage` in the probe counts tokens.
+
 The new API settings (`EMBEDDING_MODEL`, `EMBEDDING_DIM`, `SEARCH_HYBRID_ENABLED`, `RRF_K`, `SEARCH_TOP_N`,
 `SEARCH_FUSED_TOP_K`, `SEARCH_MIN_SIMILARITY`, `SEARCH_CONFIDENCE_WEIGHT`, `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`,
 `QUERY_EMBED_NEURONS`, `QUERY_EMBED_BREAKER_FAILURES`, `QUERY_EMBED_BREAKER_COOLDOWN_S`,

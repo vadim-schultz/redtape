@@ -19,7 +19,13 @@ from discovery_ingest.llm_settings import LlmSettings
 from discovery_ingest.operations import probes
 
 PACKAGE = Path(__file__).parents[1] / "discovery_ingest"
-ENVIRON_ALLOWED = {PACKAGE / "config.py", PACKAGE / "llm_settings.py", PACKAGE / "cloudflare_account_settings.py"}
+ENVIRON_ALLOWED = {
+    PACKAGE / "config.py",
+    PACKAGE / "llm_settings.py",
+    PACKAGE / "cloudflare_account_settings.py",
+    # the Claude Code CLI's model and its inherited environment (search-first C19)
+    PACKAGE / "translation" / "claude_code_settings.py",
+}
 
 
 @pytest.fixture(autouse=True)

@@ -248,6 +248,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--max-batches", "int", default=1),
             _opt("--time-budget-seconds", "float"),
             _opt("--neuron-budget", "float", default=2500.0),
+            _opt("--concurrency", "int", default=2),
         ),
     ),
     CommandSpec("translate", "summary", (_opt("--require-pending", FLAG),)),

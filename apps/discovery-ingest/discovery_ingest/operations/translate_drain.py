@@ -14,6 +14,7 @@ from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.locale_codes import UnmappedLocaleError
 from discovery_ingest.translation.registry import EngineConfig, UnknownEngineError, build_engine
 from discovery_ingest.translation.settings import TranslationSettings
+from discovery_ingest.translation.subscription_meter import SubscriptionMeter
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.translate_drain import TranslateDeps, run_translate_drain
@@ -22,6 +23,8 @@ TRANSLATE_MIN_INTERVAL_SECONDS = 1.0
 DEFAULT_TASKS_PER_BATCH = 10
 DEFAULT_NEURON_BUDGET = 2500.0
 """Neurons one run may spend: about 200 cards at 10 to 13 neurons each, with the day's floor kept on top."""
+DEFAULT_CONCURRENCY = 2
+"""Engine calls in flight at once, when the engine allows it (``claude-code`` allows four; ``llm`` allows one)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +35,7 @@ class TranslateOptions:
     max_batches: int = 1
     time_budget_seconds: float | None = None
     neuron_budget: float = DEFAULT_NEURON_BUDGET
+    concurrency: int = DEFAULT_CONCURRENCY
 
     def policy(self) -> DrainPolicy:
         """Return the validated policy, or raise :class:`ValueError` naming the bound that is out of range."""
@@ -40,6 +44,7 @@ class TranslateOptions:
             max_batches=self.max_batches,
             time_budget_seconds=self.time_budget_seconds,
             neuron_budget=self.neuron_budget,
+            concurrency=self.concurrency,
         )
 
 
@@ -79,4 +84,10 @@ def run_translate(
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
         check_neuron_ledger(engine, client)
-        return run_translate_drain(TranslateDeps(client, engine, reserve=settings.query_embed_reserve), policy)
+        deps = TranslateDeps(
+            client,
+            engine,
+            reserve=settings.query_embed_reserve,
+            own_meters={"subscription": SubscriptionMeter()},
+        )
+        return run_translate_drain(deps, policy)

@@ -12,7 +12,14 @@ import httpx
 import pytest
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.translation.errors import TranslationEngineError
-from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, TranslationUnit, Usage, UsageUnit
+from discovery_ingest.translation.units import (
+    CallLimits,
+    TranslationBatch,
+    TranslationOutcome,
+    TranslationUnit,
+    Usage,
+    UsageUnit,
+)
 from pydantic import SecretStr
 
 from ledger_fakes import FakeLedger
@@ -155,6 +162,11 @@ class ScriptedEngine:
         repairing = {correction.key for correction in batch.corrections}
         results = tuple(self._render(batch, unit, unit.key in repairing) for unit in units)
         return TranslationOutcome(results, Usage(self.usage_unit, self.neurons * len(units)), MODEL)
+
+    @property
+    def limits(self) -> CallLimits:
+        """One call of up to 50 units at a time, as the Workers AI adapter has it."""
+        return CallLimits(units_per_call=50, concurrency=1)
 
     def estimate(self, batch: TranslationBatch) -> Usage:
         """Reserve the cost of the units plus one."""

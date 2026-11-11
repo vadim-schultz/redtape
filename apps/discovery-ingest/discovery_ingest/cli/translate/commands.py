@@ -46,7 +46,7 @@ def translate_probe_command(
         typer.Option("--sheet", help="Spot-check sheet (CSV); default translation-probe/<engine>-<locale>.csv"),
     ] = None,
     max_usage: Annotated[
-        float, typer.Option("--max-usage", help="Stop after this much usage (neurons or characters)")
+        float, typer.Option("--max-usage", help="Stop after this much usage (neurons, characters or tokens)")
     ] = DEFAULT_MAX_USAGE,
     daily_budget: Annotated[
         float, typer.Option("--daily-budget", help="Neurons a day for translation, for the days projection")
