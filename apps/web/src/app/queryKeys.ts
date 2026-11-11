@@ -19,6 +19,8 @@ export const queryKeys = {
     all: ["candidates"] as const,
     detail: (id: string | undefined, locale: string) =>
       [...queryKeys.candidates.all, "detail", id, locale] as const,
+    translation: (id: string | undefined, locale: string) =>
+      [...queryKeys.candidates.all, "translation", id, locale] as const,
   },
   suggestions: {
     all: ["suggestions"] as const,

@@ -6,6 +6,7 @@ from app.features.candidates.repository.card_repository import CardRepository
 from app.features.candidates.repository.descriptions import DescriptionRepository
 from app.features.candidates.repository.screenshots import ScreenshotRepository
 from app.features.candidates.repository.tag_scores import TagScoreRepository
+from app.features.candidates.repository.translations import TranslationIndexRepository
 from app.features.discovery.repository import CandidateListingRepository, CompletenessRepository, EdgeRepository
 
 
@@ -14,6 +15,7 @@ class PublicCandidateRepository(
     DescriptionRepository,
     ScreenshotRepository,
     TagScoreRepository,
+    TranslationIndexRepository,
     CandidateListingRepository,
     CompletenessRepository,
     EdgeRepository,

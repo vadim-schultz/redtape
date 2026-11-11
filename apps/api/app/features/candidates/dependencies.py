@@ -19,6 +19,8 @@ from app.features.search.dependencies import InjectedQueryEmbedder, provide_quer
 from app.features.search.params import RetrievalParams
 from app.features.taxonomy.dependencies import router_dependencies as taxonomy_dependencies
 from app.features.taxonomy.service import TaxonomyService
+from app.features.translation.read_service import TranslationReadService
+from app.features.translation.source import SourceRepository
 from app.shared.object_store.http import InjectedObjectStore
 
 
@@ -46,6 +48,13 @@ def provide_candidate_screenshot_service(
     return ScreenshotService(candidate_repository, object_store)
 
 
+def provide_translation_read_service(
+    candidate_repository: PublicCandidateRepository, session: Session, object_store: InjectedObjectStore
+) -> TranslationReadService:
+    """Bind the stored-translation read service to the candidate repository's index, the German sources and the store."""
+    return TranslationReadService(candidate_repository, SourceRepository(session), object_store)
+
+
 router_dependencies = {
     **taxonomy_dependencies,
     "discovery_repository": Provide(provide_discovery_repository, sync_to_thread=False),
@@ -56,4 +65,5 @@ router_dependencies = {
     "candidate_repository": Provide(provide_candidate_repository, sync_to_thread=False),
     "candidate_service": Provide(provide_candidate_service, sync_to_thread=False),
     "candidate_screenshot_service": Provide(provide_candidate_screenshot_service, sync_to_thread=False),
+    "translation_read_service": Provide(provide_translation_read_service, sync_to_thread=False),
 }

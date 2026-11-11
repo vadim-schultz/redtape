@@ -2,6 +2,8 @@ import { screen } from "@testing-library/react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { it, expect } from "vitest";
 
+import { translationSummaryFixture } from "../../../../test/candidateFixtures";
+import { json, stubTranslationApi } from "../../../../test/candidatesApiStub";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DocumentSummary } from "../../types";
 import DocumentCard from "./DocumentCard";
@@ -13,6 +15,7 @@ const baseDocument: DocumentSummary = {
   tags: [],
   confidence: 0.5,
   similarity: null,
+  translation: null,
 };
 
 function StateProbe() {
@@ -217,4 +220,89 @@ it("DocumentCard · both rings add no interactive element", async () => {
 
   expect(screen.getAllByRole("link")).toHaveLength(1);
   expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("card · the translation trigger is not inside the card link", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, translation: translationSummaryFixture() }}
+    />,
+  );
+
+  const trigger = await screen.findByRole("button", {
+    name: "Show translation",
+  });
+
+  expect(trigger.closest("a")).toBeNull();
+  expect(screen.getByRole("link").contains(trigger)).toBe(false);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+});
+
+it("card · without a translation there is no trigger", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("link");
+
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("card · a failed translation fetch keeps the German original visible", async () => {
+  stubTranslationApi(() => new Response("", { status: 500 }));
+  const { user } = renderWithProviders(
+    <DocumentCard
+      document={{
+        ...baseDocument,
+        description: "Adresse anmelden",
+        translation: translationSummaryFixture(),
+      }}
+    />,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
+  await screen.findByText(
+    "The translation could not be loaded.",
+    {},
+    { timeout: 4000 },
+  );
+
+  expect(
+    screen.getByRole("link", { name: "Residency Registration" }),
+  ).toBeVisible();
+  expect(screen.getByText("Adresse anmelden")).toBeVisible();
+});
+
+it("card · opening the translation does not navigate", async () => {
+  stubTranslationApi(() =>
+    json({
+      ...translationSummaryFixture(),
+      title: "T",
+      description: "D",
+      engine: "llm",
+    }),
+  );
+  const { user } = renderWithProviders(
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <DocumentCard
+            document={{
+              ...baseDocument,
+              translation: translationSummaryFixture(),
+            }}
+          />
+        }
+      />
+      <Route path="/candidates/:id" element={<p>detail</p>} />
+    </Routes>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
+  await screen.findByRole("heading", { name: "T" });
+
+  expect(screen.queryByText("detail")).toBeNull();
 });

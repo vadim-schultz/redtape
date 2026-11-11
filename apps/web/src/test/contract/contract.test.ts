@@ -31,10 +31,15 @@ import type {
   EmitPreviewItem,
 } from "../../features/discovery-admin/types";
 import { SEARCH_MODES } from "../../features/candidates/types";
+import { TRANSLATION_SOURCES } from "../../services/candidateTranslationApi";
 import type {
   CandidateCard,
   CandidateListResponse,
 } from "../../features/candidates/types";
+import type {
+  TranslationSummary,
+  TranslationText,
+} from "../../services/candidateTranslationApi";
 import { toDocumentListResponse } from "../../features/documents/services/documentMapper";
 import {
   ARTIFACT_KINDS,
@@ -83,6 +88,7 @@ const ENUM_PAIRS: [apiName: string, webValues: readonly string[]][] = [
   ["SuggestionStatus", SUGGESTION_STATUSES],
   ["SuggestionSource", SUGGESTION_SOURCES],
   ["SearchMode", SEARCH_MODES],
+  ["TranslationSource", TRANSLATION_SOURCES],
 ];
 
 it.each(ENUM_PAIRS)(
@@ -336,6 +342,22 @@ const PUBLIC_CARD: Keys<CandidateCard> = {
   confidence: true,
   score: true,
   similarity: true,
+  translation: true,
+};
+
+const TRANSLATION_SUMMARY: Keys<TranslationSummary> = {
+  locale: true,
+  source: true,
+  stale: true,
+};
+
+const TRANSLATION_TEXT: Keys<TranslationText> = {
+  locale: true,
+  source: true,
+  stale: true,
+  title: true,
+  description: true,
+  engine: true,
 };
 
 const PUBLIC_CARD_PAGE: Keys<CandidateListResponse> = {
@@ -369,6 +391,8 @@ it.each([
   ["CandidateEmitPreview", EMIT_PREVIEW],
   ["CataloguePipelineResponse", PIPELINE],
   ["CandidateCard", PUBLIC_CARD],
+  ["CandidateTranslationSummary", TRANSLATION_SUMMARY],
+  ["CandidateTranslationText", TRANSLATION_TEXT],
   ["candidate_read_CandidateListResponse", PUBLIC_CARD_PAGE],
 ])(
   "contract · the web type has exactly the API fields of %s",
@@ -438,7 +462,36 @@ it("contract · an API response without the new fields still parses", () => {
   });
 
   expect(page.search_mode).toBe("browse");
-  expect(page.items[0]).toMatchObject({ confidence: 0.7, similarity: null });
+  expect(page.items[0]).toMatchObject({
+    confidence: 0.7,
+    similarity: null,
+    translation: null,
+  });
+});
+
+it("contract · responses without the translation field still parse, and the API does not require it", () => {
+  const required = new Set(API_SCHEMAS["CandidateCard"].required ?? []);
+
+  expect(required).not.toContain("translation");
+  expect(
+    toDocumentListResponse({
+      items: [
+        {
+          id: "c1",
+          key: "passport",
+          title: "Passport",
+          description: null,
+          description_source: null,
+          categories: [],
+          mention_count: 1,
+          confidence: 0.7,
+        },
+      ],
+      total: 1,
+      offset: 0,
+      limit: 20,
+    }).items[0].translation,
+  ).toBeNull();
 });
 
 it("contract · the API always sends search_mode and similarity may be absent", () => {

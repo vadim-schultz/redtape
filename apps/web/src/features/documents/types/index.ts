@@ -1,5 +1,5 @@
 import type { ListQueryState } from "../../../services/listQuery";
-import type { SearchMode } from "../../candidates/types";
+import type { SearchMode, TranslationSummary } from "../../candidates/types";
 import type { CategoryTag } from "../../taxonomy/types";
 
 export type DocumentTag = CategoryTag;
@@ -13,6 +13,8 @@ export type DocumentSummary = {
   confidence: number;
   /** Query match in 0..1; null when the list is not a hybrid search, so no ring shows. */
   similarity: number | null;
+  /** Set when a stored translation exists for the reader's locale; the card then offers it in a pop-over. */
+  translation: TranslationSummary | null;
 };
 
 export type DocumentListResponse = {

@@ -14,6 +14,7 @@ const documents: DocumentSummary[] = [
     tags: [],
     confidence: 0.5,
     similarity: null,
+    translation: null,
   },
   {
     id: "doc-2",
@@ -22,6 +23,7 @@ const documents: DocumentSummary[] = [
     tags: [],
     confidence: 0.5,
     similarity: null,
+    translation: null,
   },
 ];
 

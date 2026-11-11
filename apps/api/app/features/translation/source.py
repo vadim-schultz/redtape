@@ -11,9 +11,8 @@ from app.features.candidates.card_builder import DESCRIPTION_MAX_LENGTH
 from app.features.candidates.repository.descriptions import DescriptionRepository, DescriptionRow
 from app.features.candidates.repository.tag_scores import TagScoreRepository
 from app.features.discovery.repository.base import SessionRepository
-from app.features.translation.unit import TranslationUnit
+from app.features.translation.unit import TranslationUnit, german_title
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
-from app.shared.locale import DEFAULT_LOCALE
 
 
 class SourceRepository(SessionRepository):
@@ -32,7 +31,7 @@ class SourceRepository(SessionRepository):
         return {
             candidate_id: TranslationUnit(title, _description(descriptions.get(candidate_id)))
             for candidate_id, title_i18n in titles.items()
-            if (title := (title_i18n or {}).get(DEFAULT_LOCALE, "").strip())
+            if (title := german_title(title_i18n))
         }
 
     def confidences_for(self, candidate_ids: Sequence[UUID]) -> dict[UUID, float]:

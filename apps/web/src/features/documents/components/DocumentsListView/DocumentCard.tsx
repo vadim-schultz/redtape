@@ -2,6 +2,7 @@ import { Card, Flex, Link } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 
 import AppCard from "../../../../components/data-display/AppCard";
+import { TranslationPopover } from "../../../../components/data-display/TranslationPopover";
 import type { DocumentSummary } from "../../types";
 import CardScores from "./CardScores";
 import DocumentTagBadges from "./DocumentTagBadges";
@@ -25,6 +26,11 @@ export default function DocumentCard({ document }: DocumentCardProps) {
             </RouterLink>
           </Link>
         </Card.Title>
+        <TranslationPopover
+          candidateId={document.id}
+          summary={document.translation}
+          label={document.title}
+        />
         <CardScores
           confidence={document.confidence}
           similarity={document.similarity}

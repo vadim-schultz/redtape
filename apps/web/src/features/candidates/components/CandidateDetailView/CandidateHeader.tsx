@@ -1,5 +1,6 @@
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react";
 
+import { TranslationPopover } from "../../../../components/data-display/TranslationPopover";
 import { useLocale } from "../../../../contexts/LocaleContext";
 import type { CandidateDetail } from "../../types";
 import { CandidateTagBadges } from "../CandidateTagBadges";
@@ -7,7 +8,12 @@ import { CandidateTagBadges } from "../CandidateTagBadges";
 export interface CandidateHeaderProps {
   candidate: Pick<
     CandidateDetail,
-    "title" | "description" | "description_source" | "categories"
+    | "id"
+    | "title"
+    | "description"
+    | "description_source"
+    | "categories"
+    | "translation"
   >;
 }
 
@@ -32,15 +38,22 @@ function Description({
   );
 }
 
-/** Title, the quoted description with its attribution (omitted when absent), and the tags. */
+/** Title with the translation button, the quoted description with its attribution (omitted when absent), and the tags. */
 export default function CandidateHeader({ candidate }: CandidateHeaderProps) {
-  const { title, description, description_source, categories } = candidate;
+  const { id, title, description, description_source, categories } = candidate;
 
   return (
     <VStack align="stretch" gap={3}>
-      <Heading as="h1" textStyle="pageTitle">
-        {title}
-      </Heading>
+      <Flex align="center" gap={2} wrap="wrap">
+        <Heading as="h1" textStyle="pageTitle">
+          {title}
+        </Heading>
+        <TranslationPopover
+          candidateId={id}
+          summary={candidate.translation ?? null}
+          label={title}
+        />
+      </Flex>
       {description ? (
         <Description text={description} source={description_source} />
       ) : null}

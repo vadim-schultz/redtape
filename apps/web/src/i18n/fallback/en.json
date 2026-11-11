@@ -82,7 +82,11 @@
     "similarity_caption": "Similarity",
     "keyword_mode_hint": "Semantic matching is unavailable, so results match words only.",
     "result_count_one": "{count} result",
-    "result_count_other": "{count} results"
+    "result_count_other": "{count} results",
+    "translation_open": "Show translation",
+    "translation_machine_note": "Machine translation, may contain errors. The German original is authoritative.",
+    "translation_stale_note": "The German original has changed since this translation was made.",
+    "translation_error": "The translation could not be loaded."
   },
   "candidates": {
     "flag_category": "Category",

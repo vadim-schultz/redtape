@@ -82,7 +82,11 @@
     "similarity_caption": "Ähnlichkeit",
     "keyword_mode_hint": "Die semantische Suche ist nicht verfügbar; die Ergebnisse beruhen nur auf Stichwörtern.",
     "result_count_one": "{count} Ergebnis",
-    "result_count_other": "{count} Ergebnisse"
+    "result_count_other": "{count} Ergebnisse",
+    "translation_open": "Übersetzung anzeigen",
+    "translation_machine_note": "Maschinelle Übersetzung, kann Fehler enthalten. Maßgeblich ist das deutsche Original.",
+    "translation_stale_note": "Das deutsche Original hat sich seit dieser Übersetzung geändert.",
+    "translation_error": "Die Übersetzung konnte nicht geladen werden."
   },
   "candidates": {
     "flag_category": "Kategorie",
