@@ -1,0 +1,19 @@
+{
+  "terms": {
+    "Antrag": "başvuru",
+    "Bürgeramt": "vatandaş ofisi (Bürgeramt)",
+    "Nachweis": "kanıt belgesi",
+    "Bescheinigung": "belge",
+    "Genehmigung": "izin",
+    "Anmeldung": "kayıt",
+    "Ummeldung": "adres değişikliği kaydı",
+    "Gebühr": "harç",
+    "Kindergeld": "çocuk parası (Kindergeld)",
+    "Wohngeld": "kira yardımı (Wohngeld)",
+    "Dokument": "belge",
+    "Dokumente": "belge",
+    "Kategorie": "kategori",
+    "Kategorien": "kategori"
+  },
+  "keep": []
+}

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { candidateFixture } from "../../../test/candidateFixtures";
+import { parseListUrl } from "../../../services/listQuery";
 import type { DocumentListRequest } from "../types";
+import { DOCUMENT_LIST_SPEC } from "./documentListQuery";
 import { fetchDocuments } from "./documentsApi";
 
 const fetchMock = vi.fn();
@@ -46,24 +48,29 @@ it("documentsApi · sends canonical category codes as a CSV filter", async () =>
   expect(params.get("filter[category]")).toBe("a,b");
 });
 
-it("documentsApi · sends search, sort and page", async () => {
+it("documentsApi · sends search and page", async () => {
   await fetchWith({
-    query: {
-      offset: 40,
-      limit: 20,
-      search: "ausweis",
-      sortBy: "title",
-      sortOrder: "desc",
-      filters: {},
-    },
+    query: { offset: 40, limit: 20, search: "ausweis", filters: {} },
   });
 
   const params = requestedUrl().searchParams;
   expect(params.get("q")).toBe("ausweis");
-  expect(params.get("sort_by")).toBe("title");
-  expect(params.get("sort_order")).toBe("desc");
   expect(params.get("offset")).toBe("40");
   expect(params.get("limit")).toBe("20");
+});
+
+it("documents request · sends no sort_by or sort_order and still sends filter[category] as CSV", async () => {
+  const stale = new URLSearchParams("sort_by=title&sort_order=desc&q=x");
+  await fetchWith({
+    categories: ["a", "b"],
+    query: parseListUrl(stale, DOCUMENT_LIST_SPEC),
+  });
+
+  const params = requestedUrl().searchParams;
+  expect(params.has("sort_by")).toBe(false);
+  expect(params.has("sort_order")).toBe(false);
+  expect(params.get("filter[category]")).toBe("a,b");
+  expect(params.get("q")).toBe("x");
 });
 
 it("documentsApi · leaves out filters, search and sort that are not set", async () => {
@@ -105,6 +112,8 @@ it("documentsApi · maps a candidate card to a document with tags and confidence
       title: "Passport",
       description: "Proof of identity.",
       confidence: 0.8,
+      similarity: null,
+      translation: null,
       tags: [
         { code: "moving", name: "Moving", confidence: 0.9 },
         { code: "identity", name: "Identity", confidence: 0.4 },

@@ -8,7 +8,7 @@ import pytest
 from app.config import settings
 from app.db import engine as db_engine
 from app.models import Base
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 
 # pysqlite intercepts BEGIN/SAVEPOINT handling in ways that break nested
@@ -40,9 +40,21 @@ def _require_db() -> bool:
     return os.environ.get("REQUIRE_DB") == "1"
 
 
+REQUIRED_EXTENSIONS = ("vector", "unaccent")
+"""Extensions the models and queries rely on; Alembic creates the same ones for real databases."""
+
+
+def _create_extensions() -> None:
+    """Install the extensions before `create_all`, so `Vector` columns and `unaccent` calls work in unit tests."""
+    with db_engine.begin() as connection:
+        for name in REQUIRED_EXTENSIONS:
+            connection.execute(text(f"CREATE EXTENSION IF NOT EXISTS {name}"))
+
+
 def _try_create_schema() -> None:
     # If the DB is unavailable, REQUIRE_DB=1 (always set in CI) fails loud;
     # otherwise we skip integration tests (common for a contributor without Docker).
+    _create_extensions()
     Base.metadata.create_all(db_engine)
 
 
@@ -91,3 +103,6 @@ def _set_test_environment() -> None:
 
 
 pytest_plugins = ("test_discovery_admin_api",)
+
+from search_api_fixtures import embedder, search_client, search_scene  # noqa: E402,F401
+from translation_read_support import read_client, store_slot  # noqa: E402,F401

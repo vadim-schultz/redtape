@@ -8,6 +8,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.discovery import DiscoveryEdgeBasis, DiscoveryMentionRole
+from app.schema.candidate.translation import CandidateTranslationSummary
+from app.schema.search import SearchMode
 from app.schema.taxonomy.read import CategoryTagRead
 
 
@@ -23,7 +25,12 @@ class CandidateFlags(BaseModel):
 
 
 class CandidateCard(BaseModel):
-    """One candidate in the ranked list; ``confidence`` is its best score among the selected codes, else overall."""
+    """One candidate in the ranked list; ``confidence`` is its best score among the selected codes, else overall.
+
+    ``similarity`` (0..1) is the vector leg's cosine rescaled to its cut-off; ``null`` without a vector hit.
+    ``score`` (0..1, four decimals) is the combined ranking score; it equals ``confidence`` outside a search.
+    ``translation`` says a stored translation exists for the request locale; it is ``null`` for German readers.
+    """
 
     model_config = ConfigDict(from_attributes=False)
 
@@ -35,10 +42,13 @@ class CandidateCard(BaseModel):
     categories: list[CategoryTagRead]
     mention_count: int
     confidence: float
+    score: float
+    similarity: float | None
+    translation: CandidateTranslationSummary | None = None
 
 
 class CandidateListResponse(BaseModel):
-    """One page of candidate cards; ``total`` counts the full filtered result."""
+    """One page of candidate cards; ``total`` counts the full filtered result (the relevance pool for a search)."""
 
     model_config = ConfigDict(from_attributes=False)
 
@@ -46,6 +56,7 @@ class CandidateListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+    search_mode: SearchMode
 
 
 class CandidateNeighbour(BaseModel):

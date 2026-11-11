@@ -1,7 +1,10 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 
-import { candidateDetailFixture } from "../../../../test/candidateFixtures";
+import {
+  candidateDetailFixture,
+  translationSummaryFixture,
+} from "../../../../test/candidateFixtures";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import CandidateHeader from "./CandidateHeader";
 
@@ -34,4 +37,32 @@ it("candidate detail omits an absent description", () => {
   expect(screen.getByRole("heading", { name: "Passport" })).toBeInTheDocument();
   expect(screen.queryByRole("blockquote")).toBeNull();
   expect(screen.queryByText(/From the source page/)).toBeNull();
+});
+
+it("candidate detail shows the translation trigger beside the title when a translation exists", async () => {
+  renderWithProviders(
+    <CandidateHeader
+      candidate={candidateDetailFixture({
+        translation: translationSummaryFixture(),
+      })}
+    />,
+  );
+
+  const trigger = await screen.findByRole("button", {
+    name: "Show translation",
+  });
+  const heading = screen.getByRole("heading", { level: 1, name: "Passport" });
+
+  expect(heading.contains(trigger)).toBe(false);
+  expect(heading.parentElement).toContainElement(trigger);
+});
+
+it("candidate detail has no translation trigger without a translation", () => {
+  renderWithProviders(
+    <CandidateHeader
+      candidate={candidateDetailFixture({ translation: null })}
+    />,
+  );
+
+  expect(screen.queryByRole("button", { name: "Show translation" })).toBeNull();
 });

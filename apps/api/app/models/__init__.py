@@ -22,6 +22,12 @@ from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locale import SupportedLocale, UITranslation
 from app.models.locality import Locality
+from app.models.search import (
+    CandidateEmbedding,
+    CandidateSearchText,
+    EmbeddingTask,
+    WorkTaskStatus,
+)
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType, SuggestionEvent
 from app.models.suggestion_vote import SuggestionVote
@@ -30,12 +36,16 @@ from app.models.taxonomy import (
     CategoryExternalMapping,
     DocumentExternalClassification,
 )
+from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
 from app.models.user import AppUser, UserRole
 
 __all__ = [
     "ApiKey",
     "AppUser",
     "Base",
+    "CandidateEmbedding",
+    "CandidateSearchText",
+    "CandidateTranslation",
     "CatalogueService",
     "Category",
     "CategoryExternalMapping",
@@ -53,6 +63,7 @@ __all__ = [
     "Document",
     "DocumentExternalClassification",
     "DocumentRequirement",
+    "EmbeddingTask",
     "EventType",
     "Jurisdiction",
     "JurisdictionKind",
@@ -64,6 +75,9 @@ __all__ = [
     "SuggestionStatus",
     "SuggestionVote",
     "SupportedLocale",
+    "TranslationSource",
+    "TranslationTask",
     "UITranslation",
     "UserRole",
+    "WorkTaskStatus",
 ]

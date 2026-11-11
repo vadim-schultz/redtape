@@ -1,0 +1,10 @@
+usage: discovery_ingest embed [-h] {probe,drain,summary} ...
+
+positional arguments:
+  {probe,drain,summary}
+    probe     Probe the embedding model and print one JSON report
+    drain     Claim embedding tasks, embed them on Workers AI and post the vectors
+    summary   Print the embedding queue counts
+
+options:
+  -h, --help  show this help message and exit

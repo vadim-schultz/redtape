@@ -3,19 +3,21 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { initialLocale } from "../i18n/initialLocale";
-import { fallbackBundle } from "../i18n/fallback";
-import { useRemoteTranslations } from "../hooks/useRemoteTranslations";
+import { intlTag } from "../i18n/localeMeta";
+import { translate, type TranslateParams } from "../i18n/translate";
+import { useEnabledLocaleGuard } from "../hooks/useEnabledLocaleGuard";
+import { useDocumentLang } from "../hooks/useDocumentLang";
+import { useTranslations } from "../hooks/useTranslations";
 
 export type LocaleContextValue = {
   locale: string;
   setLocale: (next: string) => void;
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (key: string, params?: TranslateParams) => string;
   isLoading: boolean;
 };
 
@@ -24,16 +26,9 @@ const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [locale, setLocaleState] = useState(() => initialLocale());
-  const { remote, isLoading } = useRemoteTranslations(locale);
+  const { translations, isLoading } = useTranslations(locale);
 
-  useEffect(() => {
-    document.documentElement.lang = locale;
-  }, [locale]);
-
-  const translations = useMemo(
-    () => ({ ...fallbackBundle(locale), ...remote }),
-    [locale, remote],
-  );
+  useDocumentLang(locale);
 
   const setLocale = useCallback(
     (next: string) => {
@@ -45,17 +40,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  useEnabledLocaleGuard(locale, setLocale);
+
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>) => {
-      let value = translations[key] ?? key;
-      if (params) {
-        for (const [pKey, pVal] of Object.entries(params)) {
-          value = value.replaceAll(`{${pKey}}`, String(pVal));
-        }
-      }
-      return value;
-    },
-    [translations],
+    (key: string, params?: TranslateParams) =>
+      translate(translations, intlTag(locale), key, params),
+    [translations, locale],
   );
 
   const value = useMemo(

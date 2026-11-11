@@ -11,9 +11,9 @@ import {
 export interface DocumentFilters {
   categories: string[];
   toggleCategory: (code: string, parentCode?: string | null) => void;
-  /** Drops the chips and returns to the first page; search and sort stay. */
+  /** Drops the chips and returns to the first page; the search stays. */
   clear: () => void;
-  /** Drops the chips and the search term and returns to the first page; sort stays. */
+  /** Drops the chips and the search term and returns to the first page. */
   clearAll: () => void;
 }
 

@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.shared.locale import DEFAULT_LOCALE, SUPPORTED_LOCALE_CODES
 
 
 class Settings(BaseSettings):
@@ -93,6 +97,114 @@ class Settings(BaseSettings):
         description="Database size above which machine write routes answer 507: 95 percent of the 500 MB read-only limit.",
     )
 
+    embedding_model: str = Field(
+        default="@cf/qwen/qwen3-embedding-0.6b",
+        description="Workers AI embedding model; documents and queries must use the same one.",
+    )
+    embedding_dim: int = Field(
+        default=1024,
+        gt=0,
+        description="Native output dimension of the model (chapter 1 probe); fixes the `halfvec(N)` width. The model ignores `dimensions`.",
+    )
+    search_hybrid_enabled: bool = Field(
+        default=False,
+        description="Serve hybrid (full-text + vector) search; off keeps keyword-only search.",
+    )
+    rrf_k: int = Field(default=60, gt=0, description="Reciprocal Rank Fusion constant `k` in `1 / (k + rank)`.")
+    search_top_n: int = Field(default=50, gt=0, description="Candidates each search leg (keyword, vector) returns.")
+    search_fused_top_k: int = Field(default=100, gt=0, description="Candidates kept after fusing the two legs.")
+    search_min_similarity: float = Field(
+        default=0.3,
+        ge=0,
+        le=1,
+        description="Minimum cosine similarity (0..1) for a vector-leg hit; tuned in the search evaluation.",
+    )
+    search_confidence_weight: float = Field(
+        default=0.3,
+        ge=0,
+        le=1,
+        description=(
+            "Weight `w` of confidence in the combined search score `(1 - w) * relevance + w * confidence`: "
+            "0 ranks by relevance alone, 1 by confidence alone within the relevance pool; tuned in the search evaluation."
+        ),
+    )
+    query_embed_timeout_s: float = Field(
+        default=1.2,
+        gt=0,
+        description="Hard timeout in seconds for embedding one query; on expiry search degrades to keyword-only.",
+    )
+    query_embed_cache_size: int = Field(
+        default=512, ge=0, description="Entries of the in-process query-embedding cache; 0 disables it."
+    )
+    query_embed_neurons: Decimal = Field(
+        default=Decimal("0.1"),
+        gt=0,
+        decimal_places=2,
+        description="Neurons reserved on the shared ledger for each uncached query embedding (the ledger counts hundredths).",
+    )
+    query_embed_breaker_failures: int = Field(
+        default=3, gt=0, description="Consecutive query-embedding misses that open the circuit breaker."
+    )
+    query_embed_breaker_cooldown_s: float = Field(
+        default=30.0,
+        gt=0,
+        description="Seconds the circuit breaker skips the embedder before it lets one probe through.",
+    )
+    search_vector_index_enabled: bool = Field(
+        default=True,
+        description="Let the vector leg use the HNSW index; false forces an exact scan, a setting for diagnosis.",
+    )
+    search_rate_limit_per_minute: int = Field(
+        default=30, gt=0, description="Searches (list requests with `q`) one client may make per minute; then 429."
+    )
+    trusted_proxy_hops: int = Field(
+        default=1,
+        ge=0,
+        description=(
+            "Proxies in front of the API that each append the address they saw to `X-Forwarded-For`; the client is the "
+            "entry that many places from the right. 0 ignores the header and uses the socket peer."
+        ),
+    )
+    cloudflare_account_id: str = Field(
+        default="", description="Cloudflare account id for query embedding; empty disables the query embedder."
+    )
+    cloudflare_ai_api_token: str = Field(
+        default="",
+        repr=False,
+        description="Workers-AI-scoped token for query embedding; empty means search degrades to keyword-only.",
+    )
+
+    embedding_locales: str = Field(
+        default="de en tr ru uk pl ro",
+        description=(
+            "Locales whose search text gets embedding tasks, separated by spaces or commas. A subset of the "
+            "supported locales; search text and full-text vectors are written for every locale regardless. "
+            "Dropping a locale stops new vectors; `scripts/prune_embeddings.py` reclaims the existing ones."
+        ),
+    )
+    translation_target_locales: str = Field(
+        default="en tr ru uk pl ro",
+        description=(
+            "Locales whose document text is translated, separated by spaces or commas. A subset of the supported "
+            "locales without `de`; empty switches translation off. Translating a locale does not enable it for the UI."
+        ),
+    )
+    translation_unit_recipe_version: str = Field(
+        default="v1",
+        min_length=1,
+        description="Version of how a translation unit (title and card description) is built; bumping it makes every translation stale.",
+    )
+
+    @property
+    def embedding_locale_codes(self) -> tuple[str, ...]:
+        """Return the locale codes of :attr:`embedding_locales`, in order."""
+        return tuple(self.embedding_locales.replace(",", " ").split())
+
+    @property
+    def translation_target_locale_codes(self) -> tuple[str, ...]:
+        """Return the target locale codes of :attr:`translation_target_locales`, in order."""
+        return tuple(self.translation_target_locales.replace(",", " ").split())
+
     @property
     def auth_enabled(self) -> bool:
         """Return whether JWT auth is on: both the Supabase JWKS URL and issuer are set."""
@@ -120,6 +232,31 @@ class Settings(BaseSettings):
     def discovery_enabled(self) -> bool:
         """Return whether discovery is on: an admin email is configured or machine clients opted in."""
         return bool(self.discovery_admin_email_set) or self.discovery_machine_opt_in
+
+    @model_validator(mode="after")
+    def _check_translation_targets(self) -> Settings:
+        codes = self.translation_target_locale_codes
+        allowed = SUPPORTED_LOCALE_CODES - {DEFAULT_LOCALE}
+        unknown = sorted(set(codes) - allowed)
+        if unknown:
+            raise ValueError(
+                f"translation_target_locales: {unknown} are not target locales; allowed: {sorted(allowed)}"
+            )
+        if len(set(codes)) != len(codes):
+            raise ValueError("translation_target_locales: a locale is listed twice")
+        return self
+
+    @model_validator(mode="after")
+    def _check_embedding_locales(self) -> Settings:
+        codes = self.embedding_locale_codes
+        unknown = sorted(set(codes) - SUPPORTED_LOCALE_CODES)
+        if unknown:
+            raise ValueError(
+                f"embedding_locales: {unknown} are not supported locales; allowed: {sorted(SUPPORTED_LOCALE_CODES)}"
+            )
+        if len(set(codes)) != len(codes):
+            raise ValueError("embedding_locales: a locale is listed twice")
+        return self
 
     @model_validator(mode="after")
     def _check_vote_thresholds(self) -> Settings:

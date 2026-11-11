@@ -11,12 +11,15 @@ from discovery_ingest.cli.budget import budget_app
 from discovery_ingest.cli.candidates import candidates_app
 from discovery_ingest.cli.capture import capture_app
 from discovery_ingest.cli.context import CliContext
+from discovery_ingest.cli.embed import embed_app
 from discovery_ingest.cli.errors import HELP_OPTIONS, show_help_without_subcommand
 from discovery_ingest.cli.fim import fim_app
 from discovery_ingest.cli.govdata import govdata_app
+from discovery_ingest.cli.i18n import i18n_app
 from discovery_ingest.cli.leika import leika_app
 from discovery_ingest.cli.llm import llm_app
 from discovery_ingest.cli.pvog import pvog_app
+from discovery_ingest.cli.translate import translate_app
 from discovery_ingest.cli.worker import worker_app
 
 PROG_NAME = "discovery_ingest"
@@ -40,6 +43,9 @@ app.add_typer(browser_app, name="browser")
 app.add_typer(llm_app, name="llm")
 app.add_typer(artifacts_app, name="artifacts")
 app.add_typer(capture_app, name="capture")
+app.add_typer(embed_app, name="embed")
+app.add_typer(translate_app, name="translate")
+app.add_typer(i18n_app, name="i18n")
 
 
 @app.callback(invoke_without_command=True)

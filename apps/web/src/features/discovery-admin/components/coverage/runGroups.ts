@@ -1,3 +1,4 @@
+import { formatDateTime } from "../../../../utils/format/formatDate";
 import { EMPTY_VALUE } from "../../../../utils/emptyValue";
 import type { DiscoveryCoverageResponse, DiscoveryRun } from "../../types";
 import {
@@ -25,7 +26,7 @@ export function failureGroup(
 
 function runRows(run: DiscoveryRun, context: MetricContext): MetricRow[] {
   const finished = run.finished_at
-    ? new Date(run.finished_at).toLocaleString(context.locale)
+    ? formatDateTime(run.finished_at, context.locale)
     : EMPTY_VALUE;
   return labelledRows(context, [
     ["last_run_finished", finished],

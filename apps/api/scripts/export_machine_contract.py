@@ -33,6 +33,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.models.search import WorkTaskStatus
 from app.schema.discovery import (
     artifacts,
     budgets,
@@ -43,7 +44,9 @@ from app.schema.discovery import (
     machine,
     read,
 )
+from app.schema.search import machine as search_machine
 from app.schema.taxonomy import read as taxonomy_read
+from app.schema.translation import machine as translation_machine
 from app.shared.taxonomy.contract_loader import load_contract
 from pydantic import BaseModel
 
@@ -76,6 +79,16 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "candidate_emit.CandidateEmitRequest": (candidate_emit.CandidateEmitRequest, "validation"),
     "budgets.BudgetReserveRequest": (budgets.BudgetReserveRequest, "validation"),
     "budgets.BudgetAdjustRequest": (budgets.BudgetAdjustRequest, "validation"),
+    "search_machine.EmbeddingClaimRequest": (search_machine.EmbeddingClaimRequest, "validation"),
+    "search_machine.EmbeddingCompleteItem": (search_machine.EmbeddingCompleteItem, "validation"),
+    "search_machine.EmbeddingCompleteRequest": (search_machine.EmbeddingCompleteRequest, "validation"),
+    "search_machine.EmbeddingFailRequest": (search_machine.EmbeddingFailRequest, "validation"),
+    "search_machine.EmbeddingReleaseRequest": (search_machine.EmbeddingReleaseRequest, "validation"),
+    "translation_machine.TranslationClaimRequest": (translation_machine.TranslationClaimRequest, "validation"),
+    "translation_machine.TranslationCompleteItem": (translation_machine.TranslationCompleteItem, "validation"),
+    "translation_machine.TranslationCompleteRequest": (translation_machine.TranslationCompleteRequest, "validation"),
+    "translation_machine.TranslationFailRequest": (translation_machine.TranslationFailRequest, "validation"),
+    "translation_machine.TranslationReleaseRequest": (translation_machine.TranslationReleaseRequest, "validation"),
     # Responses the ingest package validates: serialized by the API.
     "machine.CatalogueMachineRead": (machine.CatalogueMachineRead, "serialization"),
     "machine.EntityUpsertResponse": (machine.EntityUpsertResponse, "serialization"),
@@ -106,6 +119,24 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "taxonomy_read.VocabularyResponse": (taxonomy_read.VocabularyResponse, "serialization"),
     "taxonomy_read.CrosswalkRead": (taxonomy_read.CrosswalkRead, "serialization"),
     "taxonomy_read.PvogLeafMappingRead": (taxonomy_read.PvogLeafMappingRead, "serialization"),
+    "search_machine.EmbeddingClaimResponse": (search_machine.EmbeddingClaimResponse, "serialization"),
+    "search_machine.ClaimedEmbeddingTask": (search_machine.ClaimedEmbeddingTask, "serialization"),
+    "search_machine.EmbeddingCompleteResponse": (search_machine.EmbeddingCompleteResponse, "serialization"),
+    "search_machine.EmbeddingItemResult": (search_machine.EmbeddingItemResult, "serialization"),
+    "search_machine.EmbeddingFailResponse": (search_machine.EmbeddingFailResponse, "serialization"),
+    "search_machine.EmbeddingReleaseResponse": (search_machine.EmbeddingReleaseResponse, "serialization"),
+    "search_machine.EmbeddingSummaryResponse": (search_machine.EmbeddingSummaryResponse, "serialization"),
+    "translation_machine.TranslationClaimResponse": (translation_machine.TranslationClaimResponse, "serialization"),
+    "translation_machine.ClaimedTranslationTask": (translation_machine.ClaimedTranslationTask, "serialization"),
+    "translation_machine.TranslationCompleteResponse": (
+        translation_machine.TranslationCompleteResponse,
+        "serialization",
+    ),
+    "translation_machine.TranslationItemResult": (translation_machine.TranslationItemResult, "serialization"),
+    "translation_machine.TranslationFailResponse": (translation_machine.TranslationFailResponse, "serialization"),
+    "translation_machine.TranslationReleaseResponse": (translation_machine.TranslationReleaseResponse, "serialization"),
+    "translation_machine.TranslationSummaryResponse": (translation_machine.TranslationSummaryResponse, "serialization"),
+    "translation_machine.TranslationLocaleSummary": (translation_machine.TranslationLocaleSummary, "serialization"),
 }
 """Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
 
@@ -126,6 +157,9 @@ ENUMS: dict[str, list[str]] = {
     "DiscoveryRunKind": _values(DiscoveryRunKind),
     "BudgetResource": _values(BudgetResource),
     "LEGACY_TASK_KINDS": [str(kind.value) for kind in LEGACY_TASK_KINDS],
+    "EmbeddingOutcome": _values(search_machine.EmbeddingOutcome),
+    "TranslationOutcome": _values(translation_machine.TranslationOutcome),
+    "WorkTaskStatus": _values(WorkTaskStatus),
     "StopReason": list(get_args(machine.StopReason)),
     "EdgeSkipReason": list(get_args(candidate_edges.EdgeSkipReason)),
 }

@@ -15,6 +15,35 @@
 - Conflicts/failures: none.
 - Current work: none.
 
+## Merge ledger (chief of staff)
+
+**Loop branch:** `feat/plans-search-first`
+**Release branch:** `main`
+**Release MR/PR:** _(filled when opened)_
+**Execution order:** the rollout's "Integration order" (C1 → C2 → C3 → C7 → C4 → C13 → C5 → C6 → C14 → C8 → C15 → C16 → C12 → C9 → C10 → C17 → C11 → C18). C18 is `chief-of-staff` execution (operator actions, live validation) and is not run by an implementer.
+
+Chapter MRs merge into the loop branch only. The chapter-implementer **does not** edit this file; chapter evidence above is filled by the chief of staff from implementer returns.
+
+| chapter | branch | mr/pr | local ci | remote ci | merged | blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01-infra-and-embedding-probe | `feat/search-infra-and-probe` | [#372](https://github.com/vadim-schultz/redtape/pull/372) (+ [#373](https://github.com/vadim-schultz/redtape/pull/373) typer pin) | pass | pass | yes (64ef112) | none |
+| 02-backend-locale-foundation | `feat/search-backend-locales` | [#374](https://github.com/vadim-schultz/redtape/pull/374) | pass | pass | yes (5ccabc4) | none |
+| 03-search-schema | `feat/search-schema` | [#375](https://github.com/vadim-schultz/redtape/pull/375) | pass | pass | yes (edfffd9) | none |
+| 07-web-locale-foundation | `feat/web-locale-foundation` | [#376](https://github.com/vadim-schultz/redtape/pull/376) | pass | pass | yes (5ca91a0) | none |
+| 04-search-text-builder-and-backfill | `feat/search-text-builder` | [#377](https://github.com/vadim-schultz/redtape/pull/377) | pass | pass | yes (5886ba5) | none |
+| 13-translation-schema-and-core | `feat/translation-schema-and-core` | [#378](https://github.com/vadim-schultz/redtape/pull/378) | pass | pass | yes (76ff271) | native-speaker spot checks pending (manual) |
+| 05-embedding-task-machine-api | `feat/embedding-task-api` | [#380](https://github.com/vadim-schultz/redtape/pull/380) | pass | pass | yes (6d58b2c) | none |
+| 06-embedding-drain-worker | `feat/embedding-drain-worker` | [#382](https://github.com/vadim-schultz/redtape/pull/382) | pass | pass | yes (cc27440) | operator steps pending (secrets, backfill, first dispatch) |
+| 14-translation-queue-and-machine-api | `feat/translation-task-api` | [#384](https://github.com/vadim-schultz/redtape/pull/384) | pass (`ci.sh` copy with scratch DB names `redtape_c14_*`) | pass | yes (e262174) | operator steps pending (narrow target locales, backfill, R2 vars) |
+| 08-hybrid-query-path | `feat/hybrid-search` | [#386](https://github.com/vadim-schultz/redtape/pull/386) | pass (`ci.sh` copy with scratch DB names `redtape_c8_*`) | pass | yes (21a86d4) | operator steps pending (Render token, flag, XFF check) |
+| 15-translation-drain-worker | `feat/translation-drain-worker` | [#388](https://github.com/vadim-schultz/redtape/pull/388) | pass (`ci.sh` copy with scratch DB names `redtape_c15_*`) | pass | yes (dc32628) | operator steps pending (backfill, narrow locales, R2 vars, secrets, schedule variable, first dispatch) |
+| 16-translated-text-in-search-and-embeddings | `feat/translated-search-text` | [#390](https://github.com/vadim-schultz/redtape/pull/390) | pass (`ci.sh` copy with scratch DB names `redtape_c16_*`; web build and later stages run by hand after the copy hit its timeout) | pass | yes (a1a4e95) | operator steps pending (per-locale search backfill, embed drain, optional `EMBEDDING_LOCALES`) |
+| 12-combined-ranking-score | `feat/combined-ranking` | [#392](https://github.com/vadim-schultz/redtape/pull/392) | pass (`ci.sh` copy with scratch DB names `redtape_c12_*`) | pass | yes (2fa14cd) | none |
+| 09-centred-search-and-sort-removal | `feat/search-hero-no-sort` | [#394](https://github.com/vadim-schultz/redtape/pull/394) | pass (`ci.sh` copy with scratch DB names `redtape_c9_*`; the chapter's separate narrow API command not run as written, covered by the full suite and a 90-test scratch run) | pass | yes (43ee8b4) | screenshots partial (empty-database loading state only; `de` rendered English; `ru` impossible until the web has a `ru` bundle) |
+| 10-results-presentation | `feat/search-results-rings` | [#396](https://github.com/vadim-schultz/redtape/pull/396) | pass (`ci.sh` copy with scratch DB names `redtape_c10_*`; chapter's narrow web command run as written) | pass | yes (dd834d3) | screenshots taken against a stubbed candidate list; `ru` impossible until the web has a `ru` bundle |
+| 17-translation-read-path-and-popover | `feat/translation-popover` | [#398](https://github.com/vadim-schultz/redtape/pull/398) (+ extra `fix(api)` commit keeping the text schema in OpenAPI) | pass (`ci.sh` copy with scratch DB names `redtape_c17_*`; the chapter's pytest and `npm test -- <paths>` lines not run as written, covered by the full suites) | pass | yes (63abff1) | post-deploy rows pending (`tr` list summary, text-route ETag and 304); German-length screenshot check pending |
+| 11-ui-and-taxonomy-label-translation | `feat/ui-translations` | [#400](https://github.com/vadim-schultz/redtape/pull/400) | pass (`ci.sh` copy with scratch DB names `redtape_c11_*`) | pass | yes (252f216), PARTIAL: only `ru` generated and committed | **tr, uk, pl, ro not generated in the repo: Workers AI daily allowance exhausted (429) before the plural-form regeneration finished; resume after 00:00 UTC** |
+
 ## Baseline
 
 | Check | Expected evidence | Recorded |
@@ -32,104 +61,144 @@
 
 ### Chapter 1 — Infra and embedding probe
 
-- Status: pending
-- pgvector version (local image, CI image, Supabase): pending
-- Probe: model, output dimension, supported reduced dimensions, batch limit, latency, neurons per 1k tokens: pending
-- Gate decision (`EMBEDDING_DIM`, `vector` or `halfvec`) and projected total database size for seven locales versus `DB_SOFT_LIMIT_BYTES`: pending
+- Status: merged into loop branch (#372); refactor gate: Long Function in `CloudflareEmbeddingClient.embed` -> Extract Function; data-design gate: not applicable
+- pgvector version (local image, CI image, Supabase): local/CI `pgvector/pgvector:pg16`, vector 0.8.7 on PG 16.15; Supabase not checked (operator action)
+- Probe (2026-11-10, `embed probe` from PR #372, live Workers AI): model `@cf/qwen/qwen3-embedding-0.6b`, dimension 1024; reduced dimensions 768/512/256/128 NOT honoured (`dimensions` returned 1024); batches 1–256 all accepted (no rejection up to 256); single-text latency 359 ms (batch 256: 3.6 s); 7,931 tokens, 8.52 neurons, 1.07 neurons per 1k tokens. Request/response shape assumed by the client confirmed.
+- pgvector on Supabase (operator, 2026-11-10): `vector` 0.8.0 available, not yet installed (C3 migration runs `CREATE EXTENSION`); `unaccent` 1.1 available, not installed.
+- Measured baseline: `pg_database_size` 58,707,091 bytes (about 58.7 MB, not the 83 MB estimate); 4,713 candidates.
+- Gate decision: `EMBEDDING_DIM=1024`, column type `halfvec(1024)` (pgvector 0.8 supports halfvec and iterative HNSW scans); no reduced dimension (the model ignores `dimensions`). Projection for 4,713 x 7 = 32,991 rows: halfvec(1024) table+HNSW about 175 MB, plus search text/tsvectors about 41 MB (estimate, C3 measures), plus 58.7 MB baseline = about 275 MB versus `DB_SOFT_LIMIT_BYTES` 475 MB (about 200 MB margin). `vector(1024)` would be about 440 MB total (thin margin), so it is not chosen.
 
 ### Chapter 2 — Backend locale foundation
 
-- Status: pending
-- Locale rows seeded (enabled flags): pending
-- Resolution and validation tests: pending
+- Status: merged into loop branch (#374); refactor gate: smells found -> refactorings applied (`pick_i18n` loops extracted, seed split); data-design gate: reviewed, no `apply` findings (observed: stored `completeness_pct` now dead; accepted-risk: uncached `/locales` count)
+- Locale rows seeded (enabled flags): 7 rows; de, en enabled; tr, ru, uk, pl, ro disabled. `ui_translation`: de 367 keys, en 367 keys; computed completeness de/en 100.0, others 0.0
+- Resolution and validation tests: added (fallback chain, seed idempotence preserving `enabled`, locale-key validation rejects `fr`); non-German readers now fall back `en` before `de`
 
 ### Chapter 3 — Search schema
 
-- Status: pending
-- Migration id and round-trip result: pending
-- `alembic check` with `Vector` and HNSW: pending
-- Table and index sizes at current row count: pending
+- Status: merged into loop branch (#375); refactor gate: smells found -> refactorings applied (`_candidate_id()` extracted in migration; test helper); data-design gate: no `apply` findings (accepted-risk: no index on `embedding_task.candidate_id`, redundant `dim`; observed for C4/C5: use matching `index_where` on enqueue upsert, retry cap/backoff and claim fencing)
+- Migration id and round-trip result: `20261110_search_schema` (parent `20261105_retire_legacy_taxonomy`); `scripts/check_migrations.sh` passes (single head, upgrade, downgrade -1, upgrade, `alembic check`). Migration creates `vector` and `unaccent` extensions; on Supabase both are available but not installed, so the deploy role needs permission to create extensions, or an operator enables them first.
+- `alembic check` with `Vector` and HNSW: passes with no hook; detects `halfvec(512)` vs `halfvec(1024)` drift and a dropped GIN index
+- Table and index sizes (scratch DB, synthetic rows, `halfvec(1024)`, HNSW m=16 ef_construction=64): de only, 4,713 rows: embedding 27.4 MB (HNSW 12 MB), search text 26.2 MB (each GIN 5.1 MB), tasks 1.2 MB. Seven locales, 32,991 rows: embedding 191 MB (HNSW 86 MB), search text 133 MB (synthetic 60-word text, pessimistic), tasks 8.1 MB. Worst case 58.7 + 332 = about 391 MB vs 475 MB soft limit (about 84 MB margin); the C1 estimate of about 275 MB assumed shorter text. Re-check with real text lengths (C4 backfill, C16, C18). Levers: `EMBEDDING_LOCALES`, prune tool. HNSW `REINDEX` not measured.
 
 ### Chapter 4 — Search-text builder, hooks and backfill
 
-- Status: pending
-- Backfill counts (rows written, tasks enqueued, skipped for empty text): pending
-- Recipe version and hash stability check: pending
+- Status: merged into loop branch (#377); refactor gate: smells found -> refactorings applied (`upsert_search_text` helpers, `_upsert_pending` split, `BackfillReport` middle man removed, `RefreshTotals` Counter); data-design gate: 1 `apply` (A->B->A stale pending task retired, with happy and negative tests); accepted-risk: concurrent mention writers can lose an excerpt until next write/backfill, hot-candidate fan-out; observed: no reconcile for failed tasks or `EMBEDDING_MODEL` change (C5/C6/C18), retry cap and claim fencing (C5; skip re-queue when embedding already at current hash), `RECIPE_VERSION` bump needs a backfill (C18 runbook)
+- Backfill counts (local scratch corpus only: synthetic 4,000 candidates / 17,849 mentions; NOT real data): run 1 processed 4000, written 3999, skipped empty 1, enqueued 3999; run 2 written 0, unchanged 3999, enqueued 0. `de` text length p50 1,117 / p95 1,499 chars (cap 1,500; synthetic, upper bound). Sizes: search text table 9.2 MB + two GIN 8.2 MB = 17 MB, tasks 1.3 MB. Real-corpus numbers come from the first real backfill (script prints the same line).
+- Recipe version and hash stability check: `RECIPE_VERSION = "v1"`, `content_hash = sha256("v1\n" + text)`; deterministic with mention-order ties, idempotent re-run (0 rewrites via `xmin`, 0 task changes), a version bump changes every hash
+- Interpretation: mention ordering uses `direct_category_confidence` desc (mentions have no score column); changing it needs a `RECIPE_VERSION` bump
 
 ### Chapter 5 — Embedding task machine API
 
-- Status: pending
-- Contract fixture regenerated: pending
-- Claim concurrency test (two claimers, no overlap): pending
-- Generic leased queue extraction; existing discovery queue tests unchanged: pending
+- Status: merged into loop branch (#380); refactor gate: smells found -> refactorings applied (`search/clock.py` extracted, `FailureKind` replaces flag argument, `VECTOR_CHECKS` table, `reclaim_expired` split, `ready_clause`, `release` built once); data-design gate: 2 `apply` (complete holds `FOR SHARE` on the search-text row so a concurrent rewrite cannot be lost; locked `owned()` check makes settle atomic with reclaim; each with happy and negative tests); accepted-risk: zombie worker with same API key can settle a reclaimed claim (no lease token), replayed `complete` answers `rejected` (C6 must treat as non-fatal), `summary.stale_candidates` full join (revisit above 200k rows); observed: no retry jitter or age alert
+- Contract fixture regenerated: `discovery_machine_contract.json` (+5 routes, 12 models) and the web `openapi.schemas.json`; contract tests pass
+- Claim concurrency test (two claimers, no overlap): `test_two_concurrent_claimers_never_receive_the_same_task` (disjoint ids, union = all six; `lock_timeout` makes a missing `SKIP LOCKED` fail)
+- Generic leased queue extraction; existing discovery queue tests unchanged: `features/search/leased_queue.py` (`LeasedQueue`, reusable by C14); lease and retry policy shared via `discovery/task_lease.py` and `task_retry.py`; `test_discovery_task_queue.py` unedited and green. SQL clauses stay per table (different native status enums)
+- Deviations: `fail`/`release` answer 409 for unknown and foreign tasks; `release` takes optional `reason`; `complete` also marks stale when the hash differs from the leased hash; `summary` takes optional `model`; no recorded red run (tests written first, first run was green)
 
 ### Chapter 6 — Embedding drain worker
 
-- Status: pending
-- First drain report (claimed, completed, stale, neurons): pending
-- Cadence chosen and Actions minutes per run: pending
-- Backfill completion (embedded / total, stale count): pending
+- Status: merged into loop branch (#382); refactor gate: smells found -> refactorings applied (`remaining_of`, `drain_loop.py`/`report.py` extracted, `_fail_tasks`, `_close_tally`, `Embedder` Protocol moved to `client.py`, embedding price single-sourced in `prices.py`); data-design gate: 1 `apply` (transport failure on claim/complete/fail crashed the drain and left the batch leased; `refusals_as_stops()` turns it into a stop, releases the batch, still prints the report; 3 negative tests); accepted-risk: one poison text fails a whole 50-batch on a provider 4xx (trigger: any `failed` from a 4xx), ledger over-charged by the conservative estimate after a crash between reserve and settle, worker/API `EMBEDDING_MODEL` mismatch looks like `queue_empty` (trigger: Render `EMBEDDING_MODEL` ever set); observed: no retry jitter or queue-age alert
+- First drain report (claimed, completed, stale, neurons): PENDING (operator; no live call made)
+- Cadence chosen and Actions minutes per run: `10 6,18 * * *` (every 12 hours, deviation from the 6-hour default, rationale in `docs/operations/gha-budget.md`), gated by `DISCOVERY_EMBED_SCHEDULE`. Estimates, not measured: idle run about 1.5-2 min (3 ledger minutes), working run at 3,000 neurons about 5-8 min (7-10 ledger minutes); idle-only month about 180 ledger minutes against the 1,000-minute allowance
+- Backfill completion (embedded / total, stale count): PENDING (operator)
+- Red run: new tests failed on import (`ModuleNotFoundError`), workflow/CLI tests errored, 7 CLI-contract help tests failed; three transport-failure tests failed red with `httpx.ReadTimeout`
+- Deviations: no separate batching method (claim cap 50 = `EMBED_BATCH_LIMIT`); embedding price in its own table (a `NEURON_PRICES` row would break `known_models()` and `LLM_MODEL` validation); `stale` added to `DrainReport`/`Tally`; 409 on fail/release counted `skipped`; `embed drain` not recorded as a discovery run; CLI contract 22 -> 24 commands (`embed summary [--require-pending]`, `embed drain`); `--neuron-budget` default 3000; workflow not dispatched (file not on `main` yet), covered by a structural test
+- Operator actions after merge: (1) secrets `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN` exist; (2) apply C3's migration to Supabase (`vector`, `unaccent`) and run the C4 backfill; (3) after release reaches `main`, dispatch `discovery-embed.yml` once, then set `DISCOVERY_EMBED_SCHEDULE=enabled`; (4) record first report, measured minutes and embedded/total here; (5) keep `EMBEDDING_MODEL` identical on Render and in the workers
 
 ### Chapter 7 — Web locale foundation
 
-- Status: pending
-- Bundle size before and after lazy loading: pending
-- Parity test coverage (keys, placeholders, plurals): pending
+- Status: merged into loop branch (#376); refactor gate: smells found -> refactorings applied (`LocaleProvider` hooks extracted, `translate`/`lookup`/`interpolate`, formatter helpers); data-design gate: not applicable (web only)
+- Bundle size before and after lazy loading: before `AppBootstrap` 715,529 B raw / 198.07 kB gzip, total JS 1.14 MB; after (de, en only) 716,552 B raw / 198,456 B gzip, no locale chunks. With five stand-in locale files: lazy `AppBootstrap` 716,961 B raw + five 12 KB chunks, vs eager 776,194 B raw / 204,007 B gzip (about 59 KB raw, 5.5 KB gzip kept out of entry per five locales).
+- Parity test coverage (keys, placeholders, plurals): `de` and `en`, 367 keys each, 11 plural-family members, 0 problems; unit cases for missing/extra keys, placeholder mismatch, missing Slavic plural forms; enforces automatically when C11 adds locale files. Web locale list is checked against the API `SUPPORTED_LOCALES`.
+- Fonts: Latin-ext for tr/pl/ro in Space Grotesk, Cyrillic (incl. ї є і ґ) via Inter fallback; checked in headless Chrome against the built CSS (not the running app)
+- Deviations: locale query moved to `services/localesApi.ts` (provider ordering); inline `lang` script also reads browser language
 
 ### Chapter 8 — Hybrid query path
 
-- Status: pending
-- `EXPLAIN` for vector leg (HNSW used) and keyword leg (GIN used): pending
-- Latency p50/p95, hybrid and fallback: pending
-- Fallback behaviour under timeout, error and exhausted budget: pending
-- OpenAPI snapshot and web contract fixture regenerated: pending
+- Status: merged into loop branch (#386); refactor gate: smells found -> refactorings applied (`_nearest`/`_best_rows`/`_hits`/`_best_pool` extracted, `FusedSearch(retrieval, pool)` replaces paired optionals, `SearchPlan` NamedTuple, typed `Retrieval` decided in `SearchPlanner`); data-design gate: 4 `apply` (circuit breaker `CircuitBreakerQueryEmbedder`: 3 misses open it for 30 s then one probe; similarity cut-off moved out of the HNSW-ordered inner query via HAVING; pgvector < 0.8 silently ignores `hnsw.iterative_scan` so a version check falls back to an exact scan with a warning; neuron reservation commits in its own short transaction before the HTTP call; each with tests); accepted-risk: request waits on Workers AI (D1), httpx per-phase timeout not a hard deadline (trigger: embed p99 > 2x `QUERY_EMBED_TIMEOUT_S`), 0.1 neuron not refunded on failure, rate-limit counter per process (trigger: more than one API instance), legs evaluated twice for count and page; observed: `title_matches` seq scan over `jsonb_each_text`, **`tsv_native` built from `unaccent(text)` breaks Turkish suffix stemming (C16 should revisit; the query path mirrors the builder so they stay consistent)**
+- `EXPLAIN` evidence (SYNTHETIC: 4,000 candidates, 28,000 search-text and embedding rows, 7 locales, `halfvec(1024)`, HNSW m=16 ef_construction=64, pgvector 0.8.7): keyword leg uses `BitmapOr` of both GIN indexes (de 6.5 ms, tr 10.8 ms at 28k rows); the planner picks an exact `Seq Scan` for the vector leg at this size (13.7 ms de, 16.1 ms tr); HNSW is used when forced (`Index Scan using ix_candidate_embedding_hnsw`, 2.3-5.3 ms), and `SEARCH_VECTOR_INDEX_ENABLED=false` forces exact. HNSW tuning is for C18. An HNSW-starvation test under a selective filter was inconclusive.
+- Latency p50/p95 (SYNTHETIC, in-process, fake embedder; add about 359 ms per uncached live embedding call): browse 74/83 ms; browse + category 89/104; hybrid 123/153; hybrid + category 183/258; fallback keyword 96/136; fallback + category 163/255; legacy title match 81/95
+- Fallback behaviour under timeout, error and exhausted budget: parametrised over timeout, HTTP 500, missing token, exhausted ledger, embedder returning None, plus ledger `OperationalError`: all 200 with `search_mode: "keyword"`, keyword hit present, vector-only hit absent; exhausted budget leaves the ledger unchanged; logs never contain the token or account id
+- OpenAPI snapshot and web contract fixture regenerated: `CandidateCard.similarity` and `CandidateDetail.similarity` (nullable), `SearchMode` enum, required `CandidateListResponse.search_mode`; no web code changed
+- Deviations: fusion is `UNION ALL` + `GROUP BY candidate_id` + `SUM(1/(k+rank))` rather than `FULL OUTER JOIN`; embedder split over six modules to stay near 100 lines; circuit breaker added (`QUERY_EMBED_BREAKER_FAILURES`, `QUERY_EMBED_BREAKER_COOLDOWN_S`); new settings `QUERY_EMBED_NEURONS` (0.1), `SEARCH_VECTOR_INDEX_ENABLED`, `SEARCH_RATE_LIMIT_PER_MINUTE` (30), `TRUSTED_PROXY_HOPS` (1); `LiveLimitMiddleware` reads the limit per request; blank `q` is browse; docs in `docs/operations/candidate-view.md` and `local-development.md`
+- O12 (client IP for rate limiting): implemented as the `X-Forwarded-For` entry `TRUSTED_PROXY_HOPS` places from the right; the real proxy depth in front of Render is UNVERIFIED (operator check below), so O12 is not closed in `gaps-and-decisions.md`
+- Operator actions after merge: (1) set `CLOUDFLARE_ACCOUNT_ID` and a Workers-AI-scoped `CLOUDFLARE_AI_API_TOKEN` on Render (O3); (2) after C3 migration, C4 backfill and the embed drain, set `SEARCH_HYBRID_ENABLED=true` (default `false` keeps today's title match); (3) verify the real client IP behind Render with a spoofed `X-Forwarded-For` and set `TRUSTED_PROXY_HOPS` and `SEARCH_RATE_LIMIT_PER_MINUTE`; (4) tune `QUERY_EMBED_TIMEOUT_S`, `SEARCH_MIN_SIMILARITY`, `SEARCH_FUSED_TOP_K` in C18
 
 ### Chapter 9 — Centred search and sort removal
 
-- Status: pending
-- Pinned default ordering (O6 resolution, combined score): pending
-- Screenshots after (de, ru; desktop and mobile): pending
+- Status: merged into loop branch (#394); refactor gate: smells found -> refactorings applied (`DocumentListControls` split into a `DocumentSearch` seam; `useSearchDraft` extracted from `SearchHero`); data-design gate: not applicable (no collection, schema, sync, cache, retry or migration change)
+- Pinned default ordering (O6 resolution, combined score): chapter 12 had already made the combined score the no-sort default; `apps/api/tests/test_candidates_default_order.py` (4 tests) pins that no `sort_by` equals `sort_by=combined` (relevance blended with confidence with `q`, confidence alone when browsing), is neither title nor completeness order, and that `sort_order` without `sort_by` returns 422. They passed on first run (no genuine Red); a mutation check (default switched to completeness) failed 3 of 4
+- What changed on the web: `SearchHero` (centred, `maxW` 640 px, `size="lg"`, rounded, raised, round arrow button, `role="search"` form, `dir="auto"` input; typing only drafts, blank submit clears `q`), `useSearchDraft`, `shadows.raised` token; `DocumentSortControl`, `DOCUMENT_SORT_KEYS` and sort state removed, so stale `sort_by`/`sort_order` URL params are ignored and dropped on the next chip or clear action; `documents.sort_*` removed from the web fallback bundles and the API seed files; `ListSearchBox` kept for the admin pages
+- Screenshots after (de, ru; desktop and mobile): partial. Headless Chrome at 1280 px and 390 px against a scratch API on an empty database (loading skeleton state): hero centred, raised, round, fits at phone width. The forced-`de` run rendered English, so the German-length check is not confirmed; `ru` is not possible until the web has a `ru` bundle. Images are in the scratchpad only, not committed. Redo with data once the locale bundles and a populated database exist (chapter 18 evidence)
+- Operator note: existing deployments keep the removed `documents.sort_*` rows in `ui_translation`; harmless, the seed never deletes
 
 ### Chapter 10 — Results presentation
 
-- Status: pending
-- `ScoreRing` shared by confidence and similarity; screenshots: pending
-- `keyword` mode hint and omitted similarity ring: pending
+- Status: merged into loop branch (#396); refactor gate: `ScoreRing` extracted in the first commit (`ConfidenceCircle` now a thin wrapper, its test unchanged); scan of `DocumentCard`, `CardScores`, `ScoreWithCaption`, `DocumentsListQueryStatus`, the mapper and `useBandedRing` found nothing further; observed, untouched: similarity reuses the `documents.confidence_low|mid|high` band words (a neutral `band_*` rename would touch both locales and the API seeds; do it alongside chapter 11 if wanted), and `DocumentsListQueryStatus.test.tsx` repeats one `status` literal in six existing tests; data-design gate: not applicable (no collection, schema, sync, cache, realtime, retry or migration change; API unchanged, no fixture regenerated)
+- `ScoreRing` shared by confidence and similarity; screenshots: `ScoreRing` (`value`, `label`, `palette`) in `components/data-display/`; `SimilarityCircle` wrapper uses `documents.similarity_aria`; `useBandedRing` reuses `confidenceBand.ts`; `DocumentCard` renders `CardScores` (confidence ring, plus a similarity ring only when `similarity` is non-null). Screenshots: headless Chrome against the Vite dev server in `en` and `de`, at 1280 px and 390 px (hybrid with two rings, keyword with the hint and one ring, browse), taken against a small stub server in front of a real scratch API (hybrid needs the embedder, unavailable here, and no candidate rows were seeded); German at phone width exposed a second ring overflowing the card and a long compound title overlapping the rings, both fixed by wrapping the card header so the rings drop below the title; `ru` not possible (no web `ru` bundle until chapter 11); images in the scratchpad only, not committed. Redo against real data for chapter 18 evidence
+- `keyword` mode hint and omitted similarity ring: `SearchModeHint` shows one hint above the list in keyword mode; the similarity ring is omitted when `similarity` is null; the mapper defaults a missing mode to `browse` and a missing similarity to `null`, and drops a stray similarity outside hybrid mode (implementer's safety addition); result count uses `documents.result_count_one/_other` for searches, browse keeps `documents.count`; contract tests cover the new card and list fields, the `SearchMode` enum and an older response without them
+- Side note: the percent text sits right of each ring because Chakra's `ValueText` is not centred in the existing design; left unchanged so `ConfidenceCircle` behaviour does not change
 
 ### Chapter 11 — UI and taxonomy-label translation
 
-- Status: pending
-- Strings translated per locale; validator rejections and repairs: pending
-- Neurons spent: pending
-- Review manifest status per locale (machine / reviewed, reviewer, date): pending
+- Status: merged into loop branch (#400) as a PARTIAL chapter. The tooling (validators, plural expansion, manifest, `translate-ui`, taxonomy merge, guarded `enable_locale`, `locales.md`, web parity) is merged and `ru` is generated; `tr`, `uk`, `pl` and `ro` are NOT in the repo. The commit `feat(i18n): add tr, ru, uk, pl and ro UI strings…` was not made; the committed one is `feat(i18n): add ru UI strings and taxonomy labels (machine, unreviewed)`. Blocker: the Workers AI daily allowance ran out (HTTP 429) at about 7,300 recorded neurons. Refactor gate: smells found -> refactorings applied (five-parameter batch loop became a `LocaleRun` class; taxonomy module rewrite split into `_without_locale` and `_with_locale`; `commands.py` uses `Layout` for the checkout check; `_job` helper in `run_translate_ui`; `_completeness_pct` made public as `completeness_pct` in `apps/api/app/features/locales/service.py`); observed, untouched: two near-identical label merge helpers in the API, a `gaps` list inside a frozen dataclass, a duplicated manifest model in the API and in ingest. Data-design gate: applies, no `apply` findings; accepted-risk: (1) two concurrent `translate-ui` runs on one locale overwrite each other (whole-file read-modify-write; rerun heals; trigger: a scheduled or CI run of `translate-ui`; documented in `locales.md`), (2) a hand edit after a review is not detected and the manifest pins no content hash (trigger: external reviewers), (3) a batch answered with invalid JSON is rejected whole and billed with no automatic split (use `--batch-size 8`); observed: manifest model duplicated, glossary version not stored with a string; clean: atomic per-batch writes, deterministic idempotent reruns, validated seed and label merge, monotonic enable
+- Strings translated per locale; validator rejections and repairs (live runs, `@cf/qwen/qwen3-30b-a3b-fp8`, through the ledger meter): ru 451 strings (383 UI keys, 34 category names, 34 descriptions), 3 repairs, 0 rejections, 1504.5 neurons, committed, manifest `machine`; tr 439 in the first runs, 6 repairs, 9 rejections cleared after correcting glossary and allow-list entries, 1337.6 neurons, withheld (12 plural keys absent); uk 451, 2 repairs, 0 rejections, 1339.5 neurons, withheld (8 plural keys absent); pl 470, 5 repairs, 4 untranslated-English rejections cleared by the allow list, 40 keys lost to one invalid-JSON batch and redone, 1418.3 neurons, withheld (24 plural keys absent); ro 471, 4 repairs, 8 untranslated-English rejections cleared by the allow list, invalid-JSON batches on two runs, finished with `--batch-size 10`, 1702.5 neurons, withheld (18 plural keys absent)
+- Why four locales are withheld: all four were complete after the first runs; the plural families were then regenerated with a stronger plural-form note (the first Slavic forms were the nominative plural in every form) after deleting the old plural keys with no backup, and the 429 hit before they were finished. Incomplete files would fail the web parity test, so they are not committed
+- Where the partial files are: a durable copy outside the repo at `~/.local/share/redtape/c11-partial-locales/` (`seed/`, `web/`, `taxonomy_translations.py` with all five locales' labels, `review.json`), copied from the implementer's scratchpad. They lack plural forms and are not a substitute for a finished run. Resume after the daily reset at 00:00 UTC: `python -m discovery_ingest i18n translate-ui --locale <code> --batch-size 8` per locale (about 60 to 190 neurons each)
+- Neurons spent: about 7,302.6 on the live runs today (ru 1504.5, tr 1337.6, uk 1339.5, pl 1418.3, ro 1702.5). The implementer reports that its run flagged the day's ledger exhausted, which stops request-time query embedding for the rest of today, and that the provider's allowance ran out at about 7,300 recorded neurons against the 9,500 cap (the ledger probably under-counts, or other spenders share the account); not investigated
+- Review manifest status per locale (machine / reviewed, reviewer, date): `ru` machine, unreviewed (`review.json`); no other locale in the committed manifest; every locale stays disabled and `enable_locale.py` was not run against any database
+- Quality warning: the `ru` strings pass the validators but some Slavic plural forms are wrong (for example `documents.result_count_few` and `_many` read `{count} результаты`, `suggestions.count_many` reads `предложения`); a native reviewer must fix them. The first four locales were not inspected before regeneration. The glossary additions (`Dokument`, `Kategorie`) and `unchanged.json` were drafted by the implementer and need native review
+- Other changes: `TranslationUnit` gained an optional read-only `context` field with a prompt rule used only when a unit has context; the machine API's `/taxonomy` is the category source and a repo guard test forbids ingest from naming the contract file; CLI contract, golden help files and the README list `i18n translate-ui`; `test_seed_i18n.py` counts every seed file
+- Incident: one `pytest` in `apps/api` ran without an inline `DATABASE_URL`; it failed at collection with an ImportError before any database connection
+- Operator actions: (1) resume `tr`, `uk`, `pl`, `ro` after 00:00 UTC; (2) native-speaker review of every locale and its glossary and allow-list entries, recorded in `review.json`; (3) `scripts.enable_locale` per locale
 
 ### Chapter 12 — Combined ranking score
 
-- Status: pending
-- Default weight and the SQL/Python agreement result: pending
-- Browse regression result: pending
-- OpenAPI snapshot and contract fixture regenerated: pending
+- Status: merged into loop branch (#392); refactor gate: smells found -> refactorings applied (`CardRepository` extracted from `cards.py` into `card_repository.py`; `search is None` branching in `CardRelations` replaced by a `CardSearch` protocol with `NoSearch` and `FusedSearch` variants in `card_search.py`; interim `by_relevance` ordering and the old `None` sort branch deleted); `_by_combined` keeps two arms (browse versus search), split on a third ranking mode; data-design gate: applies, no `apply` findings; accepted-risk: offset paging re-evaluates the pool per request so rows written between pages can shift (trigger: duplicate or missing rows reported in practice); observed: ordering uses the unrounded score while cards show four decimals, so equal displayed scores may be ordered by the tail
+- Default weight and the SQL/Python agreement result: `SEARCH_CONFIDENCE_WEIGHT` default 0.3, validated 0..1 at load and in the expression; `test_search_scoring.py` checks SQL versus Python agreement on a grid and rejects an out-of-range weight; rollback is `SEARCH_CONFIDENCE_WEIGHT=0` (pure relevance). Tuning is chapter 18 (O14)
+- Browse regression result: browse order unchanged (confidence, completeness, mentions, tie-break); `score` equals confidence to within 5e-5 outside a search, so browse and legacy title-match tests compare with a tolerance
+- OpenAPI snapshot and contract fixture regenerated: `apps/web/src/test/contract/openapi.schemas.json` gained `score` on `CandidateCard` and `CandidateDetail`; no web code changed. Run counts: API 1965 passed and 25 skipped, web 1131 passed and 1 expected fail
+- Incident (reported by the implementer): one early `pytest` run in `apps/api` was launched without a scratch `DATABASE_URL`, followed the `apps/api/.env` symlink and hung; it was killed. Same unverified risk as the chapter 13 incident; every later run used an inline scratch URL
 
 ### Chapter 13 — Translation schema and core
 
-- Status: pending
-- Migration id and round-trip result: pending
-- Engine port, registry and conformance suite: adapters passing (`llm`, optional `mt`): pending
-- Translation object store round trip (write, read, content hash, key layout): pending
-- Probe reports per locale and engine (validator pass rate, usage per unit, projected corpus cost, days at budget share): pending
-- Native-speaker spot-check notes and engine decision (D13): pending
+- Status: merged into loop branch (#378); live probe complete for all six locales; D13 decided (Cloudflare PoC); native-speaker spot checks PENDING (manual). Refactor gate: smells found -> refactorings applied (error-category table, `_reserve_neurons`, answer parsing and validators split, `use_ledger` flag removed, provider leak out of probe). Data-design gate: no `apply` findings (accepted-risk: index row is the only key index since `ObjectStore` has no `list`; no CHECK constraints on hash widths; observed: prompt/glossary version not pinned in payload (D10), `translation_task` completed-row retention for C14/C15)
+- Migration id and round-trip result: `20261111_translation_schema` (parent `20261110_search_schema`); `check_migrations.sh` passes (single head, upgrade, downgrade -1, upgrade, `alembic check` clean). Reuses `work_task_status`; adds `translation_source`.
+- Engine port, registry and conformance suite: `llm` adapter passes `translation_engine_contract.py`; three deliberately broken fakes (dropped unit, mangled placeholder, leaked token) each fail their own check; a fake characters-unit adapter registers with no other changes; `meter_for_unit("characters")` raises "no meter for unit characters". No MT adapter added (the probe decides).
+- Translation object store round trip: in-memory and S3 (moto) pass write/read/delete/missing; key `translations/v1/{candidate_id}/{locale}/card/{content_sha256}.json`; canonical sorted-key UTF-8 JSON; key sha256 and `size_bytes` match the bytes; a re-translation gets a new key.
+- Probe reports per locale and engine (2026-11-10, chief of staff, live, `llm` / `@cf/qwen/qwen3-30b-a3b-fp8`, 50 real cards sampled via the public API; reports and sheets in the gitignored `apps/discovery-ingest/translation-probe/`):
+
+  | locale | validated ok | pass rate | failures | neurons spent | neurons per card | projected neurons, whole corpus (4,713 cards) |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | tr | 42/50 | 0.84 | glossary 7, numbers 1 | 600 | 12.0 | 56,534 |
+  | en | 43/45 | 0.86 | numbers 1, glossary 1, unusable output 5 | 463 | 10.3 | 48,472 |
+  | uk | 41/50 | 0.82 | numbers 3, glossary 6 | 647 | 12.9 | 60,974 |
+  | pl | 46/50 (rerun; first attempt stopped at 15/20 on a Workers AI timeout) | 0.92 | glossary 3, numbers 2 | 577 | 11.5 | 54,381 |
+  | ru | 40/50 (rerun; first attempt hit a candidate-API read timeout) | 0.80 | glossary 8, numbers 3 | 593 | 11.9 | 55,850 |
+  | ro | 49/50 | 0.98 | glossary 1 | 648 | 13.0 | 61,093 |
+
+  About 337k neurons for all six locales (sum of the per-locale projections), which is about 35 days at the 9,500-neuron daily share. Pass rates 0.80 to 0.98; glossary adherence and number preservation are the main failures. The probe calls Workers AI outside the ledger; about 3,800 neurons were spent today on these runs (including one aborted `pl` run), plus about 9 on the C1 embedding probe. All six locales have now been probed.
+- Environment notes for running the probes behind the corporate proxy: Python's certificate store rejects the proxy's certificate, so export `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` (verification stays on); the Supabase database is not reachable from this network (so the incident below most likely only hung on connect). `apps/api/.env` is now a symlink to `~/.config/redtape/probe.env`, which was merged with the keys that only the old `.env` had; the originals are saved as `~/.config/redtape/api.env.pre-symlink` and `probe.env.bak`. Because the symlinked `.env` still holds `DATABASE_URL`, implementers must keep overriding `DATABASE_URL` with a scratch database for tests.
+- Native-speaker spot-check notes: pending. Sheets: `translation-probe/llm-<L>.csv`. The glossary renderings for the six locales were drafted by the implementer and need native review.
+- Engine decision (D13): Cloudflare `llm` adapter for the PoC, Azure later (recorded in `gaps-and-decisions.md`). Open consequence: the full corpus in six locales does not fit a free-tier pace; coverage must be priority-limited (C14/C15) and the locale list may need narrowing before the first drain is enabled.
+- Incident (reported by the implementer): one early `pytest` run in `apps/api` started without a scratch `DATABASE_URL`, hung about 2 min and was killed. `Settings` loads `apps/api/.env`, and `tests/conftest.py` runs `CREATE EXTENSION IF NOT EXISTS` and `Base.metadata.create_all` on the configured database. If that `.env` points at Supabase and the connection succeeded, tables or extensions may have been created outside Alembic. Unverified; check with the SQL in the orchestration notes.
 
 ### Chapter 14 — Translation queue and machine API
 
-- Status: pending
-- Backfill counts (enqueued, up to date, stale): pending
-- Object-store outage test (task handed back, attempt not burned): pending
-- Priority ordering evidence (high-confidence first, all locales together): pending
-- Contract fixture regenerated: pending
+- Status: merged into loop branch (#384); refactor gate: smells found -> refactorings applied (`_refuse` dispatch table, `_store_text` split, `plan.py` extracted, `QueueCounts`, `fail`/`release` shared in `search/leased_settle.py`, `OPEN_TASK_PREDICATE`, `scripts/backfill_common.py`); data-design gate: no `apply` findings (lock order candidate share lock -> task lock -> index row, mutation-checked; blob written before index row); accepted-risk: R2 puts inside `complete` hold locks (trigger: mention-route lock waits or R2 put p95 > ~1 s), orphan objects after failed delete (trigger: bucket bytes vs sum of index `size_bytes`), same-key zombie and replayed `complete` answers `rejected`, mention-batch fan-out of up to 600 upserts; observed: `unavailable` carries no `not_before` (C15 must stop on it), completed/failed tasks never pruned, staleness only via the `record_mentions` hook, a `TRANSLATION_UNIT_RECIPE_VERSION` bump needs a backfill (C18 runbook), **C5 `EmbeddingCompletion` locks task then search-text row `FOR SHARE` while writers lock search text then task: inverse order, possible deadlock (not changed here)**, future human-edit endpoint (O15) PK conflict, R2 ledger reserve shares the request transaction
+- Backfill counts (enqueued, up to date, stale): scratch DB only, synthetic (41 candidates, 6 locales): run 1 `enqueued=209 up_to_date=30 stale=18 missing=191 human_protected=1 no_source=6`; run 2 `enqueued=0` (idempotent). Real counts PENDING (operator)
+- Object-store outage test (task handed back, attempt not burned): store `None` and `ObjectStoreQuotaError` on put both give `unavailable`, task back to `pending`, `attempt_count == 0`, no index row; a failure after the put leaves one orphan object
+- Priority ordering evidence (high-confidence first, all locales together): claim orders by priority, candidate id (new optional `LeasedQueue.claim(grouping=...)`), age, id; scratch-corpus claim of 25 went candidate by candidate in descending confidence with all locales together; re-translations (priority >= 10000) sort last; mutation-checked
+- Contract fixture regenerated: `discovery_machine_contract.json` (+5 routes, 13 models, `TranslationOutcome`) and web `openapi.schemas.json`
+- Deviations: claim scoped to current `TRANSLATION_TARGET_LOCALES` (empty list claims nothing); `human_exists` completes its task, a bounds failure fails permanently; `CandidateService` takes a 4th constructor argument (`TranslationEnqueuer`); `validate_i18n_value` made public (validators reject, not strip, control characters); local CI ran a copy of `ci.sh` with scratch DB names because the original drops the shared `redtape_migrations`/`redtape_pytest` databases and an auto-mode check denied it
+- Operator actions after merge: (1) narrow `TRANSLATION_TARGET_LOCALES` on Render and in worker settings before the first backfill (D13); (2) after deploy run `uv run python -m scripts.backfill_translations` in `apps/api` against production and record counts; (3) confirm R2 object-store variables on Render (without them every `complete` answers `unavailable`)
 
 ### Chapter 15 — Translation drain worker
 
-- Status: pending
+- Status: merged into loop branch (#388); refactor gate: smells found -> refactorings applied (`FlooredMeter` moved to `worker/floored_meter.py` with `_recheck` extracted, `_drain` extracted from `run_translate_drain`, `CountedTranslator` moved to `translate_drain.py`; shared lease settlement in `lease_settle.py`, embed drain imports it); data-design gate: no `apply` findings; accepted-risk: the query-embedding floor is check-reserve-recheck, so a concurrent query-embedding spend can slip between the two ledger reads (an atomic floor needs a chapter 14 API change; revisit if the floor is breached in production; the ledger hard cap stays atomic and the `discovery-pipeline` concurrency group serialises drains)
+- Notes: work was cherry-picked from an earlier unpushed attempt (`wip/c15-prior-attempt`, left in place locally) and re-verified; `mypy .` as written in the chapter's verification block reports 410 errors, all in `tests/` (not checked against the loop branch before this chapter); `./ci.sh` and the workflow run `mypy discovery_ingest`, which is clean
+- Operator actions after merge: run the chapter 14 backfill; narrow `TRANSLATION_TARGET_LOCALES` on Render (D13); set `DISCOVERY_TRANSLATE_SCHEDULE=enabled` (optional `TRANSLATION_ENGINE`, `QUERY_EMBED_RESERVE`) with secrets `CLOUDFLARE_AI_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; confirm R2 variables on Render; dispatch once. Cadence as shipped: daily 17:10 UTC, 2500-neuron run cap, 1000-neuron floor, 10 tasks per batch, at most 60 batches, 600 s. Minutes per run not yet measured
 - First drain report (claimed, stored, stale, rejected, neurons): pending
 - Validator failure and repair rate: pending
 - Cadence, query-embedding floor and Actions minutes per run: pending
@@ -137,18 +206,21 @@
 
 ### Chapter 16 — Translated text in search text and embedding tasks
 
-- Status: pending
+- Status: merged into loop branch (#390); refactor gate: smells found -> refactorings applied (`run_prune` split into `_vector_totals` and `_delete_open_tasks`; duplicated embedding fixtures replaced by the shared `embed`/`add_embedding` helpers); `backfill_search.py` is 133 lines, left as is (split on a third backfill mode); data-design gate: no `apply` findings, no schema change; accepted-risk: (1) lock order inverse to embedding `complete` (search text then task versus task then search text) can deadlock, one side aborts, the subscriber's savepoint keeps the translation stored and a backfill reconciles (trigger: "deadlock detected" on `embedding_task` or `candidate_search_text`); (2) `EMBEDDING_LOCALES` gates enqueue only, claim does not consult it, so pending tasks of a dropped locale keep draining (drop from the setting, then prune; trigger: embedding neurons spent on a dropped locale); observed: a subscriber failure is only logged, so a locale's search text stays missing until `backfill_search --locale` runs
+- Deviations: subscriber registered in `translation/router.py` instead of `translation/service.py` (keeps `TranslationCompletion` free of search imports); reclaimed figure is stored vector bytes (`pg_column_size` sum), the table and HNSW index only give space back after a vacuum
+- Operator actions after merge: once the translate drain has data run `python -m scripts.backfill_search --locale <code>` in `apps/api` per translated locale; run the embed drain until empty; set `EMBEDDING_LOCALES` on Render if narrowing (prune only after removing the locale from the setting)
 - Per-locale search-text rows, embedded counts and stale counts: pending
 - Table and index sizes per locale versus budget: pending
 - Polish and Ukrainian keyword behaviour (O9): pending
 
 ### Chapter 17 — Translation read path and pop-over
 
-- Status: pending
-- Query-count test (constant per page) and zero object-store calls on a list page: pending
-- R2 reads for one pop-over open, and `304` on revalidation without a store read: pending
-- Screenshots (trigger, open pop-over, stale note, phone width; `tr`, `ru`): pending
-- Pop-over network check (one stored-text request on first open, none on second open, no model call): pending
+- Status: merged into loop branch (#398); refactor gate: smells found -> refactorings applied (API: card builder delegates to `CardContext.translation_of`, `german_title` and `TranslationUnit.of_card` remove a duplicated title rule in `SourceRepository`; web: `TranslationTrigger` extracted from `TranslationPopover`); data-design gate: applies, two `apply` findings fixed with tests: (1) the ETag now also encodes the stale flag (a German change after the first fetch gives 200 with `stale: true` and a new ETag; a matching tag still gives 304 with 0 reads), (2) `Vary: Accept-Language` on the text route; clean: constant-query list lookup; observed: the object read happens inside the request (boto timeouts 5 s connect, 30 s read, 2 attempts, session held meanwhile), no reconcile job for an index row whose object is missing or corrupt (logged, answers 404); accepted-risk: no throttle on the text route, so cache-busting reads cost a metered R2 Class B operation each (trigger: the R2 Class B ledger nearing its cap)
+- Deviations: web component, hook and fetch live in `components/data-display/TranslationPopover/`, `hooks/useCandidateTranslationQuery.ts` and `services/candidateTranslationApi.ts` instead of `features/documents/` (the candidate detail header needs the same component and the architecture test and ESLint forbid cross-feature imports; precedent: C10 `ScoreRing`); the text route uses the resolved request locale (which already honours `?locale=`) instead of an explicit `locale` parameter; the handler returns `Response[CandidateTranslationText | None]` because a union of two `Response` types dropped the schema from OpenAPI (hence the extra fix commit); added copy keys `documents.translation_open`, `translation_machine_note`, `translation_stale_note` and `translation_error` (loading and retry reuse `common.*`), in the web fallback bundles and the API seed JSON
+- Query-count test (constant per page) and zero object-store calls on a list page: `test_the_list_issues_a_constant_number_of_queries_and_makes_no_object_store_call` (page sizes 2 and 10); `de` returns an empty result without a query; list and detail carry `translation: {locale, source, stale} | null` from one batched `translations_for(candidate_ids, locale)`
+- R2 reads for one pop-over open, and `304` on revalidation without a store read: one open reads one object (test asserts `reads == 1`); matching `If-None-Match` answers 304 with no store read; a curl against the real scratch API confirmed 200 then 304 with the same ETag, `Cache-Control: public, max-age=10800, must-revalidate` and `Vary`, and 404 for `de`; 404 also for no row, unknown candidate, a missing or corrupt object, 503 when object storage is not configured
+- Screenshots (trigger, open pop-over, stale note, phone width; `tr`, `ru`): headless Chrome via CDP at 1280 px and 390 px with forced `tr` and `ru` against a real scratch API (scratch DB, in-memory object store, real routes) and the Vite dev server: card with trigger, open pop-over with the stale note, loading (throttled), error with retry, very long text scrolling inside the pop-over, candidate detail header with the pop-over open (`tr`, desktop only). Caveats: `ru` only because it was enabled on the scratch API (the web has no `ru` UI bundle, so interface copy shows English); synthetic data; German-length check pending (needs real data and the chapter 11 bundles); images in the scratchpad only (`scratchpad/c17shots/`), not committed. The implementer also deleted an older scratchpad `shots/` folder holding the uncommitted C9 and C10 screenshots, so those images are gone (redo for chapter 18 evidence)
+- Pop-over network check (one stored-text request on first open, none on second open, no model call): fetch-spy test shows no request before the first open, one stored-text request on first open, none on the second open, and no model or other URL
 
 ### Chapter 18 — Evaluation, tuning and rollout
 
@@ -174,3 +246,5 @@
 | Object storage | translation objects and bytes; R2 Class A and B usage under the caps | pending |
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
+
+**Last orchestration:** 2026-11-11 — stopped at chapter C11 (17 of 18 merged: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12, C9, C10, C17, C11); C11 is partial (only `ru` of tr, ru, uk, pl, ro generated) because the Workers AI daily allowance ran out; release PR not opened; C18 not started

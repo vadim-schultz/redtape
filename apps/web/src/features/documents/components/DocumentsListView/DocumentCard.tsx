@@ -2,20 +2,21 @@ import { Card, Flex, Link } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 
 import AppCard from "../../../../components/data-display/AppCard";
+import { TranslationPopover } from "../../../../components/data-display/TranslationPopover";
 import type { DocumentSummary } from "../../types";
-import { ConfidenceCircle } from "../ConfidenceCircleView";
+import CardScores from "./CardScores";
 import DocumentTagBadges from "./DocumentTagBadges";
 
 export interface DocumentCardProps {
   document: DocumentSummary;
 }
 
-/** One listed document: title, description, tags and confidence, linking to its item page. */
+/** One listed document: title, description, tags and score rings, linking to its item page. */
 export default function DocumentCard({ document }: DocumentCardProps) {
   return (
     <AppCard>
-      <Flex justify="space-between" align="flex-start" gap={3}>
-        <Card.Title textStyle="subsectionHeader">
+      <Flex align="flex-start" gap={3} wrap="wrap">
+        <Card.Title textStyle="subsectionHeader" flex="1 1 12rem">
           <Link asChild>
             <RouterLink
               to={`/candidates/${document.id}`}
@@ -25,7 +26,15 @@ export default function DocumentCard({ document }: DocumentCardProps) {
             </RouterLink>
           </Link>
         </Card.Title>
-        <ConfidenceCircle confidence={document.confidence} />
+        <TranslationPopover
+          candidateId={document.id}
+          summary={document.translation}
+          label={document.title}
+        />
+        <CardScores
+          confidence={document.confidence}
+          similarity={document.similarity}
+        />
       </Flex>
       {document.description ? (
         <Card.Description mt={1}>{document.description}</Card.Description>

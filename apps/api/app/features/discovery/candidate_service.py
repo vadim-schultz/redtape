@@ -10,7 +10,9 @@ from app.features.discovery.candidate_key import candidate_key
 from app.features.discovery.lookups import require_catalogue
 from app.features.discovery.mention_rows import PreparedMention, new_mention, refresh_mention
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.search.service import SearchTextService
 from app.features.taxonomy.service import TaxonomyService
+from app.features.translation.enqueue import TranslationEnqueuer
 from app.models.discovery import DiscoveryCandidateMention, DiscoveryDocumentCandidate
 from app.schema.discovery.candidates import (
     CandidateMentionItem,
@@ -23,6 +25,7 @@ from app.schema.discovery.candidates import (
 class MentionOutcome:
     """Whether recording one item created its candidate and its mention."""
 
+    candidate_id: UUID
     candidate_created: bool
     mention_created: bool
 
@@ -46,15 +49,27 @@ def _tally(prepared: list[PreparedMention], outcomes: list[MentionOutcome]) -> C
 class CandidateService:
     """Record mentions and keep one candidate per jurisdiction and key."""
 
-    def __init__(self, repository: DiscoveryRepository, taxonomy: TaxonomyService) -> None:
-        """Bind the service to ``repository`` and the ``taxonomy`` that vets mention codes."""
+    def __init__(
+        self,
+        repository: DiscoveryRepository,
+        taxonomy: TaxonomyService,
+        search_text: SearchTextService,
+        translation: TranslationEnqueuer,
+    ) -> None:
+        """Bind to ``repository``, the ``taxonomy`` that vets codes, the ``search_text`` kept current and ``translation``."""
         self._repo = repository
         self._taxonomy = taxonomy
+        self._search_text = search_text
+        self._translation = translation
 
     def record_mentions(self, body: CandidateMentionsRequest) -> CandidateMentionsResponse:
         """Record every item or none: lookups and keys are checked before the first write."""
         prepared = self._prepare(body.items)
-        return _tally(prepared, [self._record(entry) for entry in prepared])
+        outcomes = [self._record(entry) for entry in prepared]
+        candidate_ids = sorted({outcome.candidate_id for outcome in outcomes})
+        self._search_text.refresh_many(candidate_ids)
+        self._translation.enqueue_many(candidate_ids)
+        return _tally(prepared, outcomes)
 
     def _prepare(self, items: list[CandidateMentionItem]) -> list[PreparedMention]:
         jurisdictions = self._jurisdictions(items)
@@ -72,7 +87,7 @@ class CandidateService:
 
     def _record(self, prepared: PreparedMention) -> MentionOutcome:
         candidate, candidate_created = self._resolve_candidate(prepared)
-        return MentionOutcome(candidate_created, self._upsert_mention(candidate, prepared))
+        return MentionOutcome(candidate.id, candidate_created, self._upsert_mention(candidate, prepared))
 
     def _resolve_candidate(self, prepared: PreparedMention) -> tuple[DiscoveryDocumentCandidate, bool]:
         candidate = self._repo.get_candidate_by_key(jurisdiction_id=prepared.jurisdiction_id, key=prepared.key)

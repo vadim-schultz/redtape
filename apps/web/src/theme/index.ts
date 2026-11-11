@@ -3,7 +3,7 @@ import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 import { semanticTokens } from "./semantic-tokens";
 import { textStyles } from "./textStyles";
 import { tokens } from "./tokens";
-import "./fonts";
+import { FONT_STACKS } from "./fonts";
 
 const config = defineConfig({
   theme: {
@@ -13,12 +13,9 @@ const config = defineConfig({
       easings: tokens.easings,
       shadows: tokens.shadows,
       fonts: {
-        body: { value: "'Inter', system-ui, -apple-system, sans-serif" },
-        heading: { value: "'Space Grotesk', system-ui, sans-serif" },
-        mono: {
-          value:
-            "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-        },
+        body: { value: FONT_STACKS.body },
+        heading: { value: FONT_STACKS.heading },
+        mono: { value: FONT_STACKS.mono },
       },
       fontSizes: {
         xs: { value: "0.75rem" },

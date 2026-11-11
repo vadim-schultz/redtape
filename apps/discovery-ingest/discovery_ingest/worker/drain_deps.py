@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
@@ -12,16 +11,12 @@ from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.config import DEFAULT_FIM_PORTAL_URL
 from discovery_ingest.extract.base import Extractor
 from discovery_ingest.extract.registry import EXTRACTORS
+from discovery_ingest.worker.drain_loop import monotonic
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.llm_extract import AfterExtract, no_after_extract
 from discovery_ingest.worker.llm_runtime import LlmResources
 from discovery_ingest.worker.render import AfterSnapshot
-
-
-def _monotonic() -> float:
-    """Read the monotonic clock at call time, so a test that replaces ``time.monotonic`` is honoured."""
-    return time.monotonic()
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,5 +36,5 @@ class DrainDeps:
     after_snapshot: AfterSnapshot | None = None
     extractors: Sequence[Extractor] = field(default=EXTRACTORS)
     budget: BudgetGuard | None = None
-    clock: Callable[[], float] = _monotonic
+    clock: Callable[[], float] = monotonic
     fim_base_url: str = DEFAULT_FIM_PORTAL_URL

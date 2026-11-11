@@ -20,7 +20,7 @@ TRANSLATIONS = "/api/v1/translations"
 
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
-    for code in ("de", "en", "fr"):
+    for code in ("de", "en", "fr", "tr"):
         db_session.execute(sa.delete(SupportedLocale).where(SupportedLocale.code == code))
         db_session.execute(sa.delete(UITranslation).where(UITranslation.locale == code))
     db_session.add_all(
@@ -50,6 +50,8 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[Tes
                 completeness_pct=0.0,
             ),
             UITranslation(key="greeting", locale="de", value="Hallo"),
+            UITranslation(key="farewell", locale="de", value="Tschuess"),
+            UITranslation(key="greeting", locale="en", value="Hello"),
         ]
     )
     db_session.flush()
@@ -76,7 +78,7 @@ def test_locales_lists_enabled_locales_sorted_by_code_with_all_fields(client: Te
             "name_english": "English",
             "flag_emoji": "\U0001f1ec\U0001f1e7",
             "enabled": True,
-            "completeness_pct": 80.0,
+            "completeness_pct": 50.0,
         },
     ]
 
@@ -84,20 +86,20 @@ def test_locales_lists_enabled_locales_sorted_by_code_with_all_fields(client: Te
 def test_translations_returns_bundle_for_request_locale_with_cache_header(client: TestClient[Litestar]) -> None:
     response = client.get(TRANSLATIONS, params={"locale": "de"})
 
-    assert response.json() == {"locale": "de", "translations": {"greeting": "Hallo"}}
+    assert response.json() == {"locale": "de", "translations": {"greeting": "Hallo", "farewell": "Tschuess"}}
     assert response.headers["Cache-Control"] == "public, max-age=3600, stale-while-revalidate=86400"
 
 
 def test_translations_for_unsupported_locale_falls_back_to_de(client: TestClient[Litestar]) -> None:
     response = client.get(TRANSLATIONS, params={"locale": "xx"})
 
-    assert response.json() == {"locale": "de", "translations": {"greeting": "Hallo"}}
+    assert response.json() == {"locale": "de", "translations": {"greeting": "Hallo", "farewell": "Tschuess"}}
 
 
-def test_translations_for_locale_without_rows_returns_empty_bundle(client: TestClient[Litestar]) -> None:
+def test_translations_for_a_locale_with_rows_returns_only_its_own_rows(client: TestClient[Litestar]) -> None:
     response = client.get(TRANSLATIONS, params={"locale": "en"})
 
-    assert response.json() == {"locale": "en", "translations": {}}
+    assert response.json() == {"locale": "en", "translations": {"greeting": "Hello"}}
 
 
 def test_locale_read_rejects_missing_fields() -> None:
@@ -109,3 +111,53 @@ def test_translation_bundle_shape() -> None:
     bundle = TranslationBundle(locale="de", translations={"greeting": "Hallo"})
 
     assert bundle.model_dump() == {"locale": "de", "translations": {"greeting": "Hallo"}}
+
+
+def test_completeness_is_computed_from_ui_translation_coverage(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    db_session.add(UITranslation(key="farewell", locale="en", value="Goodbye"))
+    db_session.flush()
+
+    by_code = {row["code"]: row["completeness_pct"] for row in client.get(LOCALES).json()}
+
+    assert by_code == {"de": 100.0, "en": 100.0}
+
+
+def test_completeness_ignores_keys_the_source_locale_lacks_and_never_exceeds_100(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    db_session.add_all(
+        [
+            UITranslation(key="farewell", locale="en", value="Goodbye"),
+            UITranslation(key="extra", locale="en", value="Extra"),
+        ]
+    )
+    db_session.flush()
+
+    by_code = {row["code"]: row["completeness_pct"] for row in client.get(LOCALES).json()}
+
+    assert by_code["en"] == 100.0
+
+
+def test_a_locale_without_rows_has_zero_completeness_and_a_disabled_one_is_not_listed(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    db_session.add(SupportedLocale(code="tr", name_native="Turkce", name_english="Turkish", enabled=False))
+    db_session.execute(sa.delete(UITranslation).where(UITranslation.locale == "en"))
+    db_session.flush()
+
+    by_code = {row["code"]: row["completeness_pct"] for row in client.get(LOCALES).json()}
+
+    assert by_code == {"de": 100.0, "en": 0.0}
+
+
+def test_completeness_is_zero_for_every_locale_when_the_source_has_no_keys(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    db_session.execute(sa.delete(UITranslation))
+    db_session.flush()
+
+    by_code = {row["code"]: row["completeness_pct"] for row in client.get(LOCALES).json()}
+
+    assert by_code == {"de": 0.0, "en": 0.0}

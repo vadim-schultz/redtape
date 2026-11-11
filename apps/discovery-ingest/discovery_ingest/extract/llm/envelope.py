@@ -58,11 +58,12 @@ def _usage_fields(result: dict[str, JsonValue]) -> dict[str, JsonValue]:
     return usage if isinstance(usage, dict) else {}
 
 
-def _count(value: JsonValue) -> int | None:
+def token_count(value: JsonValue) -> int | None:
+    """Return ``value`` as a token count when it is an integer (not a boolean), else ``None``."""
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
-def _neurons(value: JsonValue) -> float | None:
+def reported_neurons(value: JsonValue) -> float | None:
     """Return ``value`` as neurons when it is a finite non-negative number (probe 2026-10-28: ``usage.neurons``)."""
     if isinstance(value, bool) or not isinstance(value, int | float):
         return None
@@ -70,14 +71,14 @@ def _neurons(value: JsonValue) -> float | None:
 
 
 def _tokens(fields: dict[str, JsonValue]) -> tuple[int | None, int | None]:
-    prompt, completion = _count(fields.get("prompt_tokens")), _count(fields.get("completion_tokens"))
+    prompt, completion = token_count(fields.get("prompt_tokens")), token_count(fields.get("completion_tokens"))
     return (prompt, completion) if prompt is not None and completion is not None else (None, None)
 
 
 def read_usage(response: httpx.Response) -> ReportedUsage:
     """Return the usage of a 2xx ``response``, whether or not its answer is usable; raise when there is no result."""
     fields = _usage_fields(_result(response))
-    return ReportedUsage(*_tokens(fields), _neurons(fields.get("neurons")))
+    return ReportedUsage(*_tokens(fields), reported_neurons(fields.get("neurons")))
 
 
 def read_result(response: httpx.Response, model: str) -> LlmResult:

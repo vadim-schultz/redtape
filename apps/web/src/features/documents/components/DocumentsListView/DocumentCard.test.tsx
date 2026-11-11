@@ -2,6 +2,8 @@ import { screen } from "@testing-library/react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { it, expect } from "vitest";
 
+import { translationSummaryFixture } from "../../../../test/candidateFixtures";
+import { json, stubTranslationApi } from "../../../../test/candidatesApiStub";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
 import type { DocumentSummary } from "../../types";
 import DocumentCard from "./DocumentCard";
@@ -12,6 +14,8 @@ const baseDocument: DocumentSummary = {
   description: null,
   tags: [],
   confidence: 0.5,
+  similarity: null,
+  translation: null,
 };
 
 function StateProbe() {
@@ -161,4 +165,144 @@ it("DocumentCard · the circle adds no second interactive element", async () => 
   await screen.findByRole("progressbar");
   expect(screen.getAllByRole("link")).toHaveLength(1);
   expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("DocumentCard · shows confidence and similarity rings with captions in hybrid mode", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, confidence: 0.82, similarity: 0.45 }}
+    />,
+  );
+
+  const bars = await screen.findAllByRole("progressbar");
+
+  expect(bars).toHaveLength(2);
+  expect(screen.getByText("Confidence")).toBeVisible();
+  expect(screen.getByText("Similarity")).toBeVisible();
+  expect(screen.getByRole("progressbar", { name: /^Confidence/ })).toBe(
+    bars[0],
+  );
+  expect(screen.getByRole("progressbar", { name: /^Similarity/ })).toBe(
+    bars[1],
+  );
+});
+
+it("DocumentCard · similarity null never renders a 0% ring", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("progressbar");
+
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(screen.queryByText("Similarity")).toBeNull();
+  expect(screen.queryByRole("progressbar", { name: /Similarity/ })).toBeNull();
+});
+
+it("a11y · both rings have distinct accessible names", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, confidence: 0.5, similarity: 0.5 }}
+    />,
+  );
+
+  const names = (await screen.findAllByRole("progressbar")).map((bar) =>
+    bar.getAttribute("aria-label"),
+  );
+
+  expect(names).toEqual(["Confidence 50%, medium", "Similarity 50%, medium"]);
+});
+
+it("DocumentCard · both rings add no interactive element", async () => {
+  renderWithProviders(
+    <DocumentCard document={{ ...baseDocument, similarity: 0.7 }} />,
+  );
+
+  await screen.findAllByRole("progressbar");
+
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("card · the translation trigger is not inside the card link", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, translation: translationSummaryFixture() }}
+    />,
+  );
+
+  const trigger = await screen.findByRole("button", {
+    name: "Show translation",
+  });
+
+  expect(trigger.closest("a")).toBeNull();
+  expect(screen.getByRole("link").contains(trigger)).toBe(false);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+});
+
+it("card · without a translation there is no trigger", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("link");
+
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("card · a failed translation fetch keeps the German original visible", async () => {
+  stubTranslationApi(() => new Response("", { status: 500 }));
+  const { user } = renderWithProviders(
+    <DocumentCard
+      document={{
+        ...baseDocument,
+        description: "Adresse anmelden",
+        translation: translationSummaryFixture(),
+      }}
+    />,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
+  await screen.findByText(
+    "The translation could not be loaded.",
+    {},
+    { timeout: 4000 },
+  );
+
+  expect(
+    screen.getByRole("link", { name: "Residency Registration" }),
+  ).toBeVisible();
+  expect(screen.getByText("Adresse anmelden")).toBeVisible();
+});
+
+it("card · opening the translation does not navigate", async () => {
+  stubTranslationApi(() =>
+    json({
+      ...translationSummaryFixture(),
+      title: "T",
+      description: "D",
+      engine: "llm",
+    }),
+  );
+  const { user } = renderWithProviders(
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <DocumentCard
+            document={{
+              ...baseDocument,
+              translation: translationSummaryFixture(),
+            }}
+          />
+        }
+      />
+      <Route path="/candidates/:id" element={<p>detail</p>} />
+    </Routes>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Show translation" }),
+  );
+  await screen.findByRole("heading", { name: "T" });
+
+  expect(screen.queryByText("detail")).toBeNull();
 });

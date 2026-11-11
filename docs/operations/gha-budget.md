@@ -55,10 +55,59 @@ only when the usage report shows headroom.
 | `api-lint-test.yml`, `web-ci.yml`, `discovery-ingest-ci.yml` | `pull_request` and `push` to `main`, path filtered. A new push cancels the superseded PR run. |
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
 | `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 45 ledger minutes. |
+| `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or when no more than 100 neurons are left above the `QUERY_EMBED_RESERVE` floor, and when no translation task is ready. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-render.yml` | Daily 05:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-drain`. |
 | `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
 `keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to `main` is what saves minutes.
+
+## Embedding drain cadence (search-first, chapter 6)
+
+`discovery-embed.yml` runs **twice a day** (06:10 and 18:10 UTC), not every six hours. The cost that decides it is the
+idle run, because the queue is empty most of the time once the backfill is done: an idle run still pays for checkout,
+`pip install`, the ledger check, the Render wake-up (`wait_for_api`, up to a minute on a cold start) and the queue
+precheck, and the job is billed in whole minutes.
+
+| Run | Estimate (not yet measured) | Ledger minutes (`ceil(elapsed / 60) + 1`) |
+| --- | --- | --- |
+| Idle (the queue precheck skips the drain) | 1.5 to 2 minutes | 3 |
+| Working, 3,000 neurons (about 2,700 texts of 1,500 characters, 54 batches of 50) | 5 to 8 minutes: about 1 s to embed a batch of 50 and a few seconds to post 50 vectors of 1024 numbers, plus the same setup | 7 to 10 |
+
+At two runs a day an always-idle month is about 60 runs, so about 180 ledger minutes (about 120 billed minutes) of the
+1,000-minute drain allowance; every six hours would double that. A working run per day finishes about 2,700 texts, so
+the German backfill of about 4,700 candidates takes two days and the six translated locales follow as translation lands
+(the neuron ledger, 9,500 a day shared with `llm_extract` and later translation, is the real limit, not minutes). To
+backfill faster, dispatch the workflow by hand or run `embed drain` on a laptop (it costs no Actions minutes and shares
+the same ledger). **The measured minutes per run are recorded by the operator after the first runs** (the `Report
+Actions minutes` step writes them to the ledger; `python -m discovery_ingest budget show --resource actions_minutes`
+shows the total). If the allowance is tight, drop the schedule to once a day.
+
+## Translation drain cadence (search-first, chapter 15)
+
+`discovery-translate.yml` runs **once a day at 17:10 UTC**: after the 06:10 embed drain, an hour before the 18:10 one that
+embeds the fresh translations (the group `discovery-pipeline` queues the embed run behind a translate run that is
+still going, it does not cancel it). A run is bounded by `time_budget_seconds` 600 and `neuron_budget` 2,500.
+
+| Run | Estimate (not yet measured) | Ledger minutes (`ceil(elapsed / 60) + 1`) |
+| --- | --- | --- |
+| Idle (the queue precheck skips the drain) | 1.5 to 2 minutes | 3 |
+| Working, up to the 600 s budget | about 12 minutes: setup, then batches of 10 tasks, one Workers AI call per locale (about 5 to 8 s with the 1 s pacing) and one `complete` per locale, about 170 cards in six locales or 200 and more in fewer | 13 to 14 |
+
+The neuron budget is what the chapter 13 probe decides: about 10 to 13 neurons per card and locale (the probe's own
+prompts hold five cards; a batch of 10 tasks over six locales holds fewer cards per prompt, so the glossary overhead
+repeats and the cost per card is a little higher), so a 2,500-neuron run translates about 200 cards and a six-locale
+corpus of 4,713 cards (about 337,000 neurons) needs months at a free-tier pace. The first run is therefore
+priority-limited by design: the queue is ordered highest confidence first, all locales of a candidate together, and
+the operator narrows `TRANSLATION_TARGET_LOCALES` (decision D13) before enabling the schedule. The day's 9,500 neurons
+are shared: `llm_extract` (up to 2,500), `embed drain` (up to 3,000), `translate drain` (up to 2,500) and the
+**query-embedding floor** `QUERY_EMBED_RESERVE` (1,000), which the translate drain never takes the ledger below.
+
+A month of working runs is about 30 x 14 = 420 ledger minutes of the 1,000-minute drain allowance on top of the other
+drains: if the allowance is tight, lower `time_budget_seconds`, dispatch by hand, or unset
+`DISCOVERY_TRANSLATE_SCHEDULE`. Running `translate drain` on a laptop costs no Actions minutes and shares the same
+ledger. **The measured minutes per run are recorded by the operator after the first runs** (the `Report Actions minutes`
+step writes them to the ledger).
 
 ## Operator checklist
 

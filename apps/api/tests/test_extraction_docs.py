@@ -6,7 +6,7 @@ import re
 
 import pytest
 from app.config import Settings
-from tests.crawlers_docs_support import unqualified_lines
+from tests.crawlers_docs_support import other_cloudflare_settings, unqualified_lines
 from tests.extraction_docs_support import (
     CHECKLIST,
     DEPLOYMENT_CHECKLIST,
@@ -23,9 +23,8 @@ from tests.extraction_docs_support import (
 )
 
 _NEGATION = ("not ", "no ", "never", "out of scope", "later", "future", "separate", "without", "nothing", "stays")
+# Document translation left this list when the search-first suite shipped it (chapters 13 to 15).
 _OUT_OF_SCOPE_TOPICS = (
-    "translate",
-    "translation of",
     "per-document tag",
     "edge emit",
     "emit edges",
@@ -86,13 +85,13 @@ def test_extraction_docs_state_that_nothing_is_emitted_automatically_and_that_ed
 
 
 def test_extraction_docs_state_that_the_workers_ai_token_is_not_a_render_variable_and_the_plan_stays_free() -> None:
-    """The token never reaches Render or the API, and the account stays on Workers Free."""
+    """The token is not a Render variable yet (search-first D1 lifts that for query embedding) and the plan stays free."""
     checklist = squashed(DEPLOYMENT_CHECKLIST)
     assert "CLOUDFLARE_AI_API_TOKEN" in checklist and "**not a Render variable**" in checklist
     assert "Workers **Free**" in checklist and "Workers Paid" in checklist
     assert "BUDGET_NEURONS_DAILY" in checklist and "an API variable" in checklist
     assert "CLOUDFLARE" not in read(REPO_ROOT / "render.yaml")
-    assert "cloudflare" not in " ".join(Settings.model_fields)
+    assert not other_cloudflare_settings()
     assert not missing(CHECKLIST, ("Workers Free", "Do not upgrade to Workers Paid", "OP3"))
 
 
@@ -108,7 +107,7 @@ def test_extraction_docs_describe_the_grounding_rule_and_the_tag_confidence_floo
 
 
 @pytest.mark.parametrize("path", EXTRACTION_DOCS, ids=lambda path: path.name)
-def test_docs_do_not_claim_translation_per_document_tags_edge_emit_or_automatic_emit_as_shipped(path) -> None:
+def test_docs_do_not_claim_per_document_tags_edge_emit_or_automatic_emit_as_shipped(path) -> None:
     """Negative scope contract: every line about an out-of-scope topic says it is not built."""
     claims = unqualified_lines(path, _OUT_OF_SCOPE_TOPICS, _NEGATION)
     assert not claims, f"{path.name} presents out-of-scope work as shipped: {claims}"
@@ -118,7 +117,7 @@ def test_the_scope_check_flags_a_claim_without_a_negation_and_accepts_a_negated_
     """Pair for the scope contract: the detector fires on a positive claim and stays quiet on a denial."""
     page = tmp_path / "page.md"
     page.write_text(
-        "The suite ships edge emit.\nEdge emit is out of scope.\nWe translate every name.\n", encoding="utf-8"
+        "The suite ships edge emit.\nEdge emit is out of scope.\nThe suite emits automatically.\n", encoding="utf-8"
     )
     claims = unqualified_lines(page, _OUT_OF_SCOPE_TOPICS, _NEGATION)
-    assert claims == ["The suite ships edge emit.", "We translate every name."]
+    assert claims == ["The suite ships edge emit.", "The suite emits automatically."]

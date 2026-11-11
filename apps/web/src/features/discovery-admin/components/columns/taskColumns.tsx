@@ -5,7 +5,7 @@ import type { DiscoveryTask, TaskFilterKey, TaskSortKey } from "../../types";
 import {
   formatRelativeTime,
   formatTimeUntil,
-} from "../../../../utils/relativeTime";
+} from "../../../../utils/format/formatRelativeTime";
 import { translateOrRaw } from "../../utils/translateOrRaw";
 import TaskStatusCell from "./cells/TaskStatusCell";
 import { headerLabels, type ColumnContext } from "./columnContext";

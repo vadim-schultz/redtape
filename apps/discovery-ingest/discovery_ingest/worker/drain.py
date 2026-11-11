@@ -2,24 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import asdict
-
-import httpx
-from pydantic import ValidationError
-
 from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.budget import BudgetGuard
-from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
-from discovery_ingest.schemas import DrainReport, StopReason
-from discovery_ingest.worker.batch import BatchResult, DrainContext, run_batch
+from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.schemas import DrainReport
+from discovery_ingest.worker.batch import DrainContext, run_batch
 from discovery_ingest.worker.browser_spend import BrowserSpend, open_browser_spend
 from discovery_ingest.worker.drain_deps import DrainDeps
+from discovery_ingest.worker.drain_loop import Finish, drain_until_stop
 from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
 from discovery_ingest.worker.handler_table import handler_table
 from discovery_ingest.worker.llm_drain import LlmDrain, open_llm_drain
 from discovery_ingest.worker.llm_enqueue import LlmEnqueuer
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.report import build_report, remaining_of
 from discovery_ingest.worker.snapshot_hooks import chain
 from discovery_ingest.worker.tally import Tally
 
@@ -30,22 +26,6 @@ def _open_spend(policy: DrainPolicy, guard: BudgetGuard, browser: BrowserClient 
     if browser is None:
         raise ValueError("a browser client is required to drain a browser kind")
     return open_browser_spend(policy.browser_budget_seconds, guard)
-
-
-def _stop(batch: BatchResult, policy: DrainPolicy, tally: Tally, elapsed: float) -> StopReason | None:
-    if batch.stop is not None:
-        return batch.stop.reason
-    return policy.stop_reason(batches=tally.batches, last_claimed=batch.size, elapsed=elapsed)
-
-
-def _drain_batches(ctx: DrainContext, tally: Tally, clock: Callable[[], float]) -> tuple[StopReason, str | None]:
-    """Run batches until a stop reason appears; return it with the error detail of an ``error`` stop."""
-    started = clock()
-    while True:
-        batch = run_batch(ctx, tally)
-        reason = _stop(batch, ctx.policy, tally, clock() - started)
-        if reason is not None:
-            return reason, str(batch.stop) if reason == "error" and batch.stop is not None else None
 
 
 def run_worker_drain(deps: DrainDeps, policy: DrainPolicy) -> DrainReport:
@@ -66,15 +46,15 @@ def run_worker_drain(deps: DrainDeps, policy: DrainPolicy) -> DrainReport:
     guard.snapshot()
     spend, tally = _open_spend(policy, guard, deps.browser), Tally()
     if policy.drains_browser_kinds and spend is None:
-        return _report(client, policy, tally, "browser_budget")
+        return _report(client, policy, tally, Finish("browser_budget"))
     llm_drain = open_llm_drain(policy, guard, deps.llm, deps.after_extract)
     if policy.drains_llm_kinds and llm_drain is None:
-        return _report(client, policy, tally, "llm_budget")
+        return _report(client, policy, tally, Finish("llm_budget"))
     hook = chain(deps.after_snapshot or ExtractEnqueuer(client, deps.extractors), deps.llm_enqueue)
     ctx = DrainContext(client, deps.fetcher, policy, handler_table(deps, (deps.browser, spend, hook), llm_drain))
-    reason, error = _drain_batches(ctx, tally, deps.clock)
+    finish = drain_until_stop(lambda: run_batch(ctx, tally), policy, deps.clock)
     _close_tally(tally, guard, spend, (llm_drain, deps.llm_enqueue))
-    return _report(client, policy, tally, reason, error=error)
+    return _report(client, policy, tally, finish)
 
 
 def _close_tally(
@@ -87,23 +67,5 @@ def _close_tally(
             part.record(tally)
 
 
-def _remaining(client: DiscoveryIngestClient, policy: DrainPolicy) -> int | None:
-    """Return the ready backlog for the drained kinds, or ``None`` when the summary is unavailable."""
-    try:
-        return client.tasks.summary(kinds=policy.kinds).pending_ready
-    except (DiscoveryMachineApiError, httpx.HTTPError, ValidationError):
-        return None
-
-
-def _report(
-    client: DiscoveryIngestClient, policy: DrainPolicy, tally: Tally, reason: StopReason, *, error: str | None = None
-) -> DrainReport:
-    remaining = _remaining(client, policy)
-    return DrainReport(
-        **asdict(tally),
-        remaining=remaining,
-        remaining_unknown=remaining is None,
-        stop_reason=reason,
-        succeeded=reason != "error",
-        error=error,
-    )
+def _report(client: DiscoveryIngestClient, policy: DrainPolicy, tally: Tally, finish: Finish) -> DrainReport:
+    return build_report(tally, finish, remaining_of(lambda: client.tasks.summary(kinds=policy.kinds).pending_ready))

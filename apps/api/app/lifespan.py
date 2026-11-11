@@ -12,15 +12,14 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models.locale import SupportedLocale
+from app.shared.locale import DEFAULT_ENABLED_LOCALES
 
 logger = logging.getLogger(__name__)
 
 REFRESH_INTERVAL_SECONDS = 300.0
 RETRY_INTERVAL_SECONDS = 30.0
 
-# One of the four D2 duplicates (see the audit); whichever of A4/B1 merges second
-# replaces this with the shared `DEFAULT_ENABLED_LOCALES`.
-_FALLBACK_LOCALES: frozenset[str] = frozenset({"de", "en"})
+_FALLBACK_LOCALES: frozenset[str] = DEFAULT_ENABLED_LOCALES
 
 
 def _load_enabled_locales() -> set[str]:

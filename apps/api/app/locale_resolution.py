@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from app.shared.locale import DEFAULT_ENABLED_LOCALES, FALLBACK_ORDER
+from app.shared.locale import DEFAULT_ENABLED_LOCALES, DEFAULT_LOCALE, fallback_chain
 
 _ACCEPT_LANG_PART = re.compile(r"^\s*(?P<tag>[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)(?:\s*;\s*q=(?P<q>[0-9.]+))?\s*$")
 
@@ -61,7 +61,7 @@ def resolve_locale(
     if requested and requested in enabled_set:
         return requested
 
-    for fallback in FALLBACK_ORDER:
+    for fallback in fallback_chain(DEFAULT_LOCALE):
         if fallback in enabled_set:
             return fallback
 

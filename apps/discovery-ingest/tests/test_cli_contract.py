@@ -1,4 +1,4 @@
-"""The command line contract: the 20 commands, their flags, defaults, help and usage errors.
+"""The command line contract: the 27 commands, their flags, defaults, help and usage errors.
 
 The rows live in ``cli_contract.py`` and are compared with the live CLI through ``cli_adapters.py``. The
 usage-error tests accept a ``SystemExit`` or a returned code, so they hold for the argparse CLI and its Typer
@@ -60,12 +60,12 @@ def _argv_without(spec: CommandSpec, skipped_flag: str) -> list[str]:
     return argv
 
 
-def test_the_command_set_is_exactly_the_twenty_documented_commands() -> None:
+def test_the_command_set_is_exactly_the_twenty_seven_documented_commands() -> None:
     assert [spec.path for spec in describe()] == [spec.path for spec in COMMANDS]
-    assert len(describe()) == 20
+    assert len(describe()) == 27
 
 
-def test_the_root_registers_the_eleven_groups_in_order() -> None:
+def test_the_root_registers_the_fourteen_groups_in_order() -> None:
     assert groups() == list(GROUPS)
 
 

@@ -1,4 +1,5 @@
 import type { ListQueryState } from "../../../services/listQuery";
+import type { SearchMode, TranslationSummary } from "../../candidates/types";
 import type { CategoryTag } from "../../taxonomy/types";
 
 export type DocumentTag = CategoryTag;
@@ -10,6 +11,10 @@ export type DocumentSummary = {
   description: string | null;
   tags: DocumentTag[];
   confidence: number;
+  /** Query match in 0..1; null when the list is not a hybrid search, so no ring shows. */
+  similarity: number | null;
+  /** Set when a stored translation exists for the reader's locale; the card then offers it in a pop-over. */
+  translation: TranslationSummary | null;
 };
 
 export type DocumentListResponse = {
@@ -17,18 +22,11 @@ export type DocumentListResponse = {
   total: number;
   offset: number;
   limit: number;
+  search_mode: SearchMode;
 };
 
-/** Sort keys of the documents list, in the order the sort control offers them. */
-export const DOCUMENT_SORT_KEYS = [
-  "confidence",
-  "title",
-  "created_at",
-] as const;
-export type DocumentSortKey = (typeof DOCUMENT_SORT_KEYS)[number];
-
-/** Search, sort and page of the documents list; the taxonomy chips travel beside it. */
-export type DocumentListQuery = ListQueryState<DocumentSortKey, never>;
+/** Search and page of the documents list (results are always best first, so there is no sort); the taxonomy chips travel beside it. */
+export type DocumentListQuery = ListQueryState<never, never>;
 
 /** Everything one page of the documents list depends on. */
 export type DocumentListRequest = {

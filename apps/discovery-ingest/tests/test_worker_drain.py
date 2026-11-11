@@ -279,7 +279,7 @@ def test_worker_drain_stops_at_time_budget_without_speculative_claim(
     """worker drain stops at the configured bound and reports remaining work."""
     claims, finishes = [0], []
     ticks = itertools.chain([0.0], itertools.repeat(5.0))
-    monkeypatch.setattr("discovery_ingest.worker.drain_deps.time.monotonic", lambda: next(ticks))
+    monkeypatch.setattr("discovery_ingest.worker.drain_loop.time.monotonic", lambda: next(ticks))
     _patch_httpx_client(monkeypatch, httpx.MockTransport(_queue_handler(_two_batches(), claims, finishes)))
 
     exit_code = main(["worker", "drain", "--max-tasks", "2", "--max-batches", "9", "--time-budget-seconds", "1"])

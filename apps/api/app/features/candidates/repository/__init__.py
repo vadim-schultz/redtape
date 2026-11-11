@@ -7,6 +7,7 @@ from app.features.candidates.repository.composite import PublicCandidateReposito
 from app.features.candidates.repository.descriptions import DescriptionRow
 from app.features.candidates.repository.public_filter import PublicCandidateFilter, PublicSortKey
 from app.features.candidates.repository.tag_scores import ScoredCode
+from app.features.candidates.repository.translations import TranslationIndexRepository, TranslationIndexRow
 
 __all__ = [
     "CardRow",
@@ -15,4 +16,6 @@ __all__ = [
     "PublicCandidateRepository",
     "PublicSortKey",
     "ScoredCode",
+    "TranslationIndexRepository",
+    "TranslationIndexRow",
 ]

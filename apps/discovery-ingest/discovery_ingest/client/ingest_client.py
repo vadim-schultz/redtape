@@ -11,9 +11,11 @@ from discovery_ingest.client.artifacts_api import ArtifactsAPI
 from discovery_ingest.client.budget_api import BudgetAPI
 from discovery_ingest.client.candidates_api import CandidatesAPI
 from discovery_ingest.client.catalogue_api import CatalogueAPI
+from discovery_ingest.client.embedding_api import EmbeddingsAPI
 from discovery_ingest.client.http_client import MachineHttpClient
 from discovery_ingest.client.runs_api import RunsAPI
 from discovery_ingest.client.tasks_api import TasksAPI
+from discovery_ingest.client.translation_api import TranslationsAPI
 
 if TYPE_CHECKING:
     from discovery_ingest.config import IngestSettings
@@ -31,6 +33,8 @@ class DiscoveryIngestClient:
         self.candidates = CandidatesAPI(self._http)
         self.artifacts = ArtifactsAPI(self._http)
         self.budget = BudgetAPI(self._http)
+        self.embeddings = EmbeddingsAPI(self._http)
+        self.translations = TranslationsAPI(self._http)
 
     @classmethod
     def from_settings(cls, settings: IngestSettings) -> Self:

@@ -1,0 +1,26 @@
+{
+  "any": [
+    "FIM",
+    "GovData",
+    "LeiKa",
+    "PVOG",
+    "R2",
+    "Redtape"
+  ],
+  "tr": [
+    "Form"
+  ],
+  "pl": [
+    "Crawler",
+    "Menu",
+    "Status"
+  ],
+  "ro": [
+    "Crawler",
+    "District",
+    "Document",
+    "Manual",
+    "Total",
+    "{count} document"
+  ]
+}

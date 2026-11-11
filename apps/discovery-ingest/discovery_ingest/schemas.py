@@ -196,6 +196,11 @@ class DrainReport(BaseModel):
     succeeded: bool = True
     ledger_unavailable: bool = False
     released: int = 0
+    stale: int = 0
+    rejected: int = 0
+    unavailable: int = 0
+    repaired: int = 0
+    invalid: int = 0
     browser_seconds_used: float = 0.0
     neurons_used: float = 0.0
     llm_calls: int = 0

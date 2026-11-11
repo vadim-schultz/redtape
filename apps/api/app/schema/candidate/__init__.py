@@ -9,6 +9,7 @@ from app.schema.candidate.read import (
     CandidateScreenshot,
     CandidateSource,
 )
+from app.schema.candidate.translation import CandidateTranslationSummary, CandidateTranslationText
 
 __all__ = [
     "CandidateCard",
@@ -18,4 +19,6 @@ __all__ = [
     "CandidateNeighbour",
     "CandidateScreenshot",
     "CandidateSource",
+    "CandidateTranslationSummary",
+    "CandidateTranslationText",
 ]

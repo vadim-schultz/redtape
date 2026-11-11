@@ -20,6 +20,9 @@ Run `python -m discovery_ingest <command> --help` for every flag.
 | `llm probe --model <id> --fixture <html>` | Send one cleaned page to each Workers AI model and print envelope, usage, cost and quality tables |
 | `llm eval --model <id>` | Run the gold set through the cleaner, a model and grounding; print precision, recall, quote-grounded rate, kept rate, category tag agreement and neurons per page |
 | `llm requeue [--host H] [--limit N] [--dry-run]` | Queue `llm_extract` for the latest snapshot of each catalogue row under the current model, prompt and cleaner versions |
+| `embed probe`, `embed drain`, `embed summary` | Probe the Workers AI embedding model; drain the embedding queue (claim text, embed, post vectors); print the queue counts; see [Drain embeddings](#drain-embeddings) |
+| `translate probe`, `translate drain`, `translate summary` | Cost a translation engine on a sample of real cards; drain the translation queue (claim German units, translate, validate, repair once, post the text); print the queue counts; see [Drain translations](#drain-translations) |
+| `i18n translate-ui` | Translate the interface strings and category labels into `tr`, `ru`, `uk`, `pl` or `ro` (resumable, charged to the neuron ledger, status `machine` until reviewed); see [docs/operations/locales.md](../../docs/operations/locales.md) |
 | `artifacts list`, `artifacts download` | List stored snapshots of a host and write one to a file |
 | `budget show`, `budget report-minutes` | Show the budget ledger (`--resource`, `--require-remaining RESOURCE=N` exits 3 when short, `--strict` exits 4 when the API is unreachable); add Actions minutes to it |
 
@@ -292,6 +295,82 @@ defaults to 50 and is refused above 200. A page that staged mentions then gets o
 workflow does not set `LLM_ENQUEUE` or `LLM_MODEL`: to queue after scheduled renders add both to the `env` of its
 job. The operator steps are in
 [`docs/operations/extraction-operator-checklist.md`](../../docs/operations/extraction-operator-checklist.md).
+
+### Drain embeddings
+
+`embed drain` computes the document embeddings that hybrid search reads. It is a sibling of `worker drain`: the
+embedding queue is not a `discovery_task` kind, and the worker never touches the database. Each batch is claimed
+(`POST /machine/embeddings/claim`), embedded raw (no instruction prefix; that is for queries) on Workers AI with
+`EMBEDDING_MODEL` (default `@cf/qwen/qwen3-embedding-0.6b`, 1024 dimensions) and posted back
+(`POST /machine/embeddings/complete`). `--max-tasks` (1-50, default 50) is both the claim size and the embedding batch.
+
+```bash
+python -m discovery_ingest embed summary                  # queue counts as JSON; --require-pending exits 3 when none is ready
+python -m discovery_ingest embed drain --max-tasks 50 --max-batches 60 --time-budget-seconds 600 --neuron-budget 3000
+```
+
+The command prints one `DrainReport` JSON (the same shape as `worker drain`, plus `stale`) and exits 1 only when
+`succeeded` is false. It exits 2 for a missing `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_AI_API_TOKEN` or an out-of-range
+bound, and 1 before claiming anything when the neuron ledger cannot be read. `EMBEDDING_MODEL` must equal the API's
+setting: a different model has an empty queue, which looks like `queue_empty`.
+
+Every batch reserves `characters / 3` tokens at 1,075 neurons per million input tokens (output is not billed), then
+settles to the neurons the API reported (the priced token count when it reports none) and refunds a refused call. A
+spent run budget or day (`llm_budget`), a provider quota error (`llm_quota`, the ledger is told) and the database soft
+limit (`db_limit`) **release** the batch in hand, so no attempt is consumed. A rejected Workers AI token, a refused or
+unreachable machine API ends the run as `error` (exit 1) and releases the batch. A provider `5xx` or `429` without the
+quota code fails the batch's tasks retryably; any other provider rejection, or an answer with fewer vectors than texts,
+is a failure of the batch, never of single silently dropped texts. Per posted vector the API answers `stored`, `stale`
+(the text changed meanwhile; the API queued the new text, counted in `completed` and `stale`) or `rejected` (logged with
+its reason, counted in `failed`; a replayed `complete` answers `rejected` for a finished task).
+
+The workflow `discovery-embed.yml` runs the drain twice a day when the repository variable `DISCOVERY_EMBED_SCHEDULE` is
+`enabled`; see [`docs/operations/scheduled-jobs.md`](../../docs/operations/scheduled-jobs.md).
+
+### Drain translations
+
+`translate drain` translates the card (title and description) of each candidate into the target locales that the API
+queues (`TRANSLATION_TARGET_LOCALES` on the API scopes the claim; an empty list claims nothing). It is a sibling of
+`embed drain`: the worker never touches the database and holds no object-store credential. Each batch is claimed
+(`POST /machine/translations/claim`, `--max-tasks` 1-50, default 10), **grouped by locale (one prompt per locale and
+batch)**, translated by the engine that `TRANSLATION_ENGINE` selects from the registry (default `llm`, Workers AI;
+`TRANSLATION_MODEL` overrides the model), checked by the core validators and posted back
+(`POST /machine/translations/complete`) with the engine's name and model. The drain names no provider.
+
+```bash
+python -m discovery_ingest translate summary                 # counts per locale and pending_ready; --require-pending exits 3 when none is ready
+python -m discovery_ingest translate drain --max-tasks 10 --max-batches 60 --time-budget-seconds 600 --neuron-budget 2500
+```
+
+The command prints one `DrainReport` JSON (the shape of `embed drain`, plus `rejected`, `unavailable`, `repaired` and
+`invalid`) and exits 1 only when `succeeded` is false. It exits 2 for an unknown `TRANSLATION_ENGINE`, an engine that
+cannot start (a missing `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_AI_API_TOKEN` for `llm`) or an out-of-range bound, and 1
+before claiming anything when the neuron ledger cannot be read.
+
+- **Validation and repair.** A translated unit that fails a validator (numbers, dates, URLs, citations, placeholders,
+  glossary, length, markup, unchanged copy) is asked for **once more** with the rules it broke. Units that pass are
+  posted at once; a unit that still fails is failed **non-retryably** with its reasons (`failed` and `invalid` in the
+  report) and never stored. `repaired` counts units that passed after the second request, so the validator failure rate
+  is `(repaired + invalid) / units`. An answer with fewer results than units fails the batch retryably.
+- **Budget and floor.** Every call reserves the engine's estimate through the meter of its usage unit and settles to the
+  reported usage. For a neuron-billed engine the drain also keeps `QUERY_EMBED_RESERVE` neurons (default 1000, a
+  worker setting) of the day's ledger untouched for request-time query embedding: it checks the ledger before and after
+  each reservation and stops with `llm_budget` rather than take the day below the floor. An engine billed in another
+  unit is bounded by its own meter and the floor does not apply.
+- **Stops.** `llm_budget` (the run budget, the day or the floor), `llm_quota` (the provider's allowance; the ledger is
+  told), `db_limit` and `storage_unavailable` **release** the tasks nobody has settled, so no attempt is consumed. A
+  rejected token or an unreachable or failing machine API ends the run as `error` (exit 1) and releases them. A provider
+  `5xx` fails the batch retryably (the API retries with a backoff and a cap of three attempts).
+- **Per posted item** the API answers `stored`, `stale` (the German text changed meanwhile; counted in `completed` and
+  `stale`), `rejected` (logged with its reason; counted in `failed` and `rejected`; a replayed `complete` and a human
+  translation answer this) or `unavailable` (the object store is not configured or its cap is reached: the API has
+  handed the task back, so the drain stops with `storage_unavailable` instead of retrying in a loop). Confirm the API's
+  R2 variables before enabling the schedule: without them every run wastes the neurons of its first locale group.
+- **Order.** Tasks arrive highest-confidence candidate first, all locales of a candidate together, so a run that stops
+  early leaves the best candidates complete.
+
+The workflow `discovery-translate.yml` runs the drain once a day when the repository variable
+`DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`; see [`docs/operations/scheduled-jobs.md`](../../docs/operations/scheduled-jobs.md).
 
 ### Run a browser drain on your machine
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.locale import SupportedLocale, UITranslation
@@ -26,3 +26,13 @@ class LocalesRepository:
         """Every `(key, value)` UI translation row stored for `code`; empty when there are none."""
         stmt = select(UITranslation.key, UITranslation.value).where(UITranslation.locale == code)
         return [(key, value) for key, value in self._session.execute(stmt).all()]
+
+    def key_counts_by_locale(self, source_locale: str) -> dict[str, int]:
+        """Count each locale's UI translation keys that ``source_locale`` also has; the source maps to its total."""
+        source_keys = select(UITranslation.key).where(UITranslation.locale == source_locale)
+        stmt = (
+            select(UITranslation.locale, func.count())
+            .where(UITranslation.key.in_(source_keys))
+            .group_by(UITranslation.locale)
+        )
+        return {locale: count for locale, count in self._session.execute(stmt).all()}

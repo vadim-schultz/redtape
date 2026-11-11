@@ -19,19 +19,23 @@ from scripts.seed_data.taxonomy import (
     category_mapping_id,
     term_id,
 )
+from scripts.seed_data.taxonomy_labels import Labels, merged_descriptions, merged_names, validate_labels
+from scripts.seed_data.taxonomy_translations import TAXONOMY_TRANSLATIONS
 
 
-def _upsert_canonical_categories(session: Session) -> None:
-    """Upsert the frozen category rows before their source mappings."""
+def _upsert_canonical_categories(session: Session, labels: Labels) -> None:
+    """Upsert the frozen category rows, with the translated labels merged in, before their source mappings."""
+    validate_labels(labels, (category.code for category in CATEGORY_INVENTORY))
     ids = {category.code: term_id(category.code) for category in CATEGORY_INVENTORY}
     for category in CATEGORY_INVENTORY:
+        translated = labels.get(category.code, {})
         session.merge(
             Category(
                 id=ids[category.code],
                 parent_id=None if category.parent_code is None else ids[category.parent_code],
                 code=category.code,
-                name_i18n=category.name_i18n,
-                description_i18n=category.description_i18n,
+                name_i18n=merged_names(category.name_i18n, translated),
+                description_i18n=merged_descriptions(category.description_i18n, translated),
                 icon=category.icon,
                 sort_order=category.sort_order,
                 is_active=category.is_active,
@@ -100,9 +104,13 @@ def _canonical_source_mappings() -> list[CategoryExternalMapping]:
     return [*_parent_mapping_rows(), *_leaf_mapping_rows()]
 
 
-def seed_canonical_taxonomy(session: Session) -> None:
-    """Upsert canonical categories and their versioned PVOG source mappings."""
-    _upsert_canonical_categories(session)
+def seed_canonical_taxonomy(session: Session, labels: Labels = TAXONOMY_TRANSLATIONS) -> None:
+    """Upsert canonical categories, with ``labels`` merged into their names, and their versioned PVOG source mappings.
+
+    ``labels`` are the machine translations of ``taxonomy_translations.py``; the frozen contract is not edited. A
+    label for an unknown category, a source or unsupported locale, or with a blank text raises :class:`ValueError`.
+    """
+    _upsert_canonical_categories(session, labels)
     for mapping in _canonical_source_mappings():
         session.merge(mapping)
     session.flush()

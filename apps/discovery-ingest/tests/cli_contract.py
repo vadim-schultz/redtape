@@ -1,4 +1,4 @@
-"""The command line contract of ``python -m discovery_ingest``: the 20 commands as data.
+"""The command line contract of ``python -m discovery_ingest``: the 27 commands as data.
 
 Every row is a fact the workflows in ``.github/workflows`` and the operator docs rely on: command names,
 flags, value kinds, defaults, choices and repeatability. The adapters in ``cli_adapters.py`` read the real
@@ -18,7 +18,22 @@ from discovery_ingest.config import DEFAULT_FIM_PORTAL_URL
 from discovery_ingest.extract.llm.prompt import PROMPT_VERSION
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 
-GROUPS = ("govdata", "pvog", "fim", "leika", "worker", "candidates", "budget", "browser", "llm", "artifacts", "capture")
+GROUPS = (
+    "govdata",
+    "pvog",
+    "fim",
+    "leika",
+    "worker",
+    "candidates",
+    "budget",
+    "browser",
+    "llm",
+    "artifacts",
+    "capture",
+    "embed",
+    "translate",
+    "i18n",
+)
 
 DEFAULT_GOLD_DIR = Path(discovery_ingest.__file__).resolve().parents[1] / "tests" / "fixtures" / "gold"
 """The gold directory ``llm eval`` reads when ``--gold-dir`` is not given."""
@@ -200,7 +215,53 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--service-id", "uuid", repeatable=True),
         ),
     ),
+    CommandSpec("embed", "probe", (_opt("--model", "str"),)),
+    CommandSpec(
+        "embed",
+        "drain",
+        (
+            _opt("--max-tasks", "int", default=50),
+            _opt("--max-batches", "int", default=1),
+            _opt("--time-budget-seconds", "float"),
+            _opt("--neuron-budget", "float", default=3000.0),
+        ),
+    ),
+    CommandSpec("embed", "summary", (_opt("--require-pending", FLAG),)),
+    CommandSpec(
+        "translate",
+        "probe",
+        (
+            _opt("--locale", "str", required=True),
+            _opt("--sample", "int", default=50),
+            _opt("--engine", "str"),
+            _opt("--model", "str"),
+            _opt("--sheet", "path"),
+            _opt("--max-usage", "float", default=3000.0),
+            _opt("--daily-budget", "float", default=9500.0),
+        ),
+    ),
+    CommandSpec(
+        "translate",
+        "drain",
+        (
+            _opt("--max-tasks", "int", default=10),
+            _opt("--max-batches", "int", default=1),
+            _opt("--time-budget-seconds", "float"),
+            _opt("--neuron-budget", "float", default=2500.0),
+        ),
+    ),
+    CommandSpec("translate", "summary", (_opt("--require-pending", FLAG),)),
+    CommandSpec(
+        "i18n",
+        "translate-ui",
+        (
+            _opt("--locale", "str", required=True),
+            _opt("--repo-root", "path"),
+            _opt("--batch-size", "int", default=40),
+            _opt("--neuron-budget", "float", default=3000.0),
+        ),
+    ),
 )
 
-assert len(COMMANDS) == 20, "the contract documents exactly twenty commands"
+assert len(COMMANDS) == 27, "the contract documents exactly twenty-seven commands"
 assert {spec.group for spec in COMMANDS} == set(GROUPS)

@@ -99,6 +99,47 @@ database during CI:
   [`.github/workflows/api-lint-test.yml`](../../.github/workflows/api-lint-test.yml). The pytest job's database is
   named `redtape`, and the migration job's is `redtape_migrations`. Neither is your local compose database.
 
+## pgvector
+
+Search stores embeddings with the [pgvector](https://github.com/pgvector/pgvector) extension, so every Postgres the
+API talks to must offer `vector` (and the contrib extension `unaccent`):
+
+- **Local and CI**: `docker-compose.yml` and both Postgres services in
+  [`.github/workflows/api-lint-test.yml`](../../.github/workflows/api-lint-test.yml) use `pgvector/pgvector:pg16`,
+  the same Postgres 16 as before with the extension files installed. `docker compose up -d db` recreates an
+  existing `db` container on the new image and keeps the `pgdata` volume. The image is Debian-based, where the old
+  one was Alpine, so Postgres may warn about a collation version mismatch on databases created earlier; the local
+  database is disposable, so rebuild it from migrations and seeds (see "Full reset") if you want the warning gone.
+- **Tests**: `apps/api/tests/conftest.py` runs `CREATE EXTENSION IF NOT EXISTS vector` and `unaccent` before
+  `Base.metadata.create_all`, so models that use `Vector` work without Alembic. A database whose server lacks the
+  extension fails there loudly (`REQUIRE_DB=1`) instead of skipping.
+- **Real databases** (Supabase): the search-schema migration creates the same extensions. Confirm that `vector` is
+  offered first: `select name, default_version from pg_available_extensions where name = 'vector'`. Version 0.8 or
+  later is needed for the iterative HNSW scan used with category filters; `halfvec` needs 0.7 or later.
+- **Embedding model probe**: `python -m discovery_ingest embed probe` (needs `CLOUDFLARE_ACCOUNT_ID` and
+  `CLOUDFLARE_AI_API_TOKEN`) prints one JSON report with the model's output dimension, the reduced dimensions its
+  `dimensions` parameter honours, the largest accepted batch, latency, tokens and neurons. It calls Workers AI
+  outside the neuron ledger, so it counts against the account's free allocation but not the budget table; a full run
+  costs a few neurons. The report fixes `EMBEDDING_DIM` (API setting) and the column type for the search schema.
+  The recorded run: dimension 1024, the model ignores `dimensions` (no reduced size is available), batches up to 256
+  accepted; so `EMBEDDING_DIM=1024` with a `halfvec(1024)` column.
+
+- **Translation probe**: `python -m discovery_ingest translate probe --locale <code> --sample 50 --engine llm` (run
+  from `apps/discovery-ingest`; needs `DISCOVERY_API_URL`, which it only reads the public candidate list from,
+  plus `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN`) translates a fixed, reproducible sample of the real cards
+  (German title and card description) with the chosen engine, validates every result and prints one JSON report: pass
+  rate per check, usage per unit in the engine's own unit, latency, and the projected usage and days for the whole
+  corpus. It writes nothing to a database; the spot-check sheet for native speakers lands in
+  `translation-probe/<engine>-<locale>.csv` (override with `--sheet`; the folder is git-ignored). Like the embedding
+  probe it calls Workers AI outside the neuron ledger; `--max-usage` (default 3000 neurons) caps what one run may spend.
+
+The new API settings (`EMBEDDING_MODEL`, `EMBEDDING_DIM`, `SEARCH_HYBRID_ENABLED`, `RRF_K`, `SEARCH_TOP_N`,
+`SEARCH_FUSED_TOP_K`, `SEARCH_MIN_SIMILARITY`, `SEARCH_CONFIDENCE_WEIGHT`, `QUERY_EMBED_TIMEOUT_S`, `QUERY_EMBED_CACHE_SIZE`,
+`QUERY_EMBED_NEURONS`, `QUERY_EMBED_BREAKER_FAILURES`, `QUERY_EMBED_BREAKER_COOLDOWN_S`,
+`SEARCH_VECTOR_INDEX_ENABLED`, `SEARCH_RATE_LIMIT_PER_MINUTE`, `TRUSTED_PROXY_HOPS`,
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`) are listed with their defaults in
+[`apps/api/.env.example`](../../apps/api/.env.example). None is needed locally: with the defaults hybrid search is off.
+
 ## Checking migrations
 
 ```bash
@@ -148,9 +189,9 @@ script against its own throwaway `redtape_migrations` database, and CI runs it a
 - **Database**: Supabase is managed Postgres. The schema genuinely depends on
   Postgres-specific features — `JSONB` (`app/models/document.py`,
   `locality.py`), `ARRAY` and a native `ENUM` (`app/models/jurisdiction.py`),
-  and a Postgres upsert (`scripts/seed_i18n.py`). Running `postgres:16-alpine`
-  locally gives the same dialect instead of fighting portability against
-  SQLite.
+  and a Postgres upsert (`scripts/seed_i18n.py`). Running Postgres 16
+  locally (the `pgvector/pgvector:pg16` image, see "pgvector" below) gives the
+  same dialect instead of fighting portability against SQLite.
 - **Frontend**: `npm run dev` uses development mode and `apiOrigin()` →
   `http://localhost:8000` (override with `apps/web/.env` if needed). Start
   the API locally (`./scripts/dev-up.sh` or `uvicorn` in `apps/api`). Committed

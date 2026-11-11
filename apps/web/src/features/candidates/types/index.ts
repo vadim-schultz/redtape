@@ -1,6 +1,12 @@
+import type { TranslationSummary } from "../../../services/candidateTranslationApi";
 import type { CategoryTag } from "../../taxonomy/types";
 
-export type { CategoryTag };
+export type { CategoryTag, TranslationSummary };
+
+/** How a list was produced: no query, both retrieval legs, or full text alone (flag off or no vector). */
+export const SEARCH_MODES = ["browse", "hybrid", "keyword"] as const;
+
+export type SearchMode = (typeof SEARCH_MODES)[number];
 
 /** One candidate of the ranked public list; `confidence` is the filter-aware card confidence. */
 export type CandidateCard = {
@@ -12,6 +18,12 @@ export type CandidateCard = {
   categories: CategoryTag[];
   mention_count: number;
   confidence: number;
+  /** The combined ranking score; older APIs omit it. */
+  score?: number;
+  /** Query match in 0..1, only on hybrid matches; null or absent otherwise. */
+  similarity?: number | null;
+  /** A stored translation exists for the request locale; null for German readers and absent on older APIs. */
+  translation?: TranslationSummary | null;
 };
 
 export type CandidateListResponse = {
@@ -19,6 +31,8 @@ export type CandidateListResponse = {
   total: number;
   offset: number;
   limit: number;
+  /** Absent on older APIs, which only browse. */
+  search_mode?: SearchMode;
 };
 
 export * from "./detail";

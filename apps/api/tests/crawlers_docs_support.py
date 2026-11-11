@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from app.config import Settings
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 OPS = REPO_ROOT / "docs/operations"
 PLAN = REPO_ROOT / ".plans/crawlers"
@@ -23,6 +25,16 @@ PLANS_README = REPO_ROOT / ".plans/README.md"
 STATUS = REPO_ROOT / "docs/planning/STATUS.md"
 RENDER_YAML = REPO_ROOT / "render.yaml"
 GERMAN_SEED = REPO_ROOT / "apps/api/scripts/seed_data/translations/de.json"
+
+QUERY_EMBEDDING_CLOUDFLARE_FIELDS = frozenset({"cloudflare_account_id", "cloudflare_ai_api_token"})
+"""The only Cloudflare settings the API holds: the Workers-AI-scoped pair for query embedding (search-first D1)."""
+
+
+def other_cloudflare_settings() -> frozenset[str]:
+    """Return the Cloudflare-named API settings beyond the query-embedding pair; there must be none (no Browser Run or R2 token)."""
+    named = frozenset(name for name in Settings.model_fields if "cloudflare" in name)
+    return named - QUERY_EMBEDDING_CLOUDFLARE_FIELDS
+
 
 RUNBOOKS = (
     DISCOVERY_LAYER,

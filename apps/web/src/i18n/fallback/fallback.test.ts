@@ -1,22 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { fallbackBundle } from "./index";
-
-type Nested = { [key: string]: string | Nested };
-
-function flatten(tree: Nested, prefix = ""): Record<string, string> {
-  return Object.entries(tree).reduce<Record<string, string>>(
-    (acc, [key, value]) => {
-      const path = prefix ? `${prefix}.${key}` : key;
-      return typeof value === "string"
-        ? { ...acc, [path]: value }
-        : { ...acc, ...flatten(value, path) };
-    },
-    {},
-  );
-}
+import { fallbackBundle, flatten, type Nested } from "./index";
 
 function readSeed(locale: string): Record<string, string> {
   const file = resolve(
@@ -25,6 +11,40 @@ function readSeed(locale: string): Record<string, string> {
   );
   return flatten(JSON.parse(readFileSync(file, "utf8")) as Nested);
 }
+
+const SEED_DIR = resolve(
+  __dirname,
+  "../../../../api/scripts/seed_data/translations",
+);
+
+/** Locale files of the API seed; `review.json` is the review manifest, not a locale. */
+const SEED_LOCALES = readdirSync(SEED_DIR)
+  .filter((name) => name.endsWith(".json") && name !== "review.json")
+  .map((name) => name.replace(".json", ""));
+
+describe("mirrored locale files", () => {
+  it("has a seed file for the two bundled locales", () => {
+    expect(SEED_LOCALES).toEqual(expect.arrayContaining(["de", "en"]));
+  });
+
+  it.each(SEED_LOCALES)(
+    "mirrors the API seed file of %s byte for byte",
+    (locale) => {
+      const seed = readFileSync(resolve(SEED_DIR, `${locale}.json`), "utf8");
+      const mirror = readFileSync(resolve(__dirname, `${locale}.json`), "utf8");
+
+      expect(mirror).toBe(seed);
+    },
+  );
+
+  it("has no locale file here that the API seed lacks", () => {
+    const mirrored = readdirSync(__dirname)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => name.replace(".json", ""));
+
+    expect(mirrored.sort()).toEqual([...SEED_LOCALES].sort());
+  });
+});
 
 const CANDIDATE_KEYS = [
   "from_source",

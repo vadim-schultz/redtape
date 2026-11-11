@@ -16,7 +16,7 @@ from cli_contract import GROUPS
 CLI_PACKAGE = Path(__file__).resolve().parents[1] / "discovery_ingest" / "cli"
 
 
-def test_root_app_registers_the_eleven_groups_in_order() -> None:
+def test_root_app_registers_the_twelve_groups_in_order() -> None:
     assert groups() == list(GROUPS)
 
 
