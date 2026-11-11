@@ -72,66 +72,44 @@ it("DocumentsListPage · a blank search removes q instead of sending it", async 
   await waitFor(() => expect(lastCall(fetchMock).has("q")).toBe(false));
 });
 
-it("DocumentsListPage · the sort select shows confidence descending by default", async () => {
+it("DocumentsListPage · renders the hero and category chips and no sort control", async () => {
   const fetchMock = stubPage();
   renderAt("/documents");
   await screen.findByRole("link", { name: /Passport/ });
 
-  expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue(
-    "confidence",
-  );
-  expect(screen.getByRole("button", { name: "Descending" })).toBeVisible();
+  const search = screen.getByRole("search");
+  expect(within(search).getByRole("button", { name: "Search" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Identity" })).toBeVisible();
+  expect(screen.queryByLabelText("Sort by")).toBeNull();
   expect(lastCall(fetchMock).has("sort_by")).toBe(false);
+  expect(lastCall(fetchMock).has("sort_order")).toBe(false);
 });
 
-it("DocumentsListPage · changing the sort writes sort_by and sort_order", async () => {
-  const fetchMock = stubPage();
-  const { user } = renderAt("/documents?offset=20");
-  await screen.findByRole("link", { name: /Passport/ });
-
-  await user.selectOptions(
-    screen.getByRole("combobox", { name: "Sort by" }),
-    "Title",
-  );
-
-  expect(urlParams().get("sort_by")).toBe("title");
-  expect(urlParams().get("sort_order")).toBe("asc");
-  expect(urlParams().has("offset")).toBe(false);
-  await waitFor(() => expect(lastCall(fetchMock).get("sort_by")).toBe("title"));
-
-  await user.click(screen.getByRole("button", { name: "Ascending" }));
-
-  expect(urlParams().get("sort_order")).toBe("desc");
-  await waitFor(() =>
-    expect(lastCall(fetchMock).get("sort_order")).toBe("desc"),
-  );
-});
-
-it("DocumentsListPage · going back to confidence descending clears the sort params", async () => {
+it("DocumentsListPage · there is no element with the sort select or direction button role", async () => {
   stubPage();
-  const { user } = renderAt("/documents?sort_by=title&sort_order=asc");
+  renderAt("/documents");
   await screen.findByRole("link", { name: /Passport/ });
 
-  await user.selectOptions(
-    screen.getByRole("combobox", { name: "Sort by" }),
-    "Confidence",
-  );
+  expect(screen.queryByRole("combobox")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: /ascending|descending/i }),
+  ).toBeNull();
+});
 
+it("DocumentsListPage · a stale sort in the URL is not sent and is dropped on the next navigation", async () => {
+  const fetchMock = stubPage(twenty, 57);
+  const { user } = renderAt(
+    "/documents?sort_by=title&sort_order=asc&offset=-5",
+  );
+  const pager = await screen.findByRole("navigation", { name: "Pagination" });
+
+  expect(lastCall(fetchMock).has("sort_by")).toBe(false);
+  expect(lastCall(fetchMock).get("offset")).toBe("0");
+  await user.click(within(pager).getByRole("button", { name: "Page 2" }));
+
+  await waitFor(() => expect(urlParams().get("offset")).toBe("20"));
   expect(urlParams().has("sort_by")).toBe(false);
   expect(urlParams().has("sort_order")).toBe(false);
-});
-
-it("DocumentsListPage · an unknown sort key and a bad offset in the URL fall back to defaults", async () => {
-  const fetchMock = stubPage();
-  renderAt("/documents?sort_by=completeness&offset=-5");
-  await screen.findByRole("link", { name: /Passport/ });
-
-  expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue(
-    "confidence",
-  );
-  const params = lastCall(fetchMock);
-  expect(params.has("sort_by")).toBe(false);
-  expect(params.get("offset")).toBe("0");
 });
 
 it("DocumentsListPage · a page of 20 of 57 shows the pager and moves the offset", async () => {
@@ -168,7 +146,7 @@ it("DocumentsListPage · an empty filtered result offers to clear the chips and 
     screen.getByRole("button", { name: "Clear filters and search" }),
   );
 
-  expect([...urlParams().keys()]).toEqual(["sort_by"]);
+  expect([...urlParams().keys()]).toEqual([]);
 });
 
 it("DocumentsListPage · an empty unfiltered result has no clear action", async () => {

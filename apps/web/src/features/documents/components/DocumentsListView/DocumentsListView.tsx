@@ -6,7 +6,7 @@ import type { QueryStatus } from "../../../../components/feedback/queryStatus";
 import type { DocumentList } from "../../hooks/useDocumentListState";
 import type { DocumentListResponse } from "../../types";
 
-import DocumentListControls from "./DocumentListControls";
+import DocumentSearch from "./DocumentSearch";
 import DocumentsListHeader from "./DocumentsListHeader";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
@@ -24,7 +24,7 @@ export interface DocumentsListViewProps {
   };
 }
 
-/** The documents page: heading, chips, search and sort, the cards and the pager. */
+/** The documents page: heading, the centred search bar, chips, the cards and the pager. */
 export default function DocumentsListView({
   title,
   toolbar,
@@ -37,7 +37,7 @@ export default function DocumentsListView({
       <DocumentsListHeader title={title} />
 
       <VStack align="stretch" gap={6} mt={6}>
-        <DocumentListControls list={list} />
+        <DocumentSearch list={list} />
         {toolbar.filters}
         <DocumentsListQueryStatus {...result} />
         <Pagination

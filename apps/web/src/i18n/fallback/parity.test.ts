@@ -27,6 +27,16 @@ describe("parity", () => {
     expect(parityProblems(files)).toEqual([]);
   });
 
+  it("removed sort keys are gone from every locale file", () => {
+    const sortKeys = Object.entries(localeFiles()).flatMap(([locale, keys]) =>
+      Object.keys(keys)
+        .filter((key) => key.startsWith("documents.sort_"))
+        .map((key) => `${locale}: ${key}`),
+    );
+
+    expect(sortKeys).toEqual([]);
+  });
+
   it("names the key and locale when a key is missing or extra", () => {
     const problems = parityProblems({
       en: { a: "A", b: "B" },

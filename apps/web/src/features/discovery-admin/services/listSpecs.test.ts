@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { DOCUMENT_LIST_SPEC } from "../../documents/services/documentListQuery";
-import { DOCUMENT_SORT_KEYS } from "../../documents/types";
 import {
   CANDIDATE_FILTER_KEYS,
   CANDIDATE_SORT_KEYS,
@@ -44,7 +43,7 @@ const CASES: SpecCase[] = [
   {
     name: "document",
     spec: DOCUMENT_LIST_SPEC,
-    sortKeys: DOCUMENT_SORT_KEYS,
+    sortKeys: [],
     filterKeys: [],
   },
 ];

@@ -15,32 +15,20 @@ function renderState(url: string) {
   );
 }
 
-it("useDocumentListState · defaults omit every URL param and sort by confidence", () => {
+it("useDocumentListState · defaults omit every URL param", () => {
   const { result } = renderState("/documents");
 
   expect(result.current.list.state).toMatchObject({ offset: 0, limit: 20 });
   expect(result.current.list.state.search).toBeUndefined();
   expect(result.current.list.state.sortBy).toBeUndefined();
-  expect(result.current.list.sort).toEqual({
-    sortBy: "confidence",
-    sortOrder: "desc",
-  });
 });
 
-it("useDocumentListState · values round-trip through the URL", () => {
-  const { result } = renderState(
-    "/documents?q=ausweis&sort_by=title&sort_order=desc&offset=40",
-  );
+it("useDocumentListState · search and offset round-trip through the URL", () => {
+  const { result } = renderState("/documents?q=ausweis&offset=40");
 
   expect(result.current.list.state).toMatchObject({
     search: "ausweis",
-    sortBy: "title",
-    sortOrder: "desc",
     offset: 40,
-  });
-  expect(result.current.list.sort).toEqual({
-    sortBy: "title",
-    sortOrder: "desc",
   });
 });
 
@@ -63,37 +51,27 @@ it("useDocumentListState · a blank search removes q instead of writing it", () 
   expect(result.current.location.search).toBe("");
 });
 
-it("useDocumentListState · choosing the default sort keeps it out of the URL", () => {
-  const { result } = renderState("/documents?sort_by=title&sort_order=asc");
-
-  act(() =>
-    result.current.list.setSort({ sortBy: "confidence", sortOrder: "desc" }),
+it("list state · stale sort_by and sort_order URL params are ignored and dropped", () => {
+  const { result } = renderState(
+    "/documents?sort_by=title&sort_order=desc&q=pass",
   );
 
-  expect(result.current.location.search).toBe("");
-});
+  expect(result.current.list.state.sortBy).toBeUndefined();
+  expect(result.current.list.state.sortOrder).toBeUndefined();
 
-it("useDocumentListState · a non-default sort is written and resets the page", () => {
-  const { result } = renderState("/documents?offset=20");
-
-  act(() =>
-    result.current.list.setSort({ sortBy: "created_at", sortOrder: "asc" }),
-  );
+  act(() => result.current.list.setOffset(20));
 
   const params = new URLSearchParams(result.current.location.search);
-  expect(params.get("sort_by")).toBe("created_at");
-  expect(params.get("sort_order")).toBe("asc");
-  expect(params.has("offset")).toBe(false);
+  expect(params.has("sort_by")).toBe(false);
+  expect(params.has("sort_order")).toBe(false);
+  expect(params.get("q")).toBe("pass");
+  expect(params.get("offset")).toBe("20");
 });
 
-it("useDocumentListState · an unknown sort key in the URL falls back to the default", () => {
+it("list state · a stale sort key the server once accepted is ignored too", () => {
   const { result } = renderState("/documents?sort_by=completeness");
 
   expect(result.current.list.state.sortBy).toBeUndefined();
-  expect(result.current.list.sort).toEqual({
-    sortBy: "confidence",
-    sortOrder: "desc",
-  });
 });
 
 it.each(["-5", "abc", "1.5", ""])(

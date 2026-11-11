@@ -29,7 +29,6 @@ import type {
   TaskFilterKey,
   TaskSortKey,
 } from "./index";
-import type { DocumentSortKey } from "../../documents/types";
 import type { SuggestionStatus } from "../../suggestions/types";
 
 // Compile-time pins: `tsc --noEmit` fails if any union changes its members.
@@ -78,9 +77,6 @@ describe("types/values · unions are exactly today's", () => {
     >();
     expectTypeOf<CandidateFilterKey>().toEqualTypeOf<
       "status" | "role" | "source" | "min_mentions" | "complete"
-    >();
-    expectTypeOf<DocumentSortKey>().toEqualTypeOf<
-      "confidence" | "title" | "created_at"
     >();
   });
 
