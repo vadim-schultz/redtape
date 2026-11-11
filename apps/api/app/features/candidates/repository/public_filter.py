@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from sqlalchemy import ColumnElement, Select, select
 from sqlalchemy.sql.expression import Subquery
 
-from app.features.candidates.repository.public_order import RANKS, PublicSortKey, RankColumns, by_relevance
+from app.features.candidates.repository.public_order import RANKS, PublicSortKey, RankColumns
 from app.features.discovery.repository.candidate_filter import title_matches, when
 from app.features.discovery.repository.candidate_sort import Ordering
 from app.features.search.retrieval import Retrieval
@@ -19,7 +19,7 @@ __all__ = ["PublicCandidateFilter", "PublicSortKey"]
 
 @dataclass(frozen=True, slots=True)
 class PublicCandidateFilter:
-    """Optional narrowing and ordering of one public listing; without ``sort_by`` it is the ranked list.
+    """Optional narrowing and ordering of one public listing; the default sort is the combined score.
 
     ``category_codes`` are the selected codes already expanded to their descendants by the service. ``q`` is the
     legacy title match (hybrid search off); ``search`` is the retrieval the service chose for a real query and
@@ -30,7 +30,7 @@ class PublicCandidateFilter:
     category_codes: tuple[str, ...] = ()
     q: str | None = None
     search: Retrieval | None = None
-    sort_by: PublicSortKey | None = None
+    sort_by: PublicSortKey = PublicSortKey.COMBINED
     sort_order: SortOrder = SortOrder.DESC
 
     def narrowing(self, completeness: Subquery, best: Subquery) -> list[ColumnElement[bool]]:
@@ -54,10 +54,5 @@ class PublicCandidateFilter:
         return select(allowed.c.id)
 
     def ordering(self, columns: RankColumns) -> Ordering:
-        """Return the order-by clauses of the chosen sort, always ending in the deterministic tie-break.
-
-        A search ranks by relevance unless the client chose a sort.
-        """
-        if self.search is not None and self.sort_by is None:
-            return by_relevance(columns, self.sort_order)
+        """Return the order-by clauses of the chosen sort, always ending in the deterministic tie-break."""
         return RANKS[self.sort_by](columns, self.sort_order)

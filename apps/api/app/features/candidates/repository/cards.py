@@ -4,40 +4,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import NamedTuple
-from uuid import UUID
 
 from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import Subquery
 
+from app.features.candidates.repository.card_search import CardSearch, FusedSearch, NoSearch
 from app.features.candidates.repository.public_filter import PublicCandidateFilter
 from app.features.candidates.repository.public_order import RankColumns
 from app.features.candidates.repository.public_scores import best_scores
-from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.candidate_completeness import completeness_subquery
 from app.features.discovery.repository.candidate_listing import mention_count_of, mention_stats, with_stats
 from app.features.discovery.repository.candidate_tag_scores import tag_scores_subquery
-from app.features.discovery.repository.task_listing import Page
-from app.features.search.retrieval import Retrieval, fused_relation
+from app.features.search.retrieval import fused_relation
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 
 
 class CardRow(NamedTuple):
-    """One listed candidate, its mention count and its card confidence; a search adds its relevance and cosine."""
+    """One listed candidate, its mention count, card confidence and ranking score; a search adds relevance and cosine."""
 
     candidate: Candidate
     mention_count: int
     confidence: float
+    score: float
     relevance: float | None = None
     cosine: float | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class FusedSearch:
-    """A search's retrieval and the fused pool ``(candidate_id, rrf, cos, relevance)`` its legs produced."""
-
-    retrieval: Retrieval
-    pool: Subquery
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +38,7 @@ class CardRelations:
     stats: Subquery
     completeness: Subquery
     best: Subquery
-    search: FusedSearch | None = None
+    search: CardSearch = NoSearch()
 
     @classmethod
     def build(cls, card_filter: PublicCandidateFilter) -> CardRelations:
@@ -65,14 +56,12 @@ class CardRelations:
 
     def prepare(self, session: Session) -> None:
         """Apply the session settings a search needs; a browse needs none."""
-        if self.search is not None:
-            self.search.retrieval.prepare(session)
+        self.search.prepare(session)
 
     @property
     def rank_columns(self) -> RankColumns:
         """The columns an ordering reads, the relevance of the fused pool among them."""
-        relevance = None if self.search is None else self.search.pool.c.relevance
-        return RankColumns(self.completeness, self.mention_count, self.confidence, relevance)
+        return RankColumns(self.completeness, self.mention_count, self.confidence, self.score, self.search.relevance)
 
     @property
     def mention_count(self) -> ColumnElement[int]:
@@ -82,15 +71,24 @@ class CardRelations:
     @property
     def confidence(self) -> ColumnElement[float]:
         """The card confidence, ``0`` without a score: the labelled column a page selects and orders by."""
-        return func.coalesce(self.best.c.best, 0.0).label("confidence")
+        return self._confidence.label("confidence")
+
+    @property
+    def score(self) -> ColumnElement[float]:
+        """The ranking score: the combined score of a search, else the confidence; the labelled column a page selects."""
+        return self.search.score(self._confidence).label("score")
+
+    @property
+    def _confidence(self) -> ColumnElement[float]:
+        return func.coalesce(self.best.c.best, 0.0)
 
     def conditions(self, card_filter: PublicCandidateFilter) -> list[ColumnElement[bool]]:
         """Return the where-clauses of ``card_filter`` over these relations."""
         return card_filter.conditions(self.completeness, self.best)
 
     def cards(self) -> Select:
-        """Select candidates with their mention count, confidence and search columns, joined to all relations."""
-        return self.join(select(Candidate, self.mention_count, self.confidence, *self._search_columns()))
+        """Select candidates with their mention count, confidence, score and search columns, joined to all relations."""
+        return self.join(select(Candidate, self.mention_count, self.confidence, self.score, *self.search.columns))
 
     def join(self, stmt: Select) -> Select:
         """Join all relations to a select over candidates; a candidate without a best score keeps its row.
@@ -100,34 +98,4 @@ class CardRelations:
         joined = with_stats(stmt, self.stats)
         joined = joined.join(self.completeness, self.completeness.c.candidate_id == Candidate.id)
         joined = joined.outerjoin(self.best, self.best.c.candidate_id == Candidate.id)
-        if self.search is None:
-            return joined
-        return joined.join(self.search.pool, self.search.pool.c.candidate_id == Candidate.id)
-
-    def _search_columns(self) -> list[ColumnElement[float]]:
-        return [] if self.search is None else [self.search.pool.c.relevance, self.search.pool.c.cos]
-
-
-class CardRepository(SessionRepository):
-    """Page through candidates with their mention counts in the public order."""
-
-    def count_cards(self, card_filter: PublicCandidateFilter) -> int:
-        """Count the candidates that match ``card_filter``."""
-        relations = CardRelations.build(card_filter)
-        relations.prepare(self._session)
-        stmt = relations.join(select(func.count()).select_from(Candidate))
-        return int(self._session.scalar(stmt.where(*relations.conditions(card_filter))) or 0)
-
-    def list_card_rows(self, card_filter: PublicCandidateFilter, page: Page) -> list[CardRow]:
-        """Return one page of matching candidates in the filter's order, each with the confidence it is ordered by."""
-        relations = CardRelations.build(card_filter)
-        relations.prepare(self._session)
-        stmt = relations.cards().where(*relations.conditions(card_filter))
-        stmt = stmt.order_by(*card_filter.ordering(relations.rank_columns))
-        return [CardRow(*row) for row in self._session.execute(stmt.offset(page.offset).limit(page.limit)).all()]
-
-    def get_card_row(self, candidate_id: UUID) -> CardRow | None:
-        """Return the candidate with its mention count and its confidence over all tags, or ``None`` when unknown."""
-        stmt = CardRelations.build(PublicCandidateFilter()).cards().where(Candidate.id == candidate_id)
-        row = self._session.execute(stmt).first()
-        return None if row is None else CardRow(*row)
+        return self.search.join(joined)

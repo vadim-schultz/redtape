@@ -119,6 +119,15 @@ class Settings(BaseSettings):
         le=1,
         description="Minimum cosine similarity (0..1) for a vector-leg hit; tuned in the search evaluation.",
     )
+    search_confidence_weight: float = Field(
+        default=0.3,
+        ge=0,
+        le=1,
+        description=(
+            "Weight `w` of confidence in the combined search score `(1 - w) * relevance + w * confidence`: "
+            "0 ranks by relevance alone, 1 by confidence alone within the relevance pool; tuned in the search evaluation."
+        ),
+    )
     query_embed_timeout_s: float = Field(
         default=1.2,
         gt=0,

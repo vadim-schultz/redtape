@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.features.candidates.repository.cards import CardRepository
+from app.features.candidates.repository.card_repository import CardRepository
 from app.features.candidates.repository.descriptions import DescriptionRepository
 from app.features.candidates.repository.screenshots import ScreenshotRepository
 from app.features.candidates.repository.tag_scores import TagScoreRepository
