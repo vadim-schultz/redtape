@@ -19,6 +19,7 @@
     "Crawler",
     "District",
     "Document",
+    "Extractor",
     "Manual",
     "Total",
     "{count} document"
