@@ -1,6 +1,7 @@
 import { Box, IconButton, Input, InputGroup } from "@chakra-ui/react";
-import { useEffect, useState, type FormEvent } from "react";
 import { LuArrowRight } from "react-icons/lu";
+
+import { useSearchDraft } from "./useSearchDraft";
 
 export interface SearchHeroCopy {
   /** Accessible name of the input. */
@@ -19,18 +20,13 @@ export interface SearchHeroProps {
 
 /** The centred, raised search bar; typing only drafts, submitting applies (a blank submit clears). */
 export default function SearchHero({ value, copy, onSubmit }: SearchHeroProps) {
-  const [draft, setDraft] = useState(value ?? "");
-  useEffect(() => setDraft(value ?? ""), [value]);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    onSubmit(draft.trim());
-  };
+  const search = useSearchDraft(value, onSubmit);
 
   return (
     <Box
       as="form"
       role="search"
-      onSubmit={submit}
+      onSubmit={search.onSubmit}
       w="full"
       maxW="640px"
       mx="auto"
@@ -50,8 +46,8 @@ export default function SearchHero({ value, copy, onSubmit }: SearchHeroProps) {
           shadow="raised"
           aria-label={copy.label}
           placeholder={copy.placeholder}
-          value={draft}
-          onChange={(event) => setDraft(event.currentTarget.value)}
+          value={search.draft}
+          onChange={search.onChange}
         />
       </InputGroup>
     </Box>
