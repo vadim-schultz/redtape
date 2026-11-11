@@ -38,6 +38,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 08-hybrid-query-path | `feat/hybrid-search` | [#386](https://github.com/vadim-schultz/redtape/pull/386) | pass (`ci.sh` copy with scratch DB names `redtape_c8_*`) | pass | yes (21a86d4) | operator steps pending (Render token, flag, XFF check) |
 | 15-translation-drain-worker | `feat/translation-drain-worker` | [#388](https://github.com/vadim-schultz/redtape/pull/388) | pass (`ci.sh` copy with scratch DB names `redtape_c15_*`) | pass | yes (dc32628) | operator steps pending (backfill, narrow locales, R2 vars, secrets, schedule variable, first dispatch) |
 | 16-translated-text-in-search-and-embeddings | `feat/translated-search-text` | [#390](https://github.com/vadim-schultz/redtape/pull/390) | pass (`ci.sh` copy with scratch DB names `redtape_c16_*`; web build and later stages run by hand after the copy hit its timeout) | pass | yes (a1a4e95) | operator steps pending (per-locale search backfill, embed drain, optional `EMBEDDING_LOCALES`) |
+| 12-combined-ranking-score | `feat/combined-ranking` | [#392](https://github.com/vadim-schultz/redtape/pull/392) | pass (`ci.sh` copy with scratch DB names `redtape_c12_*`) | pass | yes (2fa14cd) | none |
 
 ## Baseline
 
@@ -141,10 +142,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 12 — Combined ranking score
 
-- Status: pending
-- Default weight and the SQL/Python agreement result: pending
-- Browse regression result: pending
-- OpenAPI snapshot and contract fixture regenerated: pending
+- Status: merged into loop branch (#392); refactor gate: smells found -> refactorings applied (`CardRepository` extracted from `cards.py` into `card_repository.py`; `search is None` branching in `CardRelations` replaced by a `CardSearch` protocol with `NoSearch` and `FusedSearch` variants in `card_search.py`; interim `by_relevance` ordering and the old `None` sort branch deleted); `_by_combined` keeps two arms (browse versus search), split on a third ranking mode; data-design gate: applies, no `apply` findings; accepted-risk: offset paging re-evaluates the pool per request so rows written between pages can shift (trigger: duplicate or missing rows reported in practice); observed: ordering uses the unrounded score while cards show four decimals, so equal displayed scores may be ordered by the tail
+- Default weight and the SQL/Python agreement result: `SEARCH_CONFIDENCE_WEIGHT` default 0.3, validated 0..1 at load and in the expression; `test_search_scoring.py` checks SQL versus Python agreement on a grid and rejects an out-of-range weight; rollback is `SEARCH_CONFIDENCE_WEIGHT=0` (pure relevance). Tuning is chapter 18 (O14)
+- Browse regression result: browse order unchanged (confidence, completeness, mentions, tie-break); `score` equals confidence to within 5e-5 outside a search, so browse and legacy title-match tests compare with a tolerance
+- OpenAPI snapshot and contract fixture regenerated: `apps/web/src/test/contract/openapi.schemas.json` gained `score` on `CandidateCard` and `CandidateDetail`; no web code changed. Run counts: API 1965 passed and 25 skipped, web 1131 passed and 1 expected fail
+- Incident (reported by the implementer): one early `pytest` run in `apps/api` was launched without a scratch `DATABASE_URL`, followed the `apps/api/.env` symlink and hung; it was killed. Same unverified risk as the chapter 13 incident; every later run used an inline scratch URL
 
 ### Chapter 13 — Translation schema and core
 
@@ -231,4 +233,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — resumed; chapter 16 merged (12 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16); next in order: C12
+**Last orchestration:** 2026-11-11 — resumed; chapter 12 merged (13 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12); next in order: C9
