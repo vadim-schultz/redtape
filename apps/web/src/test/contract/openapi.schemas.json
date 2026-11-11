@@ -1815,6 +1815,38 @@
     "title": "CandidateTranslationSummary",
     "type": "object"
   },
+  "CandidateTranslationText": {
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "engine": {
+        "type": "string"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "source": {
+        "$ref": "#/components/schemas/TranslationSource"
+      },
+      "stale": {
+        "type": "boolean"
+      },
+      "title": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "description",
+      "engine",
+      "locale",
+      "source",
+      "stale",
+      "title"
+    ],
+    "title": "CandidateTranslationText",
+    "type": "object"
+  },
   "CatalogueBatchItem": {
     "properties": {
       "description_i18n": {

@@ -29,7 +29,7 @@ def _screenshot_response(reply: ScreenshotReply) -> Response[bytes]:
     return Response(reply.data, media_type=reply.content_type, headers=headers)
 
 
-def _translation_response(reply: TranslationReply) -> Response[CandidateTranslationText] | Response[None]:
+def _translation_response(reply: TranslationReply) -> Response[CandidateTranslationText | None]:
     """Answer 304 without a body when the client copy is current, else 200 with the stored text."""
     headers = {"ETag": reply.etag, "Cache-Control": TRANSLATION_CACHE_CONTROL, "Vary": "Accept-Language"}
     if reply.text is None:
@@ -76,6 +76,6 @@ class CandidatesController(Controller):
         candidate_id: UUID,
         locale: ResolvedLocale,
         if_none_match: str | None = Parameter(header="If-None-Match", default=None),
-    ) -> Response[CandidateTranslationText] | Response[None]:
+    ) -> Response[CandidateTranslationText | None]:
         """Serve the stored translation for the request locale (``?locale=`` or ``Accept-Language``), 304 when current."""
         return _translation_response(translation_read_service.serve(candidate_id, locale.code, if_none_match))
