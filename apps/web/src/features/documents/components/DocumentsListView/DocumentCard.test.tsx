@@ -12,6 +12,7 @@ const baseDocument: DocumentSummary = {
   description: null,
   tags: [],
   confidence: 0.5,
+  similarity: null,
 };
 
 function StateProbe() {
@@ -159,6 +160,61 @@ it("DocumentCard · the circle adds no second interactive element", async () => 
   renderWithProviders(<DocumentCard document={baseDocument} />);
 
   await screen.findByRole("progressbar");
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
+it("DocumentCard · shows confidence and similarity rings with captions in hybrid mode", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, confidence: 0.82, similarity: 0.45 }}
+    />,
+  );
+
+  const bars = await screen.findAllByRole("progressbar");
+
+  expect(bars).toHaveLength(2);
+  expect(screen.getByText("Confidence")).toBeVisible();
+  expect(screen.getByText("Similarity")).toBeVisible();
+  expect(screen.getByRole("progressbar", { name: /^Confidence/ })).toBe(
+    bars[0],
+  );
+  expect(screen.getByRole("progressbar", { name: /^Similarity/ })).toBe(
+    bars[1],
+  );
+});
+
+it("DocumentCard · similarity null never renders a 0% ring", async () => {
+  renderWithProviders(<DocumentCard document={baseDocument} />);
+
+  await screen.findByRole("progressbar");
+
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(screen.queryByText("Similarity")).toBeNull();
+  expect(screen.queryByRole("progressbar", { name: /Similarity/ })).toBeNull();
+});
+
+it("a11y · both rings have distinct accessible names", async () => {
+  renderWithProviders(
+    <DocumentCard
+      document={{ ...baseDocument, confidence: 0.5, similarity: 0.5 }}
+    />,
+  );
+
+  const names = (await screen.findAllByRole("progressbar")).map((bar) =>
+    bar.getAttribute("aria-label"),
+  );
+
+  expect(names).toEqual(["Confidence 50%, medium", "Similarity 50%, medium"]);
+});
+
+it("DocumentCard · both rings add no interactive element", async () => {
+  renderWithProviders(
+    <DocumentCard document={{ ...baseDocument, similarity: 0.7 }} />,
+  );
+
+  await screen.findAllByRole("progressbar");
+
   expect(screen.getAllByRole("link")).toHaveLength(1);
   expect(screen.queryByRole("button")).toBeNull();
 });
