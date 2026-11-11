@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import enum
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.features.discovery.repository.base import SessionRepository
 from app.features.search.task_states import OPEN_TASK_PREDICATE
 from app.features.search.text import BuiltText
@@ -21,22 +23,29 @@ class EnqueueOutcome(enum.StrEnum):
     QUEUED = "queued"
     LEFT_OPEN = "left_open"
     CURRENT = "current"
+    NOT_EMBEDDED = "not_embedded"
 
 
 class EmbeddingEnqueuer(SessionRepository):
     """Queue one embedding task per ``(candidate, model, locale)`` whose text is not yet embedded."""
 
-    def __init__(self, session: Session, model: str) -> None:
-        """Bind the enqueuer to ``session`` and the embedding ``model`` the tasks are for."""
+    def __init__(self, session: Session, model: str, locales: Sequence[str] | None = None) -> None:
+        """Bind the enqueuer to ``session``, the embedding ``model`` and the ``locales`` that get vectors.
+
+        The locales default to the configured ``EMBEDDING_LOCALES``.
+        """
         super().__init__(session)
         self._model = model
+        self._locales = frozenset(settings.embedding_locale_codes if locales is None else locales)
 
     def enqueue(self, candidate_id: UUID, built: BuiltText) -> EnqueueOutcome:
-        """Queue ``built`` for embedding unless the stored embedding already has its hash.
+        """Queue ``built`` for embedding unless its locale gets no vectors or the stored embedding has its hash.
 
         An open pending task takes the new hash; an open claimed task is left alone, because its result will be
         rejected as stale and the task re-queued when it is settled.
         """
+        if built.locale not in self._locales:
+            return EnqueueOutcome.NOT_EMBEDDED
         if self._embedded_hash(candidate_id, built.locale) == built.content_hash:
             self._retire_pending(candidate_id, built.locale)
             return EnqueueOutcome.CURRENT

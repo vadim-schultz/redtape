@@ -13,6 +13,7 @@ class RefreshStatus(enum.StrEnum):
     WRITTEN = "written"
     UNCHANGED = "unchanged"
     SKIPPED_EMPTY = "skipped_empty"
+    OBJECT_UNREADABLE = "object_unreadable"
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +45,11 @@ class RefreshTotals:
     def skipped_empty(self) -> int:
         """Return the candidates that had no usable text."""
         return self.counts[RefreshStatus.SKIPPED_EMPTY]
+
+    @property
+    def object_unreadable(self) -> int:
+        """Return the translations whose stored object was missing or not a valid payload."""
+        return self.counts[RefreshStatus.OBJECT_UNREADABLE]
 
     def add(self, result: RefreshResult) -> None:
         """Count ``result``."""

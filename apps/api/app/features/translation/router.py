@@ -6,6 +6,7 @@ from litestar import Router
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
+from app.features.search.translation_subscriber import refresh_search_text_on_stored
 from app.features.translation.machine_controller import TranslationMachineController
 from app.features.translation.queue import TranslationQueue
 from app.features.translation.service import TranslationCompletion
@@ -19,7 +20,7 @@ def provide_translation_queue(session: Session) -> TranslationQueue:
 
 def provide_translation_completion(session: Session, object_store: InjectedObjectStore) -> TranslationCompletion:
     """Build the completion step on the request session and the ledger-metered object store (``None`` when unset)."""
-    return TranslationCompletion(session, object_store)
+    return TranslationCompletion(session, object_store, subscribers=(refresh_search_text_on_stored(session),))
 
 
 translation_machine_router = Router(

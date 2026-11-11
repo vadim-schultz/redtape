@@ -11,7 +11,8 @@ from app.config import settings
 from app.features.search.enqueue import EmbeddingEnqueuer, EnqueueOutcome
 from app.features.search.repository import SearchTextRepository
 from app.features.search.results import RefreshResult, RefreshStatus, RefreshTotals
-from app.features.search.text import build
+from app.features.search.text import BuiltText, build, build_translated
+from app.features.translation.store import TranslationPayload
 from app.models.search import CANONICAL_LOCALE
 
 
@@ -36,8 +37,24 @@ class SearchTextService:
             return RefreshResult(RefreshStatus.SKIPPED_EMPTY)
         if not self._repo.upsert_search_text(candidate_id, built):
             return RefreshResult(RefreshStatus.UNCHANGED)
+        return self._queue(candidate_id, built, RefreshStatus.WRITTEN)
+
+    def refresh_locale(self, candidate_id: UUID, locale: str, payload: TranslationPayload) -> RefreshResult:
+        """Refresh the ``locale`` text of one candidate from its stored translation, in the caller's transaction.
+
+        Unlike :meth:`refresh`, an unchanged text still reaches the enqueuer: it decides from the stored embedding,
+        so a locale that was pruned and enabled again is queued by a backfill. Raises
+        :class:`UnsupportedSearchLocaleError` for a locale that has no translated text.
+        """
+        built = build_translated(locale, payload.title, payload.description)
+        if built is None:
+            return RefreshResult(RefreshStatus.SKIPPED_EMPTY)
+        written = self._repo.upsert_search_text(candidate_id, built)
+        return self._queue(candidate_id, built, RefreshStatus.WRITTEN if written else RefreshStatus.UNCHANGED)
+
+    def _queue(self, candidate_id: UUID, built: BuiltText, status: RefreshStatus) -> RefreshResult:
         outcome = self._enqueuer.enqueue(candidate_id, built)
-        return RefreshResult(RefreshStatus.WRITTEN, enqueued=outcome is EnqueueOutcome.QUEUED)
+        return RefreshResult(status, enqueued=outcome is EnqueueOutcome.QUEUED)
 
     def refresh_many(self, candidate_ids: Iterable[UUID]) -> RefreshTotals:
         """Refresh every candidate and total the outcomes."""

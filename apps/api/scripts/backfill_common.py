@@ -22,6 +22,7 @@ class StopReason(enum.StrEnum):
 
     FINISHED = "finished"
     DB_LIMIT = SOFT_LIMIT_DETAIL
+    STORE_UNAVAILABLE = "object_store_unavailable"
 
 
 def room_stop(headroom: Headroom) -> StopReason | None:

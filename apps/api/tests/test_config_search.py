@@ -93,3 +93,19 @@ def test_query_path_settings_reject_invalid_values(overrides: dict[str, object])
     """config · rejects a zero reservation, a zero rate limit and a negative hop count."""
     with pytest.raises(ValidationError):
         _settings(**overrides)
+
+
+def test_embedding_locales_default_to_german_and_every_translation_target() -> None:
+    """settings · EMBEDDING_LOCALES defaults to de plus the six targets and accepts a narrower list."""
+    defaults = _settings()
+
+    assert defaults.embedding_locale_codes == ("de", "en", "tr", "ru", "uk", "pl", "ro")
+    assert _settings(embedding_locales="de, tr").embedding_locale_codes == ("de", "tr")
+    assert _settings(embedding_locales="").embedding_locale_codes == ()
+
+
+@pytest.mark.parametrize("value", ["de xx", "tr,tr", "klingon"])
+def test_embedding_locales_with_an_unsupported_or_repeated_code_fails_at_load(value: str) -> None:
+    """settings · EMBEDDING_LOCALES with an unsupported or repeated code fails at load."""
+    with pytest.raises(ValidationError):
+        _settings(embedding_locales=value)
