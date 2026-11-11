@@ -54,6 +54,19 @@ Fix a rejected string by adjusting the glossary (`translation/glossary_data/<loc
 texts that may stay English (`i18n/data/unchanged.json`), then rerun. Never edit a generated file by hand without
 recording the review.
 
+## How the first five locales were made
+
+`ru` was generated with `translate-ui` on Workers AI (`@cf/qwen/qwen3-30b-a3b-fp8`, `command_version` `1`). Its
+Slavic plural forms were wrong, and the corrected forms are now in the files. `tr`, `uk`, `pl` and `ro` were not
+produced by the pipeline: the daily Workers AI allowance ran out, so Claude Code (model `claude-sonnet-5-5`)
+wrote them by hand from `en.json`, `de.json` and the category source, with the same glossary and the same
+validators. Their `review.json` entries say `model: claude-sonnet-5-5` and `command_version: claude-code-manual-1`.
+All five locales are `machine`, unreviewed and disabled. Review them like any other generated text (next section).
+A later `translate-ui` run records its own model and command version for the strings it adds.
+
+The hand-written glossary and allow-list entries need the same review. One entry was added with these locales:
+`Extractor` in the Romanian allow list (the Romanian word equals the English one).
+
 ## Review
 
 1. Send the generated file and the category labels to a native speaker. Check the glossary terms
@@ -83,4 +96,6 @@ key (completeness 100). Otherwise it exits 1 and says why. To switch a locale of
 - `apps/web`: `npm test -- src/i18n` compares key sets, placeholders and plural forms (from `Intl.PluralRules`)
   of every locale file, and the web copies against the API seed files.
 - `apps/api`: `pytest tests/test_enable_locale.py tests/test_seed_taxonomy.py tests/test_seed_i18n.py`.
-- `apps/discovery-ingest`: `pytest tests/test_i18n_validate.py tests/test_i18n_translate.py`.
+- `apps/discovery-ingest`: `pytest tests/test_i18n_validate.py tests/test_i18n_translate.py
+  tests/test_i18n_committed_locales.py` (the last one runs the validators over the committed files and pins the
+  Slavic plural forms).
