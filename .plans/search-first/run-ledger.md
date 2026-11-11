@@ -37,6 +37,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 14-translation-queue-and-machine-api | `feat/translation-task-api` | [#384](https://github.com/vadim-schultz/redtape/pull/384) | pass (`ci.sh` copy with scratch DB names `redtape_c14_*`) | pass | yes (e262174) | operator steps pending (narrow target locales, backfill, R2 vars) |
 | 08-hybrid-query-path | `feat/hybrid-search` | [#386](https://github.com/vadim-schultz/redtape/pull/386) | pass (`ci.sh` copy with scratch DB names `redtape_c8_*`) | pass | yes (21a86d4) | operator steps pending (Render token, flag, XFF check) |
 | 15-translation-drain-worker | `feat/translation-drain-worker` | [#388](https://github.com/vadim-schultz/redtape/pull/388) | pass (`ci.sh` copy with scratch DB names `redtape_c15_*`) | pass | yes (dc32628) | operator steps pending (backfill, narrow locales, R2 vars, secrets, schedule variable, first dispatch) |
+| 16-translated-text-in-search-and-embeddings | `feat/translated-search-text` | [#390](https://github.com/vadim-schultz/redtape/pull/390) | pass (`ci.sh` copy with scratch DB names `redtape_c16_*`; web build and later stages run by hand after the copy hit its timeout) | pass | yes (a1a4e95) | operator steps pending (per-locale search backfill, embed drain, optional `EMBEDDING_LOCALES`) |
 
 ## Baseline
 
@@ -190,7 +191,9 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 16 — Translated text in search text and embedding tasks
 
-- Status: pending
+- Status: merged into loop branch (#390); refactor gate: smells found -> refactorings applied (`run_prune` split into `_vector_totals` and `_delete_open_tasks`; duplicated embedding fixtures replaced by the shared `embed`/`add_embedding` helpers); `backfill_search.py` is 133 lines, left as is (split on a third backfill mode); data-design gate: no `apply` findings, no schema change; accepted-risk: (1) lock order inverse to embedding `complete` (search text then task versus task then search text) can deadlock, one side aborts, the subscriber's savepoint keeps the translation stored and a backfill reconciles (trigger: "deadlock detected" on `embedding_task` or `candidate_search_text`); (2) `EMBEDDING_LOCALES` gates enqueue only, claim does not consult it, so pending tasks of a dropped locale keep draining (drop from the setting, then prune; trigger: embedding neurons spent on a dropped locale); observed: a subscriber failure is only logged, so a locale's search text stays missing until `backfill_search --locale` runs
+- Deviations: subscriber registered in `translation/router.py` instead of `translation/service.py` (keeps `TranslationCompletion` free of search imports); reclaimed figure is stored vector bytes (`pg_column_size` sum), the table and HNSW index only give space back after a vacuum
+- Operator actions after merge: once the translate drain has data run `python -m scripts.backfill_search --locale <code>` in `apps/api` per translated locale; run the embed drain until empty; set `EMBEDDING_LOCALES` on Render if narrowing (prune only after removing the locale from the setting)
 - Per-locale search-text rows, embedded counts and stale counts: pending
 - Table and index sizes per locale versus budget: pending
 - Polish and Ukrainian keyword behaviour (O9): pending
@@ -228,4 +231,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — resumed; chapter 15 merged (11 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15); next in order: C16
+**Last orchestration:** 2026-11-11 — resumed; chapter 16 merged (12 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16); next in order: C12
