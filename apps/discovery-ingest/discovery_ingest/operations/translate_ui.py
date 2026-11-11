@@ -78,6 +78,12 @@ def _taxonomy(client: DiscoveryIngestClient) -> Taxonomy:
         raise LlmSetupError(f"cannot read the taxonomy (GET /machine/taxonomy): {err}", EXIT_NOT_READY) from err
 
 
+def _job(request: TranslateUiRequest, layout: Layout, client: DiscoveryIngestClient) -> UiJob:
+    sources = tuple(read_sources(layout, _taxonomy(client)))
+    glossary, allow = load_glossary(request.locale), allow_unchanged(request.locale)
+    return UiJob(request.locale, sources, glossary, allow, request.batch_size)
+
+
 def run_translate_ui(
     request: TranslateUiRequest, settings: TranslationSettings, client: DiscoveryIngestClient
 ) -> UiOutcome:

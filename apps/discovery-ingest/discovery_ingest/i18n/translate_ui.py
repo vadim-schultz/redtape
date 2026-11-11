@@ -70,19 +70,49 @@ def _chunks(strings: Sequence[SourceString], size: int) -> Iterator[Sequence[Sou
         yield strings[start : start + size]
 
 
-def _run_batches(
-    job: UiJob, translator: Translator, files: TranslationFiles, todo: Sequence[SourceString], progress: _Progress
-) -> str | None:
-    """Translate ``todo`` batch by batch, writing each; return why the run stopped early, or ``None``."""
-    for chunk in _chunks(todo, job.batch_size):
-        try:
-            result = BatchRun(translator, job.rules(), chunk).run()
-        except StopDrain as stop:
-            return stop.reason
-        progress.add(result)
+class LocaleRun:
+    """One locale through one translator: prune, translate what is missing batch by batch, report."""
+
+    def __init__(self, job: UiJob, translator: Translator, files: TranslationFiles) -> None:
+        """Keep the job, the translator and the files, and read what the locale already has."""
+        self._job = job
+        self._translator = translator
+        self._files = files
+        self._required = expand_plurals(job.sources, job.locale)
+        existing = files.read(job.locale)
+        self._progress = _Progress({s.key: existing[s.key] for s in self._required if s.key in existing})
+        self._pruned = self._progress.done != existing
+
+    def run(self) -> UiReport:
+        """Translate the strings the locale lacks and return the report."""
+        if self._pruned:
+            self._files.write(self._job.locale, self._progress.done)
+        stopped = self._translate_missing()
+        return self._report(stopped)
+
+    def _translate_missing(self) -> str | None:
+        """Translate the missing strings batch by batch, writing each; return why the run stopped early, or ``None``."""
+        missing = [string for string in self._required if string.key not in self._progress.done]
+        for chunk in _chunks(missing, self._job.batch_size):
+            try:
+                result = BatchRun(self._translator, self._job.rules(), chunk).run()
+            except StopDrain as stop:
+                return stop.reason
+            self._settle(result)
+        return None
+
+    def _settle(self, result: BatchResult) -> None:
+        self._progress.add(result)
         if result.accepted:
-            files.write(job.locale, progress.done)
-    return None
+            self._files.write(self._job.locale, self._progress.done)
+
+    def _report(self, stopped: str | None) -> UiReport:
+        done = self._progress
+        gaps = plural_forms_complete(self._job.locale, done.done)
+        remaining = len(self._required) - len(done.done)
+        return UiReport(
+            self._job.locale, done.translated, done.repaired, tuple(done.rejected), remaining, gaps, stopped, done.model
+        )
 
 
 def translate_locale(job: UiJob, translator: Translator, files: TranslationFiles) -> UiReport:
@@ -92,22 +122,4 @@ def translate_locale(job: UiJob, translator: Translator, files: TranslationFiles
     have are dropped. Each batch is written whole after it settled, so a stop (quota, budget) leaves every finished
     batch on disk and nothing of the interrupted one.
     """
-    required = expand_plurals(job.sources, job.locale)
-    existing = files.read(job.locale)
-    progress = _Progress({key: existing[key] for key in (s.key for s in required) if key in existing})
-    if progress.done != existing:
-        files.write(job.locale, progress.done)
-    todo = [string for string in required if string.key not in progress.done]
-    stopped = _run_batches(job, translator, files, todo, progress)
-    gaps = plural_forms_complete(job.locale, progress.done)
-    remaining = len(required) - len(progress.done)
-    return UiReport(
-        job.locale,
-        progress.translated,
-        progress.repaired,
-        tuple(progress.rejected),
-        remaining,
-        gaps,
-        stopped,
-        progress.model,
-    )
+    return LocaleRun(job, translator, files).run()

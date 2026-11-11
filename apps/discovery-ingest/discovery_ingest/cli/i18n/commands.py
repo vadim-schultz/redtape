@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from discovery_ingest.cli.context import api_client
 from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, fail
 from discovery_ingest.cli.i18n.app import i18n_app
+from discovery_ingest.i18n.files import Layout
 from discovery_ingest.i18n.locales import UI_TARGET_LOCALES
 from discovery_ingest.i18n.translate_ui import BATCH_SIZE, UiReport
 from discovery_ingest.operations.translate_ui import DEFAULT_NEURON_BUDGET, TranslateUiRequest, run_translate_ui
@@ -36,7 +37,7 @@ def _request(locale: str, repo_root: Path, batch_size: int, neuron_budget: float
         fail(f"--locale must be one of: {', '.join(UI_TARGET_LOCALES)}", EXIT_USAGE)
     if batch_size < 1 or neuron_budget < 1:
         fail("--batch-size and --neuron-budget must be at least 1", EXIT_USAGE)
-    if not (repo_root / "apps" / "api" / "scripts" / "seed_data" / "translations" / "en.json").is_file():
+    if not (Layout.under(repo_root).seed_dir / "en.json").is_file():
         fail(f"{repo_root} is not a redtape checkout (no English seed file); pass --repo-root", EXIT_USAGE)
     return TranslateUiRequest(locale, repo_root, batch_size, neuron_budget)
 

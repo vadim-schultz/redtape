@@ -77,13 +77,25 @@ class TranslationFiles:
         self._write_labels(locale, flat)
 
     def _write_labels(self, locale: str, flat: Mapping[str, str]) -> None:
-        labels = {code: dict(locales) for code, locales in taxonomy_module.read(self._layout.taxonomy_module).items()}
-        for code in labels:
-            labels[code].pop(locale, None)
-        for code, locales in _complete_labels(flat).items():
-            labels.setdefault(code, {})[locale] = locales
-        labels = {code: locales for code, locales in labels.items() if locales}
-        _atomic_write(self._layout.taxonomy_module, taxonomy_module.render(labels))
+        kept = _without_locale(taxonomy_module.read(self._layout.taxonomy_module), locale)
+        merged = _with_locale(kept, locale, _complete_labels(flat))
+        _atomic_write(self._layout.taxonomy_module, taxonomy_module.render(merged))
+
+
+def _without_locale(labels: taxonomy_module.Labels, locale: str) -> taxonomy_module.Labels:
+    """Return ``labels`` without ``locale``'s texts; a category left with no locale disappears."""
+    stripped = {
+        code: {loc: texts for loc, texts in locales.items() if loc != locale} for code, locales in labels.items()
+    }
+    return {code: locales for code, locales in stripped.items() if locales}
+
+
+def _with_locale(
+    labels: taxonomy_module.Labels, locale: str, texts: Mapping[str, tuple[str, str]]
+) -> taxonomy_module.Labels:
+    """Return ``labels`` plus ``locale``'s ``(name, description)`` for each category code in ``texts``."""
+    codes = sorted({*labels, *texts})
+    return {code: {**labels.get(code, {}), **({locale: texts[code]} if code in texts else {})} for code in codes}
 
 
 def _complete_labels(flat: Mapping[str, str]) -> dict[str, tuple[str, str]]:
