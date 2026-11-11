@@ -9,207 +9,751 @@ from __future__ import annotations
 
 TAXONOMY_TRANSLATIONS: dict[str, dict[str, tuple[str, str]]] = {
     "birth-and-parenthood": {
+        "pl": (
+            "Narodziny dziecka",
+            "Zaświadczenia i wnioski związane z narodzinami dziecka.",
+        ),
+        "ro": (
+            "Nașterea unui copil",
+            "Adeverințe și cereri legate de nașterea unui copil.",
+        ),
         "ru": (
             "Рождение ребенка",
             "Документы и заявления, связанные с рождением.",
         ),
+        "tr": (
+            "Çocuğun doğumu",
+            "Doğumla ilgili belgeler ve başvurular.",
+        ),
+        "uk": (
+            "Народження дитини",
+            "Підтвердні документи та заяви, пов'язані з народженням.",
+        ),
     },
     "buying-property": {
+        "pl": (
+            "Zakup / budowa nieruchomości",
+            "Zakup, pozwolenie na budowę i księga wieczysta.",
+        ),
+        "ro": (
+            "Cumpărarea / construirea unei proprietăți",
+            "Cumpărare, autorizație de construire și carte funciară.",
+        ),
         "ru": (
             "Покупка / строительство недвижимости",
             "Покупка, разрешение на строительство и земельный регистр.",
         ),
+        "tr": (
+            "Gayrimenkul satın alma / inşa etme",
+            "Satın alma, yapı ruhsatı ve tapu sicili.",
+        ),
+        "uk": (
+            "Купівля / будівництво нерухомості",
+            "Купівля, дозвіл на будівництво та земельний реєстр.",
+        ),
     },
     "death-and-estate": {
+        "pl": (
+            "Śmierć bliskiej osoby",
+            "Akt zgonu, dziedziczenie i spadek.",
+        ),
+        "ro": (
+            "Decesul unei rude",
+            "Certificat de deces, moștenire și masă succesorală.",
+        ),
         "ru": (
             "Смерть",
             "Смертный сертификат, наследство и имущество.",
         ),
+        "tr": (
+            "Yakın kaybı",
+            "Ölüm belgesi, miras ve terekeye ilişkin işlemler.",
+        ),
+        "uk": (
+            "Смерть родича",
+            "Свідоцтво про смерть, спадщина та спадкова маса.",
+        ),
     },
     "driving-licence": {
+        "pl": (
+            "Uzyskanie prawa jazdy / patentu żeglarskiego",
+            "Prawo jazdy i patent sternika motorowodnego.",
+        ),
+        "ro": (
+            "Obținerea permisului de conducere / de navigație",
+            "Permis de conducere și permis pentru ambarcațiuni de agrement.",
+        ),
         "ru": (
             "Получение водительских прав / удостоверения судоводителя",
             "Разрешение на вождение и удостоверение судоводителя.",
         ),
+        "tr": (
+            "Sürücü belgesi / tekne ehliyeti alma",
+            "Sürücü belgesi ve spor teknesi ehliyeti.",
+        ),
+        "uk": (
+            "Отримання водійського посвідчення / посвідчення судноводія",
+            "Водійське посвідчення та посвідчення на керування спортивним човном.",
+        ),
     },
     "education-and-training": {
+        "pl": (
+            "Edukacja",
+            "Szkoła, kształcenie zawodowe i studia.",
+        ),
+        "ro": (
+            "Educație",
+            "Școală, formare profesională și universitate.",
+        ),
         "ru": (
             "Образование",
             "Школа, обучение и университет.",
         ),
+        "tr": (
+            "Eğitim",
+            "Okul, mesleki eğitim ve üniversite.",
+        ),
+        "uk": (
+            "Освіта",
+            "Школа, професійне навчання та університет.",
+        ),
     },
     "family-and-relationships": {
+        "pl": (
+            "Rodzina i relacje",
+            "Małżeństwo, separacja, narodziny dziecka i śmierć w rodzinie.",
+        ),
+        "ro": (
+            "Familie și relații",
+            "Căsătorie, separare, nașterea unui copil și deces în familie.",
+        ),
         "ru": (
             "Семья и отношения",
             "Брак, развод, рождение и смерть в семье.",
         ),
+        "tr": (
+            "Aile ve ilişkiler",
+            "Aile içinde evlilik, ayrılma, doğum ve ölüm.",
+        ),
+        "uk": (
+            "Сім'я та стосунки",
+            "Шлюб, розлучення, народження дитини та втрата близької людини в сім'ї.",
+        ),
     },
     "health-and-care": {
+        "pl": (
+            "Zdrowie i opieka",
+            "Choroba i potrzeba opieki.",
+        ),
+        "ro": (
+            "Sănătate și îngrijire",
+            "Boală și nevoie de îngrijire.",
+        ),
         "ru": (
             "Здоровье и уход",
             "Болезнь и потребность в уходе.",
         ),
+        "tr": (
+            "Sağlık ve bakım",
+            "Hastalık ve bakım gereksinimi.",
+        ),
+        "uk": (
+            "Здоров'я та догляд",
+            "Хвороба та потреба в догляді.",
+        ),
     },
     "home-and-housing": {
+        "pl": (
+            "Mieszkanie i przeprowadzka",
+            "Przeprowadzka, najem mieszkania i zakup nieruchomości.",
+        ),
+        "ro": (
+            "Locuință și mutare",
+            "Mutare, închirierea unei locuințe și cumpărarea unei proprietăți.",
+        ),
         "ru": (
             "Жилье и переезд",
             "Переезд, аренда и покупка недвижимости.",
         ),
+        "tr": (
+            "Konut ve taşınma",
+            "Taşınma, kiralık konut ve gayrimenkul satın alma.",
+        ),
+        "uk": (
+            "Житло та переїзд",
+            "Переїзд, оренда житла та купівля нерухомості.",
+        ),
     },
     "identity-and-documents": {
+        "pl": (
+            "Tożsamość i stan cywilny",
+            "Dowody tożsamości, akty i dokumenty stanu cywilnego.",
+        ),
+        "ro": (
+            "Identitate și stare civilă",
+            "Acte de identitate, certificate și dovezi ale stării civile.",
+        ),
         "ru": (
             "Идентичность и личные дела",
             "Удостоверения личности, документы и записи о состоянии личности.",
         ),
+        "tr": (
+            "Kimlik ve medeni durum",
+            "Kimlik kartları, resmî belgeler ve medeni durum kayıtları.",
+        ),
+        "uk": (
+            "Особа та цивільний стан",
+            "Посвідчення особи, свідоцтва та підтвердження цивільного стану.",
+        ),
     },
     "identity-documents": {
+        "pl": (
+            "Dowody tożsamości i dokumenty",
+            "Dowody tożsamości, akty i zaświadczenia.",
+        ),
+        "ro": (
+            "Acte de identitate și documente",
+            "Acte de identitate, certificate și adeverințe.",
+        ),
         "ru": (
             "Удостоверения личности и документы",
             "Удостоверения личности, свидетельства и подтверждения.",
         ),
+        "tr": (
+            "Kimlik belgeleri",
+            "Kimlik belgeleri, sertifikalar ve onaylar.",
+        ),
+        "uk": (
+            "Посвідчення особи та документи",
+            "Посвідчення особи, свідоцтва та довідки.",
+        ),
     },
     "illness-and-care": {
+        "pl": (
+            "Choroba / potrzeba opieki",
+            "Zasiłek chorobowy, stopień opieki i znaczny stopień niepełnosprawności.",
+        ),
+        "ro": (
+            "Boală / nevoie de îngrijire",
+            "Indemnizație de boală, grad de îngrijire și handicap grav.",
+        ),
         "ru": (
             "Болезнь / потребность в уходе",
             "Пособие по болезни, степень ухода и инвалидность.",
         ),
+        "tr": (
+            "Hastalık / bakım gereksinimi",
+            "Hastalık ödeneği, bakım derecesi ve ağır engellilik durumu.",
+        ),
+        "uk": (
+            "Хвороба / потреба в догляді",
+            "Допомога по хворобі, ступінь догляду та тяжка інвалідність.",
+        ),
     },
     "immigration": {
+        "pl": (
+            "Przeprowadzka do Niemiec",
+            "Zameldowanie, pobyt i pierwsze wizyty w urzędach.",
+        ),
+        "ro": (
+            "Mutarea în Germania",
+            "Înregistrare, ședere și primele vizite la autorități.",
+        ),
         "ru": (
             "Въезд в Германию",
             "Регистрация, проживание и первые визиты в органы власти.",
         ),
+        "tr": (
+            "Almanya'ya taşınma",
+            "Kayıt, ikamet ve resmî makamlara ilk ziyaretler.",
+        ),
+        "uk": (
+            "Переїзд до Німеччини",
+            "Реєстрація, проживання та перші візити до органів влади.",
+        ),
     },
     "job-loss": {
+        "pl": (
+            "Utrata pracy",
+            "Rejestracja jako bezrobotny i świadczenia dla bezrobotnych.",
+        ),
+        "ro": (
+            "Pierderea locului de muncă",
+            "Înregistrarea ca șomer și indemnizații de șomaj.",
+        ),
         "ru": (
             "Потеря работы",
             "Регистрация в качестве безработного и пособия по безработице.",
         ),
+        "tr": (
+            "İşini kaybetme",
+            "İşsizlik kaydı ve işsizlik yardımları.",
+        ),
+        "uk": (
+            "Втрата роботи",
+            "Реєстрація як безробітного та виплати по безробіттю.",
+        ),
     },
     "law-and-justice": {
+        "pl": (
+            "Prawo i sądownictwo",
+            "Zaświadczenie o niekaralności, pełnomocnictwa i postępowania sądowe.",
+        ),
+        "ro": (
+            "Drept și justiție",
+            "Cazier judiciar, procuri și proceduri în instanță.",
+        ),
         "ru": (
             "Право и юстиция",
             "Справка о несудимости, доверенности и судебные дела.",
         ),
+        "tr": (
+            "Hukuk ve adalet",
+            "Sabıka kaydı, vekâletnameler ve mahkeme işlemleri.",
+        ),
+        "uk": (
+            "Право та юстиція",
+            "Довідка про несудимість, довіреності та судові справи.",
+        ),
     },
     "legal-and-consumer-protection": {
+        "pl": (
+            "Prawo i ochrona konsumentów",
+            "Postępowania, rozstrzyganie sporów i ochrona konsumentów.",
+        ),
+        "ro": (
+            "Drept și protecția consumatorilor",
+            "Proceduri, soluționarea litigiilor și protecția consumatorilor.",
+        ),
         "ru": (
             "Право и защита потребителей",
             "Процедуры, разрешение споров и защита потребителей.",
         ),
+        "tr": (
+            "Hukuk ve tüketicinin korunması",
+            "Prosedürler, uyuşmazlık çözümü ve tüketicinin korunması.",
+        ),
+        "uk": (
+            "Право та захист прав споживачів",
+            "Процедури, врегулювання спорів і захист прав споживачів.",
+        ),
     },
     "marriage-and-partnership": {
+        "pl": (
+            "Małżeństwo / związek partnerski",
+            "Zgłoszenie zawarcia małżeństwa lub związku partnerskiego.",
+        ),
+        "ro": (
+            "Căsătorie / parteneriat civil",
+            "Înregistrarea unei căsătorii sau a unui parteneriat civil.",
+        ),
         "ru": (
             "Брак / партнерство",
             "Зарегистрировать брак или партнерство.",
         ),
+        "tr": (
+            "Evlilik / birliktelik",
+            "Evlilik veya yaşam ortaklığı bildirimi.",
+        ),
+        "uk": (
+            "Шлюб / партнерство",
+            "Реєстрація шлюбу або партнерства.",
+        ),
     },
     "mobility-and-vehicles": {
+        "pl": (
+            "Pojazdy i mobilność",
+            "Samochód, motocykl, łódź i prawa jazdy.",
+        ),
+        "ro": (
+            "Vehicule și mobilitate",
+            "Autoturism, motocicletă, barcă și permise de conducere.",
+        ),
         "ru": (
             "Транспорт и мобильность",
             "Автомобиль, мотоцикл, лодка и водительские права.",
         ),
+        "tr": (
+            "Araçlar ve ulaşım",
+            "Otomobil, motosiklet, tekne ve ehliyetler.",
+        ),
+        "uk": (
+            "Транспорт та мобільність",
+            "Автомобіль, мотоцикл, човен і водійські посвідчення.",
+        ),
     },
     "moving-house": {
+        "pl": (
+            "Przeprowadzka",
+            "Zgłoszenie nowego adresu i zmiana miejsca zamieszkania.",
+        ),
+        "ro": (
+            "Mutare",
+            "Înregistrarea noii adrese și schimbarea domiciliului.",
+        ),
         "ru": (
             "Переезд",
             "Регистрация и смена места жительства.",
         ),
+        "tr": (
+            "Taşınma",
+            "Yeni adres kaydı ve ikamet değişikliği.",
+        ),
+        "uk": (
+            "Переїзд",
+            "Реєстрація нової адреси та зміна місця проживання.",
+        ),
     },
     "naturalisation": {
+        "pl": (
+            "Naturalizacja",
+            "Wniosek o obywatelstwo niemieckie.",
+        ),
+        "ro": (
+            "Naturalizare",
+            "Cerere pentru cetățenia germană.",
+        ),
         "ru": (
             "Натурализация",
             "Заявление о получении немецкого гражданства.",
         ),
+        "tr": (
+            "Vatandaşlığa geçiş",
+            "Alman vatandaşlığı için başvuru.",
+        ),
+        "uk": (
+            "Натуралізація",
+            "Заява на отримання німецького громадянства.",
+        ),
     },
     "new-job": {
+        "pl": (
+            "Rozpoczęcie pracy / zmiana pracy",
+            "Dokumenty potrzebne na początek kariery zawodowej i dla nowych pracodawców.",
+        ),
+        "ro": (
+            "Începerea carierei / schimbarea locului de muncă",
+            "Documente pentru începerea carierei și pentru noii angajatori.",
+        ),
         "ru": (
             "Вступление в профессию / смена работы",
             "Документы для вступления в профессию и новых работодателей.",
         ),
+        "tr": (
+            "İşe başlama / iş değiştirme",
+            "İşe giriş ve yeni işverenler için gerekli belgeler.",
+        ),
+        "uk": (
+            "Початок кар'єри / зміна роботи",
+            "Документи для початку роботи та для нових роботодавців.",
+        ),
     },
     "renting-home": {
+        "pl": (
+            "Najem mieszkania",
+            "Umowa najmu, kaucja i potwierdzenia od wynajmującego.",
+        ),
+        "ro": (
+            "Închirierea unei locuințe",
+            "Contract de închiriere, garanție și confirmări din partea proprietarului.",
+        ),
         "ru": (
             "Арендовать квартиру",
             "Арендный договор, залог и подтверждения арендодателя.",
         ),
+        "tr": (
+            "Konut kiralama",
+            "Kira sözleşmesi, depozito ve ev sahibi onayları.",
+        ),
+        "uk": (
+            "Оренда житла",
+            "Договір оренди, застава та підтвердження від орендодавця.",
+        ),
     },
     "residence-and-migration": {
+        "pl": (
+            "Pobyt i migracja",
+            "Tytuły pobytowe, wizy i naturalizacja.",
+        ),
+        "ro": (
+            "Ședere și migrație",
+            "Permise de ședere, vize și naturalizare.",
+        ),
         "ru": (
             "Проживание и миграция",
             "Вид на жительство, визы и гражданство.",
         ),
+        "tr": (
+            "İkamet ve göç",
+            "Oturma izni, vizeler ve vatandaşlığa geçiş.",
+        ),
+        "uk": (
+            "Проживання та міграція",
+            "Посвідки на проживання, візи та натуралізація.",
+        ),
     },
     "retirement": {
+        "pl": (
+            "Przejście na emeryturę",
+            "Wniosek emerytalny i przejście na emeryturę.",
+        ),
+        "ro": (
+            "Ieșirea la pensie",
+            "Cerere de pensie și trecerea la pensie.",
+        ),
         "ru": (
             "Выход на пенсию",
             "Заявление о пенсии и переход на пенсию.",
         ),
+        "tr": (
+            "Emekliliğe geçiş",
+            "Emeklilik başvurusu ve emeklilik dönemine geçiş.",
+        ),
+        "uk": (
+            "Вихід на пенсію",
+            "Заява на пенсію та перехід на пенсію.",
+        ),
     },
     "retirement-and-old-age": {
+        "pl": (
+            "Emerytura i starość",
+            "Wnioski emerytalne i świadczenia na starość.",
+        ),
+        "ro": (
+            "Pensie și bătrânețe",
+            "Cereri de pensie și prestații la bătrânețe.",
+        ),
         "ru": (
             "Пенсия и старость",
             "Заявления о пенсии и выплаты в старости.",
         ),
+        "tr": (
+            "Emeklilik ve yaşlılık",
+            "Emeklilik başvuruları ve yaşlılık yardımları.",
+        ),
+        "uk": (
+            "Пенсія та старість",
+            "Заяви на пенсію та виплати в похилому віці.",
+        ),
     },
     "self-employment": {
+        "pl": (
+            "Rozpoczęcie działalności na własny rachunek",
+            "Rejestracja działalności gospodarczej i start samozatrudnienia.",
+        ),
+        "ro": (
+            "Începerea unei activități independente",
+            "Înregistrarea unei afaceri și începerea activității independente.",
+        ),
         "ru": (
             "Стать самозанятым",
             "Регистрация предпринимательства и начало самозанятости.",
         ),
+        "tr": (
+            "Serbest çalışmaya başlama",
+            "İşletme bildirimi ve serbest çalışmaya başlangıç.",
+        ),
+        "uk": (
+            "Початок самозайнятості",
+            "Реєстрація підприємницької діяльності та початок самозайнятості.",
+        ),
     },
     "separation-and-divorce": {
+        "pl": (
+            "Separacja i rozwód",
+            "Separacja, rozwód i ich skutki.",
+        ),
+        "ro": (
+            "Separare și divorț",
+            "Separarea, divorțul și consecințele lor.",
+        ),
         "ru": (
             "Развод и раздел",
             "Развод, последствия.",
         ),
+        "tr": (
+            "Ayrılık ve boşanma",
+            "Ayrılık, boşanma ve sonuçları.",
+        ),
+        "uk": (
+            "Розлучення та роздільне проживання",
+            "Роздільне проживання, розлучення та їхні наслідки.",
+        ),
     },
     "social-benefits": {
+        "pl": (
+            "Sprawy socjalne i świadczenia",
+            "Dochód obywatelski (Bürgergeld), dodatek mieszkaniowy (Wohngeld) i inne świadczenia socjalne.",
+        ),
+        "ro": (
+            "Asistență socială și prestații",
+            "Venit cetățenesc (Bürgergeld), alocație de locuință (Wohngeld) și alte prestații sociale.",
+        ),
         "ru": (
             "Социальные пособия",
             "Социальное пособие (Bürgergeld), жилищное пособие (Wohngeld) и другие социальные выплаты.",
         ),
+        "tr": (
+            "Sosyal hizmetler ve yardımlar",
+            "Vatandaşlık geliri (Bürgergeld), kira yardımı (Wohngeld) ve diğer sosyal yardımlar.",
+        ),
+        "uk": (
+            "Соціальна сфера та виплати",
+            "Громадянський дохід (Bürgergeld), житлова допомога (Wohngeld) та інші соціальні виплати.",
+        ),
     },
     "social-support": {
+        "pl": (
+            "Świadczenia socjalne",
+            "Zabezpieczenie egzystencji i wsparcie państwa.",
+        ),
+        "ro": (
+            "Prestații sociale",
+            "Asigurarea minimului de existență și sprijin din partea statului.",
+        ),
         "ru": (
             "Социальные пособия",
             "Гарантия существования и государственная поддержка.",
         ),
+        "tr": (
+            "Sosyal yardımlar",
+            "Geçim güvencesi ve devlet desteği.",
+        ),
+        "uk": (
+            "Соціальні виплати",
+            "Забезпечення прожиткового мінімуму та державна підтримка.",
+        ),
     },
     "starting-school": {
+        "pl": (
+            "Rozpoczęcie nauki w szkole",
+            "Zapis do szkoły i badanie przed rozpoczęciem nauki.",
+        ),
+        "ro": (
+            "Începerea școlii",
+            "Înscrierea la școală și examinarea medicală de intrare în școală.",
+        ),
         "ru": (
             "Запись в школу",
             "Запись в школу и вступительное медицинское обследование.",
         ),
+        "tr": (
+            "Okula başlama",
+            "Okul kaydı ve okula giriş muayenesi.",
+        ),
+        "uk": (
+            "Початок шкільного навчання",
+            "Запис до школи та обстеження перед вступом до школи.",
+        ),
     },
     "studying": {
+        "pl": (
+            "Studia",
+            "Immatrykulacja, BAföG i dokumenty dotyczące studiów.",
+        ),
+        "ro": (
+            "Studii universitare",
+            "Înmatriculare, BAföG și documente privind studiile.",
+        ),
         "ru": (
             "Учеба",
             "Запись в университет, BAföG и учебные документы.",
         ),
+        "tr": (
+            "Üniversite eğitimi",
+            "Kayıt, BAföG ve öğrenim belgeleri.",
+        ),
+        "uk": (
+            "Навчання в університеті",
+            "Зарахування, BAföG та документи про навчання.",
+        ),
     },
     "taxes-and-duties": {
+        "pl": (
+            "Podatki i opłaty",
+            "Zeznanie podatkowe i inne sprawy podatkowe.",
+        ),
+        "ro": (
+            "Impozite și taxe",
+            "Declarație fiscală și alte chestiuni fiscale.",
+        ),
         "ru": (
             "Налоги и пошлины",
             "Налоговая декларация и другие налоговые вопросы.",
         ),
+        "tr": (
+            "Vergiler ve harçlar",
+            "Vergi beyannamesi ve diğer vergi işlemleri.",
+        ),
+        "uk": (
+            "Податки та збори",
+            "Податкова декларація та інші податкові питання.",
+        ),
     },
     "taxes-and-finance": {
+        "pl": (
+            "Podatki i finanse",
+            "Zeznanie podatkowe, numer identyfikacji podatkowej i sprawy bankowe.",
+        ),
+        "ro": (
+            "Impozite și finanțe",
+            "Declarație fiscală, cod de identificare fiscală și chestiuni bancare.",
+        ),
         "ru": (
             "Налоги и финансы",
             "Налоговая декларация, налоговый идентификатор и банковские вопросы.",
         ),
+        "tr": (
+            "Vergi ve finans",
+            "Vergi beyannamesi, vergi kimlik numarası ve bankacılık işlemleri.",
+        ),
+        "uk": (
+            "Податки та фінанси",
+            "Податкова декларація, податковий ідентифікатор і банківські питання.",
+        ),
     },
     "vehicle-registration": {
+        "pl": (
+            "Zakup i rejestracja pojazdu",
+            "Rejestracja, ubezpieczenie i tablice rejestracyjne.",
+        ),
+        "ro": (
+            "Cumpărarea și înmatricularea unui vehicul",
+            "Înmatriculare, asigurare și plăcuțe de înmatriculare.",
+        ),
         "ru": (
             "Покупка или регистрация автомобиля",
             "Регистрация, страхование и номерные знаки.",
         ),
+        "tr": (
+            "Araç satın alma ve tescil",
+            "Tescil, sigorta ve plaka.",
+        ),
+        "uk": (
+            "Купівля та реєстрація транспортного засобу",
+            "Реєстрація, страхування та номерні знаки.",
+        ),
     },
     "work-and-employment": {
+        "pl": (
+            "Praca i zawód",
+            "Stosunek pracy, bezrobocie i dokumenty potwierdzające kwalifikacje zawodowe.",
+        ),
+        "ro": (
+            "Muncă și profesie",
+            "Raport de muncă, șomaj și documente care atestă calificarea profesională.",
+        ),
         "ru": (
             "Работа и профессия",
             "Трудовые отношения, безработица и профессиональные документы.",
+        ),
+        "tr": (
+            "Çalışma hayatı ve meslek",
+            "İş ilişkisi, işsizlik ve mesleki yeterlilik belgeleri.",
+        ),
+        "uk": (
+            "Робота та професія",
+            "Трудові відносини, безробіття та підтвердження професійної кваліфікації.",
         ),
     },
 }
