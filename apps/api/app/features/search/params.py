@@ -9,12 +9,13 @@ from app.config import Settings
 
 @dataclass(frozen=True, slots=True)
 class RetrievalParams:
-    """Fusion constant, leg and pool sizes, the cosine cut-off, the embedding model and the index switch."""
+    """Fusion constant, leg and pool sizes, the cosine cut-off, the confidence weight, the model and the index switch."""
 
     rrf_k: int
     top_n: int
     fused_top_k: int
     min_similarity: float
+    confidence_weight: float
     model: str
     vector_index_enabled: bool
 
@@ -26,6 +27,7 @@ class RetrievalParams:
             top_n=config.search_top_n,
             fused_top_k=config.search_fused_top_k,
             min_similarity=config.search_min_similarity,
+            confidence_weight=config.search_confidence_weight,
             model=config.embedding_model,
             vector_index_enabled=config.search_vector_index_enabled,
         )

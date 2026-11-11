@@ -68,18 +68,22 @@ invalid value answers 422 and names each bad parameter.
 | Parameter | Behavior |
 | --- | --- |
 | `q` | Search text, 1 to 200 characters. With `SEARCH_HYBRID_ENABLED=true` it runs hybrid retrieval (see [Search](#search-with-q)); off, the legacy case-insensitive title match over all locales, no index. |
-| `sort_by` | `confidence`, `completeness`, `mentions`, `title`, `created_at`. |
+| `sort_by` | `combined` (the default), `confidence`, `completeness`, `mentions`, `title`, `created_at`. |
 | `sort_order` | `asc` or `desc`. Needs `sort_by`; alone it answers 422. |
 | `filter[category]` | CSV of canonical category codes (`a,b,c`), at most 20 codes. A candidate matches when it carries **any** of them, with **any** score; roots include active descendants. |
 | `filter[complete]` | `yes` or `no`, the four completeness flags. Kept for the API; the web list does not expose it. |
 | `offset`, `limit` | Paging; `limit` 1 to 100. |
 
-- Without `q` the order is as below. With `q` and hybrid search on, the default order is search relevance,
-  then confidence, then the tie-break (the combined score of chapter 12 replaces it later); an explicit
-  `sort_by` still wins. `total` is then the size of the relevance pool (at most `SEARCH_FUSED_TOP_K`).
+- Without `q` the order is as below. With `q`, the default order is the combined score
+  `(1 - w) * relevance + w * confidence` with `w = SEARCH_CONFIDENCE_WEIGHT` (default 0.3; 0 is pure relevance,
+  1 is confidence first within the pool), then relevance, then confidence, then the deterministic tie-break.
+  Relevance is the fused RRF score normalised to 0..1 (single-leg in keyword mode). Every card carries `score`,
+  the combined score to four decimals (equal to `confidence` without a search). An explicit `sort_by` still wins.
+  `total` is the size of the relevance pool (at most `SEARCH_FUSED_TOP_K`); a high-confidence candidate outside
+  the pool never appears, the weight only reorders within it.
 - Category codes combine with OR. More than 20 codes, a code longer than 64 characters, or an unknown
   taxonomy code answers 422 (per code).
-- Without `sort_by` the order is confidence descending, then completeness descending, then mentions
+- Without `q` and `sort_by` (or with `sort_by=combined`) the order is confidence descending, then completeness descending, then mentions
   descending, then a deterministic tie-break. With `sort_by` the key is applied and the same
   tie-break follows.
 - **There is no 0.05 floor on this path.** A chip matches by the presence of a code, whatever its score.

@@ -52,7 +52,7 @@ PUBLIC_CANDIDATE_SPEC = ListQuerySpec(
 
 
 def public_filter_from(query: ListQuery) -> PublicCandidateFilter:
-    """Return the filter for ``query``; without ``sort_by`` the list is ranked by completeness, best first."""
+    """Return the filter for ``query``; without ``sort_by`` the list is ranked by the combined score, best first."""
     complete = query.filter_value("complete", CompleteChoice)
     narrowed = PublicCandidateFilter(
         complete=None if complete is None else complete is CompleteChoice.YES,

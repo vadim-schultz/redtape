@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.features.candidates.localize import localized
 from app.features.candidates.repository import CardRow, DescriptionRow, ScoredCode
+from app.features.search.scoring import displayed_score
 from app.features.search.similarity import rescaled_similarity
 from app.schema.candidate import CandidateCard
 from app.schema.taxonomy.read import CategoryTagRead
@@ -52,5 +53,6 @@ def card_for(row: CardRow, context: CardContext) -> CandidateCard:
         categories=_category_tags(context.tag_scores.get(candidate.id, ()), context.category_names),
         mention_count=row.mention_count,
         confidence=row.confidence,
+        score=displayed_score(row.score),
         similarity=rescaled_similarity(row.cosine, context.min_similarity),
     )

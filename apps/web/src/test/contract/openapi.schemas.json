@@ -488,6 +488,9 @@
       "mention_count": {
         "type": "integer"
       },
+      "score": {
+        "type": "number"
+      },
       "similarity": {
         "oneOf": [
           {
@@ -508,6 +511,7 @@
       "id",
       "key",
       "mention_count",
+      "score",
       "title"
     ],
     "title": "CandidateCard",
@@ -598,6 +602,9 @@
       "mention_count": {
         "type": "integer"
       },
+      "score": {
+        "type": "number"
+      },
       "screenshot": {
         "oneOf": [
           {
@@ -634,6 +641,7 @@
       "id",
       "key",
       "mention_count",
+      "score",
       "title"
     ],
     "title": "CandidateDetail",

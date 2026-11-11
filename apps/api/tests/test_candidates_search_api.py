@@ -9,25 +9,8 @@ from sqlalchemy.orm import Session
 
 from candidates_public_world import HOUSING, MOVING, Scene
 from query_embedder_support import FakeQueryEmbedder
-from search_api_fixtures import URL, keys, serve_with, vector_for
-from search_query_world import add_embedding, add_text, at_similarity, indexed
-from search_support import search_service
-
-
-def indexed_scored(
-    session: Session,
-    search_scene: Scene,
-    key: str,
-    title: str,
-    categories: dict[str, float],
-    *,
-    similarity: float | None,
-) -> None:
-    """Add a categorised candidate with a search text and, when ``similarity`` is given, an embedding."""
-    candidate = search_scene.scored(key, categories=categories, title={"de": title})
-    search_service(session).refresh(candidate.id)
-    if similarity is not None:
-        add_embedding(session, candidate, at_similarity(similarity))
+from search_api_fixtures import URL, indexed_scored, keys, serve_with, vector_for
+from search_query_world import add_text, indexed
 
 
 def test_a_german_phrase_and_a_turkish_paraphrase_both_find_the_candidate(
