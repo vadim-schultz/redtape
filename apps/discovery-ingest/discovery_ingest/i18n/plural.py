@@ -55,7 +55,11 @@ def categories_of(locale: str) -> tuple[str, ...]:
 def _form(base: str, category: str, locale: str, forms: Mapping[str, SourceString]) -> SourceString:
     """Return the string for ``category``: the source's own form when it has one, else its ``other`` form."""
     origin = forms.get(f"{base}_{category}") or forms[f"{base}_other"]
-    note = f"plural form '{category}' of '{base}', used for counts such as {CATEGORY_EXAMPLES[locale][category]}"
+    examples = CATEGORY_EXAMPLES[locale][category]
+    note = (
+        f"plural form '{category}' of '{base}', used for counts such as {examples}; "
+        "inflect the noun after {count} exactly as a native speaker does for those counts, and keep {count}"
+    )
     return SourceString(f"{base}_{category}", origin.german, origin.english, note)
 
 
