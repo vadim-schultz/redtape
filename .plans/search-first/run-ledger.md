@@ -1,6 +1,7 @@
 # Search-first — Run ledger
 
 **Suite:** [00-architecture.md](00-architecture.md) · [01-rollout.md](01-rollout.md)
+**Remaining work and operator runbook:** [02-remaining-work.md](02-remaining-work.md)
 **Purpose:** Record implementation and post-deploy evidence. This file is a ledger template; no production checks are implied by its creation.
 
 ## Orchestration
