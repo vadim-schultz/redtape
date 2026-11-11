@@ -8,7 +8,7 @@ from typing import Final
 from discovery_ingest.extract.llm.client import ChatMessage
 from discovery_ingest.json_types import JsonSchema
 from discovery_ingest.translation.glossary import Glossary
-from discovery_ingest.translation.units import TranslationBatch, TranslationUnit
+from discovery_ingest.translation.units import Correction, TranslationBatch, TranslationUnit
 
 LANGUAGE_NAMES: Final = {
     "de": "German",
@@ -28,6 +28,11 @@ RULES: Final = (
     "an empty description stays empty.",
     "Keep exactly as written: numbers, dates, URLs, legal citations such as '§ 35' or 'Art. 5', and placeholders "
     "such as {{name}} or %s. Add no markup, notes or explanations.",
+)
+
+REPAIR_RULE: Final = (
+    "A unit with a 'problems' list was translated before and its previous translation broke those rules. "
+    "Translate it again and keep every rule that was broken."
 )
 
 UNITS_SCHEMA: Final[JsonSchema] = {
@@ -59,15 +64,23 @@ def _glossary_lines(glossary: Glossary) -> list[str]:
 
 
 def system_text(batch: TranslationBatch, language: str, source_language: str) -> str:
-    """Return the system message: the rules, the languages and the glossary."""
+    """Return the system message: the rules, the repair rule for a repair request, the languages and the glossary."""
     rules = [rule.format(source=source_language, target=language) for rule in RULES]
-    return "\n".join([*rules, *_glossary_lines(batch.glossary)])
+    repair = [REPAIR_RULE] if batch.corrections else []
+    return "\n".join([*rules, *repair, *_glossary_lines(batch.glossary)])
 
 
-def user_text(units: tuple[TranslationUnit, ...]) -> str:
-    """Return the user message: the units as JSON, which the model treats as data."""
-    payload = {"units": [{"key": u.key, "title": u.title, "description": u.description} for u in units]}
-    return json.dumps(payload, ensure_ascii=False)
+def _unit_json(unit: TranslationUnit, problems: dict[str, tuple[str, ...]]) -> dict[str, object]:
+    fields: dict[str, object] = {"key": unit.key, "title": unit.title, "description": unit.description}
+    if unit.key in problems:
+        fields["problems"] = list(problems[unit.key])
+    return fields
+
+
+def user_text(units: tuple[TranslationUnit, ...], corrections: tuple[Correction, ...] = ()) -> str:
+    """Return the user message: the units as JSON (a repaired unit lists its problems), which the model treats as data."""
+    problems = {correction.key: correction.problems for correction in corrections}
+    return json.dumps({"units": [_unit_json(unit, problems) for unit in units]}, ensure_ascii=False)
 
 
 def build_messages(batch: TranslationBatch, language: str) -> list[ChatMessage]:
@@ -75,5 +88,5 @@ def build_messages(batch: TranslationBatch, language: str) -> list[ChatMessage]:
     source = LANGUAGE_NAMES.get(batch.source_locale, batch.source_locale)
     return [
         {"role": "system", "content": system_text(batch, language, source)},
-        {"role": "user", "content": user_text(batch.units)},
+        {"role": "user", "content": user_text(batch.units, batch.corrections)},
     ]

@@ -53,3 +53,8 @@ class RecordingMeter:
     def remaining(self) -> float | None:
         """Report no known limit."""
         return None
+
+    @property
+    def used(self) -> float:
+        """Return the usage settled so far."""
+        return sum(usage.amount for usage in self.settled)

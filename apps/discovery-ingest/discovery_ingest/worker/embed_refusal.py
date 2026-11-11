@@ -11,7 +11,7 @@ from discovery_ingest.extract.llm.errors import (
     LlmRequestError,
 )
 from discovery_ingest.extract.llm.meter import Reservation
-from discovery_ingest.worker.embed_settle import Failure
+from discovery_ingest.worker.lease_settle import Failure
 from discovery_ingest.worker.stop import StopDrain
 
 
