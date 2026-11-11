@@ -129,12 +129,12 @@ def test_the_slavic_plural_forms_agree_with_the_counted_noun(locale: str, family
     assert found == tuple(f"{{count}} {noun}" for noun in forms)
 
 
-def test_every_plural_key_of_every_committed_file_ends_in_a_category_of_its_locale() -> None:
+@pytest.mark.parametrize("locale", UI_TARGET_LOCALES)
+def test_every_plural_key_of_a_committed_file_ends_in_a_category_of_its_locale(locale: str) -> None:
     """committed · no file carries a plural form its locale never selects (Romanian has no `many`, Turkish no `few`)."""
-    for locale in UI_TARGET_LOCALES:
-        for key in read_flat(LAYOUT.seed_dir / f"{locale}.json"):
-            match = PLURAL_SUFFIX.search(key)
-            assert match is None or match.group(1) in categories_of(locale), (locale, key)
+    suffixes = (PLURAL_SUFFIX.search(key) for key in read_flat(LAYOUT.seed_dir / f"{locale}.json"))
+
+    assert {m.group(1) for m in suffixes if m} <= set(categories_of(locale))
 
 
 def test_the_committed_manifest_marks_every_locale_machine_and_unreviewed_with_honest_provenance() -> None:
