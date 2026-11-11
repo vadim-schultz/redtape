@@ -40,6 +40,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 16-translated-text-in-search-and-embeddings | `feat/translated-search-text` | [#390](https://github.com/vadim-schultz/redtape/pull/390) | pass (`ci.sh` copy with scratch DB names `redtape_c16_*`; web build and later stages run by hand after the copy hit its timeout) | pass | yes (a1a4e95) | operator steps pending (per-locale search backfill, embed drain, optional `EMBEDDING_LOCALES`) |
 | 12-combined-ranking-score | `feat/combined-ranking` | [#392](https://github.com/vadim-schultz/redtape/pull/392) | pass (`ci.sh` copy with scratch DB names `redtape_c12_*`) | pass | yes (2fa14cd) | none |
 | 09-centred-search-and-sort-removal | `feat/search-hero-no-sort` | [#394](https://github.com/vadim-schultz/redtape/pull/394) | pass (`ci.sh` copy with scratch DB names `redtape_c9_*`; the chapter's separate narrow API command not run as written, covered by the full suite and a 90-test scratch run) | pass | yes (43ee8b4) | screenshots partial (empty-database loading state only; `de` rendered English; `ru` impossible until the web has a `ru` bundle) |
+| 10-results-presentation | `feat/search-results-rings` | [#396](https://github.com/vadim-schultz/redtape/pull/396) | pass (`ci.sh` copy with scratch DB names `redtape_c10_*`; chapter's narrow web command run as written) | pass | yes (dd834d3) | screenshots taken against a stubbed candidate list; `ru` impossible until the web has a `ru` bundle |
 
 ## Baseline
 
@@ -132,9 +133,10 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 10 — Results presentation
 
-- Status: pending
-- `ScoreRing` shared by confidence and similarity; screenshots: pending
-- `keyword` mode hint and omitted similarity ring: pending
+- Status: merged into loop branch (#396); refactor gate: `ScoreRing` extracted in the first commit (`ConfidenceCircle` now a thin wrapper, its test unchanged); scan of `DocumentCard`, `CardScores`, `ScoreWithCaption`, `DocumentsListQueryStatus`, the mapper and `useBandedRing` found nothing further; observed, untouched: similarity reuses the `documents.confidence_low|mid|high` band words (a neutral `band_*` rename would touch both locales and the API seeds; do it alongside chapter 11 if wanted), and `DocumentsListQueryStatus.test.tsx` repeats one `status` literal in six existing tests; data-design gate: not applicable (no collection, schema, sync, cache, realtime, retry or migration change; API unchanged, no fixture regenerated)
+- `ScoreRing` shared by confidence and similarity; screenshots: `ScoreRing` (`value`, `label`, `palette`) in `components/data-display/`; `SimilarityCircle` wrapper uses `documents.similarity_aria`; `useBandedRing` reuses `confidenceBand.ts`; `DocumentCard` renders `CardScores` (confidence ring, plus a similarity ring only when `similarity` is non-null). Screenshots: headless Chrome against the Vite dev server in `en` and `de`, at 1280 px and 390 px (hybrid with two rings, keyword with the hint and one ring, browse), taken against a small stub server in front of a real scratch API (hybrid needs the embedder, unavailable here, and no candidate rows were seeded); German at phone width exposed a second ring overflowing the card and a long compound title overlapping the rings, both fixed by wrapping the card header so the rings drop below the title; `ru` not possible (no web `ru` bundle until chapter 11); images in the scratchpad only, not committed. Redo against real data for chapter 18 evidence
+- `keyword` mode hint and omitted similarity ring: `SearchModeHint` shows one hint above the list in keyword mode; the similarity ring is omitted when `similarity` is null; the mapper defaults a missing mode to `browse` and a missing similarity to `null`, and drops a stray similarity outside hybrid mode (implementer's safety addition); result count uses `documents.result_count_one/_other` for searches, browse keeps `documents.count`; contract tests cover the new card and list fields, the `SearchMode` enum and an older response without them
+- Side note: the percent text sits right of each ring because Chakra's `ValueText` is not centred in the existing design; left unchanged so `ConfidenceCircle` behaviour does not change
 
 ### Chapter 11 — UI and taxonomy-label translation
 
@@ -236,4 +238,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — resumed; chapter 9 merged (14 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12, C9); next in order: C10
+**Last orchestration:** 2026-11-11 — resumed; chapter 10 merged (15 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12, C9, C10); next in order: C17
