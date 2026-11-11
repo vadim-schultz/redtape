@@ -503,6 +503,16 @@
       },
       "title": {
         "type": "string"
+      },
+      "translation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CandidateTranslationSummary"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [
@@ -633,6 +643,16 @@
       },
       "title": {
         "type": "string"
+      },
+      "translation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CandidateTranslationSummary"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [
@@ -1773,6 +1793,26 @@
       "source_url"
     ],
     "title": "CandidateSourceRead",
+    "type": "object"
+  },
+  "CandidateTranslationSummary": {
+    "properties": {
+      "locale": {
+        "type": "string"
+      },
+      "source": {
+        "$ref": "#/components/schemas/TranslationSource"
+      },
+      "stale": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "locale",
+      "source",
+      "stale"
+    ],
+    "title": "CandidateTranslationSummary",
     "type": "object"
   },
   "CatalogueBatchItem": {
@@ -5135,6 +5175,15 @@
     ],
     "title": "TranslationReleaseResponse",
     "type": "object"
+  },
+  "TranslationSource": {
+    "description": "Who made a translation: a machine engine, or a person (which a machine write never overwrites).",
+    "enum": [
+      "mt",
+      "human"
+    ],
+    "title": "TranslationSource",
+    "type": "string"
   },
   "TranslationSummaryResponse": {
     "properties": {

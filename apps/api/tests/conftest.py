@@ -105,3 +105,4 @@ def _set_test_environment() -> None:
 pytest_plugins = ("test_discovery_admin_api",)
 
 from search_api_fixtures import embedder, search_client, search_scene  # noqa: E402,F401
+from translation_read_support import read_client, store_slot  # noqa: E402,F401

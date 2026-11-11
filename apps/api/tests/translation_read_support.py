@@ -44,8 +44,8 @@ class StoreSlot:
 
 
 @pytest.fixture
-def slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
-    """Put the slot's store under the ledger meter the candidate routes pass to ``get_object_store``."""
+def store_slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
+    """Put the store_slot's store under the ledger meter the candidate routes pass to ``get_object_store``."""
     holder = StoreSlot()
 
     def metered_slot_store(meter: ObjectStoreMeter = noop_meter) -> ObjectStore | None:
@@ -56,10 +56,10 @@ def slot(monkeypatch: pytest.MonkeyPatch) -> StoreSlot:
 
 
 @pytest.fixture
-def reader(
-    db_session: Session, monkeypatch: pytest.MonkeyPatch, slot: StoreSlot
+def read_client(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch, store_slot: StoreSlot
 ) -> Iterator[TestClient[Litestar]]:
-    """A client of the public candidate routes that serves ``de``, ``en`` and ``tr`` and reads from ``slot``."""
+    """A client of the public candidate routes that serves ``de``, ``en`` and ``tr`` and reads from ``store_slot``."""
     seed_canonical_taxonomy(db_session)
     monkeypatch.setattr("app.main.provide_session", lambda: db_session)
     monkeypatch.setattr("app.lifespan._load_enabled_locales", lambda: set(LOCALES))
@@ -67,15 +67,9 @@ def reader(
         yield test_client
 
 
-@pytest.fixture
-def scene(db_session: Session) -> Scene:
-    """The rows of one test."""
-    return Scene(db_session)
-
-
 def translated(
     scene: Scene,
-    slot: StoreSlot,
+    store_slot: StoreSlot,
     key: str = "kindergeld",
     *,
     title: str = "Kindergeldantrag",
@@ -88,7 +82,7 @@ def translated(
     owner = scene.candidate(key, title={"de": title})
     scene.mention(owner, scene.procedure(), excerpt=excerpt)
     translation = payload(locale, translated_title, translated_description)
-    store_translation(scene.session, slot.memory, owner, translation)
+    store_translation(scene.session, store_slot.memory, owner, translation)
     return owner
 
 

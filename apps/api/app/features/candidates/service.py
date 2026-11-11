@@ -71,6 +71,7 @@ class CandidateReadService:
             locale=locale,
             tag_scores=self._repo.tag_scores_for(candidate_ids),
             descriptions=self._repo.best_descriptions(candidate_ids),
+            translations=self._repo.translations_for(candidate_ids, locale.code),
             category_names=self._taxonomy.category_names(locale=locale),
             min_similarity=self._search.params.min_similarity,
         )

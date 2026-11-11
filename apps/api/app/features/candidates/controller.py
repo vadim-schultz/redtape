@@ -13,7 +13,9 @@ from app.features.candidates.screenshot_service import CACHE_CONTROL, Screenshot
 from app.features.candidates.service import CandidateReadService
 from app.features.discovery.repository import Page
 from app.features.search.rate_limit import SEARCH_RATE_LIMIT
-from app.schema.candidate import CandidateDetail, CandidateListResponse
+from app.features.translation.read_service import CACHE_CONTROL as TRANSLATION_CACHE_CONTROL
+from app.features.translation.read_service import TranslationReadService, TranslationReply
+from app.schema.candidate import CandidateDetail, CandidateListResponse, CandidateTranslationText
 from app.shared.list_query import ListQuery, provide_list_query
 from app.shared.locale import ResolvedLocale
 from app.shared.paging import PageParams
@@ -25,6 +27,14 @@ def _screenshot_response(reply: ScreenshotReply) -> Response[bytes]:
     if reply.data is None:
         return Response(b"", status_code=HTTP_304_NOT_MODIFIED, headers=headers)
     return Response(reply.data, media_type=reply.content_type, headers=headers)
+
+
+def _translation_response(reply: TranslationReply) -> Response[CandidateTranslationText] | Response[None]:
+    """Answer 304 without a body when the client copy is current, else 200 with the stored text."""
+    headers = {"ETag": reply.etag, "Cache-Control": TRANSLATION_CACHE_CONTROL, "Vary": "Accept-Language"}
+    if reply.text is None:
+        return Response(None, status_code=HTTP_304_NOT_MODIFIED, headers=headers)
+    return Response(reply.text, headers=headers)
 
 
 class CandidatesController(Controller):
@@ -58,3 +68,14 @@ class CandidatesController(Controller):
     ) -> Response[bytes]:
         """Serve a candidate's screenshot, answering 304 when the client's ETag is current."""
         return _screenshot_response(candidate_screenshot_service.serve(candidate_id, if_none_match))
+
+    @get("/{candidate_id:uuid}/translation", sync_to_thread=True)
+    def candidate_translation(
+        self,
+        translation_read_service: TranslationReadService,
+        candidate_id: UUID,
+        locale: ResolvedLocale,
+        if_none_match: str | None = Parameter(header="If-None-Match", default=None),
+    ) -> Response[CandidateTranslationText] | Response[None]:
+        """Serve the stored translation for the request locale (``?locale=`` or ``Accept-Language``), 304 when current."""
+        return _translation_response(translation_read_service.serve(candidate_id, locale.code, if_none_match))
