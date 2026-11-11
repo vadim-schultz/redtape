@@ -8,28 +8,13 @@ from dataclasses import dataclass
 from discovery_ingest.translation.errors import TranslationEngineError
 from discovery_ingest.translation.glossary import load_glossary
 from discovery_ingest.translation.repair import Checked, Translator, check_outcome, repair_once
-from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, TranslationUnit
+from discovery_ingest.translation.units import TranslationBatch, TranslationUnit
 from discovery_ingest.translation_models import ClaimedTranslationTask
 from discovery_ingest.worker.tally import Tally
 from discovery_ingest.worker.translate_settle import BatchState, GroupSettler, failure_of
 
 SOURCE_LOCALE = "de"
 Tasks = list[ClaimedTranslationTask]
-
-
-class CountedTranslator:
-    """A translator that counts the calls the provider answered in the drain's tally."""
-
-    def __init__(self, inner: Translator, tally: Tally) -> None:
-        """Wrap ``inner`` and count into ``tally``."""
-        self._inner = inner
-        self._tally = tally
-
-    def translate(self, batch: TranslationBatch) -> TranslationOutcome:
-        """Translate through ``inner`` and count the answered call."""
-        outcome = self._inner.translate(batch)
-        self._tally.llm_calls += 1
-        return outcome
 
 
 def by_locale(tasks: Sequence[ClaimedTranslationTask]) -> list[Tasks]:
