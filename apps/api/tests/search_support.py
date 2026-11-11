@@ -61,13 +61,13 @@ def open_tasks(session: Session) -> list[EmbeddingTask]:
     return list(session.scalars(select(EmbeddingTask).order_by(EmbeddingTask.created_at, EmbeddingTask.id)))
 
 
-def embed(session: Session, candidate: DiscoveryDocumentCandidate, text_hash: str) -> None:
-    """Store an embedding of ``candidate`` for the configured model at ``text_hash``."""
+def embed(session: Session, candidate: DiscoveryDocumentCandidate, text_hash: str, locale: str = "de") -> None:
+    """Store an embedding of ``candidate`` for the configured model and ``locale`` at ``text_hash``."""
     session.add(
         CandidateEmbedding(
             candidate_id=candidate.id,
             model=settings.embedding_model,
-            locale="de",
+            locale=locale,
             dim=settings.embedding_dim,
             text_hash=text_hash,
             embedding=[0.0] * settings.embedding_dim,
