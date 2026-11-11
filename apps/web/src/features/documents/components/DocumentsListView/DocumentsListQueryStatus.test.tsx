@@ -3,7 +3,7 @@ import { it, expect, vi } from "vitest";
 
 import { expandControlsBesideCount } from "../../../../test/queryStatusCountRow";
 import { renderWithProviders } from "../../../../test/renderWithProviders";
-import type { DocumentSummary } from "../../types";
+import type { DocumentListResponse, DocumentSummary } from "../../types";
 import DocumentsListQueryStatus from "./DocumentsListQueryStatus";
 
 const documents: DocumentSummary[] = [
@@ -13,6 +13,7 @@ const documents: DocumentSummary[] = [
     description: null,
     tags: [],
     confidence: 0.5,
+    similarity: null,
   },
   {
     id: "doc-2",
@@ -20,15 +21,30 @@ const documents: DocumentSummary[] = [
     description: null,
     tags: [],
     confidence: 0.5,
+    similarity: null,
   },
 ];
 
-const page = (items: DocumentSummary[]) => ({
+const page = (
+  items: DocumentSummary[],
+  search_mode: DocumentListResponse["search_mode"] = "browse",
+): DocumentListResponse => ({
   items,
   total: items.length,
   offset: 0,
   limit: 20,
+  search_mode,
 });
+
+const READY = {
+  isLoading: false,
+  isRefreshing: false,
+  isError: false,
+  error: undefined,
+  onRetry: vi.fn(),
+};
+
+const HINT = "Semantic matching is unavailable, so results match words only.";
 
 it("DocumentsListQueryStatus · loading renders skeleton not cards", async () => {
   const { container } = renderWithProviders(
@@ -167,3 +183,67 @@ it("DocumentsListQueryStatus · singular count reads naturally", async () => {
 
   expect(await screen.findByText("1 Dokument")).toBeInTheDocument();
 });
+
+it("DocumentsListQueryStatus · keyword mode shows no similarity ring and one hint above the list", async () => {
+  renderWithProviders(
+    <DocumentsListQueryStatus
+      status={READY}
+      page={page(documents, "keyword")}
+    />,
+  );
+
+  const hint = await screen.findByText(HINT);
+
+  expect(screen.getAllByText(HINT)).toHaveLength(1);
+  expect(screen.queryByRole("progressbar", { name: /Similarity/ })).toBeNull();
+  expect(
+    hint.compareDocumentPosition(screen.getAllByRole("link")[0]) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+it.each(["browse", "hybrid"] as const)(
+  "DocumentsListQueryStatus · %s mode shows no keyword hint",
+  async (mode) => {
+    renderWithProviders(
+      <DocumentsListQueryStatus status={READY} page={page(documents, mode)} />,
+    );
+
+    await screen.findAllByRole("link");
+
+    expect(screen.queryByText(HINT)).toBeNull();
+  },
+);
+
+it("DocumentsListQueryStatus · keyword mode hint stays out of the empty and loading states", async () => {
+  renderWithProviders(
+    <DocumentsListQueryStatus status={READY} page={page([], "keyword")} />,
+  );
+
+  await screen.findByRole("status");
+
+  expect(screen.queryByText(HINT)).toBeNull();
+});
+
+it.each([
+  ["en", 1, "1 result"],
+  ["en", 7, "7 results"],
+  ["de", 1, "1 Ergebnis"],
+  ["de", 7, "7 Ergebnisse"],
+])(
+  "result count · %s picks the plural form for %s",
+  async (locale, total, text) => {
+    window.localStorage.setItem("locale", locale);
+    const items = documents.slice(0, 1);
+    renderWithProviders(
+      <DocumentsListQueryStatus
+        status={READY}
+        page={{ ...page(items, "hybrid"), total }}
+      />,
+    );
+
+    expect(await screen.findByTestId("query-status-count")).toHaveTextContent(
+      text,
+    );
+  },
+);

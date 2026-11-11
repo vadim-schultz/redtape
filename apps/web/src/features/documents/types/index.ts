@@ -1,4 +1,5 @@
 import type { ListQueryState } from "../../../services/listQuery";
+import type { SearchMode } from "../../candidates/types";
 import type { CategoryTag } from "../../taxonomy/types";
 
 export type DocumentTag = CategoryTag;
@@ -10,6 +11,8 @@ export type DocumentSummary = {
   description: string | null;
   tags: DocumentTag[];
   confidence: number;
+  /** Query match in 0..1; null when the list is not a hybrid search, so no ring shows. */
+  similarity: number | null;
 };
 
 export type DocumentListResponse = {
@@ -17,6 +20,7 @@ export type DocumentListResponse = {
   total: number;
   offset: number;
   limit: number;
+  search_mode: SearchMode;
 };
 
 /** Search and page of the documents list (results are always best first, so there is no sort); the taxonomy chips travel beside it. */

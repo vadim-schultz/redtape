@@ -76,7 +76,13 @@
     "confidence_aria": "Confidence {percent}%, {band}",
     "confidence_low": "low",
     "confidence_mid": "medium",
-    "confidence_high": "high"
+    "confidence_high": "high",
+    "similarity_aria": "Similarity {percent}%, {band}",
+    "confidence_caption": "Confidence",
+    "similarity_caption": "Similarity",
+    "keyword_mode_hint": "Semantic matching is unavailable, so results match words only.",
+    "result_count_one": "{count} result",
+    "result_count_other": "{count} results"
   },
   "candidates": {
     "flag_category": "Category",
