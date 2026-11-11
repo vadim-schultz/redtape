@@ -39,6 +39,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 15-translation-drain-worker | `feat/translation-drain-worker` | [#388](https://github.com/vadim-schultz/redtape/pull/388) | pass (`ci.sh` copy with scratch DB names `redtape_c15_*`) | pass | yes (dc32628) | operator steps pending (backfill, narrow locales, R2 vars, secrets, schedule variable, first dispatch) |
 | 16-translated-text-in-search-and-embeddings | `feat/translated-search-text` | [#390](https://github.com/vadim-schultz/redtape/pull/390) | pass (`ci.sh` copy with scratch DB names `redtape_c16_*`; web build and later stages run by hand after the copy hit its timeout) | pass | yes (a1a4e95) | operator steps pending (per-locale search backfill, embed drain, optional `EMBEDDING_LOCALES`) |
 | 12-combined-ranking-score | `feat/combined-ranking` | [#392](https://github.com/vadim-schultz/redtape/pull/392) | pass (`ci.sh` copy with scratch DB names `redtape_c12_*`) | pass | yes (2fa14cd) | none |
+| 09-centred-search-and-sort-removal | `feat/search-hero-no-sort` | [#394](https://github.com/vadim-schultz/redtape/pull/394) | pass (`ci.sh` copy with scratch DB names `redtape_c9_*`; the chapter's separate narrow API command not run as written, covered by the full suite and a 90-test scratch run) | pass | yes (43ee8b4) | screenshots partial (empty-database loading state only; `de` rendered English; `ru` impossible until the web has a `ru` bundle) |
 
 ## Baseline
 
@@ -123,9 +124,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 9 — Centred search and sort removal
 
-- Status: pending
-- Pinned default ordering (O6 resolution, combined score): pending
-- Screenshots after (de, ru; desktop and mobile): pending
+- Status: merged into loop branch (#394); refactor gate: smells found -> refactorings applied (`DocumentListControls` split into a `DocumentSearch` seam; `useSearchDraft` extracted from `SearchHero`); data-design gate: not applicable (no collection, schema, sync, cache, retry or migration change)
+- Pinned default ordering (O6 resolution, combined score): chapter 12 had already made the combined score the no-sort default; `apps/api/tests/test_candidates_default_order.py` (4 tests) pins that no `sort_by` equals `sort_by=combined` (relevance blended with confidence with `q`, confidence alone when browsing), is neither title nor completeness order, and that `sort_order` without `sort_by` returns 422. They passed on first run (no genuine Red); a mutation check (default switched to completeness) failed 3 of 4
+- What changed on the web: `SearchHero` (centred, `maxW` 640 px, `size="lg"`, rounded, raised, round arrow button, `role="search"` form, `dir="auto"` input; typing only drafts, blank submit clears `q`), `useSearchDraft`, `shadows.raised` token; `DocumentSortControl`, `DOCUMENT_SORT_KEYS` and sort state removed, so stale `sort_by`/`sort_order` URL params are ignored and dropped on the next chip or clear action; `documents.sort_*` removed from the web fallback bundles and the API seed files; `ListSearchBox` kept for the admin pages
+- Screenshots after (de, ru; desktop and mobile): partial. Headless Chrome at 1280 px and 390 px against a scratch API on an empty database (loading skeleton state): hero centred, raised, round, fits at phone width. The forced-`de` run rendered English, so the German-length check is not confirmed; `ru` is not possible until the web has a `ru` bundle. Images are in the scratchpad only, not committed. Redo with data once the locale bundles and a populated database exist (chapter 18 evidence)
+- Operator note: existing deployments keep the removed `documents.sort_*` rows in `ui_translation`; harmless, the seed never deletes
 
 ### Chapter 10 — Results presentation
 
@@ -233,4 +236,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — resumed; chapter 12 merged (13 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12); next in order: C9
+**Last orchestration:** 2026-11-11 — resumed; chapter 9 merged (14 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12, C9); next in order: C10
