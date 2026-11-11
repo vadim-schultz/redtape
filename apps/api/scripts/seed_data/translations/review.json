@@ -1,11 +1,39 @@
 {
   "locales": {
+    "pl": {
+      "status": "machine",
+      "reviewed_by": null,
+      "reviewed_on": null,
+      "model": "claude-sonnet-5-5",
+      "command_version": "claude-code-manual-1"
+    },
+    "ro": {
+      "status": "machine",
+      "reviewed_by": null,
+      "reviewed_on": null,
+      "model": "claude-sonnet-5-5",
+      "command_version": "claude-code-manual-1"
+    },
     "ru": {
       "status": "machine",
       "reviewed_by": null,
       "reviewed_on": null,
       "model": "@cf/qwen/qwen3-30b-a3b-fp8",
       "command_version": "1"
+    },
+    "tr": {
+      "status": "machine",
+      "reviewed_by": null,
+      "reviewed_on": null,
+      "model": "claude-sonnet-5-5",
+      "command_version": "claude-code-manual-1"
+    },
+    "uk": {
+      "status": "machine",
+      "reviewed_by": null,
+      "reviewed_on": null,
+      "model": "claude-sonnet-5-5",
+      "command_version": "claude-code-manual-1"
     }
   }
 }
