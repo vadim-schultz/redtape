@@ -86,10 +86,16 @@ def test_seed_supported_locales_restores_a_changed_name_native_on_rerun(db_sessi
     assert name == "Deutsch"
 
 
-def test_seed_ui_translations_stores_every_key_of_both_seed_files(db_session: Session) -> None:
+def _seed_locale_files() -> list[str]:
+    """Every locale file of the seed directory (the review manifest is not one)."""
+    return sorted(path.stem for path in TRANSLATIONS_DIR.glob("*.json") if path.name != "review.json")
+
+
+def test_seed_ui_translations_stores_every_key_of_every_seed_file(db_session: Session) -> None:
     seed_ui_translations(db_session)
 
-    expected = len(_flat_keys("de")) + len(_flat_keys("en"))
+    expected = sum(len(_flat_keys(locale)) for locale in _seed_locale_files())
+    assert {"de", "en"} <= set(_seed_locale_files())
     assert _translation_count(db_session) == expected
 
 

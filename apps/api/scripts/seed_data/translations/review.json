@@ -1,0 +1,11 @@
+{
+  "locales": {
+    "ru": {
+      "status": "machine",
+      "reviewed_by": null,
+      "reviewed_on": null,
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "command_version": "1"
+    }
+  }
+}
