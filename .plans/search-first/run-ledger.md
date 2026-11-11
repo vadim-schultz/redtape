@@ -12,9 +12,13 @@
 - Implementation and integration order: `C1 → C2 → C3 → C7 → C4 → C13 → C5 → C6 → C14 → C8 → C15 → C16 → C12 → C9 → C10 → C17 → C11 → C18`
 - Parallel batches: `B1=C1,C2`, `B2=C3,C7`, `B3=C4,C13`, `B4=C5`, `B5=C6,C14`, `B6=C8,C15,C16`, `B7=C12`, `B8=C9`, `B9=C10`, `B10=C17`, `B11=C11`, `B12=C18`
 - Environment: web installs use `npm ci` against the corporate npm mirror; `./ci.sh` runs `uv run`, which may rewrite `apps/discovery-ingest/uv.lock` to the corporate PyPI mirror. Revert that file before committing (except the intentional C1 dependency change in `apps/api`).
-- Status: planned; no chapter started.
-- Conflicts/failures: none.
-- Current work: none.
+- Lockfile hazard (found 2026-11-11): the committed `apps/api/uv.lock` (1,447 references) and `apps/discovery-ingest/uv.lock` (550 references) point at the internal mirror `pypi.packages.rsint.net`. Off that network `uv sync` and `uv run` fail. Workaround used for the production checks: `uv export --frozen --no-hashes --no-emit-project` (no mirror URLs in the output) then `uv pip install --index-url https://pypi.org/simple` into the local `apps/api/.venv`; the lock files were not changed. A proper fix (re-lock against public PyPI) is a separate small change for the user to approve.
+- Local config: `apps/api/.env` does not exist. The production `DATABASE_URL` is in `~/.config/redtape/probe.env`, which has one stray line (`probe.env`, not an assignment); source only the `KEY=value` lines.
+- Status: C1–C17 and C11 merged and released to `main`; C19 merged into the loop branch only (main gets it at the release); C18 pending; production operator steps waiting (see Baseline and Last orchestration).
+- Conflicts/failures: the chief of staff's own backfill attempt was declined by the auto-mode permission check on 2026-11-11, and nothing was written. The user then ran backfill A, which finished with 4,713 `de` search-text rows and 4,713 pending embedding tasks (read-only check). The loop branch was 13 commits behind `main`; PR #406 synced it before chapter 19 (PR #407).
+- Translation locales (decided 2026-11-11 by the user): `tr` and `uk`, translated with the Claude Code CLI through chapter 19 (`feat/translation-claude-code`), not Cloudflare neurons. Cloudflare embeddings still wait for the neuron allowance.
+- Repo rule for package registries: `CLAUDE.md` at the repo root (fall back to public registries when corporate ones are unreachable).
+- Current work: the user drains the translation queue themselves. At the last read: 8,383 `tr` and `uk` tasks pending, 1,007 completed, 8 failed (glossary, see chapter 19). Backfill B is complete. The drain runs from `/Users/vadim/projects/redtape-loop` (the main checkout has no chapter 19 code until the release).
 
 ## Merge ledger (chief of staff)
 
@@ -44,19 +48,22 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 10-results-presentation | `feat/search-results-rings` | [#396](https://github.com/vadim-schultz/redtape/pull/396) | pass (`ci.sh` copy with scratch DB names `redtape_c10_*`; chapter's narrow web command run as written) | pass | yes (dd834d3) | screenshots taken against a stubbed candidate list; `ru` impossible until the web has a `ru` bundle |
 | 17-translation-read-path-and-popover | `feat/translation-popover` | [#398](https://github.com/vadim-schultz/redtape/pull/398) (+ extra `fix(api)` commit keeping the text schema in OpenAPI) | pass (`ci.sh` copy with scratch DB names `redtape_c17_*`; the chapter's pytest and `npm test -- <paths>` lines not run as written, covered by the full suites) | pass | yes (63abff1) | post-deploy rows pending (`tr` list summary, text-route ETag and 304); German-length screenshot check pending |
 | 11-ui-and-taxonomy-label-translation | `feat/ui-translations` then `feat/ui-translations-claude` | [#400](https://github.com/vadim-schultz/redtape/pull/400) (tooling and `ru`, into the loop branch) + [#404](https://github.com/vadim-schultz/redtape/pull/404) (`tr`, `uk`, `pl`, `ro` and the `ru` plural fixes, into `main`) | pass (`ci.sh` copies with scratch DB names `redtape_c11_*` and `redtape_c11b_*`) | pass | yes (252f216 via the loop branch; 4c9e49e on `main`) | all five locales present, machine and unreviewed, disabled; native review pending (operator) |
+| 19-claude-code-translation-engine | `feat/translation-claude-code` | [#407](https://github.com/vadim-schultz/redtape/pull/407) (sync [#406](https://github.com/vadim-schultz/redtape/pull/406)) | pass (ruff, mypy, pytest 2,229 passed; `ci.sh` not run as a whole: no Docker or Postgres on this machine) | pass (run 43033291172) | yes (d3a313cc) | none; operator steps pending (Render locales, backfill B, drain) |
 
 ## Baseline
 
 | Check | Expected evidence | Recorded |
 | --- | --- | --- |
-| Candidate count and text sizes | Row count of `discovery_document_candidate`; p50/p95 canonical text and translation-unit length | pending |
+| Candidate count and text sizes | Row count of `discovery_document_candidate`; p50/p95 canonical text and translation-unit length | 4,713 candidates, of which 4,699 have a non-empty German title (read-only, 2026-11-11); text lengths pending (computed by backfill A) |
 | Current search behaviour | `q` title-match results for a fixed set of German queries, kept as the keyword baseline | pending |
 | No-sort ordering | What `GET /api/v1/candidates` returns with no `sort_by` (open seam O6) | pending |
-| Database size | `pg_database_size` against `DB_SOFT_LIMIT_BYTES` (product owner's figure: about 83 MB of 500 MB; record the measured value) | pending |
+| Database size | `pg_database_size` against `DB_SOFT_LIMIT_BYTES` (product owner's figure: about 83 MB of 500 MB; record the measured value) | 59,968,659 bytes (57 MB) on 2026-11-11 about 13:10 UTC against `DB_SOFT_LIMIT_BYTES` 475,000,000 (about 415 MB headroom); C1 measured 58,707,091 bytes |
 | Object storage | Bucket bytes and objects today (screenshots, snapshots), R2 Class A and B usage this month against the caps | pending |
 | Neuron ledger | Daily neuron budget and current usage | pending |
 | UI baseline | Screenshots of `/documents` (de) at desktop and mobile width | pending |
 | Locale bundles | Key counts per locale file and per prefix | pending |
+
+Read-only state on 2026-11-11 (about 13:10 UTC): alembic `20261111_translation_schema`; `vector` 0.8.0 and `unaccent` 1.1 installed; `candidate_search_text`, `candidate_embedding`, `embedding_task`, `candidate_translation` and `translation_task` all 0 rows; `supported_locale` has 7 rows. The chief of staff did not run backfill A (declined by the permission check). The user ran it, and at a later read it had finished with 4,713 `de` search-text rows and 4,713 pending embedding tasks, so the builder writes a row for every candidate. My earlier estimate of 4,699 was wrong.
 
 ## Chapter evidence
 
@@ -234,6 +241,20 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 - Locales that keep vectors and storage reclaimed (O10): pending
 - Similarity ring band thresholds (O7): pending
 
+### Chapter 19 — Claude Code translation engine (tr, uk)
+
+- Status: merged into the loop branch (#407, merge d3a313cc; sync #406, merge 3fcbfa08); remote CI pass (run 43033291172); chapter branch deleted. Not on `main` until the release PR. Spec `chapters/19-claude-code-translation-engine.md` is not committed.
+- Auth: `claude` CLI 2.1.239 on the claude.ai login (Pro plan, per `claude auth status`). `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the child environment.
+- Smoke (manual, one CLI call, `tr`, two real German cards from page 1 of the public list; nothing written, no complete route, no Workers AI): both units valid, zero findings. Tokens: input 2, cache creation 11,758, cache read 0, output 252 (counted total 12,012). Sample `tr` titles: "Ekim alanında planlanan projenin inşaat ve işletme tanımı", "Kabul başvurusu".
+- Local checks (`apps/discovery-ingest`, locked pins from public PyPI, lock files untouched): `ruff format --check` 474 files; `ruff check` pass; `mypy discovery_ingest` 309 files, no issues; `pytest` 2,229 passed (baseline 2,193); `pytest tests/ -k claude_code` 27 passed; `scripts/check_discovery_skills.sh all` ok. `ci.sh` not run as a whole (no Docker daemon, no Postgres here). No file under `apps/api` or `apps/web` changed.
+- Refactor gate: met in substance. `claude_code.py` is 112 lines. Some functions run 11 to 16 lines counting docstrings, above the about-5-line guide; recorded, not changed.
+- Deviations accepted by the chief of staff: (a) a second invalid JSON answer fails the batch as retryable unusable output, and nothing is stored. The spec said "rejected". Accepted: a flaky CLI call is retried up to the attempt cap rather than dropping the unit. (b) Token totals sum the four CLI usage counts; the CLI's `modelUsage` lists a small Haiku call that is not counted, so totals undercount slightly. (c) `ANTHROPIC_AUTH_TOKEN` is stripped as well as the API key. Accepted. (d) `i18n translate-ui` refuses `claude-code` because it has no meter. By design.
+- Outside the listed paths (recorded by the implementer): worker policy, tally, translate drain, batch, group and window modules; `schemas.py`; `operations/translate_drain.py`; `cli/translate/commands.py` and `queue.py` (concurrency, token and auth reporting, `--concurrency`); `.env.example` (`CLAUDE_TRANSLATE_MODEL`); the settings-layering test allowlist (`translation/claude_code_settings.py` is the one new module that reads `os.environ`); `cli_contract.py` and the translate-probe help golden file. No `apps/api` or `apps/web` changes.
+- Operator evidence (2026-11-11): the user set `TRANSLATION_TARGET_LOCALES=tr uk` on Render and redeployed. Backfill B crashed twice. The first run lost its connection to the pooler. The resume then timed out behind an orphaned `idle in transaction` backend (pid 1962523) holding an uncommitted insert; `idle_in_transaction_session_timeout` is 0 on this database, so it is not reclaimed. Committed: 4,386 `tr` and 4,386 `uk` tasks. About 313 candidates with a German title still have no `tr` task; they are above the last committed id.
+- Smoke drain (`--max-tasks 20 --max-batches 1 --concurrency 1`): 20 completed, 2 CLI calls, 29,086 tokens. Read back from R2: `uk` text reads naturally.
+- Chunk 1 (`--max-tasks 50 --max-batches 20 --concurrency 2`): claimed 1,000, completed 987, failed 13, repaired 30, invalid 8, 102 CLI calls, 1,774,280 tokens (about 1,770 per unit). Failed tasks (8 in the table, plus 5 requeued after invalid answers): the glossary term was not rendered after one repair (`Genehmigung`, `Dokumente`, `Gebühr`). Remaining: 7,757 pending. Stopped for the user's go on the remaining spend, about 14M tokens at this rate.
+- Backfill B, final (resumed from `ed12b065` after the orphaned session pid 1962523 was gone on the next check, so it was not terminated): processed 313, enqueued 626. Every titled candidate (4,699) now has a `tr` and a `uk` task. The 14 untitled candidates have no unit by design (`app/features/translation/source.py` builds units only for candidates with a German title).
+
 ## Neuron allowance investigation (2026-11-11)
 
 - Symptom: during C11 the Workers AI daily allowance was refused (HTTP 429, code 4006) while the ledger read 7,302.57 of 9,500 neurons.
@@ -261,4 +282,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — chapters C1–C17 merged into the loop branch and released to `main` via #402; C11 completed by #404 (all five locales machine and unreviewed, disabled; the user took the native-speaker review); Render redeploy succeeded after #402; neuron allowance investigation recorded; next: operator steps (backfills, schedule variables, first drain dispatches) and C18 (evaluation, tuning, `SEARCH_HYBRID_ENABLED`)
+**Last orchestration:** 2026-11-11 — chapters C1–C17 merged into the loop branch and released to `main` via #402; C11 completed by #404 (all five locales machine and unreviewed, disabled; the user took the native-speaker review); Render redeploy succeeded after #402; neuron allowance investigation recorded; next: operator steps (backfills, schedule variables, first drain dispatches) and C18 (evaluation, tuning, `SEARCH_HYBRID_ENABLED`); 2026-11-11 chief-of-staff session (about 13:10 UTC): Supabase reachable directly, baseline read, backfill A declined by the permission check, production search, embedding and translation tables still empty; later the same day: chapter 19 merged into the loop branch (#406, #407); backfill A finished (4,713 `de` rows, 4,713 pending embedding tasks); not run yet: Render `TRANSLATION_TARGET_LOCALES=tr uk`, backfill B for `tr` and `uk`, the claude-code drain, any neuron spend, the lockfile re-lock
