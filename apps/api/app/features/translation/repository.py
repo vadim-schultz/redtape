@@ -25,6 +25,13 @@ class IndexState(NamedTuple):
     source: TranslationSource
 
 
+class IndexedObject(NamedTuple):
+    """Which object holds the stored translation of a candidate."""
+
+    candidate_id: UUID
+    storage_key: str
+
+
 class QueueCounts(NamedTuple):
     """The tasks of one locale that are ready, claimed and failed."""
 
@@ -43,6 +50,14 @@ class TranslationRepository(SessionRepository):
             row.candidate_id.in_(candidate_ids), row.locale.in_(locales)
         )
         return {(r.candidate_id, r.locale): IndexState(r.source_hash, r.source) for r in self._session.execute(stmt)}
+
+    def indexed_after(self, locale: str, after: UUID | None, limit: int) -> list[IndexedObject]:
+        """Return up to ``limit`` stored translations of ``locale`` with a candidate id after ``after``, ascending."""
+        row = CandidateTranslation
+        stmt = select(row.candidate_id, row.storage_key).where(row.locale == locale).order_by(row.candidate_id)
+        if after is not None:
+            stmt = stmt.where(row.candidate_id > after)
+        return [IndexedObject(*found) for found in self._session.execute(stmt.limit(limit))]
 
     def share_lock_candidate_of(self, task_id: UUID) -> None:
         """Hold a share lock on the candidate of ``task_id`` until the transaction ends.

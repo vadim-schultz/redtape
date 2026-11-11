@@ -8,8 +8,10 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final
 
+from app.features.search.errors import UnsupportedSearchLocaleError
 from app.features.search.hashing import content_hash
 from app.i18n_resolution import pick_i18n
+from app.models.search import CANONICAL_LOCALE
 from app.shared.locale import ResolvedLocale
 
 MAX_EXCERPTS: Final = 4
@@ -73,8 +75,25 @@ def best_excerpts(mentions: Iterable[MentionExcerpt], limit: int = MAX_EXCERPTS)
     return [excerpt for mention in ranked if (excerpt := normalise(mention.excerpt))][:limit]
 
 
+def _assemble(locale: str, parts: Iterable[str]) -> BuiltText | None:
+    """Join the non-blank ``parts`` into the capped text of ``locale``, or return ``None`` when nothing is left."""
+    text = truncate(" ".join(part for part in parts if part))
+    return BuiltText(locale, text, content_hash(text)) if text else None
+
+
 def build(title_i18n: Mapping[str, str], mentions: Sequence[MentionExcerpt], locale: str) -> BuiltText | None:
     """Return the search text of ``locale`` from the title and best excerpts, or ``None`` when there is no text."""
     title = normalise(pick_i18n(title_i18n, ResolvedLocale(locale, set())))
-    text = truncate(" ".join(part for part in (title, *best_excerpts(mentions)) if part))
-    return BuiltText(locale, text, content_hash(text)) if text else None
+    return _assemble(locale, (title, *best_excerpts(mentions)))
+
+
+def build_translated(locale: str, title: str, description: str) -> BuiltText | None:
+    """Return the search text of a translation into ``locale``: its title, then its description.
+
+    A translation without a title has no text (``None``). ``locale`` must be a translated locale: a supported one
+    other than the canonical German, whose text :func:`build` makes.
+    """
+    if locale not in TS_CONFIG_BY_LOCALE or locale == CANONICAL_LOCALE:
+        raise UnsupportedSearchLocaleError(locale)
+    heading = normalise(title)
+    return _assemble(locale, (heading, normalise(description))) if heading else None

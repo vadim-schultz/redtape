@@ -165,6 +165,14 @@ class Settings(BaseSettings):
         description="Workers-AI-scoped token for query embedding; empty means search degrades to keyword-only.",
     )
 
+    embedding_locales: str = Field(
+        default="de en tr ru uk pl ro",
+        description=(
+            "Locales whose search text gets embedding tasks, separated by spaces or commas. A subset of the "
+            "supported locales; search text and full-text vectors are written for every locale regardless. "
+            "Dropping a locale stops new vectors; `scripts/prune_embeddings.py` reclaims the existing ones."
+        ),
+    )
     translation_target_locales: str = Field(
         default="en tr ru uk pl ro",
         description=(
@@ -177,6 +185,11 @@ class Settings(BaseSettings):
         min_length=1,
         description="Version of how a translation unit (title and card description) is built; bumping it makes every translation stale.",
     )
+
+    @property
+    def embedding_locale_codes(self) -> tuple[str, ...]:
+        """Return the locale codes of :attr:`embedding_locales`, in order."""
+        return tuple(self.embedding_locales.replace(",", " ").split())
 
     @property
     def translation_target_locale_codes(self) -> tuple[str, ...]:
@@ -222,6 +235,18 @@ class Settings(BaseSettings):
             )
         if len(set(codes)) != len(codes):
             raise ValueError("translation_target_locales: a locale is listed twice")
+        return self
+
+    @model_validator(mode="after")
+    def _check_embedding_locales(self) -> Settings:
+        codes = self.embedding_locale_codes
+        unknown = sorted(set(codes) - SUPPORTED_LOCALE_CODES)
+        if unknown:
+            raise ValueError(
+                f"embedding_locales: {unknown} are not supported locales; allowed: {sorted(SUPPORTED_LOCALE_CODES)}"
+            )
+        if len(set(codes)) != len(codes):
+            raise ValueError("embedding_locales: a locale is listed twice")
         return self
 
     @model_validator(mode="after")

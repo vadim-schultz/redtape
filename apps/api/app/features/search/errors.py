@@ -15,3 +15,11 @@ class TaskNotOwnedError(DiscoveryError):
 
 class InvalidTaskMoveError(Exception):
     """A task was asked to leave its status in a way the status table does not allow."""
+
+
+class UnsupportedSearchLocaleError(ValueError):
+    """A translated search text was asked for in a locale that has none: unknown, or the canonical German one."""
+
+    def __init__(self, locale: str) -> None:
+        """Build the error naming the ``locale``."""
+        super().__init__(f"No translated search text for locale {locale!r}")
