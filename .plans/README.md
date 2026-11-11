@@ -516,6 +516,19 @@ layout and entity resolution are out of scope; the design keeps seams for them. 
 Status: planned — no chapter started. First batch: C1 (pgvector infra and embedding probe) and C2
 (backend locale foundation).
 
+### [azure-translation/](azure-translation/) — Azure AI Translator for cards, documents and interface strings
+
+Replace the Cloudflare translation role with Azure AI Translator (NMT). The card unit, complete procedure pages (stored as blocks in object storage and shown in a collapsed accordion item) and interface strings are translated through the same queue drain. Spend is metered on a monthly character ledger, where documents may use only the share above a protected card band, and it is shown on the discovery coverage page. Machine-accepted interface locales get a code and a note in the switcher. Sixteen chapters, then a deferred retirement of the Cloudflare translation adapter.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](azure-translation/00-architecture.md) | Context, pipeline, Azure contract, metering, snapshot unit, read path, cost model |
+| [01-rollout.md](azure-translation/01-rollout.md) | Sixteen chapters, dependency graph, invariants, merge order, operator actions |
+| [gaps-and-decisions.md](azure-translation/gaps-and-decisions.md) | Decisions D1–D9 and open seams O1–O9 |
+| [chapters/](azure-translation/chapters/) | One executable plan per chapter, and the deferred chapter 17 |
+
+Status: planned — no chapter started. Loop branch `feat/plans-azure-translation`; the chief of staff runs the chapters, one at a time.
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
