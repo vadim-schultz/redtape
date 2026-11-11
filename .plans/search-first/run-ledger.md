@@ -36,6 +36,7 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | 06-embedding-drain-worker | `feat/embedding-drain-worker` | [#382](https://github.com/vadim-schultz/redtape/pull/382) | pass | pass | yes (cc27440) | operator steps pending (secrets, backfill, first dispatch) |
 | 14-translation-queue-and-machine-api | `feat/translation-task-api` | [#384](https://github.com/vadim-schultz/redtape/pull/384) | pass (`ci.sh` copy with scratch DB names `redtape_c14_*`) | pass | yes (e262174) | operator steps pending (narrow target locales, backfill, R2 vars) |
 | 08-hybrid-query-path | `feat/hybrid-search` | [#386](https://github.com/vadim-schultz/redtape/pull/386) | pass (`ci.sh` copy with scratch DB names `redtape_c8_*`) | pass | yes (21a86d4) | operator steps pending (Render token, flag, XFF check) |
+| 15-translation-drain-worker | `feat/translation-drain-worker` | [#388](https://github.com/vadim-schultz/redtape/pull/388) | pass (`ci.sh` copy with scratch DB names `redtape_c15_*`) | pass | yes (dc32628) | operator steps pending (backfill, narrow locales, R2 vars, secrets, schedule variable, first dispatch) |
 
 ## Baseline
 
@@ -179,7 +180,9 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 ### Chapter 15 — Translation drain worker
 
-- Status: pending
+- Status: merged into loop branch (#388); refactor gate: smells found -> refactorings applied (`FlooredMeter` moved to `worker/floored_meter.py` with `_recheck` extracted, `_drain` extracted from `run_translate_drain`, `CountedTranslator` moved to `translate_drain.py`; shared lease settlement in `lease_settle.py`, embed drain imports it); data-design gate: no `apply` findings; accepted-risk: the query-embedding floor is check-reserve-recheck, so a concurrent query-embedding spend can slip between the two ledger reads (an atomic floor needs a chapter 14 API change; revisit if the floor is breached in production; the ledger hard cap stays atomic and the `discovery-pipeline` concurrency group serialises drains)
+- Notes: work was cherry-picked from an earlier unpushed attempt (`wip/c15-prior-attempt`, left in place locally) and re-verified; `mypy .` as written in the chapter's verification block reports 410 errors, all in `tests/` (not checked against the loop branch before this chapter); `./ci.sh` and the workflow run `mypy discovery_ingest`, which is clean
+- Operator actions after merge: run the chapter 14 backfill; narrow `TRANSLATION_TARGET_LOCALES` on Render (D13); set `DISCOVERY_TRANSLATE_SCHEDULE=enabled` (optional `TRANSLATION_ENGINE`, `QUERY_EMBED_RESERVE`) with secrets `CLOUDFLARE_AI_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; confirm R2 variables on Render; dispatch once. Cadence as shipped: daily 17:10 UTC, 2500-neuron run cap, 1000-neuron floor, 10 tasks per batch, at most 60 batches, 600 s. Minutes per run not yet measured
 - First drain report (claimed, stored, stale, rejected, neurons): pending
 - Validator failure and repair rate: pending
 - Cadence, query-embedding floor and Actions minutes per run: pending
@@ -225,4 +228,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-10 — resumed; chapter 8 merged (10 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8); next in order: C15
+**Last orchestration:** 2026-11-11 — resumed; chapter 15 merged (11 of 18: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15); next in order: C16
