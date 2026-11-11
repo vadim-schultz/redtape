@@ -5,6 +5,10 @@ import type {
   CandidateSource,
 } from "../features/candidates/types";
 import type { CompletenessFlags } from "../components/data-display/CompletenessChips/types";
+import type {
+  TranslationSummary,
+  TranslationText,
+} from "../services/candidateTranslationApi";
 
 export const ALL_FLAGS: CompletenessFlags = {
   has_category: true,
@@ -89,6 +93,26 @@ export function candidateDetailFixture(
     egress_truncated: false,
     sources: [sourceFixture()],
     screenshot: { url: "/shot", fetched_at: "2026-10-01T10:00:00Z" },
+    ...overrides,
+  };
+}
+
+/** The summary a card carries when a Turkish translation is stored and current. */
+export function translationSummaryFixture(
+  overrides: Partial<TranslationSummary> = {},
+): TranslationSummary {
+  return { locale: "tr", source: "mt", stale: false, ...overrides };
+}
+
+/** The stored text the translation endpoint returns. */
+export function translationTextFixture(
+  overrides: Partial<TranslationText> = {},
+): TranslationText {
+  return {
+    ...translationSummaryFixture(),
+    title: "Pasaport başvurusu",
+    description: "Kimlik kanıtı.",
+    engine: "llm",
     ...overrides,
   };
 }

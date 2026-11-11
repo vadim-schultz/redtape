@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   candidateFixture,
   candidatePage,
+  translationSummaryFixture,
 } from "../../../test/candidateFixtures";
 import { toDocumentListResponse, toDocumentSummary } from "./documentMapper";
 
@@ -47,5 +48,20 @@ describe("mapper", () => {
 
   it("summarises one card without a mode as a browse card", () => {
     expect(toDocumentSummary(candidateFixture()).similarity).toBeNull();
+  });
+
+  it("maps the translation summary of a card", () => {
+    const summary = translationSummaryFixture({ stale: true });
+
+    const mapped = toDocumentSummary(candidateFixture({ translation: summary }));
+
+    expect(mapped.translation).toEqual(summary);
+  });
+
+  it("maps a card without the translation field, as older APIs send it, to null", () => {
+    expect(toDocumentSummary(candidateFixture()).translation).toBeNull();
+    expect(
+      toDocumentSummary(candidateFixture({ translation: null })).translation,
+    ).toBeNull();
   });
 });

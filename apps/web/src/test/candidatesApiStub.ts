@@ -46,3 +46,22 @@ export function stubCandidateDetailApi(onDetail: Responder) {
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
+
+/** Stub `fetch` for the stored-translation endpoint of any candidate; every other URL answers 404. */
+export function stubTranslationApi(onText: Responder) {
+  const fetchMock = vi.fn(async (input?: unknown) => {
+    const url = new URL(String(input));
+    if (/\/api\/v1\/candidates\/[^/]+\/translation$/.test(url.pathname))
+      return onText(url);
+    return new Response("", { status: 404 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+/** The request URLs sent to the stored-translation endpoint, oldest first. */
+export function translationCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input)))
+    .filter((url) => url.pathname.endsWith("/translation"));
+}
