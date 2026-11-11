@@ -19,7 +19,7 @@
 
 **Loop branch:** `feat/plans-search-first`
 **Release branch:** `main`
-**Release MR/PR:** _(filled when opened)_
+**Release MR/PR:** [#402](https://github.com/vadim-schultz/redtape/pull/402), merged into `main` 2026-11-11 (62f7aeb); CI green (both `lint-and-test`, `lint-format-typecheck-build`, `migrations`, Workers Builds). C11 shipped partial (only `ru`); C18 not started (operator)
 **Execution order:** the rollout's "Integration order" (C1 → C2 → C3 → C7 → C4 → C13 → C5 → C6 → C14 → C8 → C15 → C16 → C12 → C9 → C10 → C17 → C11 → C18). C18 is `chief-of-staff` execution (operator actions, live validation) and is not run by an implementer.
 
 Chapter MRs merge into the loop branch only. The chapter-implementer **does not** edit this file; chapter evidence above is filled by the chief of staff from implementer returns.
@@ -247,4 +247,4 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 | Locale served | only enabled locales appear in `GET /locales` | pending |
 | `human` translations | none overwritten (query recorded) | pending |
 
-**Last orchestration:** 2026-11-11 — stopped at chapter C11 (17 of 18 merged: C1, C2, C3, C7, C4, C13, C5, C6, C14, C8, C15, C16, C12, C9, C10, C17, C11); C11 is partial (only `ru` of tr, ru, uk, pl, ro generated) because the Workers AI daily allowance ran out; release PR not opened; C18 not started
+**Last orchestration:** 2026-11-11 — chapters C1–C17 merged into the loop branch and released to `main` via #402 (C11 partial: only `ru` of tr, ru, uk, pl, ro); operator confirmed `vector` and `unaccent` enabled on Supabase, R2 variables already set, Cloudflare token and account id set on Render and GitHub; Render redeploy from `main` follows the merge; next: operator steps and C18
