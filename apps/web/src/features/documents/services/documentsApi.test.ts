@@ -112,6 +112,7 @@ it("documentsApi · maps a candidate card to a document with tags and confidence
       title: "Passport",
       description: "Proof of identity.",
       confidence: 0.8,
+      similarity: null,
       tags: [
         { code: "moving", name: "Moving", confidence: 0.9 },
         { code: "identity", name: "Identity", confidence: 0.4 },

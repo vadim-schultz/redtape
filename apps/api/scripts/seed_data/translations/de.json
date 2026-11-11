@@ -76,7 +76,13 @@
     "confidence_aria": "Konfidenz {percent} %, {band}",
     "confidence_low": "niedrig",
     "confidence_mid": "mittel",
-    "confidence_high": "hoch"
+    "confidence_high": "hoch",
+    "similarity_aria": "Ähnlichkeit {percent} %, {band}",
+    "confidence_caption": "Konfidenz",
+    "similarity_caption": "Ähnlichkeit",
+    "keyword_mode_hint": "Die semantische Suche ist nicht verfügbar; die Ergebnisse beruhen nur auf Stichwörtern.",
+    "result_count_one": "{count} Ergebnis",
+    "result_count_other": "{count} Ergebnisse"
   },
   "candidates": {
     "flag_category": "Kategorie",

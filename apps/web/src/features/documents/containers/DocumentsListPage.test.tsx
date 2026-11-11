@@ -84,3 +84,37 @@ it("category filter · unknown URL category does not select a root", async () =>
     listCalls(fetchMock).at(-1)?.searchParams.has("filter[category]"),
   ).toBe(false);
 });
+
+it("DocumentsListPage · a hybrid response shows both rings and no keyword hint", async () => {
+  stubCandidatesApi(() =>
+    json({
+      ...candidatePage([candidateFixture({ similarity: 0.66 })]),
+      search_mode: "hybrid",
+    }),
+  );
+  renderAt("/documents?q=passport");
+
+  expect(
+    await screen.findByRole("progressbar", { name: /^Similarity 66%/ }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("1 result")).toBeInTheDocument();
+  expect(screen.queryByText(/Semantic matching is unavailable/)).toBeNull();
+});
+
+it("DocumentsListPage · a keyword response hints once and draws no similarity ring", async () => {
+  stubCandidatesApi(() =>
+    json({
+      ...candidatePage([candidateFixture({ similarity: 0.66 })]),
+      search_mode: "keyword",
+    }),
+  );
+  renderAt("/documents?q=passport");
+
+  expect(
+    await screen.findAllByText(/Semantic matching is unavailable/),
+  ).toHaveLength(1);
+  expect(screen.queryByRole("progressbar", { name: /Similarity/ })).toBeNull();
+  expect(
+    screen.getByRole("progressbar", { name: /^Confidence/ }),
+  ).toBeInTheDocument();
+});
