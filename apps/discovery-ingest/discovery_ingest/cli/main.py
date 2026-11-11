@@ -15,6 +15,7 @@ from discovery_ingest.cli.embed import embed_app
 from discovery_ingest.cli.errors import HELP_OPTIONS, show_help_without_subcommand
 from discovery_ingest.cli.fim import fim_app
 from discovery_ingest.cli.govdata import govdata_app
+from discovery_ingest.cli.i18n import i18n_app
 from discovery_ingest.cli.leika import leika_app
 from discovery_ingest.cli.llm import llm_app
 from discovery_ingest.cli.pvog import pvog_app
@@ -44,6 +45,7 @@ app.add_typer(artifacts_app, name="artifacts")
 app.add_typer(capture_app, name="capture")
 app.add_typer(embed_app, name="embed")
 app.add_typer(translate_app, name="translate")
+app.add_typer(i18n_app, name="i18n")
 
 
 @app.callback(invoke_without_command=True)

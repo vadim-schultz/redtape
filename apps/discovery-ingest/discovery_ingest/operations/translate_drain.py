@@ -43,10 +43,11 @@ class TranslateOptions:
         )
 
 
-def _build(settings: TranslationSettings, http: httpx.Client) -> TranslationEngine:
-    config = EngineConfig(
-        model=settings.translation_model, http=http, min_interval_seconds=TRANSLATE_MIN_INTERVAL_SECONDS
-    )
+def build_translation_engine(
+    settings: TranslationSettings, http: httpx.Client, min_interval_seconds: float
+) -> TranslationEngine:
+    """Build the engine ``settings`` names, paced by ``min_interval_seconds``; raise :class:`LlmSetupError` when it cannot start."""
+    config = EngineConfig(model=settings.translation_model, http=http, min_interval_seconds=min_interval_seconds)
     try:
         return build_engine(settings.translation_engine, config)
     except (ValueError, UnknownEngineError, UnmappedLocaleError) as err:
@@ -55,7 +56,8 @@ def _build(settings: TranslationSettings, http: httpx.Client) -> TranslationEngi
         ) from err
 
 
-def _check_ledger(engine: TranslationEngine, client: DiscoveryIngestClient) -> None:
+def check_neuron_ledger(engine: TranslationEngine, client: DiscoveryIngestClient) -> None:
+    """Raise :class:`LlmSetupError` when ``engine`` is billed in neurons and the ledger cannot be read."""
     if engine.usage_unit != "neurons":
         return
     if BudgetGuard(client.budget).remaining(RESOURCE).ledger_unavailable:
@@ -75,6 +77,6 @@ def run_translate(
     """
     policy = options.policy()
     with httpx.Client(trust_env=True) as http:
-        engine = _build(settings, http)
-        _check_ledger(engine, client)
+        engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
+        check_neuron_ledger(engine, client)
         return run_translate_drain(TranslateDeps(client, engine, reserve=settings.query_embed_reserve), policy)

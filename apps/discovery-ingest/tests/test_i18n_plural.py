@@ -44,7 +44,9 @@ def test_a_family_with_only_an_other_form_expands_from_that_form_and_plain_keys_
     """translate · `suggest.title_other` alone still needs every category; `common.save` is untouched."""
     keys = _by_key("ru")
 
-    assert [k for k in keys if k.startswith("suggest.")] == [f"suggest.title_{f}" for f in ("one", "few", "many", "other")]
+    assert [k for k in keys if k.startswith("suggest.")] == [
+        f"suggest.title_{f}" for f in ("one", "few", "many", "other")
+    ]
     assert keys["common.save"] == "Speichern"
 
 

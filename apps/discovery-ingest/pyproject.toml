@@ -29,7 +29,7 @@ where = ["."]
 include = ["discovery_ingest*"]
 
 [tool.setuptools.package-data]
-discovery_ingest = ["translation/glossary_data/*.json"]
+discovery_ingest = ["translation/glossary_data/*.json", "i18n/data/*.json"]
 
 [tool.ruff]
 target-version = "py311"

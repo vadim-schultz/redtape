@@ -7,7 +7,13 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from discovery_ingest.i18n.manifest import COMMAND_VERSION, ReviewManifest, load_manifest, record_generation, save_manifest
+from discovery_ingest.i18n.manifest import (
+    COMMAND_VERSION,
+    ReviewManifest,
+    load_manifest,
+    record_generation,
+    save_manifest,
+)
 from pydantic import ValidationError
 
 MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
@@ -61,7 +67,9 @@ def test_a_reviewed_entry_must_name_the_reviewer_and_the_date() -> None:
 
     with pytest.raises(ValidationError, match="reviewed_by"):
         ReviewManifest.model_validate({"locales": {"ru": entry}})
-    ok = ReviewManifest.model_validate({"locales": {"ru": {**entry, "reviewed_by": "I. Petrov", "reviewed_on": "2026-12-02"}}})
+    ok = ReviewManifest.model_validate(
+        {"locales": {"ru": {**entry, "reviewed_by": "I. Petrov", "reviewed_on": "2026-12-02"}}}
+    )
     assert ok.locales["ru"].reviewed_on == date(2026, 12, 2)
 
 
@@ -76,4 +84,3 @@ def test_a_missing_manifest_is_empty_and_the_file_is_written_sorted_with_a_trail
 
     text = path.read_text(encoding="utf-8")
     assert list(json.loads(text)["locales"]) == ["pl", "uk"] and text.endswith("}\n")
-

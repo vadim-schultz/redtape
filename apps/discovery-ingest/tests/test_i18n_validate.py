@@ -4,17 +4,26 @@ from __future__ import annotations
 
 import pytest
 from discovery_ingest.i18n.plural import PLURAL_CATEGORIES
+from discovery_ingest.i18n.strings import SourceString
 from discovery_ingest.i18n.validate_ui import (
+    interface_findings,
     layout_length,
     plural_forms_complete,
     untranslated_copy,
-    validate_string,
 )
+from discovery_ingest.translation.findings import Finding
+from discovery_ingest.translation.glossary import Glossary
+from discovery_ingest.translation.validate import validate_text
 
 from ui_fakes import GLOSSARY, source
 
 COUNT = source("documents.count_other", "{count} documents", "{count} Dokumente")
 ALLOW = frozenset({"redtape"})
+
+
+def validate_string(string: SourceString, translated: str, glossary: Glossary, allow: frozenset[str]) -> list[Finding]:
+    """What the flow runs: the core's checks against the German text plus the interface checks against the English."""
+    return [*validate_text(string.german, translated, glossary), *interface_findings(string, translated, allow)]
 
 
 def _checks(translated: str) -> set[str]:

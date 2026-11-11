@@ -35,6 +35,11 @@ REPAIR_RULE: Final = (
     "Translate it again and keep every rule that was broken."
 )
 
+CONTEXT_RULE: Final = (
+    "A unit with a 'context' field carries background for you: where the text appears and, perhaps, the same text in "
+    "another language. Use it to choose the right sense and register; never translate it and never return it."
+)
+
 UNITS_SCHEMA: Final[JsonSchema] = {
     "type": "object",
     "properties": {
@@ -67,11 +72,14 @@ def system_text(batch: TranslationBatch, language: str, source_language: str) ->
     """Return the system message: the rules, the repair rule for a repair request, the languages and the glossary."""
     rules = [rule.format(source=source_language, target=language) for rule in RULES]
     repair = [REPAIR_RULE] if batch.corrections else []
-    return "\n".join([*rules, *repair, *_glossary_lines(batch.glossary)])
+    context = [CONTEXT_RULE] if any(unit.context for unit in batch.units) else []
+    return "\n".join([*rules, *repair, *context, *_glossary_lines(batch.glossary)])
 
 
 def _unit_json(unit: TranslationUnit, problems: dict[str, tuple[str, ...]]) -> dict[str, object]:
     fields: dict[str, object] = {"key": unit.key, "title": unit.title, "description": unit.description}
+    if unit.context:
+        fields["context"] = unit.context
     if unit.key in problems:
         fields["problems"] = list(problems[unit.key])
     return fields

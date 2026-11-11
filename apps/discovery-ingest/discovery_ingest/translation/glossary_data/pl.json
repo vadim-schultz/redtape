@@ -9,7 +9,11 @@
     "Ummeldung": "zmiana zameldowania",
     "Gebühr": "opłata",
     "Kindergeld": "świadczenie na dziecko (Kindergeld)",
-    "Wohngeld": "dodatek mieszkaniowy (Wohngeld)"
+    "Wohngeld": "dodatek mieszkaniowy (Wohngeld)",
+    "Dokument": "dokument",
+    "Dokumente": "dokumenty",
+    "Kategorie": "kategoria",
+    "Kategorien": "kategorie"
   },
   "keep": []
 }

@@ -9,7 +9,11 @@
     "Ummeldung": "перереєстрація",
     "Gebühr": "збір",
     "Kindergeld": "допомога на дитину (Kindergeld)",
-    "Wohngeld": "житлова допомога (Wohngeld)"
+    "Wohngeld": "житлова допомога (Wohngeld)",
+    "Dokument": "документ",
+    "Dokumente": "документи",
+    "Kategorie": "категорія",
+    "Kategorien": "категорії"
   },
   "keep": []
 }

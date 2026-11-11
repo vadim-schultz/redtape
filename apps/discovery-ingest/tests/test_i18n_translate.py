@@ -19,7 +19,7 @@ SOURCES = [
     source("common.cancel", "Cancel", "Abbrechen"),
     source("documents.count_one", "{count} document", "{count} Dokument"),
     source("documents.count_other", "{count} documents", "{count} Dokumente"),
-    source("forms.apply", "Application form", "Antrag stellen"),
+    source("forms.apply", "Fill in the form", "Formular ausfüllen"),
     source(taxonomy_key("housing", "name"), "Housing", "Wohnen"),
     source(taxonomy_key("housing", "description"), "Renting and moving.", "Mieten und Umziehen."),
 ]
@@ -182,4 +182,3 @@ def test_the_files_are_deterministic_sorted_and_stable_across_runs(files: Transl
     assert (tmp_path / "seed" / "ru.json").read_text(encoding="utf-8") == first
     keys = list(json.loads(first))
     assert keys == sorted(keys) and first.endswith("}\n") and not first.endswith("\n\n")
-
