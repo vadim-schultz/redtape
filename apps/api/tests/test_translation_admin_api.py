@@ -156,7 +156,7 @@ def test_the_snapshot_denominator_counts_procedure_pages_with_an_html_snapshot(
     assert body["snapshot_denominator"] == 2
 
 
-def test_coverage_counts_an_unchanged_snapshot_outcome_under_unchanged(
+def test_coverage_counts_an_unchanged_snapshot_outcome_without_an_unchanged_key(
     client: TestClient[Litestar], db_session: Session
 ) -> None:
     page = catalogue_row(db_session)
@@ -164,6 +164,7 @@ def test_coverage_counts_an_unchanged_snapshot_outcome_under_unchanged(
     snapshot_row(db_session, page, "en")
     add_snapshot(db_session, page, SHA_B, fetched_at=NOW)
     TaskRepository(db_session).upsert_snapshot_pending((page.id, "en"), SHA_B, 100)
+    before = _by_locale(client.get(COVERAGE, headers=_admin_headers()).json())["en"]["snapshot"]
     headers = {"X-API-Key": _issue_key(db_session)}
     claim = client.post(f"{MACHINE}/claim", json={"limit": 1}, headers=headers).json()["items"]
     (item,) = claim
@@ -182,7 +183,9 @@ def test_coverage_counts_an_unchanged_snapshot_outcome_under_unchanged(
         },
         headers=headers,
     )
-    body = client.get(COVERAGE, headers=_admin_headers()).json()
+    after = _by_locale(client.get(COVERAGE, headers=_admin_headers()).json())["en"]["snapshot"]
 
     assert complete.json()["items"][0]["outcome"] == "unchanged"
-    assert _by_locale(body)["en"]["snapshot"]["unchanged"] == 1
+    assert set(after) == {"translated", "skipped", "stale", "pending", "failed"}
+    assert before == {"translated": 1, "skipped": 0, "stale": 1, "pending": 1, "failed": 0}
+    assert after == {"translated": 1, "skipped": 0, "stale": 0, "pending": 0, "failed": 0}
