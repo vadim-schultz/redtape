@@ -52,6 +52,7 @@ def repo(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]:
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID)
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
+    monkeypatch.setenv("TRANSLATION_ENGINE", "llm")
     monkeypatch.setenv("LLM_MODEL", "@cf/qwen/qwen3-30b-a3b-fp8")
     monkeypatch.setattr("discovery_ingest.operations.translate_ui.UI_MIN_INTERVAL_SECONDS", 0.0)
     yield tmp_path

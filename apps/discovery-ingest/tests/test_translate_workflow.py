@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 import yaml
+from discovery_ingest.translation.settings import DEFAULT_ENGINE
 
 PATH = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "discovery-translate.yml"
 BUDGET_CHECK = "python -m discovery_ingest budget show"
@@ -18,7 +19,9 @@ DRAIN = "python -m discovery_ingest translate drain"
 REPORT = "python -m discovery_ingest budget report-minutes"
 SECRETS = {"DISCOVERY_API_URL", "DISCOVERY_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_AI_API_TOKEN"}
 AZURE_SECRETS = {"AZURE_TRANSLATOR_KEY", "AZURE_TRANSLATOR_REGION", "AZURE_TRANSLATOR_ENDPOINT"}
-AZURE_GATE = "vars.TRANSLATION_ENGINE == 'azure-translator'"
+# The engine the job runs is the variable, or the default when the variable is unset (chapter 16).
+AZURE_GATE = "(vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator'"
+LLM_GATE = "vars.TRANSLATION_ENGINE == 'llm'"
 
 
 @pytest.fixture(scope="module")
@@ -109,7 +112,7 @@ def test_the_four_secrets_reach_the_job_and_none_is_echoed(job: dict[str, Any]) 
 
 
 def test_azure_secrets_are_passed_only_when_the_engine_is_azure_translator(job: dict[str, Any]) -> None:
-    """workflow · the three Azure secrets are read only when TRANSLATION_ENGINE is azure-translator, else the value is empty or the default."""
+    """workflow · the three Azure secrets are read only when the engine is azure-translator, the default when the variable is unset."""
     env = job["env"]
 
     assert env["AZURE_TRANSLATOR_KEY"] == f"${{{{ {AZURE_GATE} && secrets.AZURE_TRANSLATOR_KEY || '' }}}}"
@@ -118,6 +121,22 @@ def test_azure_secrets_are_passed_only_when_the_engine_is_azure_translator(job: 
         f"${{{{ {AZURE_GATE} && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}}}"
     )
     assert job["environment"] == "discovery-translate"
+
+
+def test_cloudflare_translation_secrets_are_passed_only_for_the_llm_engine(job: dict[str, Any]) -> None:
+    """workflow · the Workers AI account and token reach the job only when TRANSLATION_ENGINE is llm, never by default."""
+    env = job["env"]
+
+    for name in ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_AI_API_TOKEN"):
+        assert env[name] == f"${{{{ {LLM_GATE} && secrets.{name} || '' }}}}", name
+
+
+def test_the_default_engine_expression_is_azure_translator_and_agrees_with_settings(job: dict[str, Any]) -> None:
+    """workflow · the TRANSLATION_ENGINE fallback is azure-translator, the same name the settings default to."""
+    expression = job["env"]["TRANSLATION_ENGINE"]
+    match = re.fullmatch(r"\$\{\{ vars\.TRANSLATION_ENGINE \|\| '([^']+)' \}\}", expression)
+
+    assert match is not None and match.group(1) == DEFAULT_ENGINE == "azure-translator"
 
 
 def _run_step(job: dict[str, Any], needle: str, env: dict[str, str], bin_dir: Path) -> subprocess.CompletedProcess[str]:
@@ -222,11 +241,11 @@ def test_it_runs_after_the_morning_embed_drain_and_just_before_the_evening_one(d
 
 
 def test_the_floor_and_the_engine_are_variables_with_safe_defaults(job: dict[str, Any]) -> None:
-    """workflow · QUERY_EMBED_RESERVE (default 1000) and TRANSLATION_ENGINE (default llm) come from variables, never secrets."""
+    """workflow · QUERY_EMBED_RESERVE (default 1000) and TRANSLATION_ENGINE (default azure-translator) come from variables, never secrets."""
     env = job["env"]
 
     assert env["QUERY_EMBED_RESERVE"] == "${{ vars.QUERY_EMBED_RESERVE || '1000' }}"
-    assert env["TRANSLATION_ENGINE"] == "${{ vars.TRANSLATION_ENGINE || 'llm' }}"
+    assert env["TRANSLATION_ENGINE"] == "${{ vars.TRANSLATION_ENGINE || 'azure-translator' }}"
 
 
 def test_the_glossary_mode_and_the_character_minimum_are_variables_with_safe_defaults(job: dict[str, Any]) -> None:

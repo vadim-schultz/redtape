@@ -25,7 +25,7 @@ on:
         default: "600"
         type: string
       neuron_budget:
-        description: "Neurons this run may spend (about 10 to 13 per card; the day allows 9500, and QUERY_EMBED_RESERVE stays untouched)"
+        description: "llm only: neurons this run may spend (about 10 to 13 per card; the day allows 9500, and QUERY_EMBED_RESERVE stays untouched). azure-translator ignores it: its characters are bounded by the monthly ledger"
         required: false
         default: "2500"
         type: string
@@ -44,17 +44,18 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_TRANSLATE_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # The Azure secrets live in this environment. They reach the job only when TRANSLATION_ENGINE is azure-translator.
+    # The engine is TRANSLATION_ENGINE, and azure-translator when it is unset (chapter 16). Each engine's secrets reach the
+    # job only when that engine runs: the Workers AI pair for llm (the rollback), the Azure trio for azure-translator.
     environment: discovery-translate
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
-      AZURE_TRANSLATOR_KEY: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_KEY || '' }}
-      AZURE_TRANSLATOR_REGION: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_REGION || '' }}
-      AZURE_TRANSLATOR_ENDPOINT: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
-      TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'llm' }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.TRANSLATION_ENGINE == 'llm' && secrets.CLOUDFLARE_ACCOUNT_ID || '' }}
+      CLOUDFLARE_AI_API_TOKEN: ${{ vars.TRANSLATION_ENGINE == 'llm' && secrets.CLOUDFLARE_AI_API_TOKEN || '' }}
+      AZURE_TRANSLATOR_KEY: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_KEY || '' }}
+      AZURE_TRANSLATOR_REGION: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_REGION || '' }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
+      TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'azure-translator' }}
       TRANSLATION_GLOSSARY_MODE: ${{ vars.TRANSLATION_GLOSSARY_MODE || 'strict' }}
       AZURE_TRANSLATOR_MIN_REMAINING_CHARS: ${{ vars.AZURE_TRANSLATOR_MIN_REMAINING_CHARS || '20000' }}
       QUERY_EMBED_RESERVE: ${{ vars.QUERY_EMBED_RESERVE || '1000' }}

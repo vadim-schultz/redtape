@@ -8,7 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from discovery_ingest.translation.glossary import DEFAULT_GLOSSARY_MODE, GlossaryMode
 from discovery_ingest.translation.registry import UnknownEngineError, require_registered
 
-DEFAULT_ENGINE = "llm"
+DEFAULT_ENGINE = "azure-translator"
+"""The engine when ``TRANSLATION_ENGINE`` is unset. ``llm`` stays selectable: it is the Cloudflare rollback."""
 DEFAULT_QUERY_EMBED_RESERVE = 1000.0
 """Neurons of the day's ledger the translate drain leaves for request-time query embedding (about 0.1 a query)."""
 

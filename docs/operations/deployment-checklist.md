@@ -93,7 +93,7 @@ variable only to tighten it.
 | `BUDGET_BROWSER_SECONDS_DAILY` | 570 | Cloudflare browser seconds a day, all runs together (free plan 600) |
 | `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day, an API variable (`llm_extract` and `llm eval` reserve from it; free plan 10,000). Cloudflare's own allocation also counts uses the ledger never sees, such as `llm probe`, so only 500 neurons a day stay unreserved; tighten it if other workloads use Workers AI |
 | `BUDGET_ACTIONS_MINUTES_MONTHLY` | 2000 | This repository's GitHub Actions minutes a month |
-| `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` | 1900000 | Azure AI Translator characters a month (free tier F0 2 million). Nothing reserves from it until the Azure translation engine is deployed |
+| `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` | 1900000 | Azure AI Translator characters a month (free tier F0 2 million). The card, snapshot and interface-string drains reserve from it before each Azure call; documents keep to `AZURE_DOCUMENT_BUDGET_SHARE` (0.6) of it. See [translation-engines.md](translation-engines.md) |
 | `ACTIONS_CI_RESERVE_MINUTES` | 1000 | The part of those minutes that CI keeps; drains may use 1000 |
 | `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
 
