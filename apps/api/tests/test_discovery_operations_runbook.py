@@ -147,6 +147,7 @@ _CAP_DEFAULTS = {
     "BUDGET_R2_CLASS_B_MONTHLY": "9500000",
     "BUDGET_BROWSER_SECONDS_DAILY": "570",
     "BUDGET_NEURONS_DAILY": "9500",
+    "BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY": "1900000",
     "DB_SOFT_LIMIT_BYTES": "475000000",
 }
 _OLD_CAP_DEFAULTS = (
@@ -192,6 +193,16 @@ def test_the_operator_checklist_and_the_deployment_checklist_print_the_six_new_c
         text = doc.read_text(encoding="utf-8")
         for variable, value in _CAP_DEFAULTS.items():
             assert _prints_default(text, variable, value), f"{doc.name} must print {variable} = {value}"
+
+
+def test_the_budget_docs_name_the_azure_character_ledger_and_its_cap() -> None:
+    """The deployment checklist lists six budget resources, and the scheduled-jobs ledger has the Azure row."""
+    checklist = DEPLOYMENT_CHECKLIST.read_text(encoding="utf-8")
+    scheduled = SCHEDULED_JOBS.read_text(encoding="utf-8")
+
+    assert "returns six resources" in checklist
+    assert "`azure_translator_chars`" in checklist
+    assert "| `azure_translator_chars` | month | 1,900,000 |" in scheduled
 
 
 def test_the_runbooks_print_the_new_browser_neuron_and_database_numbers() -> None:
