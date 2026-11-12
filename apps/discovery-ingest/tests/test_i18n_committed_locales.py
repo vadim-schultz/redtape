@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from discovery_ingest.i18n.files import Layout, read_flat
 from discovery_ingest.i18n.locales import UI_TARGET_LOCALES, allow_unchanged
-from discovery_ingest.i18n.manifest import load_manifest
+from discovery_ingest.i18n.manifest import ReviewManifest, load_manifest
 from discovery_ingest.i18n.plural import PLURAL_SUFFIX, categories_of, expand_plurals
 from discovery_ingest.i18n.strings import SourceString, ui_strings
 from discovery_ingest.i18n.validate_ui import (
@@ -18,6 +18,7 @@ from discovery_ingest.i18n.validate_ui import (
 )
 from discovery_ingest.translation.glossary import load_glossary
 from discovery_ingest.translation.validate import validate_text
+from pydantic import ValidationError
 
 LAYOUT = Layout.under(Path(__file__).resolve().parents[3])
 SLAVIC = ("ru", "uk", "pl")
@@ -146,3 +147,28 @@ def test_the_committed_manifest_marks_every_locale_machine_and_unreviewed_with_h
         assert entries[locale].model == "claude-sonnet-5-5"
         assert entries[locale].command_version.startswith("claude-code-manual-")
     assert entries["ru"].command_version == "1"
+
+
+ENGINE_OR_MODEL_NAMES = (
+    "azure-translator",
+    "llm",
+    "claude",
+    "claude-sonnet-5-5",
+    "qwen3-30b-a3b-fp8",
+    "@cf/qwen/qwen3-30b-a3b-fp8",
+)
+
+
+@pytest.mark.parametrize("name", ENGINE_OR_MODEL_NAMES)
+def test_an_engine_or_model_named_as_the_accepting_person_fails_the_honesty_check(name: str) -> None:
+    """committed · a tool is never the reviewer: accepted_by naming an engine or a model is refused when the manifest loads."""
+    entry = {
+        "status": "machine_accepted",
+        "accepted_by": name,
+        "accepted_on": "2026-12-03",
+        "model": "claude-sonnet-5-5",
+        "command_version": "claude-code-manual-1",
+    }
+
+    with pytest.raises(ValidationError, match="must name a person"):
+        ReviewManifest.model_validate({"locales": {"tr": entry}})
