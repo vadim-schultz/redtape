@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from discovery_ingest.cli.context import api_client
 from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, fail, handles_api_errors
 from discovery_ingest.cli.translate.app import translate_app
-from discovery_ingest.operations.snapshot_drain import SnapshotOptions, run_snapshot
+from discovery_ingest.operations.snapshot_drain import SnapshotOptions, document_budget_share, run_snapshot
 from discovery_ingest.operations.translate_drain import (
     DEFAULT_CONCURRENCY,
     DEFAULT_NEURON_BUDGET,
@@ -61,6 +61,7 @@ def _card_report(ctx: typer.Context, options: TranslateOptions) -> DrainReport:
 
 def _snapshot_report(ctx: typer.Context, options: SnapshotOptions) -> DrainReport:
     _checked(options.policy)
+    _checked(document_budget_share)
     return run_snapshot(options, api_client(ctx))
 
 
