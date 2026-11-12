@@ -73,6 +73,15 @@ def check_ledger(engine: TranslationEngine, guard: BudgetGuard) -> None:
         )
 
 
+def _drain_deps(client: DiscoveryIngestClient, engine: TranslationEngine, reserve: float) -> TranslateDeps:
+    """Check the ledger of ``engine``'s unit, then build the drain's dependencies with the engine's own meter, if it has one."""
+    guard = BudgetGuard(client.budget)
+    check_ledger(engine, guard)
+    return TranslateDeps(
+        client, engine, reserve=reserve, own_meters=own_meters_for(engine.usage_unit, guard), budget=guard
+    )
+
+
 def run_translate(
     options: TranslateOptions, settings: TranslationSettings, client: DiscoveryIngestClient
 ) -> DrainReport:
@@ -84,13 +93,4 @@ def run_translate(
     policy = options.policy()
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
-        guard = BudgetGuard(client.budget)
-        check_ledger(engine, guard)
-        deps = TranslateDeps(
-            client,
-            engine,
-            reserve=settings.query_embed_reserve,
-            own_meters=own_meters_for(engine.usage_unit, guard),
-            budget=guard,
-        )
-        return run_translate_drain(deps, policy)
+        return run_translate_drain(_drain_deps(client, engine, settings.query_embed_reserve), policy)
