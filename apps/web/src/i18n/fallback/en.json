@@ -334,7 +334,13 @@
       "last_run_completed": "Completed",
       "last_run_failed": "Failed",
       "last_run_skipped": "Skipped",
-      "last_run_stop": "Stop reason"
+      "last_run_stop": "Stop reason",
+      "translation_title": "Card translation by locale",
+      "translation_denominator": "Candidates with a German card: {count}",
+      "translation_error": "Could not load the translation coverage.",
+      "col_locale": "Locale",
+      "col_translated": "Translated",
+      "col_stale": "Stale"
     },
     "catalogue": {
       "load_error": "Could not load catalogue data.",
@@ -384,7 +390,9 @@
       "stored_nearly_full": "Nearly full",
       "col_resource": "Resource",
       "col_usage": "Usage",
-      "col_status": "Status"
+      "col_status": "Status",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Not configured: the Azure character budget row is missing."
     }
   },
   "suggest": {

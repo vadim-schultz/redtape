@@ -1,17 +1,23 @@
 import type { DiscoveryBudget, DiscoveryBudgetsResponse } from "../types";
-
-const NEURONS = "neurons";
+import {
+  AZURE_TRANSLATOR_CHARS,
+  budgetsWhere,
+  NEURONS,
+} from "./budgetResources";
 
 /** Today's AI neuron budget, which the extraction section shows instead of the general list. */
 export function neuronBudgetOf(
   budgets: DiscoveryBudgetsResponse | undefined,
 ): DiscoveryBudget | undefined {
-  return budgets?.items.find(({ resource }) => resource === NEURONS);
+  return budgetsWhere(budgets, (resource) => resource === NEURONS)[0];
 }
 
-/** The budgets that belong to the general list: everything but the neurons. */
+/** The budgets that belong to the general list: everything but the neurons and the Azure characters. */
 export function generalBudgetsOf(
   budgets: DiscoveryBudgetsResponse,
 ): DiscoveryBudget[] {
-  return budgets.items.filter(({ resource }) => resource !== NEURONS);
+  return budgetsWhere(
+    budgets,
+    (resource) => resource !== NEURONS && resource !== AZURE_TRANSLATOR_CHARS,
+  );
 }

@@ -248,7 +248,21 @@ const ARTIFACT_KEYS = [
   "budget_actions_minutes",
   "budget_azure_translator_chars",
   "budget_stored_bytes",
+  "translator_title",
+  "translator_missing",
 ].map((key) => `discovery_admin.artifacts.${key}`);
+
+const TRANSLATION_COVERAGE_KEYS = [
+  "translation_title",
+  "translation_denominator",
+  "translation_error",
+  "col_locale",
+  "col_translated",
+  "col_stale",
+  "col_pending",
+  "col_claimed",
+  "col_failed",
+].map((key) => `discovery_admin.coverage.${key}`);
 
 const NOTE_KEYS = ["login_wall", "oversize", "no_mentions", "no_extractor"].map(
   (note) => `discovery_admin.tasks.note_${note}`,
@@ -258,7 +272,11 @@ describe("discovery admin artifact strings", () => {
   it.each(["en", "de"])("all strings resolve in %s", (locale) => {
     const bundle = fallbackBundle(locale);
 
-    for (const key of [...ARTIFACT_KEYS, ...NOTE_KEYS]) {
+    for (const key of [
+      ...ARTIFACT_KEYS,
+      ...NOTE_KEYS,
+      ...TRANSLATION_COVERAGE_KEYS,
+    ]) {
       expect(bundle[key], key).toBeTruthy();
     }
   });

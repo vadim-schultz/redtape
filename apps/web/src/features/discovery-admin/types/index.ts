@@ -8,4 +8,5 @@ export * from "./coverage";
 export * from "./edge";
 export * from "./emit";
 export * from "./task";
+export * from "./translationCoverage";
 export * from "./values";

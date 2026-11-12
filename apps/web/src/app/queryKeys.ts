@@ -125,5 +125,11 @@ export const queryKeys = {
       ] as const,
     budgets: (locale: string) =>
       [...queryKeys.discoveryAdmin.all, "budgets", locale] as const,
+    translationCoverage: (locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "translation-coverage",
+        locale,
+      ] as const,
   },
 };
