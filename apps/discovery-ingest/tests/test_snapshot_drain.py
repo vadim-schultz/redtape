@@ -194,8 +194,20 @@ def test_drain_one_block_failing_validation_is_posted_as_untranslated_and_the_pa
 
     [item] = api.posted()
     assert item["outcome"] == "translated" and item["blocks"][0]["text"] == "[en] Reisepass beantragen"
-    assert item["blocks"][-1] == {"kind": "p", "text": german}
+    assert item["blocks"][-1] == {"kind": "p", "text": german, "untranslated": True}
     assert (report.completed, report.untranslated_blocks, report.failed) == (1, 1, 0)
+
+
+def test_drain_only_the_block_that_kept_its_german_text_is_marked_untranslated() -> None:
+    """Drain · the good blocks of a page are not marked untranslated; only the block that kept its German text is."""
+    german = f"{VANISH} Hinweis zum Antrag bei der Behörde."
+    api = SnapshotApi([snapshot_task(0)], {0: page_html(extra=f"<p>{german}</p>")})
+
+    _drain(api, ScriptedAzure())
+
+    [item] = api.posted()
+    flags = [block.get("untranslated", False) for block in item["blocks"]]
+    assert flags == [False] * len(EXPECTED_KINDS) + [True]
 
 
 def test_drain_a_structural_mismatch_fails_the_task_with_its_reason_in_last_error() -> None:
