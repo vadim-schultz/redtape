@@ -26,6 +26,8 @@ class Remaining:
     remaining: float | None
     exhausted: bool = False
     ledger_unavailable: bool = False
+    cap: float | None = None
+    """The period's cap from the ledger row, so a floor can be computed from it; ``None`` when the row was not read."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +65,7 @@ class BudgetGuard:
         row = next((row for row in snapshot.items if row.resource == resource), None)
         if row is None:
             return self._mark_unavailable(Remaining(None, ledger_unavailable=True))
-        return Remaining(row.remaining, row.exhausted)
+        return Remaining(row.remaining, row.exhausted, cap=row.cap)
 
     def reserve(self, resource: BudgetResource, amount: float) -> Reserved:
         """Reserve ``amount`` of ``resource``."""

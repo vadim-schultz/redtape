@@ -13,9 +13,9 @@ from discovery_ingest.worker.stop import StopDrain
 
 DENIAL_TEXT = {
     "run_budget": "the run's usage budget is used up",
-    "ledger": "the day's usage ledger is used up",
+    "ledger": "the usage ledger has no room left for this call",
     "ledger_unavailable": "the usage ledger did not answer",
-    "floor": "the usage kept for query embedding would be used",
+    "floor": "the usage kept for other work would be used",
 }
 
 

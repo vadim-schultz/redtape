@@ -69,9 +69,16 @@ def _tokens_spent(deps: TranslateDeps, meter: UsageMeter | None) -> int:
     return round(meter.used)
 
 
+def _characters_spent(deps: TranslateDeps, meter: UsageMeter | None) -> int:
+    if meter is None or deps.engine.usage_unit != "characters":
+        return 0
+    return round(meter.used)
+
+
 def _close_tally(deps: TranslateDeps, tally: Tally, meter: UsageMeter | None, guard: BudgetGuard) -> None:
     tally.neurons_used = _neurons_spent(deps, meter)
     tally.tokens_used = _tokens_spent(deps, meter)
+    tally.characters_used = _characters_spent(deps, meter)
     tally.ledger_unavailable = guard.ledger_unavailable
 
 
