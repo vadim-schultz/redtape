@@ -3909,6 +3909,9 @@
           }
         ]
       },
+      "machine_translated": {
+        "type": "boolean"
+      },
       "name_english": {
         "type": "string"
       },
@@ -3920,6 +3923,7 @@
       "code",
       "completeness_pct",
       "enabled",
+      "machine_translated",
       "name_english",
       "name_native"
     ],

@@ -27,9 +27,9 @@ HASH = "a" * 64
 
 @pytest.fixture
 def migrated() -> Iterator[tuple[str, Engine]]:
-    """Yield a throwaway database migrated to head with a connected engine."""
+    """Yield a throwaway database migrated to this revision with a connected engine."""
     with _fresh_database() as url:
-        _alembic(url, "upgrade", "head")
+        _alembic(url, "upgrade", REVISION)
         engine = create_engine(url)
         try:
             yield url, engine
@@ -89,12 +89,12 @@ def test_upgrade_downgrade_upgrade_round_trip_restores_the_schema_and_alembic_ch
     url, engine = migrated
     before = (_present(engine, "tables"), _present(engine, "indexes"), _present(engine, "enums"))
 
-    _alembic(url, "check")
     _alembic(url, "downgrade", "-1")
-    _alembic(url, "upgrade", "head")
+    _alembic(url, "upgrade", REVISION)
 
     assert (_present(engine, "tables"), _present(engine, "indexes"), _present(engine, "enums")) == before
     assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    _alembic(url, "upgrade", "head")
     _alembic(url, "check")
 
 
