@@ -28,6 +28,8 @@ class ScriptedTranslator:
     ``answers`` maps a unit key to the replies for its first, second, ... request; ``errors`` raises on the n-th call.
     """
 
+    repairs = True
+
     def __init__(
         self,
         answers: Mapping[str, Sequence[str]] | None = None,

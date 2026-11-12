@@ -55,6 +55,7 @@ class ClaudeCodeTranslator:
 
     name = NAME
     usage_unit: UsageUnit = "subscription"
+    repairs = True
 
     def __init__(self, runner: CliRunner, *, model: str, environ: Mapping[str, str]) -> None:
         """Keep the runner, the model the command names, and the environment the CLI starts in."""

@@ -10,10 +10,15 @@ from enum import StrEnum
 from typing import Protocol
 
 import httpx
+from discovery_ingest.translation.adapters.azure_translator import NAME as AZURE_NAME
 from discovery_ingest.translation.adapters.claude_code import ClaudeCodeTranslator
 from discovery_ingest.translation.adapters.cloudflare_llm import LlmTranslator
 from discovery_ingest.translation.engine import TranslationEngine
 
+from azure_transport import KEY as AZURE_KEY
+from azure_transport import engine as azure_engine
+from azure_transport import failure as azure_failure
+from azure_transport import faithful_answer
 from claude_code_fakes import (
     MODEL as CLAUDE_MODEL,
 )
@@ -132,4 +137,34 @@ def _claude_reply(behaviour: Behaviour) -> Reply:
     return _CLAUDE_REPLIES.get(behaviour, answered)
 
 
-HARNESSES: dict[str, AdapterHarness] = {"llm": CloudflareLlmHarness(), "claude-code": ClaudeCodeHarness()}
+_AZURE_ERRORS: dict[Behaviour, tuple[int, str, str]] = {
+    Behaviour.QUOTA: (403, "403001", "the free quota is used up"),
+    Behaviour.TRANSIENT: (429, "429000", "too many requests"),
+    Behaviour.UNAUTHORISED: (401, "401000", "access denied due to an invalid subscription key"),
+    Behaviour.PERMANENT: (400, "400050", "the request is invalid"),
+}
+
+
+class AzureTranslatorHarness:
+    """The Azure adapter over an ``httpx`` mock transport; every error body echoes the key, which must never surface."""
+
+    name = AZURE_NAME
+    secret = AZURE_KEY
+
+    def build(self, behaviour: Behaviour) -> TranslationEngine:
+        """Return an :class:`AzureTranslator` whose HTTP is the mock transport for ``behaviour``."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if behaviour in _AZURE_ERRORS:
+                status, code, message = _AZURE_ERRORS[behaviour]
+                return azure_failure(status, code, f"{message} (key {AZURE_KEY})")
+            return faithful_answer(request, drop=1 if behaviour is Behaviour.SHORT else 0)
+
+        return azure_engine(handler)
+
+
+HARNESSES: dict[str, AdapterHarness] = {
+    "llm": CloudflareLlmHarness(),
+    "claude-code": ClaudeCodeHarness(),
+    AZURE_NAME: AzureTranslatorHarness(),
+}

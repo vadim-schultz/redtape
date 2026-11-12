@@ -127,6 +127,25 @@ def test_a_string_that_still_fails_after_the_repair_is_reported_and_left_absent(
     assert report.gaps == ["documents.count_one"]
 
 
+class _CannotRepair(ScriptedTranslator):
+    """A translator whose engine cannot repair: a rejected string is never sent a second time."""
+
+    repairs = False
+
+
+def test_an_engine_that_cannot_repair_is_asked_exactly_once_and_its_bad_string_is_rejected(
+    files: TranslationFiles,
+) -> None:
+    """Repair · an invalid unit is not resent when repairs is false (exactly one call)."""
+    translator = _CannotRepair({"documents.count_one": ["документ"]})
+
+    report = translate_locale(_job(), translator, files)
+
+    assert translator.asked_keys.count("documents.count_one") == 1
+    assert [rejection.key for rejection in report.rejected] == ["documents.count_one"]
+    assert report.repaired == 0 and "documents.count_one" not in _flat(files)
+
+
 def test_an_untranslated_english_copy_is_repaired_and_then_rejected_when_it_stays(files: TranslationFiles) -> None:
     """translate · English copied back is a finding like any other: repaired once, rejected if it stays."""
     translator = ScriptedTranslator({"common.save": ["Save", "Save"]})

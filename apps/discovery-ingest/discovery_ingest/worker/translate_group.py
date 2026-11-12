@@ -57,14 +57,15 @@ class CallResult:
 
 
 def translate_call(translator: Translator, batch: TranslationBatch) -> CallResult:
-    """Translate ``batch`` in one call, validate it and repair the failed units once.
+    """Translate ``batch`` in one call, validate it and repair the failed units once, if the engine can repair.
 
     An error of the first call propagates: nothing of it is usable. An error of the repair is kept, so the units that
-    were already valid can still be posted.
+    were already valid can still be posted. An engine that cannot repair is not asked again: its invalid units are
+    returned as they are and fail when settled.
     """
     checked = check_outcome(batch, translator.translate(batch))
     failed = [item for item in checked if not item.valid]
-    if not failed:
+    if not failed or not translator.repairs:
         return CallResult(tuple(checked))
     try:
         repaired = repair_once(translator, batch, failed)

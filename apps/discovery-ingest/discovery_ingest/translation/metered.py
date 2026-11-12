@@ -27,6 +27,11 @@ class MeteredTranslator:
         self._engine = engine
         self._meter = meter
 
+    @property
+    def repairs(self) -> bool:
+        """The engine's declaration, unchanged: metering never decides whether a unit is repaired."""
+        return self._engine.repairs
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return the outcome; raise :class:`StopDrain` when the meter denies the call or the provider stops it."""
         reservation = self._reserve(batch)
