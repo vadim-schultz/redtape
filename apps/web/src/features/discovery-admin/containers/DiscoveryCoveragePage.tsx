@@ -1,9 +1,7 @@
-import { Button, Text } from "@chakra-ui/react";
-
-import SectionCard from "../../../components/data-display/SectionCard";
 import QueryError from "../../../components/feedback/QueryError";
 import { useLocale } from "../../../contexts/LocaleContext";
 import BudgetMeters from "../components/coverage/BudgetMeters";
+import CoverageSectionError from "../components/coverage/CoverageSectionError";
 import CoverageSummary from "../components/coverage/CoverageSummary";
 import TranslationCoverageTable from "../components/coverage/TranslationCoverageTable";
 import TranslatorBudget from "../components/coverage/TranslatorBudget";
@@ -16,25 +14,18 @@ import { neuronBudgetOf } from "../utils/neuronBudget";
 type BudgetsQuery = ReturnType<typeof useDiscoveryBudgetsQuery>;
 type TranslationQuery = ReturnType<typeof useDiscoveryTranslationCoverageQuery>;
 
-function BudgetsError({ onRetry }: { onRetry: () => void }) {
-  const { t } = useLocale();
-
-  return (
-    <SectionCard title={t("discovery_admin.artifacts.budgets_title")}>
-      <Text fontSize="sm" color="muted">
-        {t("discovery_admin.artifacts.budgets_error")}
-      </Text>
-      <Button variant="outline" size="sm" mt={3} onClick={onRetry}>
-        {t("common.retry")}
-      </Button>
-    </SectionCard>
-  );
-}
-
 /** Budget table; a failed budgets call must not hide the coverage tables, so it only says so. */
 function BudgetsSection({ budgetsQuery }: { budgetsQuery: BudgetsQuery }) {
+  const { t } = useLocale();
+
   if (budgetsQuery.isError) {
-    return <BudgetsError onRetry={() => void budgetsQuery.refetch()} />;
+    return (
+      <CoverageSectionError
+        title={t("discovery_admin.artifacts.budgets_title")}
+        message={t("discovery_admin.artifacts.budgets_error")}
+        onRetry={() => void budgetsQuery.refetch()}
+      />
+    );
   }
   if (!budgetsQuery.data) return null;
   return <BudgetMeters budgets={budgetsQuery.data} />;
@@ -50,19 +41,11 @@ function TranslationSection({
 
   if (translationQuery.isError) {
     return (
-      <SectionCard title={t("discovery_admin.coverage.translation_title")}>
-        <Text fontSize="sm" color="muted">
-          {t("discovery_admin.coverage.translation_error")}
-        </Text>
-        <Button
-          variant="outline"
-          size="sm"
-          mt={3}
-          onClick={() => void translationQuery.refetch()}
-        >
-          {t("common.retry")}
-        </Button>
-      </SectionCard>
+      <CoverageSectionError
+        title={t("discovery_admin.coverage.translation_title")}
+        message={t("discovery_admin.coverage.translation_error")}
+        onRetry={() => void translationQuery.refetch()}
+      />
     );
   }
   if (!translationQuery.data) return null;
