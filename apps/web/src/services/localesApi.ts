@@ -5,7 +5,7 @@ export type LocaleRow = {
   code: string;
   name_native: string;
   name_english: string;
-  flag_emoji: string;
+  flag_emoji: string | null;
   enabled: boolean;
   completeness_pct: number;
   /** True when the strings were machine translated and accepted by an operator (never a tool). */

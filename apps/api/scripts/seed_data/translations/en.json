@@ -40,7 +40,8 @@
   "menu": {
     "profile": "Profile",
     "documents": "Documents",
-    "colour_mode": "Colour mode"
+    "colour_mode": "Colour mode",
+    "machine_translated_note": "Machine translated"
   },
   "auth": {
     "login": "Log In",
