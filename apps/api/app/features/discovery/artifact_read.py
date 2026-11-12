@@ -28,6 +28,15 @@ class ArtifactContent:
     data: bytes
 
 
+@dataclass(frozen=True, slots=True)
+class LatestSnapshot:
+    """The newest HTML snapshot of a catalogue row: the artifact a page translation is made from."""
+
+    artifact_id: UUID
+    sha256: str
+    source_url: str
+
+
 class ArtifactReadService:
     """Serve artifact bytes and metadata."""
 
@@ -57,6 +66,11 @@ class ArtifactReadService:
             return ArtifactContent(artifact.content_type, store.get(artifact.storage_key))
         except ObjectNotFoundError as err:
             raise ArtifactNotFoundError() from err
+
+    def latest_snapshot(self, catalogue_id: UUID) -> LatestSnapshot | None:
+        """Return the newest HTML snapshot of ``catalogue_id`` as a reference, or ``None`` when it has none."""
+        row = self._repo.latest_html_snapshot(catalogue_id)
+        return None if row is None else LatestSnapshot(row.id, row.sha256, row.source_url)
 
     def list_artifacts(self, artifact_filter: ArtifactFilter, page: Page) -> ArtifactListResponse:
         """Return one page of artifact metadata matching ``artifact_filter``."""

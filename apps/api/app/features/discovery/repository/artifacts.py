@@ -52,6 +52,19 @@ class ArtifactRepository(SessionRepository):
         """Return the artifact with ``artifact_id``, if any."""
         return self._session.get(DiscoveryArtifact, artifact_id)
 
+    def latest_html_snapshot(self, catalogue_id: UUID) -> DiscoveryArtifact | None:
+        """Return the newest HTML snapshot of ``catalogue_id``, ordered as retention orders them, or ``None``."""
+        stmt = (
+            select(DiscoveryArtifact)
+            .where(
+                DiscoveryArtifact.catalogue_service_id == catalogue_id,
+                DiscoveryArtifact.kind == DiscoveryArtifactKind.HTML_SNAPSHOT,
+            )
+            .order_by(DiscoveryArtifact.fetched_at.desc(), DiscoveryArtifact.created_at.desc(), DiscoveryArtifact.id)
+            .limit(1)
+        )
+        return self._session.scalars(stmt).first()
+
     def insert_artifact(self, new: NewArtifact) -> DiscoveryArtifact:
         """Insert ``new`` and return the row."""
         row = DiscoveryArtifact(**asdict(new))

@@ -67,6 +67,7 @@ def queue_page(session: Session, locale: str = "en") -> Page:
 
 def task_rows(session: Session, catalogue_id: uuid.UUID, locale: str = "en") -> list[SnapshotTranslationTask]:
     """Return every snapshot task of one page and locale, oldest first, read fresh from the database."""
+    session.flush()
     stmt = (
         select(SnapshotTranslationTask)
         .where(
@@ -81,6 +82,7 @@ def task_rows(session: Session, catalogue_id: uuid.UUID, locale: str = "en") -> 
 
 def index_row(session: Session, catalogue_id: uuid.UUID, locale: str = "en") -> SnapshotTranslation | None:
     """Return the index row of one page and locale, read fresh from the database, or ``None``."""
+    session.flush()
     return session.get(SnapshotTranslation, (catalogue_id, locale), populate_existing=True)
 
 
