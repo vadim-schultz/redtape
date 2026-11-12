@@ -115,7 +115,18 @@
     "flow_empty": "Für dieses Dokument sind keine Abhängigkeiten aufgeführt",
     "flow_more": "+{count} weitere, siehe Liste oben",
     "back_to_list": "Zurück zur Liste",
-    "not_found_title": "Kandidat nicht gefunden"
+    "not_found_title": "Kandidat nicht gefunden",
+    "document_title": "Dokumentinhalt",
+    "document_machine_note": "Maschinelle Übersetzung, kann Fehler enthalten. Maßgeblich ist das deutsche Original.",
+    "document_source_link": "Deutsche Seite öffnen",
+    "document_pending": "Diese Seite wird gerade übersetzt. Schau später noch einmal nach.",
+    "document_no_document": "Diesem Kandidaten ist keine Verfahrensseite mit Text zugeordnet.",
+    "document_candidate_not_found": "Dieser Kandidat wurde nicht gefunden.",
+    "document_skipped": "Diese Seite wurde nicht übersetzt.",
+    "document_skipped_too_short": "Diese Seite hat zu wenig Text zum Übersetzen.",
+    "document_skipped_not_german": "Diese Seite ist nicht auf Deutsch, daher wurde sie nicht übersetzt.",
+    "document_stale": "Das deutsche Original hat sich seit dieser Übersetzung geändert.",
+    "document_truncated": "Die deutsche Seite war zu lang, daher ist nur ihr Anfang übersetzt."
   },
   "location": {
     "label": "Ort",

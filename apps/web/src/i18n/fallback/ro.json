@@ -41,7 +41,18 @@
     "source_role_form": "Formular",
     "source_role_issued": "Emis",
     "source_role_required": "Necesar",
-    "sources": "Surse"
+    "sources": "Surse",
+    "document_title": "Conținutul documentului",
+    "document_machine_note": "Traducere automată, poate conține erori. Textul german original este cel autentic.",
+    "document_source_link": "Deschide pagina în germană",
+    "document_pending": "Această pagină este tradusă. Revino mai târziu.",
+    "document_no_document": "Acestui candidat nu i este asociată nicio pagină de procedură cu text.",
+    "document_candidate_not_found": "Acest candidat nu a fost găsit.",
+    "document_skipped": "Această pagină nu a fost tradusă.",
+    "document_skipped_too_short": "Această pagină are prea puțin text pentru a fi tradusă.",
+    "document_skipped_not_german": "Această pagină nu este în germană, așa că nu a fost tradusă.",
+    "document_stale": "Originalul german s-a modificat de la realizarea acestei traduceri.",
+    "document_truncated": "Pagina în germană este prea lungă, așa că s-a tradus doar începutul ei."
   },
   "common": {
     "back": "Înapoi",

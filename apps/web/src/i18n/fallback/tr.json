@@ -41,7 +41,18 @@
     "source_role_form": "Form",
     "source_role_issued": "Düzenlenen",
     "source_role_required": "Gerekli",
-    "sources": "Kaynaklar"
+    "sources": "Kaynaklar",
+    "document_title": "Belge içeriği",
+    "document_machine_note": "Makine çevirisidir, hata içerebilir. Geçerli olan Almanca aslıdır.",
+    "document_source_link": "Almanca sayfayı aç",
+    "document_pending": "Bu sayfa çevriliyor. Lütfen daha sonra tekrar bakın.",
+    "document_no_document": "Bu adaya bağlı, metin içeren bir işlem sayfası yok.",
+    "document_candidate_not_found": "Bu aday bulunamadı.",
+    "document_skipped": "Bu sayfa çevrilmedi.",
+    "document_skipped_too_short": "Bu sayfada çevrilecek kadar metin yok.",
+    "document_skipped_not_german": "Bu sayfa Almanca değil, bu yüzden çevrilmedi.",
+    "document_stale": "Almanca asıl metin bu çeviri yapıldıktan sonra değişti.",
+    "document_truncated": "Almanca sayfa çok uzundu, bu yüzden yalnızca başlangıcı çevrildi."
   },
   "common": {
     "back": "Geri",

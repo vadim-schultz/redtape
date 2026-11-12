@@ -9,6 +9,7 @@ import type {
   TranslationSummary,
   TranslationText,
 } from "../services/candidateTranslationApi";
+import type { DocumentTranslationRead } from "../types/documentTranslation";
 
 export const ALL_FLAGS: CompletenessFlags = {
   has_category: true,
@@ -113,6 +114,31 @@ export function translationTextFixture(
     title: "Pasaport başvurusu",
     description: "Kimlik kanıtı.",
     engine: "llm",
+    ...overrides,
+  };
+}
+
+/** A translated procedure page as the document route returns it: ordered blocks, one untranslated list item and one untranslated row. */
+export function documentTranslationFixture(
+  overrides: Partial<DocumentTranslationRead> = {},
+): DocumentTranslationRead {
+  return {
+    locale: "en",
+    source_url: "https://portal.example/passport-page",
+    truncated: false,
+    stale: false,
+    blocks: [
+      { kind: "h2", text: "Required documents", untranslated: false },
+      {
+        kind: "p",
+        text: "Proof of identity is required.",
+        untranslated: false,
+      },
+      { kind: "li", text: "Birth certificate", untranslated: false },
+      { kind: "li", text: "Reisepass gültig bis 2030", untranslated: true },
+      { kind: "row", cells: ["Fee", "Validity"], untranslated: true },
+      { kind: "dt", text: "Processing time", untranslated: false },
+    ],
     ...overrides,
   };
 }
