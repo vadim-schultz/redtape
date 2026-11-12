@@ -1,9 +1,14 @@
-"""Discovery layer operations runbook checks (chapter 22)."""
+"""Discovery layer operations runbook checks (chapter 22) and the translation runbook checks (azure chapter 16)."""
 
 from __future__ import annotations
 
+import ast
 import re
+from collections.abc import Iterable
 from pathlib import Path
+
+from app.config import Settings
+from app.features.discovery.budget_resources import BudgetResource
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNBOOK = REPO_ROOT / "docs/operations/discovery-layer.md"
@@ -13,6 +18,12 @@ DEPLOYMENT_CHECKLIST = REPO_ROOT / "docs/operations/deployment-checklist.md"
 OPERATOR_CHECKLIST = REPO_ROOT / "docs/operations/crawlers-operator-checklist.md"
 POST_DEPLOY_STEPS = REPO_ROOT / "docs/operations/crawlers-post-deploy-human-steps.md"
 INGEST_README = REPO_ROOT / "apps/discovery-ingest/README.md"
+TRANSLATION_RUNBOOK = REPO_ROOT / "docs/operations/translation-engines.md"
+RENDER_YAML = REPO_ROOT / "render.yaml"
+API_ENV_EXAMPLE = REPO_ROOT / "apps/api/.env.example"
+TRANSLATE_WORKFLOW = REPO_ROOT / ".github/workflows/discovery-translate.yml"
+INGEST_PACKAGE = REPO_ROOT / "apps/discovery-ingest/discovery_ingest"
+TRANSLATION_NAME = re.compile(r"^(AZURE_|TRANSLATION_|CLAUDE_TRANSLATE_|BUDGET_AZURE_|QUERY_EMBED_RESERVE$)")
 
 _MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
@@ -223,3 +234,121 @@ def test_no_runbook_still_prints_the_old_caps_as_defaults() -> None:
         text = doc.read_text(encoding="utf-8")
         stale = [old for old in _OLD_CAP_DEFAULTS if _standalone(old).search(text)]
         assert not stale, f"{doc.name} still prints the old cap(s) {stale}"
+
+
+def _ingest_aliases() -> set[str]:
+    """Return the validation alias of every ingest settings field: the names of the variables the worker reads."""
+    names: set[str] = set()
+    for path in INGEST_PACKAGE.rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if (
+                isinstance(node, ast.keyword)
+                and node.arg == "validation_alias"
+                and isinstance(node.value, ast.Constant)
+            ):
+                names.add(str(node.value.value))
+    return names
+
+
+def _api_translation_fields() -> set[str]:
+    """Return the API setting names about translation or Azure, spelled as the environment spells them."""
+    return {name.upper() for name in Settings.model_fields if "translat" in name or "azure" in name}
+
+
+def _workflow_names() -> set[str]:
+    """Return the GitHub variables and secrets that the translate workflow reads."""
+    return set(re.findall(r"\b(?:vars|secrets)\.([A-Z][A-Z0-9_]+)", TRANSLATE_WORKFLOW.read_text(encoding="utf-8")))
+
+
+def _translation_variables() -> set[str]:
+    """Return every translation environment variable that the settings and the translate workflow read."""
+    ingest = {name for name in _ingest_aliases() if TRANSLATION_NAME.match(name)}
+    return ingest | _api_translation_fields() | _workflow_names()
+
+
+def _undocumented(names: Iterable[str], text: str) -> list[str]:
+    """Return the names that ``text`` does not spell out as whole words, sorted."""
+    return sorted(name for name in names if not re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", text))
+
+
+def test_the_translation_runbook_names_every_translation_variable_that_settings_read() -> None:
+    """docs · the translation runbook names every translation variable that the settings and the translate workflow read."""
+    text = TRANSLATION_RUNBOOK.read_text(encoding="utf-8")
+
+    assert _undocumented(_translation_variables(), text) == []
+
+
+def test_a_new_azure_variable_without_documentation_fails_the_docs_check() -> None:
+    """docs · a variable added to the settings but not named in the runbook is reported by the same check."""
+    text = TRANSLATION_RUNBOOK.read_text(encoding="utf-8")
+    added = _translation_variables() | {"AZURE_TRANSLATOR_UNDOCUMENTED"}
+
+    assert _undocumented(added, text) == ["AZURE_TRANSLATOR_UNDOCUMENTED"]
+
+
+def test_the_cap_defaults_in_the_docs_are_the_config_defaults() -> None:
+    """docs · every cap that the docs print is the default of its API setting."""
+    for variable, value in _CAP_DEFAULTS.items():
+        assert Settings.model_fields[variable.lower()].default == int(value), variable
+
+
+def test_the_api_env_example_prints_each_cap_at_its_config_default() -> None:
+    """docs · the API .env.example shows each cap at its config default."""
+    text = API_ENV_EXAMPLE.read_text(encoding="utf-8")
+
+    for variable, value in _CAP_DEFAULTS.items():
+        assert re.search(rf"^# {variable}={value}\b", text, re.MULTILINE), variable
+
+
+def test_the_render_comment_lists_every_cap_variable() -> None:
+    """docs · the Render comment names every cap, so the operator sets them from one list."""
+    text = RENDER_YAML.read_text(encoding="utf-8")
+
+    assert [variable for variable in _CAP_DEFAULTS if variable not in text] == []
+
+
+def test_the_deployment_checklist_names_the_six_budget_resources_the_route_returns() -> None:
+    """docs · the checklist says the budget route returns six resources, and names each one that BudgetResource defines."""
+    text = DEPLOYMENT_CHECKLIST.read_text(encoding="utf-8")
+    resources = [resource.value for resource in BudgetResource]
+
+    assert len(resources) == 6 and "returns six resources" in text
+    assert [name for name in resources if f"`{name}`" not in text] == []
+
+
+def test_the_budget_docs_no_longer_say_the_azure_ledger_is_unused() -> None:
+    """docs · the scheduled-jobs ledger and the checklist describe the Azure ledger as spent by the translate drain."""
+    for doc in (SCHEDULED_JOBS, DEPLOYMENT_CHECKLIST):
+        text = doc.read_text(encoding="utf-8")
+
+        assert "No drain reserves it yet" not in text and "Nothing reserves from it until" not in text, doc.name
+
+
+def test_the_translation_runbook_covers_engines_probe_backfills_rollback_and_the_snapshot_switch() -> None:
+    """docs · the runbook covers each chapter 16 topic, and the cost figures that the cost model needs."""
+    text = TRANSLATION_RUNBOOK.read_text(encoding="utf-8")
+    needles = (
+        "TRANSLATION_ENGINE=llm",
+        "translate probe --engine azure-translator",
+        "TRANSLATION_GLOSSARY_MODE",
+        "backfill_translations.py",
+        "backfill_snapshot_translations.py",
+        "SNAPSHOT_TRANSLATE_SCHEDULE",
+        "enable_locale.py",
+        "O5",
+        "1,900,000",
+        "1,140,000",
+        "760,000",
+    )
+
+    assert [needle for needle in needles if needle not in text] == []
+
+
+def test_the_translation_runbook_relative_links_resolve() -> None:
+    """docs · relative links in the translation runbook resolve to files."""
+    text = TRANSLATION_RUNBOOK.read_text(encoding="utf-8")
+    missing = [
+        rel for rel in _relative_markdown_targets(text) if not (TRANSLATION_RUNBOOK.parent / rel).resolve().is_file()
+    ]
+
+    assert missing == []

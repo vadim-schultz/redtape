@@ -1,10 +1,11 @@
-"""Azure settings · the endpoint and API version defaults, the secret key, and the registration that keeps llm the default."""
+"""Azure settings · the endpoint and API version defaults, the secret key, and the engine default (azure-translator)."""
 
 from __future__ import annotations
 
 import pytest
+from discovery_ingest.translation.adapters.cloudflare_llm import LlmTranslator
 from discovery_ingest.translation.azure_settings import AzureTranslatorSettings, load_azure_translator_settings
-from discovery_ingest.translation.registry import registered_engines
+from discovery_ingest.translation.registry import EngineConfig, build_engine, registered_engines
 from discovery_ingest.translation.settings import TranslationSettings, load_translation_settings
 from pydantic import ValidationError
 
@@ -78,13 +79,38 @@ def test_credentials_return_the_key_and_region_when_both_are_set(monkeypatch: py
     assert load_azure_translator_settings().credentials() == (KEY, REGION)
 
 
-def test_azure_is_registered_but_the_default_engine_stays_llm() -> None:
-    """Settings · azure-translator can be selected by name; TRANSLATION_ENGINE still defaults to llm."""
+def test_azure_is_registered_and_selectable_by_name() -> None:
+    """Settings · azure-translator is registered and can be selected by name."""
     assert "azure-translator" in registered_engines()
-    assert TranslationSettings.model_validate({}).translation_engine == "llm"
     assert TranslationSettings.model_validate({"TRANSLATION_ENGINE": "azure-translator"}).translation_engine == (
         "azure-translator"
     )
+
+
+def test_with_no_translation_engine_set_the_engine_is_azure_translator() -> None:
+    """Settings · with no TRANSLATION_ENGINE set, the engine is azure-translator (chapter 16)."""
+    assert load_translation_settings().translation_engine == "azure-translator"
+
+
+def test_translation_engine_llm_still_selects_the_cloudflare_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings · TRANSLATION_ENGINE=llm still selects the Cloudflare adapter, which is the rollback path."""
+    monkeypatch.setenv("TRANSLATION_ENGINE", "llm")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acc0123456789abcdef")
+    monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", "tok-fake-1234")
+
+    engine = build_engine(
+        load_translation_settings().translation_engine, EngineConfig(model="@cf/qwen/qwen3-30b-a3b-fp8")
+    )
+
+    assert isinstance(engine, LlmTranslator) and engine.name == "llm"
+
+
+def test_a_misspelt_engine_name_fails_at_load(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings · a misspelt engine name fails at load, and the message lists the registered engines."""
+    monkeypatch.setenv("TRANSLATION_ENGINE", "azure-translater")
+
+    with pytest.raises(ValidationError, match="registered: .*azure-translator"):
+        load_translation_settings()
 
 
 def test_the_glossary_mode_accepts_strict_and_advisory_and_defaults_to_strict() -> None:
