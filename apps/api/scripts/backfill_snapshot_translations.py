@@ -1,8 +1,9 @@
 """Backfill snapshot translation tasks for existing procedure pages (chapter 09; an operator step after chapter 11).
 
 Walks the catalogue rows that have a latest HTML snapshot, in id order, one batch at a time. For each page the rule in
-:class:`SnapshotEnqueuer` names the locales to queue: every target locale of a page with candidates, and the locales a
-page already has for a page without candidates. A page with no candidates and no translation costs nothing. Each batch
+:class:`SnapshotEnqueuer` names the locales to queue: every target locale of a page with candidates, and, for a page
+without candidates, only the locales it is already translated into or has queued. A page with no candidates and no
+translation costs nothing. Each batch
 prints its missing, stale and current counts before it writes, and then commits. ``--after`` resumes after the last id a
 previous run printed, ``--locale`` limits the run to one target locale, and ``--dry-run`` counts the pages and writes
 nothing. It stops cleanly when the database is at its soft limit.
