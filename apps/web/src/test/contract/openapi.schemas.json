@@ -5046,6 +5046,25 @@
     "title": "TranslationCompleteResponse",
     "type": "object"
   },
+  "TranslationCoverageResponse": {
+    "properties": {
+      "denominator": {
+        "type": "integer"
+      },
+      "locales": {
+        "items": {
+          "$ref": "#/components/schemas/TranslationLocaleCoverage"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "denominator",
+      "locales"
+    ],
+    "title": "TranslationCoverageResponse",
+    "type": "object"
+  },
   "TranslationFailRequest": {
     "properties": {
       "error": {
@@ -5115,6 +5134,38 @@
       "task_id"
     ],
     "title": "TranslationItemResult",
+    "type": "object"
+  },
+  "TranslationLocaleCoverage": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "pending": {
+        "type": "integer"
+      },
+      "stale": {
+        "type": "integer"
+      },
+      "translated": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "failed",
+      "locale",
+      "pending",
+      "stale",
+      "translated"
+    ],
+    "title": "TranslationLocaleCoverage",
     "type": "object"
   },
   "TranslationLocaleSummary": {

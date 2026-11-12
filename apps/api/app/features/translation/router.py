@@ -7,6 +7,8 @@ from litestar.di import Provide
 from sqlalchemy.orm import Session
 
 from app.features.search.translation_subscriber import refresh_search_text_on_stored
+from app.features.translation.admin_controller import TranslationAdminController
+from app.features.translation.admin_service import TranslationAdminService
 from app.features.translation.machine_controller import TranslationMachineController
 from app.features.translation.queue import TranslationQueue
 from app.features.translation.service import TranslationCompletion
@@ -23,6 +25,11 @@ def provide_translation_completion(session: Session, object_store: InjectedObjec
     return TranslationCompletion(session, object_store, subscribers=(refresh_search_text_on_stored(session),))
 
 
+def provide_translation_admin_service(session: Session) -> TranslationAdminService:
+    """Build the admin coverage service on the request session."""
+    return TranslationAdminService(session)
+
+
 translation_machine_router = Router(
     path="/translations",
     route_handlers=[TranslationMachineController],
@@ -31,4 +38,11 @@ translation_machine_router = Router(
         "translation_completion": Provide(provide_translation_completion, sync_to_thread=False),
     },
     tags=["translation-machine"],
+)
+
+translation_admin_router = Router(
+    path="/api/v1/admin/translations",
+    route_handlers=[TranslationAdminController],
+    dependencies={"translation_admin_service": Provide(provide_translation_admin_service, sync_to_thread=False)},
+    tags=["translation-admin"],
 )

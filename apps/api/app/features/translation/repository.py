@@ -16,6 +16,7 @@ from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 from app.models.search import WorkTaskStatus
 from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
 from app.schema.translation.machine import TranslationLocaleSummary
+from app.shared.locale import DEFAULT_LOCALE
 
 
 class IndexState(NamedTuple):
@@ -106,6 +107,12 @@ class TranslationRepository(SessionRepository):
             )
             for locale in locales
         ]
+
+    def german_candidate_count(self) -> int:
+        """Count the candidates with a non-blank German title, the card source every translation starts from."""
+        german_title = Candidate.title_i18n[DEFAULT_LOCALE].as_string()
+        stmt = select(func.count()).select_from(Candidate).where(german_title.regexp_match(r"\S"))
+        return int(self._session.scalar(stmt) or 0)
 
     def _queue_counts(self, now: datetime) -> dict[str, QueueCounts]:
         task = TranslationTask
