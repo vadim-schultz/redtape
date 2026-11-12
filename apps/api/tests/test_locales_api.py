@@ -71,6 +71,7 @@ def test_locales_lists_enabled_locales_sorted_by_code_with_all_fields(client: Te
             "flag_emoji": "\U0001f1e9\U0001f1ea",
             "enabled": True,
             "completeness_pct": 100.0,
+            "machine_translated": False,
         },
         {
             "code": "en",
@@ -79,8 +80,20 @@ def test_locales_lists_enabled_locales_sorted_by_code_with_all_fields(client: Te
             "flag_emoji": "\U0001f1ec\U0001f1e7",
             "enabled": True,
             "completeness_pct": 50.0,
+            "machine_translated": False,
         },
     ]
+
+
+def test_locales_report_machine_translated_for_each_enabled_locale(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    db_session.execute(sa.update(SupportedLocale).where(SupportedLocale.code == "en").values(machine_translated=True))
+    db_session.flush()
+
+    by_code = {row["code"]: row["machine_translated"] for row in client.get(LOCALES).json()}
+
+    assert by_code == {"de": False, "en": True}
 
 
 def test_translations_returns_bundle_for_request_locale_with_cache_header(client: TestClient[Litestar]) -> None:
