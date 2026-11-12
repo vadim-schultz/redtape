@@ -201,3 +201,27 @@ def test_the_files_are_deterministic_sorted_and_stable_across_runs(files: Transl
     assert (tmp_path / "seed" / "ru.json").read_text(encoding="utf-8") == first
     keys = list(json.loads(first))
     assert keys == sorted(keys) and first.endswith("}\n") and not first.endswith("\n\n")
+
+
+def test_a_run_leaves_existing_keys_untouched_and_fills_only_the_missing_ones(files: TranslationFiles) -> None:
+    """Additive · a run leaves existing keys untouched and fills only the missing ones."""
+    files.write("ru", {"common.save": "Sichern (von Hand)"})
+    translator = ScriptedTranslator()
+
+    report = translate_locale(_job(), translator, files)
+
+    assert files.read("ru")["common.save"] == "Sichern (von Hand)"
+    assert "common.save" not in translator.asked_keys
+    assert report.translated == len(SOURCES) + 2 - 1
+
+
+def test_human_corrected_russian_plural_forms_survive_a_run(files: TranslationFiles) -> None:
+    """Prune · human-corrected ru plurals survive a run, and they are not sent to the engine again."""
+    corrected = {"documents.count_few": "{count} документа (исправлено)"}
+    files.write("ru", corrected)
+    translator = ScriptedTranslator()
+
+    translate_locale(_job(), translator, files)
+
+    assert files.read("ru")["documents.count_few"] == "{count} документа (исправлено)"
+    assert "documents.count_few" not in translator.asked_keys

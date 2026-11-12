@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+import re
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
 from discovery_ingest.cli import main
+from discovery_ingest.i18n.files import read_flat
 
-from azure_transport import faithful_answer
+from azure_transport import failure as azure_failure
+from azure_transport import faithful_answer, inputs_in
 from ledger_fakes import CHARACTERS_CAP, FakeLedger
 from llm_transport import ACCOUNT_ID, TOKEN, failure, success
 from translate_fakes import TranslateApi
@@ -203,3 +206,102 @@ def test_an_azure_translator_run_is_accepted_with_a_character_meter_and_reports_
         and api.ledger.characters.remaining == CHARACTERS_CAP - report["characters_used"]
     )
     assert api.ledger.writes_to("neurons") == []
+
+
+def _set_azure_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TRANSLATION_ENGINE", "azure-translator")
+    monkeypatch.setenv("AZURE_TRANSLATOR_KEY", "azure-key-SECRET-0123456789")
+    monkeypatch.setenv("AZURE_TRANSLATOR_REGION", "westeurope")
+
+
+def _azure_api(monkeypatch: pytest.MonkeyPatch, azure: Callable[[httpx.Request], httpx.Response]) -> UiApi:
+    _set_azure_env(monkeypatch)
+    api = UiApi([], ledger=FakeLedger(9000.0, characters=float(CHARACTERS_CAP)))
+    api.install(monkeypatch, azure=azure)
+    return api
+
+
+def test_an_azure_run_sends_each_russian_plural_form_with_its_number_and_writes_seed_and_mirror(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], repo: Path
+) -> None:
+    """Run · translate-ui on azure-translator writes the seed and mirror files and reports per-locale counts."""
+    sent: list[str] = []
+
+    def record(request: httpx.Request) -> httpx.Response:
+        sent.extend(str(item["text"]) for item in inputs_in(request))
+        return faithful_answer(request)
+
+    _azure_api(monkeypatch, record)
+
+    code = main(["i18n", "translate-ui", "--locale", "ru", "--repo-root", "."])
+
+    report = json.loads(capsys.readouterr().out)
+    assert code == 0 and (report["locale"], report["translated"], report["remaining"]) == ("ru", 8, 0)
+    assert report["rejected"] == [] and report["gaps"] == [] and report["characters_used"] > 0
+    assert {"1 Eintrag", "2 Einträge", "5 Einträge", "1,5 Einträge"} <= set(sent)
+    stored = read_flat(repo / SEED / "ru.json")
+    assert (stored["n_one"], stored["n_few"]) == ("[en] {count} Eintrag", "[en] {count} Einträge")
+    assert (repo / SEED / "ru.json").read_bytes() == (repo / WEB / "ru.json").read_bytes()
+
+
+def test_an_azure_quota_stop_writes_no_partial_batch_and_a_rerun_finishes(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], repo: Path
+) -> None:
+    """Run · a quota stop writes no partial file: the refused batch is not on disk, and a rerun completes the locale."""
+    calls: list[int] = []
+
+    def quota_second_time(request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        if len(calls) == 2:
+            return azure_failure(403, "403001", "The monthly character quota is used up.")
+        return faithful_answer(request)
+
+    api = _azure_api(monkeypatch, quota_second_time)
+
+    code = main(["i18n", "translate-ui", "--locale", "tr", "--repo-root", ".", "--batch-size", "2"])
+
+    report = json.loads(capsys.readouterr().out)
+    assert code == 3 and report["stopped"] == "llm_quota" and report["remaining"] == 4
+    assert set(read_flat(repo / SEED / "tr.json")) == {"common.cancel", "common.save"}
+    api.ledger.characters.exhausted = False
+    api.install(monkeypatch, azure=faithful_answer)
+    assert main(["i18n", "translate-ui", "--locale", "tr", "--repo-root", ".", "--batch-size", "2"]) == 0
+    assert set(read_flat(repo / SEED / "tr.json")) == {"common.cancel", "common.save", "n_one", "n_other"}
+
+
+def test_an_azure_answer_that_loses_the_count_is_reported_once_and_each_string_is_sent_once(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], repo: Path
+) -> None:
+    """Run · a string that fails validation is reported once; the engine is called exactly once for it."""
+    sent: list[str] = []
+
+    def drop_digits(request: httpx.Request) -> httpx.Response:
+        sent.extend(str(item["text"]) for item in inputs_in(request))
+        response = faithful_answer(request)
+        return httpx.Response(200, content=re.sub(rb"\d", b"", response.content))
+
+    _azure_api(monkeypatch, drop_digits)
+
+    code = main(["i18n", "translate-ui", "--locale", "tr", "--repo-root", "."])
+
+    report = json.loads(capsys.readouterr().out)
+    assert code == 1 and [r["key"] for r in report["rejected"]] == ["n_one", "n_other"]
+    assert sent.count("1 Eintrag") == 1 and sent.count("2 Einträge") == 1
+    assert "n_one" not in read_flat(repo / SEED / "tr.json")
+
+
+def test_the_workers_ai_run_keeps_the_count_in_every_plural_form(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], repo: Path
+) -> None:
+    """translate-ui · the Workers AI engine is not machine translation: it gets {count} in each form, never a sample."""
+    titles: list[str] = []
+
+    def spy(request: httpx.Request) -> httpx.Response:
+        units = json.loads(json.loads(request.content)["messages"][-1]["content"])["units"]
+        titles.extend(str(unit["title"]) for unit in units)
+        return _answer(request)
+
+    api = UiApi([])
+
+    assert _run(monkeypatch, api, spy) == 0
+    assert "{count} Einträge" in titles and "2 Einträge" not in titles
