@@ -21,7 +21,6 @@ from discovery_ingest.translation.character_meter import CharacterMeter
 from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.locale_codes import UnmappedLocaleError
 from discovery_ingest.translation.meter import CHARACTER_RESOURCE, UsageMeter
-from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.translation.registry import EngineConfig, UnknownEngineError, build_engine
 from discovery_ingest.worker.drain_loop import Finish, drain_until_stop, monotonic
 from discovery_ingest.worker.floored_meter import Floor, FlooredMeter
@@ -96,17 +95,19 @@ def _document_meter(guard: BudgetGuard, share: float) -> UsageMeter | None:
     return FlooredMeter(CharacterMeter(guard), guard, Floor(CHARACTER_RESOURCE, floor))
 
 
-def _drain(deps: SnapshotDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter) -> Finish:
-    ctx = SnapshotContext(deps.client, MeteredTranslator(deps.engine, meter), deps.engine.name, policy, tally)
-    return drain_until_stop(lambda: run_snapshot_batch(ctx), policy, deps.clock)
-
-
 def run_snapshot_drain(deps: SnapshotDeps, policy: DrainPolicy) -> DrainReport:
-    """Claim, translate and settle page batches until ``policy`` or a stop ends the drain; return the report."""
+    """Claim, translate and settle page batches until ``policy`` or a stop ends the drain; return the report.
+
+    With the documents' share used up nothing is claimed, and the drain ends at once with ``llm_budget``.
+    """
     guard = BudgetGuard(deps.client.budget)
     meter = _document_meter(guard, deps.share)
     tally = Tally()
-    finish = Finish("llm_budget") if meter is None else _drain(deps, policy, tally, meter)
+    if meter is None:
+        finish = Finish("llm_budget")
+    else:
+        ctx = SnapshotContext(deps.client, deps.engine, meter, policy, tally)
+        finish = drain_until_stop(lambda: run_snapshot_batch(ctx), policy, deps.clock)
     tally.characters_used = 0 if meter is None else round(meter.used)
     tally.ledger_unavailable = guard.ledger_unavailable
     return build_report(tally, finish, remaining_of(lambda: deps.client.snapshots.summary().pending_ready))

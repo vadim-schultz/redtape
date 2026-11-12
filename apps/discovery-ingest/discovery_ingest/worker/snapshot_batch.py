@@ -8,7 +8,9 @@ from dataclasses import dataclass
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedSnapshotTask
 from discovery_ingest.snapshot_translation import SkippedPage, SourcePage, prepare_page
-from discovery_ingest.translation.repair import Translator
+from discovery_ingest.translation.engine import TranslationEngine
+from discovery_ingest.translation.meter import UsageMeter
+from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.worker.batch import BatchResult
 from discovery_ingest.worker.lease_settle import refusals_as_stops, release_batch
 from discovery_ingest.worker.open_tasks import OpenTasks
@@ -25,11 +27,11 @@ _BY_OUTCOME: Mapping[str, Settle] = {"unchanged": PageSettler.unchanged, "transl
 
 @dataclass(frozen=True, slots=True)
 class SnapshotContext:
-    """What every batch of one snapshot drain shares: the client, the metered translator, the engine's name, the bounds and the tally."""
+    """What every batch of one drain shares: the client, the engine and its document meter, the bounds and the tally."""
 
     client: DiscoveryIngestClient
-    translator: Translator
-    engine: str
+    engine: TranslationEngine
+    meter: UsageMeter
     policy: DrainPolicy
     tally: Tally
 
@@ -55,7 +57,8 @@ def settle_task(settler: PageSettler, task: ClaimedSnapshotTask) -> None:
 
 def _settle(ctx: SnapshotContext, tasks: list[ClaimedSnapshotTask]) -> StopDrain | None:
     open_tasks = OpenTasks(tasks)
-    settler = PageSettler(ctx.client, ctx.translator, ctx.engine, ctx.tally, open_tasks)
+    translator = MeteredTranslator(ctx.engine, ctx.meter)
+    settler = PageSettler(ctx.client, translator, ctx.engine.name, ctx.tally, open_tasks)
     try:
         with refusals_as_stops():
             for task in tasks:

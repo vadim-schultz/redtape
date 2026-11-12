@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
+from discovery_ingest.schemas import SnapshotRowBlock, SnapshotTextBlock, SnapshotWireBlock
 from discovery_ingest.snapshot_translation import Block, SourcePage
 from discovery_ingest.translation.glossary import Glossary
 from discovery_ingest.translation.repair import Translator
@@ -16,6 +17,15 @@ from discovery_ingest.worker.translate_group import SOURCE_LOCALE
 
 Slot = tuple[int, int]
 """The place of one text: its block's index and its index within the block (a row has one text per cell)."""
+
+
+def wire_blocks(blocks: Sequence[Block]) -> list[SnapshotWireBlock]:
+    """Return ``blocks`` in the API's shape: a row carries its cells, every other kind its text."""
+    return [SnapshotRowBlock(kind="row", cells=list(b.texts)) if b.kind == "row" else _wire_text(b) for b in blocks]
+
+
+def _wire_text(block: Block) -> SnapshotTextBlock:
+    return SnapshotTextBlock(kind=block.kind, text=block.texts[0])
 
 
 def _key(slot: Slot) -> str:
