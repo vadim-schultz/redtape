@@ -18,6 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 function stubCoverageFetch(
   handler: () => Response,
   budgets: () => Response = () => new Response("", { status: 503 }),
+  translation: () => Response = () => new Response("", { status: 503 }),
 ) {
   vi.stubGlobal(
     "fetch",
@@ -38,6 +39,9 @@ function stubCoverageFetch(
       }
       if (url.pathname.endsWith("/api/v1/discovery/admin/budgets")) {
         return budgets();
+      }
+      if (url.pathname.endsWith("/api/v1/admin/translations/coverage")) {
+        return translation();
       }
       return new Response("", { status: 503 });
     }),
@@ -248,4 +252,87 @@ it("Coverage page · shows the llm_extract outcomes and the neuron meter once, n
     await screen.findByText("2,500 of 9,500 used, 7,000 left"),
   ).toBeInTheDocument();
   expect(screen.getAllByText(/AI neurons/)).toHaveLength(1);
+});
+
+const azureBudgets = () =>
+  new Response(
+    JSON.stringify({
+      items: [
+        {
+          resource: "azure_translator_chars",
+          period: "2026-11",
+          cap: 1900000,
+          used: 950000,
+          remaining: 950000,
+          exhausted: false,
+        },
+      ],
+      stored_bytes: 0,
+      stored_bytes_cap: 8589934592,
+    }),
+  );
+
+it("Coverage page · the coverage tables still render when the translation query fails", async () => {
+  stubCoverageFetch(
+    emptyCoverage,
+    () => new Response("", { status: 503 }),
+    () => new Response("", { status: 500 }),
+  );
+
+  renderWithProviders(<DiscoveryCoveragePage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  const translation = await screen.findByRole("region", {
+    name: "Card translation by locale",
+  });
+  expect(
+    within(translation).getByText("Could not load the translation coverage."),
+  ).toBeVisible();
+  expect(
+    within(translation).getByRole("button", { name: "Try again" }),
+  ).toBeVisible();
+  expect(screen.getByRole("table", { name: "Task queue" })).toBeVisible();
+});
+
+it("Coverage page · the Azure meter sits in the Translator section, not the generic budget table", async () => {
+  stubCoverageFetch(
+    emptyCoverage,
+    azureBudgets,
+    () =>
+      new Response(
+        JSON.stringify({
+          denominator: 3,
+          locales: [
+            {
+              locale: "en",
+              translated: 2,
+              stale: 0,
+              pending: 1,
+              claimed: 0,
+              failed: 0,
+            },
+          ],
+        }),
+      ),
+  );
+
+  renderWithProviders(<DiscoveryCoveragePage />, {
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  const translator = await screen.findByRole("region", {
+    name: "Azure Translator",
+  });
+  expect(
+    within(translator).getByText("950,000 of 1,900,000 used, 950,000 left"),
+  ).toBeVisible();
+  const generic = screen.getByRole("table", { name: "Free-tier budgets" });
+  expect(
+    within(generic).queryByText("Azure translator characters · 2026-11"),
+  ).not.toBeInTheDocument();
+  const table = await screen.findByRole("table", {
+    name: "Card translation by locale",
+  });
+  expect(within(table).getByRole("row", { name: /^en/ })).toBeVisible();
 });
