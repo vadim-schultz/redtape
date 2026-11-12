@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,8 @@ SUMMARY_CHECK = "python -m discovery_ingest translate summary --require-pending"
 DRAIN = "python -m discovery_ingest translate drain"
 REPORT = "python -m discovery_ingest budget report-minutes"
 SECRETS = {"DISCOVERY_API_URL", "DISCOVERY_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_AI_API_TOKEN"}
+AZURE_SECRETS = {"AZURE_TRANSLATOR_KEY", "AZURE_TRANSLATOR_REGION", "AZURE_TRANSLATOR_ENDPOINT"}
+AZURE_GATE = "vars.TRANSLATION_ENGINE == 'azure-translator'"
 
 
 @pytest.fixture(scope="module")
@@ -52,13 +56,15 @@ def test_it_shares_the_pipeline_concurrency_group_and_never_cancels_a_running_dr
     assert document["permissions"] == {"contents": "read"}
 
 
-def test_the_job_has_a_timeout_and_requires_that_many_minutes_and_some_neurons(job: dict[str, Any]) -> None:
-    """workflow · the ledger precheck requires the job's timeout in minutes and some neurons above the query-embedding floor."""
+def test_the_job_has_a_timeout_and_requires_that_many_minutes_and_the_llm_neurons_above_the_floor(
+    job: dict[str, Any],
+) -> None:
+    """workflow · the ledger precheck requires the job's timeout in minutes; llm also needs neurons above the query-embedding floor."""
     check = job["steps"][_index(job["steps"], BUDGET_CHECK)]["run"]
 
     minutes = re.search(r"--require-remaining\s+actions_minutes=(\d+)", check)
     assert minutes is not None and int(minutes.group(1)) == job["timeout-minutes"]
-    assert re.search(r"--require-remaining\s+neurons=\$\(\(\s*QUERY_EMBED_RESERVE\s*\+\s*\d+\s*\)\)", check)
+    assert re.search(r'neurons=\$\(\( QUERY_EMBED_RESERVE \+ \d+ \)\)"', check)
 
 
 def test_the_documented_skip_when_nothing_is_pending_precedes_the_drain_and_gates_every_later_step(
@@ -96,10 +102,102 @@ def test_an_always_step_reports_the_minutes_last(job: dict[str, Any]) -> None:
 def test_the_four_secrets_reach_the_job_and_none_is_echoed(job: dict[str, Any]) -> None:
     """workflow · API URL and key plus the Workers AI account and token as secrets; no step prints them."""
     env = job["env"]
-    assert {name for name, value in env.items() if "secrets." in str(value)} == SECRETS
+    assert {name for name, value in env.items() if "secrets." in str(value)} == SECRETS | AZURE_SECRETS
     for step in job["steps"]:
         run = str(step.get("run", ""))
-        assert not re.search(r"echo[^\n]*\$\{?(CLOUDFLARE_AI_API_TOKEN|DISCOVERY_API_KEY)", run)
+        assert not re.search(r"echo[^\n]*\$\{?(CLOUDFLARE_AI_API_TOKEN|DISCOVERY_API_KEY|AZURE_TRANSLATOR_KEY)", run)
+
+
+def test_azure_secrets_are_passed_only_when_the_engine_is_azure_translator(job: dict[str, Any]) -> None:
+    """workflow · the three Azure secrets are read only when TRANSLATION_ENGINE is azure-translator, else the value is empty or the default."""
+    env = job["env"]
+
+    assert env["AZURE_TRANSLATOR_KEY"] == f"${{{{ {AZURE_GATE} && secrets.AZURE_TRANSLATOR_KEY || '' }}}}"
+    assert env["AZURE_TRANSLATOR_REGION"] == f"${{{{ {AZURE_GATE} && secrets.AZURE_TRANSLATOR_REGION || '' }}}}"
+    assert env["AZURE_TRANSLATOR_ENDPOINT"] == (
+        f"${{{{ {AZURE_GATE} && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}}}"
+    )
+    assert job["environment"] == "discovery-translate"
+
+
+def _run_step(job: dict[str, Any], needle: str, env: dict[str, str], bin_dir: Path) -> subprocess.CompletedProcess[str]:
+    """Run one step's shell script as the runner does, with ``python`` replaced by a fake that logs its arguments."""
+    script = job["steps"][_index(job["steps"], needle)]["run"]
+    return subprocess.run(
+        ["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+        env={**os.environ, **env, "PATH": f"{bin_dir}:{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.fixture
+def runner(tmp_path: Path) -> dict[str, Any]:
+    """A fake ``python`` that appends its arguments to a log and exits with FAKE_EXIT, and the step's output files."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "python"
+    fake.write_text('#!/bin/sh\necho "$@" >> "$FAKE_LOG"\nexit "${FAKE_EXIT:-0}"\n', encoding="utf-8")
+    fake.chmod(0o755)
+    base = {
+        "FAKE_LOG": str(tmp_path / "calls.log"),
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
+        "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+        "QUERY_EMBED_RESERVE": "1000",
+        "AZURE_TRANSLATOR_MIN_REMAINING_CHARS": "20000",
+        "MAX_TASKS": "10",
+    }
+    return {"bin": bin_dir, "base": base, "tmp": tmp_path}
+
+
+def test_the_character_precheck_exits_3_when_remaining_is_below_the_minimum(
+    job: dict[str, Any], runner: dict[str, Any]
+) -> None:
+    """workflow · for azure-translator the budget check asks for azure_translator_chars at the minimum; exit 3 skips the job without failing it."""
+    env = {**runner["base"], "TRANSLATION_ENGINE": "azure-translator", "FAKE_EXIT": "3"}
+
+    result = _run_step(job, BUDGET_CHECK, env, runner["bin"])
+
+    assert result.returncode == 0, result.stderr
+    assert "skip=true" in (runner["tmp"] / "output").read_text()
+    calls = (runner["tmp"] / "calls.log").read_text()
+    assert "--require-remaining azure_translator_chars=20000" in calls and "--resource azure_translator_chars" in calls
+    assert "neurons" not in calls
+
+
+def test_the_neuron_precheck_runs_only_for_the_llm_engine(job: dict[str, Any], runner: dict[str, Any]) -> None:
+    """workflow · the llm engine checks neurons above the query-embedding floor; azure-translator never does."""
+    _run_step(job, BUDGET_CHECK, {**runner["base"], "TRANSLATION_ENGINE": "llm"}, runner["bin"])
+    llm_calls = (runner["tmp"] / "calls.log").read_text()
+    (runner["tmp"] / "calls.log").unlink()
+    _run_step(job, BUDGET_CHECK, {**runner["base"], "TRANSLATION_ENGINE": "azure-translator"}, runner["bin"])
+    azure_calls = (runner["tmp"] / "calls.log").read_text()
+
+    assert "--require-remaining neurons=1100" in llm_calls and "azure_translator_chars" not in llm_calls
+    assert "neurons" not in azure_calls and "azure_translator_chars=20000" in azure_calls
+
+
+def test_engine_azure_translator_with_no_secret_fails_at_the_precheck_with_a_message(
+    job: dict[str, Any], runner: dict[str, Any]
+) -> None:
+    """workflow · azure-translator with an empty key or region fails the job at its precheck and names the secret, never a silent skip."""
+    steps = job["steps"]
+    check = _index(steps, "::error::")
+    assert steps[check]["if"] == "env.TRANSLATION_ENGINE == 'azure-translator'"
+    assert check < _index(steps, BUDGET_CHECK)
+
+    env = {
+        **runner["base"],
+        "TRANSLATION_ENGINE": "azure-translator",
+        "AZURE_TRANSLATOR_KEY": "",
+        "AZURE_TRANSLATOR_REGION": "westeurope",
+    }
+    result = _run_step(job, "::error::", env, runner["bin"])
+
+    assert result.returncode != 0
+    assert "AZURE_TRANSLATOR_KEY" in result.stdout and "westeurope" not in result.stdout
+    assert _run_step(job, "::error::", {**env, "AZURE_TRANSLATOR_KEY": "k"}, runner["bin"]).returncode == 0
 
 
 def test_the_dispatch_inputs_default_to_a_bounded_drain(document: dict[Any, Any], job: dict[str, Any]) -> None:
@@ -129,3 +227,11 @@ def test_the_floor_and_the_engine_are_variables_with_safe_defaults(job: dict[str
 
     assert env["QUERY_EMBED_RESERVE"] == "${{ vars.QUERY_EMBED_RESERVE || '1000' }}"
     assert env["TRANSLATION_ENGINE"] == "${{ vars.TRANSLATION_ENGINE || 'llm' }}"
+
+
+def test_the_glossary_mode_and_the_character_minimum_are_variables_with_safe_defaults(job: dict[str, Any]) -> None:
+    """workflow · TRANSLATION_GLOSSARY_MODE (default strict) and AZURE_TRANSLATOR_MIN_REMAINING_CHARS (default 20000) are variables."""
+    env = job["env"]
+
+    assert env["TRANSLATION_GLOSSARY_MODE"] == "${{ vars.TRANSLATION_GLOSSARY_MODE || 'strict' }}"
+    assert env["AZURE_TRANSLATOR_MIN_REMAINING_CHARS"] == "${{ vars.AZURE_TRANSLATOR_MIN_REMAINING_CHARS || '20000' }}"
