@@ -60,6 +60,20 @@ def test_drain_unit_snapshot_without_azure_credentials_exits_2_naming_only_the_v
     assert AZURE_KEY not in captured.out + captured.err and api.paths == []
 
 
+def test_drain_unit_snapshot_with_a_share_outside_0_to_1_exits_2_before_any_request(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """translate drain · an AZURE_DOCUMENT_BUDGET_SHARE outside 0 to 1 exits 2 before any request, never a traceback."""
+    monkeypatch.setenv("AZURE_DOCUMENT_BUDGET_SHARE", "1.5")
+    api = SnapshotApi([snapshot_task(0)], {0: page_html()})
+    api.install(monkeypatch)
+
+    code = main(["translate", "drain", "--unit", "snapshot", "--max-tasks", "5"])
+
+    assert code == EXIT_USAGE and "AZURE_DOCUMENT_BUDGET_SHARE" in capsys.readouterr().err
+    assert api.paths == []
+
+
 def test_drain_an_unknown_unit_is_a_usage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """translate drain · --unit takes card or snapshot only; anything else is a usage error."""
     SnapshotApi([], {}).install(monkeypatch)
