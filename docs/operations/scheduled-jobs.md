@@ -120,6 +120,7 @@ step (`if: always()`) adds the elapsed minutes, rounded up, plus one.
 | `browser_seconds` | day | 570 | Browser drains (`discovery-render.yml`, `discovery-screenshot.yml`). Both skip under 30 seconds left |
 | `r2_class_a`, `r2_class_b` | month | 950,000 and 9,500,000 | The metered object store in the API |
 | `neurons` | day | 9,500 | `llm_extract` drains, `embed drain` (1,075 neurons per million input tokens, reserved at characters / 3), `translate drain` (about 10 to 13 neurons per card, never below the `QUERY_EMBED_RESERVE` floor) and `llm eval`, through reserve and settle. `llm probe` bypasses the ledger, and Cloudflare's own 10,000-neuron allocation counts every use on the account, so a provider 429 can come before the ledger is spent. The drain skips under 300 neurons left |
+| `azure_translator_chars` | month | 1,900,000 | Azure AI Translator (free tier F0 2 million characters). No drain reserves it yet; the Azure translation drain reserves before each call and settles to the characters Azure reports |
 
 Caps are API settings (`BUDGET_*`, `ACTIONS_CI_RESERVE_MINUTES`, `DB_SOFT_LIMIT_BYTES`), listed in
 [deployment-checklist.md](deployment-checklist.md). Show the ledger with `python -m discovery_ingest budget show`

@@ -79,6 +79,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Actions dakikaları",
+      "budget_azure_translator_chars": "Azure çeviri karakterleri",
       "budget_browser_seconds": "Tarayıcı saniyeleri",
       "budget_exhausted": "Tükendi",
       "budget_neurons": "Yapay zekâ nöronları",

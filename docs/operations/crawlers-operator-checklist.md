@@ -334,7 +334,7 @@ drain allowance, not the other way round. Record the month, the GitHub figure an
 
 **S21: Set the budget caps (Render).** Variables on `redtape-api`: `OBJECT_STORE_MAX_BYTES` (default 9500000000),
 `BUDGET_R2_CLASS_A_MONTHLY` (950000), `BUDGET_R2_CLASS_B_MONTHLY` (9500000), `BUDGET_BROWSER_SECONDS_DAILY` (570),
-`BUDGET_NEURONS_DAILY` (9500), `BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600) and
+`BUDGET_NEURONS_DAILY` (9500), `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` (1900000), `BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600) and
 `DB_SOFT_LIMIT_BYTES` (475000000). The defaults sit at 95 percent of each free allowance (extraction chapter E11); the
 Actions minutes are a repository share of an account-wide pool and stay at 1000. An explicit Render value beats the
 default, so delete an old override or set the new number. Tighten a variable if other workloads share the account.

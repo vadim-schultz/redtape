@@ -373,6 +373,7 @@
       "budget_browser_seconds": "Browser seconds",
       "budget_neurons": "AI neurons",
       "budget_actions_minutes": "Actions minutes",
+      "budget_azure_translator_chars": "Azure translator characters",
       "budget_stored_bytes": "Stored artifacts",
       "col_size": "Size",
       "col_fetched": "Fetched",

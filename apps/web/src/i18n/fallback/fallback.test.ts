@@ -246,6 +246,7 @@ const ARTIFACT_KEYS = [
   "budget_browser_seconds",
   "budget_neurons",
   "budget_actions_minutes",
+  "budget_azure_translator_chars",
   "budget_stored_bytes",
 ].map((key) => `discovery_admin.artifacts.${key}`);
 

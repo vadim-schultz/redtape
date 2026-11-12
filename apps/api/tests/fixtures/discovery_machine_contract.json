@@ -5,7 +5,8 @@
    "r2_class_b",
    "browser_seconds",
    "neurons",
-   "actions_minutes"
+   "actions_minutes",
+   "azure_translator_chars"
   ],
   "DiscoveryArtifactKind": [
    "html_snapshot",

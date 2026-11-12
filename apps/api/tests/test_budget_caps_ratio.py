@@ -13,6 +13,7 @@ ALLOWANCES: dict[str, int] = {
     "budget_r2_class_b_monthly": 10_000_000,  # R2 Class B operations a month
     "budget_browser_seconds_daily": 600,  # Browser Run seconds a day
     "budget_neurons_daily": 10_000,  # Workers AI neurons a day
+    "budget_azure_translator_chars_monthly": 2_000_000,  # Azure AI Translator F0 characters a month
     "db_soft_limit_bytes": 500_000_000,  # Supabase read-only above 500 MB
 }
 
@@ -40,6 +41,12 @@ def test_the_actions_minutes_budget_stays_a_repository_share_of_the_account_pool
         "the free Actions minutes are shared by every repository on the account; "
         "2,000 is this repository's assumed share, split evenly between scheduled drains and CI"
     )
+
+
+def test_the_azure_translator_cap_is_read_from_its_environment_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY", "1234")
+
+    assert Settings(_env_file=None).budget_azure_translator_chars_monthly == 1234
 
 
 def test_an_environment_override_still_wins_over_the_default(monkeypatch: pytest.MonkeyPatch) -> None:

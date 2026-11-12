@@ -18,6 +18,7 @@ class BudgetResource(StrEnum):
     BROWSER_SECONDS = "browser_seconds"
     NEURONS = "neurons"
     ACTIONS_MINUTES = "actions_minutes"
+    AZURE_TRANSLATOR_CHARS = "azure_translator_chars"
 
 
 DAILY_PERIOD = "%Y-%m-%d"
@@ -46,4 +47,7 @@ RESOURCE_SPECS: dict[BudgetResource, ResourceSpec] = {
     BudgetResource.BROWSER_SECONDS: ResourceSpec(DAILY_PERIOD, lambda s: s.budget_browser_seconds_daily),
     BudgetResource.NEURONS: ResourceSpec(DAILY_PERIOD, lambda s: s.budget_neurons_daily),
     BudgetResource.ACTIONS_MINUTES: ResourceSpec(MONTHLY_PERIOD, _actions_minutes_cap),
+    BudgetResource.AZURE_TRANSLATOR_CHARS: ResourceSpec(
+        MONTHLY_PERIOD, lambda s: s.budget_azure_translator_chars_monthly
+    ),
 }

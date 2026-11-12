@@ -6,7 +6,14 @@ from typing import Literal, TypeGuard, get_args
 
 from pydantic import BaseModel
 
-BudgetResource = Literal["r2_class_a", "r2_class_b", "browser_seconds", "neurons", "actions_minutes"]
+BudgetResource = Literal[
+    "r2_class_a",
+    "r2_class_b",
+    "browser_seconds",
+    "neurons",
+    "actions_minutes",
+    "azure_translator_chars",
+]
 BUDGET_RESOURCES: tuple[BudgetResource, ...] = get_args(BudgetResource)
 
 
