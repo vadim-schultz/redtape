@@ -79,7 +79,7 @@ def _block_problem(block: SnapshotBlock) -> str | None:
     return _parts_problem([block.text])
 
 
-def blocks_problem(blocks: Sequence[SnapshotBlock]) -> str | None:
+def _blocks_problem(blocks: Sequence[SnapshotBlock]) -> str | None:
     """Return why ``blocks`` may not be stored, or ``None`` when they are within bounds."""
     if not blocks:
         return NO_BLOCK
@@ -95,7 +95,7 @@ def _translated(facts: Facts) -> Refusal | None:
         return None
     if item.blocks is None or item.engine is None:
         return _rejected(NO_FIELDS)
-    problem = blocks_problem(item.blocks)
+    problem = _blocks_problem(item.blocks)
     return _rejected(problem) if problem else None
 
 

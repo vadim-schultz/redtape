@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Final
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, select
@@ -18,6 +19,13 @@ from app.schema.translation.snapshot_machine import SnapshotLocaleSummary
 
 PageKey = tuple[UUID, str]
 """``(catalogue row id, locale)``: the key of one page translation and of its open task."""
+SKIPPED_ENGINE: Final = "none"
+"""The engine column of a skip marker: no engine ran, because the page was not translated."""
+
+
+def page_key(task: SnapshotTranslationTask) -> PageKey:
+    """Return the key of the page translation that ``task`` is for."""
+    return task.catalogue_service_id, task.locale
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +41,11 @@ class SnapshotRowValues:
     size_bytes: int | None
     truncated: bool
     skipped_reason: str | None
+
+    @classmethod
+    def skip_marker(cls, artifact_sha256: str, source_hash: str, reason: str) -> SnapshotRowValues:
+        """Return the values of a marker that records a page skipped for ``reason``; a marker has no object."""
+        return cls(artifact_sha256, source_hash, SKIPPED_ENGINE, None, None, None, None, False, reason)
 
 
 class SnapshotRepository(SessionRepository):
