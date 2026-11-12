@@ -10,13 +10,13 @@ from discovery_ingest.snapshot_translation.blocks import Block
 
 @dataclass(frozen=True, slots=True)
 class TranslatedPage:
-    """A page ready to store: its blocks in document order with links restored, and how many kept their German text."""
+    """A page ready to store: its blocks in document order, links restored, and the indexes of blocks kept in German."""
 
     source_url: str
     source_hash: str
     truncated: bool
     blocks: tuple[Block, ...]
-    untranslated: int
+    untranslated: tuple[int, ...]
 
 
 def _wire(block: Block) -> dict[str, str | list[str]]:

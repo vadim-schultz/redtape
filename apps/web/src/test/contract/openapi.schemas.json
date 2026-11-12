@@ -4382,6 +4382,10 @@
       "kind": {
         "const": "row",
         "type": "string"
+      },
+      "untranslated": {
+        "default": false,
+        "type": "boolean"
       }
     },
     "required": [
@@ -5377,6 +5381,10 @@
       },
       "text": {
         "type": "string"
+      },
+      "untranslated": {
+        "default": false,
+        "type": "boolean"
       }
     },
     "required": [

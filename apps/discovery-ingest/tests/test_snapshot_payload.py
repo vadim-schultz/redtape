@@ -75,12 +75,12 @@ def test_more_than_2000_blocks_keep_the_first_2000_and_set_truncated() -> None:
     assert blocks[-1] == {"kind": "p", "text": f"Zeile {MAX_BLOCKS - 2}"}
 
 
-def test_the_untranslated_count_is_reported_and_the_german_text_is_kept() -> None:
+def test_the_untranslated_blocks_are_named_by_index_and_the_german_text_is_kept() -> None:
     source = prepare_page(_html(f"<p>{LONG}</p><p>Zweiter Absatz mit Inhalt.</p>"), URL)
     assert isinstance(source, SourcePage)
     result = finish_page(source, (Block("p", ("Please bring all the documents. " * 8,)), Block("p", ("",))))
     assert isinstance(result, TranslatedPage)
-    assert result.untranslated == 1
+    assert result.untranslated == (1,)
     assert result.blocks[1] == Block("p", ("Zweiter Absatz mit Inhalt.",))
 
 

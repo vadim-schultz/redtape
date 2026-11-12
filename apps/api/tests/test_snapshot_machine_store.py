@@ -36,7 +36,10 @@ def test_the_object_is_sorted_key_json_under_the_snapshot_key() -> None:
     assert (stored.size_bytes, backend.content_type(stored.key)) == (len(body), "application/json")
     assert body == json.dumps(json.loads(body), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     assert json.loads(body) == {
-        "blocks": [{"kind": "h1", "text": "Antrag"}, {"cells": ["Frist", "4 Wochen"], "kind": "row"}],
+        "blocks": [
+            {"kind": "h1", "text": "Antrag", "untranslated": False},
+            {"cells": ["Frist", "4 Wochen"], "kind": "row", "untranslated": False},
+        ],
         "engine": "azure-translator",
         "locale": "en",
         "model": None,
@@ -73,3 +76,17 @@ def test_without_an_object_store_the_write_is_unavailable() -> None:
     """Store · with no object store configured, the store refuses at construction and nothing is written."""
     with pytest.raises(ObjectStoreUnavailableError):
         SnapshotStore(None)
+
+
+def test_a_text_block_is_not_untranslated_unless_its_flag_says_so() -> None:
+    """Schema · a text block carries untranslated false by default, as a stored object from before the flag reads back."""
+    assert TextBlock(kind="p", text="Antrag").model_dump() == {"kind": "p", "text": "Antrag", "untranslated": False}
+
+
+def test_a_row_block_is_not_untranslated_unless_its_flag_says_so() -> None:
+    """Schema · a row carries untranslated false by default."""
+    assert RowBlock(kind="row", cells=["Frist", "4 Wochen"]).model_dump() == {
+        "kind": "row",
+        "cells": ["Frist", "4 Wochen"],
+        "untranslated": False,
+    }

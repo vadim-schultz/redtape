@@ -6,7 +6,7 @@ it as a structural mismatch.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 
 from discovery_ingest.schemas import SnapshotRowBlock, SnapshotTextBlock, SnapshotWireBlock
 from discovery_ingest.snapshot_translation import Block, SourcePage
@@ -19,13 +19,20 @@ Slot = tuple[int, int]
 """The place of one text: its block's index and its index within the block (a row has one text per cell)."""
 
 
-def wire_blocks(blocks: Sequence[Block]) -> list[SnapshotWireBlock]:
-    """Return ``blocks`` in the API's shape: a row carries its cells, every other kind its text."""
-    return [SnapshotRowBlock(kind="row", cells=list(b.texts)) if b.kind == "row" else _wire_text(b) for b in blocks]
+def wire_blocks(blocks: Sequence[Block], untranslated: Collection[int]) -> list[SnapshotWireBlock]:
+    """Return ``blocks`` in the API's shape: a row carries its cells, every other kind its text.
+
+    A block whose index is in ``untranslated`` carries ``untranslated`` true. The others leave the flag unset, so they
+    are sent as they always were and the API's default applies.
+    """
+    return [_wire(index, block, untranslated) for index, block in enumerate(blocks)]
 
 
-def _wire_text(block: Block) -> SnapshotTextBlock:
-    return SnapshotTextBlock(kind=block.kind, text=block.texts[0])
+def _wire(index: int, block: Block, untranslated: Collection[int]) -> SnapshotWireBlock:
+    marked: dict[str, bool] = {"untranslated": True} if index in untranslated else {}
+    if block.kind == "row":
+        return SnapshotRowBlock(kind="row", cells=list(block.texts), **marked)
+    return SnapshotTextBlock(kind=block.kind, text=block.texts[0], **marked)
 
 
 def _key(slot: Slot) -> str:

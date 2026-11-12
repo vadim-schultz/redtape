@@ -69,5 +69,5 @@ def finish_page(source: SourcePage, translated: Sequence[Block]) -> TranslatedPa
         source.source_hash,
         source.truncated,
         tuple(item.block for item in checked),
-        sum(item.untranslated for item in checked),
+        tuple(index for index, item in enumerate(checked) if item.untranslated),
     )
