@@ -18,6 +18,7 @@ const LOCALES = [
     name_english: "German",
     flag_emoji: "🇩🇪",
     enabled: true,
+    machine_translated: false,
   },
   {
     code: "en",
@@ -25,6 +26,7 @@ const LOCALES = [
     name_english: "English",
     flag_emoji: "🇬🇧",
     enabled: true,
+    machine_translated: false,
   },
 ];
 

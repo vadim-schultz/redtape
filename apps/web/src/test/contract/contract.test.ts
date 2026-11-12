@@ -32,6 +32,7 @@ import type {
 } from "../../features/discovery-admin/types";
 import { SEARCH_MODES } from "../../features/candidates/types";
 import { TRANSLATION_SOURCES } from "../../services/candidateTranslationApi";
+import type { LocaleRow } from "../../services/localesApi";
 import {
   DOCUMENT_TEXT_KINDS,
   DOCUMENT_TRANSLATION_CODES,
@@ -402,8 +403,19 @@ const PUBLIC_CARD_PAGE: Keys<CandidateListResponse> = {
   search_mode: true,
 };
 
+const LOCALE_ROW: Keys<LocaleRow> = {
+  code: true,
+  name_native: true,
+  name_english: true,
+  flag_emoji: true,
+  enabled: true,
+  completeness_pct: true,
+  machine_translated: true,
+};
+
 it.each([
   ["DiscoveryTaskRead", TASK],
+  ["LocaleRead", LOCALE_ROW],
   ["CatalogueServiceRead", CATALOGUE_SERVICE],
   ["DiscoveryRunRead", RUN],
   ["DiscoveryCoverageResponse", COVERAGE],
