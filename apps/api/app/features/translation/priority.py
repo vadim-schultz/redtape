@@ -2,10 +2,12 @@
 
 The queue hands out the lowest number first. The rank is the confidence in thousandths, inverted, so candidates with
 close confidences are still told apart; the two bases keep every first translation ahead of every re-translation.
+A procedure page has no confidence of its own: it ranks by the best candidate it mentions.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Final
 
 RANK_STEPS: Final = 1000
@@ -27,3 +29,18 @@ def first_priority(confidence: float) -> int:
 def retranslation_priority(confidence: float) -> int:
     """Return the priority of re-translating a stale translation at ``confidence``."""
     return RETRANSLATION_BASE + _rank(confidence)
+
+
+def page_confidence(confidences: Iterable[float]) -> float:
+    """Return the confidence a procedure page ranks by: the highest of its candidates', ``0.0`` when it has none."""
+    return max(confidences, default=0.0)
+
+
+def snapshot_first_priority(confidences: Iterable[float]) -> int:
+    """Return the priority of a page's first translation, ranked by its best candidate."""
+    return first_priority(page_confidence(confidences))
+
+
+def snapshot_retranslation_priority(confidences: Iterable[float]) -> int:
+    """Return the priority of re-translating a page, ranked by its best candidate."""
+    return retranslation_priority(page_confidence(confidences))

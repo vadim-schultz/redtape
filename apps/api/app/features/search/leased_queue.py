@@ -13,9 +13,10 @@ from sqlalchemy.orm import InstrumentedAttribute, Session
 from app.features.discovery.task_retry import MAX_ATTEMPTS
 from app.features.search.task_settle import lease_task
 from app.models.search import EmbeddingTask, WorkTaskStatus
+from app.models.snapshot_translation import SnapshotTranslationTask
 from app.models.translation import TranslationTask
 
-TaskT = TypeVar("TaskT", EmbeddingTask, TranslationTask)
+TaskT = TypeVar("TaskT", EmbeddingTask, TranslationTask, SnapshotTranslationTask)
 
 
 def ready_clause(model: type[TaskT], now: datetime) -> tuple[ColumnElement[bool], ...]:

@@ -28,7 +28,7 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 
 API_ROOT = Path(__file__).resolve().parent.parent
-CURRENT_HEAD = "20261111_translation_schema"
+CURRENT_HEAD = "20261111_snapshot_translation"
 PRE_RETIREMENT = "20261104_category_backfill"
 PRE_CATEGORY_SCHEMA = "20261104_document_normalized_url"
 ARCHIVE = "legacy_taxonomy_archive"

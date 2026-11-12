@@ -36,12 +36,13 @@ def _queued(session: Session, priority: int, created_at: datetime) -> SnapshotTr
     return task
 
 
-def _claimed(session: Session, task: SnapshotTranslationTask, key: ApiKey, attempts: int) -> None:
+def _claimed(session: Session, task: SnapshotTranslationTask, key: ApiKey) -> None:
+    """Put ``task`` in the state a claim by ``key`` leaves it in, with that claim counted as one more attempt."""
     task.status = WorkTaskStatus.CLAIMED
     task.claimed_by_api_key_id = key.id
     task.claimed_at = NOW
     task.lease_expires_at = NOW + LEASE
-    task.attempt_count = attempts
+    task.attempt_count += 1
     session.flush()
 
 
@@ -61,7 +62,7 @@ def test_an_expired_lease_is_reclaimed_by_another_key(db_session: Session) -> No
     """queue · an expired lease is reclaimed by another key, and the attempt is counted again."""
     task = _queued(db_session, 100, NOW)
     first, second = make_key(db_session, "first"), make_key(db_session, "second")
-    _claimed(db_session, task, first, attempts=1)
+    _claimed(db_session, task, first)
 
     reclaimed = _queue(db_session).claim(second.id, LATER, 5, ())
 
@@ -72,7 +73,8 @@ def test_an_expired_lease_is_reclaimed_by_another_key(db_session: Session) -> No
 def test_an_expired_lease_at_the_attempt_cap_is_failed_and_not_leased_again(db_session: Session) -> None:
     """queue · a task whose expired lease used every attempt is failed, not handed out again."""
     task = _queued(db_session, 100, NOW)
-    _claimed(db_session, task, make_key(db_session, "holder"), attempts=MAX_ATTEMPTS)
+    task.attempt_count = MAX_ATTEMPTS - 1
+    _claimed(db_session, task, make_key(db_session, "holder"))
 
     claimed = _queue(db_session).claim(make_key(db_session, "other").id, LATER, 5, ())
 

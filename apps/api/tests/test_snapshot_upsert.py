@@ -1,4 +1,4 @@
-"""Hash-aware upsert of the snapshot task (chapter 07): a pending row takes the new priority, a claimed row is left alone."""
+"""Upsert of the snapshot task (chapter 07): a pending row takes the new priority; a claimed row is left alone."""
 
 from __future__ import annotations
 

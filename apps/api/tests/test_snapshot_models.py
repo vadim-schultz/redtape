@@ -1,4 +1,4 @@
-"""Snapshot translation models (chapter 07): the index row per procedure page and locale, and the snapshot task queue."""
+"""Snapshot translation models (chapter 07): the index row per page and locale, and the snapshot task queue."""
 
 from __future__ import annotations
 
