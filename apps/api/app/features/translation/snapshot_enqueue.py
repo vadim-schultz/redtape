@@ -25,25 +25,27 @@ from app.features.translation.task_repository import TaskRepository
 
 @dataclass(frozen=True, slots=True)
 class PageState:
-    """One procedure page as the enqueue reads it: the artifact to translate, what is stored and queued, its candidates."""
+    """One procedure page as the enqueue reads it.
+
+    ``stored`` maps a locale to the artifact sha its stored translation was made from; a skip marker counts as stored.
+    ``open_locales`` are the locales with an open (pending or claimed) task. ``confidences`` holds the card confidence of
+    each candidate that mentions the page.
+    """
 
     catalogue_service_id: UUID
     artifact_sha256: str
     stored: Mapping[str, str]
-    """Locale to the artifact sha its stored translation was made from; a skip marker counts as stored."""
     open_locales: frozenset[str]
-    """The locales with an open (pending or claimed) task."""
     confidences: tuple[float, ...]
-    """The card confidence of each candidate that mentions the page."""
 
     @property
     def has_candidates(self) -> bool:
-        """Whether a candidate mentions the page."""
+        """Return whether a candidate mentions the page."""
         return bool(self.confidences)
 
     @property
     def known_locales(self) -> frozenset[str]:
-        """The locales the page is translated into or has queued."""
+        """Return the locales the page is translated into or has queued."""
         return frozenset(self.stored) | self.open_locales
 
 
@@ -58,11 +60,20 @@ def classify(page: PageState, locale: str) -> Classification:
     return Classification.CURRENT if page.stored[locale] == page.artifact_sha256 else Classification.STALE
 
 
+def _is_skipped(kind: Classification) -> bool:
+    """Return whether a slot of ``kind`` needs no task: its stored translation already matches the artifact."""
+    return kind is Classification.CURRENT
+
+
 def _priority(page: PageState, locale: str) -> int:
     """Rank a first translation by the page's best candidate, and a stale one behind every first translation."""
     if locale in page.stored:
         return snapshot_retranslation_priority(page.confidences)
     return snapshot_first_priority(page.confidences)
+
+
+def _scores_of(candidate_ids: Sequence[UUID], scores: Mapping[UUID, float]) -> tuple[float, ...]:
+    return tuple(scores[candidate_id] for candidate_id in candidate_ids)
 
 
 class SnapshotEnqueuer:
@@ -104,7 +115,7 @@ class SnapshotEnqueuer:
         return self._locales if page.has_candidates else self.known_locales(page)
 
     def load(self, shas: Mapping[UUID, str]) -> list[PageState]:
-        """Read the state of each page in ``shas``, which maps a catalogue row to the artifact sha it is translated from."""
+        """Read each page in ``shas``, which maps a catalogue row to the artifact sha it is translated from."""
         if not shas or not self._locales:
             return []
         pages = list(shas)
@@ -117,7 +128,7 @@ class SnapshotEnqueuer:
                 sha,
                 stored.get(page, {}),
                 open_locales.get(page, frozenset()),
-                tuple(scores[candidate] for candidate in candidates.get(page, ())),
+                _scores_of(candidates.get(page, ()), scores),
             )
             for page, sha in shas.items()
         ]
@@ -127,9 +138,9 @@ class SnapshotEnqueuer:
         return EnqueueTotals(counts=Counter(kind for _, _, kind in self._slots(pages, locales_of)))
 
     def queue(self, pages: Sequence[PageState], locales_of: LocalesOf) -> EnqueueTotals:
-        """Queue every page and locale the rule names that is not current; a repeat changes nothing."""
+        """Queue every page and locale the rule names that is not skipped; a repeat changes nothing."""
         slots = self._slots(pages, locales_of)
-        queued = sum(self._upsert(page, locale) for page, locale, kind in slots if kind is not Classification.CURRENT)
+        queued = sum(self._upsert(page, locale) for page, locale, kind in slots if not _is_skipped(kind))
         return EnqueueTotals(counts=Counter(kind for _, _, kind in slots), enqueued=queued)
 
     def _slots(self, pages: Sequence[PageState], locales_of: LocalesOf) -> list[tuple[PageState, str, Classification]]:
