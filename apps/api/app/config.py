@@ -78,6 +78,10 @@ class Settings(BaseSettings):
         default=9_500,
         description="Daily cap on Workers AI neurons (extraction suite): 95 percent of the free 10,000.",
     )
+    budget_azure_translator_chars_monthly: int = Field(
+        default=1_900_000,
+        description="Monthly cap on Azure AI Translator characters: 95 percent of the F0 free 2 million.",
+    )
     budget_actions_minutes_monthly: int = Field(
         default=2_000,
         description=(
