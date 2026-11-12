@@ -74,6 +74,17 @@ const CANDIDATE_KEYS = [
   "flow_more",
   "back_to_list",
   "not_found_title",
+  "document_title",
+  "document_machine_note",
+  "document_source_link",
+  "document_pending",
+  "document_no_document",
+  "document_candidate_not_found",
+  "document_skipped",
+  "document_skipped_too_short",
+  "document_skipped_not_german",
+  "document_stale",
+  "document_truncated",
 ];
 
 /** Strings only the retired /candidates list and its menu link read. */

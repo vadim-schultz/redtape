@@ -32,6 +32,14 @@ import type {
 } from "../../features/discovery-admin/types";
 import { SEARCH_MODES } from "../../features/candidates/types";
 import { TRANSLATION_SOURCES } from "../../services/candidateTranslationApi";
+import {
+  DOCUMENT_TEXT_KINDS,
+  DOCUMENT_TRANSLATION_CODES,
+  type DocumentRowBlock,
+  type DocumentTextBlock,
+  type DocumentTranslationError,
+  type DocumentTranslationRead,
+} from "../../types/documentTranslation";
 import type {
   CandidateCard,
   CandidateListResponse,
@@ -89,6 +97,7 @@ const ENUM_PAIRS: [apiName: string, webValues: readonly string[]][] = [
   ["SuggestionSource", SUGGESTION_SOURCES],
   ["SearchMode", SEARCH_MODES],
   ["TranslationSource", TRANSLATION_SOURCES],
+  ["DocumentTranslationCode", DOCUMENT_TRANSLATION_CODES],
 ];
 
 it.each(ENUM_PAIRS)(
@@ -360,6 +369,31 @@ const TRANSLATION_TEXT: Keys<TranslationText> = {
   engine: true,
 };
 
+const DOCUMENT_READ: Keys<DocumentTranslationRead> = {
+  locale: true,
+  source_url: true,
+  truncated: true,
+  stale: true,
+  blocks: true,
+};
+
+const DOCUMENT_ERROR: Keys<DocumentTranslationError> = {
+  code: true,
+  reason: true,
+};
+
+const DOCUMENT_TEXT: Keys<DocumentTextBlock> = {
+  kind: true,
+  text: true,
+  untranslated: true,
+};
+
+const DOCUMENT_ROW: Keys<DocumentRowBlock> = {
+  kind: true,
+  cells: true,
+  untranslated: true,
+};
+
 const PUBLIC_CARD_PAGE: Keys<CandidateListResponse> = {
   items: true,
   total: true,
@@ -400,6 +434,21 @@ it.each([
     expectFields(API_SCHEMAS, apiName, webFields);
   },
 );
+
+it.each([
+  ["DocumentTranslationRead", DOCUMENT_READ],
+  ["DocumentTranslationError", DOCUMENT_ERROR],
+  ["TextBlock", DOCUMENT_TEXT],
+  ["RowBlock", DOCUMENT_ROW],
+])("Contract · the field map matches the API schema (%s)", (apiName, webFields) => {
+  expectFields(API_SCHEMAS, apiName, webFields);
+});
+
+it("Contract · the text block kinds equal the API enum", () => {
+  expect([...DOCUMENT_TEXT_KINDS]).toEqual(
+    API_SCHEMAS.TextBlock.properties?.kind?.enum,
+  );
+});
 
 // Known drift, kept visible: the web type sends `accepted` and the API sends
 // `score`. Which one the UI should show is a product decision, so this stays
