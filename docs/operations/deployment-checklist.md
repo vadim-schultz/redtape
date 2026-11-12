@@ -93,6 +93,7 @@ variable only to tighten it.
 | `BUDGET_BROWSER_SECONDS_DAILY` | 570 | Cloudflare browser seconds a day, all runs together (free plan 600) |
 | `BUDGET_NEURONS_DAILY` | 9500 | Workers AI neurons a day, an API variable (`llm_extract` and `llm eval` reserve from it; free plan 10,000). Cloudflare's own allocation also counts uses the ledger never sees, such as `llm probe`, so only 500 neurons a day stay unreserved; tighten it if other workloads use Workers AI |
 | `BUDGET_ACTIONS_MINUTES_MONTHLY` | 2000 | This repository's GitHub Actions minutes a month |
+| `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` | 1900000 | Azure AI Translator characters a month (free tier F0 2 million). Nothing reserves from it until the Azure translation engine is deployed |
 | `ACTIONS_CI_RESERVE_MINUTES` | 1000 | The part of those minutes that CI keeps; drains may use 1000 |
 | `DB_SOFT_LIMIT_BYTES` | 475000000 | Database size above which machine writes that create rows answer 507 (Supabase goes read-only at 500 MB) |
 
@@ -119,7 +120,7 @@ is kept). It runs on boot before the seed step, and `start.sh` no longer seeds d
 Checks:
 
 - [ ] `curl -s -w "\nHTTP %{http_code}\n" -H "X-API-Key: $DISCOVERY_API_KEY" "$DISCOVERY_API_URL/api/v1/discovery/machine/artifacts/status"` returns 200 with `"storage_enabled": true`.
-- [ ] The same call to `…/machine/budgets` returns five resources (`r2_class_a`, `r2_class_b`, `browser_seconds`, `neurons`, `actions_minutes`) with their caps.
+- [ ] The same call to `…/machine/budgets` returns six resources (`r2_class_a`, `r2_class_b`, `browser_seconds`, `neurons`, `actions_minutes`, `azure_translator_chars`) with their caps.
 - [ ] `GET …/machine/taxonomy` returns 200 with the active canonical category vocabulary.
 - [ ] The storage probe passes (S6). It runs on a laptop with the Render values exported: `cd apps/api && set -a; source <env file>; set +a; .venv/bin/python -m scripts.object_store_probe`. Do not commit the env file.
 
