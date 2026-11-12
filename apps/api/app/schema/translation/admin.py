@@ -10,6 +10,8 @@ class SnapshotLocaleCoverage(BaseModel):
 
     ``stale`` is a subset of ``translated``: a stored page that an open task is replacing.
     ``pending`` counts the ready pending tasks, as the card counts do.
+    There is no ``unchanged`` count: an unchanged outcome keeps the stored page and completes its task,
+    so the page leaves ``stale`` and ``pending``.
     """
 
     translated: int
