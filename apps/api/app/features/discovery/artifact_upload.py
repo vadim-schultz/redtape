@@ -6,6 +6,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Protocol
 from uuid import UUID
 
 from app.features.discovery.artifact_policy import KEEP_LATEST_SNAPSHOTS, extension_for, storage_key
@@ -39,11 +40,19 @@ class UploadOutcome:
     created: bool
 
 
+class SnapshotStoredListener(Protocol):
+    """Told when a new HTML snapshot of a procedure page is stored, so the translations of that page can follow it."""
+
+    def snapshot_stored(self, catalogue_service_id: UUID, artifact_sha256: str) -> None:
+        """React to the stored snapshot ``artifact_sha256`` of ``catalogue_service_id``."""
+
+
 @dataclass(frozen=True, slots=True)
 class UploadPolicy:
-    """What the upload service enforces: the byte cap the artifact storage may reach."""
+    """What the upload service enforces: the byte cap the artifact storage may reach, and who hears of a new snapshot."""
 
     max_bytes: int
+    listener: SnapshotStoredListener
 
 
 class ArtifactUploadService:
@@ -76,6 +85,7 @@ class ArtifactUploadService:
         row = self._repo.insert_artifact(new)
         if new.kind is DiscoveryArtifactKind.HTML_SNAPSHOT:
             self._prune(store, new.catalogue_service_id)
+            self._policy.listener.snapshot_stored(new.catalogue_service_id, new.sha256)
         return row
 
     def _prune(self, store: ObjectStore, catalogue_id: UUID) -> None:

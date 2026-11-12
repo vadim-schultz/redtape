@@ -35,6 +35,7 @@ from app.features.suggestions.dependencies import (
 from app.features.suggestions.service import SuggestionService
 from app.features.taxonomy.service import TaxonomyService
 from app.features.translation.enqueue import TranslationEnqueuer
+from app.features.translation.snapshot_enqueue import SnapshotEnqueuer
 from app.shared.object_store import ObjectStore
 from app.shared.object_store.http import InjectedObjectStore
 from app.shared.object_store.provider import get_object_store
@@ -93,8 +94,9 @@ def provide_discovery_candidate_emit_service(
 def provide_discovery_artifact_upload_service(
     discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
 ) -> ArtifactUploadService:
-    """Build the artifact upload service with the object store and the configured byte cap."""
-    policy = UploadPolicy(max_bytes=settings.object_store_max_bytes)
+    """Build the artifact upload service with the object store, the configured byte cap and the snapshot listener."""
+    listener = SnapshotEnqueuer(discovery_repository.session)
+    policy = UploadPolicy(max_bytes=settings.object_store_max_bytes, listener=listener)
     return ArtifactUploadService(discovery_repository, object_store, policy)
 
 
