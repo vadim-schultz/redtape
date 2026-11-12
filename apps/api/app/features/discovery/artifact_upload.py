@@ -39,14 +39,21 @@ class UploadOutcome:
     created: bool
 
 
+@dataclass(frozen=True, slots=True)
+class UploadPolicy:
+    """What the upload service enforces: the byte cap the artifact storage may reach."""
+
+    max_bytes: int
+
+
 class ArtifactUploadService:
     """Store worker uploads in the object store and record their metadata."""
 
-    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, *, max_bytes: int) -> None:
-        """Bind the service to ``repository``, an optional ``store`` and the byte cap ``max_bytes``."""
+    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, policy: UploadPolicy) -> None:
+        """Bind the service to ``repository``, an optional ``store`` and the ``policy`` it enforces."""
         self._repo = repository
         self._store = store
-        self._max_bytes = max_bytes
+        self._policy = policy
 
     def upload(self, task_id: UUID, upload: ArtifactUpload) -> UploadOutcome:
         """Store ``upload`` for the catalogue row of ``task_id``; an identical artifact returns the existing row."""
@@ -62,7 +69,7 @@ class ArtifactUploadService:
         return UploadOutcome(self._record(store, new), created=True)
 
     def _ensure_headroom(self, incoming: int) -> None:
-        if self._repo.total_artifact_bytes() + incoming > self._max_bytes:
+        if self._repo.total_artifact_bytes() + incoming > self._policy.max_bytes:
             raise StorageCapExceededError("Artifact storage cap reached")
 
     def _record(self, store: ObjectStore, new: NewArtifact) -> DiscoveryArtifact:

@@ -10,7 +10,7 @@ from app.features.auth.dependencies import provide_machine_principal
 from app.features.auth.dependencies import router_dependencies as auth_dependencies
 from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.artifact_read import ArtifactReadService
-from app.features.discovery.artifact_upload import ArtifactUploadService
+from app.features.discovery.artifact_upload import ArtifactUploadService, UploadPolicy
 from app.features.discovery.budget_access import BudgetApiService
 from app.features.discovery.budget_meter import ledger_meter
 from app.features.discovery.budgets import BudgetService
@@ -94,7 +94,8 @@ def provide_discovery_artifact_upload_service(
     discovery_repository: DiscoveryRepository, object_store: InjectedObjectStore
 ) -> ArtifactUploadService:
     """Build the artifact upload service with the object store and the configured byte cap."""
-    return ArtifactUploadService(discovery_repository, object_store, max_bytes=settings.object_store_max_bytes)
+    policy = UploadPolicy(max_bytes=settings.object_store_max_bytes)
+    return ArtifactUploadService(discovery_repository, object_store, policy)
 
 
 def provide_discovery_artifact_read_service(
