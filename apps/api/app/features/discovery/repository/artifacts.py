@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from uuid import UUID
@@ -64,6 +65,35 @@ class ArtifactRepository(SessionRepository):
             .limit(1)
         )
         return self._session.scalars(stmt).first()
+
+    def latest_html_snapshots(self, catalogue_ids: Sequence[UUID]) -> list[DiscoveryArtifact]:
+        """Return the newest HTML snapshot of each catalogue row in ``catalogue_ids`` that has one, as above."""
+        stmt = (
+            select(DiscoveryArtifact)
+            .where(
+                DiscoveryArtifact.catalogue_service_id.in_(catalogue_ids),
+                DiscoveryArtifact.kind == DiscoveryArtifactKind.HTML_SNAPSHOT,
+            )
+            .distinct(DiscoveryArtifact.catalogue_service_id)
+            .order_by(
+                DiscoveryArtifact.catalogue_service_id,
+                DiscoveryArtifact.fetched_at.desc(),
+                DiscoveryArtifact.created_at.desc(),
+                DiscoveryArtifact.id,
+            )
+        )
+        return list(self._session.scalars(stmt))
+
+    def html_snapshot_catalogue_ids_after(self, after: UUID | None, limit: int) -> list[UUID]:
+        """Return the ids of the first ``limit`` catalogue rows after ``after`` that have an HTML snapshot, in id order."""
+        stmt = select(DiscoveryArtifact.catalogue_service_id).where(
+            DiscoveryArtifact.kind == DiscoveryArtifactKind.HTML_SNAPSHOT
+        )
+        if after is not None:
+            stmt = stmt.where(DiscoveryArtifact.catalogue_service_id > after)
+        return list(
+            self._session.scalars(stmt.distinct().order_by(DiscoveryArtifact.catalogue_service_id).limit(limit))
+        )
 
     def insert_artifact(self, new: NewArtifact) -> DiscoveryArtifact:
         """Insert ``new`` and return the row."""

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -82,6 +83,29 @@ class SnapshotRepository(SessionRepository):
         assert row is not None
         row.artifact_sha256 = artifact_sha256
         self._session.flush()
+
+    def stored_shas(self, catalogue_ids: Sequence[UUID]) -> dict[UUID, dict[str, str]]:
+        """Return, per catalogue row, the artifact sha each stored locale was made from; skip markers count as stored."""
+        row = SnapshotTranslation
+        stmt = select(row.catalogue_service_id, row.locale, row.artifact_sha256).where(
+            row.catalogue_service_id.in_(catalogue_ids)
+        )
+        grouped: dict[UUID, dict[str, str]] = defaultdict(dict)
+        for catalogue_id, locale, artifact_sha256 in self._session.execute(stmt).tuples():
+            grouped[catalogue_id][locale] = artifact_sha256
+        return dict(grouped)
+
+    def open_locales(self, catalogue_ids: Sequence[UUID]) -> dict[UUID, frozenset[str]]:
+        """Return, per catalogue row, the locales that have an open (pending or claimed) snapshot task."""
+        task = SnapshotTranslationTask
+        stmt = select(task.catalogue_service_id, task.locale).where(
+            task.catalogue_service_id.in_(catalogue_ids),
+            task.status.in_((WorkTaskStatus.PENDING, WorkTaskStatus.CLAIMED)),
+        )
+        grouped: dict[UUID, set[str]] = defaultdict(set)
+        for catalogue_id, locale in self._session.execute(stmt).tuples():
+            grouped[catalogue_id].add(locale)
+        return {catalogue_id: frozenset(locales) for catalogue_id, locales in grouped.items()}
 
     def summary(self, locales: Sequence[str], now: datetime) -> list[SnapshotLocaleSummary]:
         """Count the queue, the stored pages, the skip markers and the stale pages of every locale in ``locales``."""
