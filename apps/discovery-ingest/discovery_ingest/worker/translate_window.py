@@ -13,7 +13,9 @@ from dataclasses import dataclass, field
 from itertools import islice
 
 from discovery_ingest.translation.errors import TranslationEngineError
+from discovery_ingest.translation.glossary import GlossaryMode
 from discovery_ingest.translation.repair import Translator
+from discovery_ingest.translation.units import TranslationBatch
 from discovery_ingest.worker.stop import StopDrain
 from discovery_ingest.worker.translate_group import (
     CallResult,
@@ -30,12 +32,12 @@ Answer = CallResult | TranslationEngineError | StopDrain | None
 already raised and the call never started (its tasks are released with the rest of the batch)."""
 
 
-def _answer(translator: Translator, group: Tasks, halt: threading.Event) -> Answer:
+def _answer(translator: Translator, batch: TranslationBatch, halt: threading.Event) -> Answer:
     """Translate one call unless a stop was raised; an error or a stop is returned, not raised, so the others settle."""
     if halt.is_set():
         return None
     try:
-        return translate_call(translator, batch_of(group))
+        return translate_call(translator, batch)
     except TranslationEngineError as err:
         return err
     except StopDrain as stop:
@@ -50,11 +52,12 @@ class Window:
     translator: Translator
     pool: ThreadPoolExecutor
     size: int
+    glossary: GlossaryMode
     halt: threading.Event = field(init=False, default_factory=threading.Event)
 
     def start(self, group: Tasks) -> tuple[Tasks, Future[Answer]]:
-        """Start the translation of one call on the pool."""
-        return group, self.pool.submit(_answer, self.translator, group, self.halt)
+        """Start the translation of one call on the pool, with the glossary of the drain's mode."""
+        return group, self.pool.submit(_answer, self.translator, batch_of(group, self.glossary), self.halt)
 
 
 def _settle_answer(state: BatchState, group: Tasks, answer: Answer) -> None:

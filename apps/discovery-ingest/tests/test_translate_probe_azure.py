@@ -15,8 +15,10 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 from discovery_ingest.translation.locale_codes import DEFAULT_TARGET_LOCALES
-from discovery_ingest.translation.probe_azure import AzureProbePlan, connection_from_settings, run_azure_probe
-from discovery_ingest.translation.probe_azure_report import AzureProbeReport, build_report
+from discovery_ingest.translation.probe_azure import run_azure_probe
+from discovery_ingest.translation.probe_azure_model import AzureProbeReport
+from discovery_ingest.translation.probe_azure_report import build_report
+from discovery_ingest.translation.probe_azure_types import AzureProbePlan, connection_from_settings
 from discovery_ingest.translation.probe_azure_units import (
     PLURAL_UNITS,
     TOKEN_UNITS,

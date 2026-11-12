@@ -6,13 +6,14 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 from typing import Final, Literal
 
 from discovery_ingest.translation import tokens
 from discovery_ingest.translation.findings import Check, Finding
 from discovery_ingest.translation.glossary import Glossary
 from discovery_ingest.translation.units import TranslationUnit
-from discovery_ingest.translation.validate_glossary import glossary_adherence
+from discovery_ingest.translation.validate_glossary import glossary_findings
 
 MIN_LENGTH_RATIO: Final = 0.35
 MAX_LENGTH_RATIO: Final = 3.5
@@ -109,13 +110,16 @@ def token_findings(source: str, translated: str) -> list[Finding]:
 
 
 def validate_text(source: str, translated: str, glossary: Glossary) -> list[Finding]:
-    """Run every check on one text; the findings are empty when the translation keeps every promise."""
-    checks = (*OTHER_CHECKS, *TOKEN_CHECKS, ("glossary", glossary_adherence(glossary)))
-    return _run(checks, source, translated)
+    """Run every check on one text; the findings are empty when the translation keeps every promise.
+
+    The glossary finding comes last and is advisory when ``glossary`` is in advisory mode.
+    """
+    checks = (*OTHER_CHECKS, *TOKEN_CHECKS)
+    return [*_run(checks, source, translated), *glossary_findings(source, translated, glossary)]
 
 
 def _tagged(field: Literal["title", "description"], findings: list[Finding]) -> list[Finding]:
-    return [Finding(finding.check, field, finding.detail) for finding in findings]
+    return [replace(finding, field=field) for finding in findings]
 
 
 def validate_unit(source: TranslationUnit, translated: TranslationUnit, glossary: Glossary) -> list[Finding]:

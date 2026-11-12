@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from discovery_ingest.client import DiscoveryIngestClient
+from discovery_ingest.translation.glossary import GlossaryMode
 from discovery_ingest.translation.repair import Translator
 from discovery_ingest.translation.units import CallLimits
 from discovery_ingest.worker.batch import BatchResult
@@ -21,20 +22,21 @@ from discovery_ingest.worker.translate_window import Window, settle_window
 
 @dataclass(frozen=True, slots=True)
 class TranslateContext:
-    """Everything one translate drain shares across batches: the client, the translator, the bounds and the engine's limits."""
+    """Everything one translate drain shares across batches: the client, the translator, the bounds, the engine's limits and the glossary mode."""
 
     client: DiscoveryIngestClient
     translator: Translator
     engine: str
     policy: DrainPolicy
     limits: CallLimits
+    glossary: GlossaryMode
 
 
 def _settle_groups(ctx: TranslateContext, tasks: Tasks, state: BatchState) -> None:
     calls = by_call(tasks, ctx.limits.units_per_call)
     size = min(ctx.policy.concurrency, ctx.limits.concurrency)
     with ThreadPoolExecutor(max_workers=size) as pool, refusals_as_stops():
-        window = Window(ctx.translator, pool, size)
+        window = Window(ctx.translator, pool, size, ctx.glossary)
         try:
             settle_window(window, calls, state)
         finally:
