@@ -23,6 +23,15 @@ def test_the_checked_in_fixture_is_current() -> None:
     )
 
 
+def test_the_checked_in_fixture_lists_the_azure_translator_budget() -> None:
+    """machine contract fixture · the budget enum names the Azure character ledger resource."""
+    enums = _checked_in()["enums"]
+    assert isinstance(enums, dict)
+    budget_resources = enums["BudgetResource"]
+    assert isinstance(budget_resources, list)
+    assert "azure_translator_chars" in budget_resources
+
+
 def test_the_checked_in_vocabulary_fixture_is_current() -> None:
     """machine vocabulary fixture · matches the served vocabulary and crosswalk rendered from the artifact."""
     assert exporter.VOCABULARY_PATH.exists(), f"missing {exporter.VOCABULARY_PATH}; run: {exporter.REGENERATE_COMMAND}"
