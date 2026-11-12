@@ -29,6 +29,13 @@ BLOCKS: list[dict[str, object]] = [
     {"kind": "row", "cells": ["Frist", "4 Wochen"]},
 ]
 OTHER_BLOCKS: list[dict[str, object]] = [{"kind": "p", "text": "Ein anderer Text."}]
+
+
+def _read(blocks: list[dict[str, object]]) -> list[dict[str, object]]:
+    """The blocks as the route returns them: each states its flag, and a block stored without one reads back false."""
+    return [{"untranslated": False} | block for block in blocks]
+
+
 FLAGGED: list[dict[str, object]] = [
     {"kind": "h1", "text": "Kindergeld beantragen"},
     {"kind": "p", "text": "Den Antrag stellen Sie online.", "untranslated": True},
@@ -114,7 +121,7 @@ def test_a_translated_page_returns_its_blocks_in_the_requested_locale(
         "source_url": PORTAL,
         "truncated": False,
         "stale": False,
-        "blocks": BLOCKS,
+        "blocks": _read(BLOCKS),
     }
     assert store_slot.memory.reads == 1
 
@@ -180,7 +187,7 @@ def test_the_best_mention_picks_the_page_in_the_order_the_card_excerpt_uses(
     card = read_client.get(f"{URL}/{owner.id}", params={"locale": "tr"}).json()
 
     assert card["description"] == "Früher Hinweis"
-    assert (body["source_url"], body["blocks"]) == (PORTAL, BLOCKS)
+    assert (body["source_url"], body["blocks"]) == (PORTAL, _read(BLOCKS))
 
 
 def test_stale_is_true_when_the_latest_snapshot_sha_differs_from_the_stored_one(
@@ -194,7 +201,7 @@ def test_stale_is_true_when_the_latest_snapshot_sha_differs_from_the_stored_one(
 
     assert fresh["stale"] is False
     assert stale["stale"] is True
-    assert stale["blocks"] == BLOCKS
+    assert stale["blocks"] == _read(BLOCKS)
 
 
 def test_a_candidate_with_no_snapshot_answers_404_no_document(

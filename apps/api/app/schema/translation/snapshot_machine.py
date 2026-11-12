@@ -22,6 +22,8 @@ class TextBlock(BaseModel):
 
     kind: Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "dt"]
     text: str
+    untranslated: bool = False
+    """True when the translation was refused and the German text was kept in its place."""
 
 
 class RowBlock(BaseModel):
@@ -29,6 +31,8 @@ class RowBlock(BaseModel):
 
     kind: Literal["row"]
     cells: list[str]
+    untranslated: bool = False
+    """True when any cell was refused and kept its German text."""
 
 
 SnapshotBlock = Annotated[TextBlock | RowBlock, Field(discriminator="kind")]

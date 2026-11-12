@@ -36,7 +36,10 @@ def test_the_object_is_sorted_key_json_under_the_snapshot_key() -> None:
     assert (stored.size_bytes, backend.content_type(stored.key)) == (len(body), "application/json")
     assert body == json.dumps(json.loads(body), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     assert json.loads(body) == {
-        "blocks": [{"kind": "h1", "text": "Antrag"}, {"cells": ["Frist", "4 Wochen"], "kind": "row"}],
+        "blocks": [
+            {"kind": "h1", "text": "Antrag", "untranslated": False},
+            {"cells": ["Frist", "4 Wochen"], "kind": "row", "untranslated": False},
+        ],
         "engine": "azure-translator",
         "locale": "en",
         "model": None,

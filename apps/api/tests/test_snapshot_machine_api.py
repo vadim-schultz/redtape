@@ -208,7 +208,7 @@ def test_complete_translated_stores_the_object_updates_the_index_row_and_answers
     (key,) = _memory(slot).stored_keys()
     assert key.startswith(f"translations/v1/snapshots/{page.catalogue.id}/en/") and key.endswith(".json")
     assert json.loads(_memory(slot).get(key)) == {
-        "blocks": BLOCKS,
+        "blocks": [{"untranslated": False} | block for block in BLOCKS],
         "engine": "azure-translator",
         "locale": "en",
         "model": "m",
