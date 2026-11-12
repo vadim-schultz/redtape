@@ -31,13 +31,15 @@ from discovery_ingest.translation.errors import (
 )
 from discovery_ingest.translation.locale_codes import DEFAULT_TARGET_LOCALES, provider_code, register_locale_map
 from discovery_ingest.translation.registry import EngineConfig, register_engine
-from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, Usage, UsageUnit
+from discovery_ingest.translation.units import CallLimits, TranslationBatch, TranslationOutcome, Usage, UsageUnit
 
 NAME = "llm"
 OUTPUT_TOKENS_PER_INPUT_TOKEN = 2.0
 """Translated text is longer in tokens than the German (Cyrillic and Turkish tokenise heavily); a reservation ceiling."""
 DEFAULT_MIN_INTERVAL_SECONDS = 1.0
 DEFAULT_MAX_TOKENS = 4000
+UNITS_PER_CALL = 50
+"""The most units a claim carries, so one locale of a batch is always one prompt."""
 
 
 _FIXED_CATEGORIES: tuple[tuple[type[LlmError], type[TranslationEngineError]], ...] = (
@@ -68,6 +70,11 @@ class LlmTranslator:
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
+
+    @property
+    def limits(self) -> CallLimits:
+        """One prompt per locale of up to 50 units, one call at a time: the client paces its own requests."""
+        return CallLimits(UNITS_PER_CALL, 1)
 
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return one result per unit in order and the neurons the call cost."""

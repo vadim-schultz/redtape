@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
@@ -34,17 +35,20 @@ class TranslateDeps:
 
 
 class CountedTranslator:
-    """A translator that counts the calls the provider answered in the drain's tally."""
+    """A translator that counts the calls the provider answered, and the auth mode they ran under, in the drain's tally."""
 
     def __init__(self, inner: Translator, tally: Tally) -> None:
-        """Wrap ``inner`` and count into ``tally``."""
+        """Wrap ``inner`` and count into ``tally``; calls may come from several threads, so the count is locked."""
         self._inner = inner
         self._tally = tally
+        self._lock = threading.Lock()
 
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Translate through ``inner`` and count the answered call."""
         outcome = self._inner.translate(batch)
-        self._tally.llm_calls += 1
+        with self._lock:
+            self._tally.llm_calls += 1
+            self._tally.auth_mode = outcome.auth or self._tally.auth_mode
         return outcome
 
 
@@ -54,8 +58,15 @@ def _neurons_spent(deps: TranslateDeps, meter: UsageMeter | None) -> float:
     return round(meter.used, 1)
 
 
+def _tokens_spent(deps: TranslateDeps, meter: UsageMeter | None) -> int:
+    if meter is None or deps.engine.usage_unit != "subscription":
+        return 0
+    return round(meter.used)
+
+
 def _close_tally(deps: TranslateDeps, tally: Tally, meter: UsageMeter | None, guard: BudgetGuard) -> None:
     tally.neurons_used = _neurons_spent(deps, meter)
+    tally.tokens_used = _tokens_spent(deps, meter)
     tally.ledger_unavailable = guard.ledger_unavailable
 
 
@@ -65,7 +76,7 @@ def _report(deps: TranslateDeps, tally: Tally, finish: Finish) -> DrainReport:
 
 def _drain(deps: TranslateDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter) -> Finish:
     translator = CountedTranslator(MeteredTranslator(deps.engine, meter), tally)
-    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy)
+    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits)
     return drain_until_stop(lambda: run_translate_batch(ctx, tally), policy, deps.clock)
 
 

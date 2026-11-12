@@ -10,9 +10,23 @@ from enum import StrEnum
 from typing import Protocol
 
 import httpx
+from discovery_ingest.translation.adapters.claude_code import ClaudeCodeTranslator
 from discovery_ingest.translation.adapters.cloudflare_llm import LlmTranslator
 from discovery_ingest.translation.engine import TranslationEngine
 
+from claude_code_fakes import (
+    MODEL as CLAUDE_MODEL,
+)
+from claude_code_fakes import (
+    PERMANENT_REPLY,
+    QUOTA_REPLY,
+    SECRET,
+    UNAUTHORISED_REPLY,
+    FakeCli,
+    Reply,
+    answered,
+    timeout_reply,
+)
 from llm_transport import MODEL, TOKEN, client, failure, success
 
 
@@ -93,4 +107,29 @@ class CloudflareLlmHarness:
         return LlmTranslator(client(handler), model=MODEL, max_tokens=2000)
 
 
-HARNESSES: dict[str, AdapterHarness] = {"llm": CloudflareLlmHarness()}
+_CLAUDE_REPLIES: dict[Behaviour, Reply] = {
+    Behaviour.QUOTA: QUOTA_REPLY,
+    Behaviour.TRANSIENT: timeout_reply,
+    Behaviour.UNAUTHORISED: UNAUTHORISED_REPLY,
+    Behaviour.PERMANENT: PERMANENT_REPLY,
+}
+
+
+class ClaudeCodeHarness:
+    """The Claude Code adapter over a scripted ``claude`` runner; its secret is an API key that must never reach an error."""
+
+    name = "claude-code"
+    secret = SECRET
+
+    def build(self, behaviour: Behaviour) -> TranslationEngine:
+        """Return a :class:`ClaudeCodeTranslator` whose runner answers with ``behaviour``."""
+        return ClaudeCodeTranslator(FakeCli(_claude_reply(behaviour)), model=CLAUDE_MODEL, environ={"PATH": "/usr/bin"})
+
+
+def _claude_reply(behaviour: Behaviour) -> Reply:
+    if behaviour is Behaviour.SHORT:
+        return lambda request: answered(request, drop=1)
+    return _CLAUDE_REPLIES.get(behaviour, answered)
+
+
+HARNESSES: dict[str, AdapterHarness] = {"llm": CloudflareLlmHarness(), "claude-code": ClaudeCodeHarness()}

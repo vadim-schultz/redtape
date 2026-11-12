@@ -13,11 +13,13 @@ from discovery_ingest.schemas import (
 )
 
 MAX_TASKS_PER_CLAIM = 50
+MAX_CONCURRENCY = 4
+"""The most engine calls one drain may have in flight; an engine may allow fewer (its own ``CallLimits``)."""
 
 
 @dataclass(frozen=True, slots=True)
 class DrainPolicy:
-    """Validated batch size, batch-count, wall-clock bounds and task kinds for one drain."""
+    """Validated batch size, batch-count, wall-clock bounds, task kinds and call concurrency for one drain."""
 
     max_tasks: int = MAX_TASKS_PER_CLAIM
     max_batches: int = 1
@@ -25,12 +27,18 @@ class DrainPolicy:
     kinds: tuple[DiscoveryTaskKind, ...] = WORKER_DEFAULT_TASK_KINDS
     browser_budget_seconds: float | None = None
     neuron_budget: float | None = None
+    concurrency: int = 1
 
     def __post_init__(self) -> None:
         """Reject bounds that would make a drain empty or unbounded."""
         self._check_batches()
         self._check_browser_budget()
         self._check_neuron_budget()
+        self._check_concurrency()
+
+    def _check_concurrency(self) -> None:
+        if not 1 <= self.concurrency <= MAX_CONCURRENCY:
+            raise ValueError(f"concurrency must be between 1 and {MAX_CONCURRENCY}")
 
     def _check_batches(self) -> None:
         if not 1 <= self.max_tasks <= MAX_TASKS_PER_CLAIM:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, Usage, UsageUnit
+from discovery_ingest.translation.units import CallLimits, TranslationBatch, TranslationOutcome, Usage, UsageUnit
 
 
 class TranslationEngine(Protocol):
@@ -18,6 +18,11 @@ class TranslationEngine(Protocol):
     @property
     def usage_unit(self) -> UsageUnit:
         """The unit the engine is billed in."""
+        ...
+
+    @property
+    def limits(self) -> CallLimits:
+        """How many units one call may carry and how many calls may be in flight at once."""
         ...
 
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
