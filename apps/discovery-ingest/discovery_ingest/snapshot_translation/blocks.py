@@ -9,8 +9,8 @@ from typing import Final, Literal
 
 from discovery_ingest.snapshot_translation.limits import MAX_BLOCK_CHARS
 
-Kind = Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "dt", "row"]
-HEADING_KINDS: Final[tuple[Kind, ...]] = ("h1", "h2", "h3", "h4", "h5", "h6")
+BlockKind = Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "dt", "row"]
+HEADING_KINDS: Final[tuple[BlockKind, ...]] = ("h1", "h2", "h3", "h4", "h5", "h6")
 CONTROL: Final = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 ROW_SEPARATOR: Final = " | "
 
@@ -25,7 +25,7 @@ DEFINITION: Final = re.compile(r"(?P<term>[^:.!?]{1,60}): .+")
 class Block:
     """One block of a page: its kind and its texts. A row's texts are its cells; every other kind has one text."""
 
-    kind: Kind
+    kind: BlockKind
     texts: tuple[str, ...]
 
 
@@ -88,7 +88,7 @@ def _pack(cells: list[str], limit: int) -> list[list[str]]:
     return groups
 
 
-def _within_limit(block: Block) -> list[Block]:
+def _fit_to_limit(block: Block) -> list[Block]:
     """Return ``block`` as blocks within the limit: a text is cut, and a row's cells are cut and packed into rows."""
     if block.kind != "row":
         return [Block(block.kind, (piece,)) for piece in _split_text(block.texts[0], MAX_BLOCK_CHARS)]
@@ -99,4 +99,4 @@ def _within_limit(block: Block) -> list[Block]:
 def page_blocks(text: str) -> tuple[Block, ...]:
     """Return the blocks of cleaned ``text`` in document order: one per non-blank line, each within the limit."""
     lines = (clean_text(line) for line in text.split("\n"))
-    return tuple(piece for line in lines if line for piece in _within_limit(_block(line)))
+    return tuple(piece for line in lines if line for piece in _fit_to_limit(_block(line)))

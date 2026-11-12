@@ -6,7 +6,7 @@ Every function here is pure. Fetching, the queue, the store and the engine calls
 
 from __future__ import annotations
 
-from discovery_ingest.snapshot_translation.blocks import Block, Kind
+from discovery_ingest.snapshot_translation.blocks import Block, BlockKind
 from discovery_ingest.snapshot_translation.hash import source_hash
 from discovery_ingest.snapshot_translation.page import SkippedPage, SourcePage, finish_page, prepare_page
 from discovery_ingest.snapshot_translation.payload import TranslatedPage, canonical_payload
@@ -15,8 +15,8 @@ from discovery_ingest.snapshot_translation.validate_blocks import CheckedBlock, 
 
 __all__ = [
     "Block",
+    "BlockKind",
     "CheckedBlock",
-    "Kind",
     "Rejected",
     "SkipReason",
     "SkippedPage",
