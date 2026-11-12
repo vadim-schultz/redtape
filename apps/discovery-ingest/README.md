@@ -333,8 +333,9 @@ The workflow `discovery-embed.yml` runs the drain twice a day when the repositor
 queues (`TRANSLATION_TARGET_LOCALES` on the API scopes the claim; an empty list claims nothing). It is a sibling of
 `embed drain`: the worker never touches the database and holds no object-store credential. Each batch is claimed
 (`POST /machine/translations/claim`, `--max-tasks` 1-50, default 10), **grouped by locale (one prompt per locale and
-batch)**, translated by the engine that `TRANSLATION_ENGINE` selects from the registry (default `llm`, Workers AI;
-`TRANSLATION_MODEL` overrides the model), checked by the core validators and posted back
+batch)**, translated by the engine that `TRANSLATION_ENGINE` selects from the registry (default `azure-translator`, Azure AI
+Translator; `llm`, Workers AI, is the rollback, and `TRANSLATION_MODEL` overrides its model; see
+[`docs/operations/translation-engines.md`](../../docs/operations/translation-engines.md)), checked by the core validators and posted back
 (`POST /machine/translations/complete`) with the engine's name and model. The drain names no provider.
 
 ```bash
@@ -344,8 +345,9 @@ python -m discovery_ingest translate drain --max-tasks 10 --max-batches 60 --tim
 
 The command prints one `DrainReport` JSON (the shape of `embed drain`, plus `rejected`, `unavailable`, `repaired` and
 `invalid`) and exits 1 only when `succeeded` is false. It exits 2 for an unknown `TRANSLATION_ENGINE`, an engine that
-cannot start (a missing `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_AI_API_TOKEN` for `llm`) or an out-of-range bound, and 1
-before claiming anything when the neuron ledger cannot be read.
+cannot start (a missing `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_AI_API_TOKEN` for `llm`, or a missing `AZURE_TRANSLATOR_KEY`
+or `AZURE_TRANSLATOR_REGION` for `azure-translator`) or an out-of-range bound, and 1 before claiming anything when the
+engine's ledger (neurons or characters) cannot be read.
 
 - **Validation and repair.** A translated unit that fails a validator (numbers, dates, URLs, citations, placeholders,
   glossary, length, markup, unchanged copy) is asked for **once more** with the rules it broke. Units that pass are
