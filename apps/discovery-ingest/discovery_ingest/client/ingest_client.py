@@ -14,6 +14,7 @@ from discovery_ingest.client.catalogue_api import CatalogueAPI
 from discovery_ingest.client.embedding_api import EmbeddingsAPI
 from discovery_ingest.client.http_client import MachineHttpClient
 from discovery_ingest.client.runs_api import RunsAPI
+from discovery_ingest.client.snapshot_api import SnapshotsAPI
 from discovery_ingest.client.tasks_api import TasksAPI
 from discovery_ingest.client.translation_api import TranslationsAPI
 
@@ -35,6 +36,7 @@ class DiscoveryIngestClient:
         self.budget = BudgetAPI(self._http)
         self.embeddings = EmbeddingsAPI(self._http)
         self.translations = TranslationsAPI(self._http)
+        self.snapshots = SnapshotsAPI(self._http)
 
     @classmethod
     def from_settings(cls, settings: IngestSettings) -> Self:

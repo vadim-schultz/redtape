@@ -119,11 +119,22 @@ PAIRS: tuple[Pair, ...] = (
     Pair("embedding_models.EmbeddingReleaseRequest", "search_machine.EmbeddingReleaseRequest", "request"),
     Pair("embedding_models.EmbeddingReleaseResponse", "search_machine.EmbeddingReleaseResponse", "response"),
     Pair("embedding_models.EmbeddingSummary", "search_machine.EmbeddingSummaryResponse", "response"),
+    Pair("schemas.SnapshotClaimRequest", "snapshot_machine.SnapshotClaimRequest", "request"),
+    Pair("schemas.ClaimedSnapshotTask", "snapshot_machine.ClaimedSnapshotTask", "response"),
+    Pair("schemas.SnapshotClaimResponse", "snapshot_machine.SnapshotClaimResponse", "response"),
+    Pair("schemas.SnapshotCompleteRequest", "snapshot_machine.SnapshotCompleteRequest", "request"),
+    Pair("schemas.SnapshotItemResult", "snapshot_machine.SnapshotItemResult", "response"),
+    Pair("schemas.SnapshotCompleteResponse", "snapshot_machine.SnapshotCompleteResponse", "response"),
+    Pair("schemas.SnapshotLocaleSummary", "snapshot_machine.SnapshotLocaleSummary", "response"),
+    Pair("schemas.SnapshotSummaryResponse", "snapshot_machine.SnapshotSummaryResponse", "response"),
 )
-"""The 51 ingest-to-API pairs: 18 requests and 33 responses. Unpaired wire models are listed in ``UNPAIRED``."""
+"""The 64 ingest-to-API pairs: 20 requests and 44 responses. Unpaired wire models are listed in ``UNPAIRED``."""
 
 UNPAIRED: dict[str, str] = {
     "schemas.DrainReport": "a CLI report, never on the wire",
+    "schemas.SnapshotCompleteItem": "an item of SnapshotCompleteRequest, covered through it",
+    "schemas.SnapshotTextBlock": "a block of SnapshotCompleteItem, covered through the request",
+    "schemas.SnapshotRowBlock": "a row of SnapshotCompleteItem, covered through the request",
     "mentions.MentionDraft": "the base of MentionItem, covered through it",
 }
 
