@@ -1,14 +1,18 @@
-usage: discovery_ingest translate probe [-h] --locale LOCALE [--sample SAMPLE] [--engine ENGINE] [--model MODEL]
+usage: discovery_ingest translate probe [-h] [--locale LOCALE] [--sample SAMPLE] [--engine ENGINE] [--model MODEL]
                                         [--sheet SHEET] [--max-usage MAX_USAGE] [--daily-budget DAILY_BUDGET]
+                                        [--units UNITS] [--report REPORT]
 
 options:
   -h, --help            show this help message and exit
-  --locale LOCALE       Target locale code, for example tr
-  --sample SAMPLE       Real candidates to translate
+  --locale LOCALE       Target locale code, for example tr (azure-translator: every target locale when unset)
+  --sample SAMPLE       Real candidates to translate (not azure-translator)
   --engine ENGINE       A registered engine (default TRANSLATION_ENGINE)
   --model MODEL         Model override for the engine
-  --sheet SHEET         Spot-check sheet (CSV); default translation-probe/<engine>-<locale>.csv
+  --sheet SHEET         Spot-check sheet (CSV), not azure-translator; default translation-probe/<engine>-<locale>.csv
   --max-usage MAX_USAGE
-                        Stop after this much usage (neurons, characters or tokens)
+                        Stop after this much usage (neurons, characters or tokens; default 3000, or 10000 characters
+                        for azure-translator)
   --daily-budget DAILY_BUDGET
-                        Neurons a day for translation, for the days projection
+                        Neurons a day for translation, for the days projection (not azure-translator)
+  --units UNITS         azure-translator: the reviewed units, JSON; default tests/fixtures/azure_probe_units.json
+  --report REPORT       azure-translator: also write the JSON report to this file

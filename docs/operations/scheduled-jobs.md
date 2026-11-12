@@ -105,7 +105,24 @@ step. **The floor.** The drain never takes the day's neuron ledger below `QUERY_
 default 1000, a whole number), so request-time query embedding (about 0.1 neuron a query) always has neurons; a run
 that would breach it stops `llm_budget`. Secrets: the same four as the embed drain (`DISCOVERY_API_URL`,
 `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`; the Workers AI token is never printed). A
-different engine is one repository variable (`TRANSLATION_ENGINE`) plus its own secret in the workflow `env`.
+different engine is one repository variable (`TRANSLATION_ENGINE`). For **Azure AI Translator** (`azure-translator`), the
+job reads three secrets from the `discovery-translate` GitHub environment: `AZURE_TRANSLATOR_KEY` and
+`AZURE_TRANSLATOR_REGION` (both required) and `AZURE_TRANSLATOR_ENDPOINT` (optional; unset means the global host). They reach
+the job only when `TRANSLATION_ENGINE` is `azure-translator`. The job then fails at its first check, naming the secret, when
+the key or the region is missing. Its budget precheck is `budget show --require-remaining
+azure_translator_chars=<AZURE_TRANSLATOR_MIN_REMAINING_CHARS>`: with fewer characters left this month, the job skips without
+failing. The neuron floor applies to `llm` only. `TRANSLATION_GLOSSARY_MODE` (`strict` by default) says whether a glossary
+miss on a card fails the card (`strict`) or is logged while the card is posted (`advisory`). Interface strings stay strict.
+
+**The Azure probe (operator, manual, never in CI).** With the key in the shell and never committed, run from
+`apps/discovery-ingest`: `python -m discovery_ingest translate probe --engine azure-translator --units <sample.json> --report
+<report.json>`. It translates every target locale through the production adapter and spends at most `--max-usage` characters
+(10,000 by default). The sample is about 20 German card units exported from production and reviewed. It is read from
+`tests/fixtures/azure_probe_units.json` unless `--units` names another file; the repository holds no copy, and the command
+refuses to run without one. The report is one JSON object: per locale the valid share, glossary findings, placeholder and
+token survival, billed and estimated characters; whether HTML tags are billed; the throttle answers; and
+`recommended_glossary_mode`, which is `strict` only when every locale reaches 90% valid units. Record that mode in the run
+ledger, then set `TRANSLATION_GLOSSARY_MODE` to match.
 
 **Concurrency.** All seven drains share the group `discovery-pipeline` with `cancel-in-progress: false`, so they never
 overlap. GitHub keeps one pending run per group, so a later queued run cancels the older pending one.
@@ -148,6 +165,8 @@ Set these under **Settings → Secrets and variables → Actions → Variables**
 | `DISCOVERY_TRANSLATE_SCHEDULE` | Set to `enabled` to turn on the daily `translate drain`. Set it only after the C14 backfill has queued tasks, `TRANSLATION_TARGET_LOCALES` is narrowed on Render and in the plan, and the API has its R2 object-store variables (without them every `complete` answers `unavailable`). Any other value leaves only manual dispatch. |
 | `QUERY_EMBED_RESERVE` | Neurons of the day's ledger the translate drain leaves for query embedding (a whole number; unset means 1000). |
 | `TRANSLATION_ENGINE` | The registered engine the translate drain uses; unset means `llm`. |
+| `TRANSLATION_GLOSSARY_MODE` | `strict` (unset) or `advisory`: how a glossary miss on a card counts. Any other value fails the drain at settings load. Set it from the probe's `recommended_glossary_mode`. |
+| `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` | Characters of `azure_translator_chars` that must remain this month before an `azure-translator` drain starts (a whole number; unset means 20000). |
 | `DISCOVERY_SCREENSHOT_SCHEDULE` | Set to `enabled` to turn on the daily `capture_screenshot` drain. Any other value leaves only manual dispatch. |
 | `DISCOVERY_LLM_MODEL` | The Workers AI model id a scheduled run extracts with (a model with a price row). Unset means a scheduled run skips. |
 

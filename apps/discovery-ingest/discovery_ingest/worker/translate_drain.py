@@ -10,6 +10,7 @@ from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.translation.engine import TranslationEngine
+from discovery_ingest.translation.glossary import DEFAULT_GLOSSARY_MODE, GlossaryMode
 from discovery_ingest.translation.meter import UsageMeter
 from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.translation.repair import Translator
@@ -32,6 +33,7 @@ class TranslateDeps:
     own_meters: Mapping[UsageUnit, UsageMeter] = field(default_factory=dict)
     budget: BudgetGuard | None = None
     clock: Callable[[], float] = monotonic
+    glossary: GlossaryMode = DEFAULT_GLOSSARY_MODE
 
 
 class CountedTranslator:
@@ -88,7 +90,7 @@ def _report(deps: TranslateDeps, tally: Tally, finish: Finish) -> DrainReport:
 
 def _drain(deps: TranslateDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter) -> Finish:
     translator = CountedTranslator(MeteredTranslator(deps.engine, meter), tally)
-    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits)
+    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits, deps.glossary)
     return drain_until_stop(lambda: run_translate_batch(ctx, tally), policy, deps.clock)
 
 

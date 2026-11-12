@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 from discovery_ingest.translation.glossary import Glossary, GlossaryEntry
+from discovery_ingest.translation.repair import Checked
 from discovery_ingest.translation.validate import validate_text, validate_unit
 
 from translation_fakes import GLOSSARY, unit
@@ -95,3 +98,26 @@ def test_the_unit_validator_reports_which_field_failed() -> None:
 def test_an_empty_description_on_both_sides_is_not_a_finding() -> None:
     """validate · a unit without a description validates on its title alone."""
     assert validate_unit(unit("k", "Wohngeld"), unit("k", "Housing benefit"), GLOSSARY) == []
+
+
+def test_advisory_mode_records_a_glossary_finding_without_failing_the_unit() -> None:
+    """Validator · advisory mode records a glossary finding without failing the unit; the unit stays valid."""
+    advisory = replace(GLOSSARY_KINDERGELD, mode="advisory")
+    translated = FAITHFUL.replace("Application", "Request")
+
+    findings = validate_text(SOURCE, translated, advisory)
+    checked = Checked(unit("k", SOURCE, ""), unit("k", translated, ""), tuple(findings))
+
+    assert [(finding.check, finding.advisory) for finding in findings] == [("glossary", True)]
+    assert checked.valid is True
+
+
+def test_strict_mode_fails_the_unit_on_the_same_glossary_finding() -> None:
+    """Validator · strict mode, the default, makes the same glossary finding a failure of the unit."""
+    translated = FAITHFUL.replace("Application", "Request")
+
+    findings = validate_text(SOURCE, translated, GLOSSARY_KINDERGELD)
+    checked = Checked(unit("k", SOURCE, ""), unit("k", translated, ""), tuple(findings))
+
+    assert [(finding.check, finding.advisory) for finding in findings] == [("glossary", False)]
+    assert checked.valid is False

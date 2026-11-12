@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from discovery_ingest.translation.azure_settings import AzureTranslatorSettings, load_azure_translator_settings
 from discovery_ingest.translation.registry import registered_engines
-from discovery_ingest.translation.settings import TranslationSettings
+from discovery_ingest.translation.settings import TranslationSettings, load_translation_settings
+from pydantic import ValidationError
 
 from azure_transport import KEY, REGION
 
@@ -15,6 +16,7 @@ AZURE_VARIABLES = (
     "AZURE_TRANSLATOR_ENDPOINT",
     "AZURE_TRANSLATOR_API_VERSION",
     "TRANSLATION_ENGINE",
+    "TRANSLATION_GLOSSARY_MODE",
 )
 
 
@@ -83,3 +85,24 @@ def test_azure_is_registered_but_the_default_engine_stays_llm() -> None:
     assert TranslationSettings.model_validate({"TRANSLATION_ENGINE": "azure-translator"}).translation_engine == (
         "azure-translator"
     )
+
+
+def test_the_glossary_mode_accepts_strict_and_advisory_and_defaults_to_strict() -> None:
+    """Settings · TRANSLATION_GLOSSARY_MODE accepts strict and advisory and defaults to strict."""
+    assert TranslationSettings.model_validate({}).translation_glossary_mode == "strict"
+    assert (
+        TranslationSettings.model_validate({"TRANSLATION_GLOSSARY_MODE": "strict"}).translation_glossary_mode
+        == "strict"
+    )
+    assert (
+        TranslationSettings.model_validate({"TRANSLATION_GLOSSARY_MODE": "advisory"}).translation_glossary_mode
+        == "advisory"
+    )
+
+
+def test_an_unknown_glossary_mode_fails_at_load(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings · an unknown glossary mode fails at load, naming the variable."""
+    monkeypatch.setenv("TRANSLATION_GLOSSARY_MODE", "lenient")
+
+    with pytest.raises(ValidationError, match="TRANSLATION_GLOSSARY_MODE"):
+        load_translation_settings()

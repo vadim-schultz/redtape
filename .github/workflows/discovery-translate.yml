@@ -44,12 +44,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_TRANSLATE_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The Azure secrets live in this environment. They reach the job only when TRANSLATION_ENGINE is azure-translator.
+    environment: discovery-translate
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+      AZURE_TRANSLATOR_KEY: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_KEY || '' }}
+      AZURE_TRANSLATOR_REGION: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_REGION || '' }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ vars.TRANSLATION_ENGINE == 'azure-translator' && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
       TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'llm' }}
+      TRANSLATION_GLOSSARY_MODE: ${{ vars.TRANSLATION_GLOSSARY_MODE || 'strict' }}
+      AZURE_TRANSLATOR_MIN_REMAINING_CHARS: ${{ vars.AZURE_TRANSLATOR_MIN_REMAINING_CHARS || '20000' }}
       QUERY_EMBED_RESERVE: ${{ vars.QUERY_EMBED_RESERVE || '1000' }}
       MAX_TASKS: ${{ inputs.max_tasks || '10' }}
       MAX_BATCHES: ${{ inputs.max_batches || '60' }}
@@ -75,18 +82,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Check the Actions minutes and the neurons budgets
+      - name: Check the Azure Translator secrets
+        if: env.TRANSLATION_ENGINE == 'azure-translator'
+        run: |
+          # A secret that is not set fails the job here, naming the secret but never its value. A silent skip would hide
+          # a misconfigured engine.
+          for name in AZURE_TRANSLATOR_KEY AZURE_TRANSLATOR_REGION; do
+            if [ -z "${!name}" ]; then
+              echo "::error::TRANSLATION_ENGINE is azure-translator, but the ${name} secret is not set in the discovery-translate environment"
+              exit 1
+            fi
+          done
+
+      - name: Check the Actions minutes and the budget of the engine
         id: budget
         run: |
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or no more than
-          # 100 neurons above the floor kept for query embedding (QUERY_EMBED_RESERVE, a whole number); skip the drain
-          # without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to start
-          # without a readable one.
+          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes), or the engine's own
+          # budget is short: llm needs more than 100 neurons above the floor kept for query embedding (QUERY_EMBED_RESERVE,
+          # a whole number); azure-translator needs AZURE_TRANSLATOR_MIN_REMAINING_CHARS characters left this month. Skip
+          # the drain without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to
+          # start without a readable one.
+          case "${TRANSLATION_ENGINE}" in
+            llm) engine_check=(--resource neurons --require-remaining "neurons=$(( QUERY_EMBED_RESERVE + 100 ))") ;;
+            azure-translator) engine_check=(--resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}") ;;
+            *) engine_check=() ;;
+          esac
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource neurons --require-remaining actions_minutes=20 --require-remaining neurons=$(( QUERY_EMBED_RESERVE + 100 )) || code=$?
+          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=20 "${engine_check[@]}" || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery translate skipped: the Actions minutes or the neurons above the query-embedding floor are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery translate skipped: the Actions minutes or the ${TRANSLATION_ENGINE} budget are used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"

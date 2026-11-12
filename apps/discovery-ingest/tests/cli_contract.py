@@ -231,13 +231,15 @@ COMMANDS: tuple[CommandSpec, ...] = (
         "translate",
         "probe",
         (
-            _opt("--locale", "str", required=True),
+            _opt("--locale", "str"),
             _opt("--sample", "int", default=50),
             _opt("--engine", "str"),
             _opt("--model", "str"),
             _opt("--sheet", "path"),
-            _opt("--max-usage", "float", default=3000.0),
+            _opt("--max-usage", "float"),
             _opt("--daily-budget", "float", default=9500.0),
+            _opt("--units", "path"),
+            _opt("--report", "path"),
         ),
     ),
     CommandSpec(
