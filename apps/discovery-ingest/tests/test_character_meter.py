@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 
@@ -102,12 +103,22 @@ def test_concurrent_reserves_from_two_threads_never_exceed_the_remaining_amount(
 ) -> None:
     """Character meter · concurrent reserves from two threads never exceed the remaining amount."""
     ledger = FakeLedger(9000.0, characters=10_000.0)
+    balance = ledger.characters
+    assert balance is not None
 
-    def slow_ledger(request: httpx.Request) -> httpx.Response:
-        time.sleep(0.02)  # the window in which two unlocked reserves would both read the same remaining amount
-        return ledger(request)
+    def racy_ledger(request: httpx.Request) -> httpx.Response:
+        """A ledger that reads the balance, pauses, then writes it: two unserialised reserves would both be granted."""
+        if not request.url.path.endswith("/reserve"):
+            return ledger(request)
+        amount = json.loads(request.content)["amount"]
+        seen = balance.remaining
+        time.sleep(0.02)
+        if amount > seen:
+            return httpx.Response(409, json={"granted": False, "remaining": seen})
+        balance.remaining = seen - amount
+        return httpx.Response(200, json={"granted": True, "remaining": balance.remaining})
 
-    meter = CharacterMeter(guard_for(monkeypatch, slow_ledger))
+    meter = CharacterMeter(guard_for(monkeypatch, racy_ledger))
     start = threading.Barrier(2)
     answers: list[UsageReservation | UsageDenied] = []
 
