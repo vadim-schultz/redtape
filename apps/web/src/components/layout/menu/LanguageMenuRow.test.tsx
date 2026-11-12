@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import type { LocaleRow } from "../../../services/localesApi";
+import { system } from "../../../theme";
 import LanguageMenuRow from "./LanguageMenuRow";
 
 vi.mock("../../../i18n", async (importOriginal) => {
@@ -92,10 +93,9 @@ function cellOf(button: HTMLElement): HTMLElement {
   return button.parentElement as HTMLElement;
 }
 
-/** The computed min-height in px; rem is read at the 16 px root. */
-function minHeightPx(element: HTMLElement): number {
-  const value = getComputedStyle(element).minHeight;
-  return value.endsWith("rem") ? parseFloat(value) * 16 : parseFloat(value);
+/** A rem length in px, at the 16 px root. */
+function remInPx(length: unknown): number {
+  return parseFloat(String(length)) * 16;
 }
 
 it("Row · each enabled locale shows its flag and its uppercase code", async () => {
@@ -108,11 +108,13 @@ it("Row · each enabled locale shows its flag and its uppercase code", async () 
   expect(
     within(screen.getByRole("button", { name: "English" })).getByText("EN"),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Polski" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Polski" }),
+  ).not.toBeInTheDocument();
 });
 
 it("Row · a machine_translated locale shows the note; a reviewed locale does not", async () => {
-  stubRequests([GERMAN, TURKISH]);
+  stubRequests([GERMAN, ENGLISH, TURKISH]);
   renderRow();
 
   const turkish = await screen.findByRole("button", { name: "Türkçe" });
@@ -123,7 +125,7 @@ it("Row · a machine_translated locale shows the note; a reviewed locale does no
 });
 
 it("Row · the accessible name is the native name, not the code", async () => {
-  stubRequests([GERMAN]);
+  stubRequests([GERMAN, ENGLISH]);
   renderRow();
 
   const german = await screen.findByRole("button", { name: "Deutsch" });
@@ -156,11 +158,13 @@ it("Row · selecting a locale calls setLocale, and the current one has aria-pres
 });
 
 it("Row · the button is at least 44 px high", async () => {
-  stubRequests([GERMAN]);
+  stubRequests([GERMAN, ENGLISH]);
   renderRow();
 
   const german = await screen.findByRole("button", { name: "Deutsch" });
-  expect(minHeightPx(german)).toBeGreaterThanOrEqual(44);
+  // jsdom keeps the size token as a variable, so the theme supplies its value.
+  expect(getComputedStyle(german).minHeight).toBe("var(--chakra-sizes-11)");
+  expect(remInPx(system.token("sizes.11"))).toBeGreaterThanOrEqual(44);
 });
 
 it("Row · a locale without flag_emoji shows the code only and does not crash", async () => {

@@ -1,14 +1,16 @@
-import { HStack, IconButton, Skeleton } from "@chakra-ui/react";
+import { HStack, Skeleton, VStack } from "@chakra-ui/react";
 
 import KeyValueRow from "../../ui/KeyValueRow";
 import { useLocale } from "../../../contexts/LocaleContext";
 import { useLocalesQuery } from "../../../hooks/useLocalesQuery";
+import LocaleButton from "./LocaleButton";
+import MachineNote from "./MachineNote";
 
 interface LanguageMenuRowProps {
   onLocaleSelected?: () => void;
 }
 
-/** Inline flag buttons for each enabled locale. */
+/** Inline switches for each enabled locale: flag and code, with a note on machine-made ones. */
 export default function LanguageMenuRow({
   onLocaleSelected,
 }: LanguageMenuRowProps) {
@@ -32,28 +34,24 @@ export default function LanguageMenuRow({
   if (error) return null;
 
   const enabled = locales?.filter((entry) => entry.enabled) ?? [];
+  const choose = (code: string) => {
+    setLocale(code);
+    onLocaleSelected?.();
+  };
 
   return (
     <KeyValueRow label={t("common.language")}>
-      <HStack gap="1">
-        {enabled.map((entry) => {
-          const selected = locale === entry.code;
-          return (
-            <IconButton
-              key={entry.code}
-              variant={selected ? "subtle" : "ghost"}
-              size="sm"
-              aria-label={entry.name_native}
-              aria-pressed={selected}
-              onClick={() => {
-                setLocale(entry.code);
-                onLocaleSelected?.();
-              }}
-            >
-              {entry.flag_emoji}
-            </IconButton>
-          );
-        })}
+      <HStack gap="1" wrap="wrap" align="start">
+        {enabled.map((entry) => (
+          <VStack key={entry.code} gap="0.5" align="center">
+            <LocaleButton
+              entry={entry}
+              selected={locale === entry.code}
+              onSelect={() => choose(entry.code)}
+            />
+            <MachineNote entry={entry} />
+          </VStack>
+        ))}
       </HStack>
     </KeyValueRow>
   );
