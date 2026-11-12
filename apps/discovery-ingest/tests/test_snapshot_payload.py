@@ -42,7 +42,9 @@ def test_identical_input_produces_byte_identical_canonical_json() -> None:
 
 
 def test_the_payload_has_the_five_fields_and_the_api_block_shapes() -> None:
-    html = _html(f"<p>{LONG}</p><table><tr><td>Name</td><td>Wert</td></tr></table><dl><dt>Begriff</dt><dd>Text</dd></dl>")
+    html = _html(
+        f"<p>{LONG}</p><table><tr><td>Name</td><td>Wert</td></tr></table><dl><dt>Begriff</dt><dd>Text</dd></dl>"
+    )
     body = _body(html)
     assert set(body) == {"unit", "source_hash", "truncated", "source_url", "blocks"}
     assert body["unit"] == "snapshot"
@@ -76,7 +78,7 @@ def test_more_than_2000_blocks_keep_the_first_2000_and_set_truncated() -> None:
 def test_the_untranslated_count_is_reported_and_the_german_text_is_kept() -> None:
     source = prepare_page(_html(f"<p>{LONG}</p><p>Zweiter Absatz mit Inhalt.</p>"), URL)
     assert isinstance(source, SourcePage)
-    result = finish_page(source, (Block("p", ("Bitte",)), Block("p", ("",))))
+    result = finish_page(source, (Block("p", ("Please bring all the documents. " * 8,)), Block("p", ("",))))
     assert isinstance(result, TranslatedPage)
     assert result.untranslated == 1
     assert result.blocks[1] == Block("p", ("Zweiter Absatz mit Inhalt.",))

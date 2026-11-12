@@ -16,7 +16,5 @@ def test_importing_the_pipeline_loads_no_http_client_cloud_sdk_or_database_drive
         "import discovery_ingest.snapshot_translation\n"
         f"print(sorted(name for name in {BANNED_MODULES!r} if name in sys.modules))\n"
     )
-    done = subprocess.run(
-        [sys.executable, "-c", code], cwd=APP_ROOT, capture_output=True, text=True, check=True
-    )
+    done = subprocess.run([sys.executable, "-c", code], cwd=APP_ROOT, capture_output=True, text=True, check=True)
     assert done.stdout.strip() == "[]"
