@@ -43,6 +43,11 @@ class CountedTranslator:
         self._tally = tally
         self._lock = threading.Lock()
 
+    @property
+    def repairs(self) -> bool:
+        """The wrapped translator's declaration: counting does not change it."""
+        return self._inner.repairs
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Translate through ``inner`` and count the answered call."""
         outcome = self._inner.translate(batch)

@@ -56,6 +56,8 @@ class UiOutcome:
 class _NothingToSpend:
     """A translator for a day that has no neurons above the floor: the first batch stops the run."""
 
+    repairs = False
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Stop the run before any model call."""
         raise StopDrain("llm_budget", "the day's neurons are at or below the floor kept for query embedding")

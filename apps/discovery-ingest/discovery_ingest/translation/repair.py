@@ -15,6 +15,11 @@ from discovery_ingest.translation.validate import validate_unit
 class Translator(Protocol):
     """Anything that translates a batch: an engine, or an engine under a meter."""
 
+    @property
+    def repairs(self) -> bool:
+        """Whether the engine behind this translator may be asked once more for the units that failed."""
+        ...
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return one result per unit of ``batch`` in order, or raise."""
         ...

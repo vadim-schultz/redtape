@@ -36,7 +36,9 @@ ONE_UNIT = batch(unit("a", "Antrag", "Gebühr"))
         (400, "400000", PermanentError),
     ],
 )
-def test_status_and_code_map_to_the_port_category(status: int, code: str, category: type[TranslationEngineError]) -> None:
+def test_status_and_code_map_to_the_port_category(
+    status: int, code: str, category: type[TranslationEngineError]
+) -> None:
     """Azure · 403001 maps to QuotaExceeded; 401000 to Unauthorised; 429000 and 503 to TransientError; 400050 to PermanentError."""
     adapter = engine(lambda _request: failure(status, code, "service said no"))
 

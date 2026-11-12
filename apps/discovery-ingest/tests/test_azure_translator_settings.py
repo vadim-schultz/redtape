@@ -33,7 +33,9 @@ def test_settings_endpoint_defaults_to_the_global_host_and_the_api_version_to_20
     assert (settings.azure_translator_key, settings.azure_translator_region) == (None, None)
 
 
-def test_settings_read_the_key_region_endpoint_and_version_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_settings_read_the_key_region_endpoint_and_version_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Settings · the four variables are read from the process environment under their documented names."""
     monkeypatch.setenv("AZURE_TRANSLATOR_KEY", KEY)
     monkeypatch.setenv("AZURE_TRANSLATOR_REGION", REGION)

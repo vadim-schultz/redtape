@@ -134,6 +134,7 @@ class ScriptedEngine:
     """
 
     name = ENGINE_NAME
+    repairs = True
 
     def __init__(
         self,
