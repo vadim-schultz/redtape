@@ -79,6 +79,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Minuty Actions",
+      "budget_azure_translator_chars": "Znaki Azure Translator",
       "budget_browser_seconds": "Sekundy przeglądarki",
       "budget_exhausted": "Wyczerpano",
       "budget_neurons": "Neurony AI",
