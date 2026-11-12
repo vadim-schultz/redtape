@@ -4303,6 +4303,11 @@
         "const": "row",
         "title": "Kind",
         "type": "string"
+       },
+       "untranslated": {
+        "default": false,
+        "title": "Untranslated",
+        "type": "boolean"
        }
       },
       "required": [
@@ -4465,6 +4470,11 @@
        "text": {
         "title": "Text",
         "type": "string"
+       },
+       "untranslated": {
+        "default": false,
+        "title": "Untranslated",
+        "type": "boolean"
        }
       },
       "required": [
