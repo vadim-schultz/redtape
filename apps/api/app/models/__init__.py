@@ -28,6 +28,7 @@ from app.models.search import (
     EmbeddingTask,
     WorkTaskStatus,
 )
+from app.models.snapshot_translation import SnapshotTranslation, SnapshotTranslationTask
 from app.models.suggestion import Suggestion, SuggestionKind, SuggestionSource, SuggestionStatus
 from app.models.suggestion_event import EventType, SuggestionEvent
 from app.models.suggestion_vote import SuggestionVote
@@ -68,6 +69,8 @@ __all__ = [
     "Jurisdiction",
     "JurisdictionKind",
     "Locality",
+    "SnapshotTranslation",
+    "SnapshotTranslationTask",
     "Suggestion",
     "SuggestionEvent",
     "SuggestionKind",

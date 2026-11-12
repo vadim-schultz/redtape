@@ -11,10 +11,9 @@ from app.models.translation import TranslationSource
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from test_check_migrations_script import _fresh_database
+from test_check_migrations_script import CURRENT_HEAD, _fresh_database
 from test_search_migration import _alembic, _index_definitions, _present, _scalars
 
-REVISION = "20261111_translation_schema"
 PARENT = "20261110_search_schema"
 TABLES = ("candidate_translation", "translation_task")
 INDEXES = ("uq_translation_task_open", "ix_translation_task_status_priority_created_at")
@@ -44,11 +43,13 @@ def test_upgrade_creates_both_tables_the_open_task_index_and_the_source_enum(mig
     assert "WHERE (status = ANY (ARRAY['pending'::work_task_status, 'claimed'::work_task_status]))" in definition
 
 
-def test_upgrade_ends_on_the_translation_revision_on_top_of_the_search_schema(migrated: tuple[str, Engine]) -> None:
-    """migration · upgrade ends on the new revision and keeps the search schema it builds on."""
+def test_upgrade_ends_on_the_head_revision_and_keeps_the_search_schema_beneath_the_translation_tables(
+    migrated: tuple[str, Engine],
+) -> None:
+    """migration · upgrade ends on the head revision, which keeps the search schema the translation tables build on."""
     _, engine = migrated
 
-    assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    assert _scalars(engine, "select version_num from alembic_version") == [CURRENT_HEAD]
     assert "embedding_task" in _present(engine, "tables")
 
 
@@ -93,4 +94,4 @@ def test_upgrade_downgrade_upgrade_round_trip_restores_the_schema(migrated: tupl
     _alembic(url, "upgrade", "head")
 
     assert (_present(engine, "tables"), _present(engine, "indexes"), _present(engine, "enums")) == before
-    assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    assert _scalars(engine, "select version_num from alembic_version") == [CURRENT_HEAD]
