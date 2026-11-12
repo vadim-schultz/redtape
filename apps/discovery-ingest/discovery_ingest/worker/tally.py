@@ -16,6 +16,10 @@ REJECTED = "rejected"
 """A translation the API refused (a replayed complete, a human row, bounds): logged and counted as failed and rejected."""
 UNAVAILABLE = "unavailable"
 """A translation the API could not store (object store down): the task was handed back, counted once."""
+UNCHANGED = "unchanged"
+"""A snapshot whose cleaned text is the one already stored: completed at no character cost."""
+SKIPPED = "skipped"
+"""A snapshot the pipeline does not translate (too short, not German): completed with a marker."""
 _COUNTERS = {
     COMPLETED: ("completed",),
     FAILED: ("failed",),
@@ -24,6 +28,8 @@ _COUNTERS = {
     STALE: ("completed", "stale"),
     REJECTED: ("failed", "rejected"),
     UNAVAILABLE: ("unavailable",),
+    UNCHANGED: ("completed", "unchanged"),
+    SKIPPED: ("skipped",),
 }
 
 
@@ -42,6 +48,9 @@ class Tally:
     unavailable: int = 0
     repaired: int = 0
     invalid: int = 0
+    unchanged: int = 0
+    pruned: int = 0
+    untranslated_blocks: int = 0
     render_enqueue_failed: int = 0
     capture_enqueue_failed: int = 0
     llm_enqueue_failed: int = 0
