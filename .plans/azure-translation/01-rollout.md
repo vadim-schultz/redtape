@@ -1,6 +1,6 @@
 ---
 name: Azure translation — Rollout
-overview: "Sixteen chapters replace the Cloudflare translation role with Azure AI Translator: a character ledger, the engine adapter, a monthly document share, snapshot translation stored as blocks in object storage, a collapsed accordion item on the candidate page, machine-accepted interface locales with flags, and a coverage view. Chapter 17 retires the Cloudflare translation adapter after an operator go-ahead."
+overview: "Sixteen chapters replace the Cloudflare translation role with Azure AI Translator: a character ledger, the engine adapter, a monthly document share, snapshot translation stored as blocks in object storage, a collapsed accordion item on the candidate page, machine-accepted interface locales with flags, and a coverage view. Chapter 17 retires the Cloudflare translation adapter and the claude-code engine after an operator go-ahead."
 isProject: false
 ---
 
@@ -78,7 +78,7 @@ flowchart TD
 | AZ14 | Machine-accepted locales | — | API enable and locales, manifests, migration, honesty test | chapter-implementer | API and ingest tests + `./ci.sh` | planned |
 | AZ15 | Language menu flags | AZ14 | web switcher, i18n | chapter-implementer | Vitest + typecheck/build + `./ci.sh` | planned |
 | AZ16 | Cutover and runbook | AZ01–AZ15 | defaults, workflow fallback, operations docs, parity tests | chapter-implementer | docs and config tests + `./ci.sh` | planned |
-| AZ17 | Retire Cloudflare translation | AZ16 and one month of operation | ingest adapters, translation settings, harness | operator go-ahead, then chapter-implementer | regression tests + `./ci.sh` | deferred |
+| AZ17 | Retire Cloudflare translation and the claude-code engine | AZ16 and one month of operation | ingest adapters, claude-code engine, translation settings, harness | operator go-ahead, then chapter-implementer | regression tests + `./ci.sh` | deferred |
 
 ## Shared files and merge order
 
@@ -126,4 +126,4 @@ Execution order (chief of staff):
 15. [Language menu flags](chapters/15-language-menu-flags.md)
 16. [Cutover and runbook](chapters/16-cutover-runbook.md)
 
-Deferred, not in the execution order: [chapter 17, retire the Cloudflare translation adapter](chapters/17-retire-cloudflare-translation.md). It starts only on an operator go-ahead.
+Deferred, not in the execution order: [chapter 17, retire the Cloudflare translation adapter and the claude-code engine](chapters/17-retire-cloudflare-translation.md). It starts only on an operator go-ahead.
