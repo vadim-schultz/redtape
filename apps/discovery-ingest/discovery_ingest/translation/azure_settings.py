@@ -1,4 +1,4 @@
-"""Azure AI Translator credentials and endpoint, read from the process environment; nothing is required unless azure-translator runs."""
+"""Azure AI Translator credentials and endpoint, read from the environment; required only by azure-translator."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_AZURE_ENDPOINT = "https://api.cognitive.microsofttranslator.com"
-"""The global host. A custom-domain endpoint in an EU region is the operator's choice (decision O5), set with the variable."""
+"""The global host. A custom-domain endpoint in an EU region is the operator's choice (O5), set by variable."""
 
 DEFAULT_AZURE_API_VERSION = "2026-06-06"
-"""The Translator API version the request and answer shapes are written for; the v3.0 API is not compatible with them."""
+"""The API version the request and answer shapes are written for; the v3.0 API is not compatible with them."""
 
 
 class AzureTranslatorSettings(BaseSettings):

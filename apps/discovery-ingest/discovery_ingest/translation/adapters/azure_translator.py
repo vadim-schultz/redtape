@@ -1,7 +1,7 @@
 """The Azure AI Translator engine: units into one target locale per call, billed in characters.
 
-It registers itself as ``azure-translator``. It is not the default: ``TRANSLATION_ENGINE`` selects it. The request and answer
-shapes live in ``azure_translator_wire`` and the HTTP in ``azure_translator_http``; this module holds neither.
+It registers itself as ``azure-translator``; it is not the default, and ``TRANSLATION_ENGINE`` selects it. The request
+and answer shapes live in ``azure_translator_wire`` and the HTTP in ``azure_translator_http``; this module holds neither.
 """
 
 from __future__ import annotations
@@ -9,13 +9,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Final
 
-import httpx
-
 from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.translation.adapters.azure_translator_http import AzureConnection, AzureTransport
 from discovery_ingest.translation.adapters.azure_translator_wire import (
     Piece,
-    assemble,
     characters_of,
     chunks_of,
     pieces_of,
@@ -25,7 +22,14 @@ from discovery_ingest.translation.adapters.azure_translator_wire import (
 from discovery_ingest.translation.azure_settings import load_azure_translator_settings
 from discovery_ingest.translation.locale_codes import DEFAULT_TARGET_LOCALES, provider_code, register_locale_map
 from discovery_ingest.translation.registry import EngineConfig, register_engine
-from discovery_ingest.translation.units import CallLimits, TranslationBatch, TranslationOutcome, Usage, UsageUnit
+from discovery_ingest.translation.units import (
+    CallLimits,
+    TranslationBatch,
+    TranslationOutcome,
+    TranslationUnit,
+    Usage,
+    UsageUnit,
+)
 
 NAME: Final = "azure-translator"
 UNITS_PER_CALL: Final = 50
@@ -34,7 +38,7 @@ DEFAULT_MIN_INTERVAL_SECONDS: Final = 1.0
 
 
 class AzureTranslator:
-    """Translate batches with Azure AI Translator: one target per call, billed in the characters the service reports."""
+    """Translate batches with Azure AI Translator: one target per call, billed in the characters reported."""
 
     name = NAME
     usage_unit: UsageUnit = "characters"
@@ -71,14 +75,24 @@ class AzureTranslator:
         return texts, billed
 
 
+def assemble(
+    units: Sequence[TranslationUnit], pieces: Sequence[Piece], texts: Sequence[str]
+) -> tuple[TranslationUnit, ...]:
+    """Put each translated text back into its unit, in the order of the units; a field that was not sent stays blank."""
+    found = {(piece.unit, piece.field): text for piece, text in zip(pieces, texts, strict=True)}
+    return tuple(
+        TranslationUnit(unit.key, found.get((number, "title"), ""), found.get((number, "description"), ""))
+        for number, unit in enumerate(units)
+    )
+
+
 def _build(config: EngineConfig) -> AzureTranslator:
-    """Build the engine from the Azure settings; refuse to start, naming the unset variables, when the key or region is missing."""
+    """Build the engine from the Azure settings; refuse to start, naming any unset key or region variable."""
     settings = load_azure_translator_settings()
     key, region = settings.credentials()
     connection = AzureConnection(settings.azure_translator_endpoint, settings.azure_translator_api_version, key, region)
     interval = DEFAULT_MIN_INTERVAL_SECONDS if config.min_interval_seconds is None else config.min_interval_seconds
-    http = config.http if config.http is not None else httpx.Client(trust_env=True)
-    return AzureTranslator(AzureTransport(connection, http, Throttle(interval)))
+    return AzureTranslator(AzureTransport(connection, Throttle(interval), config.http))
 
 
 register_locale_map(NAME, {code: code for code in DEFAULT_TARGET_LOCALES})

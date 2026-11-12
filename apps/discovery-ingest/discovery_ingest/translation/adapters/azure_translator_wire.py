@@ -1,7 +1,4 @@
-"""The Azure request body and answer for one target language: inputs cut into requests, answers read back by position.
-
-Pure functions only. A unit becomes up to two inputs (its title and its description); a blank text is never sent.
-"""
+"""The Azure request and answer for one target: inputs cut into requests, answers read back by position."""
 
 from __future__ import annotations
 
@@ -16,15 +13,14 @@ from discovery_ingest.translation.units import TranslationUnit
 
 MAX_INPUTS_PER_REQUEST: Final = 500
 MAX_CHARS_PER_REQUEST: Final = 40_000
-"""Ceilings of one request, under the service's 1,000 inputs and 50,000 characters (which count across targets)."""
+"""Ceilings of one request, under the service's 1,000 inputs and 50,000 characters (counted across targets)."""
 TEXT_TYPE: Final = "plain"
-
 FieldName = Literal["title", "description"]
 
 
 @dataclass(frozen=True, slots=True)
 class Piece:
-    """One text that is sent as one input: the position of its unit in the batch, the field, and the text."""
+    """One text sent as one input: the position of its unit in the batch, its field, and the text."""
 
     unit: int
     field: FieldName
@@ -45,9 +41,8 @@ _ANSWERS: Final = TypeAdapter(list[_Answer])
 
 def pieces_of(units: Sequence[TranslationUnit]) -> list[Piece]:
     """Return one piece per non-blank title and description, in the order of the units."""
-    return [
-        Piece(number, field, text) for number, unit in enumerate(units) for field, text in _fields(unit) if text.strip()
-    ]
+    pieces = [Piece(n, field, text) for n, unit in enumerate(units) for field, text in _fields(unit)]
+    return [piece for piece in pieces if piece.text.strip()]
 
 
 def _fields(unit: TranslationUnit) -> tuple[tuple[FieldName, str], ...]:
@@ -62,9 +57,7 @@ def characters_of(pieces: Sequence[Piece]) -> int:
 def chunks_of(pieces: Sequence[Piece]) -> list[list[Piece]]:
     """Cut ``pieces``, in order, into requests of at most 500 inputs and 40,000 characters each."""
     chunks: list[list[Piece]] = []
-    for piece in pieces:
-        if len(piece.text) > MAX_CHARS_PER_REQUEST:
-            raise PermanentError("a text is longer than one request may carry; nothing was sent")
+    for piece in map(_within_limit, pieces):
         if chunks and _fits(chunks[-1], piece):
             chunks[-1].append(piece)
         else:
@@ -72,21 +65,27 @@ def chunks_of(pieces: Sequence[Piece]) -> list[list[Piece]]:
     return chunks
 
 
+def _within_limit(piece: Piece) -> Piece:
+    if len(piece.text) > MAX_CHARS_PER_REQUEST:
+        raise PermanentError("a text is longer than one request may carry; nothing was sent")
+    return piece
+
+
 def _fits(chunk: Sequence[Piece], piece: Piece) -> bool:
     return len(chunk) < MAX_INPUTS_PER_REQUEST and characters_of(chunk) + len(piece.text) <= MAX_CHARS_PER_REQUEST
 
 
 def request_body(chunk: Sequence[Piece], source: str, target: str) -> dict[str, list[dict[str, object]]]:
-    """Return the body of one translate request: each input names its source, its plain text type and one target."""
-    return {"inputs": [_input(piece, source, target) for piece in chunk]}
-
-
-def _input(piece: Piece, source: str, target: str) -> dict[str, object]:
-    return {"text": piece.text, "language": source, "textType": TEXT_TYPE, "targets": [{"language": target}]}
+    """Return one request body: each input names the source, the plain text type and exactly one target."""
+    inputs: list[dict[str, object]] = [
+        {"text": piece.text, "language": source, "textType": TEXT_TYPE, "targets": [{"language": target}]}
+        for piece in chunk
+    ]
+    return {"inputs": inputs}
 
 
 def read_answers(body: object, chunk: Sequence[Piece], target: str) -> list[str]:
-    """Return the translated text of each input of ``chunk``, by position; any other shape or length is unusable."""
+    """Return the translation of each input of ``chunk``, by position; any other shape or length is unusable output."""
     try:
         answers = _ANSWERS.validate_python(body)
     except ValidationError as err:
@@ -101,14 +100,3 @@ def _text_for(answer: _Answer, target: str) -> str:
     if first.to not in (None, target):
         raise UnusableOutputError(f"the Azure answer is for {first.to!r}, not for {target!r}")
     return first.text
-
-
-def assemble(
-    units: Sequence[TranslationUnit], pieces: Sequence[Piece], texts: Sequence[str]
-) -> tuple[TranslationUnit, ...]:
-    """Put each translated text back into its unit, in the order of the units; a field that was not sent stays blank."""
-    found = {(piece.unit, piece.field): text for piece, text in zip(pieces, texts, strict=True)}
-    return tuple(
-        TranslationUnit(unit.key, found.get((number, "title"), ""), found.get((number, "description"), ""))
-        for number, unit in enumerate(units)
-    )

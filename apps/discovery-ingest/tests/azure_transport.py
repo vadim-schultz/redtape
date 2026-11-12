@@ -27,7 +27,7 @@ def engine(handler: Handler, *, sleeps: list[float] | None = None, key: str = KE
     waits = sleeps if sleeps is not None else []
     throttle = Throttle(1.0, clock=lambda: 0.0, sleep=waits.append)
     http = httpx.Client(transport=httpx.MockTransport(handler))
-    return AzureTranslator(AzureTransport(connection(key), http, throttle))
+    return AzureTranslator(AzureTransport(connection(key), throttle, http))
 
 
 def inputs_in(request: httpx.Request) -> list[dict[str, object]]:
