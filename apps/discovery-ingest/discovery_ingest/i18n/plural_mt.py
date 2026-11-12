@@ -12,9 +12,9 @@ from collections.abc import Mapping
 from typing import Final
 
 from discovery_ingest.i18n.plural import PLURAL_SUFFIX
+from discovery_ingest.translation import tokens
 
 COUNT: Final = "{count}"
-NUMBER: Final = re.compile(r"\d+")
 _EAST_SLAVIC: Final[Mapping[str, tuple[str, ...]]] = {
     "one": ("1", "21"),
     "few": ("2", "3", "4", "22"),
@@ -60,7 +60,7 @@ def restore_count(text: str, sample: str | None) -> str:
 
 
 def _numbers(text: str) -> frozenset[str]:
-    return frozenset(NUMBER.findall(text))
+    return frozenset(tokens.NUMBER.findall(text))
 
 
 def _whole_number(sample: str) -> re.Pattern[str]:
