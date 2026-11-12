@@ -231,6 +231,27 @@ def test_complete_translated_stores_the_object_updates_the_index_row_and_answers
     assert task.status is WorkTaskStatus.COMPLETED
 
 
+def test_complete_keeps_each_block_untranslated_flag_in_the_stored_object(
+    api: TestClient[Litestar], db_session: Session, slot: StoreSlot
+) -> None:
+    """Complete · a block the worker posts with untranslated true is stored with that flag, and the others with false."""
+    queue_page(db_session)
+    headers = _headers(db_session)
+    (served,) = _claim(api, headers)
+    flagged = [
+        {"kind": "h1", "text": "Kindergeld"},
+        {"kind": "p", "text": "Antrag stellen", "untranslated": True},
+        {"kind": "row", "cells": ["Frist", "4 Wochen"], "untranslated": False},
+    ]
+
+    (answer,) = _complete(api, headers, [translated_item(served, blocks=flagged)])
+
+    (key,) = _memory(slot).stored_keys()
+    stored = json.loads(_memory(slot).get(key))["blocks"]
+    assert answer["outcome"] == "stored"
+    assert [block.get("untranslated", False) for block in stored] == [False, True, False]
+
+
 def test_complete_unchanged_completes_with_no_object_write_and_answers_unchanged(
     api: TestClient[Litestar], db_session: Session, slot: StoreSlot
 ) -> None:

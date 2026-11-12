@@ -29,6 +29,11 @@ BLOCKS: list[dict[str, object]] = [
     {"kind": "row", "cells": ["Frist", "4 Wochen"]},
 ]
 OTHER_BLOCKS: list[dict[str, object]] = [{"kind": "p", "text": "Ein anderer Text."}]
+FLAGGED: list[dict[str, object]] = [
+    {"kind": "h1", "text": "Kindergeld beantragen"},
+    {"kind": "p", "text": "Den Antrag stellen Sie online.", "untranslated": True},
+    {"kind": "row", "cells": ["Frist", "4 Wochen"], "untranslated": True},
+]
 
 
 class Owned(NamedTuple):
@@ -78,13 +83,15 @@ def _store_translation(
     return row
 
 
-def _translated(scene: Scene, store: StoreSlot, key: str = "kindergeld") -> Owned:
-    """Add a candidate whose one mention is on a page with a snapshot, translated into Turkish."""
+def _translated(
+    scene: Scene, store: StoreSlot, key: str = "kindergeld", blocks: list[dict[str, object]] = BLOCKS
+) -> Owned:
+    """Add a candidate whose one mention is on a page with a snapshot, translated into Turkish with ``blocks``."""
     owner = scene.candidate(key, title={"de": "Kindergeldantrag"})
     page = _page(scene)
     scene.mention(owner, page, excerpt="Bitte Ausweis mitbringen")
     add_snapshot(scene.session, page, SHA_A)
-    _store_translation(scene.session, store, page)
+    _store_translation(scene.session, store, page, blocks)
     return Owned(owner, page)
 
 
@@ -110,6 +117,22 @@ def test_a_translated_page_returns_its_blocks_in_the_requested_locale(
         "blocks": BLOCKS,
     }
     assert store_slot.memory.reads == 1
+
+
+def test_a_block_that_kept_its_german_text_is_returned_with_its_untranslated_flag(
+    read_client: TestClient[Litestar], search_scene: Scene, store_slot: StoreSlot
+) -> None:
+    """Read · each block carries its stored flag: true where the German text was kept, false elsewhere."""
+    owned = _translated(search_scene, store_slot, blocks=FLAGGED)
+
+    response = read_client.get(_url(owned.candidate), params={"locale": "tr"})
+
+    assert response.status_code == 200
+    assert response.json()["blocks"] == [
+        {"kind": "h1", "text": "Kindergeld beantragen", "untranslated": False},
+        {"kind": "p", "text": "Den Antrag stellen Sie online.", "untranslated": True},
+        {"kind": "row", "cells": ["Frist", "4 Wochen"], "untranslated": True},
+    ]
 
 
 def test_the_etag_is_the_content_hash_and_the_cache_headers_revalidate(
