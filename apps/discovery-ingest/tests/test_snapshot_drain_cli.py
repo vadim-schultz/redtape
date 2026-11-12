@@ -53,7 +53,7 @@ def test_drain_unit_snapshot_without_azure_credentials_exits_2_naming_only_the_v
     api = SnapshotApi([snapshot_task(0)], {0: page_html()})
     api.install(monkeypatch)
 
-    code = main(["translate", "drain", "--unit", "snapshot"])
+    code = main(["translate", "drain", "--unit", "snapshot", "--max-tasks", "5"])
 
     captured = capsys.readouterr()
     assert code == EXIT_USAGE and "AZURE_TRANSLATOR_KEY" in captured.err
@@ -79,7 +79,7 @@ def test_summary_unit_snapshot_counts_snapshot_tasks_only(
     data = json.loads(capsys.readouterr().out)
     assert code == 0 and data["pending_ready"] == 2
     assert [row["locale"] for row in data["locales"]] == ["en"]
-    assert "/snapshots/summary" in api.paths
+    assert any(path.endswith("/snapshots/summary") for path in api.paths)
     assert not any(path.endswith("/translations/summary") for path in api.paths)
 
 
@@ -100,7 +100,7 @@ def test_drain_unit_snapshot_settles_the_characters_azure_billed_through_the_rea
     api = SnapshotApi([snapshot_task(0, "en")], {0: page_html()})
     api.install(monkeypatch, lambda request: faithful_answer(request, metered=1234.0))
 
-    code = main(["translate", "drain", "--unit", "snapshot", "--max-batches", "2"])
+    code = main(["translate", "drain", "--unit", "snapshot", "--max-tasks", "5", "--max-batches", "2"])
 
     out = capsys.readouterr().out
     report = json.loads(out)

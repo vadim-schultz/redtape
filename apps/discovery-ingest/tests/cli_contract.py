@@ -246,6 +246,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
         "translate",
         "drain",
         (
+            _opt("--unit", "str", default="card", choices=("card", "snapshot")),
             _opt("--max-tasks", "int", default=10),
             _opt("--max-batches", "int", default=1),
             _opt("--time-budget-seconds", "float"),
@@ -253,7 +254,11 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--concurrency", "int", default=2),
         ),
     ),
-    CommandSpec("translate", "summary", (_opt("--require-pending", FLAG),)),
+    CommandSpec(
+        "translate",
+        "summary",
+        (_opt("--unit", "str", default="card", choices=("card", "snapshot")), _opt("--require-pending", FLAG)),
+    ),
     CommandSpec(
         "i18n",
         "translate-ui",
