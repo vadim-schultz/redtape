@@ -151,6 +151,18 @@ def test_claim_returns_references_stamps_the_artifact_onto_the_task_and_carries_
     assert (task.artifact_id, task.artifact_sha256, task.status) == (page.artifact.id, SHA_A, WorkTaskStatus.CLAIMED)
 
 
+@pytest.mark.parametrize("limit", [0, 6])
+def test_claim_refuses_a_limit_outside_one_to_five_with_422(
+    api: TestClient[Litestar], db_session: Session, limit: int
+) -> None:
+    """Claim · a limit outside one to five is refused with 422."""
+    queue_page(db_session)
+
+    response = api.post(f"{BASE}/claim", json={"limit": limit}, headers=_headers(db_session))
+
+    assert response.status_code == 422
+
+
 def test_claim_carries_a_null_stored_hash_for_a_page_never_translated(
     api: TestClient[Litestar], db_session: Session
 ) -> None:
