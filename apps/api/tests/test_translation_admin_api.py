@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from app.features.translation.task_repository import TaskRepository
 from app.models.search import WorkTaskStatus
 from app.models.translation import CandidateTranslation, TranslationTask
 from litestar import Litestar
@@ -11,10 +12,21 @@ from litestar.testing import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from embedding_support import NOW
 from search_support import make_candidate
+from snapshot_machine_support import (
+    HASH_STORED,
+    SHA_A,
+    SHA_B,
+    add_snapshot,
+    skipped_row,
+    task_in_state,
+)
+from snapshot_machine_support import stored_row as snapshot_row
 from test_discovery_admin_api import _admin_headers, _token
 from test_discovery_admin_api import client as client  # noqa: F401
 from test_discovery_machine_api import _issue_key
+from test_snapshot_models import catalogue_row
 from translation_support import (
     claimed_by,
     configured_locales,
@@ -27,7 +39,9 @@ from translation_support import (
 )
 
 COVERAGE = "/api/v1/admin/translations/coverage"
+MACHINE = "/api/v1/discovery/machine/snapshots"
 ZERO = {"translated": 0, "stale": 0, "pending": 0, "claimed": 0, "failed": 0}
+SNAPSHOT_ZERO = {"translated": 0, "skipped": 0, "stale": 0, "pending": 0, "failed": 0}
 
 
 def _by_locale(body: dict[str, list[dict[str, object]]]) -> dict[str, dict[str, object]]:
@@ -69,7 +83,7 @@ def test_a_locale_with_no_rows_still_appears_with_zeros(client: TestClient[Lites
 
     body = client.get(COVERAGE, headers=_admin_headers()).json()
 
-    assert _by_locale(body)["ru"] == {"locale": "ru", **ZERO}
+    assert _by_locale(body)["ru"] == {"locale": "ru", **ZERO, "snapshot": SNAPSHOT_ZERO}
 
 
 def test_the_denominator_counts_candidates_with_a_german_card_source(
@@ -109,3 +123,69 @@ def test_the_endpoint_writes_nothing_and_enqueues_nothing(client: TestClient[Lit
     assert response.status_code == 200
     assert _written_counts(db_session) == before == (0, 1)
     assert not db_session.new and not db_session.dirty and not db_session.deleted
+
+
+def test_coverage_counts_snapshot_rows_translated_skipped_stale_pending_and_failed_per_locale(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    current, replaced, skipped_page = catalogue_row(db_session), catalogue_row(db_session), catalogue_row(db_session)
+    waiting, broken = catalogue_row(db_session), catalogue_row(db_session)
+    for page in (current, replaced, skipped_page, waiting, broken):
+        add_snapshot(db_session, page, SHA_A)
+    snapshot_row(db_session, current, "en")
+    snapshot_row(db_session, replaced, "en")
+    skipped_row(db_session, skipped_page, "en", "too_short")
+    TaskRepository(db_session).upsert_snapshot_pending((replaced.id, "en"), SHA_B, 100)
+    TaskRepository(db_session).upsert_snapshot_pending((waiting.id, "en"), SHA_A, 100)
+    task_in_state(db_session, broken, WorkTaskStatus.FAILED, "en")
+
+    body = client.get(COVERAGE, headers=_admin_headers()).json()
+
+    assert _by_locale(body)["en"]["snapshot"] == {"translated": 2, "skipped": 1, "stale": 1, "pending": 2, "failed": 1}
+
+
+def test_the_snapshot_denominator_counts_procedure_pages_with_an_html_snapshot(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    add_snapshot(db_session, catalogue_row(db_session), SHA_A)
+    add_snapshot(db_session, catalogue_row(db_session), SHA_B)
+    catalogue_row(db_session)
+
+    body = client.get(COVERAGE, headers=_admin_headers()).json()
+
+    assert body["snapshot_denominator"] == 2
+
+
+def test_coverage_counts_an_unchanged_snapshot_outcome_without_an_unchanged_key(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    page = catalogue_row(db_session)
+    add_snapshot(db_session, page, SHA_A)
+    snapshot_row(db_session, page, "en")
+    add_snapshot(db_session, page, SHA_B, fetched_at=NOW)
+    TaskRepository(db_session).upsert_snapshot_pending((page.id, "en"), SHA_B, 100)
+    before = _by_locale(client.get(COVERAGE, headers=_admin_headers()).json())["en"]["snapshot"]
+    headers = {"X-API-Key": _issue_key(db_session)}
+    claim = client.post(f"{MACHINE}/claim", json={"limit": 1}, headers=headers).json()["items"]
+    (item,) = claim
+
+    complete = client.post(
+        f"{MACHINE}/complete",
+        json={
+            "items": [
+                {
+                    "task_id": item["task_id"],
+                    "artifact_sha256": item["artifact_sha256"],
+                    "source_hash": HASH_STORED,
+                    "outcome": "unchanged",
+                }
+            ]
+        },
+        headers=headers,
+    )
+    after = _by_locale(client.get(COVERAGE, headers=_admin_headers()).json())["en"]["snapshot"]
+
+    assert complete.json()["items"][0]["outcome"] == "unchanged"
+    assert set(after) == {"translated", "skipped", "stale", "pending", "failed"}
+    assert before == {"translated": 1, "skipped": 0, "stale": 1, "pending": 1, "failed": 0}
+    assert after == {"translated": 1, "skipped": 0, "stale": 0, "pending": 0, "failed": 0}

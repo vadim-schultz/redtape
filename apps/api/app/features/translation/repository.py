@@ -7,11 +7,12 @@ from datetime import datetime
 from typing import NamedTuple
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import distinct, func, select
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.search.leased_queue import ready_clause
 from app.features.translation.store import StoredObject, TranslationPayload
+from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 from app.models.search import WorkTaskStatus
 from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
@@ -112,6 +113,13 @@ class TranslationRepository(SessionRepository):
         """Count the candidates with a non-blank German title, the card source every translation starts from."""
         german_title = Candidate.title_i18n[DEFAULT_LOCALE].as_string()
         stmt = select(func.count()).select_from(Candidate).where(german_title.regexp_match(r"\S"))
+        return int(self._session.scalar(stmt) or 0)
+
+    def snapshot_page_count(self) -> int:
+        """Count the procedure pages with an HTML snapshot: the pages a snapshot translation can be made from."""
+        stmt = select(func.count(distinct(DiscoveryArtifact.catalogue_service_id))).where(
+            DiscoveryArtifact.kind == DiscoveryArtifactKind.HTML_SNAPSHOT
+        )
         return int(self._session.scalar(stmt) or 0)
 
     def _queue_counts(self, now: datetime) -> dict[str, QueueCounts]:

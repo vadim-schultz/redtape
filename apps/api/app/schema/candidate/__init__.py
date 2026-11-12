@@ -1,5 +1,10 @@
 """Public candidate API schemas."""
 
+from app.schema.candidate.document_translation import (
+    DocumentTranslationCode,
+    DocumentTranslationError,
+    DocumentTranslationRead,
+)
 from app.schema.candidate.read import (
     CandidateCard,
     CandidateDetail,
@@ -21,4 +26,7 @@ __all__ = [
     "CandidateSource",
     "CandidateTranslationSummary",
     "CandidateTranslationText",
+    "DocumentTranslationCode",
+    "DocumentTranslationError",
+    "DocumentTranslationRead",
 ]

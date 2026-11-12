@@ -3149,6 +3149,83 @@
     "title": "DocumentSummary",
     "type": "object"
   },
+  "DocumentTranslationCode": {
+    "description": "Why a candidate's document has no blocks to show: the 404 answers of the document route.",
+    "enum": [
+      "candidate_not_found",
+      "no_document",
+      "translation_pending",
+      "skipped"
+    ],
+    "title": "DocumentTranslationCode",
+    "type": "string"
+  },
+  "DocumentTranslationError": {
+    "properties": {
+      "code": {
+        "$ref": "#/components/schemas/DocumentTranslationCode"
+      },
+      "reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "title": "DocumentTranslationError",
+    "type": "object"
+  },
+  "DocumentTranslationRead": {
+    "properties": {
+      "blocks": {
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/TextBlock"
+            },
+            {
+              "$ref": "#/components/schemas/RowBlock"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "stale": {
+        "type": "boolean"
+      },
+      "truncated": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "blocks",
+      "locale",
+      "stale",
+      "truncated"
+    ],
+    "title": "DocumentTranslationRead",
+    "type": "object"
+  },
   "EdgeSkip": {
     "properties": {
       "index": {
@@ -4660,6 +4737,34 @@
     "title": "SnapshotItemResult",
     "type": "object"
   },
+  "SnapshotLocaleCoverage": {
+    "properties": {
+      "failed": {
+        "type": "integer"
+      },
+      "pending": {
+        "type": "integer"
+      },
+      "skipped": {
+        "type": "integer"
+      },
+      "stale": {
+        "type": "integer"
+      },
+      "translated": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "failed",
+      "pending",
+      "skipped",
+      "stale",
+      "translated"
+    ],
+    "title": "SnapshotLocaleCoverage",
+    "type": "object"
+  },
   "SnapshotLocaleSummary": {
     "properties": {
       "claimed": {
@@ -5414,11 +5519,15 @@
           "$ref": "#/components/schemas/TranslationLocaleCoverage"
         },
         "type": "array"
+      },
+      "snapshot_denominator": {
+        "type": "integer"
       }
     },
     "required": [
       "denominator",
-      "locales"
+      "locales",
+      "snapshot_denominator"
     ],
     "title": "TranslationCoverageResponse",
     "type": "object"
@@ -5508,6 +5617,9 @@
       "pending": {
         "type": "integer"
       },
+      "snapshot": {
+        "$ref": "#/components/schemas/SnapshotLocaleCoverage"
+      },
       "stale": {
         "type": "integer"
       },
@@ -5520,6 +5632,7 @@
       "failed",
       "locale",
       "pending",
+      "snapshot",
       "stale",
       "translated"
     ],
