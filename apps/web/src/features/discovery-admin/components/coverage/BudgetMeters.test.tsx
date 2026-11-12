@@ -71,6 +71,31 @@ it("budget meters flag an exhausted resource and keep an unknown one by its raw 
   expect(budgetRow("future_meter · 2026-10")).toBeVisible();
 });
 
+it("budget meters name the Azure character ledger with its translated label", () => {
+  renderWithProviders(
+    <BudgetMeters
+      budgets={{
+        ...budgets,
+        items: [
+          {
+            resource: "azure_translator_chars",
+            period: "2026-11",
+            cap: 1900000,
+            used: 950000,
+            remaining: 950000,
+            exhausted: false,
+          },
+        ],
+      }}
+    />,
+  );
+
+  const row = budgetRow("Azure translator characters · 2026-11");
+  expect(
+    within(row).getByText("950,000 of 1,900,000 used, 950,000 left"),
+  ).toBeVisible();
+});
+
 it("budget meters render nothing for a response without resources", () => {
   renderWithProviders(
     <BudgetMeters budgets={{ ...budgets, items: [], stored_bytes_cap: 0 }} />,
