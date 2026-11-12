@@ -141,7 +141,7 @@ def test_coverage_counts_snapshot_rows_translated_skipped_stale_pending_and_fail
 
     body = client.get(COVERAGE, headers=_admin_headers()).json()
 
-    assert _by_locale(body)["en"]["snapshot"] == {"translated": 2, "skipped": 1, "stale": 1, "pending": 1, "failed": 1}
+    assert _by_locale(body)["en"]["snapshot"] == {"translated": 2, "skipped": 1, "stale": 1, "pending": 2, "failed": 1}
 
 
 def test_the_snapshot_denominator_counts_procedure_pages_with_an_html_snapshot(

@@ -15,11 +15,16 @@ from app.models.discovery import DiscoveryCandidateMention as Mention
 
 
 class DescriptionRow(NamedTuple):
-    """The best mention of one candidate and the title of its procedure."""
+    """The best mention of one candidate: its excerpt, its procedure's title and the procedure's page and URL.
+
+    ``source_url`` is the procedure's portal URL as stored, so it may be missing or not a web link.
+    """
 
     candidate_id: UUID
+    catalogue_service_id: UUID
     excerpt: str
     procedure_title_i18n: dict[str, str]
+    source_url: str | None
 
 
 class DescriptionRepository(SessionRepository):
@@ -30,7 +35,13 @@ class DescriptionRepository(SessionRepository):
         if not candidate_ids:
             return {}
         stmt = (
-            select(Mention.candidate_id, Mention.excerpt, CatalogueService.title_i18n)
+            select(
+                Mention.candidate_id,
+                Mention.catalogue_service_id,
+                Mention.excerpt,
+                CatalogueService.title_i18n,
+                CatalogueService.portal_url,
+            )
             .join(CatalogueService, CatalogueService.id == Mention.catalogue_service_id)
             .where(Mention.candidate_id.in_(candidate_ids))
             .distinct(Mention.candidate_id)

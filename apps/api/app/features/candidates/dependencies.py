@@ -10,7 +10,9 @@ from app.features.candidates.repository import PublicCandidateRepository
 from app.features.candidates.screenshot_service import ScreenshotService
 from app.features.candidates.search_plan import SearchPlanner
 from app.features.candidates.service import CandidateReadService
+from app.features.discovery.artifact_read import ArtifactReadService
 from app.features.discovery.dependencies import (
+    provide_discovery_artifact_read_service,
     provide_discovery_budget_service,
     provide_discovery_repository,
     provide_metered_object_store,
@@ -19,7 +21,9 @@ from app.features.search.dependencies import InjectedQueryEmbedder, provide_quer
 from app.features.search.params import RetrievalParams
 from app.features.taxonomy.dependencies import router_dependencies as taxonomy_dependencies
 from app.features.taxonomy.service import TaxonomyService
+from app.features.translation.document_read_service import DocumentTranslationReadService
 from app.features.translation.read_service import TranslationReadService
+from app.features.translation.snapshot_repository import SnapshotRepository
 from app.features.translation.source import SourceRepository
 from app.shared.object_store.http import InjectedObjectStore
 
@@ -55,6 +59,17 @@ def provide_translation_read_service(
     return TranslationReadService(candidate_repository, SourceRepository(session), object_store)
 
 
+def provide_document_translation_service(
+    candidate_service: CandidateReadService,
+    discovery_artifact_read_service: ArtifactReadService,
+    session: Session,
+    object_store: InjectedObjectStore,
+) -> DocumentTranslationReadService:
+    """Bind the document read to the candidate service, the discovery artifact service, the snapshot index and the store."""
+    index = SnapshotRepository(session)
+    return DocumentTranslationReadService(candidate_service, discovery_artifact_read_service, index, object_store)
+
+
 router_dependencies = {
     **taxonomy_dependencies,
     "discovery_repository": Provide(provide_discovery_repository, sync_to_thread=False),
@@ -66,4 +81,6 @@ router_dependencies = {
     "candidate_service": Provide(provide_candidate_service, sync_to_thread=False),
     "candidate_screenshot_service": Provide(provide_candidate_screenshot_service, sync_to_thread=False),
     "translation_read_service": Provide(provide_translation_read_service, sync_to_thread=False),
+    "discovery_artifact_read_service": Provide(provide_discovery_artifact_read_service, sync_to_thread=False),
+    "document_translation_service": Provide(provide_document_translation_service, sync_to_thread=False),
 }

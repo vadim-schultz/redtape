@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import pytest
 from app.features.translation.snapshot_store import SnapshotPayload, SnapshotStore
@@ -23,12 +23,12 @@ from test_architecture import APP_ROOT, module_imports
 from translation_read_support import URL, StoreSlot
 
 PORTAL = "https://www.example.de/leistung/kindergeld"
-BLOCKS: list[dict[str, Any]] = [
+BLOCKS: list[dict[str, object]] = [
     {"kind": "h1", "text": "Kindergeld beantragen"},
     {"kind": "p", "text": "Den Antrag stellen Sie online."},
     {"kind": "row", "cells": ["Frist", "4 Wochen"]},
 ]
-OTHER_BLOCKS: list[dict[str, Any]] = [{"kind": "p", "text": "Ein anderer Text."}]
+OTHER_BLOCKS: list[dict[str, object]] = [{"kind": "p", "text": "Ein anderer Text."}]
 
 
 class Owned(NamedTuple):
@@ -47,7 +47,7 @@ def _page(scene: Scene, portal_url: str = PORTAL) -> CatalogueService:
 
 
 def _store_translation(
-    session: Session, store: StoreSlot, page: CatalogueService, blocks: list[dict[str, Any]] = BLOCKS
+    session: Session, store: StoreSlot, page: CatalogueService, blocks: list[dict[str, object]] = BLOCKS
 ) -> SnapshotTranslation:
     """Write ``blocks`` of ``page`` in Turkish to the store and add the index row that points at them."""
     payload = SnapshotPayload(

@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Final
+from typing import Final, NamedTuple
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, select
@@ -27,6 +27,15 @@ SKIPPED_ENGINE: Final = "none"
 def page_key(task: SnapshotTranslationTask) -> PageKey:
     """Return the key of the page translation that ``task`` is for."""
     return task.catalogue_service_id, task.locale
+
+
+class SnapshotIndexRow(NamedTuple):
+    """What a read needs from an index row: the artifact it was checked against, its object, and why it was skipped."""
+
+    artifact_sha256: str
+    storage_key: str | None
+    content_sha256: str | None
+    skipped_reason: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +65,15 @@ class SnapshotRepository(SessionRepository):
         """Return the hash of the text stored for ``key``, or ``None`` when the page was never translated."""
         row = self._session.get(SnapshotTranslation, key)
         return None if row is None else row.source_hash
+
+    def index_row(self, key: PageKey) -> SnapshotIndexRow | None:
+        """Return what a read needs of the index row of ``key``, without a lock, or ``None`` when there is no row."""
+        row = SnapshotTranslation
+        stmt = select(row.artifact_sha256, row.storage_key, row.content_sha256, row.skipped_reason).where(
+            row.catalogue_service_id == key[0], row.locale == key[1]
+        )
+        found = self._session.execute(stmt).first()
+        return None if found is None else SnapshotIndexRow(*found)
 
     def locked_row(self, key: PageKey) -> SnapshotTranslation | None:
         """Return the index row of ``key`` and lock it until the transaction ends, or ``None`` when there is none."""
