@@ -391,7 +391,7 @@
       "col_resource": "Ressource",
       "col_usage": "Nutzung",
       "col_status": "Status",
-      "translator_title": "Azure Translator",
+      "translator_title": "Azure-Übersetzer",
       "translator_missing": "Nicht konfiguriert: Die Budgetzeile für Azure-Zeichen fehlt."
     }
   },

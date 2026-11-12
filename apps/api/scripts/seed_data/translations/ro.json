@@ -107,7 +107,7 @@
       "stored_of_cap": "{size} din {cap}",
       "stored_total": "Total stocat",
       "title": "Artefacte",
-      "translator_title": "Azure Translator",
+      "translator_title": "Traducător Azure",
       "translator_missing": "Neconfigurat: lipsește rândul de buget pentru caracterele Azure."
     },
     "auth_unconfigured_body": "Configurați Supabase înainte de a încerca din nou.",

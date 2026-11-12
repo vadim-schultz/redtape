@@ -107,7 +107,7 @@
       "stored_of_cap": "{size} z {cap}",
       "stored_total": "Łącznie przechowywane",
       "title": "Artefakty",
-      "translator_title": "Azure Translator",
+      "translator_title": "Tłumacz Azure",
       "translator_missing": "Nie skonfigurowano: brakuje wiersza limitu znaków Azure."
     },
     "auth_unconfigured_body": "Skonfiguruj Supabase, zanim spróbujesz ponownie.",

@@ -107,7 +107,7 @@
       "stored_of_cap": "{cap} üzerinden {size}",
       "stored_total": "Toplam depolanan",
       "title": "Artefaktlar",
-      "translator_title": "Azure Translator",
+      "translator_title": "Azure Çevirmen",
       "translator_missing": "Yapılandırılmamış: Azure karakter bütçe satırı eksik."
     },
     "auth_unconfigured_body": "Yeniden denemeden önce Supabase'i yapılandırın.",

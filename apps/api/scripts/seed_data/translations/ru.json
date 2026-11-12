@@ -107,7 +107,7 @@
       "stored_of_cap": "{size} из {cap}",
       "stored_total": "Всего сохранено",
       "title": "Артефакты",
-      "translator_title": "Azure Translator",
+      "translator_title": "Переводчик Azure",
       "translator_missing": "Не настроено: нет строки бюджета символов Azure."
     },
     "auth_unconfigured_body": "Настройте Supabase, прежде чем попробовать снова.",

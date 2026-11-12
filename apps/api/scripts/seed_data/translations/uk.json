@@ -107,7 +107,7 @@
       "stored_of_cap": "{size} із {cap}",
       "stored_total": "Усього збережено",
       "title": "Артефакти",
-      "translator_title": "Azure Translator",
+      "translator_title": "Перекладач Azure",
       "translator_missing": "Не налаштовано: немає рядка бюджету символів Azure."
     },
     "auth_unconfigured_body": "Налаштуйте Supabase, перш ніж спробувати ще раз.",
