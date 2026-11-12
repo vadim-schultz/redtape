@@ -11,6 +11,8 @@ import httpx
 import pytest
 from discovery_ingest.cli import main
 
+from azure_transport import faithful_answer
+from ledger_fakes import CHARACTERS_CAP, FakeLedger
 from llm_transport import ACCOUNT_ID, TOKEN, failure, success
 from translate_fakes import TranslateApi
 
@@ -179,3 +181,25 @@ def test_an_unreadable_taxonomy_refuses_to_start_before_any_model_call(
 
     assert code == 1 and "taxonomy" in capsys.readouterr().err
     assert not any(action == "reserve" for action, _body in api.ledger.calls)
+
+
+def test_an_azure_translator_run_is_accepted_with_a_character_meter_and_reports_what_it_billed(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], repo: Path
+) -> None:
+    """Translate-ui · an azure-translator run is accepted with a character meter (no exit 2)."""
+    monkeypatch.setenv("TRANSLATION_ENGINE", "azure-translator")
+    monkeypatch.setenv("AZURE_TRANSLATOR_KEY", "azure-key-SECRET-0123456789")
+    monkeypatch.setenv("AZURE_TRANSLATOR_REGION", "westeurope")
+    api = UiApi([], ledger=FakeLedger(9000.0, characters=float(CHARACTERS_CAP)))
+    api.install(monkeypatch, azure=faithful_answer)
+
+    code = main(["i18n", "translate-ui", "--locale", "tr", "--repo-root", "."])
+
+    report = json.loads(capsys.readouterr().out)
+    assert code == 0 and report["translated"] == 6
+    assert report["neurons"] == 0.0 and report["characters_used"] > 0
+    assert (
+        api.ledger.characters is not None
+        and api.ledger.characters.remaining == CHARACTERS_CAP - report["characters_used"]
+    )
+    assert api.ledger.writes_to("neurons") == []

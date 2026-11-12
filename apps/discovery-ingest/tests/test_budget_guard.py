@@ -172,3 +172,11 @@ def test_the_drain_report_carries_ledger_unavailable_when_the_ledger_could_not_b
 
     assert exit_code == 0
     assert json.loads(capsys.readouterr().out)["ledger_unavailable"] is unavailable
+
+
+def test_remaining_carries_the_cap_of_the_ledger_row(monkeypatch: pytest.MonkeyPatch) -> None:
+    """budget guard · remaining reports the row's cap, so a floor can be computed from the cap."""
+    rows = [_row("azure_translator_chars", used=100_000, cap=1_900_000)]
+    guard = BudgetGuard(_client(monkeypatch, lambda request: httpx.Response(200, json={"items": rows})).budget)
+
+    assert guard.remaining("azure_translator_chars").cap == 1_900_000
