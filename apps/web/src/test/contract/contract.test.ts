@@ -440,9 +440,12 @@ it.each([
   ["DocumentTranslationError", DOCUMENT_ERROR],
   ["TextBlock", DOCUMENT_TEXT],
   ["RowBlock", DOCUMENT_ROW],
-])("Contract · the field map matches the API schema (%s)", (apiName, webFields) => {
-  expectFields(API_SCHEMAS, apiName, webFields);
-});
+])(
+  "Contract · the field map matches the API schema (%s)",
+  (apiName, webFields) => {
+    expectFields(API_SCHEMAS, apiName, webFields);
+  },
+);
 
 it("Contract · the text block kinds equal the API enum", () => {
   expect([...DOCUMENT_TEXT_KINDS]).toEqual(

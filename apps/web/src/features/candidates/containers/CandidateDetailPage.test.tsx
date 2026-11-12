@@ -182,9 +182,10 @@ it("Accordion · the document item is collapsed and not in the default-open list
   renderPage();
 
   await screen.findByRole("heading", { level: 1, name: "Passport" });
-  expect(
-    screen.getByRole("button", { name: DOCUMENT_TITLE }),
-  ).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByRole("button", { name: DOCUMENT_TITLE })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
   expect(screen.getByRole("button", { name: "Flow" })).toHaveAttribute(
     "aria-expanded",
     "true",
@@ -201,9 +202,7 @@ it("Accordion · the item is absent when the interface locale is de", async () =
       name: "Dokumente, die du zuerst brauchst",
     }),
   ).toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: "Dokumentinhalt" }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Dokumentinhalt" })).toBeNull();
 });
 
 it("Lazy · no document request before the item is opened; one request after", async () => {
@@ -286,9 +285,17 @@ it("Locale · a switch to another locale refetches for that locale", async () =>
   await screen.findByText("Required documents");
   await user.click(screen.getByRole("button", { name: "Switch to Turkish" }));
 
+  // The detail reloads for the new locale, so the accordion starts again from its defaults.
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  await user.click(
+    await screen.findByRole("button", {
+      name: /Document contents|Belge içeriği/,
+    }),
+  );
+
   await waitFor(() =>
     expect(
-      documentCalls(fetchMock).at(-1)?.searchParams.get("locale"),
-    ).toBe("tr"),
+      documentCalls(fetchMock).map((url) => url.searchParams.get("locale")),
+    ).toContain("tr"),
   );
 });

@@ -35,7 +35,10 @@ describe("block groups", () => {
     expect(
       groupBlocks([unknown, { kind: "p", text: "Kept", untranslated: false }]),
     ).toEqual([
-      { type: "block", block: { kind: "p", text: "Kept", untranslated: false } },
+      {
+        type: "block",
+        block: { kind: "p", text: "Kept", untranslated: false },
+      },
     ]);
   });
 

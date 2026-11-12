@@ -35,7 +35,10 @@ it("Ready · blocks render in order, with lang set on untranslated blocks", asyn
   renderSection();
 
   expect(
-    await screen.findByRole("heading", { level: 2, name: "Required documents" }),
+    await screen.findByRole("heading", {
+      level: 2,
+      name: "Required documents",
+    }),
   ).toBeVisible();
   expectInOrder(
     [
@@ -73,10 +76,7 @@ it("Ready · the machine note and the source link appear with the content", asyn
     ),
   ).toBeVisible();
   const link = screen.getByRole("link", { name: "Open the German page" });
-  expect(link).toHaveAttribute(
-    "href",
-    "https://portal.example/passport-page",
-  );
+  expect(link).toHaveAttribute("href", "https://portal.example/passport-page");
   expect(link).toHaveAttribute("target", "_blank");
   expect(link).toHaveAttribute("rel", "noopener noreferrer");
 });
@@ -118,20 +118,14 @@ it("States · 404 translation_pending shows the pending note, not the error", as
 
 it.each([
   ["too_short", "This page has too little text to translate."],
-  [
-    "not_german",
-    "This page is not in German, so it was not translated.",
-  ],
-])(
-  "States · 404 skipped shows the skip reason (%s)",
-  async (reason, note) => {
-    stubDocumentTranslationApi(() => json({ code: "skipped", reason }, 404));
-    renderSection();
+  ["not_german", "This page is not in German, so it was not translated."],
+])("States · 404 skipped shows the skip reason (%s)", async (reason, note) => {
+  stubDocumentTranslationApi(() => json({ code: "skipped", reason }, 404));
+  renderSection();
 
-    expect(await screen.findByText(note)).toBeVisible();
-    expect(screen.queryByText(/Server error/)).toBeNull();
-  },
-);
+  expect(await screen.findByText(note)).toBeVisible();
+  expect(screen.queryByText(/Server error/)).toBeNull();
+});
 
 it("States · a 503 shows the error with a retry that refetches", async () => {
   let failing = true;

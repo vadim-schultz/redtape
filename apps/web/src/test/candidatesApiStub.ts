@@ -38,7 +38,10 @@ export const json = (body: unknown, status = 200) =>
 const DOCUMENT_PATH = /\/api\/v1\/candidates\/[^/]+\/document-translation$/;
 
 /** Stub `fetch` for one candidate's detail endpoint and, when given, its document-translation route; every other URL answers 404. */
-export function stubCandidateDetailApi(onDetail: Responder, onDocument?: Responder) {
+export function stubCandidateDetailApi(
+  onDetail: Responder,
+  onDocument?: Responder,
+) {
   const fetchMock = vi.fn(async (input?: unknown) => {
     const url = new URL(String(input));
     if (/\/api\/v1\/candidates\/[^/]+$/.test(url.pathname))

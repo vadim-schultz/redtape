@@ -129,7 +129,11 @@ export function documentTranslationFixture(
     stale: false,
     blocks: [
       { kind: "h2", text: "Required documents", untranslated: false },
-      { kind: "p", text: "Proof of identity is required.", untranslated: false },
+      {
+        kind: "p",
+        text: "Proof of identity is required.",
+        untranslated: false,
+      },
       { kind: "li", text: "Birth certificate", untranslated: false },
       { kind: "li", text: "Reisepass gültig bis 2030", untranslated: true },
       { kind: "row", cells: ["Fee", "Validity"], untranslated: true },
