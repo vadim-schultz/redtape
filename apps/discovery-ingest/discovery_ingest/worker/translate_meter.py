@@ -7,9 +7,11 @@ from dataclasses import dataclass
 
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.extract.llm.meter import RESOURCE
+from discovery_ingest.translation.character_meter import CharacterMeter
 from discovery_ingest.translation.meter import NeuronUsageMeter, NoMeterForUnitError, UsageMeter
+from discovery_ingest.translation.subscription_meter import SubscriptionMeter
 from discovery_ingest.translation.units import UsageUnit
-from discovery_ingest.worker.floored_meter import FlooredMeter
+from discovery_ingest.worker.floored_meter import Floor, FlooredMeter
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +34,7 @@ def _floored_neuron_meter(plan: MeterPlan) -> UsageMeter | None:
     if left.exhausted or left.remaining is None or left.remaining <= plan.floor:
         return None
     inner = NeuronUsageMeter(plan.guard, min(plan.limit, left.remaining))
-    return FlooredMeter(inner, plan.guard, plan.floor)
+    return FlooredMeter(inner, plan.guard, Floor(RESOURCE, plan.floor))
 
 
 def _own(meter: UsageMeter) -> MeterFactory:
@@ -41,6 +43,22 @@ def _own(meter: UsageMeter) -> MeterFactory:
 
 def _factories(plan: MeterPlan) -> dict[UsageUnit, MeterFactory]:
     return {"neurons": _floored_neuron_meter, **{unit: _own(meter) for unit, meter in plan.own.items()}}
+
+
+def _subscription_meter(_guard: BudgetGuard) -> UsageMeter:
+    return SubscriptionMeter()
+
+
+_OWN_METERS: Mapping[UsageUnit, Callable[[BudgetGuard], UsageMeter]] = {
+    "characters": CharacterMeter,
+    "subscription": _subscription_meter,
+}
+
+
+def own_meters_for(unit: UsageUnit, guard: BudgetGuard) -> dict[UsageUnit, UsageMeter]:
+    """Return the meter an engine billed in ``unit`` brings of its own, keyed by that unit; a unit on the neuron ledger has none."""
+    factory = _OWN_METERS.get(unit)
+    return {} if factory is None else {unit: factory(guard)}
 
 
 def open_run_meter(unit: UsageUnit, plan: MeterPlan) -> UsageMeter | None:

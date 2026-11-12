@@ -49,6 +49,7 @@ class Tally:
     neurons_used: float = 0.0
     llm_calls: int = 0
     tokens_used: int = 0
+    characters_used: int = 0
     auth_mode: str | None = None
     ledger_unavailable: bool = False
 

@@ -1,18 +1,30 @@
 """Usage meters: reserve before a call, settle with the actual usage, refund when the provider refused.
 
-``UsageMeter`` is what the drain meters through; the meter is chosen by the engine's usage unit. Only neurons have
-one today (the existing :class:`NeuronMeter`); asking for characters raises until a character-billed adapter ships (O17).
+``UsageMeter`` is what the drain meters through; the meter is chosen by the engine's usage unit. Neurons share the daily
+ledger through :class:`NeuronUsageMeter`. Characters bring their own meter on the monthly character ledger
+(:class:`~discovery_ingest.translation.character_meter.CharacterMeter`), so :func:`meter_for_unit` covers neurons only.
 """
 
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Final, Literal, Protocol
 
 from discovery_ingest.budget import BudgetGuard
+from discovery_ingest.budget_models import BudgetResource
+from discovery_ingest.extract.llm.meter import RESOURCE as NEURON_RESOURCE
 from discovery_ingest.extract.llm.meter import Denied, LedgerUnavailable, NeuronMeter, Reservation
 from discovery_ingest.translation.units import Usage, UsageUnit
+
+CHARACTER_RESOURCE: Final[BudgetResource] = "azure_translator_chars"
+"""The monthly ledger of the characters the Azure translator bills."""
+LEDGER_RESOURCE: Final[Mapping[UsageUnit, BudgetResource]] = {
+    "neurons": NEURON_RESOURCE,
+    "characters": CHARACTER_RESOURCE,
+}
+"""The ledger resource that guards each unit. A unit with no entry has no ledger, so an engine in it is not checked."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,7 +38,7 @@ class UsageReservation:
 
 @dataclass(frozen=True, slots=True)
 class UsageDenied:
-    """The call must not go out: the run budget, the day's ledger, an unreachable ledger or the reserved floor left nothing to spend."""
+    """The call must not go out: the run budget, the ledger, an unreachable ledger or the reserved floor left nothing to spend."""
 
     reason: Literal["run_budget", "ledger", "ledger_unavailable", "floor"]
 

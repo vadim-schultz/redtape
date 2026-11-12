@@ -1,29 +1,39 @@
-"""A usage meter that keeps a floor of the day's neuron ledger for request-time query embedding."""
+"""A usage meter that keeps a floor of one ledger resource for work that is not this drain's."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from discovery_ingest.budget import BudgetGuard
-from discovery_ingest.extract.llm.meter import RESOURCE
+from discovery_ingest.budget_models import BudgetResource
 from discovery_ingest.translation.meter import UsageDenied, UsageMeter, UsageReservation
 from discovery_ingest.translation.units import Usage
 
 
-class FlooredMeter:
-    """A :class:`UsageMeter` that denies a reservation which would leave the day's ledger below ``floor`` neurons.
+@dataclass(frozen=True, slots=True)
+class Floor:
+    """``amount`` of ``resource`` that a drain must leave in the ledger for other work (query embedding, a document share)."""
 
-    The floor is what request-time query embedding (decision D1) lives on. The ledger is read before every
-    reservation; one that cannot be read is a denial, because the floor could not be proved.
+    resource: BudgetResource
+    amount: float
+
+
+class FlooredMeter:
+    """A :class:`UsageMeter` that denies a reservation which would leave ``floor.resource`` below ``floor.amount``.
+
+    The ledger is read before every reservation; one that cannot be read is a denial, because the floor could not be
+    proved.
     """
 
-    def __init__(self, inner: UsageMeter, guard: BudgetGuard, floor: float) -> None:
-        """Wrap ``inner`` so that ``floor`` neurons of the day's ledger stay untouched."""
+    def __init__(self, inner: UsageMeter, guard: BudgetGuard, floor: Floor) -> None:
+        """Wrap ``inner`` so that ``floor.amount`` of ``floor.resource`` stays untouched."""
         self._inner = inner
         self._guard = guard
         self._floor = floor
 
     @property
     def used(self) -> float:
-        """Return the neurons this run has spent."""
+        """Return what this run has spent."""
         return self._inner.used
 
     def reserve(self, usage: Usage, model: str) -> UsageReservation | UsageDenied:
@@ -48,23 +58,23 @@ class FlooredMeter:
         return late
 
     def _denial(self, spending: float) -> UsageDenied | None:
-        left = self._guard.remaining(RESOURCE).remaining
+        left = self._guard.remaining(self._floor.resource).remaining
         if left is None:
             return UsageDenied("ledger_unavailable")
-        return UsageDenied("floor") if left - spending < self._floor else None
+        return UsageDenied("floor") if left - spending < self._floor.amount else None
 
     def settle(self, reservation: UsageReservation, actual: Usage) -> None:
-        """Replace the reservation by the actual neurons."""
+        """Replace the reservation by the actual usage."""
         self._inner.settle(reservation, actual)
 
     def refund(self, reservation: UsageReservation) -> None:
-        """Give the reserved neurons back."""
+        """Give the reserved usage back."""
         self._inner.refund(reservation)
 
     def exhaust(self) -> None:
-        """Tell the ledger the day's neurons are gone."""
+        """Tell the ledger the provider's allowance is gone."""
         self._inner.exhaust()
 
     def remaining(self) -> float | None:
-        """Return the neurons the run budget still allows."""
+        """Return what the inner meter still allows."""
         return self._inner.remaining()

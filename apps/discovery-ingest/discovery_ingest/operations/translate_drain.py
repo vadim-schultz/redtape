@@ -8,16 +8,16 @@ import httpx
 
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.client import DiscoveryIngestClient
-from discovery_ingest.extract.llm.meter import RESOURCE
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.locale_codes import UnmappedLocaleError
+from discovery_ingest.translation.meter import LEDGER_RESOURCE
 from discovery_ingest.translation.registry import EngineConfig, UnknownEngineError, build_engine
 from discovery_ingest.translation.settings import TranslationSettings
-from discovery_ingest.translation.subscription_meter import SubscriptionMeter
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.translate_drain import TranslateDeps, run_translate_drain
+from discovery_ingest.worker.translate_meter import own_meters_for
 
 TRANSLATE_MIN_INTERVAL_SECONDS = 1.0
 DEFAULT_TASKS_PER_BATCH = 10
@@ -61,15 +61,25 @@ def build_translation_engine(
         ) from err
 
 
-def check_neuron_ledger(engine: TranslationEngine, client: DiscoveryIngestClient) -> None:
-    """Raise :class:`LlmSetupError` when ``engine`` is billed in neurons and the ledger cannot be read."""
-    if engine.usage_unit != "neurons":
+def check_ledger(engine: TranslationEngine, guard: BudgetGuard) -> None:
+    """Raise :class:`LlmSetupError` when the ledger of ``engine``'s unit cannot be read; a unit with no ledger is skipped."""
+    resource = LEDGER_RESOURCE.get(engine.usage_unit)
+    if resource is None:
         return
-    if BudgetGuard(client.budget).remaining(RESOURCE).ledger_unavailable:
+    if guard.remaining(resource).ledger_unavailable:
         raise LlmSetupError(
-            "cannot read the neuron budget ledger (GET /machine/budgets); translate drain will not spend without it",
+            f"cannot read the {resource} budget ledger (GET /machine/budgets); translate drain will not spend without it",
             EXIT_NOT_READY,
         )
+
+
+def _drain_deps(client: DiscoveryIngestClient, engine: TranslationEngine, reserve: float) -> TranslateDeps:
+    """Check the ledger of ``engine``'s unit, then build the drain's dependencies with the engine's own meter, if it has one."""
+    guard = BudgetGuard(client.budget)
+    check_ledger(engine, guard)
+    return TranslateDeps(
+        client, engine, reserve=reserve, own_meters=own_meters_for(engine.usage_unit, guard), budget=guard
+    )
 
 
 def run_translate(
@@ -83,11 +93,4 @@ def run_translate(
     policy = options.policy()
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
-        check_neuron_ledger(engine, client)
-        deps = TranslateDeps(
-            client,
-            engine,
-            reserve=settings.query_embed_reserve,
-            own_meters={"subscription": SubscriptionMeter()},
-        )
-        return run_translate_drain(deps, policy)
+        return run_translate_drain(_drain_deps(client, engine, settings.query_embed_reserve), policy)
