@@ -106,7 +106,9 @@
       "stored_nearly_full": "Neredeyse dolu",
       "stored_of_cap": "{cap} üzerinden {size}",
       "stored_total": "Toplam depolanan",
-      "title": "Artefaktlar"
+      "title": "Artefaktlar",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Yapılandırılmamış: Azure karakter bütçe satırı eksik."
     },
     "auth_unconfigured_body": "Yeniden denemeden önce Supabase'i yapılandırın.",
     "auth_unconfigured_title": "Kimlik doğrulama yapılandırılmamış",
@@ -181,7 +183,13 @@
       "tasks_completed": "Tamamlanan görevler",
       "tasks_failed": "Başarısız görevler",
       "tasks_pending": "Bekleyen görevler",
-      "tasks_total": "Toplam görev"
+      "tasks_total": "Toplam görev",
+      "translation_title": "Dile göre kart çevirisi",
+      "translation_denominator": "Alman kartı olan adaylar: {count}",
+      "translation_error": "Çeviri kapsamı yüklenemedi.",
+      "col_locale": "Dil",
+      "col_translated": "Çevrildi",
+      "col_stale": "Eski"
     },
     "disabled_body": "Discovery yönetimi bu ortamda yapılandırılmamış. Dağıtım yapılandırmasını kontrol edin ve yeniden deneyin.",
     "disabled_title": "Discovery yönetimi devre dışı",

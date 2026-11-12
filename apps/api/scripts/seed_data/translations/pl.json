@@ -106,7 +106,9 @@
       "stored_nearly_full": "Prawie pełne",
       "stored_of_cap": "{size} z {cap}",
       "stored_total": "Łącznie przechowywane",
-      "title": "Artefakty"
+      "title": "Artefakty",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Nie skonfigurowano: brakuje wiersza limitu znaków Azure."
     },
     "auth_unconfigured_body": "Skonfiguruj Supabase, zanim spróbujesz ponownie.",
     "auth_unconfigured_title": "Uwierzytelnianie nie jest skonfigurowane",
@@ -183,7 +185,13 @@
       "tasks_completed": "Zakończone zadania",
       "tasks_failed": "Nieudane zadania",
       "tasks_pending": "Oczekujące zadania",
-      "tasks_total": "Wszystkie zadania"
+      "tasks_total": "Wszystkie zadania",
+      "translation_title": "Tłumaczenie kart według języka",
+      "translation_denominator": "Kandydaci z niemiecką kartą: {count}",
+      "translation_error": "Nie udało się wczytać pokrycia tłumaczeń.",
+      "col_locale": "Język",
+      "col_translated": "Przetłumaczone",
+      "col_stale": "Nieaktualne"
     },
     "disabled_body": "Administracja Discovery nie jest skonfigurowana w tym środowisku. Sprawdź konfigurację wdrożenia i spróbuj ponownie.",
     "disabled_title": "Administracja Discovery jest wyłączona",

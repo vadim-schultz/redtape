@@ -334,7 +334,13 @@
       "last_run_completed": "Abgeschlossen",
       "last_run_failed": "Fehlgeschlagen",
       "last_run_skipped": "Übersprungen",
-      "last_run_stop": "Stoppgrund"
+      "last_run_stop": "Stoppgrund",
+      "translation_title": "Kartenübersetzung nach Sprache",
+      "translation_denominator": "Kandidaten mit deutscher Karte: {count}",
+      "translation_error": "Die Übersetzungsabdeckung konnte nicht geladen werden.",
+      "col_locale": "Sprache",
+      "col_translated": "Übersetzt",
+      "col_stale": "Veraltet"
     },
     "catalogue": {
       "load_error": "Katalogdaten konnten nicht geladen werden.",
@@ -384,7 +390,9 @@
       "stored_nearly_full": "Fast voll",
       "col_resource": "Ressource",
       "col_usage": "Nutzung",
-      "col_status": "Status"
+      "col_status": "Status",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Nicht konfiguriert: Die Budgetzeile für Azure-Zeichen fehlt."
     }
   },
   "suggest": {

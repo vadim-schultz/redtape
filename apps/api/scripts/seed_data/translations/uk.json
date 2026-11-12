@@ -106,7 +106,9 @@
       "stored_nearly_full": "Майже заповнено",
       "stored_of_cap": "{size} із {cap}",
       "stored_total": "Усього збережено",
-      "title": "Артефакти"
+      "title": "Артефакти",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Не налаштовано: немає рядка бюджету символів Azure."
     },
     "auth_unconfigured_body": "Налаштуйте Supabase, перш ніж спробувати ще раз.",
     "auth_unconfigured_title": "Автентифікацію не налаштовано",
@@ -183,7 +185,13 @@
       "tasks_completed": "Завершені завдання",
       "tasks_failed": "Невдалі завдання",
       "tasks_pending": "Завдання в очікуванні",
-      "tasks_total": "Усього завдань"
+      "tasks_total": "Усього завдань",
+      "translation_title": "Переклад карток за мовами",
+      "translation_denominator": "Кандидати з німецькою карткою: {count}",
+      "translation_error": "Не вдалося завантажити покриття перекладів.",
+      "col_locale": "Мова",
+      "col_translated": "Перекладено",
+      "col_stale": "Застаріло"
     },
     "disabled_body": "Адміністрування Discovery не налаштовано в цьому середовищі. Перевірте конфігурацію розгортання та спробуйте ще раз.",
     "disabled_title": "Адміністрування Discovery вимкнено",

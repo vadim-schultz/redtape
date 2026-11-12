@@ -106,7 +106,9 @@
       "stored_nearly_full": "Aproape plin",
       "stored_of_cap": "{size} din {cap}",
       "stored_total": "Total stocat",
-      "title": "Artefacte"
+      "title": "Artefacte",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Neconfigurat: lipsește rândul de buget pentru caracterele Azure."
     },
     "auth_unconfigured_body": "Configurați Supabase înainte de a încerca din nou.",
     "auth_unconfigured_title": "Autentificarea nu este configurată",
@@ -182,7 +184,13 @@
       "tasks_completed": "Sarcini finalizate",
       "tasks_failed": "Sarcini eșuate",
       "tasks_pending": "Sarcini în așteptare",
-      "tasks_total": "Total sarcini"
+      "tasks_total": "Total sarcini",
+      "translation_title": "Traducerea cardurilor pe limbă",
+      "translation_denominator": "Candidați cu card în germană: {count}",
+      "translation_error": "Acoperirea traducerilor nu a putut fi încărcată.",
+      "col_locale": "Limbă",
+      "col_translated": "Tradus",
+      "col_stale": "Învechit"
     },
     "disabled_body": "Administrarea Discovery nu este configurată în acest mediu. Verificați configurația implementării și încercați din nou.",
     "disabled_title": "Administrarea Discovery este dezactivată",

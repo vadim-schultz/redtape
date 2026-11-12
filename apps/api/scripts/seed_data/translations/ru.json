@@ -106,7 +106,9 @@
       "stored_nearly_full": "Почти полный",
       "stored_of_cap": "{size} из {cap}",
       "stored_total": "Всего сохранено",
-      "title": "Артефакты"
+      "title": "Артефакты",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Не настроено: нет строки бюджета символов Azure."
     },
     "auth_unconfigured_body": "Настройте Supabase, прежде чем попробовать снова.",
     "auth_unconfigured_title": "Аутентификация не настроена",
@@ -183,7 +185,13 @@
       "tasks_completed": "Завершенные задачи",
       "tasks_failed": "Неудачные задачи",
       "tasks_pending": "Ожидающие задачи",
-      "tasks_total": "Всего задач"
+      "tasks_total": "Всего задач",
+      "translation_title": "Перевод карточек по языкам",
+      "translation_denominator": "Кандидаты с немецкой карточкой: {count}",
+      "translation_error": "Не удалось загрузить охват переводов.",
+      "col_locale": "Язык",
+      "col_translated": "Переведено",
+      "col_stale": "Устарело"
     },
     "disabled_body": "Discovery-Administration не настроена в этой среде. Проверьте конфигурацию развертывания и попробуйте снова.",
     "disabled_title": "Discovery-Administration отключена",
