@@ -88,6 +88,8 @@ def test_a_generation_records_a_machine_entry_with_the_model_and_the_command_ver
         "status": "machine",
         "reviewed_by": None,
         "reviewed_on": None,
+        "accepted_by": None,
+        "accepted_on": None,
         "model": MODEL,
         "command_version": COMMAND_VERSION,
     }
