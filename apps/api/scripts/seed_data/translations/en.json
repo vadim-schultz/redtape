@@ -115,7 +115,18 @@
     "flow_empty": "No dependencies listed for this document",
     "flow_more": "+{count} more, see the list above",
     "back_to_list": "Back to the list",
-    "not_found_title": "Candidate not found"
+    "not_found_title": "Candidate not found",
+    "document_title": "Document contents",
+    "document_machine_note": "Machine translation, may contain errors. The German original is authoritative.",
+    "document_source_link": "Open the German page",
+    "document_pending": "This page is being translated. Check back later.",
+    "document_no_document": "No procedure page with text is linked to this candidate.",
+    "document_candidate_not_found": "This candidate could not be found.",
+    "document_skipped": "This page was not translated.",
+    "document_skipped_too_short": "This page has too little text to translate.",
+    "document_skipped_not_german": "This page is not in German, so it was not translated.",
+    "document_stale": "The German original has changed since this translation was made.",
+    "document_truncated": "The German page was too long, so only its beginning is translated."
   },
   "location": {
     "label": "Location",
