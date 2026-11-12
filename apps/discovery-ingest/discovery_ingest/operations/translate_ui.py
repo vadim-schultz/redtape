@@ -12,10 +12,12 @@ from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiEr
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.i18n.files import Layout, TranslationFiles
 from discovery_ingest.i18n.locales import allow_unchanged
+from discovery_ingest.i18n.machine_text import MachineTextTranslator
 from discovery_ingest.i18n.manifest import load_manifest, record_generation, save_manifest
 from discovery_ingest.i18n.sources import read_sources
 from discovery_ingest.i18n.translate_ui import BATCH_SIZE, UiJob, UiReport, translate_locale
 from discovery_ingest.operations.translate_drain import build_translation_engine, check_ledger
+from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.glossary import load_glossary
 from discovery_ingest.translation.meter import UsageMeter
 from discovery_ingest.translation.metered import MeteredTranslator
@@ -73,6 +75,12 @@ class _NothingToSpend:
         raise StopDrain("llm_budget", "the day's neurons are at or below the floor kept for query embedding")
 
 
+def _translator_for(engine: TranslationEngine, meter: UsageMeter | None) -> Translator:
+    """Return the run's translator: the engine through its meter; a character-billed engine is machine translation."""
+    translator: Translator = _NothingToSpend() if meter is None else MeteredTranslator(engine, meter)
+    return MachineTextTranslator(translator) if engine.usage_unit == "characters" else translator
+
+
 def _record(layout: Layout, report: UiReport) -> None:
     """Record the run in the manifest when it generated anything: the locale is machine text until reviewed."""
     if not report.translated:
@@ -116,7 +124,6 @@ def run_translate_ui(
         own = own_meters_for(engine.usage_unit, guard)
         plan = MeterPlan(guard, request.neuron_budget, settings.query_embed_reserve, own)
         meter = open_run_meter(engine.usage_unit, plan)
-        translator: Translator = _NothingToSpend() if meter is None else MeteredTranslator(engine, meter)
-        report = translate_locale(job, translator, TranslationFiles(layout))
+        report = translate_locale(job, _translator_for(engine, meter), TranslationFiles(layout))
     _record(layout, report)
     return UiOutcome(report, _neurons_of(engine.usage_unit, meter), _characters_of(engine.usage_unit, meter))

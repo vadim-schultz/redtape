@@ -7,7 +7,7 @@ The core's checks (placeholders, numbers, markup, glossary, length against the G
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Final
 
 from discovery_ingest.i18n.plural import categories_of, family_bases
@@ -62,6 +62,18 @@ def interface_findings(string: SourceString, translated: str, allow: frozenset[s
     )
     results = ((name, check(string.german, translated)) for name, check in checks)
     return [Finding(name, "text", detail) for name, detail in results if detail]
+
+
+def indistinct_slavic_families(flat: Mapping[str, str]) -> list[str]:
+    """Return the plural families of ``flat`` whose ``few`` and ``many`` forms are the same text, sorted.
+
+    A form that is the same for both counts is not inflected for its count (the nominative-everywhere defect).
+    """
+    return sorted(
+        base
+        for base in family_bases(flat)
+        if f"{base}_few" in flat and f"{base}_many" in flat and flat[f"{base}_few"] == flat[f"{base}_many"]
+    )
 
 
 def plural_forms_complete(locale: str, keys: Iterable[str]) -> list[str]:
