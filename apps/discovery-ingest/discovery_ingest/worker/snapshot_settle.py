@@ -77,13 +77,13 @@ class PageSettler:
             self.tally.invalid += 1
             self.fail(task, Failure(checked.reason, retryable=False))
             return
-        self.tally.untranslated_blocks += checked.untranslated
+        self.tally.untranslated_blocks += len(checked.untranslated)
         item = _item(
             task,
             source_hash=checked.source_hash,
             outcome="translated",
             truncated=checked.truncated,
-            blocks=wire_blocks(checked.blocks),
+            blocks=wire_blocks(checked.blocks, checked.untranslated),
             engine=self.engine,
             model=outcome.model,
         )
