@@ -1,4 +1,4 @@
-"""Enable a locale: only with a recorded native-speaker review and 100% coverage of the German keys.
+"""Enable a locale: only with a recorded review or operator acceptance and 100% coverage of the German keys.
 
 Run from `apps/api`:
   python -m scripts.enable_locale <code>
@@ -9,6 +9,7 @@ Seeds never flip ``supported_locale.enabled``; this script is the one guarded wa
 from __future__ import annotations
 
 import sys
+from typing import Final
 
 import sqlalchemy as sa
 from app.db import SessionLocal
@@ -22,6 +23,9 @@ from scripts.seed_data.review_manifest import MANIFEST_FILE, ReviewManifest, loa
 
 FULL = 100.0
 
+MACHINE_TRANSLATED: Final[dict[str, bool]] = {"reviewed": False, "machine_accepted": True}
+"""The statuses that may enable a locale, and whether its strings are machine translated (set from the status alone)."""
+
 
 class EnableRefusedError(Exception):
     """The locale must not be enabled; the message is the reason, in words an operator can act on."""
@@ -31,8 +35,11 @@ def _review_problem(code: str, manifest: ReviewManifest) -> str | None:
     entry = manifest.locales.get(code)
     if entry is None:
         return f"{MANIFEST_FILE} has no entry for {code}; generate and review its strings first"
-    if entry.status != "reviewed":
-        return f"its review status is {entry.status}; record a native-speaker review in {MANIFEST_FILE} first"
+    if entry.status not in MACHINE_TRANSLATED:
+        return (
+            f"its status is {entry.status}; enabling needs status reviewed (a native review) or machine_accepted "
+            f"(an operator's acceptance) in {MANIFEST_FILE}"
+        )
     return None
 
 
@@ -43,8 +50,8 @@ def _completeness(session: Session, code: str) -> float:
 def enable_locale(session: Session, code: str, manifest: ReviewManifest) -> float:
     """Set ``supported_locale.enabled`` for ``code`` and return its completeness; raise :class:`EnableRefusedError` otherwise.
 
-    The locale must be supported, have a ``reviewed`` entry in ``manifest`` and be 100% complete in
-    ``ui_translation``. The caller commits.
+    The locale must be supported, have a ``reviewed`` or ``machine_accepted`` entry in ``manifest`` and be 100% complete
+    in ``ui_translation``. ``machine_translated`` is set from that status in the same update. The caller commits.
     """
     if code not in SUPPORTED_LOCALE_CODES:
         raise EnableRefusedError(f"{code} is not a supported locale")
@@ -56,7 +63,12 @@ def enable_locale(session: Session, code: str, manifest: ReviewManifest) -> floa
         raise EnableRefusedError(
             f"locale {code} is not enabled: completeness {completeness} is below {FULL}; seed its strings first"
         )
-    session.execute(sa.update(SupportedLocale).where(SupportedLocale.code == code).values(enabled=True))
+    status = manifest.locales[code].status
+    session.execute(
+        sa.update(SupportedLocale)
+        .where(SupportedLocale.code == code)
+        .values(enabled=True, machine_translated=MACHINE_TRANSLATED[status])
+    )
     return completeness
 
 

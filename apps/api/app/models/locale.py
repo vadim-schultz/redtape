@@ -20,6 +20,7 @@ class SupportedLocale(Base):
     name_english: Mapped[str] = mapped_column(Text, nullable=False)
     flag_emoji: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    machine_translated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     completeness_pct: Mapped[float] = mapped_column(Float, nullable=False, server_default="0.0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
