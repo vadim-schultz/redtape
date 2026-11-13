@@ -42,9 +42,11 @@ class DiscoveryRunService:
         self._repo = repository
 
     def start(self, body: RunStartRequest) -> RunRead:
-        """Open a ``running`` record for the stage the request names, else for its kind."""
+        """Close any run that never got its finish, then open a ``running`` record for the stage the request names."""
+        now = datetime.now(UTC)
+        self._repo.close_stale_runs(now=now)
         stage = body.stage or DiscoveryRunStage(body.kind.value)
-        return _run_read(self._repo.insert_run(body.kind, stage, started_at=datetime.now(UTC)))
+        return _run_read(self._repo.insert_run(body.kind, stage, started_at=now))
 
     def finish(self, run_id: UUID, body: RunFinishRequest) -> RunRead:
         """Close ``run_id`` with the worker's report; a finished run stays immutable."""

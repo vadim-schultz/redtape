@@ -6,12 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select, update
 
 from app.features.discovery.repository.base import SessionRepository
 from app.models.discovery import DiscoveryRun, DiscoveryRunKind, DiscoveryRunStage, DiscoveryRunStatus
 
 STALE_RUN_AFTER = timedelta(hours=1)
+STALE_RUN_DETAIL = "stale: no finish received"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,12 +73,27 @@ class RunRepository(SessionRepository):
 
     def count_stale_runs(self, *, now: datetime) -> int:
         """Return ``running`` runs started before ``now`` minus the stale window."""
+        stmt = select(func.count()).select_from(DiscoveryRun).where(*_stale(now))
+        return int(self._session.scalar(stmt) or 0)
+
+    def close_stale_runs(self, *, now: datetime) -> None:
+        """Close every stale ``running`` run as failed, with the stale reason."""
         stmt = (
-            select(func.count())
-            .select_from(DiscoveryRun)
-            .where(
-                DiscoveryRun.status == DiscoveryRunStatus.RUNNING.value,
-                DiscoveryRun.started_at < now - STALE_RUN_AFTER,
+            update(DiscoveryRun)
+            .where(*_stale(now))
+            .values(
+                status=DiscoveryRunStatus.FAILED.value,
+                finished_at=now,
+                stop_reason="error",
+                error_detail=STALE_RUN_DETAIL,
             )
         )
-        return int(self._session.scalar(stmt) or 0)
+        self._session.execute(stmt)
+
+
+def _stale(now: datetime) -> tuple[ColumnElement[bool], ...]:
+    """Return the predicates that make a run stale at ``now``: still running and started before the stale window."""
+    return (
+        DiscoveryRun.status == DiscoveryRunStatus.RUNNING.value,
+        DiscoveryRun.started_at < now - STALE_RUN_AFTER,
+    )
