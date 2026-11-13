@@ -18,6 +18,27 @@ The account reached 2,000 minutes a week early. This repository used 960 of them
 
 GitHub bills per job and rounds up to a whole minute, so short jobs cost much more than their work.
 
+## Measured in November (pipeline-optimisation chapter 1, 2026-11-13)
+
+`scripts/gha_minutes.py --since 2026-11-01` reads each run's timing through `gh` (read-only) and sums the billable minutes per workflow, rounding each job up to a whole minute. On 2026-11-13 GitHub's run timing reported **zero billable minutes for every run checked**: runs from 2026-10-14 to 2026-11-13, including successful runs with a 786 s wall-clock time. The script therefore prints zero and a note, and no billed per-workflow figure can be taken from this endpoint for this repository yet. The billed figure comes from the account's usage report (checklist O1 and S1 in [pipeline-optimisation](../../.plans/pipeline-optimisation/00-architecture.md)). The account usage API needs the `user` scope, which the operator grants with `gh auth refresh -s user`.
+
+Completed runs from 2026-11-01 to 2026-11-13, counted from `gh run list`:
+
+| Workflow | Runs | Pull request runs | Cancelled | Skipped | Failed |
+| --- | --- | --- | --- | --- | --- |
+| `api-lint-test.yml` (API Lint & Test) | 110 | 97 | 0 | 0 | 8 |
+| `discovery-ingest-ci.yml` | 75 | 60 | 0 | 0 | 3 |
+| `web-ci.yml` | 60 | 51 | 0 | 0 | 4 |
+| `discovery-render.yml` | 17 | 0 | 1 | 0 | 1 |
+| `discovery-llm.yml` | 16 | 0 | 0 | 7 | 0 |
+| `discovery-drain.yml` | 14 | 0 | 0 | 0 | 0 |
+| `discovery-extract.yml` | 14 | 0 | 0 | 0 | 0 |
+| `discovery-screenshot.yml` | 14 | 0 | 0 | 0 | 0 |
+| `discovery-embed.yml` | 4 | 0 | 0 | 4 | 0 |
+| `discovery-translate.yml` | 2 | 0 | 0 | 2 | 0 |
+
+No pull request run was cancelled in this window. That does not show the cancellation is broken: the window may have had no overlapping pushes. The concurrency block in `api-lint-test.yml` and `web-ci.yml` is unchanged.
+
 ## Target budget
 
 The cap is **1,000 minutes a month** for this repository (revised 2026-10-26). The budget ledger in the API enforces the

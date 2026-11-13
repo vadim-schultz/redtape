@@ -1,0 +1,32 @@
+name: Set up API Python
+description: Python 3.12, uv with cached downloads, and the API's locked dev dependencies. Run after actions/checkout.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Cache uv and pip downloads
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/uv
+          ~/.cache/pip
+        key: api-python-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock') }}
+        restore-keys: |
+          api-python-${{ runner.os }}-
+
+    - name: Install uv
+      shell: bash
+      run: pip install uv
+
+    - name: Install API + dev dependencies
+      shell: bash
+      working-directory: apps/api
+      run: |
+        uv export --locked --extra dev --no-emit-project --no-hashes --output-file "$RUNNER_TEMP/requirements.txt"
+        uv pip install --system -r "$RUNNER_TEMP/requirements.txt"
+        uv pip install --system --no-deps -e .
