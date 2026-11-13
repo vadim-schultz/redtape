@@ -333,3 +333,32 @@ def test_a_reported_zero_is_kept_and_not_replaced_by_the_measured_duration() -> 
         return _page(ms="0")
 
     assert _client(handler, clock).render(PAGE).ms_used == 0
+
+
+def test_a_failed_call_carries_the_browser_milliseconds_it_cost() -> None:
+    """render · a 5xx that reports 4 s carries ms_used 4000; a refused connection never reached Cloudflare, so 0."""
+    reported = _client(lambda request: _error(502, 1, "bad gateway", **{"X-Browser-Ms-Used": "4000"}))
+    with pytest.raises(BrowserRequestError) as caught:
+        reported.render(PAGE)
+    assert caught.value.ms_used == 4000
+
+    def refused(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("no route", request=request)
+
+    with pytest.raises(BrowserRequestError) as unsent:
+        _client(refused).render(PAGE)
+    assert unsent.value.ms_used == 0
+
+
+def test_a_timeout_after_the_send_carries_the_measured_duration() -> None:
+    """render · a read timeout reached Cloudflare, so it costs the time it ran (the measured 2 s here)."""
+    clock = Clock()
+
+    def timeout(request: httpx.Request) -> httpx.Response:
+        clock.now += 2.0
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    with pytest.raises(BrowserRequestError) as caught:
+        _client(timeout, clock).render(PAGE)
+
+    assert caught.value.ms_used == 2000
