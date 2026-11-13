@@ -23,6 +23,7 @@ from discovery_ingest.translation.units import (
 from pydantic import SecretStr
 
 from ledger_fakes import FakeLedger
+from run_stub import run_response
 
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
@@ -68,6 +69,8 @@ class TranslateApi:
         """Serve the five translation routes; the ledger routes go to the :class:`FakeLedger`."""
         if "/budgets" in request.url.path:
             return self.ledger(request)
+        if (run := run_response(request)) is not None:
+            return run
         route = request.url.path.rsplit("/", 1)[-1]
         self.bodies[route].append(json.loads(request.content) if request.content else {})
         if route in self.unreachable:

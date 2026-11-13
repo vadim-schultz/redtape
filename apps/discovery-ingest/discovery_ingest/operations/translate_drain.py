@@ -16,6 +16,7 @@ from discovery_ingest.translation.registry import EngineConfig, UnknownEngineErr
 from discovery_ingest.translation.settings import TranslationSettings
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.run import run_recorded
 from discovery_ingest.worker.translate_drain import TranslateDeps, run_translate_drain
 from discovery_ingest.worker.translate_meter import own_meters_for
 
@@ -92,12 +93,14 @@ def _drain_deps(
 def run_translate(
     options: TranslateOptions, settings: TranslationSettings, client: DiscoveryIngestClient
 ) -> DrainReport:
-    """Build the engine named by ``settings``, check the ledger and run the drain; return its report.
+    """Build the engine named by ``settings`` and check its ledger, then run the drain as a ``translate`` run.
 
-    :class:`LlmSetupError` propagates with its ``exit_code`` (the engine cannot start, the ledger cannot be read);
-    :class:`ValueError` names an out-of-range bound; :class:`~discovery_ingest.translation.meter.NoMeterForUnitError` means no meter fits the engine's unit.
+    The engine and the ledger are checked before the run opens: :class:`LlmSetupError` (the engine cannot start, the
+    ledger cannot be read) propagates with its ``exit_code``. :class:`ValueError` names an out-of-range bound;
+    :class:`~discovery_ingest.translation.meter.NoMeterForUnitError` means no meter fits the engine's unit.
     """
     policy = options.policy()
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
-        return run_translate_drain(_drain_deps(client, engine, settings), policy)
+        deps = _drain_deps(client, engine, settings)
+        return run_recorded(client, "translate", lambda: run_translate_drain(deps, policy))

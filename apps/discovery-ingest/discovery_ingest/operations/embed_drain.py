@@ -16,6 +16,7 @@ from discovery_ingest.schemas import DrainReport
 from discovery_ingest.worker.embed_drain import EmbedDeps, run_embed_drain
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.run import run_recorded
 
 EMBED_MIN_INTERVAL_SECONDS = 0.2
 DEFAULT_NEURON_BUDGET = 3000.0
@@ -58,13 +59,18 @@ def _check_ledger(client: DiscoveryIngestClient) -> None:
 
 
 def run_embed(options: EmbedOptions, settings: IngestSettings, client: DiscoveryIngestClient) -> DrainReport:
-    """Check the credentials and the ledger, run the drain and return its report.
+    """Check the credentials and the ledger, then run the drain as an ``embed`` run and return its report.
 
-    :class:`LlmSetupError` propagates with its ``exit_code``; :class:`ValueError` names an out-of-range bound.
+    The checks come first: a refusal before the drain starts opens no run. :class:`LlmSetupError` propagates with its
+    ``exit_code``; :class:`ValueError` names an out-of-range bound.
     """
     policy = options.policy()
     _check_credentials(settings)
     _check_ledger(client)
+    return run_recorded(client, "embed", lambda: _drain(settings, client, policy))
+
+
+def _drain(settings: IngestSettings, client: DiscoveryIngestClient, policy: DrainPolicy) -> DrainReport:
     with httpx.Client(trust_env=True) as http:
         embedder = CloudflareEmbeddingClient(settings, http=http, throttle=Throttle(EMBED_MIN_INTERVAL_SECONDS))
         return run_embed_drain(EmbedDeps(client, embedder, settings.embedding_model), policy)

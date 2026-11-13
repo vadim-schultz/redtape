@@ -13,8 +13,8 @@ from discovery_ingest.config import IngestSettings
 from discovery_ingest.operations import embed_drain, snapshot_drain, translate_drain
 from discovery_ingest.schemas import DrainReport, RunFinishRequest
 from discovery_ingest.worker import run as run_module
-from discovery_ingest.worker.llm_setup import EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.fetcher import PoliteUrlFetcher
+from discovery_ingest.worker.llm_setup import EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.run import run_recorded_drain
 from pydantic import SecretStr
@@ -133,28 +133,44 @@ def _inner(label: str) -> tuple[Any, str]:
 
 
 @pytest.mark.parametrize(("label", "run", "stage"), DRAIN_CASES, ids=[case[0] for case in DRAIN_CASES])
-def test_a_setup_failure_is_recorded_as_a_failed_run_with_its_stage(
+def test_a_drain_that_raises_closes_its_run_as_failed_with_its_stage(
     monkeypatch: pytest.MonkeyPatch, label: str, run: Drain, stage: str
 ) -> None:
-    """embed, translate and snapshot drains · a refusal before any batch still closes the run as failed, with its stage."""
+    """embed, translate and snapshot drains · an error inside the drain closes the run as failed, with its stage, and is raised again."""
     starts: Starts = []
     finishes: Finishes = []
     client = _client(monkeypatch, starts, finishes)
+    module, name = _inner(label)
 
-    def refuse(*args: Any, **kwargs: Any) -> None:
-        raise LlmSetupError("the engine cannot start", EXIT_NOT_READY)
+    def crash(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("the drain crashed")
 
-    monkeypatch.setattr(embed_drain, "_check_ledger", refuse)
-    monkeypatch.setattr(translate_drain, "build_translation_engine", refuse)
-    monkeypatch.setattr(snapshot_drain, "_azure_engine", refuse)
+    monkeypatch.setattr(module, name, crash)
 
-    with pytest.raises(LlmSetupError):
+    with pytest.raises(RuntimeError, match="the drain crashed"):
         run(client)
 
     assert [start["stage"] for start in starts] == [stage]
     assert len(finishes) == 1
     assert (finishes[0]["status"], finishes[0]["stop_reason"]) == ("failed", "error")
-    assert "LlmSetupError" in finishes[0]["error_detail"]
+    assert "RuntimeError" in finishes[0]["error_detail"]
+
+
+def test_a_refusal_before_the_drain_opens_no_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """embed drain · missing credentials are refused before any run is opened, so the refusal leaves no run record."""
+    starts: Starts = []
+    finishes: Finishes = []
+    client = _client(monkeypatch, starts, finishes)
+
+    def refuse(settings: Any) -> None:
+        raise LlmSetupError("embed drain needs these environment variables", EXIT_NOT_READY)
+
+    monkeypatch.setattr(embed_drain, "_check_credentials", refuse)
+
+    with pytest.raises(LlmSetupError):
+        _run_embed(client)
+
+    assert (starts, finishes) == ([], [])
 
 
 def test_the_worker_drain_still_records_its_run_as_a_worker_drain(monkeypatch: pytest.MonkeyPatch) -> None:

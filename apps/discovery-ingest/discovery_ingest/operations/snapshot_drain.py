@@ -27,6 +27,7 @@ from discovery_ingest.worker.floored_meter import Floor, FlooredMeter
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.report import build_report, remaining_of
+from discovery_ingest.worker.run import run_recorded
 from discovery_ingest.worker.snapshot_batch import SnapshotContext, run_snapshot_batch
 from discovery_ingest.worker.tally import Tally
 
@@ -121,8 +122,9 @@ def _azure_engine(http: httpx.Client) -> TranslationEngine:
 
 
 def run_snapshot(options: SnapshotOptions, client: DiscoveryIngestClient) -> DrainReport:
-    """Build the Azure engine from the environment, then run the snapshot drain under the document share."""
+    """Build the Azure engine from the environment, then run the snapshot drain as a ``snapshot_translate`` run."""
     policy = options.policy()
     share = document_budget_share()
     with httpx.Client(trust_env=True) as http:
-        return run_snapshot_drain(SnapshotDeps(client, _azure_engine(http), share), policy)
+        deps = SnapshotDeps(client, _azure_engine(http), share)
+        return run_recorded(client, "snapshot_translate", lambda: run_snapshot_drain(deps, policy))

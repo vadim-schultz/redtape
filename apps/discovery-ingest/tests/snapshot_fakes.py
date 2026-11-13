@@ -28,6 +28,7 @@ from discovery_ingest.translation.units import (
 from pydantic import SecretStr
 
 from ledger_fakes import FakeLedger
+from run_stub import run_response
 from translate_fakes import API_BASE, API_KEY, AZURE_HOST
 
 ENGINE = "azure-translator"
@@ -125,6 +126,8 @@ class SnapshotApi:
         self.paths.append(path)
         if "/budgets" in path:
             return self.ledger(request)
+        if (run := run_response(request)) is not None:
+            return run
         if path.endswith("/content"):
             return self._content(path.rsplit("/", 2)[-2])
         if "/snapshots/" not in path:

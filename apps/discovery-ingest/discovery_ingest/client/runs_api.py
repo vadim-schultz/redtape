@@ -1,11 +1,12 @@
-"""Run lifecycle routes: open a worker-drain run record and close it with its report."""
+"""Run lifecycle routes: open a run record for a drain and close it with its report."""
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from discovery_ingest.client.http_client import MachineHttpClient
-from discovery_ingest.schemas import RunFinishRequest, RunStartResponse
+from discovery_ingest.schemas import RunFinishRequest, RunStage, RunStartResponse
 
 
 class RunsAPI:
@@ -15,9 +16,9 @@ class RunsAPI:
         """Keep the shared HTTP client."""
         self._http = http
 
-    def start(self) -> UUID:
-        """Open a ``worker_drain`` run record and return its id."""
-        return self._http.request_model(RunStartResponse, "POST", "/runs", json={"kind": "worker_drain"}).id
+    def start(self, kind: Literal["worker_drain"] = "worker_drain", stage: RunStage = "worker_drain") -> UUID:
+        """Open a run record of ``kind`` for ``stage`` and return its id."""
+        return self._http.request_model(RunStartResponse, "POST", "/runs", json={"kind": kind, "stage": stage}).id
 
     def finish(self, run_id: UUID, body: RunFinishRequest) -> None:
         """Close ``run_id`` with its report."""

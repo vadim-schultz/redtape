@@ -147,6 +147,7 @@ ENUM_SETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("DiscoveryArtifactKind", get_args(artifacts.ArtifactKind)),
     ("DiscoveryEdgeBasis", get_args(edges.EdgeBasis)),
     ("StopReason", get_args(schemas.StopReason)),
+    ("DiscoveryRunStage", get_args(schemas.RunStage)),
     ("EdgeSkipReason", get_args(edges.EdgeSkipReason)),
     ("BudgetResource", BUDGET_RESOURCES),
     ("EmbeddingOutcome", get_args(embedding_models.EmbeddingOutcome)),

@@ -222,8 +222,12 @@ class RunStartResponse(BaseModel):
     id: UUID
 
 
+RunStage = Literal["worker_drain", "embed", "translate", "snapshot_translate"]
+"""The drain a run record belongs to; the API defaults a run that names none to its kind."""
+
+
 class RunFinishRequest(BaseModel):
-    """Report that closes a worker run."""
+    """Report that closes a worker run, with the spend per budget resource the drain made."""
 
     status: Literal["succeeded", "failed"]
     claimed_count: int = Field(ge=0)
@@ -233,6 +237,7 @@ class RunFinishRequest(BaseModel):
     remaining_count: int | None = Field(default=None, ge=0)
     stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
+    spend: dict[str, float] | None = None
 
 
 MAX_SNAPSHOT_BATCH: Final = 5

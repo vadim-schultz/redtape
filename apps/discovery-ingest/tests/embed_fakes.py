@@ -15,6 +15,7 @@ from discovery_ingest.extract.embedding.client import EmbeddingResult
 from pydantic import SecretStr
 
 from ledger_fakes import FakeLedger
+from run_stub import run_response
 
 MODEL = "@cf/qwen/qwen3-embedding-0.6b"
 API_BASE = "https://redtape.test"
@@ -62,6 +63,8 @@ class EmbedApi:
         """Serve the five embedding routes; the ledger routes go to the :class:`FakeLedger`."""
         if "/budgets" in request.url.path:
             return self.ledger(request)
+        if (run := run_response(request)) is not None:
+            return run
         route = request.url.path.rsplit("/", 1)[-1]
         self.bodies[route].append(json.loads(request.content) if request.content else {})
         if route in self.unreachable:
