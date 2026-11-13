@@ -3,16 +3,61 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import get_args
 
+import app.features.auth.guard_session as guard_session_module
 import pytest
+from app.config import settings
+from app.features.auth.repository import ApiKeyRepository
+from app.features.auth.service import ApiKeyService
 from app.features.discovery.budget_resources import BudgetResource
 from app.features.discovery.repository import DiscoveryRepository
+from app.main import create_app
 from app.models.discovery import DiscoveryRun
 from litestar import Litestar
 from litestar.testing import TestClient
 from sqlalchemy.orm import Session
-from test_discovery_run import RUNS_URL, _finish_body, client, headers  # noqa: F401
+
+RUNS_URL = "/api/v1/discovery/machine/runs"
+
+
+def _finish_body(**overrides: object) -> dict[str, object]:
+    body: dict[str, object] = {
+        "status": "succeeded",
+        "claimed_count": 3,
+        "completed_count": 2,
+        "failed_count": 1,
+        "skipped_count": 0,
+        "remaining_count": None,
+        "stop_reason": "queue_empty",
+    }
+    body.update(overrides)
+    return body
+
+
+@pytest.fixture
+def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient[Litestar]]:
+    monkeypatch.setattr(settings, "discovery_machine_opt_in", True)
+    monkeypatch.setattr(guard_session_module, "SessionLocal", lambda: _keep_open(db_session))
+    monkeypatch.setattr("app.main.provide_session", lambda: db_session)
+    with TestClient(create_app()) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def headers(db_session: Session) -> dict[str, str]:
+    service = ApiKeyService(ApiKeyRepository(db_session))
+    key = service.issue("discovery-ingest")
+    service.verify(key)
+    db_session.flush()
+    return {"X-API-Key": key}
+
+
+@contextmanager
+def _keep_open(session: Session) -> Iterator[Session]:
+    yield session
 
 
 def _start_with(client: TestClient[Litestar], headers: dict[str, str], body: dict[str, object]) -> str:

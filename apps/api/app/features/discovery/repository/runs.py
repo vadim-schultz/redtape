@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from app.features.discovery.repository.base import SessionRepository
-from app.models.discovery import DiscoveryRun, DiscoveryRunKind, DiscoveryRunStatus
+from app.models.discovery import DiscoveryRun, DiscoveryRunKind, DiscoveryRunStage, DiscoveryRunStatus
 
 STALE_RUN_AFTER = timedelta(hours=1)
 
@@ -26,14 +26,17 @@ class RunReport:
     remaining_count: int | None
     stop_reason: str | None
     error_detail: str | None
+    spend: dict[str, float] | None = None
 
 
 class RunRepository(SessionRepository):
     """Read and write operational run records."""
 
-    def insert_run(self, kind: DiscoveryRunKind, *, started_at: datetime) -> DiscoveryRun:
-        """Insert a ``running`` run of ``kind``."""
-        run = DiscoveryRun(kind=kind.value, status=DiscoveryRunStatus.RUNNING.value, started_at=started_at)
+    def insert_run(self, kind: DiscoveryRunKind, stage: DiscoveryRunStage, *, started_at: datetime) -> DiscoveryRun:
+        """Insert a ``running`` run of ``kind`` for ``stage``."""
+        run = DiscoveryRun(
+            kind=kind.value, stage=stage.value, status=DiscoveryRunStatus.RUNNING.value, started_at=started_at
+        )
         self._session.add(run)
         self._session.flush()
         return run
@@ -53,6 +56,7 @@ class RunRepository(SessionRepository):
         run.remaining_count = report.remaining_count
         run.stop_reason = report.stop_reason
         run.error_detail = report.error_detail
+        run.spend = report.spend
         self._session.flush()
         return run
 

@@ -2881,6 +2881,17 @@
     "title": "DiscoveryRunRead",
     "type": "object"
   },
+  "DiscoveryRunStage": {
+    "description": "The drain a run record belongs to; a run that names no stage is a worker drain.",
+    "enum": [
+      "worker_drain",
+      "embed",
+      "translate",
+      "snapshot_translate"
+    ],
+    "title": "DiscoveryRunStage",
+    "type": "string"
+  },
   "DiscoverySource": {
     "description": "Which government or manual feed produced a catalogue row.",
     "enum": [
@@ -4438,6 +4449,19 @@
         "minimum": 0.0,
         "type": "integer"
       },
+      "spend": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "status": {
         "enum": [
           "succeeded",
@@ -4516,6 +4540,16 @@
     "properties": {
       "kind": {
         "$ref": "#/components/schemas/DiscoveryRunKind"
+      },
+      "stage": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DiscoveryRunStage"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [],

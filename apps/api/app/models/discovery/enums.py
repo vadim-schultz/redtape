@@ -74,6 +74,15 @@ class DiscoveryRunKind(enum.StrEnum):
     WORKER_DRAIN = "worker_drain"
 
 
+class DiscoveryRunStage(enum.StrEnum):
+    """The drain a run record belongs to; a run that names no stage is a worker drain."""
+
+    WORKER_DRAIN = "worker_drain"
+    EMBED = "embed"
+    TRANSLATE = "translate"
+    SNAPSHOT_TRANSLATE = "snapshot_translate"
+
+
 class DiscoveryRunStatus(enum.StrEnum):
     """Lifecycle of an operational run."""
 

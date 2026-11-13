@@ -5,11 +5,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, Integer, String, Text, Uuid, func, text
+from sqlalchemy import JSON, DateTime, Index, Integer, String, Text, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.models.discovery.enums import DiscoveryRunKind, DiscoveryRunStatus
+from app.models.discovery.enums import DiscoveryRunKind, DiscoveryRunStage, DiscoveryRunStatus
 
 
 class DiscoveryRun(Base):
@@ -20,6 +20,9 @@ class DiscoveryRun(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     kind: Mapped[str] = mapped_column(String(32), nullable=False, default=DiscoveryRunKind.WORKER_DRAIN.value)
+    stage: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, default=DiscoveryRunStage.WORKER_DRAIN.value, server_default=text("'worker_drain'")
+    )
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default=DiscoveryRunStatus.RUNNING.value, server_default=text("'running'")
     )
@@ -32,3 +35,4 @@ class DiscoveryRun(Base):
     remaining_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     stop_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
     error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    spend: Mapped[dict[str, float] | None] = mapped_column(JSON, nullable=True)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,6 +13,7 @@ from app.models.discovery import (
     LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
     DiscoveryRunKind,
+    DiscoveryRunStage,
     DiscoverySource,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -239,9 +240,10 @@ class CatalogueEmitResponse(EmitCounts):
 
 
 class RunStartRequest(BaseModel):
-    """Open a run record before the worker starts draining."""
+    """Open a run record before the worker starts draining; the stage defaults to the kind."""
 
     kind: DiscoveryRunKind = DiscoveryRunKind.WORKER_DRAIN
+    stage: DiscoveryRunStage | None = None
 
 
 StopReason = Literal[
@@ -259,8 +261,20 @@ StopReason = Literal[
 """Why a worker drain ended; mirrors the ingest worker's ``StopReason``."""
 
 
+SpendResource = Literal[
+    "r2_class_a",
+    "r2_class_b",
+    "browser_seconds",
+    "neurons",
+    "actions_minutes",
+    "azure_translator_chars",
+]
+"""The budget ledger's resources, the only names a run may report spend against (see the budget resources)."""
+SpendAmount = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+
+
 class RunFinishRequest(BaseModel):
-    """Close a run with its report."""
+    """Close a run with its report and the spend it made per budget resource."""
 
     status: Literal["succeeded", "failed"]
     claimed_count: int = Field(ge=0)
@@ -270,6 +284,7 @@ class RunFinishRequest(BaseModel):
     remaining_count: int | None = Field(default=None, ge=0)
     stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
+    spend: dict[SpendResource, SpendAmount] | None = None
 
 
 class RunRead(BaseModel):

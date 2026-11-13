@@ -29,6 +29,12 @@
   "DiscoveryRunKind": [
    "worker_drain"
   ],
+  "DiscoveryRunStage": [
+   "worker_drain",
+   "embed",
+   "translate",
+   "snapshot_translate"
+  ],
   "DiscoverySource": [
    "govdata",
    "pvog",
@@ -2693,7 +2699,7 @@
   "machine.RunFinishRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Close a run with its report.",
+    "description": "Close a run with its report and the spend it made per budget resource.",
     "properties": {
      "claimed_count": {
       "minimum": 0,
@@ -2740,6 +2746,32 @@
       "minimum": 0,
       "title": "Skipped Count",
       "type": "integer"
+     },
+     "spend": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "minimum": 0,
+         "type": "number"
+        },
+        "propertyNames": {
+         "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Spend"
      },
      "status": {
       "enum": [
@@ -2844,13 +2876,35 @@
       ],
       "title": "DiscoveryRunKind",
       "type": "string"
+     },
+     "DiscoveryRunStage": {
+      "description": "The drain a run record belongs to; a run that names no stage is a worker drain.",
+      "enum": [
+       "worker_drain",
+       "embed",
+       "translate",
+       "snapshot_translate"
+      ],
+      "title": "DiscoveryRunStage",
+      "type": "string"
      }
     },
-    "description": "Open a run record before the worker starts draining.",
+    "description": "Open a run record before the worker starts draining; the stage defaults to the kind.",
     "properties": {
      "kind": {
       "$ref": "#/$defs/DiscoveryRunKind",
       "default": "worker_drain"
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/DiscoveryRunStage"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
      }
     },
     "title": "RunStartRequest",
