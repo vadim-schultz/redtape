@@ -65,7 +65,7 @@ Slavic plural forms were wrong, and the corrected forms are now in the files. `t
 produced by the pipeline: the daily Workers AI allowance ran out, so Claude Code (model `claude-sonnet-5-5`)
 wrote them by hand from `en.json`, `de.json` and the category source, with the same glossary and the same
 validators. Their `review.json` entries say `model: claude-sonnet-5-5` and `command_version: claude-code-manual-1`.
-All five locales are `machine`, unreviewed and disabled. Review them like any other generated text (next section).
+The operator accepted all five locales as they are, without a native review, so they are `machine_accepted` (porcorosso, 2026-11-13); enabling them stays a separate operator step with `enable_locale`. Review them like any other generated text (next section).
 A later `translate-ui` run records its own model and command version for the strings it adds.
 
 The hand-written glossary and allow-list entries need the same review. One entry was added with these locales:
