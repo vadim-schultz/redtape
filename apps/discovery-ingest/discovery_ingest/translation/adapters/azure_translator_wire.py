@@ -36,7 +36,13 @@ class _Answer(BaseModel):
     translations: list[_Translation] = Field(min_length=1)
 
 
-_ANSWERS: Final = TypeAdapter(list[_Answer])
+class _Reply(BaseModel):
+    """The object the service answers with: one answer per input, under ``value``."""
+
+    value: list[_Answer]
+
+
+_ANSWERS: Final = TypeAdapter(list[_Answer] | _Reply)
 
 
 def pieces_of(units: Sequence[TranslationUnit]) -> list[Piece]:
@@ -87,9 +93,10 @@ def request_body(chunk: Sequence[Piece], source: str, target: str) -> dict[str, 
 def read_answers(body: object, chunk: Sequence[Piece], target: str) -> list[str]:
     """Return the translation of each input of ``chunk``, by position; any other shape or length is unusable output."""
     try:
-        answers = _ANSWERS.validate_python(body)
+        reply = _ANSWERS.validate_python(body)
     except ValidationError as err:
         raise UnusableOutputError("the Azure answer does not follow the translate schema") from err
+    answers = reply.value if isinstance(reply, _Reply) else reply
     if len(answers) != len(chunk):
         raise UnusableOutputError(f"the Azure answer has {len(answers)} of {len(chunk)} translations")
     return [_text_for(answer, target) for answer in answers]
