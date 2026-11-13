@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261112_locale_machine_flag"
+HEAD_REVISION = "20261113_run_stage_spend"
 BUDGET_REVISION = "20261028_budget_ledger"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
@@ -128,9 +128,9 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
     with _fresh_database() as database_url:
         first = _run_alembic(database_url, "upgrade", "head")
         assert first.returncode == 0, first.stdout + first.stderr
-        # Step the locale flag, the snapshot schema, the translation schema, the search schema and the retirement back
-        # so the legacy tables exist again; the simulated stuck state below rolls them back.
-        back = _run_alembic(database_url, "downgrade", "-5")
+        # Step the run stage and spend, the locale flag, the snapshot schema, the translation schema, the search schema
+        # and the retirement back so the legacy tables exist again; the simulated stuck state below rolls them back.
+        back = _run_alembic(database_url, "downgrade", "-6")
         assert back.returncode == 0, back.stdout + back.stderr
 
         with psycopg.connect(_psycopg_dsn(database_url)) as conn:
@@ -217,16 +217,16 @@ def test_staging_edges_upgrade_adds_labels_columns_and_edge_table() -> None:
 def test_staging_edges_downgrade_drops_the_additions_but_keeps_enum_labels() -> None:
     """Round trip: the downgrade removes columns, table and basis enum; labels stay (Postgres cannot drop them).
 
-    ``-14`` walks back past the thirteen migrations stacked on top of ``staging_edges`` (situation-tag-hierarchy's
+    ``-15`` walks back past the fourteen migrations stacked on top of ``staging_edges`` (situation-tag-hierarchy's
     mention direct-confidence, link-table confidence, life_situation_group and pvog_leaf_code,
     document-browse-confidence's remove_seeded_documents, the stored normalised URL, the two category
     migrations, the legacy taxonomy retirement, the search schema, the translation schema, the snapshot
-    translation schema and the locale machine flag) to reach this revision's own step.
+    translation schema, the locale machine flag and the run stage and spend) to reach this revision's own step.
     """
     with _fresh_database() as database_url:
         assert _run_alembic(database_url, "upgrade", "head").returncode == 0
 
-        down = _run_alembic(database_url, "downgrade", "-14")
+        down = _run_alembic(database_url, "downgrade", "-15")
         assert down.returncode == 0, down.stdout + down.stderr
         assert _alembic_version(database_url) == BUDGET_REVISION
         assert not _table_exists(database_url, "discovery_candidate_edge")
