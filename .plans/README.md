@@ -529,6 +529,19 @@ Replace the Cloudflare translation role with Azure AI Translator (NMT). The card
 
 Status: planned — no chapter started. Loop branch `feat/plans-azure-translation`; the chief of staff runs the chapters, one at a time.
 
+### [pipeline-optimisation/](pipeline-optimisation/) — Free-tier use and flow visibility across the discovery pipeline
+
+Use every free allotment the discovery pipeline has (Actions minutes, Cloudflare browser seconds and neurons, Workers AI, Azure characters, R2 and the database) by fixing what starves downstream stages: change-driven rendering, one browser call per page, sweepers instead of one-shot hooks, a planner per resource and a single daily job. The admin gets a dependency graph of the whole flow with each stage's state, last run, errors and allowance use, and the candidate page shows screenshot history as tabs. Fifteen chapters, and the operator steps are listed in the architecture.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](pipeline-optimisation/00-architecture.md) | Measured state, the flow today, free-tier use, the target design |
+| [01-rollout.md](pipeline-optimisation/01-rollout.md) | Invariants, dependency graph, chief-of-staff execution order, waves, exit criteria |
+| [gaps-and-decisions.md](pipeline-optimisation/gaps-and-decisions.md) | Decisions D1–D16 and the open seams |
+| [chapters/](pipeline-optimisation/chapters/) | One executable plan per chapter |
+
+Status: planned — documentation suite only; the first chapter is [chapters/01-ci-minute-diet.md](pipeline-optimisation/chapters/01-ci-minute-diet.md). The operator steps S0 to S3 (the snapshot schedule, the Actions usage report, the LLM and embed schedules) do not wait for code.
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
