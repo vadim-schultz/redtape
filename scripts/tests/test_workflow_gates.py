@@ -66,3 +66,28 @@ def test_draft_to_ready_transition_triggers_the_workflow(name):
 def test_superseded_pull_request_runs_are_still_cancelled(name):
     concurrency = load_workflow(name)["concurrency"]
     assert concurrency["cancel-in-progress"] == "${{ github.event_name == 'pull_request' }}"
+
+
+def uses_steps(steps):
+    return [step["uses"] for step in steps if "uses" in step]
+
+
+def test_api_jobs_share_one_python_setup_composite_action():
+    api = load_workflow("api-lint-test.yml")["jobs"]
+    for job in ["lint-and-test", "migrations"]:
+        assert "./.github/actions/setup-api-python" in uses_steps(api[job]["steps"])
+
+
+def test_api_python_setup_caches_uv_and_pip_downloads_keyed_on_the_lock_file():
+    action = yaml.safe_load((WORKFLOWS.parent / "actions" / "setup-api-python" / "action.yml").read_text())
+    cache = next(step for step in action["runs"]["steps"] if step.get("uses", "").startswith("actions/cache@"))
+    assert "hashFiles('apps/api/uv.lock')" in cache["with"]["key"]
+    assert "~/.cache/uv" in cache["with"]["path"]
+    assert "~/.cache/pip" in cache["with"]["path"]
+
+
+def test_web_npm_cache_is_keyed_on_the_package_lock():
+    steps = load_workflow("web-ci.yml")["jobs"]["lint-format-typecheck-build"]["steps"]
+    setup_node = next(step for step in steps if step.get("uses", "").startswith("actions/setup-node@"))
+    assert setup_node["with"]["cache"] == "npm"
+    assert setup_node["with"]["cache-dependency-path"] == "apps/web/package-lock.json"
