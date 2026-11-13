@@ -83,8 +83,7 @@ def render(totals: dict[str, int]) -> str:
 
 def warn_if_truncated(runs: list[dict], limit: int, since: str) -> None:
     """Warn on stderr when the listing hit the limit before reaching back to `since`."""
-    hit_limit = len(runs) >= limit
-    if hit_limit and runs[-1]["createdAt"][:10] >= since:
+    if runs and len(runs) >= limit and runs[-1]["createdAt"][:10] >= since:
         print(f"warning: only the {limit} most recent runs were read; older runs may be missing",
               file=sys.stderr)
 

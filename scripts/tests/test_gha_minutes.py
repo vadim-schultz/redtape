@@ -108,6 +108,11 @@ def test_gha_minutes_warns_when_the_listing_may_miss_runs_in_range(capsys):
     assert "may be missing" in capsys.readouterr().err
 
 
+def test_gha_minutes_does_not_warn_for_an_empty_listing(capsys):
+    gm.warn_if_truncated([], limit=0, since="2026-10-01")
+    assert capsys.readouterr().err == ""
+
+
 def test_gha_minutes_does_not_warn_when_the_oldest_run_read_is_before_since(capsys):
     complete = [run(9, "Web CI", "2026-10-06T09:00:00Z"), run(8, "Web CI", "2026-09-20T09:00:00Z")]
     gm.warn_if_truncated(complete, limit=2, since="2026-10-01")
