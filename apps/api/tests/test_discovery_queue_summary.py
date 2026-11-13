@@ -113,6 +113,9 @@ def test_get_summary_route_honours_the_kinds_query(
         "claimed_stale",
         "completed",
         "failed",
+        "oldest_pending_age_seconds",
+        "completed_24h",
+        "failed_24h",
     }
 
 

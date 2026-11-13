@@ -3259,7 +3259,7 @@
   "machine.TaskSummaryResponse": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.",
+    "description": "Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.\n\n``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the\ntasks finished in the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
@@ -3273,9 +3273,28 @@
       "title": "Completed",
       "type": "integer"
      },
+     "completed_24h": {
+      "title": "Completed 24H",
+      "type": "integer"
+     },
      "failed": {
       "title": "Failed",
       "type": "integer"
+     },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_delayed": {
       "title": "Pending Delayed",
@@ -3290,7 +3309,10 @@
      "claimed",
      "claimed_stale",
      "completed",
+     "completed_24h",
      "failed",
+     "failed_24h",
+     "oldest_pending_age_seconds",
      "pending_delayed",
      "pending_ready"
     ],
@@ -4135,15 +4157,34 @@
   "search_machine.EmbeddingSummaryResponse": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.",
+    "description": "Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.\n\n``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the\ntasks finished in the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
       "type": "integer"
      },
+     "completed_24h": {
+      "title": "Completed 24H",
+      "type": "integer"
+     },
      "failed": {
       "title": "Failed",
       "type": "integer"
+     },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -4156,7 +4197,10 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "stale_candidates"
     ],
@@ -4677,19 +4721,38 @@
   "snapshot_machine.SnapshotLocaleSummary": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+    "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.\nThe age of the oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the\nlast day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
+      "type": "integer"
+     },
+     "completed_24h": {
+      "title": "Completed 24H",
       "type": "integer"
      },
      "failed": {
       "title": "Failed",
       "type": "integer"
      },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
      "locale": {
       "title": "Locale",
       "type": "string"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -4710,8 +4773,11 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
      "locale",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "skipped",
      "stale",
@@ -4726,19 +4792,38 @@
    "schema": {
     "$defs": {
      "SnapshotLocaleSummary": {
-      "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+      "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.\nThe age of the oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the\nlast day.",
       "properties": {
        "claimed": {
         "title": "Claimed",
+        "type": "integer"
+       },
+       "completed_24h": {
+        "title": "Completed 24H",
         "type": "integer"
        },
        "failed": {
         "title": "Failed",
         "type": "integer"
        },
+       "failed_24h": {
+        "title": "Failed 24H",
+        "type": "integer"
+       },
        "locale": {
         "title": "Locale",
         "type": "string"
+       },
+       "oldest_pending_age_seconds": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Oldest Pending Age Seconds"
        },
        "pending_ready": {
         "title": "Pending Ready",
@@ -4764,7 +4849,10 @@
        "failed",
        "translated",
        "stale",
-       "skipped"
+       "skipped",
+       "oldest_pending_age_seconds",
+       "completed_24h",
+       "failed_24h"
       ],
       "title": "SnapshotLocaleSummary",
       "type": "object"
@@ -5596,19 +5684,38 @@
   "translation_machine.TranslationLocaleSummary": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit.",
+    "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the\noldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
+      "type": "integer"
+     },
+     "completed_24h": {
+      "title": "Completed 24H",
       "type": "integer"
      },
      "failed": {
       "title": "Failed",
       "type": "integer"
      },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
      "locale": {
       "title": "Locale",
       "type": "string"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -5625,8 +5732,11 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
      "locale",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "stale",
      "translated"
@@ -5700,19 +5810,38 @@
    "schema": {
     "$defs": {
      "TranslationLocaleSummary": {
-      "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit.",
+      "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the\noldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.",
       "properties": {
        "claimed": {
         "title": "Claimed",
+        "type": "integer"
+       },
+       "completed_24h": {
+        "title": "Completed 24H",
         "type": "integer"
        },
        "failed": {
         "title": "Failed",
         "type": "integer"
        },
+       "failed_24h": {
+        "title": "Failed 24H",
+        "type": "integer"
+       },
        "locale": {
         "title": "Locale",
         "type": "string"
+       },
+       "oldest_pending_age_seconds": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Oldest Pending Age Seconds"
        },
        "pending_ready": {
         "title": "Pending Ready",
@@ -5733,7 +5862,10 @@
        "claimed",
        "failed",
        "stale",
-       "translated"
+       "translated",
+       "oldest_pending_age_seconds",
+       "completed_24h",
+       "failed_24h"
       ],
       "title": "TranslationLocaleSummary",
       "type": "object"

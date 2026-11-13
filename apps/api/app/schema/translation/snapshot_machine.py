@@ -132,6 +132,8 @@ class SnapshotLocaleSummary(BaseModel):
     """Queue and store counts of one target locale for snapshot pages.
 
     ``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.
+    The age of the oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the
+    last day.
     """
 
     locale: str
@@ -141,6 +143,9 @@ class SnapshotLocaleSummary(BaseModel):
     translated: int
     stale: int
     skipped: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
 
 
 class SnapshotSummaryResponse(BaseModel):

@@ -3492,8 +3492,24 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
         "type": "integer"
+      },
+      "failed_24h": {
+        "type": "integer"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -3504,7 +3520,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "pending_ready",
       "stale_candidates"
     ],
@@ -4812,11 +4830,27 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
+        "type": "integer"
+      },
+      "failed_24h": {
         "type": "integer"
       },
       "locale": {
         "type": "string"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -4833,7 +4867,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "locale",
       "pending_ready",
       "skipped",
@@ -5380,8 +5416,24 @@
       "completed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
         "type": "integer"
+      },
+      "failed_24h": {
+        "type": "integer"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_delayed": {
         "type": "integer"
@@ -5394,7 +5446,9 @@
       "claimed",
       "claimed_stale",
       "completed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "pending_delayed",
       "pending_ready"
     ],
@@ -5690,11 +5744,27 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
+        "type": "integer"
+      },
+      "failed_24h": {
         "type": "integer"
       },
       "locale": {
         "type": "string"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -5708,7 +5778,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "locale",
       "pending_ready",
       "stale",

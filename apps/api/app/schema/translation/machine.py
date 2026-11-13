@@ -115,7 +115,8 @@ class TranslationReleaseResponse(BaseModel):
 class TranslationLocaleSummary(BaseModel):
     """Queue and store counts of one target locale.
 
-    ``stale`` counts stored translations that an open task is replacing with a newer German unit.
+    ``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the
+    oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.
     """
 
     locale: str
@@ -124,6 +125,9 @@ class TranslationLocaleSummary(BaseModel):
     failed: int
     stale: int
     translated: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
 
 
 class TranslationSummaryResponse(BaseModel):

@@ -234,7 +234,15 @@ def test_summary_reports_the_oldest_ready_age_and_the_24_hour_finished_counts(db
 def test_summary_of_an_empty_queue_is_all_zero(db_session: Session) -> None:
     summary = _queue(db_session).summary(MODEL)
 
-    assert summary.model_dump() == {"pending_ready": 0, "claimed": 0, "failed": 0, "stale_candidates": 0}
+    assert summary.model_dump() == {
+        "pending_ready": 0,
+        "claimed": 0,
+        "failed": 0,
+        "stale_candidates": 0,
+        "oldest_pending_age_seconds": None,
+        "completed_24h": 0,
+        "failed_24h": 0,
+    }
 
 
 def test_two_concurrent_claimers_never_receive_the_same_task(db_session: Session) -> None:

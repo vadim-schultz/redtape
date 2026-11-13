@@ -176,6 +176,24 @@ def test_summary_of_an_empty_queue_is_zero_for_every_target_locale(db_session: S
     )
 
 
+def test_summary_reports_the_oldest_ready_age_and_the_24_hour_counts_per_locale(db_session: Session) -> None:
+    """stats · the oldest ready task of a locale sets its age; a task finished 25 h ago is not counted in 24 h."""
+    _, waiting = queued_task(db_session, "tr", "Erster Antrag")
+    waiting.created_at = NOW - timedelta(hours=4)
+    _, done = queued_task(db_session, "tr", "Zweiter Antrag")
+    done.status = WorkTaskStatus.COMPLETED
+    done.updated_at = NOW - timedelta(hours=1)
+    _, old_done = queued_task(db_session, "tr", "Dritter Antrag")
+    old_done.status = WorkTaskStatus.COMPLETED
+    old_done.updated_at = NOW - timedelta(hours=25)
+    db_session.flush()
+
+    summary = {entry.locale: entry for entry in _queue(db_session).summary().locales}["tr"]
+
+    assert summary.oldest_pending_age_seconds == 4 * 3600
+    assert (summary.completed_24h, summary.failed_24h) == (1, 0)
+
+
 @contextmanager
 def _committed_candidates(count: int) -> Iterator[tuple[CommittedWorld, list[uuid.UUID]]]:
     world = CommittedWorld()

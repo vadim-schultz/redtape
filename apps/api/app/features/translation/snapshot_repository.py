@@ -17,6 +17,7 @@ from app.features.translation.repository import QueueCounts
 from app.models.search import WorkTaskStatus
 from app.models.snapshot_translation import SnapshotTranslation, SnapshotTranslationTask
 from app.schema.translation.snapshot_machine import SnapshotLocaleSummary
+from app.shared.queue_stats import age_seconds, finished_recently, oldest_ready
 
 PageKey = tuple[UUID, str]
 """``(catalogue row id, locale)``: the key of one page translation and of its open task."""
@@ -144,15 +145,19 @@ class SnapshotRepository(SessionRepository):
 
     def _queue_counts(self, now: datetime) -> dict[str, QueueCounts]:
         task = SnapshotTranslationTask
+        ready = ready_clause(task, now)
         stmt = select(
             task.locale,
-            func.count().filter(*ready_clause(task, now)),
+            func.count().filter(*ready),
             func.count().filter(task.status == WorkTaskStatus.CLAIMED),
             func.count().filter(task.status == WorkTaskStatus.FAILED),
+            oldest_ready(task.created_at, ready),
+            finished_recently(task.status == WorkTaskStatus.COMPLETED, task.updated_at, now),
+            finished_recently(task.status == WorkTaskStatus.FAILED, task.updated_at, now),
         ).group_by(task.locale)
         return {
-            locale: QueueCounts(ready, claimed, failed)
-            for locale, ready, claimed, failed in self._session.execute(stmt)
+            locale: QueueCounts(ready_count, claimed, failed, age_seconds(oldest, now), done, broke)
+            for locale, ready_count, claimed, failed, oldest, done, broke in self._session.execute(stmt)
         }
 
     def _index_counts(self, condition: ColumnElement[bool]) -> dict[str, int]:

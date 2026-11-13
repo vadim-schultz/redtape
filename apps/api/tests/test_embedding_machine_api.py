@@ -158,7 +158,16 @@ def test_summary_reports_the_ready_work_for_the_workflows_early_exit(
     busy = client.get(f"{BASE}/summary", headers=headers)
 
     assert empty.json()["pending_ready"] == 0
-    assert busy.json() == {"pending_ready": 2, "claimed": 0, "failed": 0, "stale_candidates": 2}
+    body = busy.json()
+    assert body.pop("oldest_pending_age_seconds") >= 0
+    assert body == {
+        "pending_ready": 2,
+        "claimed": 0,
+        "failed": 0,
+        "stale_candidates": 2,
+        "completed_24h": 0,
+        "failed_24h": 0,
+    }
 
 
 @pytest.fixture

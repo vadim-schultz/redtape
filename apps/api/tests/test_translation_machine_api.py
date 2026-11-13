@@ -219,7 +219,16 @@ def test_summary_reports_pending_ready_and_translated_counts_per_locale(
 
     busy = api.get(f"{BASE}/summary", headers=headers).json()
 
-    zero = {"pending_ready": 0, "claimed": 0, "failed": 0, "stale": 0, "translated": 0}
+    zero = {
+        "pending_ready": 0,
+        "claimed": 0,
+        "failed": 0,
+        "stale": 0,
+        "translated": 0,
+        "oldest_pending_age_seconds": None,
+        "completed_24h": 0,
+        "failed_24h": 0,
+    }
     assert {entry["locale"]: entry for entry in empty["locales"]}["en"] == {"locale": "en", **zero}
     by_locale = {entry["locale"]: entry for entry in busy["locales"]}
     assert by_locale[done.locale]["translated"] == 1

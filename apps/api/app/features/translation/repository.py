@@ -18,6 +18,7 @@ from app.models.search import WorkTaskStatus
 from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
 from app.schema.translation.machine import TranslationLocaleSummary
 from app.shared.locale import DEFAULT_LOCALE
+from app.shared.queue_stats import age_seconds, finished_recently, oldest_ready
 
 
 class IndexState(NamedTuple):
@@ -35,11 +36,14 @@ class IndexedObject(NamedTuple):
 
 
 class QueueCounts(NamedTuple):
-    """The tasks of one locale that are ready, claimed and failed."""
+    """The tasks of one locale that are ready, claimed and failed, with the age of the oldest ready one and the 24 h counts."""
 
     pending_ready: int = 0
     claimed: int = 0
     failed: int = 0
+    oldest_pending_age_seconds: float | None = None
+    completed_24h: int = 0
+    failed_24h: int = 0
 
 
 class TranslationRepository(SessionRepository):
@@ -124,15 +128,19 @@ class TranslationRepository(SessionRepository):
 
     def _queue_counts(self, now: datetime) -> dict[str, QueueCounts]:
         task = TranslationTask
+        ready = ready_clause(task, now)
         stmt = select(
             task.locale,
-            func.count().filter(*ready_clause(task, now)),
+            func.count().filter(*ready),
             func.count().filter(task.status == WorkTaskStatus.CLAIMED),
             func.count().filter(task.status == WorkTaskStatus.FAILED),
+            oldest_ready(task.created_at, ready),
+            finished_recently(task.status == WorkTaskStatus.COMPLETED, task.updated_at, now),
+            finished_recently(task.status == WorkTaskStatus.FAILED, task.updated_at, now),
         ).group_by(task.locale)
         return {
-            locale: QueueCounts(ready, claimed, failed)
-            for locale, ready, claimed, failed in self._session.execute(stmt)
+            locale: QueueCounts(ready_count, claimed, failed, age_seconds(oldest, now), done, broke)
+            for locale, ready_count, claimed, failed, oldest, done, broke in self._session.execute(stmt)
         }
 
     def _translated_counts(self) -> dict[str, int]:

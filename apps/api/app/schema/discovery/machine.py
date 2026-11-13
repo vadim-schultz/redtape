@@ -83,7 +83,11 @@ class TaskClaimRequest(BaseModel):
 
 
 class TaskSummaryResponse(BaseModel):
-    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.
+
+    ``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the
+    tasks finished in the last day.
+    """
 
     pending_ready: int
     pending_delayed: int
@@ -91,6 +95,9 @@ class TaskSummaryResponse(BaseModel):
     claimed_stale: int
     completed: int
     failed: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
 
 
 class TaskEnqueueRequest(BaseModel):

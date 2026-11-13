@@ -109,9 +109,16 @@ class EmbeddingReleaseResponse(BaseModel):
 
 
 class EmbeddingSummaryResponse(BaseModel):
-    """Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector."""
+    """Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.
+
+    ``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the
+    tasks finished in the last day.
+    """
 
     pending_ready: int
     claimed: int
     failed: int
     stale_candidates: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
