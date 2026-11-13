@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -138,11 +139,15 @@ def test_every_plural_key_of_a_committed_file_ends_in_a_category_of_its_locale(l
 
 
 def test_the_committed_manifest_marks_every_locale_machine_and_unreviewed_with_honest_provenance() -> None:
-    """committed · five machine entries; the hand-authored four name the model and a manual command version."""
+    """committed · every locale is machine text the operator accepted by name and date, none reviewed by a native speaker; the hand-authored four name the model and a manual command version."""
     entries = load_manifest(LAYOUT.seed_dir / "review.json").locales
+    accepted = {locale: e for locale, e in entries.items() if e.status == "machine_accepted"}
 
     assert set(entries) == set(UI_TARGET_LOCALES)
-    assert all(e.status == "machine" and e.reviewed_by is None and e.reviewed_on is None for e in entries.values())
+    assert all(e.status in {"machine", "machine_accepted"} for e in entries.values())
+    assert all(e.accepted_by == "porcorosso" and e.accepted_on == date(2026, 11, 13) for e in accepted.values())
+    assert set(accepted) == set(UI_TARGET_LOCALES), "the operator accepted every target locale"
+    assert all(e.reviewed_by is None and e.reviewed_on is None for e in entries.values())
     for locale in HAND_AUTHORED:
         assert entries[locale].model == "claude-sonnet-5-5"
         assert entries[locale].command_version.startswith("claude-code-manual-")

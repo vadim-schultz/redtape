@@ -144,15 +144,14 @@ def test_the_committed_manifest_loads_and_names_only_supported_locales() -> None
 
 
 @pytest.mark.parametrize("code", ["tr", "ru", "uk", "pl", "ro"])
-def test_no_committed_locale_can_be_enabled_until_a_native_speaker_review_or_an_operator_acceptance_is_recorded(
+def test_every_committed_locale_is_operator_accepted_and_enables_as_machine_translated(
     db_session: Session, code: str
 ) -> None:
-    """enable_locale · with the committed files and manifest every target locale is complete but refused as machine text."""
+    """enable_locale · with the committed files and manifest every target locale is complete, accepted by the operator and enabled as machine text."""
     seed_supported_locales(db_session)
     seed_ui_translations(db_session)
 
-    with pytest.raises(EnableRefusedError, match="machine.*review"):
-        enable_locale(db_session, code, load_review_manifest())
-
-    assert _enabled(db_session, code) is False
-    assert _machine_translated(db_session, code) is False
+    assert load_review_manifest().locales[code].status == "machine_accepted"
+    assert enable_locale(db_session, code, load_review_manifest()) == 100.0
+    assert _enabled(db_session, code) is True
+    assert _machine_translated(db_session, code) is True
