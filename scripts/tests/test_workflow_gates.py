@@ -35,7 +35,7 @@ def gate(expression, *, event, draft=None, output=None):
     return bool(eval(text, {"__builtins__": {}}, {}))
 
 
-API_JOBS = ["lint-and-test"]
+API_JOBS = ["change-set", "lint-and-test", "migrations"]
 WEB_JOBS = ["lint-format-typecheck-build"]
 
 
@@ -84,6 +84,20 @@ def test_api_python_setup_caches_uv_and_pip_downloads_keyed_on_the_lock_file():
     assert "hashFiles('apps/api/uv.lock')" in cache["with"]["key"]
     assert "~/.cache/uv" in cache["with"]["path"]
     assert "~/.cache/pip" in cache["with"]["path"]
+
+
+def test_migrations_job_runs_only_when_the_change_set_reports_migrations():
+    jobs = load_workflow("api-lint-test.yml")["jobs"]
+    needs = jobs["migrations"]["needs"]
+    assert "change-set" in (needs if isinstance(needs, list) else [needs])
+    assert gate(jobs["migrations"]["if"], event="push", output="true") is True
+    assert gate(jobs["migrations"]["if"], event="push", output="false") is False
+    assert gate(jobs["migrations"]["if"], event="pull_request", draft=False, output="false") is False
+
+
+def test_change_set_job_exposes_the_detect_step_output():
+    jobs = load_workflow("api-lint-test.yml")["jobs"]
+    assert jobs["change-set"]["outputs"]["migrations"] == "${{ steps.detect.outputs.migrations }}"
 
 
 def test_web_npm_cache_is_keyed_on_the_package_lock():

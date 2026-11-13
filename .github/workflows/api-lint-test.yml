@@ -24,6 +24,39 @@ defaults:
     working-directory: apps/api
 
 jobs:
+  # Reports whether the change set touches the migrations; each job rounds up to
+  # a whole billed minute, so this job is kept to one checkout and one script.
+  change-set:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    outputs:
+      migrations: ${{ steps.detect.outputs.migrations }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect migration changes
+        id: detect
+        working-directory: ${{ github.workspace }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then base="$PR_BASE_SHA"; else base="$PUSH_BEFORE_SHA"; fi
+          # HEAD is the merge commit on pull requests, so this diff is the PR's own changes.
+          # A new branch, or a base that a force-push removed, has no commit to diff
+          # against: run the round trip then.
+          if git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            git diff --name-only "$base" HEAD | python3 scripts/ci_change_set.py
+          else
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+          fi
+
   lint-and-test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -68,6 +101,8 @@ jobs:
         run: pytest
 
   migrations:
+    needs: change-set
+    if: needs.change-set.outputs.migrations == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
 
     env:
