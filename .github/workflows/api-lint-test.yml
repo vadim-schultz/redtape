@@ -7,6 +7,8 @@ on:
       - "apps/api/**"
       - ".github/workflows/api-lint-test.yml"
   pull_request:
+    # ready_for_review starts CI when a draft is marked ready; drafts run nothing.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "apps/api/**"
       - ".github/workflows/api-lint-test.yml"
@@ -21,6 +23,7 @@ defaults:
 
 jobs:
   lint-and-test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     env:
