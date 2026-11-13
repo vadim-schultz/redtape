@@ -81,11 +81,24 @@ def render(totals: dict[str, int]) -> str:
     return "\n".join(lines)
 
 
-def warn_if_truncated(runs: list[dict], limit: int) -> None:
-    """Say so on stderr when the listing hit the limit, so older runs may be missing."""
-    if len(runs) >= limit:
+def warn_if_truncated(runs: list[dict], limit: int, since: str) -> None:
+    """Warn on stderr when the listing hit the limit before reaching back to `since`."""
+    hit_limit = len(runs) >= limit
+    if hit_limit and runs[-1]["createdAt"][:10] >= since:
         print(f"warning: only the {limit} most recent runs were read; older runs may be missing",
               file=sys.stderr)
+
+
+UNBILLED_NOTE = (
+    "note: GitHub's run timing reports no billable minutes for these runs, so the total is zero. "
+    "Read the billed figure from the usage report (Settings, Billing and licensing, Usage)."
+)
+
+
+def note_if_unbilled(totals: dict[str, int]) -> None:
+    """Say so when no minutes came back, so a zero is not read as a bill."""
+    if sum(totals.values()) == 0:
+        print(UNBILLED_NOTE, file=sys.stderr)
 
 
 def iso_date(text: str) -> str:
@@ -104,8 +117,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runs = list_runs(args.limit)
-    warn_if_truncated(runs, args.limit)
-    print(render(minutes_by_workflow(runs, args.since)))
+    warn_if_truncated(runs, args.limit, args.since)
+    totals = minutes_by_workflow(runs, args.since)
+    note_if_unbilled(totals)
+    print(render(totals))
     return 0
 
 

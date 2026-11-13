@@ -102,17 +102,48 @@ def test_gha_minutes_reads_timing_from_the_run_endpoint(monkeypatch):
     assert calls == [["api", "repos/{owner}/{repo}/actions/runs/43/timing"]]
 
 
-def test_gha_minutes_prints_each_workflow_and_the_total(monkeypatch, capsys):
+def test_gha_minutes_warns_when_the_listing_may_miss_runs_in_range(capsys):
+    truncated = [run(9, "Web CI", "2026-10-06T09:00:00Z")] * 3
+    gm.warn_if_truncated(truncated, limit=3, since="2026-10-01")
+    assert "may be missing" in capsys.readouterr().err
+
+
+def test_gha_minutes_does_not_warn_when_the_oldest_run_read_is_before_since(capsys):
+    complete = [run(9, "Web CI", "2026-10-06T09:00:00Z"), run(8, "Web CI", "2026-09-20T09:00:00Z")]
+    gm.warn_if_truncated(complete, limit=2, since="2026-10-01")
+    assert capsys.readouterr().err == ""
+
+
+def fake_gh_for(runs, timings):
+    """Serve recorded `gh run list` and `gh api .../timing` responses."""
+
     def fake_gh(args):
         if args[0] == "run":
-            return json.dumps(RUNS)
-        return json.dumps(RECORDED_TIMING[int(args[-1].split("/")[-2])])
+            return json.dumps(runs)
+        return json.dumps(timings[int(args[-1].split("/")[-2])])
 
-    monkeypatch.setattr(gm, "gh", fake_gh)
+    return fake_gh
+
+
+def test_gha_minutes_prints_each_workflow_and_the_total(monkeypatch, capsys):
+    monkeypatch.setattr(gm, "gh", fake_gh_for(RUNS, RECORDED_TIMING))
     assert gm.main(["--since", "2026-10-01"]) == 0
     out = capsys.readouterr().out
     assert "API Lint & Test" in out
     assert out.rstrip().splitlines()[-1].split() == ["5", "total"]
+
+
+def test_gha_minutes_notes_when_timing_reports_no_billable_minutes(monkeypatch, capsys):
+    zero_timing = {run_id: timing(0) for run_id in RECORDED_TIMING}
+    monkeypatch.setattr(gm, "gh", fake_gh_for(RUNS, zero_timing))
+    gm.main(["--since", "2026-10-01"])
+    assert "no billable minutes" in capsys.readouterr().err
+
+
+def test_gha_minutes_stays_quiet_when_minutes_are_billed(monkeypatch, capsys):
+    monkeypatch.setattr(gm, "gh", fake_gh_for(RUNS, RECORDED_TIMING))
+    gm.main(["--since", "2026-10-01"])
+    assert "no billable minutes" not in capsys.readouterr().err
 
 
 def test_gha_minutes_rejects_a_malformed_since_date():
