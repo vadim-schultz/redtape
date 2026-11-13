@@ -44,14 +44,18 @@ class BrowserSpend:
 
     def call(self, action: Callable[[], T], cost_ms: Callable[[T], int]) -> T:
         """Run ``action`` under the budgets; ``cost_ms`` reads its browser milliseconds from the result."""
-        if self._budget.exhausted:
-            raise StopDrain("browser_budget", "the run's browser budget is spent")
-        reserved = self._reserve()
+        reserved = self._begin()
         cost = _Cost(monotonic())
         try:
             return self._run(action, cost_ms, cost)
         finally:
             self._settle(reserved, cost)
+
+    def _begin(self) -> bool:
+        """Refuse a call the run budget has spent; otherwise reserve the estimate and return whether it was booked."""
+        if self._budget.exhausted:
+            raise StopDrain("browser_budget", "the run's browser budget is spent")
+        return self._reserve()
 
     def _reserve(self) -> bool:
         answer = self._guard.reserve("browser_seconds", ESTIMATE_SECONDS)
