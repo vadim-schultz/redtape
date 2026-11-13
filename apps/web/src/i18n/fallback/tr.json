@@ -41,7 +41,18 @@
     "source_role_form": "Form",
     "source_role_issued": "Düzenlenen",
     "source_role_required": "Gerekli",
-    "sources": "Kaynaklar"
+    "sources": "Kaynaklar",
+    "document_title": "Belge içeriği",
+    "document_machine_note": "Makine çevirisidir, hata içerebilir. Geçerli olan Almanca aslıdır.",
+    "document_source_link": "Almanca sayfayı aç",
+    "document_pending": "Bu sayfa çevriliyor. Lütfen daha sonra tekrar bakın.",
+    "document_no_document": "Bu adaya bağlı, metin içeren bir işlem sayfası yok.",
+    "document_candidate_not_found": "Bu aday bulunamadı.",
+    "document_skipped": "Bu sayfa çevrilmedi.",
+    "document_skipped_too_short": "Bu sayfada çevrilecek kadar metin yok.",
+    "document_skipped_not_german": "Bu sayfa Almanca değil, bu yüzden çevrilmedi.",
+    "document_stale": "Almanca asıl metin bu çeviri yapıldıktan sonra değişti.",
+    "document_truncated": "Almanca sayfa çok uzundu, bu yüzden yalnızca başlangıcı çevrildi."
   },
   "common": {
     "back": "Geri",
@@ -79,6 +90,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Actions dakikaları",
+      "budget_azure_translator_chars": "Azure çeviri karakterleri",
       "budget_browser_seconds": "Tarayıcı saniyeleri",
       "budget_exhausted": "Tükendi",
       "budget_neurons": "Yapay zekâ nöronları",
@@ -105,7 +117,9 @@
       "stored_nearly_full": "Neredeyse dolu",
       "stored_of_cap": "{cap} üzerinden {size}",
       "stored_total": "Toplam depolanan",
-      "title": "Artefaktlar"
+      "title": "Artefaktlar",
+      "translator_title": "Azure Çevirmen",
+      "translator_missing": "Yapılandırılmamış: Azure karakter bütçe satırı eksik."
     },
     "auth_unconfigured_body": "Yeniden denemeden önce Supabase'i yapılandırın.",
     "auth_unconfigured_title": "Kimlik doğrulama yapılandırılmamış",
@@ -180,7 +194,13 @@
       "tasks_completed": "Tamamlanan görevler",
       "tasks_failed": "Başarısız görevler",
       "tasks_pending": "Bekleyen görevler",
-      "tasks_total": "Toplam görev"
+      "tasks_total": "Toplam görev",
+      "translation_title": "Dile göre kart çevirisi",
+      "translation_denominator": "Alman kartı olan adaylar: {count}",
+      "translation_error": "Çeviri kapsamı yüklenemedi.",
+      "col_locale": "Dil",
+      "col_translated": "Çevrildi",
+      "col_stale": "Eski"
     },
     "disabled_body": "Discovery yönetimi bu ortamda yapılandırılmamış. Dağıtım yapılandırmasını kontrol edin ve yeniden deneyin.",
     "disabled_title": "Discovery yönetimi devre dışı",
@@ -379,6 +399,7 @@
   "menu": {
     "colour_mode": "Renk modu",
     "documents": "Belgeler",
+    "machine_translated_note": "Makine çevirisi",
     "profile": "Profil"
   },
   "nav": {

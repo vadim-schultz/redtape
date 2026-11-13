@@ -1,6 +1,9 @@
 import { vi } from "vitest";
 
-import { baseCoverage } from "../features/discovery-admin/components/coverage/coverageFixture";
+import {
+  baseCoverage,
+  baseTranslationCoverage,
+} from "../features/discovery-admin/components/coverage/coverageFixture";
 import { mention } from "./discoveryAdminFixtures";
 
 export type AdminApiMode =
@@ -95,6 +98,9 @@ function bodyFor(path: string, mode: AdminApiMode): unknown {
     return paged(rows(service), { summary, limit: 50 });
   }
   if (path.endsWith(`${admin}/coverage`)) return baseCoverage;
+  if (path.endsWith("/api/v1/admin/translations/coverage")) {
+    return baseTranslationCoverage;
+  }
   return { items: [], total: 0, offset: 0, limit: 20 };
 }
 

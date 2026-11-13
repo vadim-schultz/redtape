@@ -40,7 +40,8 @@
   "menu": {
     "profile": "Profil",
     "documents": "Dokumente",
-    "colour_mode": "Farbmodus"
+    "colour_mode": "Farbmodus",
+    "machine_translated_note": "Maschinell übersetzt"
   },
   "auth": {
     "login": "Anmelden",
@@ -115,7 +116,18 @@
     "flow_empty": "Für dieses Dokument sind keine Abhängigkeiten aufgeführt",
     "flow_more": "+{count} weitere, siehe Liste oben",
     "back_to_list": "Zurück zur Liste",
-    "not_found_title": "Kandidat nicht gefunden"
+    "not_found_title": "Kandidat nicht gefunden",
+    "document_title": "Dokumentinhalt",
+    "document_machine_note": "Maschinelle Übersetzung, kann Fehler enthalten. Maßgeblich ist das deutsche Original.",
+    "document_source_link": "Deutsche Seite öffnen",
+    "document_pending": "Diese Seite wird gerade übersetzt. Schau später noch einmal nach.",
+    "document_no_document": "Diesem Kandidaten ist keine Verfahrensseite mit Text zugeordnet.",
+    "document_candidate_not_found": "Dieser Kandidat wurde nicht gefunden.",
+    "document_skipped": "Diese Seite wurde nicht übersetzt.",
+    "document_skipped_too_short": "Diese Seite hat zu wenig Text zum Übersetzen.",
+    "document_skipped_not_german": "Diese Seite ist nicht auf Deutsch, daher wurde sie nicht übersetzt.",
+    "document_stale": "Das deutsche Original hat sich seit dieser Übersetzung geändert.",
+    "document_truncated": "Die deutsche Seite war zu lang, daher ist nur ihr Anfang übersetzt."
   },
   "location": {
     "label": "Ort",
@@ -334,7 +346,13 @@
       "last_run_completed": "Abgeschlossen",
       "last_run_failed": "Fehlgeschlagen",
       "last_run_skipped": "Übersprungen",
-      "last_run_stop": "Stoppgrund"
+      "last_run_stop": "Stoppgrund",
+      "translation_title": "Kartenübersetzung nach Sprache",
+      "translation_denominator": "Kandidaten mit deutscher Karte: {count}",
+      "translation_error": "Die Übersetzungsabdeckung konnte nicht geladen werden.",
+      "col_locale": "Sprache",
+      "col_translated": "Übersetzt",
+      "col_stale": "Veraltet"
     },
     "catalogue": {
       "load_error": "Katalogdaten konnten nicht geladen werden.",
@@ -373,6 +391,7 @@
       "budget_browser_seconds": "Browser-Sekunden",
       "budget_neurons": "KI-Neuronen",
       "budget_actions_minutes": "Actions-Minuten",
+      "budget_azure_translator_chars": "Azure-Übersetzer-Zeichen",
       "budget_stored_bytes": "Gespeicherte Artefakte",
       "col_size": "Größe",
       "col_fetched": "Abgerufen",
@@ -383,7 +402,9 @@
       "stored_nearly_full": "Fast voll",
       "col_resource": "Ressource",
       "col_usage": "Nutzung",
-      "col_status": "Status"
+      "col_status": "Status",
+      "translator_title": "Azure-Übersetzer",
+      "translator_missing": "Nicht konfiguriert: Die Budgetzeile für Azure-Zeichen fehlt."
     }
   },
   "suggest": {

@@ -25,6 +25,11 @@ class TranslationEngine(Protocol):
         """How many units one call may carry and how many calls may be in flight at once."""
         ...
 
+    @property
+    def repairs(self) -> bool:
+        """Whether a unit that fails validation may be sent once more; an engine that cannot repair fails it instead."""
+        ...
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return one result per unit of ``batch`` in order, or raise a :class:`TranslationEngineError`."""
         ...

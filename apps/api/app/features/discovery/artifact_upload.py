@@ -6,6 +6,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Protocol
 from uuid import UUID
 
 from app.features.discovery.artifact_policy import KEEP_LATEST_SNAPSHOTS, extension_for, storage_key
@@ -39,14 +40,29 @@ class UploadOutcome:
     created: bool
 
 
+class SnapshotStoredListener(Protocol):
+    """Told when a new HTML snapshot of a procedure page is stored, so the translations of that page can follow it."""
+
+    def snapshot_stored(self, catalogue_service_id: UUID, artifact_sha256: str) -> None:
+        """React to the stored snapshot ``artifact_sha256`` of ``catalogue_service_id``."""
+
+
+@dataclass(frozen=True, slots=True)
+class UploadPolicy:
+    """What the upload service enforces: the byte cap the artifact storage may reach, and who hears of a new snapshot."""
+
+    max_bytes: int
+    listener: SnapshotStoredListener
+
+
 class ArtifactUploadService:
     """Store worker uploads in the object store and record their metadata."""
 
-    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, *, max_bytes: int) -> None:
-        """Bind the service to ``repository``, an optional ``store`` and the byte cap ``max_bytes``."""
+    def __init__(self, repository: DiscoveryRepository, store: ObjectStore | None, policy: UploadPolicy) -> None:
+        """Bind the service to ``repository``, an optional ``store`` and the ``policy`` it enforces."""
         self._repo = repository
         self._store = store
-        self._max_bytes = max_bytes
+        self._policy = policy
 
     def upload(self, task_id: UUID, upload: ArtifactUpload) -> UploadOutcome:
         """Store ``upload`` for the catalogue row of ``task_id``; an identical artifact returns the existing row."""
@@ -62,13 +78,14 @@ class ArtifactUploadService:
         return UploadOutcome(self._record(store, new), created=True)
 
     def _ensure_headroom(self, incoming: int) -> None:
-        if self._repo.total_artifact_bytes() + incoming > self._max_bytes:
+        if self._repo.total_artifact_bytes() + incoming > self._policy.max_bytes:
             raise StorageCapExceededError("Artifact storage cap reached")
 
     def _record(self, store: ObjectStore, new: NewArtifact) -> DiscoveryArtifact:
         row = self._repo.insert_artifact(new)
         if new.kind is DiscoveryArtifactKind.HTML_SNAPSHOT:
             self._prune(store, new.catalogue_service_id)
+            self._policy.listener.snapshot_stored(new.catalogue_service_id, new.sha256)
         return row
 
     def _prune(self, store: ObjectStore, catalogue_id: UUID) -> None:

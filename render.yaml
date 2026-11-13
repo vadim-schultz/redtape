@@ -48,4 +48,9 @@ services:
       #
       # Free-allocation caps (optional, set in the Render dashboard; defaults are below each allowance):
       # BUDGET_R2_CLASS_A_MONTHLY, BUDGET_R2_CLASS_B_MONTHLY, BUDGET_BROWSER_SECONDS_DAILY, BUDGET_NEURONS_DAILY,
-      # BUDGET_ACTIONS_MINUTES_MONTHLY, ACTIONS_CI_RESERVE_MINUTES and DB_SOFT_LIMIT_BYTES.
+      # BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY (1900000), BUDGET_ACTIONS_MINUTES_MONTHLY, ACTIONS_CI_RESERVE_MINUTES
+      # and DB_SOFT_LIMIT_BYTES. OBJECT_STORE_MAX_BYTES (9500000000) is the same kind of cap.
+      #
+      # Translation (optional; set in the Render dashboard, not here): TRANSLATION_TARGET_LOCALES (default
+      # "en tr ru uk pl ro") and TRANSLATION_UNIT_RECIPE_VERSION (default v1). The Azure key and region are GitHub
+      # secrets, not Render variables. See docs/operations/translation-engines.md.

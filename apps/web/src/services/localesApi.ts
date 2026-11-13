@@ -5,8 +5,11 @@ export type LocaleRow = {
   code: string;
   name_native: string;
   name_english: string;
-  flag_emoji: string;
+  flag_emoji: string | null;
   enabled: boolean;
+  completeness_pct: number;
+  /** True when the strings were machine translated and accepted by an operator (never a tool). */
+  machine_translated: boolean;
 };
 
 /** The supported locales with their `enabled` flag; public, so it needs no sign-in or reader locale. */

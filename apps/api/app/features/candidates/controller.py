@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, Response, get
+from litestar.openapi.datastructures import ResponseSpec
 from litestar.params import Parameter
 from litestar.status_codes import HTTP_304_NOT_MODIFIED
 
@@ -13,9 +14,16 @@ from app.features.candidates.screenshot_service import CACHE_CONTROL, Screenshot
 from app.features.candidates.service import CandidateReadService
 from app.features.discovery.repository import Page
 from app.features.search.rate_limit import SEARCH_RATE_LIMIT
+from app.features.translation.document_read_service import DocumentReply, DocumentTranslationReadService
 from app.features.translation.read_service import CACHE_CONTROL as TRANSLATION_CACHE_CONTROL
 from app.features.translation.read_service import TranslationReadService, TranslationReply
-from app.schema.candidate import CandidateDetail, CandidateListResponse, CandidateTranslationText
+from app.schema.candidate import (
+    CandidateDetail,
+    CandidateListResponse,
+    CandidateTranslationText,
+    DocumentTranslationError,
+    DocumentTranslationRead,
+)
 from app.shared.list_query import ListQuery, provide_list_query
 from app.shared.locale import ResolvedLocale
 from app.shared.paging import PageParams
@@ -35,6 +43,14 @@ def _translation_response(reply: TranslationReply) -> Response[CandidateTranslat
     if reply.text is None:
         return Response(None, status_code=HTTP_304_NOT_MODIFIED, headers=headers)
     return Response(reply.text, headers=headers)
+
+
+def _document_response(reply: DocumentReply) -> Response[DocumentTranslationRead | None]:
+    """Answer 304 without a body when the client copy is current, else 200 with the translated blocks."""
+    headers = {"ETag": reply.etag, "Cache-Control": TRANSLATION_CACHE_CONTROL}
+    if reply.body is None:
+        return Response(None, status_code=HTTP_304_NOT_MODIFIED, headers=headers)
+    return Response(reply.body, headers=headers)
 
 
 class CandidatesController(Controller):
@@ -79,3 +95,20 @@ class CandidatesController(Controller):
     ) -> Response[CandidateTranslationText | None]:
         """Serve the stored translation for the request locale (``?locale=`` or ``Accept-Language``), 304 when current."""
         return _translation_response(translation_read_service.serve(candidate_id, locale.code, if_none_match))
+
+    @get(
+        "/{candidate_id:uuid}/document-translation",
+        sync_to_thread=True,
+        responses={
+            404: ResponseSpec(DocumentTranslationError, description="No blocks: see the code", generate_examples=False)
+        },
+    )
+    def candidate_document_translation(
+        self,
+        document_translation_service: DocumentTranslationReadService,
+        candidate_id: UUID,
+        requested_locale: str = Parameter(query="locale"),
+        if_none_match: str | None = Parameter(header="If-None-Match", default=None),
+    ) -> Response[DocumentTranslationRead | None]:
+        """Serve the translated blocks of the candidate's document in ``?locale=``, 304 when the client copy is current."""
+        return _document_response(document_translation_service.serve(candidate_id, requested_locale, if_none_match))

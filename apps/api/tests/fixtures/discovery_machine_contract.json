@@ -5,7 +5,8 @@
    "r2_class_b",
    "browser_seconds",
    "neurons",
-   "actions_minutes"
+   "actions_minutes",
+   "azure_translator_chars"
   ],
   "DiscoveryArtifactKind": [
    "html_snapshot",
@@ -64,6 +65,23 @@
   "LEGACY_TASK_KINDS": [
    "fetch_url",
    "enrich_metadata"
+  ],
+  "SnapshotAnswer": [
+   "stored",
+   "unchanged",
+   "skipped",
+   "stale",
+   "rejected",
+   "unavailable"
+  ],
+  "SnapshotItemOutcome": [
+   "translated",
+   "unchanged",
+   "skipped"
+  ],
+  "SnapshotSkipReason": [
+   "too_short",
+   "not_german"
   ],
   "StopReason": [
    "queue_empty",
@@ -4092,6 +4110,629 @@
     "type": "object"
    }
   },
+  "snapshot_machine.ClaimedSnapshotTask": {
+   "mode": "serialization",
+   "schema": {
+    "description": "One leased page task: the artifact to read, its hash, and the hash of the text already stored, if any.",
+    "properties": {
+     "artifact_id": {
+      "format": "uuid",
+      "title": "Artifact Id",
+      "type": "string"
+     },
+     "artifact_sha256": {
+      "title": "Artifact Sha256",
+      "type": "string"
+     },
+     "catalogue_service_id": {
+      "format": "uuid",
+      "title": "Catalogue Service Id",
+      "type": "string"
+     },
+     "lease_expires_at": {
+      "format": "date-time",
+      "title": "Lease Expires At",
+      "type": "string"
+     },
+     "locale": {
+      "title": "Locale",
+      "type": "string"
+     },
+     "source_locale": {
+      "const": "de",
+      "default": "de",
+      "title": "Source Locale",
+      "type": "string"
+     },
+     "source_url": {
+      "title": "Source Url",
+      "type": "string"
+     },
+     "stored_source_hash": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stored Source Hash"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "artifact_id",
+     "artifact_sha256",
+     "catalogue_service_id",
+     "lease_expires_at",
+     "locale",
+     "source_locale",
+     "source_url",
+     "stored_source_hash",
+     "task_id"
+    ],
+    "title": "ClaimedSnapshotTask",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotClaimRequest": {
+   "mode": "validation",
+   "schema": {
+    "description": "Claim up to ``limit`` pending snapshot tasks, highest-priority pages first.",
+    "properties": {
+     "limit": {
+      "default": 5,
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+     }
+    },
+    "title": "SnapshotClaimRequest",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotClaimResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ClaimedSnapshotTask": {
+      "description": "One leased page task: the artifact to read, its hash, and the hash of the text already stored, if any.",
+      "properties": {
+       "artifact_id": {
+        "format": "uuid",
+        "title": "Artifact Id",
+        "type": "string"
+       },
+       "artifact_sha256": {
+        "title": "Artifact Sha256",
+        "type": "string"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "lease_expires_at": {
+        "format": "date-time",
+        "title": "Lease Expires At",
+        "type": "string"
+       },
+       "locale": {
+        "title": "Locale",
+        "type": "string"
+       },
+       "source_locale": {
+        "const": "de",
+        "default": "de",
+        "title": "Source Locale",
+        "type": "string"
+       },
+       "source_url": {
+        "title": "Source Url",
+        "type": "string"
+       },
+       "stored_source_hash": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Stored Source Hash"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       }
+      },
+      "required": [
+       "task_id",
+       "catalogue_service_id",
+       "locale",
+       "artifact_id",
+       "artifact_sha256",
+       "source_url",
+       "stored_source_hash",
+       "lease_expires_at"
+      ],
+      "title": "ClaimedSnapshotTask",
+      "type": "object"
+     }
+    },
+    "description": "The snapshot tasks one claim leased.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ClaimedSnapshotTask"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "SnapshotClaimResponse",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotCompleteRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "RowBlock": {
+      "description": "A table row: its cells in source order.",
+      "properties": {
+       "cells": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Cells",
+        "type": "array"
+       },
+       "kind": {
+        "const": "row",
+        "title": "Kind",
+        "type": "string"
+       },
+       "untranslated": {
+        "default": false,
+        "title": "Untranslated",
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "kind",
+       "cells"
+      ],
+      "title": "RowBlock",
+      "type": "object"
+     },
+     "SnapshotCompleteItem": {
+      "description": "The result for one claimed page; its bounds and the presence of its fields are checked per item, not by the schema.\n\nA translated item carries ``blocks``, ``engine`` and ``truncated``; a skipped item carries ``skipped_reason``.",
+      "properties": {
+       "artifact_sha256": {
+        "maxLength": 64,
+        "minLength": 64,
+        "title": "Artifact Sha256",
+        "type": "string"
+       },
+       "blocks": {
+        "anyOf": [
+         {
+          "items": {
+           "discriminator": {
+            "mapping": {
+             "dt": "#/$defs/TextBlock",
+             "h1": "#/$defs/TextBlock",
+             "h2": "#/$defs/TextBlock",
+             "h3": "#/$defs/TextBlock",
+             "h4": "#/$defs/TextBlock",
+             "h5": "#/$defs/TextBlock",
+             "h6": "#/$defs/TextBlock",
+             "li": "#/$defs/TextBlock",
+             "p": "#/$defs/TextBlock",
+             "row": "#/$defs/RowBlock"
+            },
+            "propertyName": "kind"
+           },
+           "oneOf": [
+            {
+             "$ref": "#/$defs/TextBlock"
+            },
+            {
+             "$ref": "#/$defs/RowBlock"
+            }
+           ]
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Blocks"
+       },
+       "engine": {
+        "anyOf": [
+         {
+          "maxLength": 50,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Engine"
+       },
+       "model": {
+        "anyOf": [
+         {
+          "maxLength": 100,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Model"
+       },
+       "outcome": {
+        "$ref": "#/$defs/SnapshotItemOutcome"
+       },
+       "skipped_reason": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/SnapshotSkipReason"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "source_hash": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Source Hash",
+        "type": "string"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       },
+       "truncated": {
+        "default": false,
+        "title": "Truncated",
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "task_id",
+       "artifact_sha256",
+       "source_hash",
+       "outcome"
+      ],
+      "title": "SnapshotCompleteItem",
+      "type": "object"
+     },
+     "SnapshotItemOutcome": {
+      "description": "What a worker reports for one claimed page: translated blocks, unchanged cleaned text, or a skipped page.",
+      "enum": [
+       "translated",
+       "unchanged",
+       "skipped"
+      ],
+      "title": "SnapshotItemOutcome",
+      "type": "string"
+     },
+     "SnapshotSkipReason": {
+      "description": "Why a page is not translated: its cleaned text is too short, or its language is not German.",
+      "enum": [
+       "too_short",
+       "not_german"
+      ],
+      "title": "SnapshotSkipReason",
+      "type": "string"
+     },
+     "TextBlock": {
+      "description": "A block of translated text: a heading, a paragraph, a list item or a definition term.",
+      "properties": {
+       "kind": {
+        "enum": [
+         "h1",
+         "h2",
+         "h3",
+         "h4",
+         "h5",
+         "h6",
+         "p",
+         "li",
+         "dt"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "text": {
+        "title": "Text",
+        "type": "string"
+       },
+       "untranslated": {
+        "default": false,
+        "title": "Untranslated",
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "kind",
+       "text"
+      ],
+      "title": "TextBlock",
+      "type": "object"
+     }
+    },
+    "description": "A batch of page results, at most five, so the body stays under the 2 MiB cap.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/SnapshotCompleteItem"
+      },
+      "maxItems": 5,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "SnapshotCompleteRequest",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotCompleteResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "SnapshotAnswer": {
+      "description": "What completing one item did; ``unavailable`` means the task went back to the queue without an attempt.",
+      "enum": [
+       "stored",
+       "unchanged",
+       "skipped",
+       "stale",
+       "rejected",
+       "unavailable"
+      ],
+      "title": "SnapshotAnswer",
+      "type": "string"
+     },
+     "SnapshotItemResult": {
+      "description": "The answer for one item; ``reason`` explains a stale, rejected or unavailable answer.",
+      "properties": {
+       "outcome": {
+        "$ref": "#/$defs/SnapshotAnswer"
+       },
+       "reason": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Reason"
+       },
+       "task_id": {
+        "format": "uuid",
+        "title": "Task Id",
+        "type": "string"
+       }
+      },
+      "required": [
+       "task_id",
+       "outcome"
+      ],
+      "title": "SnapshotItemResult",
+      "type": "object"
+     }
+    },
+    "description": "One answer per submitted item, in request order.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/SnapshotItemResult"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "SnapshotCompleteResponse",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotItemResult": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "SnapshotAnswer": {
+      "description": "What completing one item did; ``unavailable`` means the task went back to the queue without an attempt.",
+      "enum": [
+       "stored",
+       "unchanged",
+       "skipped",
+       "stale",
+       "rejected",
+       "unavailable"
+      ],
+      "title": "SnapshotAnswer",
+      "type": "string"
+     }
+    },
+    "description": "The answer for one item; ``reason`` explains a stale, rejected or unavailable answer.",
+    "properties": {
+     "outcome": {
+      "$ref": "#/$defs/SnapshotAnswer"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Reason"
+     },
+     "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "outcome",
+     "reason",
+     "task_id"
+    ],
+    "title": "SnapshotItemResult",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotLocaleSummary": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+    "properties": {
+     "claimed": {
+      "title": "Claimed",
+      "type": "integer"
+     },
+     "failed": {
+      "title": "Failed",
+      "type": "integer"
+     },
+     "locale": {
+      "title": "Locale",
+      "type": "string"
+     },
+     "pending_ready": {
+      "title": "Pending Ready",
+      "type": "integer"
+     },
+     "skipped": {
+      "title": "Skipped",
+      "type": "integer"
+     },
+     "stale": {
+      "title": "Stale",
+      "type": "integer"
+     },
+     "translated": {
+      "title": "Translated",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "claimed",
+     "failed",
+     "locale",
+     "pending_ready",
+     "skipped",
+     "stale",
+     "translated"
+    ],
+    "title": "SnapshotLocaleSummary",
+    "type": "object"
+   }
+  },
+  "snapshot_machine.SnapshotSummaryResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "SnapshotLocaleSummary": {
+      "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+      "properties": {
+       "claimed": {
+        "title": "Claimed",
+        "type": "integer"
+       },
+       "failed": {
+        "title": "Failed",
+        "type": "integer"
+       },
+       "locale": {
+        "title": "Locale",
+        "type": "string"
+       },
+       "pending_ready": {
+        "title": "Pending Ready",
+        "type": "integer"
+       },
+       "skipped": {
+        "title": "Skipped",
+        "type": "integer"
+       },
+       "stale": {
+        "title": "Stale",
+        "type": "integer"
+       },
+       "translated": {
+        "title": "Translated",
+        "type": "integer"
+       }
+      },
+      "required": [
+       "locale",
+       "pending_ready",
+       "claimed",
+       "failed",
+       "translated",
+       "stale",
+       "skipped"
+      ],
+      "title": "SnapshotLocaleSummary",
+      "type": "object"
+     }
+    },
+    "description": "Counts per target locale, in the configured order, so a workflow can stop early when nothing is ready.",
+    "properties": {
+     "locales": {
+      "items": {
+       "$ref": "#/$defs/SnapshotLocaleSummary"
+      },
+      "title": "Locales",
+      "type": "array"
+     }
+    },
+    "required": [
+     "locales"
+    ],
+    "title": "SnapshotSummaryResponse",
+    "type": "object"
+   }
+  },
   "taxonomy_read.CrosswalkRead": {
    "mode": "serialization",
    "schema": {
@@ -5162,6 +5803,26 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/runs/{run_id}/finish"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/snapshots/claim"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/snapshots/complete"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/snapshots/fail"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/snapshots/release"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/snapshots/summary"
   },
   {
    "method": "POST",

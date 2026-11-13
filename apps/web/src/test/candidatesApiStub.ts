@@ -35,16 +35,40 @@ export function listCalls(fetchMock: ReturnType<typeof stubCandidatesApi>) {
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
 
-/** Stub `fetch` for one candidate's detail endpoint; every other URL answers 404. */
-export function stubCandidateDetailApi(onDetail: Responder) {
+const DOCUMENT_PATH = /\/api\/v1\/candidates\/[^/]+\/document-translation$/;
+
+/** Stub `fetch` for one candidate's detail endpoint and, when given, its document-translation route; every other URL answers 404. */
+export function stubCandidateDetailApi(
+  onDetail: Responder,
+  onDocument?: Responder,
+) {
   const fetchMock = vi.fn(async (input?: unknown) => {
     const url = new URL(String(input));
     if (/\/api\/v1\/candidates\/[^/]+$/.test(url.pathname))
       return onDetail(url);
+    if (onDocument && DOCUMENT_PATH.test(url.pathname)) return onDocument(url);
     return new Response("", { status: 404 });
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+/** Stub `fetch` for the document-translation endpoint of any candidate; every other URL answers 404. */
+export function stubDocumentTranslationApi(onDocument: Responder) {
+  const fetchMock = vi.fn(async (input?: unknown) => {
+    const url = new URL(String(input));
+    if (DOCUMENT_PATH.test(url.pathname)) return onDocument(url);
+    return new Response("", { status: 404 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+/** The request URLs sent to the document-translation endpoint, oldest first. */
+export function documentCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input)))
+    .filter((url) => DOCUMENT_PATH.test(url.pathname));
 }
 
 /** Stub `fetch` for the stored-translation endpoint of any candidate; every other URL answers 404. */

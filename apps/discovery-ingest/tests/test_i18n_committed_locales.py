@@ -8,12 +8,17 @@ from pathlib import Path
 import pytest
 from discovery_ingest.i18n.files import Layout, read_flat
 from discovery_ingest.i18n.locales import UI_TARGET_LOCALES, allow_unchanged
-from discovery_ingest.i18n.manifest import load_manifest
-from discovery_ingest.i18n.plural import PLURAL_SUFFIX, categories_of, expand_plurals, family_bases
+from discovery_ingest.i18n.manifest import ReviewManifest, load_manifest
+from discovery_ingest.i18n.plural import PLURAL_SUFFIX, categories_of, expand_plurals
 from discovery_ingest.i18n.strings import SourceString, ui_strings
-from discovery_ingest.i18n.validate_ui import interface_findings, plural_forms_complete
+from discovery_ingest.i18n.validate_ui import (
+    indistinct_slavic_families,
+    interface_findings,
+    plural_forms_complete,
+)
 from discovery_ingest.translation.glossary import load_glossary
 from discovery_ingest.translation.validate import validate_text
+from pydantic import ValidationError
 
 LAYOUT = Layout.under(Path(__file__).resolve().parents[3])
 SLAVIC = ("ru", "uk", "pl")
@@ -49,11 +54,6 @@ def _problems(locale: str, flat: Mapping[str, str]) -> list[str]:
     return [*_key_problems(locale, required, flat), *(line for lines in texts for line in lines)]
 
 
-def _indistinct_slavic_families(flat: Mapping[str, str]) -> list[str]:
-    """Return the plural bases whose ``few`` and ``many`` forms are the same text (a form not inflected for the count)."""
-    return sorted(base for base in family_bases(flat) if flat.get(f"{base}_few") == flat.get(f"{base}_many"))
-
-
 @pytest.mark.parametrize("locale", UI_TARGET_LOCALES)
 def test_a_committed_locale_file_is_complete_and_passes_every_interface_validator(locale: str) -> None:
     """committed · every key and plural form is there and no string has a validator finding."""
@@ -84,7 +84,7 @@ def test_every_committed_locale_mirrors_into_the_web_bundle_byte_for_byte(locale
 @pytest.mark.parametrize("locale", SLAVIC)
 def test_few_and_many_forms_of_a_slavic_family_are_inflected_differently(locale: str) -> None:
     """committed · no ru, uk or pl family repeats one form for both few and many (the nominative-everywhere defect)."""
-    assert _indistinct_slavic_families(read_flat(LAYOUT.seed_dir / f"{locale}.json")) == []
+    assert indistinct_slavic_families(read_flat(LAYOUT.seed_dir / f"{locale}.json")) == []
 
 
 def test_a_family_that_repeats_one_form_for_few_and_many_is_found() -> None:
@@ -92,7 +92,7 @@ def test_a_family_that_repeats_one_form_for_few_and_many_is_found() -> None:
     flat = {"n_one": "{count} результат", "n_few": "{count} результаты", "n_many": "{count} результаты"}
     flat |= {"n_other": "{count} результаты", "m_few": "a", "m_many": "b", "m_other": "c", "m_one": "d"}
 
-    assert _indistinct_slavic_families(flat) == ["n"]
+    assert indistinct_slavic_families(flat) == ["n"]
 
 
 AGREEMENT = {
@@ -147,3 +147,28 @@ def test_the_committed_manifest_marks_every_locale_machine_and_unreviewed_with_h
         assert entries[locale].model == "claude-sonnet-5-5"
         assert entries[locale].command_version.startswith("claude-code-manual-")
     assert entries["ru"].command_version == "1"
+
+
+ENGINE_OR_MODEL_NAMES = (
+    "azure-translator",
+    "llm",
+    "claude",
+    "claude-sonnet-5-5",
+    "qwen3-30b-a3b-fp8",
+    "@cf/qwen/qwen3-30b-a3b-fp8",
+)
+
+
+@pytest.mark.parametrize("name", ENGINE_OR_MODEL_NAMES)
+def test_an_engine_or_model_named_as_the_accepting_person_fails_the_honesty_check(name: str) -> None:
+    """committed · a tool is never the reviewer: accepted_by naming an engine or a model is refused when the manifest loads."""
+    entry = {
+        "status": "machine_accepted",
+        "accepted_by": name,
+        "accepted_on": "2026-12-03",
+        "model": "claude-sonnet-5-5",
+        "command_version": "claude-code-manual-1",
+    }
+
+    with pytest.raises(ValidationError, match="must name a person"):
+        ReviewManifest.model_validate({"locales": {"tr": entry}})

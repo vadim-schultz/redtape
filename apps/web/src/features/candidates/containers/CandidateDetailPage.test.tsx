@@ -1,12 +1,19 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { useLocale } from "../../../contexts/LocaleContext";
 import {
   candidateDetailFixture,
+  documentTranslationFixture,
   neighbourFixture,
 } from "../../../test/candidateFixtures";
-import { json, stubCandidateDetailApi } from "../../../test/candidatesApiStub";
+import {
+  documentCalls,
+  json,
+  stubCandidateDetailApi,
+} from "../../../test/candidatesApiStub";
+import { elementCss } from "../../../test/elementCss";
 import { renderWithProviders } from "../../../test/renderWithProviders";
 import CandidateDetailPage from "./CandidateDetailPage";
 
@@ -167,3 +174,128 @@ it.each(BANNER_STATES)(
     ).not.toBeInTheDocument();
   },
 );
+
+const DOCUMENT_TITLE = "Document contents";
+
+it("Accordion · the document item is collapsed and not in the default-open list", async () => {
+  stubCandidateDetailApi(() => json(populated));
+  renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  expect(screen.getByRole("button", { name: DOCUMENT_TITLE })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  expect(screen.getByRole("button", { name: "Flow" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+});
+
+it("Accordion · the item is absent when the interface locale is de", async () => {
+  window.localStorage.setItem("locale", "de");
+  stubCandidateDetailApi(() => json(populated));
+  renderPage();
+
+  expect(
+    await screen.findByRole("button", {
+      name: "Dokumente, die du zuerst brauchst",
+    }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Dokumentinhalt" })).toBeNull();
+});
+
+it("Lazy · no document request before the item is opened; one request after", async () => {
+  const fetchMock = stubCandidateDetailApi(
+    () => json(populated),
+    () => json(documentTranslationFixture()),
+  );
+  const { user } = renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  expect(documentCalls(fetchMock)).toHaveLength(0);
+
+  await user.click(screen.getByRole("button", { name: DOCUMENT_TITLE }));
+  expect(await screen.findByText("Required documents")).toBeVisible();
+  expect(documentCalls(fetchMock)).toHaveLength(1);
+});
+
+it("Lazy · collapsing and reopening within the stale time makes no second request", async () => {
+  const fetchMock = stubCandidateDetailApi(
+    () => json(populated),
+    () => json(documentTranslationFixture()),
+  );
+  const { user } = renderPage();
+  const trigger = await screen.findByRole("button", { name: DOCUMENT_TITLE });
+
+  await user.click(trigger);
+  await screen.findByText("Required documents");
+  await user.click(trigger);
+  await user.click(trigger);
+  await screen.findByText("Required documents");
+
+  expect(documentCalls(fetchMock)).toHaveLength(1);
+});
+
+it("Accessibility · the trigger is keyboard operable and the target is at least 44 px", async () => {
+  stubCandidateDetailApi(
+    () => json(populated),
+    () => json(documentTranslationFixture()),
+  );
+  const { user } = renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  const trigger = screen.getByRole("button", { name: DOCUMENT_TITLE });
+  expect(elementCss(trigger)).toMatch(/min-height:\s*var\(--chakra-sizes-11\)/);
+
+  trigger.focus();
+  await user.keyboard("{Enter}");
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await user.keyboard("{Enter}");
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+function LocaleSwitch() {
+  const { setLocale } = useLocale();
+  return <button onClick={() => setLocale("tr")}>Switch to Turkish</button>;
+}
+
+it("Locale · a switch to another locale refetches for that locale", async () => {
+  const fetchMock = stubCandidateDetailApi(
+    () => json(populated),
+    (url) =>
+      json(
+        documentTranslationFixture({
+          locale: url.searchParams.get("locale") ?? "",
+        }),
+      ),
+  );
+  const { user } = renderWithProviders(
+    <>
+      <LocaleSwitch />
+      <Routes>
+        <Route path="/candidates/:id" element={<CandidateDetailPage />} />
+      </Routes>
+    </>,
+    { initialEntries: ["/candidates/c1"] },
+  );
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  await user.click(screen.getByRole("button", { name: DOCUMENT_TITLE }));
+  await screen.findByText("Required documents");
+  await user.click(screen.getByRole("button", { name: "Switch to Turkish" }));
+
+  // The detail reloads for the new locale, so the accordion starts again from its defaults.
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  await user.click(
+    await screen.findByRole("button", {
+      name: /Document contents|Belge içeriği/,
+    }),
+  );
+
+  await waitFor(() =>
+    expect(
+      documentCalls(fetchMock).map((url) => url.searchParams.get("locale")),
+    ).toContain("tr"),
+  );
+});

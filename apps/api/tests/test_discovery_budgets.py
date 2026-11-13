@@ -120,6 +120,28 @@ def test_actions_minutes_cap_is_the_monthly_cap_minus_the_ci_reserve(db_session:
     assert reserve_over.reserve(BudgetResource.ACTIONS_MINUTES, Decimal(1), NOON).granted is False
 
 
+def test_azure_translator_chars_is_listed_monthly_with_the_configured_cap(db_session: Session) -> None:
+    azure = BudgetResource.AZURE_TRANSLATOR_CHARS
+    rows = {row.resource: row for row in _service(db_session).snapshot(NOON)}
+    tuned = _service(db_session, budget_azure_translator_chars_monthly=500)
+
+    assert (rows[azure].period, rows[azure].cap) == ("2026-10", 1_900_000)
+    assert tuned.status(azure, NOON).cap == 500
+
+
+def test_reserve_on_azure_translator_chars_is_granted_up_to_the_cap_and_denied_past_it(db_session: Session) -> None:
+    azure = BudgetResource.AZURE_TRANSLATOR_CHARS
+    service = _service(db_session, budget_azure_translator_chars_monthly=100)
+
+    first = service.reserve(azure, Decimal(60), NOON)
+    denied = service.reserve(azure, Decimal(41), NOON)
+    last = service.reserve(azure, Decimal(40), NOON)
+
+    assert (first.granted, denied.granted, denied.remaining) == (True, False, Decimal(40))
+    assert (last.granted, last.remaining) == (True, Decimal(0))
+    assert service.status(azure, NOON).used == Decimal(100)
+
+
 RACE_NOW = datetime(2099, 1, 1, 12, 0, tzinfo=UTC)
 
 

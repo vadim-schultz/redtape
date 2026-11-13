@@ -1,0 +1,64 @@
+{
+  "blocks": [
+    {
+      "kind": "h1",
+      "text": "Anträge"
+    },
+    {
+      "kind": "p",
+      "text": "Artikel"
+    },
+    {
+      "kind": "p",
+      "text": "Seite teilen"
+    },
+    {
+      "kind": "p",
+      "text": "Seite drucken"
+    },
+    {
+      "kind": "h2",
+      "text": "Antragsberechtigt sind gemäß § 21 Abs. 2 JuSchG:"
+    },
+    {
+      "kind": "p",
+      "text": "(...) (2) Antragsberechtigt sind das Bundesministerium für Familie, Senioren, Frauen und Jugend, die obersten Landesjugendbehörden, die zentrale Aufsichtsstelle der Länder für den Jugendmedienschutz, die Landesjugendämter, die Jugendämter, die anerkannten Einrichtungen der freiwilligen Selbstkontrolle, die aus Mitteln des Bundes, der Länder oder der Landesmedienanstalten geförderten Internet-Beschwerdestellen sowie für den Antrag auf Streichung aus der Liste auch die in Absatz 7 genannten Personen. (...)"
+    },
+    {
+      "kind": "p",
+      "text": "Hier können Sie über Online-Formulare einen Antrag auf Indizierung stellen. Oder nutzen Sie unser PDF-Formular (nicht barrierefrei) am Seitenende."
+    },
+    {
+      "kind": "p",
+      "text": "Für Internetangebote, die keinem bestimmten Werktyp zugeordnet werden können, wird um die Verwendung des Formulars „Multimediawerke“ gebeten."
+    },
+    {
+      "kind": "li",
+      "text": "Filmwerke (https://www.bzkj.de/bzkj/service/formulare/antrag/media-movie-application-new)"
+    },
+    {
+      "kind": "li",
+      "text": "Spiele (https://www.bzkj.de/bzkj/service/formulare/antrag/media-game-application-new)"
+    },
+    {
+      "kind": "li",
+      "text": "Schriftwerke (https://www.bzkj.de/bzkj/service/formulare/antrag/media-print-application-new)"
+    },
+    {
+      "kind": "li",
+      "text": "Tonwerke (https://www.bzkj.de/bzkj/service/formulare/antrag/media-audio-application-new)"
+    },
+    {
+      "kind": "li",
+      "text": "Multimediawerke (https://www.bzkj.de/bzkj/service/formulare/antrag/media-multimedia-application-new) (z. B. Apps, Webportale, Webshops)"
+    },
+    {
+      "kind": "li",
+      "text": "Sonstige (https://www.bzkj.de/bzkj/service/formulare/antrag/media-other-application-new)"
+    }
+  ],
+  "source_hash": "90432d78c91ccac814777b96b4c56cb2b1886a2265e411e0cef71f8980fb3022",
+  "source_url": "https://www.bzkj.de/bzkj/service/formulare/antrag",
+  "truncated": false,
+  "unit": "snapshot"
+}

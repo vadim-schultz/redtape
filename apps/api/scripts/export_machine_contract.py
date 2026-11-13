@@ -47,6 +47,7 @@ from app.schema.discovery import (
 from app.schema.search import machine as search_machine
 from app.schema.taxonomy import read as taxonomy_read
 from app.schema.translation import machine as translation_machine
+from app.schema.translation import snapshot_machine
 from app.shared.taxonomy.contract_loader import load_contract
 from pydantic import BaseModel
 
@@ -137,6 +138,15 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "translation_machine.TranslationReleaseResponse": (translation_machine.TranslationReleaseResponse, "serialization"),
     "translation_machine.TranslationSummaryResponse": (translation_machine.TranslationSummaryResponse, "serialization"),
     "translation_machine.TranslationLocaleSummary": (translation_machine.TranslationLocaleSummary, "serialization"),
+    # Snapshot page routes: requests validate, responses serialize.
+    "snapshot_machine.SnapshotClaimRequest": (snapshot_machine.SnapshotClaimRequest, "validation"),
+    "snapshot_machine.SnapshotCompleteRequest": (snapshot_machine.SnapshotCompleteRequest, "validation"),
+    "snapshot_machine.ClaimedSnapshotTask": (snapshot_machine.ClaimedSnapshotTask, "serialization"),
+    "snapshot_machine.SnapshotClaimResponse": (snapshot_machine.SnapshotClaimResponse, "serialization"),
+    "snapshot_machine.SnapshotCompleteResponse": (snapshot_machine.SnapshotCompleteResponse, "serialization"),
+    "snapshot_machine.SnapshotItemResult": (snapshot_machine.SnapshotItemResult, "serialization"),
+    "snapshot_machine.SnapshotSummaryResponse": (snapshot_machine.SnapshotSummaryResponse, "serialization"),
+    "snapshot_machine.SnapshotLocaleSummary": (snapshot_machine.SnapshotLocaleSummary, "serialization"),
 }
 """Every model the contract covers, with the mode the wire uses: requests validate, responses serialize."""
 
@@ -159,6 +169,9 @@ ENUMS: dict[str, list[str]] = {
     "LEGACY_TASK_KINDS": [str(kind.value) for kind in LEGACY_TASK_KINDS],
     "EmbeddingOutcome": _values(search_machine.EmbeddingOutcome),
     "TranslationOutcome": _values(translation_machine.TranslationOutcome),
+    "SnapshotAnswer": _values(snapshot_machine.SnapshotAnswer),
+    "SnapshotItemOutcome": _values(snapshot_machine.SnapshotItemOutcome),
+    "SnapshotSkipReason": _values(snapshot_machine.SnapshotSkipReason),
     "WorkTaskStatus": _values(WorkTaskStatus),
     "StopReason": list(get_args(machine.StopReason)),
     "EdgeSkipReason": list(get_args(candidate_edges.EdgeSkipReason)),

@@ -64,6 +64,7 @@ class LlmTranslator:
 
     name = NAME
     usage_unit: UsageUnit = "neurons"
+    repairs = True
 
     def __init__(self, client: LlmClient, *, model: str, max_tokens: int) -> None:
         """Keep the client, the model id (for estimates) and the output limit of one call."""

@@ -7,13 +7,18 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from discovery_ingest.translation.errors import UnusableOutputError
-from discovery_ingest.translation.findings import Finding
+from discovery_ingest.translation.findings import Finding, blocks
 from discovery_ingest.translation.units import Correction, TranslationBatch, TranslationOutcome, TranslationUnit
 from discovery_ingest.translation.validate import validate_unit
 
 
 class Translator(Protocol):
     """Anything that translates a batch: an engine, or an engine under a meter."""
+
+    @property
+    def repairs(self) -> bool:
+        """Whether the engine behind this translator may be asked once more for the units that failed."""
+        ...
 
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return one result per unit of ``batch`` in order, or raise."""
@@ -31,8 +36,8 @@ class Checked:
 
     @property
     def valid(self) -> bool:
-        """Whether the translation keeps every promise the validators check."""
-        return not self.findings
+        """Whether the translation keeps every promise the validators check; advisory findings do not fail it."""
+        return not blocks(self.findings)
 
     def problems(self) -> tuple[str, ...]:
         """Say each broken rule in words, naming the field it was found in."""

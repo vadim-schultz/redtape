@@ -17,6 +17,7 @@ from app.features.locales.router import locales_router
 from app.features.locations.router import locations_router
 from app.features.suggestions.router import suggestions_router
 from app.features.taxonomy.router import taxonomy_router
+from app.features.translation.router import translation_admin_router
 from app.features.voting.router import voting_router
 from app.lifespan import app_lifespan
 from app.middleware.cors import cors_config
@@ -37,6 +38,7 @@ def create_app() -> Litestar:
             candidates_router,
             discovery_admin_router,
             discovery_machine_router,
+            translation_admin_router,
             locations_router,
             suggestions_router,
             taxonomy_router,

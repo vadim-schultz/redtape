@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class LocaleRead(BaseModel):
-    """One enabled locale and its translation completeness."""
+    """One enabled locale, its translation completeness and whether its strings are machine translated."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -16,6 +16,7 @@ class LocaleRead(BaseModel):
     flag_emoji: str | None
     enabled: bool
     completeness_pct: float
+    machine_translated: bool
 
 
 class TranslationBundle(BaseModel):

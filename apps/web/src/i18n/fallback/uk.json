@@ -41,7 +41,18 @@
     "source_role_form": "Форма",
     "source_role_issued": "Виданий",
     "source_role_required": "Обов'язковий",
-    "sources": "Джерела"
+    "sources": "Джерела",
+    "document_title": "Зміст документа",
+    "document_machine_note": "Машинний переклад, може містити помилки. Чинним є німецький оригінал.",
+    "document_source_link": "Відкрити німецьку сторінку",
+    "document_pending": "Цю сторінку перекладають. Поверніться пізніше.",
+    "document_no_document": "До цього кандидата не прив'язано сторінку процедури з текстом.",
+    "document_candidate_not_found": "Цього кандидата не знайдено.",
+    "document_skipped": "Цю сторінку не перекладено.",
+    "document_skipped_too_short": "На цій сторінці замало тексту для перекладу.",
+    "document_skipped_not_german": "Ця сторінка не німецькою мовою, тому її не перекладено.",
+    "document_stale": "Німецький оригінал змінився після створення цього перекладу.",
+    "document_truncated": "Німецька сторінка занадто довга, тому перекладено лише її початок."
   },
   "common": {
     "back": "Назад",
@@ -79,6 +90,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Хвилини Actions",
+      "budget_azure_translator_chars": "Символи Azure Translator",
       "budget_browser_seconds": "Секунди браузера",
       "budget_exhausted": "Вичерпано",
       "budget_neurons": "Нейрони ШІ",
@@ -105,7 +117,9 @@
       "stored_nearly_full": "Майже заповнено",
       "stored_of_cap": "{size} із {cap}",
       "stored_total": "Усього збережено",
-      "title": "Артефакти"
+      "title": "Артефакти",
+      "translator_title": "Перекладач Azure",
+      "translator_missing": "Не налаштовано: немає рядка бюджету символів Azure."
     },
     "auth_unconfigured_body": "Налаштуйте Supabase, перш ніж спробувати ще раз.",
     "auth_unconfigured_title": "Автентифікацію не налаштовано",
@@ -182,7 +196,13 @@
       "tasks_completed": "Завершені завдання",
       "tasks_failed": "Невдалі завдання",
       "tasks_pending": "Завдання в очікуванні",
-      "tasks_total": "Усього завдань"
+      "tasks_total": "Усього завдань",
+      "translation_title": "Переклад карток за мовами",
+      "translation_denominator": "Кандидати з німецькою карткою: {count}",
+      "translation_error": "Не вдалося завантажити покриття перекладів.",
+      "col_locale": "Мова",
+      "col_translated": "Перекладено",
+      "col_stale": "Застаріло"
     },
     "disabled_body": "Адміністрування Discovery не налаштовано в цьому середовищі. Перевірте конфігурацію розгортання та спробуйте ще раз.",
     "disabled_title": "Адміністрування Discovery вимкнено",
@@ -389,6 +409,7 @@
   "menu": {
     "colour_mode": "Кольоровий режим",
     "documents": "Документи",
+    "machine_translated_note": "Машинний переклад",
     "profile": "Профіль"
   },
   "nav": {

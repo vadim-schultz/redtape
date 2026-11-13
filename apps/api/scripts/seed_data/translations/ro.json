@@ -41,7 +41,18 @@
     "source_role_form": "Formular",
     "source_role_issued": "Emis",
     "source_role_required": "Necesar",
-    "sources": "Surse"
+    "sources": "Surse",
+    "document_title": "Conținutul documentului",
+    "document_machine_note": "Traducere automată, poate conține erori. Textul german original este cel autentic.",
+    "document_source_link": "Deschide pagina în germană",
+    "document_pending": "Această pagină este tradusă. Revino mai târziu.",
+    "document_no_document": "Acestui candidat nu i este asociată nicio pagină de procedură cu text.",
+    "document_candidate_not_found": "Acest candidat nu a fost găsit.",
+    "document_skipped": "Această pagină nu a fost tradusă.",
+    "document_skipped_too_short": "Această pagină are prea puțin text pentru a fi tradusă.",
+    "document_skipped_not_german": "Această pagină nu este în germană, așa că nu a fost tradusă.",
+    "document_stale": "Originalul german s-a modificat de la realizarea acestei traduceri.",
+    "document_truncated": "Pagina în germană este prea lungă, așa că s-a tradus doar începutul ei."
   },
   "common": {
     "back": "Înapoi",
@@ -79,6 +90,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Minute Actions",
+      "budget_azure_translator_chars": "Caractere Azure Translator",
       "budget_browser_seconds": "Secunde de browser",
       "budget_exhausted": "Epuizat",
       "budget_neurons": "Neuroni AI",
@@ -105,7 +117,9 @@
       "stored_nearly_full": "Aproape plin",
       "stored_of_cap": "{size} din {cap}",
       "stored_total": "Total stocat",
-      "title": "Artefacte"
+      "title": "Artefacte",
+      "translator_title": "Traducător Azure",
+      "translator_missing": "Neconfigurat: lipsește rândul de buget pentru caracterele Azure."
     },
     "auth_unconfigured_body": "Configurați Supabase înainte de a încerca din nou.",
     "auth_unconfigured_title": "Autentificarea nu este configurată",
@@ -181,7 +195,13 @@
       "tasks_completed": "Sarcini finalizate",
       "tasks_failed": "Sarcini eșuate",
       "tasks_pending": "Sarcini în așteptare",
-      "tasks_total": "Total sarcini"
+      "tasks_total": "Total sarcini",
+      "translation_title": "Traducerea cardurilor pe limbă",
+      "translation_denominator": "Candidați cu card în germană: {count}",
+      "translation_error": "Acoperirea traducerilor nu a putut fi încărcată.",
+      "col_locale": "Limbă",
+      "col_translated": "Tradus",
+      "col_stale": "Învechit"
     },
     "disabled_body": "Administrarea Discovery nu este configurată în acest mediu. Verificați configurația implementării și încercați din nou.",
     "disabled_title": "Administrarea Discovery este dezactivată",
@@ -384,6 +404,7 @@
   "menu": {
     "colour_mode": "Mod de culoare",
     "documents": "Documente",
+    "machine_translated_note": "Traducere automată",
     "profile": "Profil"
   },
   "nav": {

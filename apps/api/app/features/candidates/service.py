@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 from app.features.candidates.card_builder import CardContext, card_for
 from app.features.candidates.detail import Evidence, detail_of
+from app.features.candidates.links import public_url
 from app.features.candidates.repository import CardRow, PublicCandidateFilter, PublicCandidateRepository
 from app.features.candidates.search_plan import SearchPlanner
 from app.features.discovery.errors import CandidateNotFoundError
@@ -16,6 +17,14 @@ from app.features.taxonomy.service import TaxonomyService
 from app.schema.candidate import CandidateDetail, CandidateListResponse
 from app.shared.list_query.errors import InvalidParam, raise_if_any
 from app.shared.locale import ResolvedLocale
+
+
+@dataclass(frozen=True, slots=True)
+class BestMention:
+    """The procedure page behind a candidate's card excerpt, and that page's web link when it has a usable one."""
+
+    catalogue_service_id: UUID
+    source_url: str | None
 
 
 def _ends(edges: Sequence[EdgeRow], candidate_id: UUID) -> list[UUID]:
@@ -55,6 +64,12 @@ class CandidateReadService:
         edges = self._repo.list_candidate_edges(candidate_id)
         context = self._context([candidate_id, *_ends(edges, candidate_id)], locale)
         return detail_of(card_for(row, context), self._evidence(candidate_id, edges), context)
+
+    def best_mention(self, candidate_id: UUID) -> BestMention | None:
+        """Return the page of the mention whose excerpt the card shows, or ``None`` when there is none; 404 when unknown."""
+        self._require_row(candidate_id)
+        row = self._repo.best_descriptions([candidate_id]).get(candidate_id)
+        return None if row is None else BestMention(row.catalogue_service_id, public_url(row.source_url))
 
     def _require_row(self, candidate_id: UUID) -> CardRow:
         row = self._repo.get_card_row(candidate_id)

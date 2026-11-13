@@ -76,9 +76,9 @@ class BatchRun:
         return Checked(item.source, item.translated, (*item.findings, *extra), item.model)
 
     def _repair(self, failed: list[Checked]) -> list[Checked]:
-        """Ask once more for the failed strings; if that request fails too, they stay as they were."""
-        if not failed:
-            return []
+        """Ask once more for the failed strings, if the engine can repair; if that request fails too, they stay as they were."""
+        if not failed or not self._translator.repairs:
+            return failed
         try:
             return self._ask(repair_batch(self._batch, failed))
         except TranslationEngineError:

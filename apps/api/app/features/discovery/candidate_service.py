@@ -67,8 +67,9 @@ class CandidateService:
         prepared = self._prepare(body.items)
         outcomes = [self._record(entry) for entry in prepared]
         candidate_ids = sorted({outcome.candidate_id for outcome in outcomes})
+        pages = sorted({entry.item.catalogue_service_id for entry in prepared})
         self._search_text.refresh_many(candidate_ids)
-        self._translation.enqueue_many(candidate_ids)
+        self._translation.enqueue_many(candidate_ids, pages)
         return _tally(prepared, outcomes)
 
     def _prepare(self, items: list[CandidateMentionItem]) -> list[PreparedMention]:

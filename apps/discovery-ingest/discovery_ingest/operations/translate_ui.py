@@ -1,4 +1,4 @@
-"""``i18n translate-ui``: build the engine and the neuron meter, translate one locale, record it in the manifest."""
+"""``i18n translate-ui``: build the engine and its meter, translate one locale, record it in the manifest."""
 
 from __future__ import annotations
 
@@ -12,18 +12,21 @@ from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiEr
 from discovery_ingest.extract.llm.taxonomy import Taxonomy
 from discovery_ingest.i18n.files import Layout, TranslationFiles
 from discovery_ingest.i18n.locales import allow_unchanged
+from discovery_ingest.i18n.machine_text import MachineTextTranslator
 from discovery_ingest.i18n.manifest import load_manifest, record_generation, save_manifest
 from discovery_ingest.i18n.sources import read_sources
 from discovery_ingest.i18n.translate_ui import BATCH_SIZE, UiJob, UiReport, translate_locale
-from discovery_ingest.operations.translate_drain import build_translation_engine, check_neuron_ledger
+from discovery_ingest.operations.translate_drain import build_translation_engine, check_ledger
+from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.glossary import load_glossary
+from discovery_ingest.translation.meter import UsageMeter
 from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.translation.repair import Translator
 from discovery_ingest.translation.settings import TranslationSettings
-from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome
+from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, UsageUnit
 from discovery_ingest.worker.llm_setup import EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.stop import StopDrain
-from discovery_ingest.worker.translate_meter import MeterPlan, open_run_meter
+from discovery_ingest.worker.translate_meter import MeterPlan, open_run_meter, own_meters_for
 
 UI_MIN_INTERVAL_SECONDS = 1.0
 DEFAULT_NEURON_BUDGET = 3000.0
@@ -43,22 +46,39 @@ class TranslateUiRequest:
 
 @dataclass(frozen=True, slots=True)
 class UiOutcome:
-    """The report of the run and the neurons it spent."""
+    """The report of the run and what it spent: neurons on the daily ledger, characters on the monthly one."""
 
     report: UiReport
     neurons: float
+    characters_used: int = 0
 
     def as_json(self) -> dict[str, object]:
         """Return the report and the spend as one JSON-ready mapping."""
-        return {**asdict(self.report), "neurons": self.neurons}
+        return {**asdict(self.report), "neurons": self.neurons, "characters_used": self.characters_used}
+
+
+def _neurons_of(unit: UsageUnit, meter: UsageMeter | None) -> float:
+    return 0.0 if meter is None or unit != "neurons" else round(meter.used, 1)
+
+
+def _characters_of(unit: UsageUnit, meter: UsageMeter | None) -> int:
+    return 0 if meter is None or unit != "characters" else round(meter.used)
 
 
 class _NothingToSpend:
     """A translator for a day that has no neurons above the floor: the first batch stops the run."""
 
+    repairs = False
+
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Stop the run before any model call."""
         raise StopDrain("llm_budget", "the day's neurons are at or below the floor kept for query embedding")
+
+
+def _translator_for(engine: TranslationEngine, meter: UsageMeter | None) -> Translator:
+    """Return the run's translator: the engine through its meter; a character-billed engine is machine translation."""
+    translator: Translator = _NothingToSpend() if meter is None else MeteredTranslator(engine, meter)
+    return MachineTextTranslator(translator) if engine.usage_unit == "characters" else translator
 
 
 def _record(layout: Layout, report: UiReport) -> None:
@@ -87,7 +107,7 @@ def _job(request: TranslateUiRequest, layout: Layout, client: DiscoveryIngestCli
 def run_translate_ui(
     request: TranslateUiRequest, settings: TranslationSettings, client: DiscoveryIngestClient
 ) -> UiOutcome:
-    """Translate ``request.locale`` through the engine ``settings`` names, charged to the shared neuron ledger.
+    """Translate ``request.locale`` through the engine ``settings`` names, charged to the ledger of the engine's unit.
 
     :class:`~discovery_ingest.worker.llm_setup.LlmSetupError` propagates when the engine cannot start or the ledger
     cannot be read; :class:`~discovery_ingest.translation.meter.NoMeterForUnitError` when no meter fits the engine.
@@ -99,10 +119,11 @@ def run_translate_ui(
     )
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(settings, http, UI_MIN_INTERVAL_SECONDS)
-        check_neuron_ledger(engine, client)
-        plan = MeterPlan(BudgetGuard(client.budget), request.neuron_budget, settings.query_embed_reserve, {})
+        guard = BudgetGuard(client.budget)
+        check_ledger(engine, guard)
+        own = own_meters_for(engine.usage_unit, guard)
+        plan = MeterPlan(guard, request.neuron_budget, settings.query_embed_reserve, own)
         meter = open_run_meter(engine.usage_unit, plan)
-        translator: Translator = _NothingToSpend() if meter is None else MeteredTranslator(engine, meter)
-        report = translate_locale(job, translator, TranslationFiles(layout))
+        report = translate_locale(job, _translator_for(engine, meter), TranslationFiles(layout))
     _record(layout, report)
-    return UiOutcome(report, 0.0 if meter is None else round(meter.used, 1))
+    return UiOutcome(report, _neurons_of(engine.usage_unit, meter), _characters_of(engine.usage_unit, meter))

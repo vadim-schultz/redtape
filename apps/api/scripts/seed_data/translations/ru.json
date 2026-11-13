@@ -41,7 +41,18 @@
     "source_role_form": "Форма",
     "source_role_issued": "Выдано",
     "source_role_required": "Необходимо",
-    "sources": "Источники"
+    "sources": "Источники",
+    "document_title": "Содержание документа",
+    "document_machine_note": "Машинный перевод, может содержать ошибки. Окончательный вариант — немецкий оригинал.",
+    "document_source_link": "Открыть немецкую страницу",
+    "document_pending": "Эта страница переводится. Загляните позже.",
+    "document_no_document": "С этим кандидатом не связана страница процедуры с текстом.",
+    "document_candidate_not_found": "Этот кандидат не найден.",
+    "document_skipped": "Эта страница не переведена.",
+    "document_skipped_too_short": "На этой странице слишком мало текста для перевода.",
+    "document_skipped_not_german": "Эта страница не на немецком языке, поэтому она не переведена.",
+    "document_stale": "Немецкий оригинал изменился после создания этого перевода.",
+    "document_truncated": "Немецкая страница слишком длинная, поэтому переведено только её начало."
   },
   "common": {
     "back": "Назад",
@@ -79,6 +90,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Минуты действий",
+      "budget_azure_translator_chars": "Символы Azure Translator",
       "budget_browser_seconds": "Секунды браузера",
       "budget_exhausted": "Истощено",
       "budget_neurons": "ИИ-нейроны",
@@ -105,7 +117,9 @@
       "stored_nearly_full": "Почти полный",
       "stored_of_cap": "{size} из {cap}",
       "stored_total": "Всего сохранено",
-      "title": "Артефакты"
+      "title": "Артефакты",
+      "translator_title": "Переводчик Azure",
+      "translator_missing": "Не настроено: нет строки бюджета символов Azure."
     },
     "auth_unconfigured_body": "Настройте Supabase, прежде чем попробовать снова.",
     "auth_unconfigured_title": "Аутентификация не настроена",
@@ -182,7 +196,13 @@
       "tasks_completed": "Завершенные задачи",
       "tasks_failed": "Неудачные задачи",
       "tasks_pending": "Ожидающие задачи",
-      "tasks_total": "Всего задач"
+      "tasks_total": "Всего задач",
+      "translation_title": "Перевод карточек по языкам",
+      "translation_denominator": "Кандидаты с немецкой карточкой: {count}",
+      "translation_error": "Не удалось загрузить охват переводов.",
+      "col_locale": "Язык",
+      "col_translated": "Переведено",
+      "col_stale": "Устарело"
     },
     "disabled_body": "Discovery-Administration не настроена в этой среде. Проверьте конфигурацию развертывания и попробуйте снова.",
     "disabled_title": "Discovery-Administration отключена",
@@ -389,6 +409,7 @@
   "menu": {
     "colour_mode": "Цветовой режим",
     "documents": "Документы",
+    "machine_translated_note": "Машинный перевод",
     "profile": "Профиль"
   },
   "nav": {

@@ -6,11 +6,12 @@ thread, through :func:`settle_call`, so the API client and the tally are never s
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from discovery_ingest.translation.errors import TranslationEngineError
-from discovery_ingest.translation.glossary import load_glossary
+from discovery_ingest.translation.glossary import GlossaryMode, load_glossary
 from discovery_ingest.translation.repair import Checked, Translator, check_outcome, repair_once
 from discovery_ingest.translation.units import TranslationBatch, TranslationUnit
 from discovery_ingest.translation_models import ClaimedTranslationTask
@@ -38,10 +39,10 @@ def by_call(tasks: Sequence[ClaimedTranslationTask], units_per_call: int) -> lis
     ]
 
 
-def batch_of(group: Tasks) -> TranslationBatch:
-    """Return the translation request for one call: its units and the glossary of their locale."""
+def batch_of(group: Tasks, mode: GlossaryMode) -> TranslationBatch:
+    """Return the translation request for one call: its units and the glossary of their locale at ``mode``."""
     units = tuple(TranslationUnit(str(task.task_id), task.title, task.description) for task in group)
-    return TranslationBatch(SOURCE_LOCALE, group[0].locale, units, load_glossary(group[0].locale))
+    return TranslationBatch(SOURCE_LOCALE, group[0].locale, units, load_glossary(group[0].locale, mode))
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,14 +58,15 @@ class CallResult:
 
 
 def translate_call(translator: Translator, batch: TranslationBatch) -> CallResult:
-    """Translate ``batch`` in one call, validate it and repair the failed units once.
+    """Translate ``batch`` in one call, validate it and repair the failed units once, if the engine can repair.
 
     An error of the first call propagates: nothing of it is usable. An error of the repair is kept, so the units that
-    were already valid can still be posted.
+    were already valid can still be posted. An engine that cannot repair is not asked again: its invalid units are
+    returned as they are and fail when settled.
     """
     checked = check_outcome(batch, translator.translate(batch))
     failed = [item for item in checked if not item.valid]
-    if not failed:
+    if not failed or not translator.repairs:
         return CallResult(tuple(checked))
     try:
         repaired = repair_once(translator, batch, failed)
@@ -79,12 +81,25 @@ def _with_repairs(checked: list[Checked], repaired: list[Checked]) -> tuple[Chec
     return tuple(by_key.get(item.source.key, item) for item in checked)
 
 
+def _note_advisories(checked: Sequence[Checked]) -> None:
+    """Log each advisory finding: it does not fail its unit, but a glossary miss is never silent."""
+    lines = [
+        f"translation advisory {item.source.key}: {f.check}: {f.detail}"
+        for item in checked
+        for f in item.findings
+        if f.advisory
+    ]
+    for line in lines:
+        print(line, file=sys.stderr)
+
+
 def settle_call(state: BatchState, group: Tasks, answer: CallResult) -> None:
     """Post the valid units of a call, then settle the rest.
 
     A stop is raised, so the rest is released; an error fails the rest with its category; no error fails the invalid
-    units after their repair.
+    units after their repair. Advisory findings of the units are logged first.
     """
+    _note_advisories(answer.checked)
     settler = GroupSettler(state, group)
     settler.post([item for item in answer.checked if item.valid])
     state.tally.repaired += answer.repaired

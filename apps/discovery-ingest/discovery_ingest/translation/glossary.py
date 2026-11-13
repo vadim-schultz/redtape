@@ -10,12 +10,15 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 from pydantic import BaseModel, Field
 
 DATA_DIR: Final = Path(__file__).parent / "glossary_data"
 COMMON_FILE: Final = "_common"
+GlossaryMode = Literal["strict", "advisory"]
+"""``strict``: a glossary finding fails the unit. ``advisory``: it is recorded and the unit passes (TRANSLATION_GLOSSARY_MODE)."""
+DEFAULT_GLOSSARY_MODE: Final[GlossaryMode] = "strict"
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,10 +31,14 @@ class GlossaryEntry:
 
 @dataclass(frozen=True, slots=True)
 class Glossary:
-    """Terms with a fixed rendering, and terms (proper nouns, agencies, law abbreviations) that stay as written."""
+    """Terms with a fixed rendering, and terms (proper nouns, agencies, law abbreviations) that stay as written.
+
+    ``mode`` says whether a finding of adherence fails the unit (strict) or is only recorded (advisory).
+    """
 
     terms: tuple[GlossaryEntry, ...] = ()
     keep: tuple[str, ...] = ()
+    mode: GlossaryMode = DEFAULT_GLOSSARY_MODE
 
 
 class UnknownGlossaryError(LookupError):
@@ -52,9 +59,9 @@ def _read(name: str) -> GlossaryFile:
     return GlossaryFile.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
 
-@lru_cache(maxsize=16)
-def load_glossary(locale: str) -> Glossary:
-    """Return the glossary of ``locale``: its own terms and the shared plus its own do-not-translate list."""
+@lru_cache(maxsize=32)
+def load_glossary(locale: str, mode: GlossaryMode = DEFAULT_GLOSSARY_MODE) -> Glossary:
+    """Return the glossary of ``locale`` at ``mode``: its own terms and the shared plus its own do-not-translate list."""
     own, common = _read(locale), _read(COMMON_FILE)
     terms = tuple(GlossaryEntry(source, rendering) for source, rendering in own.terms.items())
-    return Glossary(terms=terms, keep=tuple(dict.fromkeys([*common.keep, *own.keep])))
+    return Glossary(terms=terms, keep=tuple(dict.fromkeys([*common.keep, *own.keep])), mode=mode)

@@ -1,4 +1,8 @@
-import type { DiscoveryCoverageResponse, DiscoveryRun } from "../../types";
+import type {
+  DiscoveryCoverageResponse,
+  DiscoveryRun,
+  TranslationCoverageResponse,
+} from "../../types";
 
 /** A populated coverage response shared by the summary, table and page tests. */
 export const baseCoverage: DiscoveryCoverageResponse = {
@@ -66,4 +70,27 @@ export const finishedRun: DiscoveryRun = {
   remaining_count: null,
   stop_reason: "batch_limit",
   error_detail: null,
+};
+
+/** A populated per-locale translation coverage response for the translation route in the page tests. */
+export const baseTranslationCoverage: TranslationCoverageResponse = {
+  denominator: 3,
+  locales: [
+    {
+      locale: "en",
+      translated: 2,
+      stale: 0,
+      pending: 1,
+      claimed: 0,
+      failed: 0,
+    },
+    {
+      locale: "tr",
+      translated: 0,
+      stale: 0,
+      pending: 0,
+      claimed: 0,
+      failed: 0,
+    },
+  ],
 };

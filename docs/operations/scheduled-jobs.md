@@ -92,8 +92,9 @@ never printed; the same token serves `discovery-llm.yml`).
 
 **The translation drain workflow.** `discovery-translate.yml` (search-first, chapter 15) runs `translate drain`: it claims
 the translation tasks that the API queues for each candidate card (title and description) and target locale, translates
-them with the engine in `TRANSLATION_ENGINE` (default `llm`: Workers AI, `@cf/qwen/qwen3-30b-a3b-fp8`, decision D13),
-checks them, repairs failures once and posts the text, which the API stores in R2. It has its own queue and summary route
+them with the engine in `TRANSLATION_ENGINE` (default `azure-translator`: Azure AI Translator; `llm` is the Workers AI rollback,
+`@cf/qwen/qwen3-30b-a3b-fp8`; see [translation-engines.md](translation-engines.md)), checks them, repairs failures once where
+the engine can repair (`llm`; Azure cannot, so an invalid unit fails) and posts the text, which the API stores in R2. It has its own queue and summary route
 (`GET /translations/summary`). Schedule: **17:10 UTC once a day**, only when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`:
 after the 06:10 embed drain and the discovery drains of the same day, and an hour before the 18:10 embed drain, which
 embeds the fresh translations. Manual dispatch always works. Dispatch inputs: `max_tasks` (10), `max_batches` (60),
@@ -103,9 +104,36 @@ precheck (under 20 Actions minutes, or no more than 100 neurons above the query-
 `discovery-pipeline`, fails only when the report's `succeeded` is false, and reports its minutes in an `if: always()`
 step. **The floor.** The drain never takes the day's neuron ledger below `QUERY_EMBED_RESERVE` (repository variable,
 default 1000, a whole number), so request-time query embedding (about 0.1 neuron a query) always has neurons; a run
-that would breach it stops `llm_budget`. Secrets: the same four as the embed drain (`DISCOVERY_API_URL`,
-`DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_API_TOKEN`; the Workers AI token is never printed). A
-different engine is one repository variable (`TRANSLATION_ENGINE`) plus its own secret in the workflow `env`.
+that would breach it stops `llm_budget`. Secrets: `DISCOVERY_API_URL` and `DISCOVERY_API_KEY` always, and the Workers AI
+pair `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN` only for `llm` (the token is never printed). The engine is one
+repository variable (`TRANSLATION_ENGINE`, unset means `azure-translator`). For **Azure AI Translator** (`azure-translator`),
+the job reads three secrets from the `discovery-translate` GitHub environment: `AZURE_TRANSLATOR_KEY` and
+`AZURE_TRANSLATOR_REGION` (both required) and `AZURE_TRANSLATOR_ENDPOINT` (optional; unset means the global host). They reach
+the job when the engine is `azure-translator`, which is also the default. The job then fails at its first check, naming the
+secret, when the key or the region is missing. Its budget precheck is `budget show --require-remaining
+azure_translator_chars=<AZURE_TRANSLATOR_MIN_REMAINING_CHARS>`: with fewer characters left this month, the job skips without
+failing. The neuron floor applies to `llm` only. `TRANSLATION_GLOSSARY_MODE` (`strict` by default) says whether a glossary
+miss on a card fails the card (`strict`) or is logged while the card is posted (`advisory`). Interface strings stay strict.
+
+**The snapshot translation job.** The `snapshot-drain` job of `discovery-translate.yml` runs `translate drain --unit
+snapshot` after the card drain, in the same group. It translates the text of procedure pages with `azure-translator`,
+whatever `TRANSLATION_ENGINE` says, and reads the Azure key, region and endpoint from the same environment. Its prechecks are
+`actions_minutes` (20 minutes) and `azure_translator_chars` (`AZURE_TRANSLATOR_MIN_REMAINING_CHARS`); it also skips when no
+page is ready. Documents keep to `AZURE_DOCUMENT_BUDGET_SHARE` (default 0.6) of the monthly cap, so cards keep the rest. It runs
+only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`, which is off by default and applies to manual dispatch too. Up to five
+pages a claim, 60 claims and 600 seconds a run. The backfill, the first manual drain and the rollback are in
+[translation-engines.md](translation-engines.md).
+
+**The Azure probe (operator, manual, never in CI).** With the key in the shell and never committed, run from
+`apps/discovery-ingest`: `python -m discovery_ingest translate probe --engine azure-translator --units <sample.json> --report
+<report.json>`. It translates every target locale through the production adapter and spends at most `--max-usage` characters
+(10,000 by default). The sample is about 20 German card units exported from production and reviewed. It is read from
+`tests/fixtures/azure_probe_units.json` unless `--units` names another file; the repository holds no copy, and the command
+refuses to run without one. The report is one JSON object: per locale the valid share, glossary findings, placeholder and
+token survival, billed and estimated characters; whether HTML tags are billed; the throttle answers; and
+`recommended_glossary_mode`, which is `strict` only when every locale reaches 90% valid units. Record that mode in the run
+ledger, then set `TRANSLATION_GLOSSARY_MODE` to match. The steps, the record of the data-processing decision and the
+glossary rule are in [translation-engines.md](translation-engines.md#probe-operator-manual-never-in-ci).
 
 **Concurrency.** All seven drains share the group `discovery-pipeline` with `cancel-in-progress: false`, so they never
 overlap. GitHub keeps one pending run per group, so a later queued run cancels the older pending one.
@@ -119,7 +147,8 @@ step (`if: always()`) adds the elapsed minutes, rounded up, plus one.
 | `actions_minutes` | month | 1,000 (2,000 minus the 1,000 CI reserve) | Drain workflows, through `budget report-minutes`. `discovery-drain.yml` skips under 30 minutes left; the other four skip under 20 |
 | `browser_seconds` | day | 570 | Browser drains (`discovery-render.yml`, `discovery-screenshot.yml`). Both skip under 30 seconds left |
 | `r2_class_a`, `r2_class_b` | month | 950,000 and 9,500,000 | The metered object store in the API |
-| `neurons` | day | 9,500 | `llm_extract` drains, `embed drain` (1,075 neurons per million input tokens, reserved at characters / 3), `translate drain` (about 10 to 13 neurons per card, never below the `QUERY_EMBED_RESERVE` floor) and `llm eval`, through reserve and settle. `llm probe` bypasses the ledger, and Cloudflare's own 10,000-neuron allocation counts every use on the account, so a provider 429 can come before the ledger is spent. The drain skips under 300 neurons left |
+| `neurons` | day | 9,500 | `llm_extract` drains, `embed drain` (1,075 neurons per million input tokens, reserved at characters / 3), `translate drain` on `llm` (about 10 to 13 neurons per card, never below the `QUERY_EMBED_RESERVE` floor) and `llm eval`, through reserve and settle. `llm probe` bypasses the ledger, and Cloudflare's own 10,000-neuron allocation counts every use on the account, so a provider 429 can come before the ledger is spent. The drain skips under 300 neurons left |
+| `azure_translator_chars` | month | 1,900,000 | Azure AI Translator (free tier F0 2 million characters). The card, snapshot and interface-string drains reserve before each call and settle to the characters Azure reports. Documents may use `AZURE_DOCUMENT_BUDGET_SHARE` (0.6) of it; see [translation-engines.md](translation-engines.md) |
 
 Caps are API settings (`BUDGET_*`, `ACTIONS_CI_RESERVE_MINUTES`, `DB_SOFT_LIMIT_BYTES`), listed in
 [deployment-checklist.md](deployment-checklist.md). Show the ledger with `python -m discovery_ingest budget show`
@@ -144,9 +173,13 @@ Set these under **Settings → Secrets and variables → Actions → Variables**
 | `DISCOVERY_EXTRACT_SCHEDULE` | Set to `enabled` to turn on the daily `extract_page` drain. Any other value leaves only manual dispatch. |
 | `DISCOVERY_LLM_SCHEDULE` | Set to `enabled` to turn on the daily `llm_extract` drain. Keep it unset until the extraction live gate passed and the monthly Actions allowance has room; delete it to pause (manual dispatch keeps working). |
 | `DISCOVERY_EMBED_SCHEDULE` | Set to `enabled` to turn on the twice-daily `embed drain`. Set it only after the search-text backfill (chapter 4) has queued the tasks and the API has `EMBEDDING_MODEL` at its default or the same value as the workers. Any other value leaves only manual dispatch. |
-| `DISCOVERY_TRANSLATE_SCHEDULE` | Set to `enabled` to turn on the daily `translate drain`. Set it only after the C14 backfill has queued tasks, `TRANSLATION_TARGET_LOCALES` is narrowed on Render and in the plan, and the API has its R2 object-store variables (without them every `complete` answers `unavailable`). Any other value leaves only manual dispatch. |
-| `QUERY_EMBED_RESERVE` | Neurons of the day's ledger the translate drain leaves for query embedding (a whole number; unset means 1000). |
-| `TRANSLATION_ENGINE` | The registered engine the translate drain uses; unset means `llm`. |
+| `DISCOVERY_TRANSLATE_SCHEDULE` | Set to `enabled` to turn on the daily `translate drain`. Set it only after `backfill_translations.py` has queued the card tasks, and the API has its R2 object-store variables (without them every `complete` answers `unavailable`). Narrowing `TRANSLATION_TARGET_LOCALES` on Render is the lever if the monthly characters run short. Any other value leaves only manual dispatch. |
+| `QUERY_EMBED_RESERVE` | `llm` only: neurons of the day's ledger the translate drain leaves for query embedding (a whole number; unset means 1000). |
+| `TRANSLATION_ENGINE` | The registered engine the translate drain and `translate-ui` use; unset means `azure-translator`. Set `llm` to roll back to Workers AI (see [translation-engines.md](translation-engines.md)). |
+| `TRANSLATION_GLOSSARY_MODE` | `strict` (unset) or `advisory`: how a glossary miss on a card counts. Any other value fails the drain at settings load. Set it from the probe's `recommended_glossary_mode`. |
+| `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` | Characters of `azure_translator_chars` that must remain this month before an `azure-translator` drain starts (a whole number; unset means 20000). |
+| `AZURE_DOCUMENT_BUDGET_SHARE` | The share of the monthly character cap that snapshot pages may use, from 0 to 1 (unset means 0.6). The rest stays for cards and interface strings. A value outside 0 to 1 fails the snapshot drain at load. |
+| `SNAPSHOT_TRANSLATE_SCHEDULE` | Set to `enabled` to turn on the snapshot translation job, after one inspected manual drain. Any other value leaves it off, including on manual dispatch. |
 | `DISCOVERY_SCREENSHOT_SCHEDULE` | Set to `enabled` to turn on the daily `capture_screenshot` drain. Any other value leaves only manual dispatch. |
 | `DISCOVERY_LLM_MODEL` | The Workers AI model id a scheduled run extracts with (a model with a price row). Unset means a scheduled run skips. |
 

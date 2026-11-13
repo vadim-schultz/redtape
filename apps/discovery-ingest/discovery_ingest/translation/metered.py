@@ -13,9 +13,9 @@ from discovery_ingest.worker.stop import StopDrain
 
 DENIAL_TEXT = {
     "run_budget": "the run's usage budget is used up",
-    "ledger": "the day's usage ledger is used up",
+    "ledger": "the usage ledger has no room left for this call",
     "ledger_unavailable": "the usage ledger did not answer",
-    "floor": "the usage kept for query embedding would be used",
+    "floor": "the usage kept for other work would be used",
 }
 
 
@@ -26,6 +26,11 @@ class MeteredTranslator:
         """Keep the engine and the meter chosen for its usage unit."""
         self._engine = engine
         self._meter = meter
+
+    @property
+    def repairs(self) -> bool:
+        """The engine's declaration, unchanged: metering never decides whether a unit is repaired."""
+        return self._engine.repairs
 
     def translate(self, batch: TranslationBatch) -> TranslationOutcome:
         """Return the outcome; raise :class:`StopDrain` when the meter denies the call or the provider stops it."""

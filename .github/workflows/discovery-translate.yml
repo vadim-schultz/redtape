@@ -25,7 +25,7 @@ on:
         default: "600"
         type: string
       neuron_budget:
-        description: "Neurons this run may spend (about 10 to 13 per card; the day allows 9500, and QUERY_EMBED_RESERVE stays untouched)"
+        description: "llm only: neurons this run may spend (about 10 to 13 per card; the day allows 9500, and QUERY_EMBED_RESERVE stays untouched). azure-translator ignores it: its characters are bounded by the monthly ledger"
         required: false
         default: "2500"
         type: string
@@ -44,12 +44,20 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || vars.DISCOVERY_TRANSLATE_SCHEDULE == 'enabled'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The engine is TRANSLATION_ENGINE, and azure-translator when it is unset (chapter 16). Each engine's secrets reach the
+    # job only when that engine runs: the Workers AI pair for llm (the rollback), the Azure trio for azure-translator.
+    environment: discovery-translate
     env:
       DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
       DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
-      TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'llm' }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.TRANSLATION_ENGINE == 'llm' && secrets.CLOUDFLARE_ACCOUNT_ID || '' }}
+      CLOUDFLARE_AI_API_TOKEN: ${{ vars.TRANSLATION_ENGINE == 'llm' && secrets.CLOUDFLARE_AI_API_TOKEN || '' }}
+      AZURE_TRANSLATOR_KEY: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_KEY || '' }}
+      AZURE_TRANSLATOR_REGION: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_REGION || '' }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
+      TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'azure-translator' }}
+      TRANSLATION_GLOSSARY_MODE: ${{ vars.TRANSLATION_GLOSSARY_MODE || 'strict' }}
+      AZURE_TRANSLATOR_MIN_REMAINING_CHARS: ${{ vars.AZURE_TRANSLATOR_MIN_REMAINING_CHARS || '20000' }}
       QUERY_EMBED_RESERVE: ${{ vars.QUERY_EMBED_RESERVE || '1000' }}
       MAX_TASKS: ${{ inputs.max_tasks || '10' }}
       MAX_BATCHES: ${{ inputs.max_batches || '60' }}
@@ -75,18 +83,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Check the Actions minutes and the neurons budgets
+      - name: Check the Azure Translator secrets
+        if: env.TRANSLATION_ENGINE == 'azure-translator'
+        run: |
+          # A secret that is not set fails the job here, naming the secret but never its value. A silent skip would hide
+          # a misconfigured engine.
+          for name in AZURE_TRANSLATOR_KEY AZURE_TRANSLATOR_REGION; do
+            if [ -z "${!name}" ]; then
+              echo "::error::TRANSLATION_ENGINE is azure-translator, but the ${name} secret is not set in the discovery-translate environment"
+              exit 1
+            fi
+          done
+
+      - name: Check the Actions minutes and the budget of the engine
         id: budget
         run: |
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or no more than
-          # 100 neurons above the floor kept for query embedding (QUERY_EMBED_RESERVE, a whole number); skip the drain
-          # without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to start
-          # without a readable one.
+          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes), or the engine's own
+          # budget is short: llm needs more than 100 neurons above the floor kept for query embedding (QUERY_EMBED_RESERVE,
+          # a whole number); azure-translator needs AZURE_TRANSLATOR_MIN_REMAINING_CHARS characters left this month. Skip
+          # the drain without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to
+          # start without a readable one.
+          case "${TRANSLATION_ENGINE}" in
+            llm) engine_check=(--resource neurons --require-remaining "neurons=$(( QUERY_EMBED_RESERVE + 100 ))") ;;
+            azure-translator) engine_check=(--resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}") ;;
+            *) engine_check=() ;;
+          esac
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource neurons --require-remaining actions_minutes=20 --require-remaining neurons=$(( QUERY_EMBED_RESERVE + 100 )) || code=$?
+          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=20 "${engine_check[@]}" || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery translate skipped: the Actions minutes or the neurons above the query-embedding floor are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery translate skipped: the Actions minutes or the ${TRANSLATION_ENGINE} budget are used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"
@@ -140,6 +166,131 @@ jobs:
           # batch_limit and queue_empty all succeed; only an infrastructure error (a rejected token, an API failure)
           # sets succeeded to false.
           python -c "import json,sys; sys.exit(0 if json.load(open('drain-report.json')).get('succeeded') else 1)"
+
+      - name: Report Actions minutes to the budget ledger
+        if: always()
+        continue-on-error: true
+        run: |
+          # Whole minutes since the first step, rounded up, plus one for runner setup and rounding.
+          started="${DRAIN_STARTED_AT:-$(date +%s)}"
+          elapsed=$(( $(date +%s) - started ))
+          minutes=$(( (elapsed + 59) / 60 + 1 ))
+          python -m discovery_ingest budget report-minutes --minutes "${minutes}"
+
+  # Snapshot pages (azure-translation chapter 11). The job runs after the card drain, in the same discovery-pipeline group,
+  # and only when the repository variable SNAPSHOT_TRANSLATE_SCHEDULE is "enabled". It is off by default, and it stays off
+  # until the operator has inspected one manual run.
+  snapshot-drain:
+    name: Drain snapshot translation pages
+    needs: drain
+    if: always() && vars.SNAPSHOT_TRANSLATE_SCHEDULE == 'enabled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # The Azure secrets live in this environment; this job always runs on azure-translator.
+    environment: discovery-translate
+    env:
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      AZURE_TRANSLATOR_KEY: ${{ secrets.AZURE_TRANSLATOR_KEY }}
+      AZURE_TRANSLATOR_REGION: ${{ secrets.AZURE_TRANSLATOR_REGION }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
+      AZURE_DOCUMENT_BUDGET_SHARE: ${{ vars.AZURE_DOCUMENT_BUDGET_SHARE || '0.6' }}
+      AZURE_TRANSLATOR_MIN_REMAINING_CHARS: ${{ vars.AZURE_TRANSLATOR_MIN_REMAINING_CHARS || '20000' }}
+      MAX_BATCHES: "60"
+      TIME_BUDGET_SECONDS: "600"
+    steps:
+      - name: Record the job start time
+        run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Check the Azure Translator secrets
+        run: |
+          # A secret that is not set fails the job here, naming the secret but never its value.
+          for name in AZURE_TRANSLATOR_KEY AZURE_TRANSLATOR_REGION; do
+            if [ -z "${!name}" ]; then
+              echo "::error::the ${name} secret is not set in the discovery-translate environment"
+              exit 1
+            fi
+          done
+
+      - name: Check the Actions minutes and the character budget
+        id: budget
+        run: |
+          # Exit 3 means the ledger has fewer Actions minutes than this job may use, or fewer characters than
+          # AZURE_TRANSLATOR_MIN_REMAINING_CHARS left this month. Skip the drain without failing the run. An unreachable
+          # ledger lets the job go on, and the drain itself refuses to claim without a readable one.
+          code=0
+          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=20 --resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}" || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Snapshot translate skipped: the Actions minutes or the Azure character budget are used up" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
+      - name: Wait for Render API health
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Skip when no snapshot page is ready
+        id: queue
+        if: steps.budget.outputs.skip != 'true'
+        run: |
+          # Exit 3 means GET /snapshots/summary reports pending_ready = 0 in every locale: nothing to translate, so the
+          # drain step and its Actions minutes are saved. Any other failure fails the job.
+          code=0
+          python -m discovery_ingest translate summary --unit snapshot --require-pending || code=$?
+          if [ "${code}" -eq 3 ]; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            echo "### Snapshot translate skipped: nothing to translate (no snapshot page is ready)" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          exit "${code}"
+
+      - name: Drain snapshot translation pages
+        if: steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest translate drain --unit snapshot --max-tasks 5 --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" | tee snapshot-drain-report.json
+
+      - name: Write snapshot translation drain report to job summary
+        if: always() && steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          if [ -s snapshot-drain-report.json ]; then
+            {
+              echo "### Snapshot translation drain report"
+              echo
+              echo '```json'
+              cat snapshot-drain-report.json
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "### Snapshot translation drain report" >> "${GITHUB_STEP_SUMMARY}"
+            echo "No report was produced; see the drain step log." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Fail the job when the snapshot drain did not succeed
+        if: steps.budget.outputs.skip != 'true' && steps.queue.outputs.skip != 'true'
+        run: |
+          # llm_budget (the documents' share is used up), llm_quota (403001) and the other stops all succeed; only an
+          # infrastructure error (a rejected key, an API failure) sets succeeded to false.
+          python -c "import json,sys; sys.exit(0 if json.load(open('snapshot-drain-report.json')).get('succeeded') else 1)"
 
       - name: Report Actions minutes to the budget ledger
         if: always()

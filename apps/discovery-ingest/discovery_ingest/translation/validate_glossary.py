@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
+from typing import Final
 
-from discovery_ingest.translation.findings import Check
+from discovery_ingest.translation.findings import Check, Finding
 from discovery_ingest.translation.glossary import Glossary
+
+GLOSSARY_CHECK: Final = "glossary"
 
 
 def _stem(word: str) -> str:
@@ -37,3 +40,9 @@ def glossary_adherence(glossary: Glossary) -> Check:
         return "; ".join(problems) or None
 
     return check
+
+
+def glossary_findings(source: str, translated: str, glossary: Glossary) -> list[Finding]:
+    """Return the adherence finding of one text, advisory when the glossary is in advisory mode; none when it adheres."""
+    detail = glossary_adherence(glossary)(source, translated)
+    return [Finding(GLOSSARY_CHECK, "text", detail, advisory=glossary.mode == "advisory")] if detail else []

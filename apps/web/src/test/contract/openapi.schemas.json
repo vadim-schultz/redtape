@@ -2470,6 +2470,61 @@
     "title": "ClaimedEmbeddingTask",
     "type": "object"
   },
+  "ClaimedSnapshotTask": {
+    "properties": {
+      "artifact_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "artifact_sha256": {
+        "type": "string"
+      },
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "lease_expires_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "source_locale": {
+        "const": "de",
+        "default": "de",
+        "type": "string"
+      },
+      "source_url": {
+        "type": "string"
+      },
+      "stored_source_hash": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "artifact_id",
+      "artifact_sha256",
+      "catalogue_service_id",
+      "lease_expires_at",
+      "locale",
+      "source_url",
+      "task_id"
+    ],
+    "title": "ClaimedSnapshotTask",
+    "type": "object"
+  },
   "ClaimedTaskRead": {
     "properties": {
       "artifact_id": {
@@ -3092,6 +3147,83 @@
       "title"
     ],
     "title": "DocumentSummary",
+    "type": "object"
+  },
+  "DocumentTranslationCode": {
+    "description": "Why a candidate's document has no blocks to show: the 404 answers of the document route.",
+    "enum": [
+      "candidate_not_found",
+      "no_document",
+      "translation_pending",
+      "skipped"
+    ],
+    "title": "DocumentTranslationCode",
+    "type": "string"
+  },
+  "DocumentTranslationError": {
+    "properties": {
+      "code": {
+        "$ref": "#/components/schemas/DocumentTranslationCode"
+      },
+      "reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "title": "DocumentTranslationError",
+    "type": "object"
+  },
+  "DocumentTranslationRead": {
+    "properties": {
+      "blocks": {
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/TextBlock"
+            },
+            {
+              "$ref": "#/components/schemas/RowBlock"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "source_url": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "stale": {
+        "type": "boolean"
+      },
+      "truncated": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "blocks",
+      "locale",
+      "stale",
+      "truncated"
+    ],
+    "title": "DocumentTranslationRead",
     "type": "object"
   },
   "EdgeSkip": {
@@ -3777,6 +3909,9 @@
           }
         ]
       },
+      "machine_translated": {
+        "type": "boolean"
+      },
       "name_english": {
         "type": "string"
       },
@@ -3788,6 +3923,7 @@
       "code",
       "completeness_pct",
       "enabled",
+      "machine_translated",
       "name_english",
       "name_native"
     ],
@@ -4239,6 +4375,30 @@
     "title": "RequirementRead",
     "type": "object"
   },
+  "RowBlock": {
+    "properties": {
+      "cells": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "kind": {
+        "const": "row",
+        "type": "string"
+      },
+      "untranslated": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "cells",
+      "kind"
+    ],
+    "title": "RowBlock",
+    "type": "object"
+  },
   "RunFinishRequest": {
     "properties": {
       "claimed_count": {
@@ -4388,6 +4548,290 @@
     ],
     "title": "SkipReason",
     "type": "string"
+  },
+  "SnapshotAnswer": {
+    "description": "What completing one item did; ``unavailable`` means the task went back to the queue without an attempt.",
+    "enum": [
+      "stored",
+      "unchanged",
+      "skipped",
+      "stale",
+      "rejected",
+      "unavailable"
+    ],
+    "title": "SnapshotAnswer",
+    "type": "string"
+  },
+  "SnapshotClaimRequest": {
+    "properties": {
+      "limit": {
+        "default": 5,
+        "maximum": 5.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [],
+    "title": "SnapshotClaimRequest",
+    "type": "object"
+  },
+  "SnapshotClaimResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ClaimedSnapshotTask"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "SnapshotClaimResponse",
+    "type": "object"
+  },
+  "SnapshotCompleteItem": {
+    "properties": {
+      "artifact_sha256": {
+        "maxLength": 64,
+        "minLength": 64,
+        "type": "string"
+      },
+      "blocks": {
+        "oneOf": [
+          {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/RowBlock"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "engine": {
+        "maxLength": 50,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "model": {
+        "maxLength": 100,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "outcome": {
+        "$ref": "#/components/schemas/SnapshotItemOutcome"
+      },
+      "skipped_reason": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SnapshotSkipReason"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "source_hash": {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "truncated": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "artifact_sha256",
+      "outcome",
+      "source_hash",
+      "task_id"
+    ],
+    "title": "SnapshotCompleteItem",
+    "type": "object"
+  },
+  "SnapshotCompleteRequest": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/SnapshotCompleteItem"
+        },
+        "maxItems": 5,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "SnapshotCompleteRequest",
+    "type": "object"
+  },
+  "SnapshotCompleteResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/SnapshotItemResult"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "SnapshotCompleteResponse",
+    "type": "object"
+  },
+  "SnapshotItemOutcome": {
+    "description": "What a worker reports for one claimed page: translated blocks, unchanged cleaned text, or a skipped page.",
+    "enum": [
+      "translated",
+      "unchanged",
+      "skipped"
+    ],
+    "title": "SnapshotItemOutcome",
+    "type": "string"
+  },
+  "SnapshotItemResult": {
+    "properties": {
+      "outcome": {
+        "$ref": "#/components/schemas/SnapshotAnswer"
+      },
+      "reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "task_id": {
+        "format": "uuid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "outcome",
+      "task_id"
+    ],
+    "title": "SnapshotItemResult",
+    "type": "object"
+  },
+  "SnapshotLocaleCoverage": {
+    "properties": {
+      "failed": {
+        "type": "integer"
+      },
+      "pending": {
+        "type": "integer"
+      },
+      "skipped": {
+        "type": "integer"
+      },
+      "stale": {
+        "type": "integer"
+      },
+      "translated": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "failed",
+      "pending",
+      "skipped",
+      "stale",
+      "translated"
+    ],
+    "title": "SnapshotLocaleCoverage",
+    "type": "object"
+  },
+  "SnapshotLocaleSummary": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "pending_ready": {
+        "type": "integer"
+      },
+      "skipped": {
+        "type": "integer"
+      },
+      "stale": {
+        "type": "integer"
+      },
+      "translated": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "failed",
+      "locale",
+      "pending_ready",
+      "skipped",
+      "stale",
+      "translated"
+    ],
+    "title": "SnapshotLocaleSummary",
+    "type": "object"
+  },
+  "SnapshotSkipReason": {
+    "description": "Why a page is not translated: its cleaned text is too short, or its language is not German.",
+    "enum": [
+      "too_short",
+      "not_german"
+    ],
+    "title": "SnapshotSkipReason",
+    "type": "string"
+  },
+  "SnapshotSummaryResponse": {
+    "properties": {
+      "locales": {
+        "items": {
+          "$ref": "#/components/schemas/SnapshotLocaleSummary"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "locales"
+    ],
+    "title": "SnapshotSummaryResponse",
+    "type": "object"
   },
   "SubmitterRead": {
     "properties": {
@@ -4923,6 +5367,37 @@
     "title": "TaskSummaryResponse",
     "type": "object"
   },
+  "TextBlock": {
+    "properties": {
+      "kind": {
+        "enum": [
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "p",
+          "li",
+          "dt"
+        ],
+        "type": "string"
+      },
+      "text": {
+        "type": "string"
+      },
+      "untranslated": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "kind",
+      "text"
+    ],
+    "title": "TextBlock",
+    "type": "object"
+  },
   "TranslationBundle": {
     "properties": {
       "locale": {
@@ -5046,6 +5521,29 @@
     "title": "TranslationCompleteResponse",
     "type": "object"
   },
+  "TranslationCoverageResponse": {
+    "properties": {
+      "denominator": {
+        "type": "integer"
+      },
+      "locales": {
+        "items": {
+          "$ref": "#/components/schemas/TranslationLocaleCoverage"
+        },
+        "type": "array"
+      },
+      "snapshot_denominator": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "denominator",
+      "locales",
+      "snapshot_denominator"
+    ],
+    "title": "TranslationCoverageResponse",
+    "type": "object"
+  },
   "TranslationFailRequest": {
     "properties": {
       "error": {
@@ -5115,6 +5613,42 @@
       "task_id"
     ],
     "title": "TranslationItemResult",
+    "type": "object"
+  },
+  "TranslationLocaleCoverage": {
+    "properties": {
+      "claimed": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "integer"
+      },
+      "locale": {
+        "type": "string"
+      },
+      "pending": {
+        "type": "integer"
+      },
+      "snapshot": {
+        "$ref": "#/components/schemas/SnapshotLocaleCoverage"
+      },
+      "stale": {
+        "type": "integer"
+      },
+      "translated": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "claimed",
+      "failed",
+      "locale",
+      "pending",
+      "snapshot",
+      "stale",
+      "translated"
+    ],
+    "title": "TranslationLocaleCoverage",
     "type": "object"
   },
   "TranslationLocaleSummary": {

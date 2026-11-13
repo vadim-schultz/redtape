@@ -6,7 +6,8 @@ from collections.abc import Iterable, Mapping
 from typing import Final
 
 DEFAULT_TARGET_LOCALES: Final = ("en", "tr", "ru", "uk", "pl", "ro")
-"""The six locales document text is translated into (``TRANSLATION_TARGET_LOCALES`` on the API side)."""
+"""The six locales document text is translated into. ``TRANSLATION_TARGET_LOCALES`` on the API defaults to the same list;
+``tests/test_translation_locales_parity.py`` holds the two equal."""
 
 _MAPS: dict[str, Mapping[str, str]] = {}
 

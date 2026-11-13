@@ -40,7 +40,8 @@
   "menu": {
     "profile": "Profile",
     "documents": "Documents",
-    "colour_mode": "Colour mode"
+    "colour_mode": "Colour mode",
+    "machine_translated_note": "Machine translated"
   },
   "auth": {
     "login": "Log In",
@@ -115,7 +116,18 @@
     "flow_empty": "No dependencies listed for this document",
     "flow_more": "+{count} more, see the list above",
     "back_to_list": "Back to the list",
-    "not_found_title": "Candidate not found"
+    "not_found_title": "Candidate not found",
+    "document_title": "Document contents",
+    "document_machine_note": "Machine translation, may contain errors. The German original is authoritative.",
+    "document_source_link": "Open the German page",
+    "document_pending": "This page is being translated. Check back later.",
+    "document_no_document": "No procedure page with text is linked to this candidate.",
+    "document_candidate_not_found": "This candidate could not be found.",
+    "document_skipped": "This page was not translated.",
+    "document_skipped_too_short": "This page has too little text to translate.",
+    "document_skipped_not_german": "This page is not in German, so it was not translated.",
+    "document_stale": "The German original has changed since this translation was made.",
+    "document_truncated": "The German page was too long, so only its beginning is translated."
   },
   "location": {
     "label": "Location",
@@ -334,7 +346,13 @@
       "last_run_completed": "Completed",
       "last_run_failed": "Failed",
       "last_run_skipped": "Skipped",
-      "last_run_stop": "Stop reason"
+      "last_run_stop": "Stop reason",
+      "translation_title": "Card translation by locale",
+      "translation_denominator": "Candidates with a German card: {count}",
+      "translation_error": "Could not load the translation coverage.",
+      "col_locale": "Locale",
+      "col_translated": "Translated",
+      "col_stale": "Stale"
     },
     "catalogue": {
       "load_error": "Could not load catalogue data.",
@@ -373,6 +391,7 @@
       "budget_browser_seconds": "Browser seconds",
       "budget_neurons": "AI neurons",
       "budget_actions_minutes": "Actions minutes",
+      "budget_azure_translator_chars": "Azure translator characters",
       "budget_stored_bytes": "Stored artifacts",
       "col_size": "Size",
       "col_fetched": "Fetched",
@@ -383,7 +402,9 @@
       "stored_nearly_full": "Nearly full",
       "col_resource": "Resource",
       "col_usage": "Usage",
-      "col_status": "Status"
+      "col_status": "Status",
+      "translator_title": "Azure Translator",
+      "translator_missing": "Not configured: the Azure character budget row is missing."
     }
   },
   "suggest": {

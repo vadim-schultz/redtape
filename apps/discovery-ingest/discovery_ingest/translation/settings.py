@@ -5,20 +5,25 @@ from __future__ import annotations
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from discovery_ingest.translation.glossary import DEFAULT_GLOSSARY_MODE, GlossaryMode
 from discovery_ingest.translation.registry import UnknownEngineError, require_registered
 
-DEFAULT_ENGINE = "llm"
+DEFAULT_ENGINE = "azure-translator"
+"""The engine when ``TRANSLATION_ENGINE`` is unset. ``llm`` stays selectable: it is the Cloudflare rollback."""
 DEFAULT_QUERY_EMBED_RESERVE = 1000.0
 """Neurons of the day's ledger the translate drain leaves for request-time query embedding (about 0.1 a query)."""
 
 
 class TranslationSettings(BaseSettings):
-    """``TRANSLATION_ENGINE``, ``TRANSLATION_MODEL`` and ``QUERY_EMBED_RESERVE``, read from the process environment only."""
+    """``TRANSLATION_ENGINE``, ``TRANSLATION_MODEL``, ``TRANSLATION_GLOSSARY_MODE`` and ``QUERY_EMBED_RESERVE``, read from the environment only."""
 
     model_config = SettingsConfigDict(extra="ignore")
 
     translation_engine: str = Field(default=DEFAULT_ENGINE, validation_alias="TRANSLATION_ENGINE")
     translation_model: str | None = Field(default=None, min_length=1, validation_alias="TRANSLATION_MODEL")
+    translation_glossary_mode: GlossaryMode = Field(
+        default=DEFAULT_GLOSSARY_MODE, validation_alias="TRANSLATION_GLOSSARY_MODE"
+    )
     query_embed_reserve: float = Field(
         default=DEFAULT_QUERY_EMBED_RESERVE, ge=0, validation_alias="QUERY_EMBED_RESERVE"
     )

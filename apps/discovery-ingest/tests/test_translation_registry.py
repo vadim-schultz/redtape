@@ -92,11 +92,11 @@ def test_an_unknown_translation_engine_setting_fails_at_load_and_lists_the_regis
         TranslationSettings.model_validate({"TRANSLATION_ENGINE": "deepl"})
 
 
-def test_the_engine_setting_defaults_to_llm_and_accepts_a_registered_name() -> None:
-    """settings · TRANSLATION_ENGINE defaults to llm; the model is optional."""
+def test_the_engine_setting_defaults_to_azure_translator_and_the_model_is_optional() -> None:
+    """settings · TRANSLATION_ENGINE defaults to azure-translator; the model is optional."""
     settings = TranslationSettings.model_validate({})
 
-    assert (settings.translation_engine, settings.translation_model) == ("llm", None)
+    assert (settings.translation_engine, settings.translation_model) == ("azure-translator", None)
 
 
 def test_a_second_adapter_with_its_own_unit_and_locale_map_is_selected_without_changes_elsewhere(

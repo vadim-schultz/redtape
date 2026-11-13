@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -54,3 +56,16 @@ class CandidateRepository(SessionRepository):
         self._session.add(mention)
         self._session.flush()
         return mention
+
+    def candidate_ids_by_catalogue(self, catalogue_ids: Sequence[UUID]) -> dict[UUID, tuple[UUID, ...]]:
+        """Return the candidates each catalogue row in ``catalogue_ids`` is mentioned by; rows without any are absent."""
+        stmt = (
+            select(DiscoveryCandidateMention.catalogue_service_id, DiscoveryCandidateMention.candidate_id)
+            .where(DiscoveryCandidateMention.catalogue_service_id.in_(catalogue_ids))
+            .distinct()
+            .order_by(DiscoveryCandidateMention.catalogue_service_id, DiscoveryCandidateMention.candidate_id)
+        )
+        grouped: dict[UUID, list[UUID]] = defaultdict(list)
+        for catalogue_id, candidate_id in self._session.execute(stmt).tuples():
+            grouped[catalogue_id].append(candidate_id)
+        return {catalogue_id: tuple(candidates) for catalogue_id, candidates in grouped.items()}

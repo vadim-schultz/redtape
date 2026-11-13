@@ -21,6 +21,13 @@ export const queryKeys = {
       [...queryKeys.candidates.all, "detail", id, locale] as const,
     translation: (id: string | undefined, locale: string) =>
       [...queryKeys.candidates.all, "translation", id, locale] as const,
+    documentTranslation: (id: string | undefined, locale: string) =>
+      [
+        ...queryKeys.candidates.all,
+        "document-translation",
+        id,
+        locale,
+      ] as const,
   },
   suggestions: {
     all: ["suggestions"] as const,
@@ -125,5 +132,11 @@ export const queryKeys = {
       ] as const,
     budgets: (locale: string) =>
       [...queryKeys.discoveryAdmin.all, "budgets", locale] as const,
+    translationCoverage: (locale: string) =>
+      [
+        ...queryKeys.discoveryAdmin.all,
+        "translation-coverage",
+        locale,
+      ] as const,
   },
 };

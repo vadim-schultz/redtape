@@ -30,6 +30,7 @@ ENGINE_NAME = "scripted"
 MODEL = "scripted-model-1"
 _REAL_HTTPX_CLIENT = httpx.Client
 CLOUDFLARE_HOST = "api.cloudflare.com"
+AZURE_HOST = "api.cognitive.microsofttranslator.com"
 Handler = Callable[[httpx.Request], httpx.Response]
 
 
@@ -80,12 +81,16 @@ class TranslateApi:
         """A machine client whose transport is this API."""
         return DiscoveryIngestClient(API_BASE, SecretStr(API_KEY), transport=httpx.MockTransport(self.handler))
 
-    def install(self, monkeypatch: pytest.MonkeyPatch, cloudflare: Handler | None = None) -> None:
-        """Route every ``httpx.Client`` the code under test builds: Workers AI calls to ``cloudflare``, the rest here."""
+    def install(
+        self, monkeypatch: pytest.MonkeyPatch, cloudflare: Handler | None = None, azure: Handler | None = None
+    ) -> None:
+        """Route every ``httpx.Client`` the code under test builds: Workers AI calls to ``cloudflare``, Azure to ``azure``, the rest here."""
 
         def route(request: httpx.Request) -> httpx.Response:
             if cloudflare is not None and request.url.host == CLOUDFLARE_HOST:
                 return cloudflare(request)
+            if azure is not None and request.url.host == AZURE_HOST:
+                return azure(request)
             return self.handler(request)
 
         def factory(**kwargs: Any) -> httpx.Client:
@@ -134,6 +139,7 @@ class ScriptedEngine:
     """
 
     name = ENGINE_NAME
+    repairs = True
 
     def __init__(
         self,

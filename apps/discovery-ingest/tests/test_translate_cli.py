@@ -23,6 +23,7 @@ def _env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[None]:
     monkeypatch.setenv("DISCOVERY_API_KEY", "test-machine-key")
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID)
     monkeypatch.setenv("CLOUDFLARE_AI_API_TOKEN", TOKEN)
+    monkeypatch.setenv("TRANSLATION_ENGINE", "llm")
     monkeypatch.setenv("LLM_MODEL", "@cf/qwen/qwen3-30b-a3b-fp8")
     monkeypatch.setattr("discovery_ingest.operations.translate_drain.TRANSLATE_MIN_INTERVAL_SECONDS", 0.0)
     yield
@@ -174,3 +175,26 @@ def test_require_pending_skips_with_exit_3_when_nothing_is_ready(
 
     api.queue.append(task(0))
     assert main(["translate", "summary", "--require-pending"]) == 0
+
+
+@pytest.mark.parametrize(("mode", "completed"), [("strict", 0), ("advisory", 1)])
+def test_the_glossary_mode_decides_whether_a_glossary_finding_fails_the_card(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], mode: str, completed: int
+) -> None:
+    """translate drain · TRANSLATION_GLOSSARY_MODE advisory posts a card whose only finding is glossary adherence; strict fails it."""
+    monkeypatch.setenv("TRANSLATION_GLOSSARY_MODE", mode)
+    api = TranslateApi([{**task(0, "tr"), "title": "Antrag stellen 0"}])
+    _install(monkeypatch, api)
+
+    assert main(["translate", "drain", "--max-batches", "1"]) in (0, 1)
+
+    report = json.loads(capsys.readouterr().out)
+    assert report["completed"] == completed
+    if mode == "advisory":
+        assert api.posted()[0]["title"] == "[xx] Antrag stellen 0"
+
+
+def test_the_probe_needs_a_locale_for_every_engine_but_azure_translator(capsys: pytest.CaptureFixture[str]) -> None:
+    """translate probe · without --locale the llm engine exits 2 naming the option; azure-translator probes every target locale."""
+    assert main(["translate", "probe", "--engine", "llm"]) == 2
+    assert "--locale" in capsys.readouterr().err

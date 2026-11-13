@@ -1,9 +1,14 @@
-"""``translate drain`` and ``translate summary``: drain the translation queue, count it."""
+"""``translate drain`` and ``translate summary``: drain the translation queue of one unit, count it.
+
+``--unit card`` (the default) drains the card queue with TRANSLATION_ENGINE. ``--unit snapshot`` drains the procedure-page
+queue on azure-translator, up to five pages a claim, under the document share of the monthly character ledger.
+"""
 
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, Literal
 
 import typer
 from pydantic import ValidationError
@@ -11,6 +16,7 @@ from pydantic import ValidationError
 from discovery_ingest.cli.context import api_client
 from discovery_ingest.cli.errors import EXIT_FAILED, EXIT_USAGE, fail, handles_api_errors
 from discovery_ingest.cli.translate.app import translate_app
+from discovery_ingest.operations.snapshot_drain import SnapshotOptions, document_budget_share, run_snapshot
 from discovery_ingest.operations.translate_drain import (
     DEFAULT_CONCURRENCY,
     DEFAULT_NEURON_BUDGET,
@@ -18,11 +24,20 @@ from discovery_ingest.operations.translate_drain import (
     TranslateOptions,
     run_translate,
 )
+from discovery_ingest.schemas import DrainReport
 from discovery_ingest.translation.meter import NoMeterForUnitError
 from discovery_ingest.translation.settings import TranslationSettings, load_translation_settings
 from discovery_ingest.worker.llm_setup import LlmSetupError
 
 EXIT_NOTHING_PENDING = 3
+Unit = Literal["card", "snapshot"]
+UnitOption = Annotated[
+    Unit, typer.Option("--unit", help="card (default): the card queue; snapshot: the procedure-page queue")
+]
+_NOTHING_READY = {
+    "card": "nothing to translate: no translation task is ready",
+    "snapshot": "nothing to translate: no snapshot task is ready",
+}
 
 
 def _settings() -> TranslationSettings:
@@ -32,20 +47,36 @@ def _settings() -> TranslationSettings:
         fail(f"invalid translation settings: {err}", EXIT_USAGE)
 
 
-def _options_or_exit(options: TranslateOptions) -> None:
+def _checked(policy: Callable[[], object]) -> None:
     try:
-        options.policy()
+        policy()
     except ValueError as err:
         fail(f"invalid drain bounds: {err}", EXIT_USAGE)
+
+
+def _card_report(ctx: typer.Context, options: TranslateOptions) -> DrainReport:
+    _checked(options.policy)
+    return run_translate(options, _settings(), api_client(ctx))
+
+
+def _snapshot_report(ctx: typer.Context, options: SnapshotOptions) -> DrainReport:
+    _checked(options.policy)
+    _checked(document_budget_share)
+    return run_snapshot(options, api_client(ctx))
 
 
 @translate_app.command("drain")
 def translate_drain(
     ctx: typer.Context,
+    unit: UnitOption = "card",
     max_tasks: Annotated[
         int,
         typer.Option(
-            "--max-tasks", help="Tasks per claim request, grouped by locale into one prompt each (1-50, default 10)"
+            "--max-tasks",
+            help=(
+                "Tasks per claim request, grouped by locale into one prompt each (1-50, default 10). "
+                "With --unit snapshot the claim is at most 5 pages: pass --max-tasks 5"
+            ),
         ),
     ] = DEFAULT_TASKS_PER_BATCH,
     max_batches: Annotated[
@@ -73,11 +104,13 @@ def translate_drain(
         ),
     ] = DEFAULT_CONCURRENCY,
 ) -> None:
-    """Claim translation tasks, translate them with TRANSLATION_ENGINE and post the text."""
-    options = TranslateOptions(max_tasks, max_batches, time_budget_seconds, neuron_budget, concurrency)
-    _options_or_exit(options)
+    """Claim translation tasks of one unit and translate them: cards with TRANSLATION_ENGINE, pages on azure-translator."""
     try:
-        report = run_translate(options, _settings(), api_client(ctx))
+        if unit == "snapshot":
+            report = _snapshot_report(ctx, SnapshotOptions(max_tasks, max_batches, time_budget_seconds))
+        else:
+            card = TranslateOptions(max_tasks, max_batches, time_budget_seconds, neuron_budget, concurrency)
+            report = _card_report(ctx, card)
     except LlmSetupError as err:
         fail(str(err), err.exit_code)
     except NoMeterForUnitError as err:
@@ -91,16 +124,19 @@ def translate_drain(
 @handles_api_errors("translate")
 def translate_summary(
     ctx: typer.Context,
+    unit: UnitOption = "card",
     require_pending: Annotated[
         bool,
         typer.Option(
-            "--require-pending", help="Exit 3 when no translation task is ready (the workflow skips the drain)"
+            "--require-pending",
+            help="Exit 3 when no translation task is ready (the workflow skips the drain); snapshot counts pages",
         ),
     ] = False,
 ) -> None:
-    """Print the translation queue counts per locale; exit 3 when ``--require-pending`` finds nothing ready."""
-    summary = api_client(ctx).translations.summary()
+    """Print the queue counts per locale for one unit; exit 3 when ``--require-pending`` finds nothing ready."""
+    client = api_client(ctx)
+    summary = client.snapshots.summary() if unit == "snapshot" else client.translations.summary()
     typer.echo(json.dumps({**summary.model_dump(mode="json"), "pending_ready": summary.pending_ready}))
     if require_pending and summary.pending_ready == 0:
-        typer.echo("nothing to translate: no translation task is ready", err=True)
+        typer.echo(_NOTHING_READY[unit], err=True)
         raise typer.Exit(EXIT_NOTHING_PENDING)

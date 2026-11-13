@@ -12,7 +12,7 @@ from test_discovery_machine_api import _issue_key
 
 MACHINE = "/api/v1/discovery/machine/budgets"
 ADMIN = "/api/v1/discovery/admin/budgets"
-RESOURCES = {"r2_class_a", "r2_class_b", "browser_seconds", "neurons", "actions_minutes"}
+RESOURCES = {"r2_class_a", "r2_class_b", "browser_seconds", "neurons", "actions_minutes", "azure_translator_chars"}
 
 
 def _by_resource(items: list[dict[str, object]]) -> dict[str, dict[str, object]]:
@@ -31,11 +31,24 @@ def test_list_returns_every_resource_with_its_cap_for_the_machine_key(
     assert set(rows) == RESOURCES
     assert (rows["neurons"]["cap"], rows["neurons"]["used"], rows["neurons"]["remaining"]) == (9500, 0, 9500)
     assert rows["actions_minutes"]["cap"] == 1000
+    assert rows["azure_translator_chars"]["cap"] == 1_900_000
 
 
 def test_list_requires_the_machine_key(client: TestClient[Litestar]) -> None:
     assert client.get(MACHINE).status_code == 401
     assert client.get(MACHINE, headers={"X-API-Key": "wrong"}).status_code == 401
+
+
+def test_azure_translator_chars_reserves_up_to_its_monthly_cap_over_http(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    headers = {"X-API-Key": _issue_key(db_session)}
+
+    granted = client.post(f"{MACHINE}/azure_translator_chars/reserve", json={"amount": 1_900_000}, headers=headers)
+    denied = client.post(f"{MACHINE}/azure_translator_chars/reserve", json={"amount": 1}, headers=headers)
+
+    assert (granted.status_code, granted.json()) == (200, {"granted": True, "remaining": 0})
+    assert (denied.status_code, denied.json()) == (409, {"granted": False, "remaining": 0})
 
 
 def test_reserve_returns_200_when_granted_and_409_when_denied(

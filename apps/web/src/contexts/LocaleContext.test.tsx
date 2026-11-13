@@ -50,6 +50,7 @@ function localeRows(enabled: string[]) {
     name_english: code,
     flag_emoji: "",
     enabled: enabled.includes(code),
+    machine_translated: false,
   }));
 }
 

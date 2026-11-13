@@ -56,7 +56,7 @@ only when the usage report shows headroom.
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
 | `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 45 ledger minutes. |
 | `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or when no more than 100 neurons are left above the `QUERY_EMBED_RESERVE` floor, and when no translation task is ready. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes, when the engine's own budget is short (`llm`: no more than 100 neurons above the `QUERY_EMBED_RESERVE` floor; `azure-translator`, the default: fewer characters than `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` left this month), and when no translation task is ready. The snapshot job in the same file runs only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-render.yml` | Daily 05:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-drain`. |
 | `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
@@ -88,6 +88,10 @@ shows the total). If the allowance is tight, drop the schedule to once a day.
 `discovery-translate.yml` runs **once a day at 17:10 UTC**: after the 06:10 embed drain, an hour before the 18:10 one that
 embeds the fresh translations (the group `discovery-pipeline` queues the embed run behind a translate run that is
 still going, it does not cancel it). A run is bounded by `time_budget_seconds` 600 and `neuron_budget` 2,500.
+
+The default engine, `azure-translator`, spends **characters**, not neurons: `neuron_budget` and the `QUERY_EMBED_RESERVE`
+floor do not apply to it, and the monthly character ledger bounds it (see [translation-engines.md](translation-engines.md)).
+The minutes below are estimates for `llm` runs. No `azure-translator` run has been measured yet.
 
 | Run | Estimate (not yet measured) | Ledger minutes (`ceil(elapsed / 60) + 1`) |
 | --- | --- | --- |

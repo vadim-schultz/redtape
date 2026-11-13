@@ -41,7 +41,18 @@
     "source_role_form": "Formularz",
     "source_role_issued": "Wydawany",
     "source_role_required": "Wymagany",
-    "sources": "Źródła"
+    "sources": "Źródła",
+    "document_title": "Treść dokumentu",
+    "document_machine_note": "Tłumaczenie maszynowe, może zawierać błędy. Wiążący jest niemiecki oryginał.",
+    "document_source_link": "Otwórz niemiecką stronę",
+    "document_pending": "Ta strona jest tłumaczona. Zajrzyj tu później.",
+    "document_no_document": "Do tego kandydata nie przypisano strony procedury z tekstem.",
+    "document_candidate_not_found": "Nie znaleziono tego kandydata.",
+    "document_skipped": "Ta strona nie została przetłumaczona.",
+    "document_skipped_too_short": "Ta strona ma zbyt mało tekstu do tłumaczenia.",
+    "document_skipped_not_german": "Ta strona nie jest po niemiecku, więc nie została przetłumaczona.",
+    "document_stale": "Niemiecki oryginał zmienił się od czasu wykonania tego tłumaczenia.",
+    "document_truncated": "Niemiecka strona jest zbyt długa, więc przetłumaczono tylko jej początek."
   },
   "common": {
     "back": "Wstecz",
@@ -79,6 +90,7 @@
   "discovery_admin": {
     "artifacts": {
       "budget_actions_minutes": "Minuty Actions",
+      "budget_azure_translator_chars": "Znaki Azure Translator",
       "budget_browser_seconds": "Sekundy przeglądarki",
       "budget_exhausted": "Wyczerpano",
       "budget_neurons": "Neurony AI",
@@ -105,7 +117,9 @@
       "stored_nearly_full": "Prawie pełne",
       "stored_of_cap": "{size} z {cap}",
       "stored_total": "Łącznie przechowywane",
-      "title": "Artefakty"
+      "title": "Artefakty",
+      "translator_title": "Tłumacz Azure",
+      "translator_missing": "Nie skonfigurowano: brakuje wiersza limitu znaków Azure."
     },
     "auth_unconfigured_body": "Skonfiguruj Supabase, zanim spróbujesz ponownie.",
     "auth_unconfigured_title": "Uwierzytelnianie nie jest skonfigurowane",
@@ -182,7 +196,13 @@
       "tasks_completed": "Zakończone zadania",
       "tasks_failed": "Nieudane zadania",
       "tasks_pending": "Oczekujące zadania",
-      "tasks_total": "Wszystkie zadania"
+      "tasks_total": "Wszystkie zadania",
+      "translation_title": "Tłumaczenie kart według języka",
+      "translation_denominator": "Kandydaci z niemiecką kartą: {count}",
+      "translation_error": "Nie udało się wczytać pokrycia tłumaczeń.",
+      "col_locale": "Język",
+      "col_translated": "Przetłumaczone",
+      "col_stale": "Nieaktualne"
     },
     "disabled_body": "Administracja Discovery nie jest skonfigurowana w tym środowisku. Sprawdź konfigurację wdrożenia i spróbuj ponownie.",
     "disabled_title": "Administracja Discovery jest wyłączona",
@@ -389,6 +409,7 @@
   "menu": {
     "colour_mode": "Tryb kolorów",
     "documents": "Dokumenty",
+    "machine_translated_note": "Tłumaczenie maszynowe",
     "profile": "Profil"
   },
   "nav": {

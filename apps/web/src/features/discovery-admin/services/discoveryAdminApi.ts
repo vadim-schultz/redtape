@@ -12,6 +12,7 @@ import type {
   DiscoveryCoverageResponse,
   DiscoveryTaskListResponse,
   EmitPreviewResponse,
+  TranslationCoverageResponse,
 } from "../types";
 import type { CandidateListQuery } from "./candidateListQuery";
 import type { CatalogueListQuery } from "./catalogueListQuery";
@@ -22,6 +23,7 @@ const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
 const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
+const TRANSLATION_COVERAGE_PATH = "/api/v1/admin/translations/coverage";
 const ARTIFACT_LIST_PARAMS = { offset: 0, limit: 50 };
 
 /** Locale and bearer token every discovery-admin service call needs. */
@@ -159,4 +161,14 @@ export async function fetchDiscoveryBudgets(
   auth: AdminAuth,
 ): Promise<DiscoveryBudgetsResponse> {
   return apiRequest<DiscoveryBudgetsResponse>(BUDGETS_PATH, auth);
+}
+
+/** Card translation counts per target locale, read from the translation admin route. */
+export async function fetchTranslationCoverage(
+  auth: AdminAuth,
+): Promise<TranslationCoverageResponse> {
+  return apiRequest<TranslationCoverageResponse>(
+    TRANSLATION_COVERAGE_PATH,
+    auth,
+  );
 }
