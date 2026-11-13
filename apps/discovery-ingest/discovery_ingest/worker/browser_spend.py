@@ -3,16 +3,30 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
+from time import monotonic
 from typing import TypeVar
 
 from discovery_ingest.browser.budget import BrowserBudget
-from discovery_ingest.browser.errors import BrowserAuthError, BrowserQuotaExceeded
+from discovery_ingest.browser.errors import BrowserAuthError, BrowserError, BrowserQuotaExceeded
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.worker.stop import StopDrain
 
 ESTIMATE_SECONDS = 30.0
 """Reserved before each call: the navigation timeout, the most one page can cost."""
 T = TypeVar("T")
+
+
+@dataclass(slots=True)
+class _Cost:
+    """The browser time of one call: the milliseconds it reported, or ``None`` to settle at the wall time."""
+
+    started: float
+    ms: int | None = None
+
+    def settled_ms(self) -> int:
+        """Return the browser milliseconds to book: what the call reported, else the wall time since it started."""
+        return round((monotonic() - self.started) * 1000) if self.ms is None else self.ms
 
 
 class BrowserSpend:
@@ -33,12 +47,11 @@ class BrowserSpend:
         if self._budget.exhausted:
             raise StopDrain("browser_budget", "the run's browser budget is spent")
         reserved = self._reserve()
-        result = self._run(action)
-        spent = cost_ms(result)
-        self._budget.spend(spent)
-        if reserved:
-            self._guard.adjust("browser_seconds", spent / 1000 - ESTIMATE_SECONDS)
-        return result
+        cost = _Cost(monotonic())
+        try:
+            return self._run(action, cost_ms, cost)
+        finally:
+            self._settle(reserved, cost)
 
     def _reserve(self) -> bool:
         answer = self._guard.reserve("browser_seconds", ESTIMATE_SECONDS)
@@ -48,14 +61,30 @@ class BrowserSpend:
             raise StopDrain("browser_budget", "the day's browser seconds are spent")
         return True
 
-    def _run(self, action: Callable[[], T]) -> T:
+    def _run(self, action: Callable[[], T], cost_ms: Callable[[T], int], cost: _Cost) -> T:
         try:
-            return action()
-        except BrowserQuotaExceeded as err:
+            result = action()
+        except BrowserError as err:
+            cost.ms = err.ms_used
+            self._limit(err)
+            raise
+        cost.ms = cost_ms(result)
+        return result
+
+    def _limit(self, err: BrowserError) -> None:
+        """Turn a limit or a credential refusal into the stop that ends the drain; any other error passes through."""
+        if isinstance(err, BrowserQuotaExceeded):
             self._guard.exhaust("browser_seconds")
             raise StopDrain("browser_quota", str(err)) from err
-        except BrowserAuthError as err:
+        if isinstance(err, BrowserAuthError):
             raise StopDrain("error", f"Cloudflare rejected the browser credentials: {err}") from err
+
+    def _settle(self, reserved: bool, cost: _Cost) -> None:
+        """Book the call's real browser time once, and correct the reservation by the difference when one was made."""
+        spent = cost.settled_ms()
+        self._budget.spend(spent)
+        if reserved:
+            self._guard.adjust("browser_seconds", spent / 1000 - ESTIMATE_SECONDS)
 
 
 def open_browser_spend(limit_seconds: float, guard: BudgetGuard) -> BrowserSpend | None:

@@ -24,6 +24,8 @@ from discovery_ingest.browser.usage import parse_ms_used
 from discovery_ingest.config import BrowserSettings
 
 MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
+NEVER_SENT = (httpx.ConnectError, httpx.ConnectTimeout)
+"""Transport failures before any byte reached Cloudflare: they book no browser time."""
 logger = logging.getLogger(__name__)
 
 
@@ -78,9 +80,9 @@ class CloudflareBrowserClient:
         response, measured_ms = self._send(endpoint, body)
         if is_rate_limited(response, self._interval):
             response, measured_ms = self._send(endpoint, body)
-        raise_for_response(response, self._scrub)
-        reported = parse_ms_used(response.headers.get("x-browser-ms-used"))
-        return envelope(response), measured_ms if reported is None else reported
+        ms_used = _ms_used(response, measured_ms)
+        raise_for_response(response, self._scrub, ms_used)
+        return envelope(response, ms_used), ms_used
 
     def _send(self, endpoint: Endpoint, body: Body) -> tuple[httpx.Response, int]:
         with self._throttle:
@@ -93,11 +95,24 @@ class CloudflareBrowserClient:
                     timeout=self._timeout,
                 )
             except httpx.HTTPError as err:
-                raise BrowserRequestError(self._scrub(f"{type(err).__name__}: {err}"), retryable=True) from err
-            return response, round((self._clock() - started) * 1000)
+                ms_used = 0 if isinstance(err, NEVER_SENT) else _elapsed_ms(self._clock, started)
+                raise BrowserRequestError(
+                    self._scrub(f"{type(err).__name__}: {err}"), retryable=True, ms_used=ms_used
+                ) from err
+            return response, _elapsed_ms(self._clock, started)
 
     def _scrub(self, text: str) -> str:
         return text.replace(self._token, "<redacted>").replace(self._account_id, "<redacted>")
+
+
+def _ms_used(response: httpx.Response, measured_ms: int) -> int:
+    """Return the browser time Cloudflare reported for ``response``, else the measured duration of the call."""
+    reported = parse_ms_used(response.headers.get("x-browser-ms-used"))
+    return measured_ms if reported is None else reported
+
+
+def _elapsed_ms(clock: Callable[[], float], started: float) -> int:
+    return round((clock() - started) * 1000)
 
 
 def _target(payload: dict[str, JsonValue]) -> tuple[int | None, str | None]:
@@ -111,7 +126,7 @@ def _target(payload: dict[str, JsonValue]) -> tuple[int | None, str | None]:
 def _rendered(payload: dict[str, JsonValue], ms_used: int) -> RenderedPage:
     html = payload.get("result")
     if not isinstance(html, str):
-        raise BrowserRequestError("Cloudflare returned no HTML", retryable=False)
+        raise BrowserRequestError("Cloudflare returned no HTML", retryable=False, ms_used=ms_used)
     return RenderedPage(html, ms_used, *_target(payload))
 
 
@@ -136,7 +151,7 @@ def _decode_image(encoded: JsonValue, ms_used: int) -> bytes:
     except binascii.Error:
         data = b""
     if image_kind(data) not in CONTENT_TYPES:
-        raise BrowserRequestError("Cloudflare returned no readable image", retryable=False)
+        raise BrowserRequestError("Cloudflare returned no readable image", retryable=False, ms_used=ms_used)
     if len(data) > MAX_SCREENSHOT_BYTES:
         raise ScreenshotOversize(len(data), ms_used)
     return data
