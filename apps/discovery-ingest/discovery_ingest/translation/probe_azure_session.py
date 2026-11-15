@@ -11,9 +11,13 @@ from typing import Final, cast
 
 import httpx
 
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.translation.adapters.azure_translator import AzureTranslator
-from discovery_ingest.translation.adapters.azure_translator_http import AzureConnection, AzureTransport, Reply
+from discovery_ingest.translation.adapters.azure_translator_http import (
+    AzureConnection,
+    AzureTransport,
+    CharacterWindow,
+    Reply,
+)
 from discovery_ingest.translation.errors import QuotaExceeded, TranslationEngineError, UnusableOutputError
 from discovery_ingest.translation.findings import Finding
 from discovery_ingest.translation.glossary import load_glossary
@@ -31,9 +35,9 @@ class ProbeStop(Exception):
 class _RecordingTransport(AzureTransport):
     """The production transport, which also keeps an :class:`Exchange` for each request it answered."""
 
-    def __init__(self, connection: AzureConnection, throttle: Throttle, http: httpx.Client) -> None:
-        """Keep the connection, the throttle and the client as the production transport does."""
-        super().__init__(connection, throttle, http)
+    def __init__(self, connection: AzureConnection, limiter: CharacterWindow, http: httpx.Client) -> None:
+        """Keep the connection, the limiter and the client as the production transport does."""
+        super().__init__(connection, limiter, http)
         self.exchanges: list[Exchange] = []
 
     def send(self, body: Mapping[str, object]) -> Reply:
@@ -64,7 +68,9 @@ class Session:
     def __init__(self, plan: AzureProbePlan, http: httpx.Client) -> None:
         """Build the engine on a recording transport paced by the plan's interval."""
         self.plan = plan
-        self._transport = _RecordingTransport(plan.connection, Throttle(plan.min_interval_seconds), http)
+        self._transport = _RecordingTransport(
+            plan.connection, CharacterWindow(min_gap_seconds=plan.min_interval_seconds), http
+        )
         self.engine = AzureTranslator(self._transport)
 
     @property

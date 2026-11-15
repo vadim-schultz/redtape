@@ -6,10 +6,11 @@ import json
 
 import httpx
 import pytest
+from discovery_ingest.translation.adapters.azure_translator_http import CharacterWindow
 from discovery_ingest.translation.locale_codes import DEFAULT_TARGET_LOCALES, provider_code
 from discovery_ingest.translation.units import TranslationOutcome
 
-from azure_transport import API_VERSION, ENDPOINT, KEY, REGION, Handler, engine, faithful_answer
+from azure_transport import API_VERSION, ENDPOINT, KEY, REGION, FakeClock, Handler, engine, faithful_answer
 from translation_fakes import batch, unit
 
 
@@ -99,3 +100,19 @@ def test_a_missing_or_unreadable_usage_header_bills_the_source_characters(header
     outcome = engine(handler).translate(batch(unit("a", "Antrag", "Gebühr")))
 
     assert outcome.usage.amount == float(len("Antrag") + len("Gebühr"))
+
+
+def test_the_limiter_never_lets_more_than_28000_characters_into_any_60_second_window() -> None:
+    """Azure limiter · a burst of 50,000 characters, on a fake clock, is admitted so that no 60 s window holds more than 28,000."""
+    clock = FakeClock()
+    window = CharacterWindow(min_gap_seconds=1.0, clock=clock.now, sleep=clock.sleep)
+    sent: list[tuple[float, int]] = []
+    for _ in range(5):
+        with window.admit(10_000):
+            sent.append((clock.now(), 10_000))
+
+    for start, _ in sent:
+        assert sum(chars for at, chars in sent if start <= at < start + 60) <= 28_000
+    assert len(sent) == 5 and all(
+        later - earlier >= 1.0 for (earlier, _), (later, _) in zip(sent, sent[1:], strict=False)
+    )
