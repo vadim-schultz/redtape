@@ -14,6 +14,7 @@ from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.errors import (
     PermanentError,
     QuotaExceeded,
+    RateLimited,
     TransientError,
     Unauthorised,
 )
@@ -234,6 +235,23 @@ def test_quota_exhaustion_stops_with_llm_quota_and_releases_what_was_not_transla
     assert (report.stop_reason, report.succeeded, report.completed, report.released) == ("llm_quota", True, 3, 3)
     assert api.bodies["release"][0]["task_ids"] == _ids(1, 3, 5) and "llm_quota" in api.bodies["release"][0]["reason"]
     assert not api.bodies["fail"] and "exhaust" in api.ledger.actions()
+
+
+def test_a_rate_limited_batch_releases_its_tasks_without_an_attempt_and_stops_the_drain() -> None:
+    """translate drain · a 429 releases the open tasks without an attempt, stops rate_limited, and the next claim never runs."""
+    api = TranslateApi(_mixed())
+
+    class Limited(ScriptedEngine):
+        def translate(self, batch: TranslationBatch) -> TranslationOutcome:
+            if batch.target_locale == "tr":
+                raise RateLimited("429000: slow down", retry_after=5.0)
+            return super().translate(batch)
+
+    report = _drain(api, Limited(), max_batches=3)
+
+    assert (report.stop_reason, report.succeeded, report.completed, report.released) == ("rate_limited", True, 3, 3)
+    assert not api.bodies["fail"] and api.bodies["release"][0]["task_ids"] == _ids(1, 3, 5)
+    assert len(api.bodies["claim"]) == 1
 
 
 def test_an_unavailable_item_ends_the_drain_cleanly_and_the_unstarted_locales_are_released() -> None:

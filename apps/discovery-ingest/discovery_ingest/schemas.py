@@ -178,6 +178,7 @@ StopReason = Literal[
     "db_limit",
     "llm_budget",
     "llm_quota",
+    "rate_limited",
 ]
 
 
