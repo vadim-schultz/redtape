@@ -12,6 +12,7 @@ from uuid import UUID
 import httpx
 
 from discovery_ingest.client import DiscoveryMachineApiError
+from discovery_ingest.translation.errors import RateLimited
 from discovery_ingest.worker.release import MAX_REASON
 from discovery_ingest.worker.stop import StopDrain
 from discovery_ingest.worker.tally import FAILED
@@ -93,6 +94,14 @@ def _fail_one(api: LeasedTaskApi, task: HasTaskId, failure: Failure) -> str:
         print(f"fail of task {task.task_id} refused: {err}", file=sys.stderr)
         return SKIPPED
     return FAILED
+
+
+def limit_stop(err: RateLimited) -> StopDrain:
+    """Return the stop a throttled batch ends with: ``rate_limited``, so the batch's open tasks go back without an attempt.
+
+    Both settle modules raise it; the drain's batch step then releases what nobody settled, and no further claim runs.
+    """
+    return StopDrain("rate_limited", str(err))
 
 
 def release_batch(api: LeasedTaskApi, tasks: Sequence[HasTaskId], reason: str) -> int:

@@ -9,12 +9,13 @@ import pytest
 from discovery_ingest.translation.errors import (
     PermanentError,
     QuotaExceeded,
+    RateLimited,
     TransientError,
     TranslationEngineError,
     Unauthorised,
 )
 
-from azure_transport import KEY, engine, failure
+from azure_transport import KEY, FakeClock, engine, failure, faithful_answer
 from translation_fakes import batch, unit
 
 ONE_UNIT = batch(unit("a", "Antrag", "Gebühr"))
@@ -26,9 +27,10 @@ ONE_UNIT = batch(unit("a", "Antrag", "Gebühr"))
         (403, "403001", QuotaExceeded),
         (401, "401000", Unauthorised),
         (403, "403000", Unauthorised),
-        (429, "429000", TransientError),
-        (429, "429001", TransientError),
-        (429, "429002", TransientError),
+        (429, "429000", RateLimited),
+        (429, "429001", RateLimited),
+        (429, "429002", RateLimited),
+        (429, "", RateLimited),
         (503, "500000", TransientError),
         (500, "500000", TransientError),
         (408, "408000", TransientError),
@@ -44,6 +46,48 @@ def test_status_and_code_map_to_the_port_category(
 
     with pytest.raises(category):
         adapter.translate(ONE_UNIT)
+
+
+def test_a_429_maps_to_rate_limited_and_keeps_the_retry_after_seconds_the_service_sent() -> None:
+    """Azure · a 429 maps to RateLimited with the Retry-After seconds of its header; the transport waits that long twice."""
+    clock = FakeClock()
+    adapter = engine(lambda _request: failure(429, "429000", "slow", {"Retry-After": "7"}), clock=clock)
+
+    with pytest.raises(RateLimited) as raised:
+        adapter.translate(ONE_UNIT)
+
+    assert raised.value.retry_after == 7.0
+    assert clock.slept == [7.0, 7.0]
+
+
+def test_a_429_without_retry_after_leaves_retry_after_unset_and_waits_two_then_four_seconds() -> None:
+    """Azure · a 429 with no Retry-After header leaves retry_after unset; the transport waits 2 s, then 4 s, then raises."""
+    clock = FakeClock()
+    calls: list[int] = []
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return failure(429, "429001", "slow")
+
+    with pytest.raises(RateLimited) as raised:
+        engine(handler, clock=clock).translate(ONE_UNIT)
+
+    assert raised.value.retry_after is None
+    assert (len(calls), clock.slept) == (3, [2.0, 4.0])
+
+
+def test_a_throttled_request_sent_again_after_its_retry_after_returns_the_answer() -> None:
+    """Azure · a throttled request that succeeds on its second send returns its answer; only the first wait is spent."""
+    clock = FakeClock()
+    replies = [failure(429, "429000", "slow", {"Retry-After": "3"})]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return replies.pop(0) if replies else faithful_answer(request)
+
+    outcome = engine(handler, clock=clock).translate(ONE_UNIT)
+
+    assert outcome.results[0].title == "[en] Antrag"
+    assert clock.slept == [3.0]
 
 
 def test_a_connection_failure_is_transient() -> None:

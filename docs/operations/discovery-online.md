@@ -134,6 +134,7 @@ The summary route accepts repeated `?kinds=` and returns `pending_ready`, `pendi
 | `db_limit` | A machine write answered 507 `database_soft_limit` | yes |
 | `llm_budget` | `llm_extract`: the run's neuron budget or today's neuron ledger cannot cover the next call | yes |
 | `llm_quota` | `llm_extract`: Workers AI answered that the daily allocation is used up; the day is marked exhausted | yes |
+| `rate_limited` | `translate drain`, `--unit snapshot`: Azure answered 429 again after two waits; the batch's tasks are released without an attempt | yes |
 | `error` | A rejected Cloudflare token (401 or 403, browser or Workers AI) or an API failure | no, exit 1 |
 
 On every stop except `queue_empty`, `batch_limit`, `time_budget` and `error`, the worker releases the in-flight task

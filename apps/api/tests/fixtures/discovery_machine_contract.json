@@ -99,7 +99,8 @@
    "storage_unavailable",
    "db_limit",
    "llm_budget",
-   "llm_quota"
+   "llm_quota",
+   "rate_limited"
   ],
   "TranslationOutcome": [
    "stored",
@@ -2794,7 +2795,8 @@
          "storage_unavailable",
          "db_limit",
          "llm_budget",
-         "llm_quota"
+         "llm_quota",
+         "rate_limited"
         ],
         "type": "string"
        },

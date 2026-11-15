@@ -43,11 +43,18 @@ def _report(**overrides: Any) -> DrainReport:
     return DrainReport(**values)
 
 
+def _summary(request: httpx.Request) -> httpx.Response | None:
+    """An empty queue for the two summary routes the snapshot drain reads to share the monthly characters."""
+    if request.url.path.endswith(("/snapshots/summary", "/translations/summary")):
+        return httpx.Response(200, json={"locales": []})
+    return None
+
+
 def _client(monkeypatch: pytest.MonkeyPatch, starts: Starts, finishes: Finishes) -> DiscoveryIngestClient:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/machine/runs") and request.method == "POST":
             starts.append(json.loads(request.content))
-        stub = run_response(request, finishes)
+        stub = _summary(request) or run_response(request, finishes)
         assert stub is not None, f"unexpected request {request.method} {request.url}"
         return stub
 

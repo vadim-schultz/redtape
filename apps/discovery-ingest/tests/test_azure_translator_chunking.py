@@ -6,10 +6,10 @@ import json
 
 import httpx
 import pytest
-from discovery_ingest.translation.errors import PermanentError
+from discovery_ingest.translation.errors import PermanentError, RateLimited
 from discovery_ingest.translation.units import Usage
 
-from azure_transport import Handler, engine, faithful_answer, inputs_in
+from azure_transport import Handler, engine, failure, faithful_answer, inputs_in
 from translation_fakes import batch, unit
 
 
@@ -33,16 +33,46 @@ def test_600_inputs_split_into_two_requests_of_at_most_500_inputs_and_answers_in
     assert [result.title for result in outcome.results] == [f"[en] Antrag {number}" for number in range(600)]
 
 
-def test_a_request_never_exceeds_40000_characters_and_the_split_keeps_order() -> None:
-    """Azure · three texts of 15,000 characters go as two requests: two texts, then one, each within 40,000 characters."""
+def test_a_request_never_exceeds_28000_characters_and_the_split_keeps_order() -> None:
+    """Azure · three texts of 15,000 characters go as three requests, each within the 28,000 a minute the window admits."""
     seen: list[httpx.Request] = []
     units = [unit(key, "x" * 15_000) for key in ("a", "b", "c")]
 
     outcome = engine(_recording(seen)).translate(batch(*units))
 
     sizes = [sum(len(str(item["text"])) for item in inputs_in(request)) for request in seen]
-    assert len(seen) == 2 and all(size <= 40_000 for size in sizes)
+    assert len(seen) == 3 and all(size <= 28_000 for size in sizes)
     assert [result.key for result in outcome.results] == ["a", "b", "c"]
+
+
+def _lead(request: httpx.Request) -> str:
+    """The first character of the first text of a request: the number of the unit it carries."""
+    return str(inputs_in(request)[0]["text"])[0]
+
+
+def test_a_retry_of_chunk_three_does_not_re_bill_chunks_one_and_two() -> None:
+    """Azure · a page whose third request is throttled keeps chunks one and two; the retry sends only chunk three again."""
+    sent: dict[str, int] = {}
+    throttled = [True]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        lead = _lead(request)
+        sent[lead] = sent.get(lead, 0) + 1
+        if lead == "3" and throttled[0]:
+            return failure(429, "429000", "slow")
+        return faithful_answer(request)
+
+    adapter = engine(handler)
+    page = batch(*(unit(key, key + "x" * 19_999) for key in ("1", "2", "3")))
+    with pytest.raises(RateLimited):
+        adapter.translate(page)
+    throttled[0] = False
+
+    outcome = adapter.translate(page)
+
+    assert sent == {"1": 1, "2": 1, "3": 4}
+    assert outcome.usage.amount == 60_000
+    assert [result.key for result in outcome.results] == ["1", "2", "3"]
 
 
 def test_a_text_over_the_request_limit_is_refused_before_anything_is_sent() -> None:
