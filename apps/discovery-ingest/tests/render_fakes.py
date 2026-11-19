@@ -187,7 +187,9 @@ def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> Po
 class FakeBrowser:
     """A scripted browser: each ``render`` and ``screenshot`` returns the next outcome or raises the next error."""
 
-    def __init__(self, *outcomes: RenderedPage | BrowserError, shots: Sequence[ScreenshotImage | BrowserError] = ()) -> None:
+    def __init__(
+        self, *outcomes: RenderedPage | BrowserError, shots: Sequence[ScreenshotImage | BrowserError] = ()
+    ) -> None:
         self.outcomes = list(outcomes)
         self.shots = list(shots)
         self.calls: list[str] = []

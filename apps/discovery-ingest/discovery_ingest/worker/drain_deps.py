@@ -24,7 +24,8 @@ class DrainDeps:
     """The client, the fetcher and the optional collaborators one drain uses.
 
     ``browser`` and ``llm`` are required only when their kinds are drained; ``budget`` defaults to a guard over the
-    client's ledger; ``fim_base_url`` is the portal the enrich handler links its entities to.
+    client's ledger; ``fim_base_url`` is the portal the enrich handler links its entities to. ``fused_screenshot``
+    makes a render take its HTML and screenshot from one call; it is off unless the operator turns it on.
     """
 
     client: DiscoveryIngestClient
@@ -38,3 +39,4 @@ class DrainDeps:
     budget: BudgetGuard | None = None
     clock: Callable[[], float] = monotonic
     fim_base_url: str = DEFAULT_FIM_PORTAL_URL
+    fused_screenshot: bool = False

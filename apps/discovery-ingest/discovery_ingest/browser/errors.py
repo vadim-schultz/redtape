@@ -36,6 +36,17 @@ class BrowserRequestError(BrowserError):
         self.retryable = retryable
 
 
+class ScreenshotUnreadable(BrowserRequestError):
+    """The fused call returned no image that reads as one; a permanent request error whose DOM is kept when Cloudflare sent one."""
+
+    page: RenderedPage | None
+
+    def __init__(self, message: str, *, ms_used: int, page: RenderedPage | None = None) -> None:
+        """Keep the message, the browser milliseconds the call cost and the DOM of that call."""
+        super().__init__(message, retryable=False, ms_used=ms_used)
+        self.page = page
+
+
 class ScreenshotOversize(BrowserError):
     """The image is larger than the screenshot cap; the caller completes the task with ``oversize``."""
 

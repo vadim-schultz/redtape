@@ -7,6 +7,7 @@ import uuid
 import pytest
 from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize, ScreenshotUnreadable
 from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
+from discovery_ingest.config import load_browser_settings
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.worker.drain import run_worker_drain
 from discovery_ingest.worker.policy import DrainPolicy
@@ -102,7 +103,9 @@ def test_a_failed_screenshot_upload_does_not_fail_the_task_and_is_logged(
     assert "screenshot upload failed" in capsys.readouterr().err
 
 
-def test_an_unreadable_screenshot_keeps_the_html_and_completes_screenshot_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_an_unreadable_screenshot_keeps_the_html_and_completes_screenshot_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """render_page · fused: no readable image still keeps the DOM; the task completes screenshot_failed, uploads the HTML."""
     kept = RenderedPage("<p>kept</p>", 7000, 200, FINAL)
     broken = ScreenshotUnreadable("Cloudflare returned no readable image", ms_used=7000, page=kept)
@@ -123,7 +126,9 @@ def test_the_fused_call_is_made_without_the_accept_script(monkeypatch: pytest.Mo
     assert browser.shot_consent == [False]
 
 
-def test_with_the_flag_off_the_render_stays_on_content_and_stores_no_screenshot(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_with_the_flag_off_the_render_stays_on_content_and_stores_no_screenshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """render_page · flag off: the classic /content render uploads only the HTML and makes no screenshot call."""
     api, browser = FakeApi([_tasks()]), FakeBrowser(page())
 
@@ -152,3 +157,12 @@ def test_a_fused_call_error_fails_the_task_as_a_render_error_does(monkeypatch: p
 
     ((_, body),) = api.named("fail")
     assert body["retryable"] is True and api.uploads == [] and report.failed == 1
+
+
+def test_the_fused_flag_is_off_by_default_and_turns_on_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """render_page · RENDER_FUSED_SCREENSHOT is off when unset (the shipped default) and on only when set to true."""
+    monkeypatch.delenv("RENDER_FUSED_SCREENSHOT", raising=False)
+    assert load_browser_settings().render_fused_screenshot is False
+
+    monkeypatch.setenv("RENDER_FUSED_SCREENSHOT", "true")
+    assert load_browser_settings().render_fused_screenshot is True

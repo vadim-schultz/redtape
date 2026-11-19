@@ -15,7 +15,7 @@ from pydantic import JsonValue
 from discovery_ingest.browser.classify import envelope, is_rate_limited, raise_for_response
 from discovery_ingest.browser.consent import has_leftover_consent_widget
 from discovery_ingest.browser.endpoints import Endpoint, endpoint_url
-from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize
+from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize, ScreenshotUnreadable
 from discovery_ingest.browser.images import CONTENT_TYPES, image_kind
 from discovery_ingest.browser.payloads import Body, content_body, snapshot_body
 from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
@@ -154,7 +154,7 @@ def _decode_image(encoded: JsonValue, ms_used: int, page: RenderedPage | None) -
     except binascii.Error:
         data = b""
     if image_kind(data) not in CONTENT_TYPES:
-        raise BrowserRequestError("Cloudflare returned no readable image", retryable=False, ms_used=ms_used)
+        raise ScreenshotUnreadable("Cloudflare returned no readable image", ms_used=ms_used, page=page)
     if len(data) > MAX_SCREENSHOT_BYTES:
         raise ScreenshotOversize(len(data), ms_used, page=page)
     return data

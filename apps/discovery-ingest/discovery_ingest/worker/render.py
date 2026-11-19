@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from discovery_ingest.artifacts import ArtifactRead, ArtifactUpload, StoredArtifact
-from discovery_ingest.browser.port import BrowserClient, RenderedPage
+from discovery_ingest.browser.port import BrowserClient, RenderedPage, ScreenshotImage
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.browser_spend import BrowserSpend
@@ -29,13 +29,17 @@ AfterSnapshot = Callable[[ClaimedTask, ArtifactRead], None]
 
 
 @dataclass(frozen=True, slots=True)
-class _Fetched:
+class Fetched:
+    """What one render produced: the page to store and when it was read; the fused image when one was kept."""
+
     page: RenderedPage
     at: datetime
+    shot: ScreenshotImage | None = None
+    shot_note: str | None = None
 
 
 class RenderPageHandler:
-    """Steps in order: robots, login url, render, verdict, upload, hook, complete."""
+    """Steps in order: robots, login url, render, verdict, upload, hook, complete. Renders on ``/content``."""
 
     def __init__(self, browser: BrowserClient, spend: BrowserSpend, after_snapshot: AfterSnapshot) -> None:
         """Wire the browser port, the budgets and the hook that runs after a snapshot is stored."""
@@ -47,22 +51,37 @@ class RenderPageHandler:
         """Render ``task``'s page and return ``completed`` or ``failed``; raise :class:`StopDrain` on a limit."""
         job = Job(task, client, fetcher)
         try:
-            self._pipeline(job)
+            note = self._pipeline(job)
         except Settled as settled:
             return settled.outcome
-        return complete(job, None)
+        return complete(job, note)
 
-    def _pipeline(self, job: Job) -> None:
-        check_robots(job)
-        skip_login_url(job)
+    def _pipeline(self, job: Job) -> str | None:
+        _admit(job)
         fetched = self._render(job)
-        _verdict(job, fetched.page)
-        stored = _upload(job, fetched)
-        self._after_snapshot(job.task, stored.artifact)
+        _keep_html(job, fetched, self._after_snapshot)
+        return self._after_html(job, fetched)
 
-    def _render(self, job: Job) -> _Fetched:
+    def _render(self, job: Job) -> Fetched:
         page = call_browser(job, self._spend, lambda: self._browser.render(job.task.target_url), lambda p: p.ms_used)
-        return _Fetched(page, datetime.now(UTC))
+        return Fetched(page, datetime.now(UTC))
+
+    def _after_html(self, job: Job, fetched: Fetched) -> str | None:
+        """Return the completion note once the HTML is stored; the /content render keeps no image, so none."""
+        return None
+
+
+def _admit(job: Job) -> None:
+    """Settle the task before any browser time when robots disallow the URL or it is a login URL."""
+    check_robots(job)
+    skip_login_url(job)
+
+
+def _keep_html(job: Job, fetched: Fetched, after_snapshot: AfterSnapshot) -> None:
+    """Judge the rendered page, store its HTML, then tell the after-snapshot hook which artifact was stored."""
+    _verdict(job, fetched.page)
+    stored = _upload(job, fetched)
+    after_snapshot(job.task, stored.artifact)
 
 
 def _verdict(job: Job, page: RenderedPage) -> None:
@@ -78,7 +97,7 @@ def _skip_note(page: RenderedPage) -> str | None:
     return "oversize" if len(page.html.encode()) > MAX_SNAPSHOT_BYTES else None
 
 
-def _upload(job: Job, fetched: _Fetched) -> StoredArtifact:
+def _upload(job: Job, fetched: Fetched) -> StoredArtifact:
     task, page = job.task, fetched.page
     snapshot = ArtifactUpload(
         "html_snapshot", page.html.encode(), "text/html", task.target_url, page.final_url or task.target_url, fetched.at
