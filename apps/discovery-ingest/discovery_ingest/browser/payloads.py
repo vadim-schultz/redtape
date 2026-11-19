@@ -21,11 +21,12 @@ def content_body(url: str, user_agent: str, *, lean: bool = False) -> Body:
     return body
 
 
-def snapshot_body(url: str, user_agent: str, formats: list[JsonValue]) -> Body:
+def snapshot_body(url: str, user_agent: str, formats: list[JsonValue], *, consent_click: bool = True) -> Body:
     """Return the ``/snapshot`` body for ``formats``; a screenshot is a full-page JPEG.
 
     A screenshot also gets the consent-tiering fields (chapter 1): ``addStyleTag`` (tier 1,
-    always on) and ``addScriptTag`` (tier 2, best effort) on this same request, never a second call.
+    always on) and, when ``consent_click`` is set, ``addScriptTag`` (tier 2, best effort) on this same request,
+    never a second call. The fused render turns tier 2 off, because the accept click can navigate away from the page.
     """
     body: Body = {"url": url, "gotoOptions": GOTO_OPTIONS, "userAgent": user_agent, "formats": formats}
     if "screenshot" in formats:
@@ -33,8 +34,9 @@ def snapshot_body(url: str, user_agent: str, formats: list[JsonValue]) -> Body:
             viewport=VIEWPORT,
             screenshotOptions=_screenshot_options("jpeg"),
             addStyleTag=[{"content": CONSENT_HIDE_CSS}],
-            addScriptTag=[{"content": CONSENT_ACCEPT_SCRIPT}],
         )
+        if consent_click:
+            body["addScriptTag"] = [{"content": CONSENT_ACCEPT_SCRIPT}]
     return body
 
 

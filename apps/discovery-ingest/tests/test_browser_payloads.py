@@ -56,3 +56,10 @@ def test_a_script_error_inside_the_page_does_not_fail_the_request() -> None:
 
     script = body["addScriptTag"][0]["content"]
     assert "try" in script and "catch" in script
+
+
+def test_snapshot_body_without_consent_click_keeps_the_stylesheet_and_sends_no_accept_script() -> None:
+    """snapshot_body · consent_click off (the fused render): tier 1 CSS stays, the tier-2 accept script is absent."""
+    body = snapshot_body(URL, USER_AGENT, ["content", "screenshot"], consent_click=False)
+
+    assert "addStyleTag" in body and "addScriptTag" not in body

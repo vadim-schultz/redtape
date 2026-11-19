@@ -36,6 +36,12 @@ class ArtifactPage(BaseModel):
     limit: int
 
 
+class MissingScreenshotPage(BaseModel):
+    """Rendered pages with no screenshot yet, each as its newest HTML snapshot, from the missing-screenshot route."""
+
+    items: list[ArtifactRead]
+
+
 class ArtifactStatus(BaseModel):
     """Whether an upload would be accepted right now."""
 

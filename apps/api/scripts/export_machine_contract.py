@@ -104,6 +104,7 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "machine.RunRead": (machine.RunRead, "serialization"),
     "artifacts.ArtifactRead": (artifacts.ArtifactRead, "serialization"),
     "artifacts.ArtifactListResponse": (artifacts.ArtifactListResponse, "serialization"),
+    "artifacts.MissingScreenshotResponse": (artifacts.MissingScreenshotResponse, "serialization"),
     "artifacts.ArtifactStatusResponse": (artifacts.ArtifactStatusResponse, "serialization"),
     "candidates.CandidateMentionsResponse": (candidates.CandidateMentionsResponse, "serialization"),
     "candidate_edges.CandidateEdgesResponse": (candidate_edges.CandidateEdgesResponse, "serialization"),

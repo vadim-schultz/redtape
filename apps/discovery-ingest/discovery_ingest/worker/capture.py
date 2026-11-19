@@ -57,7 +57,7 @@ class CaptureScreenshotHandler:
         captured = self._capture(job)
         image = _image_or_oversize(job, captured.shot)
         _verdict(job, image)
-        store(job, _evidence(job.task, image, captured.at))
+        store(job, screenshot_evidence(job.task, image, captured.at))
 
     def _capture(self, job: Job) -> _Captured:
         shot = call_browser(job, self._spend, lambda: _shoot(self._browser, job.task.target_url), lambda s: s.ms_used)
@@ -84,6 +84,7 @@ def _verdict(job: Job, image: ScreenshotImage) -> None:
         raise Settled(complete(job, "login_wall"))
 
 
-def _evidence(task: ClaimedTask, image: ScreenshotImage, at: datetime) -> ArtifactUpload:
+def screenshot_evidence(task: ClaimedTask, image: ScreenshotImage, at: datetime) -> ArtifactUpload:
+    """Return the upload of one screenshot of ``task``'s page, as the capture handler and the fused render store it."""
     final = image.final_url or task.target_url
     return ArtifactUpload("screenshot", image.data, image.content_type, task.target_url, final, at)

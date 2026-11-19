@@ -15,6 +15,7 @@ from app.schema.discovery.artifacts import (
     AdminArtifactRead,
     ArtifactListResponse,
     ArtifactStatusResponse,
+    MissingScreenshotResponse,
 )
 from app.shared.object_store import ObjectNotFoundError, ObjectStore, ObjectStoreMeter, noop_meter
 from app.shared.object_store.provider import require_store
@@ -77,6 +78,11 @@ class ArtifactReadService:
         rows, total = self._page_of(artifact_filter, page)
         items = [artifact_read(row) for row in rows]
         return ArtifactListResponse(items=items, total=total, offset=page.offset, limit=page.limit)
+
+    def missing_screenshots(self, catalogue_id: UUID | None, limit: int) -> MissingScreenshotResponse:
+        """Return the rendered pages that have no screenshot, newest first, at most ``limit``."""
+        rows = self._repo.html_snapshots_without_screenshot(catalogue_id, limit)
+        return MissingScreenshotResponse(items=[artifact_read(row) for row in rows])
 
     def list_for_catalogue(self, catalogue_id: UUID, page: Page) -> AdminArtifactListResponse:
         """Return one page of a catalogue row's artifacts, each with a presigned download URL."""

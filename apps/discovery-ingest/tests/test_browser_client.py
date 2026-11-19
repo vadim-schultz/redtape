@@ -362,3 +362,27 @@ def test_a_timeout_after_the_send_carries_the_measured_duration() -> None:
         _client(timeout, clock).render(PAGE)
 
     assert caught.value.ms_used == 2000
+
+
+def test_the_fused_screenshot_call_sends_no_accept_script_and_keeps_the_stylesheet() -> None:
+    """screenshot · consent_click off: the /snapshot request carries addStyleTag and no addScriptTag."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return _snapshot(JPEG)
+
+    _client(handler).screenshot(PAGE, consent_click=False)
+
+    body = httpx.Response(200, content=seen[0].content).json()
+    assert "addStyleTag" in body and "addScriptTag" not in body
+
+
+def test_an_oversize_screenshot_keeps_the_dom_of_the_same_call() -> None:
+    """screenshot · ScreenshotOversize carries the page of its own call, so a fused render can keep the HTML."""
+    big = b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES
+
+    with pytest.raises(ScreenshotOversize) as caught:
+        _client(lambda request: _snapshot(big, html="<p>kept</p>")).screenshot(PAGE)
+
+    assert caught.value.page is not None and caught.value.page.html == "<p>kept</p>"

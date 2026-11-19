@@ -15,7 +15,7 @@ from pydantic import JsonValue
 from discovery_ingest.browser.classify import envelope, is_rate_limited, raise_for_response
 from discovery_ingest.browser.consent import has_leftover_consent_widget
 from discovery_ingest.browser.endpoints import Endpoint, endpoint_url
-from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize
+from discovery_ingest.browser.errors import BrowserRequestError, ScreenshotOversize, ScreenshotUnreadable
 from discovery_ingest.browser.images import CONTENT_TYPES, image_kind
 from discovery_ingest.browser.payloads import Body, content_body, snapshot_body
 from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
@@ -71,9 +71,10 @@ class CloudflareBrowserClient:
         payload, ms_used = self._call("content", content_body(url, self._user_agent))
         return _rendered(payload, ms_used)
 
-    def screenshot(self, url: str) -> ScreenshotImage:
-        """Return a full-page JPEG and the DOM of the same session from one ``/snapshot`` call."""
-        payload, ms_used = self._call("snapshot", snapshot_body(url, self._user_agent, ["content", "screenshot"]))
+    def screenshot(self, url: str, *, consent_click: bool = True) -> ScreenshotImage:
+        """Return a full-page JPEG and the DOM of the same session from one ``/snapshot`` call (tier 2 when ``consent_click``)."""
+        body = snapshot_body(url, self._user_agent, ["content", "screenshot"], consent_click=consent_click)
+        payload, ms_used = self._call("snapshot", body)
         return _screenshot_image(payload, ms_used, url)
 
     def _call(self, endpoint: Endpoint, body: Body) -> tuple[dict[str, JsonValue], int]:
@@ -133,9 +134,11 @@ def _rendered(payload: dict[str, JsonValue], ms_used: int) -> RenderedPage:
 def _screenshot_image(payload: dict[str, JsonValue], ms_used: int, url: str) -> ScreenshotImage:
     result = payload.get("result")
     fields = result if isinstance(result, dict) else {}
-    data, html = _decode_image(fields.get("screenshot"), ms_used), fields.get("content")
+    html = fields.get("content")
     html_value = html if isinstance(html, str) else None
+    page = None if html_value is None else RenderedPage(html_value, ms_used, *_target(payload))
     _flag_leftover_consent_widget(html_value, url)
+    data = _decode_image(fields.get("screenshot"), ms_used, page)
     return ScreenshotImage(data, CONTENT_TYPES[image_kind(data)], ms_used, html_value, *_target(payload))
 
 
@@ -145,13 +148,13 @@ def _flag_leftover_consent_widget(html: str | None, url: str) -> None:
         logger.warning("consent widget still present after screenshot capture", extra={"url": url})
 
 
-def _decode_image(encoded: JsonValue, ms_used: int) -> bytes:
+def _decode_image(encoded: JsonValue, ms_used: int, page: RenderedPage | None) -> bytes:
     try:
         data = base64.b64decode(encoded, validate=True) if isinstance(encoded, str) else b""
     except binascii.Error:
         data = b""
     if image_kind(data) not in CONTENT_TYPES:
-        raise BrowserRequestError("Cloudflare returned no readable image", retryable=False, ms_used=ms_used)
+        raise ScreenshotUnreadable("Cloudflare returned no readable image", ms_used=ms_used, page=page)
     if len(data) > MAX_SCREENSHOT_BYTES:
-        raise ScreenshotOversize(len(data), ms_used)
+        raise ScreenshotOversize(len(data), ms_used, page=page)
     return data

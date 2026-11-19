@@ -72,5 +72,7 @@ def run_drain(options: DrainOptions, settings: IngestSettings, client: Discovery
             after_extract=enqueue_screenshot_for_mentions,
             llm_enqueue=llm_enqueue,
             fim_base_url=settings.fim_portal_base_url,
+            fused_screenshot=settings.render_fused_screenshot,
+            screenshot_sweep_limit=settings.screenshot_sweep_limit,
         )
         return run_recorded_drain(deps, policy)

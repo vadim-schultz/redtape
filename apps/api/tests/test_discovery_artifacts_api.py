@@ -244,14 +244,46 @@ def test_third_snapshot_prunes_the_oldest_row_and_object(
     assert slot.memory.exists(keys[1]) and slot.memory.exists(keys[2])
 
 
-def test_screenshots_are_never_pruned(client: TestClient[Litestar], slot: StoreSlot, db_session: Session) -> None:
+def _capture(client: TestClient[Litestar], key: str, task_id: uuid.UUID, n: int) -> str:
+    """Upload the n-th screenshot of a page, fetched n minutes after FETCHED_AT; return its storage key."""
+    response = _upload(
+        client,
+        key,
+        task_id,
+        content=PNG + bytes([n]),
+        content_type="image/png",
+        kind="screenshot",
+        fetched_at=(FETCHED_AT + timedelta(minutes=n)).isoformat(),
+    )
+    return response.json()["storage_key"]
+
+
+def _screenshot_keys(db_session: Session, catalogue_id: uuid.UUID) -> list[str]:
+    rows = _artifacts(db_session, catalogue_id)
+    return [row.storage_key for row in rows if row.kind is DiscoveryArtifactKind.SCREENSHOT]
+
+
+def test_the_sixth_screenshot_prunes_the_oldest_and_keeps_the_newest_five(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    """screenshots · six captures of a page leave its newest five rows and objects; the page's HTML is not touched."""
     key, task = _issue_key(db_session), _task(db_session)
+    html = _snapshot(client, key, task.id, 0)
+    keys = [_capture(client, key, task.id, n) for n in range(1, 7)]
 
-    for n in range(4):
-        content = PNG + bytes([n])
-        _upload(client, key, task.id, content=content, content_type="image/png", kind="screenshot")
+    assert _screenshot_keys(db_session, task.catalogue_service_id) == keys[1:]
+    assert slot.memory.exists(keys[0]) is False and all(slot.memory.exists(k) for k in keys[1:])
+    assert slot.memory.exists(html)
 
-    assert len(_artifacts(db_session, task.catalogue_service_id)) == 4
+
+def test_the_only_screenshot_of_a_page_is_never_deleted(client: TestClient[Litestar], db_session: Session) -> None:
+    """screenshots · asking the repository to keep none still keeps the page's one screenshot."""
+    key, task = _issue_key(db_session), _task(db_session)
+    kept = _capture(client, key, task.id, 1)
+
+    deleted = DiscoveryRepository(db_session).delete_old_screenshots(task.catalogue_service_id, keep=0)
+
+    assert deleted == [] and _screenshot_keys(db_session, task.catalogue_service_id) == [kept]
 
 
 def test_upload_over_the_byte_cap_returns_507_and_writes_nothing(
@@ -683,3 +715,77 @@ def test_candidate_artifacts_rejects_non_admins_and_returns_404_for_an_unknown_c
 
     assert (forbidden.status_code, anonymous.status_code, unknown.status_code) == (403, 401, 404)
     assert unknown.json()["detail"] == "Document candidate not found"
+
+
+MISSING_SCREENSHOT = f"{MACHINE}/artifacts/missing-screenshot"
+
+
+def test_missing_screenshot_lists_each_rendered_page_without_a_screenshot(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · a rendered page with no screenshot is listed; a page with one, or never rendered, is not."""
+    key = _issue_key(db_session)
+    bare, shot, unrendered = _task(db_session, "svc-bare"), _task(db_session, "svc-shot"), _task(db_session, "svc-none")
+    _stored(client, key, bare, source_url="https://example.gov/bare")
+    _stored(client, key, shot, source_url="https://example.gov/shot")
+    _stored(client, key, shot, content=PNG, kind="screenshot", content_type="image/png")
+    _stored(client, key, unrendered, content=PNG, kind="screenshot", content_type="image/png")
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [(item["catalogue_service_id"], item["source_url"]) for item in items] == [
+        (str(bare.catalogue_service_id), "https://example.gov/bare")
+    ]
+
+
+def test_missing_screenshot_answers_the_newest_html_snapshot_of_each_page_once(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · a page with two snapshots is listed once, by its newest one."""
+    key, task = _issue_key(db_session), _task(db_session)
+    _snapshot(client, key, task.id, 1)
+    newest = _snapshot(client, key, task.id, 3)
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [item["storage_key"] for item in items] == [newest]
+
+
+def test_missing_screenshot_filters_by_catalogue_and_caps_the_limit(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · catalogue_service_id keeps one page, limit keeps the page size, and 101 is refused."""
+    key = _issue_key(db_session)
+    first, second = _task(db_session, "svc-a"), _task(db_session, "svc-b")
+    _stored(client, key, first, source_url="https://example.gov/a")
+    _stored(client, key, second, source_url="https://example.gov/b")
+    headers = {"X-API-Key": key}
+
+    only_second = client.get(
+        MISSING_SCREENSHOT, params={"catalogue_service_id": str(second.catalogue_service_id)}, headers=headers
+    ).json()["items"]
+
+    assert [item["source_url"] for item in only_second] == ["https://example.gov/b"]
+    assert len(client.get(MISSING_SCREENSHOT, params={"limit": 1}, headers=headers).json()["items"]) == 1
+    assert client.get(MISSING_SCREENSHOT, params={"limit": 101}, headers=headers).status_code == 422
+
+
+def test_missing_screenshot_requires_the_machine_key(client: TestClient[Litestar]) -> None:
+    """missing-screenshot · without the machine key the route answers 401 and lists nothing."""
+    assert client.get(MISSING_SCREENSHOT).status_code == 401
+
+
+def test_missing_screenshot_skips_a_page_whose_capture_already_ran(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · a page whose capture task exists in any state is not listed again, so a page that never
+    gets a screenshot cannot hold every sweep slot; a page with no capture task is still listed."""
+    key = _issue_key(db_session)
+    ran = _kind_task(db_session, _catalogue(db_session, external_id="svc-ran"), DiscoveryTaskKind.CAPTURE_SCREENSHOT)
+    fresh = _task(db_session, "svc-fresh")
+    _stored(client, key, ran, source_url="https://example.gov/ran")
+    _stored(client, key, fresh, source_url="https://example.gov/fresh")
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [item["source_url"] for item in items] == ["https://example.gov/fresh"]

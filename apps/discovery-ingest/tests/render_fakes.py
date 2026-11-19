@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -67,6 +67,10 @@ class FakeApi:
         self.ledger_exhausted = False
         self.upload_status = 201
         self.upload_detail = ""
+        self.upload_script: list[int] = []
+        self.missing_screenshots: list[dict[str, object]] = [missing_row()]
+        self.missing_status = 200
+        self.gap_queries: list[dict[str, str]] = []
         self.storage_enabled = True
         self.status_http = 200
         self.enqueue_status = 200
@@ -102,7 +106,18 @@ class FakeApi:
             return httpx.Response(self.status_http, json=status)
         if path.endswith("/machine/tasks") and request.method == "POST":
             return self._enqueue(request)
+        if path.endswith("/artifacts/missing-screenshot"):
+            return self._missing_route(request)
         return httpx.Response(500, text="no stub")
+
+    def _missing_route(self, request: httpx.Request) -> httpx.Response:
+        params = dict(request.url.params)
+        self.gap_queries.append(params)
+        if self.missing_status >= 400:
+            return httpx.Response(self.missing_status, text="refused")
+        catalogue = params.get("catalogue_service_id")
+        rows = [row for row in self.missing_screenshots if catalogue in (None, row["catalogue_service_id"])]
+        return httpx.Response(200, json={"items": rows[: int(params.get("limit", "50"))]})
 
     def _enqueue(self, request: httpx.Request) -> httpx.Response:
         self.calls.append(("enqueue", "", json.loads(request.content)))
@@ -119,10 +134,11 @@ class FakeApi:
         self.calls.append((action, task_id, body))
         if action == "artifacts":
             self.uploads.append(request)
-            if self.upload_status >= 400:
-                return httpx.Response(self.upload_status, text=self.upload_detail)
+            status = self.upload_script.pop(0) if self.upload_script else self.upload_status
+            if status >= 400:
+                return httpx.Response(status, text=self.upload_detail)
             self.stored.append(artifact_json())
-            return httpx.Response(self.upload_status, json=self.stored[-1])
+            return httpx.Response(status, json=self.stored[-1])
         return httpx.Response(200, json={"id": task_id, "status": "x", "last_error": "x"})
 
     def _budget_route(self, request: httpx.Request) -> httpx.Response:
@@ -170,6 +186,15 @@ class FakeApi:
         return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
 
 
+def missing_row(
+    url: str = "https://portal.example/service/1", catalogue: uuid.UUID = CATALOGUE_ID
+) -> dict[str, object]:
+    """Return a rendered page's newest snapshot as the missing-screenshot route answers it."""
+    row = artifact_json()
+    row.update(catalogue_service_id=str(catalogue), source_url=url)
+    return row
+
+
 def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> PoliteUrlFetcher:
     """Return a fetcher whose only reachable URL is ``robots.txt`` (``robots_status`` unless ``robots`` has rules)."""
 
@@ -183,11 +208,16 @@ def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> Po
 
 
 class FakeBrowser:
-    """A scripted browser: each ``render`` returns the next page or raises the next error; calls are recorded."""
+    """A scripted browser: each ``render`` and ``screenshot`` returns the next outcome or raises the next error."""
 
-    def __init__(self, *outcomes: RenderedPage | BrowserError) -> None:
+    def __init__(
+        self, *outcomes: RenderedPage | BrowserError, shots: Sequence[ScreenshotImage | BrowserError] = ()
+    ) -> None:
         self.outcomes = list(outcomes)
+        self.shots = list(shots)
         self.calls: list[str] = []
+        self.shot_calls: list[str] = []
+        self.shot_consent: list[bool] = []
 
     def render(self, url: str) -> RenderedPage:
         """Return or raise the next scripted outcome."""
@@ -197,9 +227,14 @@ class FakeBrowser:
             raise outcome
         return outcome
 
-    def screenshot(self, url: str) -> ScreenshotImage:
-        """Not used by chapter 15."""
-        raise NotImplementedError
+    def screenshot(self, url: str, *, consent_click: bool = True) -> ScreenshotImage:
+        """Return or raise the next scripted fused outcome, recording the url and the consent flag."""
+        self.shot_calls.append(url)
+        self.shot_consent.append(consent_click)
+        outcome = self.shots.pop(0)
+        if isinstance(outcome, BrowserError):
+            raise outcome
+        return outcome
 
 
 def page(html: str = "<html><body>rendered</body></html>", *, ms: int = 2000, status: int | None = 200) -> RenderedPage:

@@ -48,6 +48,12 @@ class ArtifactSummaryRead(BaseModel):
     fetched_at: datetime
 
 
+class MissingScreenshotResponse(BaseModel):
+    """The newest HTML snapshot of each rendered catalogue row that has no screenshot yet, newest first."""
+
+    items: list[ArtifactRead]
+
+
 class AdminArtifactRead(ArtifactRead):
     """Artifact metadata with a short-lived download URL (``None`` while storage is unset)."""
 

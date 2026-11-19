@@ -394,6 +394,124 @@
     "type": "object"
    }
   },
+  "artifacts.MissingScreenshotResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ArtifactRead": {
+      "description": "Artifact metadata; the bytes stay in the object store.",
+      "properties": {
+       "byte_size": {
+        "title": "Byte Size",
+        "type": "integer"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "content_type": {
+        "title": "Content Type",
+        "type": "string"
+       },
+       "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+       },
+       "discovery_task_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Discovery Task Id"
+       },
+       "fetched_at": {
+        "format": "date-time",
+        "title": "Fetched At",
+        "type": "string"
+       },
+       "final_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Final Url"
+       },
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "kind": {
+        "$ref": "#/$defs/DiscoveryArtifactKind"
+       },
+       "sha256": {
+        "title": "Sha256",
+        "type": "string"
+       },
+       "source_url": {
+        "title": "Source Url",
+        "type": "string"
+       },
+       "storage_key": {
+        "title": "Storage Key",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "catalogue_service_id",
+       "discovery_task_id",
+       "kind",
+       "storage_key",
+       "sha256",
+       "content_type",
+       "byte_size",
+       "source_url",
+       "final_url",
+       "fetched_at",
+       "created_at"
+      ],
+      "title": "ArtifactRead",
+      "type": "object"
+     },
+     "DiscoveryArtifactKind": {
+      "description": "What an object-store artifact holds.",
+      "enum": [
+       "html_snapshot",
+       "screenshot"
+      ],
+      "title": "DiscoveryArtifactKind",
+      "type": "string"
+     }
+    },
+    "description": "The newest HTML snapshot of each rendered catalogue row that has no screenshot yet, newest first.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ArtifactRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "MissingScreenshotResponse",
+    "type": "object"
+   }
+  },
   "budgets.BudgetAdjustRequest": {
    "mode": "validation",
    "schema": {
@@ -5957,6 +6075,10 @@
   {
    "method": "GET",
    "path": "/api/v1/discovery/machine/artifacts"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/artifacts/missing-screenshot"
   },
   {
    "method": "GET",
