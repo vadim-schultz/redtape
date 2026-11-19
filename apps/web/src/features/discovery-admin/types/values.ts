@@ -100,3 +100,32 @@ export type CandidateFilterKey = (typeof CANDIDATE_FILTER_KEYS)[number];
 
 /** Values the `complete` candidate filter accepts. */
 export const COMPLETE_CHOICES = ["yes", "no"] as const;
+
+/** Stage states of the admin pipeline flow, in the order the API's rules test them. */
+export const FLOW_STAGE_STATES = [
+  "dead",
+  "budget_stopped",
+  "throttled",
+  "blocked",
+  "starved",
+  "overdue",
+  "backlogged",
+  "flowing",
+  "idle",
+] as const;
+export type FlowStageState = (typeof FLOW_STAGE_STATES)[number];
+
+/** Budget resources an allotment of the admin pipeline flow can name. */
+export const FLOW_RESOURCES = [
+  "r2_class_a",
+  "r2_class_b",
+  "browser_seconds",
+  "neurons",
+  "actions_minutes",
+  "azure_translator_chars",
+] as const;
+export type FlowResource = (typeof FLOW_RESOURCES)[number];
+
+/** Status of the newest run of a flow stage. */
+export const FLOW_RUN_STATUSES = ["running", "succeeded", "failed"] as const;
+export type FlowRunStatus = (typeof FLOW_RUN_STATUSES)[number];

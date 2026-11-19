@@ -334,6 +334,93 @@
       "task_status_completed": "Tamamlandı",
       "task_status_failed": "Başarısız",
       "task_status_pending": "Beklemede"
+    },
+    "flow": {
+      "title": "Hat akışı",
+      "graph_label": "Hat aşamaları ve beslediği aşamalar",
+      "list_label": "Hat aşamaları sırayla",
+      "empty": "Henüz hat aşaması yok.",
+      "layout_error": "Akış yerleştirilemedi.",
+      "detail_empty": "Son çalışmayı, hataları ve harcamayı görmek için bir aşama seçin.",
+      "ready": "Hazır: {count}",
+      "failed_24h": "24 sa içinde başarısız: {count}",
+      "last_run": "Son çalışma: {age}",
+      "no_run": "Kayıtlı çalışma yok",
+      "stop_reason": "Durma nedeni: {reason}",
+      "run_status": {
+        "running": "Çalışıyor",
+        "succeeded": "Başarılı",
+        "failed": "Başarısız"
+      },
+      "spend_title": "Son 24 saatte harcama",
+      "spend_none": "Bu aşama ücretsiz kotayı kullanmıyor.",
+      "spend_row": "{stage}: {spent}",
+      "headroom": "{stage} hazır iş beklerken {resource} kullanılmayan bir pay barındırıyor.",
+      "strip_label": "Kotalar",
+      "stage": {
+        "seed": "Tohumlama",
+        "render": "Oluşturma",
+        "extract_page": "Çıkarma (kurallar)",
+        "llm": "Çıkarma (LLM)",
+        "capture": "Ekran görüntüsü",
+        "embed": "Gömme",
+        "card_translation": "Kart çevirisi",
+        "page_translation": "Sayfa çevirisi"
+      },
+      "run_stage": {
+        "worker_drain": "Worker çalışması",
+        "embed": "Gömme",
+        "translate": "Kart çevirisi",
+        "snapshot_translate": "Sayfa çevirisi"
+      },
+      "stop_reasons": {
+        "queue_empty": "kuyruk boş",
+        "time_budget": "zaman bütçesi",
+        "rate_limited": "hız sınırı",
+        "browser_budget": "tarayıcı bütçesi",
+        "browser_quota": "tarayıcı kotası",
+        "llm_budget": "LLM bütçesi",
+        "llm_quota": "LLM kotası"
+      },
+      "state": {
+        "dead": {
+          "label": "Ölü",
+          "description": "Bu aşama için hiç görev kuyruğa alınmadı."
+        },
+        "budget_stopped": {
+          "label": "Bütçe durdu",
+          "description": "Aşama kotasında durdu ve hazır iş bir sonraki döneme kadar bekliyor."
+        },
+        "throttled": {
+          "label": "Kısıtlı",
+          "description": "Hazır iş ve pay var, ancak son çalışma saat veya hız sınırı nedeniyle durdu."
+        },
+        "blocked": {
+          "label": "Engelli",
+          "description": "Hiçbir şey hazır değil ve önceki bir aşama gecikmiş."
+        },
+        "starved": {
+          "label": "İş yok",
+          "description": "Hiçbir şey hazır değil ve son çalışmada kuyruk boştu."
+        },
+        "overdue": {
+          "label": "Gecikmiş",
+          "description": "Son çalışma, aşamanın periyoduna göre fazla eski."
+        },
+        "backlogged": {
+          "label": "Birikmiş",
+          "description": "Son 24 saatin temizleme hızında hazır iş, periyodun izin verdiğinden uzun sürer."
+        },
+        "flowing": {
+          "label": "Akıyor",
+          "description": "Aşama son 24 saatte iş tamamladı."
+        },
+        "idle": {
+          "label": "Boşta",
+          "description": "Hiçbir şey hazır değil ve aşama bir sorun bildirmiyor."
+        }
+      },
+      "updated": "Güncellendi {age}"
     }
   },
   "documents": {

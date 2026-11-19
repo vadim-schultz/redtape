@@ -6,6 +6,7 @@ import DiscoveryCataloguePage from "./containers/DiscoveryCataloguePage";
 import DiscoveryCoveragePage from "./containers/DiscoveryCoveragePage";
 import DiscoveryDocumentPage from "./containers/DiscoveryDocumentPage";
 import DiscoveryDocumentsPage from "./containers/DiscoveryDocumentsPage";
+import DiscoveryFlowPage from "./containers/DiscoveryFlowPage";
 import DiscoveryPipelinePage from "./containers/DiscoveryPipelinePage";
 import DiscoveryTasksPage from "./containers/DiscoveryTasksPage";
 import RequireDiscoveryAdmin from "./components/RequireDiscoveryAdmin";
@@ -24,6 +25,7 @@ export default function DiscoveryAdminRoutes() {
         <Route index element={<Navigate to="catalogue" replace />} />
         <Route path="catalogue" element={<DiscoveryCataloguePage />} />
         <Route path="coverage" element={<DiscoveryCoveragePage />} />
+        <Route path="flow" element={<DiscoveryFlowPage />} />
         <Route path="tasks" element={<DiscoveryTasksPage />} />
         <Route path="documents" element={<DiscoveryDocumentsPage />} />
         <Route path="documents/:id" element={<DiscoveryDocumentPage />} />

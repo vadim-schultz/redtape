@@ -6,6 +6,11 @@
 // those keys with the API's property names.
 import { expect, it } from "vitest";
 
+import {
+  FLOW_RESOURCES,
+  FLOW_RUN_STATUSES,
+  FLOW_STAGE_STATES,
+} from "../../features/discovery-admin/types";
 import type {
   CandidateEmitPreview,
   CataloguePipelineResponse,
@@ -24,6 +29,12 @@ import type {
   DiscoveryCandidateDetailResponse,
   DiscoveryCandidateRecord,
   DiscoveryCoverageResponse,
+  DiscoveryFlowResponse,
+  FlowAllotment,
+  FlowEdge,
+  FlowHeadroom,
+  FlowLastRun,
+  FlowStage,
   DiscoveryRun,
   DiscoveryTagSupport,
   DiscoveryTask,
@@ -310,6 +321,45 @@ const BUDGET: Keys<DiscoveryBudget> = {
   exhausted: true,
 };
 
+const FLOW_RESPONSE: Keys<DiscoveryFlowResponse> = {
+  stages: true,
+  edges: true,
+  allotments: true,
+  unused_headroom: true,
+};
+
+const FLOW_STAGE: Keys<FlowStage> = {
+  id: true,
+  label: true,
+  state: true,
+  ready: true,
+  failed_24h: true,
+  last_run: true,
+};
+
+const FLOW_LAST_RUN: Keys<FlowLastRun> = {
+  status: true,
+  stop_reason: true,
+  started_at: true,
+  finished_at: true,
+};
+
+const FLOW_EDGE: Keys<FlowEdge> = {
+  from: true,
+  to: true,
+  tasks_created_24h: true,
+  manual_only: true,
+};
+
+const FLOW_ALLOTMENT: Keys<FlowAllotment> = {
+  resource: true,
+  used: true,
+  cap: true,
+  spent_by_stage: true,
+};
+
+const FLOW_HEADROOM: Keys<FlowHeadroom> = { resource: true, stage: true };
+
 const BUDGET_PAGE: Keys<DiscoveryBudgetsResponse> = {
   items: true,
   stored_bytes: true,
@@ -419,6 +469,12 @@ it.each([
   ["CatalogueServiceRead", CATALOGUE_SERVICE],
   ["DiscoveryRunRead", RUN],
   ["DiscoveryCoverageResponse", COVERAGE],
+  ["FlowResponse", FLOW_RESPONSE],
+  ["FlowStageRead", FLOW_STAGE],
+  ["FlowLastRunRead", FLOW_LAST_RUN],
+  ["FlowEdgeRead", FLOW_EDGE],
+  ["FlowAllotmentRead", FLOW_ALLOTMENT],
+  ["FlowHeadroomRead", FLOW_HEADROOM],
   ["DiscoveryTaskListResponse", TASK_PAGE],
   ["CatalogueListResponse", CATALOGUE_PAGE],
   ["CatalogueSummaryChips", CHIPS],
@@ -458,6 +514,18 @@ it.each([
     expectFields(API_SCHEMAS, apiName, webFields);
   },
 );
+
+it("contract · the flow state, resource and run status values equal the API enums", () => {
+  expect([...FLOW_STAGE_STATES]).toEqual(
+    API_SCHEMAS.FlowStageRead.properties?.state?.enum,
+  );
+  expect([...FLOW_RESOURCES]).toEqual(
+    API_SCHEMAS.FlowAllotmentRead.properties?.resource?.enum,
+  );
+  expect([...FLOW_RUN_STATUSES]).toEqual(
+    API_SCHEMAS.FlowLastRunRead.properties?.status?.enum,
+  );
+});
 
 it("Contract · the text block kinds equal the API enum", () => {
   expect([...DOCUMENT_TEXT_KINDS]).toEqual(

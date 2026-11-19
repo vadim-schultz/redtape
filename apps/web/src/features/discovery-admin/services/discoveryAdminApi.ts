@@ -10,6 +10,7 @@ import type {
   DiscoveryCandidateEdgesResponse,
   DiscoveryCandidateListResponse,
   DiscoveryCoverageResponse,
+  DiscoveryFlowResponse,
   DiscoveryTaskListResponse,
   EmitPreviewResponse,
   TranslationCoverageResponse,
@@ -23,6 +24,7 @@ const CATALOGUE_PATH = "/api/v1/discovery/admin/catalogue";
 const CANDIDATES_PATH = "/api/v1/discovery/admin/candidates";
 const COVERAGE_PATH = "/api/v1/discovery/admin/coverage";
 const BUDGETS_PATH = "/api/v1/discovery/admin/budgets";
+const FLOW_PATH = "/api/v1/discovery/admin/flow";
 const TRANSLATION_COVERAGE_PATH = "/api/v1/admin/translations/coverage";
 const ARTIFACT_LIST_PARAMS = { offset: 0, limit: 50 };
 
@@ -66,6 +68,13 @@ export async function fetchDiscoveryCoverage(
   auth: AdminAuth,
 ): Promise<DiscoveryCoverageResponse> {
   return apiRequest<DiscoveryCoverageResponse>(COVERAGE_PATH, auth);
+}
+
+/** The pipeline flow: every stage with its state, the edges, the allotments and the unused headroom. */
+export async function fetchDiscoveryFlow(
+  auth: AdminAuth,
+): Promise<DiscoveryFlowResponse> {
+  return apiRequest<DiscoveryFlowResponse>(FLOW_PATH, auth);
 }
 
 /** Full staging slice for one catalogue service. */

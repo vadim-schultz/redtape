@@ -405,6 +405,93 @@
       "col_status": "Status",
       "translator_title": "Azure-Übersetzer",
       "translator_missing": "Nicht konfiguriert: Die Budgetzeile für Azure-Zeichen fehlt."
+    },
+    "flow": {
+      "title": "Ablauf der Pipeline",
+      "graph_label": "Pipeline-Stufen und die Stufen, die sie beliefern",
+      "list_label": "Pipeline-Stufen in Reihenfolge",
+      "empty": "Noch keine Pipeline-Stufen.",
+      "layout_error": "Der Ablauf konnte nicht angeordnet werden.",
+      "detail_empty": "Wählen Sie eine Stufe, um ihren letzten Lauf, ihre Fehler und ihren Verbrauch zu sehen.",
+      "ready": "Bereit: {count}",
+      "failed_24h": "Fehlgeschlagen in 24 h: {count}",
+      "last_run": "Letzter Lauf: {age}",
+      "no_run": "Kein Lauf erfasst",
+      "stop_reason": "Stopgrund: {reason}",
+      "run_status": {
+        "running": "Läuft",
+        "succeeded": "Erfolgreich",
+        "failed": "Fehlgeschlagen"
+      },
+      "spend_title": "Verbrauch in den letzten 24 h",
+      "spend_none": "Diese Stufe nutzt kein kostenloses Kontingent.",
+      "spend_row": "{stage}: {spent}",
+      "headroom": "{resource} hat ungenutzte Reserve, während {stage} bereite Arbeit hat.",
+      "strip_label": "Kontingente",
+      "stage": {
+        "seed": "Seed",
+        "render": "Rendern",
+        "extract_page": "Extraktion (Regeln)",
+        "llm": "Extraktion (LLM)",
+        "capture": "Screenshot",
+        "embed": "Einbettung",
+        "card_translation": "Kartenübersetzung",
+        "page_translation": "Seitenübersetzung"
+      },
+      "run_stage": {
+        "worker_drain": "Worker-Lauf",
+        "embed": "Einbettung",
+        "translate": "Kartenübersetzung",
+        "snapshot_translate": "Seitenübersetzung"
+      },
+      "stop_reasons": {
+        "queue_empty": "Warteschlange leer",
+        "time_budget": "Zeitbudget",
+        "rate_limited": "Ratenlimit",
+        "browser_budget": "Browser-Budget",
+        "browser_quota": "Browser-Kontingent",
+        "llm_budget": "LLM-Budget",
+        "llm_quota": "LLM-Kontingent"
+      },
+      "state": {
+        "dead": {
+          "label": "Tot",
+          "description": "Für diese Stufe wurde noch nie eine Aufgabe eingereiht."
+        },
+        "budget_stopped": {
+          "label": "Budget erschöpft",
+          "description": "Die Stufe hat ihr Kontingent aufgebraucht, und bereite Arbeit wartet auf die nächste Periode."
+        },
+        "throttled": {
+          "label": "Gedrosselt",
+          "description": "Bereite Arbeit und Reserve sind vorhanden, der letzte Lauf endete aber an seiner Uhr oder einem Ratenlimit."
+        },
+        "blocked": {
+          "label": "Blockiert",
+          "description": "Nichts ist bereit, und eine vorgelagerte Stufe ist überfällig."
+        },
+        "starved": {
+          "label": "Ohne Arbeit",
+          "description": "Nichts ist bereit, und der letzte Lauf fand die Warteschlange leer."
+        },
+        "overdue": {
+          "label": "Überfällig",
+          "description": "Der letzte Lauf ist älter, als es der Takt der Stufe erlaubt."
+        },
+        "backlogged": {
+          "label": "Rückstau",
+          "description": "Bei der Abarbeitungsrate der letzten 24 h würde die bereite Arbeit länger brauchen, als der Takt erlaubt."
+        },
+        "flowing": {
+          "label": "Fließend",
+          "description": "Die Stufe hat in den letzten 24 h Arbeit abgeschlossen."
+        },
+        "idle": {
+          "label": "Untätig",
+          "description": "Nichts ist bereit, und die Stufe meldet keine Störung."
+        }
+      },
+      "updated": "Aktualisiert {age}"
     }
   },
   "suggest": {
