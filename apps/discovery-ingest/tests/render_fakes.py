@@ -81,7 +81,7 @@ class FakeApi:
         self.uploads: list[httpx.Request] = []
         self.stored: list[dict[str, object]] = []
         self.enqueued: set[tuple[str, str, str | None]] = set()
-        self.fetch_answer: dict[str, object] = {"render_due": True, "render_input_key": None}
+        self.fetch_answer: dict[str, object] | None = {"render_due": True, "render_input_key": None}
 
     def named(self, name: str) -> list[tuple[str, Any]]:
         """Return ``(task_id, body)`` of every recorded call of kind ``name``."""
@@ -141,9 +141,8 @@ class FakeApi:
             self.stored.append(artifact_json())
             return httpx.Response(status, json=self.stored[-1])
         if action == "fetches":
-            return httpx.Response(
-                201, json={"id": task_id, "discovery_task_id": task_id, "task_status": "claimed", **self.fetch_answer}
-            )
+            answer = {"id": task_id, "discovery_task_id": task_id, "task_status": "claimed"}
+            return httpx.Response(201, json={**answer, **(self.fetch_answer or {})})
         return httpx.Response(200, json={"id": task_id, "status": "x", "last_error": "x"})
 
     def _budget_route(self, request: httpx.Request) -> httpx.Response:

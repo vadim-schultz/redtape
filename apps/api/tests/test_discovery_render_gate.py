@@ -166,3 +166,34 @@ def _completed_render(session: Session, catalogue_id: uuid.UUID, *, updated_at: 
     task.status = DiscoveryTaskStatus.COMPLETED
     task.updated_at = updated_at
     session.flush()
+
+
+def test_a_worker_without_a_body_hash_is_logged_and_asks_for_no_render(
+    machine_client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    """render gate · happy: a fetch from a worker that predates the hash is logged, and it asks for no render."""
+    catalogue = _catalogue(db_session)
+    task = _fetch_task(db_session, catalogue.id)
+    key = _issue_key(db_session)
+
+    answer = _fetch(machine_client, key, task.id)
+
+    assert answer["render_due"] is False
+    stored = db_session.scalars(select(DiscoveryFetchLog).where(DiscoveryFetchLog.discovery_task_id == task.id)).one()
+    assert stored.body_sha256 is None
+
+
+def test_the_first_hashed_fetch_after_a_hashless_one_is_due_a_render(
+    machine_client: TestClient[Litestar],  # noqa: F811
+    db_session: Session,
+) -> None:
+    """render gate · negative: with no stored hash to match, the first hashed body of a page counts as changed."""
+    catalogue = _catalogue(db_session)
+    task = _fetch_task(db_session, catalogue.id)
+    key = _issue_key(db_session)
+    _fetch(machine_client, key, task.id)
+
+    answer = _fetch(machine_client, key, task.id, body_sha256=HASH_A, final_url=PAGE_URL)
+
+    assert answer["render_due"] is True

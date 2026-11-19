@@ -142,3 +142,15 @@ def test_a_refresh_verdict_enqueues_the_render_under_its_input_key(monkeypatch: 
             "input_key": "rr:2026-W47",
         }
     ]
+
+
+def test_an_answer_that_predates_the_verdict_still_enqueues_the_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · happy: an API that answers without the verdict fields keeps the render, as it did before the change gate."""
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=b"<html>x</html>")}
+    api.fetch_answer = None
+
+    report = _fetch(monkeypatch, api)
+
+    assert [call for call in api.calls if call[0] == "enqueue"] != []
+    assert report.completed == 1
