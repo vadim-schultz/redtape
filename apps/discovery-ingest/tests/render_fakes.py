@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -67,6 +67,7 @@ class FakeApi:
         self.ledger_exhausted = False
         self.upload_status = 201
         self.upload_detail = ""
+        self.upload_script: list[int] = []
         self.storage_enabled = True
         self.status_http = 200
         self.enqueue_status = 200
@@ -119,10 +120,11 @@ class FakeApi:
         self.calls.append((action, task_id, body))
         if action == "artifacts":
             self.uploads.append(request)
-            if self.upload_status >= 400:
-                return httpx.Response(self.upload_status, text=self.upload_detail)
+            status = self.upload_script.pop(0) if self.upload_script else self.upload_status
+            if status >= 400:
+                return httpx.Response(status, text=self.upload_detail)
             self.stored.append(artifact_json())
-            return httpx.Response(self.upload_status, json=self.stored[-1])
+            return httpx.Response(status, json=self.stored[-1])
         return httpx.Response(200, json={"id": task_id, "status": "x", "last_error": "x"})
 
     def _budget_route(self, request: httpx.Request) -> httpx.Response:
@@ -183,11 +185,14 @@ def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> Po
 
 
 class FakeBrowser:
-    """A scripted browser: each ``render`` returns the next page or raises the next error; calls are recorded."""
+    """A scripted browser: each ``render`` and ``screenshot`` returns the next outcome or raises the next error."""
 
-    def __init__(self, *outcomes: RenderedPage | BrowserError) -> None:
+    def __init__(self, *outcomes: RenderedPage | BrowserError, shots: Sequence[ScreenshotImage | BrowserError] = ()) -> None:
         self.outcomes = list(outcomes)
+        self.shots = list(shots)
         self.calls: list[str] = []
+        self.shot_calls: list[str] = []
+        self.shot_consent: list[bool] = []
 
     def render(self, url: str) -> RenderedPage:
         """Return or raise the next scripted outcome."""
@@ -197,9 +202,14 @@ class FakeBrowser:
             raise outcome
         return outcome
 
-    def screenshot(self, url: str) -> ScreenshotImage:
-        """Not used by chapter 15."""
-        raise NotImplementedError
+    def screenshot(self, url: str, *, consent_click: bool = True) -> ScreenshotImage:
+        """Return or raise the next scripted fused outcome, recording the url and the consent flag."""
+        self.shot_calls.append(url)
+        self.shot_consent.append(consent_click)
+        outcome = self.shots.pop(0)
+        if isinstance(outcome, BrowserError):
+            raise outcome
+        return outcome
 
 
 def page(html: str = "<html><body>rendered</body></html>", *, ms: int = 2000, status: int | None = 200) -> RenderedPage:
