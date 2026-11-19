@@ -15,6 +15,7 @@ from discovery_ingest.translation.meter import UsageMeter
 from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.translation.repair import Translator
 from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, UsageUnit
+from discovery_ingest.translation_models import PriorityBand
 from discovery_ingest.worker.drain_loop import Finish, drain_until_stop, monotonic
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.report import build_report, remaining_of
@@ -25,7 +26,7 @@ from discovery_ingest.worker.translate_meter import MeterPlan, open_run_meter
 
 @dataclass(frozen=True, slots=True)
 class TranslateDeps:
-    """The machine client and the engine of one drain, the neuron floor kept for query embedding, and the test seams."""
+    """The machine client and the engine of one drain, the neuron floor kept for query embedding, the priority band and the test seams."""
 
     client: DiscoveryIngestClient
     engine: TranslationEngine
@@ -34,6 +35,7 @@ class TranslateDeps:
     budget: BudgetGuard | None = None
     clock: Callable[[], float] = monotonic
     glossary: GlossaryMode = DEFAULT_GLOSSARY_MODE
+    band: PriorityBand = field(default_factory=PriorityBand)
 
 
 class CountedTranslator:
@@ -90,7 +92,9 @@ def _report(deps: TranslateDeps, tally: Tally, finish: Finish) -> DrainReport:
 
 def _drain(deps: TranslateDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter) -> Finish:
     translator = CountedTranslator(MeteredTranslator(deps.engine, meter), tally)
-    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits, deps.glossary)
+    ctx = TranslateContext(
+        deps.client, translator, deps.engine.name, policy, deps.engine.limits, deps.glossary, deps.band
+    )
     return drain_until_stop(lambda: run_translate_batch(ctx, tally), policy, deps.clock)
 
 

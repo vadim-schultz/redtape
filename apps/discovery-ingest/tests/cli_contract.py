@@ -253,6 +253,9 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--time-budget-seconds", "float"),
             _opt("--neuron-budget", "float", default=2500.0),
             _opt("--concurrency", "int", default=2),
+            _opt("--engine", "str"),
+            _opt("--priority-min", "int"),
+            _opt("--priority-max", "int"),
         ),
     ),
     CommandSpec(
