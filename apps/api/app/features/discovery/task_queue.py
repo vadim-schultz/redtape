@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
@@ -23,6 +24,14 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SupersededResult:
+    """What a superseded requeue matched, and how many it re-pended; a dry run re-pends none."""
+
+    matched: int
+    requeued: int
 
 
 class TaskQueue:
@@ -101,6 +110,20 @@ class TaskQueue:
     def requeue_transient(self, *, limit: int, now: datetime) -> int:
         """Return up to ``limit`` transient failures that are at least the cooldown old to pending; return how many."""
         return self._repo.requeue_transient(cutoff=now - TRANSIENT_COOLDOWN, limit=limit)
+
+    def requeue_superseded(
+        self, *, kind: DiscoveryTaskKind, input_key: str, limit: int, dry_run: bool
+    ) -> SupersededResult:
+        """Re-pend up to ``limit`` completed ``kind`` tasks that completed under another key, under ``input_key``.
+
+        A dry run only counts them. A page that already has a task under ``input_key`` is left alone, so each page
+        holds one open identity; the rows are locked, so a concurrent requeue skips them.
+        """
+        if dry_run:
+            found = self._repo.superseded_task_ids(kind=kind, input_key=input_key, limit=limit)
+            return SupersededResult(matched=len(found), requeued=0)
+        requeued = len(self._repo.requeue_superseded(kind=kind, input_key=input_key, limit=limit))
+        return SupersededResult(matched=requeued, requeued=requeued)
 
     def _lease(self, task: DiscoveryTask, api_key: ApiKey, now: datetime) -> DiscoveryTask:
         task.status = DiscoveryTaskStatus.CLAIMED

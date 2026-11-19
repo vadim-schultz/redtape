@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import ColumnElement, Update, func, or_, select, update
+from sqlalchemy import ColumnElement, Select, Update, exists, func, or_, select, update
+from sqlalchemy.orm import aliased
 
-from app.models.discovery import DiscoveryFailureClass, DiscoveryTask, DiscoveryTaskStatus
+from app.models.discovery import DiscoveryFailureClass, DiscoveryTask, DiscoveryTaskKind, DiscoveryTaskStatus
 
 
 def delayed(now: datetime) -> tuple[ColumnElement[bool], ...]:
@@ -75,5 +77,59 @@ def requeue_transient_stmt(cutoff: datetime, limit: int) -> Update:
         update(DiscoveryTask)
         .where(DiscoveryTask.id.in_(due))
         .values(status=DiscoveryTaskStatus.PENDING, attempt_count=0, not_before=None, failure_class=None)
+        .returning(DiscoveryTask.id)
+    )
+
+
+def _superseded(kind: DiscoveryTaskKind, input_key: str) -> tuple[ColumnElement[bool], ...]:
+    """Return the predicates of a completed ``kind`` task under another key, whose page has no task under ``input_key``."""
+    current = aliased(DiscoveryTask)
+    page_has_current_key = exists().where(
+        current.catalogue_service_id == DiscoveryTask.catalogue_service_id,
+        current.kind == DiscoveryTask.kind,
+        current.target_url == DiscoveryTask.target_url,
+        current.input_key == input_key,
+    )
+    return (
+        DiscoveryTask.kind == kind,
+        DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED,
+        DiscoveryTask.input_key.is_not(None),
+        DiscoveryTask.input_key != input_key,
+        DiscoveryTask.artifact_id.is_not(None),
+        ~page_has_current_key,
+    )
+
+
+def superseded_ids_stmt(kind: DiscoveryTaskKind, input_key: str, limit: int) -> Select[tuple[UUID]]:
+    """Return up to ``limit`` ids of superseded tasks, one per page, the newest completion of each page first."""
+    newest_per_page = (
+        select(DiscoveryTask.id)
+        .distinct(DiscoveryTask.catalogue_service_id, DiscoveryTask.target_url)
+        .where(*_superseded(kind, input_key))
+        .order_by(
+            DiscoveryTask.catalogue_service_id,
+            DiscoveryTask.target_url,
+            DiscoveryTask.updated_at.desc(),
+            DiscoveryTask.id,
+        )
+    )
+    return select(DiscoveryTask.id).where(DiscoveryTask.id.in_(newest_per_page)).limit(limit)
+
+
+def requeue_superseded_stmt(ids: Select[tuple[UUID]], input_key: str) -> Update:
+    """Re-pend the selected superseded tasks under ``input_key``, with a fresh attempt count and their old result cleared."""
+    return (
+        update(DiscoveryTask)
+        .where(DiscoveryTask.id.in_(ids))
+        .values(
+            status=DiscoveryTaskStatus.PENDING,
+            input_key=input_key,
+            attempt_count=0,
+            not_before=None,
+            last_error=None,
+            result_note=None,
+            text_hash=None,
+            failure_class=None,
+        )
         .returning(DiscoveryTask.id)
     )

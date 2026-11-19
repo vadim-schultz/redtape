@@ -50,6 +50,8 @@ from app.schema.discovery.machine import (
     TaskRequeueRequest,
     TaskRequeueResponse,
     TaskSummaryResponse,
+    TaskSupersededRequest,
+    TaskSupersededResponse,
     TextExtractedResponse,
     resolve_task_kinds,
 )
@@ -169,6 +171,13 @@ class DiscoveryMachineService:
     def requeue_transient(self, body: TaskRequeueRequest) -> TaskRequeueResponse:
         """Return transient failures that have cooled down to the queue, with a fresh attempt count."""
         return TaskRequeueResponse(requeued=self._queue.requeue_transient(limit=body.limit, now=datetime.now(UTC)))
+
+    def requeue_superseded(self, body: TaskSupersededRequest) -> TaskSupersededResponse:
+        """Re-pend completed tasks that completed under an older input key, under the current one, once per page."""
+        found = self._queue.requeue_superseded(
+            kind=body.kind, input_key=body.input_key, limit=body.limit, dry_run=body.dry_run
+        )
+        return TaskSupersededResponse(matched=found.matched, requeued=found.requeued)
 
     def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
         """Upsert a discovery entity under a catalogue row."""

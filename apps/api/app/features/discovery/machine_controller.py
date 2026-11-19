@@ -44,6 +44,8 @@ from app.schema.discovery.machine import (
     TaskRequeueRequest,
     TaskRequeueResponse,
     TaskSummaryResponse,
+    TaskSupersededRequest,
+    TaskSupersededResponse,
     TextExtractedResponse,
 )
 
@@ -154,6 +156,18 @@ class DiscoveryMachineController(Controller):
     ) -> TaskRequeueResponse:
         """Return failed transient tasks that are at least 24 h old to the queue; permanent failures are never touched."""
         return discovery_machine_service.requeue_transient(data)
+
+    @post("/tasks/requeue-superseded", sync_to_thread=True, status_code=HTTP_200_OK)
+    def requeue_superseded_tasks(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskSupersededRequest,
+    ) -> TaskSupersededResponse:
+        """Re-pend completed tasks of a kind that completed under another input key, once per page, under ``input_key``.
+
+        A page that already has a task under the key is left alone; ``dry_run`` counts the matches and changes nothing.
+        """
+        return discovery_machine_service.requeue_superseded(data)
 
     @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def append_fetch_log(
