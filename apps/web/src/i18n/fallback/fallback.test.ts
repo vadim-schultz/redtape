@@ -64,6 +64,7 @@ const CANDIDATE_KEYS = [
   "screenshot_alt",
   "screenshot_missing",
   "screenshot_fetched",
+  "screenshot_history",
   "sources",
   "source_role_required",
   "source_role_form",

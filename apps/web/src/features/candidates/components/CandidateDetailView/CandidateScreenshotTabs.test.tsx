@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 
 import { formatDate } from "../../../../utils/format/formatDate";
@@ -50,13 +50,20 @@ it("a failed image shows the missing text on its tab only", async () => {
   expect(screen.getByRole("img")).toHaveAttribute("src", OLDER.src);
 });
 
-it("arrow keys move between tabs and load the image of the tab reached", async () => {
+it("arrow keys move focus between tabs, and Enter chooses the tab reached", async () => {
   const { user } = renderTabs();
   const [first, second] = screen.getAllByRole("tab");
 
   first.focus();
   await user.keyboard("{ArrowRight}");
 
+  expect(second).toHaveFocus();
+  expect(screen.getByRole("img")).toHaveAttribute("src", NEWEST.src);
+
+  await user.keyboard("{Enter}");
+
+  await waitFor(() =>
+    expect(screen.getByRole("img")).toHaveAttribute("src", OLDER.src),
+  );
   expect(second).toHaveAttribute("aria-selected", "true");
-  expect(screen.getByRole("img")).toHaveAttribute("src", OLDER.src);
 });

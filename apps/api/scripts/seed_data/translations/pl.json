@@ -37,6 +37,7 @@
     "optional": "Opcjonalne",
     "screenshot_alt": "Zrzut ekranu strony źródłowej dla: {title}",
     "screenshot_fetched": "Wykonano: {time}",
+    "screenshot_history": "Historia zrzutów ekranu",
     "screenshot_missing": "Brak jeszcze zrzutu ekranu",
     "source_role_form": "Formularz",
     "source_role_issued": "Wydawany",

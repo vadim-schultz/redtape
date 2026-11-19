@@ -107,6 +107,7 @@
     "screenshot_alt": "Bildschirmfoto der Quellseite zu {title}",
     "screenshot_missing": "Noch kein Bildschirmfoto vorhanden",
     "screenshot_fetched": "Aufgenommen {time}",
+    "screenshot_history": "Verlauf der Bildschirmfotos",
     "sources": "Quellen",
     "source_role_required": "Erforderlich",
     "source_role_form": "Formular",

@@ -2,7 +2,7 @@ import { Accordion, Span, VStack } from "@chakra-ui/react";
 import { useState, type ReactNode } from "react";
 
 import { useLocale } from "../../../../contexts/LocaleContext";
-import type { CandidateDetail } from "../../types";
+import type { CandidateDetail, ScreenshotCapture } from "../../types";
 import { DocumentTranslationSection } from "../DocumentTranslationSection";
 import { FlowSection } from "../FlowDiagram";
 import CandidateEvidence from "./CandidateEvidence";
@@ -12,7 +12,7 @@ import NeighbourSection from "./NeighbourSection";
 
 export interface CandidateDetailContentProps {
   candidate: CandidateDetail;
-  screenshotUrl: string;
+  captures: ScreenshotCapture[];
 }
 
 type DetailSection =
@@ -46,7 +46,7 @@ function AccordionSection({
 /** Compose the loaded candidate header and its five accessible detail sections. */
 export default function CandidateDetailContent({
   candidate,
-  screenshotUrl,
+  captures,
 }: CandidateDetailContentProps) {
   const { t, locale } = useLocale();
   const [openItems, setOpenItems] = useState<string[]>(DEFAULT_OPEN);
@@ -75,10 +75,7 @@ export default function CandidateDetailContent({
           <FlowSection candidate={candidate} />
         </AccordionSection>
         <AccordionSection value="evidence" title={t("candidates.evidence")}>
-          <CandidateEvidence
-            candidate={candidate}
-            screenshotUrl={screenshotUrl}
-          />
+          <CandidateEvidence candidate={candidate} captures={captures} />
         </AccordionSection>
         <AccordionSection value="sources" title={t("candidates.sources")}>
           <CandidateSources sources={candidate.sources} />

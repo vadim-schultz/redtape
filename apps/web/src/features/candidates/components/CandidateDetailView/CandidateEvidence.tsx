@@ -1,27 +1,21 @@
 import { VStack } from "@chakra-ui/react";
 
-import type { CandidateDetail } from "../../types";
+import type { CandidateDetail, ScreenshotCapture } from "../../types";
 import CandidateScreenshot from "./CandidateScreenshot";
 
 export interface CandidateEvidenceProps {
-  candidate: Pick<CandidateDetail, "title" | "screenshot">;
-  screenshotUrl: string;
+  candidate: Pick<CandidateDetail, "title">;
+  captures: ScreenshotCapture[];
 }
 
 /** Render the screenshot evidence body; the parent accordion owns its heading. */
 export default function CandidateEvidence({
   candidate,
-  screenshotUrl,
+  captures,
 }: CandidateEvidenceProps) {
-  const { title, screenshot } = candidate;
-
   return (
     <VStack align="stretch" gap={4}>
-      <CandidateScreenshot
-        src={screenshot ? screenshotUrl : null}
-        title={title}
-        fetchedAt={screenshot?.fetched_at ?? null}
-      />
+      <CandidateScreenshot captures={captures} title={candidate.title} />
     </VStack>
   );
 }

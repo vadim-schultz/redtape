@@ -37,6 +37,7 @@
     "optional": "Opțional",
     "screenshot_alt": "Captură de ecran a paginii sursă pentru {title}",
     "screenshot_fetched": "Realizată {time}",
+    "screenshot_history": "Istoricul capturilor de ecran",
     "screenshot_missing": "Încă nu există o captură de ecran",
     "source_role_form": "Formular",
     "source_role_issued": "Emis",

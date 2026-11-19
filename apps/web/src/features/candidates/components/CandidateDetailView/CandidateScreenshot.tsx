@@ -1,76 +1,19 @@
-import { Box, Text, VStack } from "@chakra-ui/react";
-import { useState } from "react";
-
-import { useLocale } from "../../../../contexts/LocaleContext";
-import { formatRelativeTime } from "../../../../utils/format/formatRelativeTime";
+import type { ScreenshotCapture } from "../../types";
+import CandidateCapture from "./CandidateCapture";
+import CandidateScreenshotTabs from "./CandidateScreenshotTabs";
 
 export interface CandidateScreenshotProps {
-  /** The proxy URL, or `null` when the detail says there is no screenshot: no request is made. */
-  src: string | null;
+  /** The captures, newest first; an empty list means the detail has no screenshot. */
+  captures: ScreenshotCapture[];
   title: string;
-  fetchedAt: string | null;
 }
 
-function ScreenshotFrame({
-  src,
-  title,
-  onError,
-}: {
-  src: string;
-  title: string;
-  onError: () => void;
-}) {
-  const { t } = useLocale();
-
-  return (
-    <Box
-      maxH="70vh"
-      bg="surface.muted"
-      borderWidth="1px"
-      borderColor="border"
-      overflowY="auto"
-      overflowX="hidden"
-    >
-      <img
-        src={src}
-        alt={t("candidates.screenshot_alt", { title })}
-        loading="lazy"
-        onError={onError}
-        style={{
-          width: "100%",
-          height: "auto",
-        }}
-      />
-    </Box>
-  );
-}
-
-/** The screenshot in a scrollable, fixed max-height box; a missing or failing image shows the text instead. */
+/** The screenshot evidence: one capture as a single image, two or more as the history in tabs. */
 export default function CandidateScreenshot({
-  src,
+  captures,
   title,
-  fetchedAt,
 }: CandidateScreenshotProps) {
-  const { t, locale } = useLocale();
-  const [failed, setFailed] = useState(false);
-
-  if (!src || failed)
-    return <Text color="muted">{t("candidates.screenshot_missing")}</Text>;
-
-  return (
-    <VStack align="stretch" gap={1}>
-      <ScreenshotFrame
-        src={src}
-        title={title}
-        onError={() => setFailed(true)}
-      />
-      {fetchedAt ? (
-        <Text color="muted" textStyle="caption">
-          {t("candidates.screenshot_fetched", {
-            time: formatRelativeTime(fetchedAt, locale),
-          })}
-        </Text>
-      ) : null}
-    </VStack>
-  );
+  if (captures.length > 1)
+    return <CandidateScreenshotTabs captures={captures} title={title} />;
+  return <CandidateCapture capture={captures[0]} title={title} />;
 }
