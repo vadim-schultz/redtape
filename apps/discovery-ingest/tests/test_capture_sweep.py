@@ -8,8 +8,11 @@ import pytest
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedTask
 from discovery_ingest.worker.capture_enqueue import enqueue_screenshot_for_mentions, sweep_screenshots
+from discovery_ingest.worker.drain import run_worker_drain
+from discovery_ingest.worker.policy import DrainPolicy
 
-from render_fakes import CATALOGUE_ID, FakeApi, missing_row, task_json
+from drain_deps_for import deps_for
+from render_fakes import CATALOGUE_ID, FakeApi, FakeBrowser, missing_row, robots_fetcher, task_json
 
 URL_A = "https://portal.example/service/a"
 URL_B = "https://portal.example/service/b"
@@ -89,3 +92,29 @@ def test_the_hook_is_a_no_op_when_the_page_already_has_a_screenshot(monkeypatch:
 
     assert enqueue_screenshot_for_mentions(_client(api, monkeypatch), _task()) is True
     assert _captures(api) == [] and api.gap_queries == [{"catalogue_service_id": str(CATALOGUE_ID), "limit": "1"}]
+
+
+def _drain(monkeypatch: pytest.MonkeyPatch, api: FakeApi, kinds: tuple[str, ...], limit: int | None) -> None:
+    policy = DrainPolicy(max_tasks=5, kinds=kinds, browser_budget_seconds=480.0)
+    deps = deps_for(api.client(monkeypatch), robots_fetcher(), browser=FakeBrowser(), screenshot_sweep_limit=limit)
+    run_worker_drain(deps, policy)
+
+
+def test_a_capture_drain_sweeps_rendered_pages_before_it_claims(monkeypatch: pytest.MonkeyPatch) -> None:
+    """drain · a drain that claims capture_screenshot queues a capture for each rendered page that lacks one."""
+    api = FakeApi([[]])
+    api.missing_screenshots = [missing_row(URL_A)]
+
+    _drain(monkeypatch, api, ("capture_screenshot",), limit=50)
+
+    assert [body["target_url"] for body in _captures(api)] == [URL_A]
+
+
+def test_a_render_only_drain_and_a_drain_without_a_limit_do_not_sweep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """drain · only a drain that claims capture_screenshot sweeps, and only with a limit; neither other case reads the route."""
+    render_only = FakeApi([[]])
+    _drain(monkeypatch, render_only, ("render_page",), limit=50)
+    no_limit = FakeApi([[]])
+    _drain(monkeypatch, no_limit, ("capture_screenshot",), limit=None)
+
+    assert render_only.gap_queries == [] and no_limit.gap_queries == []

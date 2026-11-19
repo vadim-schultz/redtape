@@ -77,6 +77,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.RunFinishRequest", "machine.RunFinishRequest", "request"),
     Pair("artifacts.ArtifactRead", "artifacts.ArtifactRead", "response", reads_subset=True),
     Pair("artifacts.ArtifactPage", "artifacts.ArtifactListResponse", "response"),
+    Pair("artifacts.MissingScreenshotPage", "artifacts.MissingScreenshotResponse", "response"),
     Pair("artifacts.ArtifactStatus", "artifacts.ArtifactStatusResponse", "response"),
     Pair("mentions.MentionItem", "candidates.CandidateMentionItem", "request"),
     Pair("mentions.MentionsRequest", "candidates.CandidateMentionsRequest", "request"),

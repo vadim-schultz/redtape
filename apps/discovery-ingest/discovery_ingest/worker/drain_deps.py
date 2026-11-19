@@ -40,3 +40,4 @@ class DrainDeps:
     clock: Callable[[], float] = monotonic
     fim_base_url: str = DEFAULT_FIM_PORTAL_URL
     fused_screenshot: bool = False
+    screenshot_sweep_limit: int | None = None

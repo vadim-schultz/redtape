@@ -47,6 +47,7 @@ class BrowserSettings(CloudflareAccountSettings):
         default=60.0, gt=0, validation_alias="BROWSER_REQUEST_TIMEOUT_SECONDS"
     )
     render_fused_screenshot: bool = Field(default=False, validation_alias="RENDER_FUSED_SCREENSHOT")
+    screenshot_sweep_limit: int = Field(default=50, ge=1, le=100, validation_alias="SCREENSHOT_SWEEP_LIMIT")
     """Store the HTML and the screenshot of a render from one /snapshot call; off until the canary is recorded (chapter 8)."""
 
     def credentials(self) -> tuple[str, str]:

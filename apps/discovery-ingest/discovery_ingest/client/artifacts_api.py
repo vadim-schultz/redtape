@@ -11,6 +11,7 @@ from discovery_ingest.artifacts import (
     ArtifactRead,
     ArtifactStatus,
     ArtifactUpload,
+    MissingScreenshotPage,
     StoredArtifact,
 )
 from discovery_ingest.client.http_client import MachineHttpClient
@@ -42,6 +43,13 @@ class ArtifactsAPI:
         """Download the stored bytes of ``artifact_id``; 404 means unknown or missing object, 503 an unset store."""
         response = self._http.request("GET", f"/artifacts/{artifact_id}/content")
         return ArtifactContent(response.content, response.headers.get("content-type"))
+
+    def missing_screenshot(self, *, limit: int, catalogue_service_id: UUID | None = None) -> MissingScreenshotPage:
+        """Return rendered pages with no screenshot, newest first, at most ``limit``; one catalogue row when named."""
+        params: dict[str, str | int] = {"limit": limit}
+        if catalogue_service_id is not None:
+            params["catalogue_service_id"] = str(catalogue_service_id)
+        return self._http.request_model(MissingScreenshotPage, "GET", "/artifacts/missing-screenshot", params=params)
 
     def list(self, query: ArtifactQuery) -> ArtifactPage:
         """List stored artifacts matching ``query``, newest first; ``limit`` is at most 100."""
