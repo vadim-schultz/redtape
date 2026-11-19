@@ -38,3 +38,32 @@ def test_an_empty_recipe_version_fails_at_load() -> None:
     """settings · the unit recipe version cannot be empty, or every hash would collide across recipes."""
     with pytest.raises(ValidationError):
         _settings(translation_unit_recipe_version="")
+
+
+def test_the_tail_is_off_by_default_and_starts_at_priority_600() -> None:
+    """settings · no tail locale is set (D14), and the tail band starts at priority 600."""
+    defaults = _settings()
+
+    assert (defaults.translation_tail_locale_codes, defaults.translation_tail_priority_min) == ((), 600)
+
+
+def test_tail_locales_are_target_locales_and_accept_a_tuned_band() -> None:
+    """settings · a tail locale must be a target; the band start can be moved within 0 to 1000."""
+    tuned = _settings(
+        translation_target_locales="tr pl", translation_tail_locales="tr", translation_tail_priority_min=700
+    )
+
+    assert (tuned.translation_tail_locale_codes, tuned.translation_tail_priority_min) == (("tr",), 700)
+
+
+def test_a_tail_locale_that_is_not_a_target_fails_at_load() -> None:
+    """settings · a tail locale outside the targets fails at load, so nothing routes to an untranslated locale."""
+    with pytest.raises(ValidationError):
+        _settings(translation_target_locales="tr", translation_tail_locales="pl")
+
+
+@pytest.mark.parametrize("value", [-1, 1001])
+def test_a_tail_priority_minimum_outside_zero_to_one_thousand_fails_at_load(value: int) -> None:
+    """settings · the tail band starts inside the first-translation band, 0 to 1000."""
+    with pytest.raises(ValidationError):
+        _settings(translation_tail_priority_min=value)
