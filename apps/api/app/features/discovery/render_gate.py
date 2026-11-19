@@ -35,7 +35,20 @@ def decide_render(
     """Return the verdict for a fetched body: due when it changed, or when the last render is at least ``max_age`` old."""
     if not (_changed(previous_sha256, body_sha256) or _stale(history, now, max_age)):
         return NO_RENDER
-    return RenderVerdict(due=True)
+    return RenderVerdict(due=True, input_key=_input_key(history, now))
+
+
+def refresh_key(at: datetime) -> str:
+    """Return the input key of a refresh render decided at ``at``: its ISO year and week."""
+    year, week, _ = at.isocalendar()
+    return f"rr:{year}-W{week:02d}"
+
+
+def _input_key(history: RenderHistory, now: datetime) -> str | None:
+    """Return the empty key for a page with no finished render, and this week's key once one has finished."""
+    if history.last_completed_at is None:
+        return None
+    return refresh_key(now)
 
 
 def _changed(previous_sha256: str | None, body_sha256: str) -> bool:
