@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from typing import Literal
 
@@ -36,7 +37,11 @@ class LedgerUnavailable:
 
 
 class NeuronMeter:
-    """Reserve and settle neurons against the run budget and, when it was reachable at the start, the ledger."""
+    """Reserve and settle neurons against the run budget and, when it was reachable at the start, the ledger.
+
+    One lock guards the local totals and the ledger call of a reservation, so concurrent batch threads never overspend
+    the run budget. The lock is never held across a model call.
+    """
 
     def __init__(self, guard: BudgetGuard, run_limit: float, *, use_ledger: bool = True) -> None:
         """Set the run budget in neurons; ``use_ledger`` is false when the ledger was unreachable at the start."""
@@ -44,11 +49,18 @@ class NeuronMeter:
         self._limit = run_limit
         self._use_ledger = use_ledger
         self._used = 0.0
+        self._granted = 0
+        self._lock = threading.Lock()
 
     @property
     def used_neurons(self) -> float:
         """Neurons this run has reserved, corrected by the usage the provider reported."""
         return self._used
+
+    @property
+    def granted_calls(self) -> int:
+        """How many reservations were granted, which is how many model calls the run was allowed to make."""
+        return self._granted
 
     @property
     def remaining_neurons(self) -> float:
@@ -66,10 +78,11 @@ class NeuronMeter:
 
     def reserve_neurons(self, model: str, neurons: int) -> Reservation | Denied | LedgerUnavailable:
         """Reserve ``neurons`` for a call to ``model`` whose cost the caller has already estimated."""
-        if self._run_budget_reached():
-            return Denied("run_budget")
-        granted = self._ledger_grant(neurons)
-        return granted if isinstance(granted, Denied | LedgerUnavailable) else self._grant(model, granted)
+        with self._lock:
+            if self._run_budget_reached():
+                return Denied("run_budget")
+            granted = self._ledger_grant(neurons)
+            return granted if isinstance(granted, Denied | LedgerUnavailable) else self._grant(model, granted)
 
     def settle(self, reservation: Reservation, result: LlmResult) -> None:
         """Replace the reservation by the real cost (reported neurons, else priced tokens); keep it when neither exists."""
@@ -87,7 +100,8 @@ class NeuronMeter:
 
     def stop_using_ledger(self) -> None:
         """Rely on the run budget alone from now on; call it after :class:`LedgerUnavailable` (the outage stays reported)."""
-        self._use_ledger = False
+        with self._lock:
+            self._use_ledger = False
 
     def exhaust(self) -> None:
         """Tell the ledger the day's neurons are gone (a provider quota error)."""
@@ -99,9 +113,10 @@ class NeuronMeter:
         return self._used >= self._limit
 
     def _correct(self, reservation: Reservation, delta: float) -> None:
-        self._used += delta
-        if reservation.ledgered:
-            self._guard.adjust(RESOURCE, delta)
+        with self._lock:
+            self._used += delta
+            if reservation.ledgered:
+                self._guard.adjust(RESOURCE, delta)
 
     def _ledger_grant(self, neurons: int) -> float | Denied | LedgerUnavailable:
         """Return the neurons the ledger grants (the estimate, or what is left of the day), or why it did not."""
@@ -114,6 +129,7 @@ class NeuronMeter:
 
     def _grant(self, model: str, neurons: float) -> Reservation:
         self._used += neurons
+        self._granted += 1
         return Reservation(model, neurons, ledgered=self._use_ledger)
 
 
