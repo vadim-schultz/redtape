@@ -83,6 +83,16 @@ class DiscoveryRunStage(enum.StrEnum):
     SNAPSHOT_TRANSLATE = "snapshot_translate"
 
 
+class DiscoveryFailureClass(enum.StrEnum):
+    """Why a discovery task failed, as the worker classifies it; a task with no class counts as permanent."""
+
+    TRANSIENT = "transient"
+    PERMANENT = "permanent"
+    LOGIN_WALL = "login_wall"
+    ROBOTS = "robots"
+    NOT_FOUND = "not_found"
+
+
 class DiscoveryRunStatus(enum.StrEnum):
     """Lifecycle of an operational run."""
 

@@ -11,7 +11,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.discovery.enums import DiscoveryTaskKind, DiscoveryTaskStatus, enum_values
+from app.models.discovery.enums import DiscoveryFailureClass, DiscoveryTaskKind, DiscoveryTaskStatus, enum_values
 from app.models.discovery.mixins import TimestampMixin
 
 if TYPE_CHECKING:
@@ -56,6 +56,17 @@ class DiscoveryTask(TimestampMixin, Base):
         nullable=True,
     )
     result_note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    failure_class: Mapped[DiscoveryFailureClass | None] = mapped_column(
+        SAEnum(
+            DiscoveryFailureClass,
+            name="discovery_failure_class",
+            native_enum=False,
+            length=32,
+            values_callable=enum_values,
+        ),
+        nullable=True,
+    )
+    text_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     catalogue_service: Mapped[CatalogueService] = relationship(
         "CatalogueService", back_populates="tasks", single_parent=True

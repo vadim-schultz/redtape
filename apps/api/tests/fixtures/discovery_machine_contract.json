@@ -21,6 +21,13 @@
    "explicit",
    "derived_single_issued"
   ],
+  "DiscoveryFailureClass": [
+   "transient",
+   "permanent",
+   "login_wall",
+   "robots",
+   "not_found"
+  ],
   "DiscoveryMentionRole": [
    "required",
    "form",
@@ -3082,7 +3089,7 @@
   "machine.TaskCompleteRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Optional note on why a task completed without producing anything (for example ``no_mentions``).",
+    "description": "Optional note on why a task completed (for example ``no_mentions``) and the cleaned-text hash it read.",
     "properties": {
      "note": {
       "anyOf": [
@@ -3096,6 +3103,19 @@
       ],
       "default": null,
       "title": "Note"
+     },
+     "text_hash": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text Hash"
      }
     },
     "title": "TaskCompleteRequest",
@@ -3206,12 +3226,37 @@
   "machine.TaskFailRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Failure reason for a discovery task.",
+    "$defs": {
+     "DiscoveryFailureClass": {
+      "description": "Why a discovery task failed, as the worker classifies it; a task with no class counts as permanent.",
+      "enum": [
+       "transient",
+       "permanent",
+       "login_wall",
+       "robots",
+       "not_found"
+      ],
+      "title": "DiscoveryFailureClass",
+      "type": "string"
+     }
+    },
+    "description": "Failure reason for a discovery task; ``failure_class`` says why, and a missing class counts as permanent.",
     "properties": {
      "error": {
       "minLength": 1,
       "title": "Error",
       "type": "string"
+     },
+     "failure_class": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/DiscoveryFailureClass"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
      },
      "retryable": {
       "default": false,
@@ -3319,6 +3364,23 @@
      "pending_ready"
     ],
     "title": "TaskSummaryResponse",
+    "type": "object"
+   }
+  },
+  "machine.TextExtractedResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Whether a completed extraction of this page under these versions recorded the text hash.",
+    "properties": {
+     "extracted": {
+      "title": "Extracted",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "extracted"
+    ],
+    "title": "TextExtractedResponse",
     "type": "object"
    }
   },
@@ -6021,8 +6083,16 @@
    "path": "/api/v1/discovery/machine/tasks/claim"
   },
   {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/requeue-transient"
+  },
+  {
    "method": "GET",
    "path": "/api/v1/discovery/machine/tasks/summary"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/tasks/text-extracted"
   },
   {
    "method": "POST",

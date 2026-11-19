@@ -563,3 +563,85 @@ def test_post_task_release_rejects_a_task_that_is_not_claimed_and_an_unknown_tas
 
     assert (not_claimed.status_code, unknown.status_code, missing_reason.status_code) == (409, 404, 422)
     assert pending.status == DiscoveryTaskStatus.PENDING
+
+
+REQUEUE_URL = "/api/v1/discovery/machine/tasks/requeue-transient"
+
+
+def _task_row(db_session: Session, task_id: uuid.UUID) -> DiscoveryTask:
+    row = db_session.get(DiscoveryTask, task_id)
+    assert row is not None
+    return row
+
+
+def _failed_task(db_session: Session, *, failure_class: str, age: timedelta) -> DiscoveryTask:
+    task = _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+    task.status = DiscoveryTaskStatus.FAILED
+    task.failure_class = failure_class
+    task.attempt_count = 3
+    task.updated_at = datetime.now(UTC) - age
+    db_session.flush()
+    return task
+
+
+def test_post_requeue_transient_returns_the_count_of_tasks_put_back(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    due = _failed_task(db_session, failure_class="transient", age=timedelta(hours=25))
+
+    response = client.post(REQUEUE_URL, json={"limit": 10}, headers={"X-API-Key": key})
+
+    assert response.status_code == 200
+    assert response.json() == {"requeued": 1}
+    assert _task_row(db_session, due.id).status is DiscoveryTaskStatus.PENDING
+
+
+@pytest.mark.parametrize("limit", [0, 201])
+def test_post_requeue_transient_rejects_a_limit_outside_one_to_200(
+    client: TestClient[Litestar],
+    db_session: Session,
+    limit: int,
+) -> None:
+    key = _issue_key(db_session)
+    failed = _failed_task(db_session, failure_class="transient", age=timedelta(hours=25))
+
+    response = client.post(REQUEUE_URL, json={"limit": limit}, headers={"X-API-Key": key})
+
+    assert response.status_code == 422
+    assert _task_row(db_session, failed.id).status is DiscoveryTaskStatus.FAILED
+
+
+def test_post_task_fail_stores_the_failure_class_the_worker_sends(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(
+        _fail_url(task_id),
+        json={"error": "robots.txt disallows", "failure_class": "robots"},
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 201
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.failure_class == "robots"
+
+
+def test_post_task_fail_rejects_an_unknown_failure_class_and_changes_nothing(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(
+        _fail_url(task_id), json={"error": "boom", "failure_class": "fatal"}, headers={"X-API-Key": key}
+    )
+
+    assert response.status_code == 422
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.status is DiscoveryTaskStatus.CLAIMED

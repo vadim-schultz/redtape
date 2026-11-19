@@ -38,9 +38,9 @@ class Job:
     fetcher: PoliteUrlFetcher
 
 
-def complete(job: Job, note: str | None) -> str:
-    """Complete the task with an optional ``result_note`` and return the outcome label."""
-    job.client.tasks.complete(job.task.id, note=note)
+def complete(job: Job, note: str | None, *, text_hash: str | None = None) -> str:
+    """Complete the task with an optional ``result_note`` and the optional cleaned-text hash it read; return the outcome label."""
+    job.client.tasks.complete(job.task.id, note=note, text_hash=text_hash)
     return "completed"
 
 

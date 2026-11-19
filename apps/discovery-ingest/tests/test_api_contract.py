@@ -71,6 +71,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.TaskSummary", "machine.TaskSummaryResponse", "response", reads_subset=True),
     Pair("schemas.TaskEnqueueRequest", "machine.TaskEnqueueRequest", "request"),
     Pair("schemas.TaskEnqueueResponse", "machine.TaskEnqueueResponse", "response"),
+    Pair("schemas.TextExtractedResponse", "machine.TextExtractedResponse", "response"),
     Pair("schemas.FetchLogAppendRequest", "machine.FetchLogAppendRequest", "request"),
     Pair("schemas.RunStartResponse", "machine.RunRead", "response", reads_subset=True),
     Pair("schemas.RunFinishRequest", "machine.RunFinishRequest", "request"),
@@ -128,7 +129,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.SnapshotLocaleSummary", "snapshot_machine.SnapshotLocaleSummary", "response", reads_subset=True),
     Pair("schemas.SnapshotSummaryResponse", "snapshot_machine.SnapshotSummaryResponse", "response"),
 )
-"""The 64 ingest-to-API pairs: 20 requests and 44 responses. Unpaired wire models are listed in ``UNPAIRED``."""
+"""The ingest-to-API pairs: each request and response model the ingest mirrors. Unpaired wire models are listed in ``UNPAIRED``."""
 
 UNPAIRED: dict[str, str] = {
     "schemas.DrainReport": "a CLI report, never on the wire",
@@ -136,12 +137,14 @@ UNPAIRED: dict[str, str] = {
     "schemas.SnapshotTextBlock": "a block of SnapshotCompleteItem, covered through the request",
     "schemas.SnapshotRowBlock": "a row of SnapshotCompleteItem, covered through the request",
     "mentions.MentionDraft": "the base of MentionItem, covered through it",
+    "schemas.TextExtractedQuery": "the query string of GET /tasks/text-extracted, bound as route parameters, not a body model",
 }
 
 ENUM_SETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("DiscoverySource", get_args(schemas.DiscoverySource)),
     ("DiscoveryTaskKind", get_args(schemas.DiscoveryTaskKind)),
     ("DiscoveryTaskStatus", get_args(schemas.DiscoveryTaskStatus)),
+    ("DiscoveryFailureClass", get_args(schemas.FailureClass)),
     ("DiscoveryClaimKind", get_args(schemas.DiscoveryClaimKind)),
     ("DiscoveryMentionRole", get_args(mentions.MentionRole)),
     ("DiscoveryArtifactKind", get_args(artifacts.ArtifactKind)),
@@ -329,7 +332,10 @@ def test_every_client_route_exists_in_the_api(name: str, call: Call, method: str
 
 
 # A route whose body depends on an argument is recorded with the argument that sends the body.
-BODY_VARIANTS: dict[str, Call] = {"tasks.complete": lambda client: client.tasks.complete(ID, note="login_wall")}
+BODY_VARIANTS: dict[str, Call] = {
+    "tasks.complete": lambda client: client.tasks.complete(ID, note="login_wall", text_hash="ab" * 32),
+    "tasks.fail": lambda client: client.tasks.fail(ID, error="boom", failure_class="transient"),
+}
 RECORDED_CALLS: tuple[tuple[str, str, str, Call], ...] = tuple(
     (name, method, path, BODY_VARIANTS.get(name, call)) for name, call, method, path in ROUTES
 )

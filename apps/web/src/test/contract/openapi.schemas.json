@@ -2779,6 +2779,18 @@
     "title": "DiscoveryEventType",
     "type": "string"
   },
+  "DiscoveryFailureClass": {
+    "description": "Why a discovery task failed, as the worker classifies it; a task with no class counts as permanent.",
+    "enum": [
+      "transient",
+      "permanent",
+      "login_wall",
+      "robots",
+      "not_found"
+    ],
+    "title": "DiscoveryFailureClass",
+    "type": "string"
+  },
   "DiscoveryMentionRole": {
     "description": "How a procedure relates to a mentioned document.",
     "enum": [
@@ -5414,6 +5426,16 @@
             "type": "null"
           }
         ]
+      },
+      "text_hash": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [],
@@ -5539,6 +5561,16 @@
         "minLength": 1,
         "type": "string"
       },
+      "failure_class": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DiscoveryFailureClass"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "retryable": {
         "default": false,
         "type": "boolean"
@@ -5615,6 +5647,31 @@
       "status"
     ],
     "title": "TaskReleaseResponse",
+    "type": "object"
+  },
+  "TaskRequeueRequest": {
+    "properties": {
+      "limit": {
+        "default": 50,
+        "maximum": 200.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [],
+    "title": "TaskRequeueRequest",
+    "type": "object"
+  },
+  "TaskRequeueResponse": {
+    "properties": {
+      "requeued": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "requeued"
+    ],
+    "title": "TaskRequeueResponse",
     "type": "object"
   },
   "TaskSummaryResponse": {
@@ -5696,6 +5753,18 @@
       "text"
     ],
     "title": "TextBlock",
+    "type": "object"
+  },
+  "TextExtractedResponse": {
+    "properties": {
+      "extracted": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "extracted"
+    ],
+    "title": "TextExtractedResponse",
     "type": "object"
   },
   "TranslationBundle": {

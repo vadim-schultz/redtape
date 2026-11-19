@@ -5,16 +5,19 @@ from __future__ import annotations
 from uuid import UUID
 
 from litestar import Controller, Response, get, post
+from litestar.params import Parameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
+from app.features.discovery.repository.task_target import ExtractedText
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
 from app.models.discovery import DiscoveryTaskKind
 from app.schema.discovery.machine import (
+    TEXT_HASH_PATTERN,
     CatalogueBatchRequest,
     CatalogueBatchResponse,
     CatalogueEmitResponse,
@@ -38,7 +41,10 @@ from app.schema.discovery.machine import (
     TaskFailResponse,
     TaskReleaseRequest,
     TaskReleaseResponse,
+    TaskRequeueRequest,
+    TaskRequeueResponse,
     TaskSummaryResponse,
+    TextExtractedResponse,
 )
 
 
@@ -124,6 +130,30 @@ class DiscoveryMachineController(Controller):
     ) -> TaskFailResponse:
         """Record that a claimed task failed, with the reason from the request."""
         return discovery_machine_service.fail_task(task_id, data)
+
+    @get("/tasks/text-extracted", sync_to_thread=True, status_code=HTTP_200_OK)
+    def text_extracted(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        catalogue_service_id: UUID,
+        target_url: str = Parameter(min_length=1, max_length=500),
+        input_key: str = Parameter(min_length=1, max_length=128),
+        text_hash: str = Parameter(pattern=TEXT_HASH_PATTERN),
+    ) -> TextExtractedResponse:
+        """Report whether a completed extraction of the page under ``input_key`` already read the same cleaned text."""
+        extracted = ExtractedText(
+            catalogue_service_id=catalogue_service_id, target_url=target_url, input_key=input_key, text_hash=text_hash
+        )
+        return discovery_machine_service.text_extracted(extracted)
+
+    @post("/tasks/requeue-transient", sync_to_thread=True, status_code=HTTP_200_OK)
+    def requeue_transient_tasks(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskRequeueRequest,
+    ) -> TaskRequeueResponse:
+        """Return failed transient tasks that are at least 24 h old to the queue; permanent failures are never touched."""
+        return discovery_machine_service.requeue_transient(data)
 
     @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def append_fetch_log(
