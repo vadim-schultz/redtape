@@ -44,6 +44,8 @@ GitHub variables (Settings, Secrets and variables, Actions, Variables):
 | --- | --- | --- |
 | `TRANSLATION_ENGINE` | `azure-translator` | The card drain and `translate-ui` engine. Set `llm` to roll back |
 | `TRANSLATION_GLOSSARY_MODE` | `strict` | `strict` or `advisory`. Set it from the probe's `recommended_glossary_mode` (see Probe) |
+| `TRANSLATION_TAIL_LOCALES` | unset (none) | Target locales whose lower-priority card translations go to Workers AI (`llm`). Empty routes nothing there. See Tail routing |
+| `TRANSLATION_TAIL_PRIORITY_MIN` | `600` | The lowest first-translation priority (0 to 1000) the tail takes. Priority 599 and below stays on Azure |
 | `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` | `20000` | The `azure-translator` precheck: the job skips when fewer characters remain this month |
 | `AZURE_DOCUMENT_BUDGET_SHARE` | `0.6` | The ceiling of the share of the monthly cap that snapshot pages may use. The drain takes less when cards have more pending work (see The character ledger below) |
 | `AZURE_WINDOW_ANCHOR` | `2026-11-13` | The first day (UTC) of the Azure allowance window. The daily pace counts the days left to the next anniversary of this day |
@@ -156,6 +158,21 @@ cd apps/api
 - Both accept `--locale` to cover one target locale, `--batch-size` and `--after <id>` to resume after the id a previous run
   printed.
 - Record the counts of each run in the run ledger.
+
+## Tail routing to Workers AI
+
+The card queue is split by priority. A first translation ranks by confidence, so 0 is the best and 1000 the lowest. The
+Azure lane takes everything except the tail. The tail is the first translations of the `TRANSLATION_TAIL_LOCALES` at or
+above `TRANSLATION_TAIL_PRIORITY_MIN`, and only `translate drain --engine llm` claims them. Re-translations and upgrades
+stay on Azure.
+
+- `TRANSLATION_TAIL_LOCALES` is empty by default, so nothing reaches Workers AI. Set it only for a locale whose
+  `translate probe --engine llm` valid share is 90% or more, and record the share in the run ledger first. Each value
+  must also be a target locale, or the API refuses to start.
+- `translate drain --engine llm` claims only the tail. `--priority-min` and `--priority-max` narrow the band for one run.
+- An Azure translation of a unit supersedes a tail row. To queue those upgrades, run
+  `.venv/bin/python -m scripts.upgrade_tail_translations --limit 200` from `apps/api`. It queues only while no Azure task
+  is ready, never replaces a human translation, and a re-run changes nothing.
 
 ## Snapshot schedule
 
