@@ -741,3 +741,16 @@ def test_missing_screenshot_filters_by_catalogue_and_caps_the_limit(
 def test_missing_screenshot_requires_the_machine_key(client: TestClient[Litestar]) -> None:
     """missing-screenshot · without the machine key the route answers 401 and lists nothing."""
     assert client.get(MISSING_SCREENSHOT).status_code == 401
+
+def test_missing_screenshot_skips_a_page_whose_capture_already_ran(client: TestClient[Litestar], db_session: Session) -> None:
+    """missing-screenshot · a page whose capture task exists in any state is not listed again, so a page that never
+    gets a screenshot cannot hold every sweep slot; a page with no capture task is still listed."""
+    key = _issue_key(db_session)
+    ran = _kind_task(db_session, _catalogue(db_session, external_id="svc-ran"), DiscoveryTaskKind.CAPTURE_SCREENSHOT)
+    fresh = _task(db_session, "svc-fresh")
+    _stored(client, key, ran, source_url="https://example.gov/ran")
+    _stored(client, key, fresh, source_url="https://example.gov/fresh")
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [item["source_url"] for item in items] == ["https://example.gov/fresh"]

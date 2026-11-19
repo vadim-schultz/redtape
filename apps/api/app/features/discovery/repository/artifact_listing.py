@@ -10,7 +10,13 @@ from sqlalchemy.orm import aliased
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.task_listing import Page
-from app.models.discovery import DiscoveryArtifact, DiscoveryArtifactKind, DiscoveryCandidateMention
+from app.models.discovery import (
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
+    DiscoveryCandidateMention,
+    DiscoveryTask,
+    DiscoveryTaskKind,
+)
 
 _URL_HOST = r"^[a-zA-Z][a-zA-Z0-9+.-]*://([^/?#:]+)"
 
@@ -77,6 +83,14 @@ def _has_screenshot() -> ColumnElement[bool]:
     )
 
 
+def _has_capture_task() -> ColumnElement[bool]:
+    """Match a catalogue row that already has a capture_screenshot task, whatever its state."""
+    return exists().where(
+        DiscoveryTask.catalogue_service_id == DiscoveryArtifact.catalogue_service_id,
+        DiscoveryTask.kind == DiscoveryTaskKind.CAPTURE_SCREENSHOT,
+    )
+
+
 def _candidate_evidence(candidate_id: UUID) -> Select:
     evidence = or_(_cited_by(candidate_id), _latest_screenshot_of_each_procedure(candidate_id))
     return select(DiscoveryArtifact).where(evidence)
@@ -96,7 +110,11 @@ class ArtifactListingRepository(SessionRepository):
         return list(self._session.scalars(stmt.offset(page.offset).limit(page.limit)).all())
 
     def html_snapshots_without_screenshot(self, catalogue_id: UUID | None, limit: int) -> list[DiscoveryArtifact]:
-        """Return the newest HTML snapshot of each rendered catalogue row with no screenshot, newest first, at most ``limit``."""
+        """Return the newest HTML snapshot of each rendered catalogue row with no screenshot and no capture task yet.
+
+        Newest first, at most ``limit``. A row whose capture already ran is left out, so a page that never gets a
+        screenshot does not hold every sweep slot.
+        """
         newest = (
             select(DiscoveryArtifact.id)
             .where(
@@ -114,7 +132,7 @@ class ArtifactListingRepository(SessionRepository):
         )
         stmt = (
             select(DiscoveryArtifact)
-            .where(DiscoveryArtifact.id.in_(newest), ~_has_screenshot())
+            .where(DiscoveryArtifact.id.in_(newest), ~_has_screenshot(), ~_has_capture_task())
             .order_by(DiscoveryArtifact.fetched_at.desc(), DiscoveryArtifact.id)
             .limit(limit)
         )
