@@ -616,6 +616,23 @@ def test_candidate_screenshot_capture_of_another_candidates_procedure_is_a_404(
     assert slot.memory.reads == reads_before_refusals
 
 
+def test_candidate_screenshot_capture_route_refuses_an_html_snapshot_of_its_procedure(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    owner = scene.candidate("snapshot-owner")
+    procedure = scene.procedure()
+    scene.mention(owner, procedure)
+    snapshot = scene.artifact(
+        procedure, DiscoveryArtifactKind.HTML_SNAPSHOT, data=b"<html></html>", content_type="text/html"
+    )
+    slot.memory.put(snapshot.storage_key, b"<html></html>", "text/html")
+
+    response = client.get(_capture_url(owner.id, snapshot.id))
+
+    assert response.status_code == 404
+    assert slot.memory.reads == 0
+
+
 def _tags(body: dict, key: str, axis: str) -> list[tuple[str, float]]:
     item = next(item for item in body["items"] if item["key"] == key)
     return [(tag["code"], round(tag["confidence"], 6)) for tag in item[axis]]
