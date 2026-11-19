@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, Update, func, or_, update
+from sqlalchemy import ColumnElement, Update, func, or_, select, update
 
-from app.models.discovery import DiscoveryTask, DiscoveryTaskStatus
+from app.models.discovery import DiscoveryFailureClass, DiscoveryTask, DiscoveryTaskStatus
 
 
 def delayed(now: datetime) -> tuple[ColumnElement[bool], ...]:
@@ -52,4 +52,28 @@ def repend_expired_stmt(now: datetime) -> Update:
             claimed_at=None,
             lease_expires_at=None,
         )
+    )
+
+
+def requeue_transient_stmt(cutoff: datetime, limit: int) -> Update:
+    """Return up to ``limit`` failed transient tasks last failed before ``cutoff`` to pending, with a fresh attempt count.
+
+    Only the transient class is selected; a permanent, login-wall, robots, not-found or unclassified failure is left alone.
+    """
+    due = (
+        select(DiscoveryTask.id)
+        .where(
+            DiscoveryTask.status == DiscoveryTaskStatus.FAILED,
+            DiscoveryTask.failure_class == DiscoveryFailureClass.TRANSIENT,
+            DiscoveryTask.updated_at <= cutoff,
+        )
+        .order_by(DiscoveryTask.updated_at.asc(), DiscoveryTask.id.asc())
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+    return (
+        update(DiscoveryTask)
+        .where(DiscoveryTask.id.in_(due))
+        .values(status=DiscoveryTaskStatus.PENDING, attempt_count=0, not_before=None, failure_class=None)
+        .returning(DiscoveryTask.id)
     )

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
+    DiscoveryFailureClass,
     DiscoveryRunKind,
     DiscoveryRunStage,
     DiscoverySource,
@@ -140,10 +141,21 @@ class TaskClaimResponse(BaseModel):
     items: list[ClaimedTaskRead]
 
 
+TEXT_HASH_PATTERN = r"^[0-9a-f]{64}$"
+"""A SHA-256 digest in lowercase hex: the cleaned-text hash of an extraction."""
+
+
 class TaskCompleteRequest(BaseModel):
-    """Optional note on why a task completed without producing anything (for example ``no_mentions``)."""
+    """Optional note on why a task completed (for example ``no_mentions``) and the cleaned-text hash it read."""
 
     note: str | None = Field(default=None, max_length=200)
+    text_hash: str | None = Field(default=None, pattern=TEXT_HASH_PATTERN)
+
+
+class TextExtractedResponse(BaseModel):
+    """Whether a completed extraction of this page under these versions recorded the text hash."""
+
+    extracted: bool
 
 
 class TaskReleaseRequest(BaseModel):
@@ -169,10 +181,23 @@ class TaskCompleteResponse(BaseModel):
 
 
 class TaskFailRequest(BaseModel):
-    """Failure reason for a discovery task."""
+    """Failure reason for a discovery task; ``failure_class`` says why, and a missing class counts as permanent."""
 
     error: str = Field(min_length=1)
     retryable: bool = False
+    failure_class: DiscoveryFailureClass | None = None
+
+
+class TaskRequeueRequest(BaseModel):
+    """How many transient failures, at most, to return to the queue."""
+
+    limit: int = Field(default=50, ge=1, le=200)
+
+
+class TaskRequeueResponse(BaseModel):
+    """Transient failures returned to the pending queue."""
+
+    requeued: int
 
 
 class TaskFailResponse(BaseModel):

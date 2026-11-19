@@ -13,6 +13,7 @@ from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.lookups import require_artifact, require_catalogue, require_task
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
+from app.features.discovery.repository.task_target import ExtractedText
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_queue import TaskQueue
 from app.features.discovery.url_normalize import normalize_canonical_url
@@ -46,7 +47,10 @@ from app.schema.discovery.machine import (
     TaskFailResponse,
     TaskReleaseRequest,
     TaskReleaseResponse,
+    TaskRequeueRequest,
+    TaskRequeueResponse,
     TaskSummaryResponse,
+    TextExtractedResponse,
     resolve_task_kinds,
 )
 
@@ -141,9 +145,14 @@ class DiscoveryMachineService:
         return TaskEnqueueResponse(id=outcome.task.id, created=outcome.created)
 
     def complete_task(self, task_id: UUID, body: TaskCompleteRequest | None = None) -> TaskCompleteResponse:
-        """Mark a task completed, keeping the optional note."""
-        task = self._queue.complete(task_id, note=body.note if body is not None else None)
+        """Mark a task completed, keeping the optional note and the text hash it read."""
+        request = body or TaskCompleteRequest()
+        task = self._queue.complete(task_id, note=request.note, text_hash=request.text_hash)
         return TaskCompleteResponse(id=task.id, status=task.status)
+
+    def text_extracted(self, extracted: ExtractedText) -> TextExtractedResponse:
+        """Report whether a completed extraction of this page under the same input key recorded the same text hash."""
+        return TextExtractedResponse(extracted=self._repo.text_extracted(extracted))
 
     def release_task(self, task_id: UUID, body: TaskReleaseRequest) -> TaskReleaseResponse:
         """Return a claimed task to the queue without consuming an attempt."""
@@ -152,8 +161,14 @@ class DiscoveryMachineService:
 
     def fail_task(self, task_id: UUID, body: TaskFailRequest) -> TaskFailResponse:
         """Mark a task failed with the crawler's error."""
-        task = self._queue.fail(task_id, body.error, retryable=body.retryable, now=datetime.now(UTC))
+        task = self._queue.fail(
+            task_id, body.error, retryable=body.retryable, now=datetime.now(UTC), failure_class=body.failure_class
+        )
         return TaskFailResponse(id=task.id, status=task.status, last_error=body.error)
+
+    def requeue_transient(self, body: TaskRequeueRequest) -> TaskRequeueResponse:
+        """Return transient failures that have cooled down to the queue, with a fresh attempt count."""
+        return TaskRequeueResponse(requeued=self._queue.requeue_transient(limit=body.limit, now=datetime.now(UTC)))
 
     def upsert_entity(self, body: EntityUpsertRequest) -> EntityUpsertResponse:
         """Upsert a discovery entity under a catalogue row."""
