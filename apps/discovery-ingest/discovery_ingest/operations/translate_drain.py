@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -111,5 +111,5 @@ def run_translate(
     policy, chosen = options.policy(), _with_engine(settings, options.engine)
     with httpx.Client(trust_env=True) as http:
         engine = build_translation_engine(chosen, http, TRANSLATE_MIN_INTERVAL_SECONDS)
-        deps = replace(_drain_deps(client, engine, chosen), band=options.band)
-        return run_recorded(client, "translate", lambda: run_translate_drain(deps, policy))
+        deps = _drain_deps(client, engine, chosen)
+        return run_recorded(client, "translate", lambda: run_translate_drain(deps, policy, band=options.band))

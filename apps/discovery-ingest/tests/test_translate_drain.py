@@ -515,9 +515,11 @@ def test_a_reservation_that_clears_the_floor_after_the_reserve_is_kept() -> None
 def test_the_claim_names_the_drain_engine_and_the_band_it_takes() -> None:
     """translate drain · every claim names the engine the drain runs on and the priority band it was given."""
     api = TranslateApi(_mixed())
-    deps = TranslateDeps(api.client(), ScriptedEngine(), band=PriorityBand(minimum=600))
+    deps = TranslateDeps(api.client(), ScriptedEngine())
 
-    run_translate_drain(deps, DrainPolicy(max_tasks=10, max_batches=1, neuron_budget=1000.0))
+    run_translate_drain(
+        deps, DrainPolicy(max_tasks=10, max_batches=1, neuron_budget=1000.0), band=PriorityBand(minimum=600)
+    )
 
     assert api.bodies["claim"][0] == {"limit": 10, "engine": ENGINE_NAME, "priority_min": 600}
 
