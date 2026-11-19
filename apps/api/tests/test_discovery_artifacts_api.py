@@ -244,14 +244,46 @@ def test_third_snapshot_prunes_the_oldest_row_and_object(
     assert slot.memory.exists(keys[1]) and slot.memory.exists(keys[2])
 
 
-def test_screenshots_are_never_pruned(client: TestClient[Litestar], slot: StoreSlot, db_session: Session) -> None:
+def _capture(client: TestClient[Litestar], key: str, task_id: uuid.UUID, n: int) -> str:
+    """Upload the n-th screenshot of a page, fetched n minutes after FETCHED_AT; return its storage key."""
+    response = _upload(
+        client,
+        key,
+        task_id,
+        content=PNG + bytes([n]),
+        content_type="image/png",
+        kind="screenshot",
+        fetched_at=(FETCHED_AT + timedelta(minutes=n)).isoformat(),
+    )
+    return response.json()["storage_key"]
+
+
+def _screenshot_keys(db_session: Session, catalogue_id: uuid.UUID) -> list[str]:
+    rows = _artifacts(db_session, catalogue_id)
+    return [row.storage_key for row in rows if row.kind is DiscoveryArtifactKind.SCREENSHOT]
+
+
+def test_the_sixth_screenshot_prunes_the_oldest_and_keeps_the_newest_five(
+    client: TestClient[Litestar], slot: StoreSlot, db_session: Session
+) -> None:
+    """screenshots · six captures of a page leave its newest five rows and objects; the page's HTML is not touched."""
     key, task = _issue_key(db_session), _task(db_session)
+    html = _snapshot(client, key, task.id, 0)
+    keys = [_capture(client, key, task.id, n) for n in range(1, 7)]
 
-    for n in range(4):
-        content = PNG + bytes([n])
-        _upload(client, key, task.id, content=content, content_type="image/png", kind="screenshot")
+    assert _screenshot_keys(db_session, task.catalogue_service_id) == keys[1:]
+    assert slot.memory.exists(keys[0]) is False and all(slot.memory.exists(k) for k in keys[1:])
+    assert slot.memory.exists(html)
 
-    assert len(_artifacts(db_session, task.catalogue_service_id)) == 4
+
+def test_the_only_screenshot_of_a_page_is_never_deleted(client: TestClient[Litestar], db_session: Session) -> None:
+    """screenshots · asking the repository to keep none still keeps the page's one screenshot."""
+    key, task = _issue_key(db_session), _task(db_session)
+    kept = _capture(client, key, task.id, 1)
+
+    deleted = DiscoveryRepository(db_session).delete_old_screenshots(task.catalogue_service_id, keep=0)
+
+    assert deleted == [] and _screenshot_keys(db_session, task.catalogue_service_id) == [kept]
 
 
 def test_upload_over_the_byte_cap_returns_507_and_writes_nothing(
@@ -742,7 +774,10 @@ def test_missing_screenshot_requires_the_machine_key(client: TestClient[Litestar
     """missing-screenshot · without the machine key the route answers 401 and lists nothing."""
     assert client.get(MISSING_SCREENSHOT).status_code == 401
 
-def test_missing_screenshot_skips_a_page_whose_capture_already_ran(client: TestClient[Litestar], db_session: Session) -> None:
+
+def test_missing_screenshot_skips_a_page_whose_capture_already_ran(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
     """missing-screenshot · a page whose capture task exists in any state is not listed again, so a page that never
     gets a screenshot cannot hold every sweep slot; a page with no capture task is still listed."""
     key = _issue_key(db_session)

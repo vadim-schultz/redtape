@@ -98,7 +98,11 @@ def provide_discovery_artifact_upload_service(
 ) -> ArtifactUploadService:
     """Build the artifact upload service with the object store, the configured byte cap and the snapshot listener."""
     listener = SnapshotEnqueuer(discovery_repository.session)
-    policy = UploadPolicy(max_bytes=settings.object_store_max_bytes, listener=listener)
+    policy = UploadPolicy(
+        max_bytes=settings.object_store_max_bytes,
+        listener=listener,
+        keep_screenshots=settings.screenshot_keep_per_page,
+    )
     return ArtifactUploadService(discovery_repository, object_store, policy)
 
 

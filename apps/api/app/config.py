@@ -61,6 +61,11 @@ class Settings(BaseSettings):
         default=9_500_000_000,
         description="Ceiling for the sum of stored artifact bytes: 95 percent of the R2 free 10 GB; enforced on upload.",
     )
+    screenshot_keep_per_page: int = Field(
+        default=5,
+        ge=1,
+        description="Screenshots kept per catalogue row; an upload deletes the older ones from the store and the table.",
+    )
 
     budget_r2_class_a_monthly: int = Field(
         default=950_000,

@@ -49,10 +49,11 @@ class SnapshotStoredListener(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class UploadPolicy:
-    """What the upload service enforces: the byte cap the artifact storage may reach, and who hears of a new snapshot."""
+    """What the upload service enforces: the byte cap, who hears of a new snapshot, and the captures kept per page."""
 
     max_bytes: int
     listener: SnapshotStoredListener
+    keep_screenshots: int
 
 
 class ArtifactUploadService:
@@ -83,14 +84,20 @@ class ArtifactUploadService:
 
     def _record(self, store: ObjectStore, new: NewArtifact) -> DiscoveryArtifact:
         row = self._repo.insert_artifact(new)
+        self._prune(store, new)
         if new.kind is DiscoveryArtifactKind.HTML_SNAPSHOT:
-            self._prune(store, new.catalogue_service_id)
             self._policy.listener.snapshot_stored(new.catalogue_service_id, new.sha256)
         return row
 
-    def _prune(self, store: ObjectStore, catalogue_id: UUID) -> None:
-        for key in self._repo.delete_old_snapshots(catalogue_id, keep=KEEP_LATEST_SNAPSHOTS):
+    def _prune(self, store: ObjectStore, new: NewArtifact) -> None:
+        """Delete from the store the artifacts the kind's retention rule drops once the new row is in."""
+        for key in self._stale_keys(new):
             _delete_object(store, key)
+
+    def _stale_keys(self, new: NewArtifact) -> list[str]:
+        if new.kind is DiscoveryArtifactKind.SCREENSHOT:
+            return self._repo.delete_old_screenshots(new.catalogue_service_id, keep=self._policy.keep_screenshots)
+        return self._repo.delete_old_snapshots(new.catalogue_service_id, keep=KEEP_LATEST_SNAPSHOTS)
 
 
 def _delete_object(store: ObjectStore, key: str) -> None:
