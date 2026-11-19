@@ -90,6 +90,16 @@ class TaskRepository(SessionRepository):
         )
         return bool(self._session.scalar(stmt))
 
+    def last_render_completed_at(self, catalogue_id: UUID, target_url: str) -> datetime | None:
+        """Return when the newest completed render of the page finished, or ``None`` when no render of it has completed."""
+        stmt = select(func.max(DiscoveryTask.updated_at)).where(
+            DiscoveryTask.catalogue_service_id == catalogue_id,
+            DiscoveryTask.kind == DiscoveryTaskKind.RENDER_PAGE,
+            DiscoveryTask.target_url == target_url,
+            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED,
+        )
+        return self._session.scalar(stmt)
+
     def requeue_transient(self, *, cutoff: datetime, limit: int) -> int:
         """Return up to ``limit`` transient failures last failed before ``cutoff`` to pending; return how many."""
         return len(self._session.scalars(requeue_transient_stmt(cutoff, limit)).all())

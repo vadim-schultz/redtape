@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
@@ -54,12 +56,13 @@ def provide_discovery_admin_service(discovery_repository: DiscoveryRepository) -
 
 
 def provide_discovery_machine_service(discovery_repository: DiscoveryRepository) -> DiscoveryMachineService:
-    """Build the machine service with its upsert, queue and claim collaborators."""
+    """Build the machine service with its upsert, queue and claim collaborators and the refresh age of fetched pages."""
     return DiscoveryMachineService(
         discovery_repository,
         CatalogueUpsertService(discovery_repository),
         TaskQueue(discovery_repository),
         ClaimIngest(discovery_repository),
+        refresh_max_age=timedelta(days=settings.refresh_max_age_days),
     )
 
 

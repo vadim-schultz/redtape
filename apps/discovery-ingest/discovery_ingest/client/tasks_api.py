@@ -13,6 +13,7 @@ from discovery_ingest.schemas import (
     DiscoveryTaskKind,
     FailureClass,
     FetchLogAppendRequest,
+    FetchLogAppendResponse,
     TaskClaimRequest,
     TaskClaimResponse,
     TaskEnqueueRequest,
@@ -45,9 +46,11 @@ class TasksAPI:
             TaskEnqueueResponse, "POST", "/tasks", json=body.model_dump(mode="json", exclude_none=True)
         )
 
-    def append_fetch(self, task_id: UUID, body: FetchLogAppendRequest) -> None:
-        """Append a fetch log row for a claimed task."""
-        self._http.request("POST", f"/tasks/{task_id}/fetches", json=body.model_dump(mode="json"))
+    def append_fetch(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
+        """Append a fetch log row for a claimed task and return the render verdict the API answers with."""
+        return self._http.request_model(
+            FetchLogAppendResponse, "POST", f"/tasks/{task_id}/fetches", json=body.model_dump(mode="json")
+        )
 
     def complete(self, task_id: UUID, *, note: str | None = None, text_hash: str | None = None) -> None:
         """Mark a claimed task completed; ``note`` says why nothing was produced, ``text_hash`` names the cleaned text read."""

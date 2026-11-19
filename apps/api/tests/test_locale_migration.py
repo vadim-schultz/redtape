@@ -12,7 +12,7 @@ from sqlalchemy.engine import Engine
 from test_check_migrations_script import _fresh_database
 from test_search_migration import _alembic, _scalars
 
-REVISION = "20261119_task_failure_class"
+REVISION = "20261119_fetch_body_sha256"
 PARENT = "20261111_snapshot_translation"
 COLUMN_SQL = (
     "select is_nullable || ' ' || column_default from information_schema.columns "

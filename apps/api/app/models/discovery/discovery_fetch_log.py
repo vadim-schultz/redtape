@@ -29,5 +29,6 @@ class DiscoveryFetchLog(Base):
     content_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
     byte_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    body_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     discovery_task: Mapped[DiscoveryTask] = relationship("DiscoveryTask", back_populates="fetch_logs")

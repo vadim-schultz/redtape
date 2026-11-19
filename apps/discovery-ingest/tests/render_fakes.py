@@ -141,7 +141,9 @@ class FakeApi:
             self.stored.append(artifact_json())
             return httpx.Response(status, json=self.stored[-1])
         if action == "fetches":
-            return httpx.Response(201, json={"id": task_id, "discovery_task_id": task_id, "task_status": "claimed", **self.fetch_answer})
+            return httpx.Response(
+                201, json={"id": task_id, "discovery_task_id": task_id, "task_status": "claimed", **self.fetch_answer}
+            )
         return httpx.Response(200, json={"id": task_id, "status": "x", "last_error": "x"})
 
     def _budget_route(self, request: httpx.Request) -> httpx.Response:

@@ -70,6 +70,7 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "machine.TaskClaimRequest": (machine.TaskClaimRequest, "validation"),
     "machine.TaskEnqueueRequest": (machine.TaskEnqueueRequest, "validation"),
     "machine.FetchLogAppendRequest": (machine.FetchLogAppendRequest, "validation"),
+    "machine.FetchLogAppendResponse": (machine.FetchLogAppendResponse, "serialization"),
     "machine.RunFinishRequest": (machine.RunFinishRequest, "validation"),
     "machine.RunStartRequest": (machine.RunStartRequest, "validation"),
     "machine.TaskCompleteRequest": (machine.TaskCompleteRequest, "validation"),

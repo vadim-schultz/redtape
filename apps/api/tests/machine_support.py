@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.repository import DiscoveryRepository
@@ -16,4 +18,5 @@ def machine_service(repository: DiscoveryRepository) -> DiscoveryMachineService:
         CatalogueUpsertService(repository),
         TaskQueue(repository),
         ClaimIngest(repository),
+        refresh_max_age=timedelta(days=30),
     )

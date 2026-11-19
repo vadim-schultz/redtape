@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import json
 import uuid
@@ -81,6 +82,8 @@ def test_worker_drain_claims_task_posts_fetch_log_and_completes(
                 "content_type": "text/html",
                 "byte_length": 15,
                 "error_message": None,
+                "body_sha256": hashlib.sha256(b"<html>ok</html>").hexdigest(),
+                "final_url": TARGET_URL,
             }
             return httpx.Response(
                 201, json={"id": str(uuid.uuid4()), "discovery_task_id": str(TASK_ID), "task_status": "claimed"}

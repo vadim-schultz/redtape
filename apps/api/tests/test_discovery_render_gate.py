@@ -72,7 +72,9 @@ def test_a_page_older_than_the_refresh_age_is_re_rendered_when_unchanged() -> No
 
 def test_a_page_that_was_never_rendered_is_rendered_even_when_unchanged() -> None:
     """render gate · happy: a page with no finished render has no age to wait for, so it is rendered."""
-    verdict = decide_render(previous_sha256=HASH_A, body_sha256=HASH_A, history=_history(None), now=NOW, max_age=MAX_AGE)
+    verdict = decide_render(
+        previous_sha256=HASH_A, body_sha256=HASH_A, history=_history(None), now=NOW, max_age=MAX_AGE
+    )
 
     assert verdict.due is True
 
@@ -136,7 +138,9 @@ def test_a_body_hash_that_is_not_sha256_hex_is_rejected_and_nothing_is_logged(
     )
 
     assert response.status_code == 422
-    assert db_session.scalars(select(DiscoveryFetchLog).where(DiscoveryFetchLog.discovery_task_id == task.id)).all() == []
+    assert (
+        db_session.scalars(select(DiscoveryFetchLog).where(DiscoveryFetchLog.discovery_task_id == task.id)).all() == []
+    )
 
 
 def test_an_unchanged_body_enqueues_no_render_through_the_fetch_route(

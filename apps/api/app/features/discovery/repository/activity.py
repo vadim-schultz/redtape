@@ -32,6 +32,7 @@ class FetchLogEntry:
     byte_length: int | None
     error_message: str | None
     fetched_at: datetime
+    body_sha256: str | None = None
 
 
 class ActivityRepository(SessionRepository):
@@ -58,10 +59,21 @@ class ActivityRepository(SessionRepository):
             byte_length=entry.byte_length,
             error_message=entry.error_message,
             fetched_at=entry.fetched_at,
+            body_sha256=entry.body_sha256,
         )
         self._session.add(row)
         self._session.flush()
         return row
+
+    def last_body_sha256(self, task_id: UUID) -> str | None:
+        """Return the body hash of the newest fetch of ``task_id`` that recorded one, or ``None`` when none did."""
+        stmt = (
+            select(DiscoveryFetchLog.body_sha256)
+            .where(DiscoveryFetchLog.discovery_task_id == task_id, DiscoveryFetchLog.body_sha256.is_not(None))
+            .order_by(DiscoveryFetchLog.fetched_at.desc(), DiscoveryFetchLog.id.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
 
     def list_catalogue_events(self, catalogue_id: UUID) -> list[DiscoveryEvent]:
         """Return the events of one catalogue row, oldest first."""

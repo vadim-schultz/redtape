@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from datetime import timedelta
 
 from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
@@ -19,7 +20,7 @@ def test_discovery_machine_service_receives_its_collaborators(db_session: Sessio
     queue = TaskQueue(repo)
     claim_ingest = ClaimIngest(repo)
 
-    service = DiscoveryMachineService(repo, upserts, queue, claim_ingest)
+    service = DiscoveryMachineService(repo, upserts, queue, claim_ingest, refresh_max_age=timedelta(days=30))
 
     assert service._catalogue_upserts is upserts
     assert service._queue is queue
@@ -29,7 +30,7 @@ def test_discovery_machine_service_receives_its_collaborators(db_session: Sessio
 def test_discovery_machine_service_signature_lists_every_collaborator() -> None:
     parameters = list(inspect.signature(DiscoveryMachineService.__init__).parameters)
 
-    assert parameters == ["self", "repository", "catalogue_upserts", "queue", "claim_ingest"]
+    assert parameters == ["self", "repository", "catalogue_upserts", "queue", "claim_ingest", "refresh_max_age"]
 
 
 def test_provider_wires_the_collaborators_for_one_repository(db_session: Session) -> None:
