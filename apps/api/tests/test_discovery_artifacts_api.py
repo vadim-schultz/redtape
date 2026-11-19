@@ -683,3 +683,61 @@ def test_candidate_artifacts_rejects_non_admins_and_returns_404_for_an_unknown_c
 
     assert (forbidden.status_code, anonymous.status_code, unknown.status_code) == (403, 401, 404)
     assert unknown.json()["detail"] == "Document candidate not found"
+
+
+MISSING_SCREENSHOT = f"{MACHINE}/artifacts/missing-screenshot"
+
+
+def test_missing_screenshot_lists_each_rendered_page_without_a_screenshot(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · a rendered page with no screenshot is listed; a page with one, or never rendered, is not."""
+    key = _issue_key(db_session)
+    bare, shot, unrendered = _task(db_session, "svc-bare"), _task(db_session, "svc-shot"), _task(db_session, "svc-none")
+    _stored(client, key, bare, source_url="https://example.gov/bare")
+    _stored(client, key, shot, source_url="https://example.gov/shot")
+    _stored(client, key, shot, content=PNG, kind="screenshot", content_type="image/png")
+    _stored(client, key, unrendered, content=PNG, kind="screenshot", content_type="image/png")
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [(item["catalogue_service_id"], item["source_url"]) for item in items] == [
+        (str(bare.catalogue_service_id), "https://example.gov/bare")
+    ]
+
+
+def test_missing_screenshot_answers_the_newest_html_snapshot_of_each_page_once(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · a page with two snapshots is listed once, by its newest one."""
+    key, task = _issue_key(db_session), _task(db_session)
+    _snapshot(client, key, task.id, 1)
+    newest = _snapshot(client, key, task.id, 3)
+
+    items = client.get(MISSING_SCREENSHOT, headers={"X-API-Key": key}).json()["items"]
+
+    assert [item["storage_key"] for item in items] == [newest]
+
+
+def test_missing_screenshot_filters_by_catalogue_and_caps_the_limit(
+    client: TestClient[Litestar], db_session: Session
+) -> None:
+    """missing-screenshot · catalogue_service_id keeps one page, limit keeps the page size, and 101 is refused."""
+    key = _issue_key(db_session)
+    first, second = _task(db_session, "svc-a"), _task(db_session, "svc-b")
+    _stored(client, key, first, source_url="https://example.gov/a")
+    _stored(client, key, second, source_url="https://example.gov/b")
+    headers = {"X-API-Key": key}
+
+    only_second = client.get(
+        MISSING_SCREENSHOT, params={"catalogue_service_id": str(second.catalogue_service_id)}, headers=headers
+    ).json()["items"]
+
+    assert [item["source_url"] for item in only_second] == ["https://example.gov/b"]
+    assert len(client.get(MISSING_SCREENSHOT, params={"limit": 1}, headers=headers).json()["items"]) == 1
+    assert client.get(MISSING_SCREENSHOT, params={"limit": 101}, headers=headers).status_code == 422
+
+
+def test_missing_screenshot_requires_the_machine_key(client: TestClient[Litestar]) -> None:
+    """missing-screenshot · without the machine key the route answers 401 and lists nothing."""
+    assert client.get(MISSING_SCREENSHOT).status_code == 401
