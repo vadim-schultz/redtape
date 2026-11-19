@@ -7,6 +7,7 @@ from uuid import UUID
 
 from discovery_ingest.client.http_client import MachineHttpClient
 from discovery_ingest.translation_models import (
+    PriorityBand,
     TranslationClaimRequest,
     TranslationClaimResponse,
     TranslationCompleteItem,
@@ -27,11 +28,23 @@ class TranslationsAPI:
         """Keep the shared HTTP client."""
         self._http = http
 
-    def claim(self, *, limit: int) -> TranslationClaimResponse:
-        """Lease up to ``limit`` ready tasks of the API's target locales to this API key, best candidates first."""
-        body = TranslationClaimRequest(limit=limit)
+    def claim(
+        self, *, limit: int, engine: str | None = None, band: PriorityBand | None = None
+    ) -> TranslationClaimResponse:
+        """Lease up to ``limit`` ready tasks of the API's target locales to this API key, best candidates first.
+
+        ``engine`` names the lane the API serves this claim from (absent: no lane) and ``band`` the priority range; an
+        unset field is left out of the body, so a plain claim sends only the limit.
+        """
+        priority = PriorityBand() if band is None else band
+        body = TranslationClaimRequest(
+            limit=limit, engine=engine, priority_min=priority.minimum, priority_max=priority.maximum
+        )
         return self._http.request_model(
-            TranslationClaimResponse, "POST", "/translations/claim", json=body.model_dump(mode="json")
+            TranslationClaimResponse,
+            "POST",
+            "/translations/claim",
+            json=body.model_dump(mode="json", exclude_none=True),
         )
 
     def complete(self, items: Sequence[TranslationCompleteItem]) -> TranslationCompleteResponse:

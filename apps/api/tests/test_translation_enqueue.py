@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 from app.config import settings
 from app.features.translation.enqueue import TranslationEnqueuer
-from app.features.translation.priority import RETRANSLATION_BASE
+from app.features.translation.priority import RETRANSLATION_BASE, UPGRADE_BASE
 from app.features.translation.queue import TranslationQueue
 from app.features.translation.source import SourceRepository
+from app.features.translation.task_repository import TaskRepository
 from app.features.translation.unit import TranslationUnit
 from app.models.search import WorkTaskStatus
 from app.models.translation import CandidateTranslation
@@ -27,6 +29,7 @@ from translation_support import (
     enqueuer,
     human_row,
     make_key,
+    queued_task,
     stored_row,
     task_rows,
     unit_candidate,
@@ -230,3 +233,87 @@ def test_a_rejected_mention_batch_queues_no_translation_task(
 
     assert response.status_code == 422
     assert task_rows(db_session) == []
+
+
+def _tail_row(session: Session, title: str, locale: str = "tr") -> CandidateTranslation:
+    """Store a tail-engine machine translation for a new candidate, current at its unit's hash."""
+    candidate = unit_candidate(session, title)
+    return stored_row(session, candidate, locale, unit_hash(session, candidate))
+
+
+def test_an_upgrade_queues_each_tail_row_at_the_upgrade_base(db_session: Session) -> None:
+    row = _tail_row(db_session, "Antrag Upgrade")
+
+    queued = enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+
+    (task,) = task_rows(db_session, WorkTaskStatus.PENDING)
+    assert queued == 1
+    assert (task.candidate_id, task.locale, task.priority, task.source_hash) == (
+        row.candidate_id,
+        "tr",
+        UPGRADE_BASE,
+        row.source_hash,
+    )
+
+
+def test_an_upgrade_waits_while_an_azure_task_is_ready(db_session: Session) -> None:
+    _tail_row(db_session, "Antrag Warten")
+    queued_task(db_session, "en")
+
+    queued = enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+
+    assert queued == 0
+    assert len(task_rows(db_session, WorkTaskStatus.PENDING)) == 1
+
+
+def test_an_upgrade_never_queues_a_human_row(db_session: Session) -> None:
+    candidate = unit_candidate(db_session, "Antrag Mensch")
+    human_row(db_session, candidate, "tr")
+
+    queued = enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+
+    assert (queued, task_rows(db_session)) == (0, [])
+
+
+def test_an_upgrade_sweep_queues_no_more_than_its_limit(db_session: Session) -> None:
+    _tail_row(db_session, "Antrag Eins")
+    _tail_row(db_session, "Antrag Zwei")
+
+    queued = enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW, limit=1)
+
+    assert (queued, len(task_rows(db_session))) == (1, 1)
+
+
+def test_an_upgrade_leaves_an_open_task_for_the_same_row_at_its_priority(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The tail task is not an Azure task, so the sweep runs; the open task keeps its own priority."""
+    monkeypatch.setattr(settings, "translation_tail_locales", "tr")
+    row = _tail_row(db_session, "Antrag Offen")
+    TaskRepository(db_session).upsert_pending(row.candidate_id, "tr", row.source_hash, 700)
+
+    queued = enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+
+    (task,) = task_rows(db_session)
+    assert (queued, task.priority) == (0, 700)
+
+
+def test_a_re_enqueue_of_a_current_tail_row_keeps_its_pending_upgrade(db_session: Session) -> None:
+    """The row is current, so the enqueue retires pending work for it; an upgrade is not that work and stays queued."""
+    row = _tail_row(db_session, "Antrag Bleibt")
+    enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+
+    enqueuer(db_session, ("tr",)).enqueue_many([row.candidate_id])
+
+    (task,) = task_rows(db_session, WorkTaskStatus.PENDING)
+    assert (task.candidate_id, task.priority) == (row.candidate_id, UPGRADE_BASE)
+
+
+def test_a_re_enqueue_of_a_current_row_still_retires_a_pending_first_translation(db_session: Session) -> None:
+    """The exemption covers upgrades only: a pending first translation of a unit that is now current is retired."""
+    row = _tail_row(db_session, "Antrag Fertig")
+    TaskRepository(db_session).upsert_pending(row.candidate_id, "tr", row.source_hash, 700)
+
+    enqueuer(db_session, ("tr",)).enqueue_many([row.candidate_id])
+
+    assert task_rows(db_session, WorkTaskStatus.PENDING) == []

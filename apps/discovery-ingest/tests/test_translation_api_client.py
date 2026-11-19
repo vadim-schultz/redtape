@@ -8,7 +8,7 @@ import uuid
 import httpx
 import pytest
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
-from discovery_ingest.translation_models import TranslationCompleteItem
+from discovery_ingest.translation_models import PriorityBand, TranslationCompleteItem
 from pydantic import SecretStr
 
 from translate_fakes import API_KEY, TranslateApi, task, task_id
@@ -116,3 +116,26 @@ def test_a_507_on_claim_is_recognised_as_the_database_limit() -> None:
         api.client().translations.claim(limit=1)
 
     assert caught.value.is_database_limit
+
+
+def test_a_claim_sends_the_engine_and_the_band_only_when_they_are_given() -> None:
+    """translation api · a claim names its engine and priority band; an open end is left out of the body."""
+    api = _api(0, 1)
+
+    api.client().translations.claim(limit=2, engine="llm", band=PriorityBand(minimum=600, maximum=1000))
+    api.client().translations.claim(limit=1, engine="llm", band=PriorityBand(minimum=600))
+
+    assert api.bodies["claim"] == [
+        {"limit": 2, "engine": "llm", "priority_min": 600, "priority_max": 1000},
+        {"limit": 1, "engine": "llm", "priority_min": 600},
+    ]
+
+
+def test_a_band_whose_maximum_is_below_its_minimum_is_refused_before_any_request() -> None:
+    """translation api · an inverted band is refused when it is built, so no claim request leaves the drain."""
+    api = _api(0)
+
+    with pytest.raises(ValueError):
+        api.client().translations.claim(limit=1, engine="llm", band=PriorityBand(minimum=700, maximum=600))
+
+    assert not api.bodies["claim"]

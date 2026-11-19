@@ -15,6 +15,7 @@ from discovery_ingest.translation.meter import UsageMeter
 from discovery_ingest.translation.metered import MeteredTranslator
 from discovery_ingest.translation.repair import Translator
 from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, UsageUnit
+from discovery_ingest.translation_models import PriorityBand
 from discovery_ingest.worker.drain_loop import Finish, drain_until_stop, monotonic
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.report import build_report, remaining_of
@@ -88,23 +89,25 @@ def _report(deps: TranslateDeps, tally: Tally, finish: Finish) -> DrainReport:
     return build_report(tally, finish, remaining_of(lambda: deps.client.translations.summary().pending_ready))
 
 
-def _drain(deps: TranslateDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter) -> Finish:
+def _drain(deps: TranslateDeps, policy: DrainPolicy, tally: Tally, meter: UsageMeter, band: PriorityBand) -> Finish:
     translator = CountedTranslator(MeteredTranslator(deps.engine, meter), tally)
-    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits, deps.glossary)
+    ctx = TranslateContext(deps.client, translator, deps.engine.name, policy, deps.engine.limits, deps.glossary, band)
     return drain_until_stop(lambda: run_translate_batch(ctx, tally), policy, deps.clock)
 
 
-def run_translate_drain(deps: TranslateDeps, policy: DrainPolicy) -> DrainReport:
+def run_translate_drain(deps: TranslateDeps, policy: DrainPolicy, *, band: PriorityBand | None = None) -> DrainReport:
     """Claim, translate and complete batches until ``policy`` says to stop; return the report.
 
     For an engine billed in neurons ``policy.neuron_budget`` is required and the drain never takes the day's ledger
     below ``deps.reserve`` (decision D15); an engine billed in another unit is bounded by its own meter instead. A
-    quota or budget stop releases the tasks nobody has settled, so no attempt is consumed.
+    quota or budget stop releases the tasks nobody has settled, so no attempt is consumed. Each claim takes ``band``
+    (every priority when it is ``None``).
     """
     guard, tally = deps.budget or BudgetGuard(deps.client.budget), Tally()
     meter = open_run_meter(
         deps.engine.usage_unit, MeterPlan(guard, policy.neuron_budget, deps.reserve, deps.own_meters)
     )
-    finish = Finish("llm_budget") if meter is None else _drain(deps, policy, tally, meter)
+    claim_band = PriorityBand() if band is None else band
+    finish = Finish("llm_budget") if meter is None else _drain(deps, policy, tally, meter, claim_band)
     _close_tally(deps, tally, meter, guard)
     return _report(deps, tally, finish)
