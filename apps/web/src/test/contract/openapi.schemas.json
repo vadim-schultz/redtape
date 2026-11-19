@@ -3863,6 +3863,217 @@
     "title": "FetchLogRow",
     "type": "object"
   },
+  "FlowAllotmentRead": {
+    "properties": {
+      "cap": {
+        "type": "integer"
+      },
+      "resource": {
+        "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+        ],
+        "type": "string"
+      },
+      "spent_by_stage": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "used": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "cap",
+      "resource",
+      "spent_by_stage",
+      "used"
+    ],
+    "title": "FlowAllotmentRead",
+    "type": "object"
+  },
+  "FlowEdgeRead": {
+    "properties": {
+      "from": {
+        "type": "string"
+      },
+      "manual_only": {
+        "type": "boolean"
+      },
+      "tasks_created_24h": {
+        "type": "integer"
+      },
+      "to": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "from",
+      "manual_only",
+      "tasks_created_24h",
+      "to"
+    ],
+    "title": "FlowEdgeRead",
+    "type": "object"
+  },
+  "FlowHeadroomRead": {
+    "properties": {
+      "resource": {
+        "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+        ],
+        "type": "string"
+      },
+      "stage": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "resource",
+      "stage"
+    ],
+    "title": "FlowHeadroomRead",
+    "type": "object"
+  },
+  "FlowLastRunRead": {
+    "properties": {
+      "finished_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "started_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "stop_reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "started_at",
+      "status"
+    ],
+    "title": "FlowLastRunRead",
+    "type": "object"
+  },
+  "FlowResponse": {
+    "properties": {
+      "allotments": {
+        "items": {
+          "$ref": "#/components/schemas/FlowAllotmentRead"
+        },
+        "type": "array"
+      },
+      "edges": {
+        "items": {
+          "$ref": "#/components/schemas/FlowEdgeRead"
+        },
+        "type": "array"
+      },
+      "stages": {
+        "items": {
+          "$ref": "#/components/schemas/FlowStageRead"
+        },
+        "type": "array"
+      },
+      "unused_headroom": {
+        "items": {
+          "$ref": "#/components/schemas/FlowHeadroomRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "allotments",
+      "edges",
+      "stages",
+      "unused_headroom"
+    ],
+    "title": "FlowResponse",
+    "type": "object"
+  },
+  "FlowStageRead": {
+    "properties": {
+      "failed_24h": {
+        "type": "integer"
+      },
+      "id": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "last_run": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FlowLastRunRead"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ready": {
+        "type": "integer"
+      },
+      "state": {
+        "enum": [
+          "dead",
+          "budget_stopped",
+          "throttled",
+          "blocked",
+          "starved",
+          "overdue",
+          "backlogged",
+          "flowing",
+          "idle"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "failed_24h",
+      "id",
+      "label",
+      "ready",
+      "state"
+    ],
+    "title": "FlowStageRead",
+    "type": "object"
+  },
   "JurisdictionPathNode": {
     "properties": {
       "code": {

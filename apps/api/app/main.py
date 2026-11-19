@@ -50,7 +50,7 @@ def create_app() -> Litestar:
         lifespan=[app_lifespan],
         cors_config=cors_config,
         openapi_config=OpenAPIConfig(title="RedTape API", version="0.1.0"),
-        plugins=[PydanticPlugin()],
+        plugins=[PydanticPlugin(prefer_alias=True)],
     )
 
 
