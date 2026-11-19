@@ -123,3 +123,22 @@ def test_a_changed_body_enqueues_a_render_and_logs_the_sha256_of_the_body(monkey
     assert [call[2] for call in api.calls if call[0] == "enqueue"] == [
         {"catalogue_service_id": str(CATALOGUE_ID), "kind": "render_page", "target_url": PAGE, "priority": 100}
     ]
+
+
+def test_a_refresh_verdict_enqueues_the_render_under_its_input_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · happy: a refresh the API keys by week is enqueued under that key, so it does not collide with the first render."""
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=b"<html>x</html>")}
+    api.fetch_answer = {"render_due": True, "render_input_key": "rr:2026-W47"}
+
+    _fetch(monkeypatch, api)
+
+    assert [call[2] for call in api.calls if call[0] == "enqueue"] == [
+        {
+            "catalogue_service_id": str(CATALOGUE_ID),
+            "kind": "render_page",
+            "target_url": PAGE,
+            "priority": 100,
+            "input_key": "rr:2026-W47",
+        }
+    ]
