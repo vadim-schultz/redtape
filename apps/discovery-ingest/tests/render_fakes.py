@@ -68,6 +68,9 @@ class FakeApi:
         self.upload_status = 201
         self.upload_detail = ""
         self.upload_script: list[int] = []
+        self.missing_screenshots: list[dict[str, object]] = [missing_row()]
+        self.missing_status = 200
+        self.gap_queries: list[dict[str, str]] = []
         self.storage_enabled = True
         self.status_http = 200
         self.enqueue_status = 200
@@ -103,7 +106,18 @@ class FakeApi:
             return httpx.Response(self.status_http, json=status)
         if path.endswith("/machine/tasks") and request.method == "POST":
             return self._enqueue(request)
+        if path.endswith("/artifacts/missing-screenshot"):
+            return self._missing_route(request)
         return httpx.Response(500, text="no stub")
+
+    def _missing_route(self, request: httpx.Request) -> httpx.Response:
+        params = dict(request.url.params)
+        self.gap_queries.append(params)
+        if self.missing_status >= 400:
+            return httpx.Response(self.missing_status, text="refused")
+        catalogue = params.get("catalogue_service_id")
+        rows = [row for row in self.missing_screenshots if catalogue in (None, row["catalogue_service_id"])]
+        return httpx.Response(200, json={"items": rows[: int(params.get("limit", "50"))]})
 
     def _enqueue(self, request: httpx.Request) -> httpx.Response:
         self.calls.append(("enqueue", "", json.loads(request.content)))
@@ -170,6 +184,15 @@ class FakeApi:
 
         monkeypatch.setattr("discovery_ingest.client.http_client.httpx.Client", factory)
         return DiscoveryIngestClient(API_BASE, SecretStr("test-machine-key"))
+
+
+def missing_row(
+    url: str = "https://portal.example/service/1", catalogue: uuid.UUID = CATALOGUE_ID
+) -> dict[str, object]:
+    """Return a rendered page's newest snapshot as the missing-screenshot route answers it."""
+    row = artifact_json()
+    row.update(catalogue_service_id=str(catalogue), source_url=url)
+    return row
 
 
 def robots_fetcher(robots: str | None = None, *, robots_status: int = 404) -> PoliteUrlFetcher:
