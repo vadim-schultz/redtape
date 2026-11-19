@@ -4231,6 +4231,21 @@
     "title": "LocationNode",
     "type": "object"
   },
+  "MissingScreenshotResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ArtifactRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "MissingScreenshotResponse",
+    "type": "object"
+  },
   "NewDocumentPayload": {
     "properties": {
       "category_codes": {

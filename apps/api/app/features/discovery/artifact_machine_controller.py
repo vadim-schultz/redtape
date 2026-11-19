@@ -9,7 +9,7 @@ from uuid import UUID
 from litestar import Controller, Response, get, post
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
-from litestar.params import Body
+from litestar.params import Body, Parameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.discovery.artifact_list_query import provide_artifact_query
@@ -26,7 +26,10 @@ from app.schema.discovery.artifacts import (
     ArtifactRead,
     ArtifactStatusResponse,
     ArtifactUploadForm,
+    MissingScreenshotResponse,
 )
+
+MISSING_SCREENSHOT_LIMIT = 50
 
 
 def _upload_from_form(form: ArtifactUploadForm) -> ArtifactUpload:
@@ -70,6 +73,16 @@ class DiscoveryArtifactMachineController(Controller):
         """Return the stored bytes of one artifact with its recorded content type."""
         stored = discovery_artifact_read_service.content(artifact_id)
         return Response(stored.data, media_type=stored.content_type)
+
+    @get("/artifacts/missing-screenshot", sync_to_thread=True)
+    def missing_screenshot(
+        self,
+        discovery_artifact_read_service: ArtifactReadService,
+        catalogue_service_id: UUID | None = Parameter(query="catalogue_service_id", default=None),
+        limit: int = Parameter(query="limit", default=MISSING_SCREENSHOT_LIMIT, ge=1, le=100),
+    ) -> MissingScreenshotResponse:
+        """Page through rendered pages with no screenshot: the newest HTML snapshot of each, newest first."""
+        return discovery_artifact_read_service.missing_screenshots(catalogue_service_id, limit)
 
     @get(
         "/artifacts",
