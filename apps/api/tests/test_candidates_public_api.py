@@ -15,7 +15,13 @@ from app.features.discovery.budgets import BudgetService
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.tags import MIN_SUGGESTED_SCORE
 from app.main import create_app
-from app.models.discovery import DiscoveryArtifactKind, DiscoveryCandidateStatus, DiscoveryMentionRole
+from app.models.discovery import (
+    DiscoveryArtifact,
+    DiscoveryArtifactKind,
+    DiscoveryCandidateStatus,
+    DiscoveryDocumentCandidate,
+    DiscoveryMentionRole,
+)
 from app.shared.object_store import InMemoryObjectStore, MeteredObjectStore, ObjectStore, ObjectStoreMeter, noop_meter
 from litestar import Litestar
 from litestar.testing import TestClient
@@ -354,6 +360,47 @@ def test_detail_screenshot_field_is_a_relative_proxy_path(client: TestClient[Lit
     assert "X-Amz" not in str(present) and "memory://" not in str(present)
 
 
+def test_candidate_screenshot_captures_are_listed_newest_first_and_capped(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    owner = scene.candidate("history")
+    procedures = [scene.procedure(), scene.procedure()]
+    for procedure in procedures:
+        scene.mention(owner, procedure)
+    captures = [
+        scene.stored_screenshot(procedures[days % 2], slot.memory, f"shot-{days}".encode(), days_old=days)
+        for days in range(6)
+    ]
+
+    shots = client.get(f"{URL}/{owner.id}").json()["screenshots"]
+
+    assert [shot["url"] for shot in shots] == [_capture_url(owner.id, row.id) for row in captures[:5]]
+
+
+def test_candidate_screenshot_detail_is_the_first_entry_of_screenshots(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    candidate_id = _with_shots(scene, slot)
+
+    detail = client.get(f"{URL}/{candidate_id}").json()
+    newest = client.get(detail["screenshots"][0]["url"])
+
+    assert detail["screenshot"]["url"] == f"{URL}/{candidate_id}/screenshot"
+    assert detail["screenshot"]["fetched_at"] == detail["screenshots"][0]["fetched_at"]
+    assert newest.content == b"new-image"
+
+
+def test_candidate_screenshot_history_is_empty_without_a_capture(client: TestClient[Litestar], scene: Scene) -> None:
+    bare = scene.candidate("bare-history")
+    procedure = scene.procedure()
+    scene.mention(bare, procedure)
+    scene.artifact(procedure, DiscoveryArtifactKind.HTML_SNAPSHOT, content_type="text/html")
+
+    detail = client.get(f"{URL}/{bare.id}").json()
+
+    assert (detail["screenshot"], detail["screenshots"]) == (None, [])
+
+
 def _guards_by_path(prefix: str) -> dict[str, list[object]]:
     """Resolve the guards of every handler under ``prefix`` (app, router, controller and handler level)."""
     routes = [route for route in create_app().routes if route.path.startswith(prefix)]
@@ -387,14 +434,25 @@ def _class_b_reads(db_session: Session) -> float:
     return float(status.used)
 
 
-def _with_shots(scene: Scene, slot: StoreSlot) -> uuid.UUID:
-    """A candidate on two procedures with an older and a newer screenshot; return its id."""
+def _history(scene: Scene, slot: StoreSlot) -> tuple[DiscoveryDocumentCandidate, DiscoveryArtifact, DiscoveryArtifact]:
+    """A candidate on two procedures with an older and a newer screenshot; return it with both captures."""
     owner, old, new = scene.candidate("subject"), scene.procedure(), scene.procedure()
     scene.mention(owner, old)
     scene.mention(owner, new)
-    scene.stored_screenshot(old, slot.memory, b"old-image", days_old=5)
-    scene.stored_screenshot(new, slot.memory, b"new-image", days_old=1)
+    older = scene.stored_screenshot(old, slot.memory, b"old-image", days_old=5)
+    newer = scene.stored_screenshot(new, slot.memory, b"new-image", days_old=1)
+    return owner, older, newer
+
+
+def _with_shots(scene: Scene, slot: StoreSlot) -> uuid.UUID:
+    """A candidate on two procedures with an older and a newer screenshot; return its id."""
+    owner, _, _ = _history(scene, slot)
     return owner.id
+
+
+def _capture_url(candidate_id: uuid.UUID, artifact_id: uuid.UUID) -> str:
+    """The per-capture route of one screenshot of one candidate."""
+    return f"{URL}/{candidate_id}/screenshots/{artifact_id}"
 
 
 def test_screenshot_streams_the_newest_image_with_immutable_headers(
@@ -513,6 +571,48 @@ def test_screenshot_is_503_when_storage_is_not_configured(
 
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"].lower()
+
+
+def test_candidate_screenshot_capture_is_served_by_its_id_with_immutable_headers(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    owner, older, _ = _history(scene, slot)
+
+    response = client.get(_capture_url(owner.id, older.id))
+
+    assert (response.status_code, response.content) == (200, b"old-image")
+    assert response.headers["etag"] == _etag(b"old-image")
+    assert response.headers["cache-control"] == IMMUTABLE
+
+
+def test_candidate_screenshot_capture_route_answers_304_for_the_current_etag(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot, db_session: Session
+) -> None:
+    owner, older, _ = _history(scene, slot)
+
+    response = client.get(_capture_url(owner.id, older.id), headers={"If-None-Match": _etag(b"old-image")})
+
+    assert (response.status_code, response.content) == (304, b"")
+    assert response.headers["etag"] == _etag(b"old-image")
+    assert slot.memory.reads == 0
+    assert _class_b_reads(db_session) == 0
+
+
+def test_candidate_screenshot_capture_of_another_candidates_procedure_is_a_404(
+    client: TestClient[Litestar], scene: Scene, slot: StoreSlot
+) -> None:
+    owner, bare = scene.candidate("owner-capture"), scene.candidate("bare-capture")
+    procedure = scene.procedure()
+    scene.mention(owner, procedure)
+    capture = scene.stored_screenshot(procedure, slot.memory, b"theirs")
+
+    own = client.get(_capture_url(owner.id, capture.id))
+    not_theirs = client.get(_capture_url(bare.id, capture.id))
+    unknown = client.get(_capture_url(owner.id, uuid.uuid4()))
+
+    assert (own.status_code, not_theirs.status_code, unknown.status_code) == (200, 404, 404)
+    assert "no screenshot" in not_theirs.json()["detail"].lower()
+    assert slot.memory.reads == 0
 
 
 def _tags(body: dict, key: str, axis: str) -> list[tuple[str, float]]:
