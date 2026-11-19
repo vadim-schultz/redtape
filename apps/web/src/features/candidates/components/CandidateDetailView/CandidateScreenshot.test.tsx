@@ -7,14 +7,15 @@ import CandidateScreenshot from "./CandidateScreenshot";
 beforeEach(() => window.localStorage.setItem("locale", "en"));
 
 const SRC = "http://api.test/api/v1/candidates/c1/screenshot";
+const CAPTURE = { src: SRC, fetchedAt: "2020-01-01T00:00:00Z" };
+const OLDER = {
+  src: "http://api.test/api/v1/candidates/c1/screenshots/old",
+  fetchedAt: "2019-01-01T00:00:00Z",
+};
 
 it("evidence shows the screenshot with alt text", () => {
   renderWithProviders(
-    <CandidateScreenshot
-      src={SRC}
-      title="Passport"
-      fetchedAt="2020-01-01T00:00:00Z"
-    />,
+    <CandidateScreenshot captures={[CAPTURE]} title="Passport" />,
   );
 
   const image = screen.getByRole("img", { name: /Passport/ });
@@ -24,9 +25,7 @@ it("evidence shows the screenshot with alt text", () => {
 });
 
 it("evidence falls back when the screenshot is missing", () => {
-  renderWithProviders(
-    <CandidateScreenshot src={null} title="Passport" fetchedAt={null} />,
-  );
+  renderWithProviders(<CandidateScreenshot captures={[]} title="Passport" />);
 
   expect(screen.getByText("No screenshot available yet")).toBeInTheDocument();
   expect(screen.queryByRole("img")).toBeNull();
@@ -34,7 +33,7 @@ it("evidence falls back when the screenshot is missing", () => {
 
 it("evidence falls back when the screenshot fails to load", () => {
   renderWithProviders(
-    <CandidateScreenshot src={SRC} title="Passport" fetchedAt={null} />,
+    <CandidateScreenshot captures={[CAPTURE]} title="Passport" />,
   );
 
   fireEvent.error(screen.getByRole("img", { name: /Passport/ }));
@@ -43,9 +42,27 @@ it("evidence falls back when the screenshot fails to load", () => {
   expect(screen.queryByRole("img")).toBeNull();
 });
 
+it("one capture renders no tab list", () => {
+  renderWithProviders(
+    <CandidateScreenshot captures={[CAPTURE]} title="Passport" />,
+  );
+
+  expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.getByRole("img", { name: /Passport/ })).toBeVisible();
+});
+
+it("two or more captures render the history as tabs", () => {
+  renderWithProviders(
+    <CandidateScreenshot captures={[CAPTURE, OLDER]} title="Passport" />,
+  );
+
+  expect(screen.getByRole("tablist")).toBeInTheDocument();
+  expect(screen.getAllByRole("tab")).toHaveLength(2);
+});
+
 it("the screenshot frame is vertically scrollable", () => {
   renderWithProviders(
-    <CandidateScreenshot src={SRC} title="Passport" fetchedAt={null} />,
+    <CandidateScreenshot captures={[CAPTURE]} title="Passport" />,
   );
 
   const frame = screen.getByRole("img", { name: /Passport/ }).parentElement;
@@ -56,7 +73,7 @@ it("the screenshot frame is vertically scrollable", () => {
 
 it("the image renders at its natural aspect ratio", () => {
   renderWithProviders(
-    <CandidateScreenshot src={SRC} title="Passport" fetchedAt={null} />,
+    <CandidateScreenshot captures={[CAPTURE]} title="Passport" />,
   );
 
   const image = screen.getByRole("img", { name: /Passport/ });

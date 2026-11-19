@@ -107,6 +107,7 @@
     "screenshot_alt": "Screenshot of the source page for {title}",
     "screenshot_missing": "No screenshot available yet",
     "screenshot_fetched": "Captured {time}",
+    "screenshot_history": "Screenshot history",
     "sources": "Sources",
     "source_role_required": "Required",
     "source_role_form": "Form",

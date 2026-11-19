@@ -26,12 +26,24 @@ export type CandidateSource = {
   is_optional: boolean;
 };
 
+/** One capture of a candidate's screenshot history: its relative proxy path and when it was fetched. */
 export type CandidateScreenshot = {
   url: string;
   fetched_at: string;
 };
 
-/** One candidate with its dependency neighbours and evidence. */
+/** One capture ready to show: the absolute image URL and when it was fetched. */
+export type ScreenshotCapture = {
+  src: string;
+  fetchedAt: string;
+};
+
+/**
+ * One candidate with its dependency neighbours and evidence.
+ *
+ * `screenshots` is the history, newest first; it is absent on an API that predates it,
+ * where `screenshot` (the newest, on the legacy route) is the only capture.
+ */
 export type CandidateDetail = CandidateCard & {
   ingress: CandidateNeighbour[];
   ingress_truncated: boolean;
@@ -39,4 +51,5 @@ export type CandidateDetail = CandidateCard & {
   egress_truncated: boolean;
   sources: CandidateSource[];
   screenshot: CandidateScreenshot | null;
+  screenshots?: CandidateScreenshot[];
 };

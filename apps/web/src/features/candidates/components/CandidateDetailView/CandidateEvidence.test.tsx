@@ -19,7 +19,10 @@ const candidate = candidateDetailFixture({
 
 function renderEvidence() {
   return renderWithProviders(
-    <CandidateEvidence candidate={candidate} screenshotUrl={SCREENSHOT_URL} />,
+    <CandidateEvidence
+      candidate={candidate}
+      captures={[{ src: SCREENSHOT_URL, fetchedAt: "2026-10-01T10:00:00Z" }]}
+    />,
   );
 }
 

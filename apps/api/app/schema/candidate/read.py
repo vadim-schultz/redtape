@@ -88,7 +88,7 @@ class CandidateSource(BaseModel):
 
 
 class CandidateScreenshot(BaseModel):
-    """The relative public proxy path of the newest screenshot and when it was fetched."""
+    """The relative public proxy path of one screenshot and when it was fetched."""
 
     model_config = ConfigDict(from_attributes=False)
 
@@ -97,7 +97,11 @@ class CandidateScreenshot(BaseModel):
 
 
 class CandidateDetail(CandidateCard):
-    """A candidate with the documents it needs (ingress) and the documents that need it (egress)."""
+    """A candidate with the documents it needs (ingress) and the documents that need it (egress).
+
+    ``screenshots`` is the candidate's screenshot history, newest first, at most the keep limit.
+    ``screenshot`` is the newest of them on the legacy route and stays until both deploys have moved (D13).
+    """
 
     ingress: list[CandidateNeighbour] = Field(default_factory=list)
     ingress_truncated: bool = False
@@ -105,3 +109,4 @@ class CandidateDetail(CandidateCard):
     egress_truncated: bool = False
     sources: list[CandidateSource] = Field(default_factory=list)
     screenshot: CandidateScreenshot | None = None
+    screenshots: list[CandidateScreenshot] = Field(default_factory=list)

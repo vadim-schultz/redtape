@@ -37,6 +37,7 @@
     "optional": "İsteğe bağlı",
     "screenshot_alt": "{title} için kaynak sayfanın ekran görüntüsü",
     "screenshot_fetched": "Alındığı zaman: {time}",
+    "screenshot_history": "Ekran görüntüsü geçmişi",
     "screenshot_missing": "Henüz ekran görüntüsü yok",
     "source_role_form": "Form",
     "source_role_issued": "Düzenlenen",

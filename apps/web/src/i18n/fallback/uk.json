@@ -37,6 +37,7 @@
     "optional": "Необов'язково",
     "screenshot_alt": "Знімок екрана сторінки джерела для «{title}»",
     "screenshot_fetched": "Знято {time}",
+    "screenshot_history": "Історія знімків екрана",
     "screenshot_missing": "Знімка екрана ще немає",
     "source_role_form": "Форма",
     "source_role_issued": "Виданий",

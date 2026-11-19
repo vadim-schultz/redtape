@@ -119,6 +119,37 @@ it("candidate detail makes no screenshot request without a screenshot", async ()
   expect(urls.some((url) => url.endsWith("/screenshot"))).toBe(false);
 });
 
+it("candidate detail shows the screenshot history as tabs, newest selected", async () => {
+  stubCandidateDetailApi(() =>
+    json(
+      candidateDetailFixture({
+        screenshots: [
+          {
+            url: "/api/v1/candidates/c1/screenshots/new",
+            fetched_at: "2026-10-02T10:00:00Z",
+          },
+          {
+            url: "/api/v1/candidates/c1/screenshots/old",
+            fetched_at: "2026-09-01T10:00:00Z",
+          },
+        ],
+      }),
+    ),
+  );
+  const { user } = renderPage();
+
+  await screen.findByRole("heading", { level: 1, name: "Passport" });
+  screen.getByRole("button", { name: "Evidence" }).focus();
+  await user.keyboard("{Enter}");
+
+  const [newest, older] = await screen.findAllByRole("tab");
+  expect(newest).toHaveAttribute("aria-selected", "true");
+  expect(older).toHaveAttribute("aria-selected", "false");
+  expect(
+    screen.getByRole("img", { name: /Passport/ }).getAttribute("src"),
+  ).toMatch(/\/api\/v1\/candidates\/c1\/screenshots\/new$/);
+});
+
 it("candidate detail shows the loading skeleton", () => {
   stubCandidateDetailApi(() => new Promise<Response>(() => undefined));
   renderPage();

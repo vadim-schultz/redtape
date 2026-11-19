@@ -1,4 +1,4 @@
-"""Serve the newest screenshot of a candidate: found by the database, read from the metered object store."""
+"""Serve a candidate's screenshots: found by the database, read from the metered object store."""
 
 from __future__ import annotations
 
@@ -25,8 +25,15 @@ class ScreenshotReply:
     data: bytes | None
 
 
+def _require_artifact(artifact: DiscoveryArtifact | None) -> DiscoveryArtifact:
+    """Return ``artifact``, or raise the 404 when the lookup found none."""
+    if artifact is None:
+        raise CandidateScreenshotNotFoundError()
+    return artifact
+
+
 class ScreenshotService:
-    """Look up a candidate's screenshot and read its bytes at most once per changed image."""
+    """Look up a candidate's screenshots and read their bytes at most once per changed image."""
 
     def __init__(self, repository: PublicCandidateRepository, store: ObjectStore | None) -> None:
         """Bind the service to ``repository`` and the metered, optional ``store``."""
@@ -34,20 +41,28 @@ class ScreenshotService:
         self._store = store
 
     def serve(self, candidate_id: UUID, if_none_match: str | None) -> ScreenshotReply:
-        """Return the screenshot reply; the store is not touched when ``if_none_match`` names the current image."""
-        artifact = self._require_screenshot(candidate_id)
+        """Return the newest screenshot's reply; the store is not touched when ``if_none_match`` names the current image."""
+        self._require_candidate(candidate_id)
+        return self._reply(_require_artifact(self._repo.newest_screenshot(candidate_id)), if_none_match)
+
+    def serve_by_id(self, candidate_id: UUID, artifact_id: UUID, if_none_match: str | None) -> ScreenshotReply:
+        """Return the reply for one capture of ``candidate_id``; 404 unless a procedure that mentions it holds the capture."""
+        self._require_candidate(candidate_id)
+        return self._reply(
+            _require_artifact(self._repo.screenshot_of_candidate(candidate_id, artifact_id)), if_none_match
+        )
+
+    def _require_candidate(self, candidate_id: UUID) -> None:
+        """Raise the 404 when no candidate has ``candidate_id``."""
+        if self._repo.get_candidate(candidate_id) is None:
+            raise CandidateNotFoundError()
+
+    def _reply(self, artifact: DiscoveryArtifact, if_none_match: str | None) -> ScreenshotReply:
+        """Answer the artifact's entity tag, and its bytes unless the client copy is current."""
         etag = etag_of(artifact.sha256)
         if etag_matches(if_none_match, etag):
             return ScreenshotReply(etag, artifact.content_type, None)
         return ScreenshotReply(etag, artifact.content_type, self._read(artifact))
-
-    def _require_screenshot(self, candidate_id: UUID) -> DiscoveryArtifact:
-        if self._repo.get_candidate(candidate_id) is None:
-            raise CandidateNotFoundError()
-        artifact = self._repo.newest_screenshot(candidate_id)
-        if artifact is None:
-            raise CandidateScreenshotNotFoundError()
-        return artifact
 
     def _read(self, artifact: DiscoveryArtifact) -> bytes:
         store = require_store(self._store)
