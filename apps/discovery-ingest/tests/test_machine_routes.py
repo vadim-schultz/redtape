@@ -28,6 +28,7 @@ from discovery_ingest.schemas import (
     FetchLogAppendRequest,
     RunFinishRequest,
     TaskEnqueueRequest,
+    TextExtractedQuery,
 )
 from pydantic import SecretStr, ValidationError
 
@@ -158,6 +159,16 @@ ROUTES: list[tuple[str, Call, str, str]] = [
         f"/tasks/{ID}/fetches",
     ),
     ("tasks.complete", lambda c: c.tasks.complete(ID), "POST", f"/tasks/{ID}/complete"),
+    (
+        "tasks.text_extracted",
+        lambda c: c.tasks.text_extracted(
+            TextExtractedQuery(
+                catalogue_service_id=ID, target_url="https://x.test/a", input_key="llm:0a1b2c3d", text_hash="0" * 64
+            )
+        ),
+        "GET",
+        "/tasks/text-extracted",
+    ),
     ("tasks.release", lambda c: c.tasks.release(ID, "limit"), "POST", f"/tasks/{ID}/release"),
     ("tasks.fail", lambda c: c.tasks.fail(ID, error="boom"), "POST", f"/tasks/{ID}/fail"),
     ("artifacts.upload", lambda c: c.artifacts.upload(ID, _upload()), "POST", f"/tasks/{ID}/artifacts"),
