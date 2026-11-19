@@ -35,9 +35,12 @@ class DrainOptions:
     time_budget_seconds: float | None = None
     browser_budget_seconds: float | None = DEFAULT_BROWSER_BUDGET_SECONDS
     neuron_budget: float | None = None
+    concurrency: int = 1
+    """Model calls in flight at once; above 1 only for a drain whose only kind is ``llm_extract``."""
 
     def policy(self) -> DrainPolicy:
         """Return the validated policy, or raise :class:`ValueError` naming the bound that is out of range."""
+        self._check_pool()
         drains_llm = any(kind in LLM_TASK_KINDS for kind in self.kinds)
         default_tasks = LLM_BATCH_SIZE if drains_llm else MAX_TASKS_PER_CLAIM
         return DrainPolicy(
@@ -47,7 +50,13 @@ class DrainOptions:
             kinds=self.kinds,
             browser_budget_seconds=self.browser_budget_seconds,
             neuron_budget=self.neuron_budget,
+            concurrency=self.concurrency,
         )
+
+    def _check_pool(self) -> None:
+        """Refuse a pool above one unless ``llm_extract`` is the only kind: only model calls may run side by side."""
+        if self.concurrency > 1 and not set(self.kinds) <= set(LLM_TASK_KINDS):
+            raise ValueError("concurrency above 1 needs llm_extract as the only kind")
 
 
 def run_drain(options: DrainOptions, settings: IngestSettings, client: DiscoveryIngestClient) -> DrainReport:

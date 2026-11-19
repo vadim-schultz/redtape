@@ -15,6 +15,8 @@ from discovery_ingest.schemas import (
 MAX_TASKS_PER_CLAIM = 50
 MAX_CONCURRENCY = 4
 """The most engine calls one drain may have in flight; an engine may allow fewer (its own ``CallLimits``)."""
+MAX_LLM_CONCURRENCY = 8
+"""The most model calls one llm_extract drain may have in flight (chapter 5); the neuron meter still bounds the spend."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,8 +39,9 @@ class DrainPolicy:
         self._check_concurrency()
 
     def _check_concurrency(self) -> None:
-        if not 1 <= self.concurrency <= MAX_CONCURRENCY:
-            raise ValueError(f"concurrency must be between 1 and {MAX_CONCURRENCY}")
+        cap = MAX_LLM_CONCURRENCY if self.drains_llm_kinds else MAX_CONCURRENCY
+        if not 1 <= self.concurrency <= cap:
+            raise ValueError(f"concurrency must be between 1 and {cap}")
 
     def _check_batches(self) -> None:
         if not 1 <= self.max_tasks <= MAX_TASKS_PER_CLAIM:

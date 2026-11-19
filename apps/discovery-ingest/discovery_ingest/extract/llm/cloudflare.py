@@ -14,6 +14,7 @@ from discovery_ingest.extract.llm.envelope import read_result
 from discovery_ingest.extract.llm.errors import LlmRequestError
 from discovery_ingest.extract.llm.payloads import Body, run_body
 from discovery_ingest.extract.llm.schema_prep import prepare_schema
+from discovery_ingest.extract.llm.start_pacer import StartPacer
 from discovery_ingest.json_types import JsonSchema
 from discovery_ingest.llm_settings import LlmSettings
 
@@ -21,7 +22,7 @@ DEFAULT_MIN_INTERVAL_SECONDS = 1.0
 
 
 class CloudflareAiClient:
-    """Call one Workers AI model in JSON mode, one throttled request at a time."""
+    """Call one Workers AI model in JSON mode; every request enters the pacer, so starts stay spaced under concurrency."""
 
     def __init__(
         self,
@@ -29,9 +30,9 @@ class CloudflareAiClient:
         *,
         model: str | None = None,
         http: httpx.Client | None = None,
-        throttle: Throttle | None = None,
+        throttle: Throttle | StartPacer | None = None,
     ) -> None:
-        """Wire the credentials and the model (missing ones raise :class:`ValueError`), the throttle and HTTP."""
+        """Wire the credentials and the model (missing ones raise :class:`ValueError`), the pacer and HTTP."""
         self._account_id, self._token = settings.ai_credentials()
         chosen = model or settings.llm_model
         if not chosen:
@@ -39,7 +40,7 @@ class CloudflareAiClient:
         self._model = chosen
         self._timeout = settings.llm_request_timeout_seconds
         self._http = http or httpx.Client(trust_env=True)
-        self._throttle = throttle or Throttle(DEFAULT_MIN_INTERVAL_SECONDS)
+        self._throttle = throttle or StartPacer(DEFAULT_MIN_INTERVAL_SECONDS)
 
     def extract(self, messages: Sequence[ChatMessage], json_schema: JsonSchema, *, max_tokens: int) -> LlmResult:
         """Return the model's JSON answer and usage, or raise the :class:`LlmError` the response stands for."""
