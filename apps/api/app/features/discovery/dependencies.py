@@ -21,6 +21,8 @@ from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.emit import DiscoveryEmitService
+from app.features.discovery.flow.context import FlowSources
+from app.features.discovery.flow.service import FlowService
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
@@ -144,6 +146,16 @@ def provide_discovery_emit_service(
     return DiscoveryEmitService(discovery_repository, suggestion_service)
 
 
+def provide_discovery_flow_service(
+    discovery_repository: DiscoveryRepository,
+    discovery_budget_service: BudgetService,
+    discovery_artifact_read_service: ArtifactReadService,
+) -> FlowService:
+    """Build the pipeline flow service over the repository, the queues, the artifact reads and the budget ledger."""
+    sources = FlowSources(discovery_repository, discovery_budget_service, discovery_artifact_read_service)
+    return FlowService(sources)
+
+
 router_dependencies = {
     **auth_dependencies,
     **document_dependencies,
@@ -162,6 +174,7 @@ router_dependencies = {
     "object_store": Provide(provide_metered_object_store, sync_to_thread=False),
     "discovery_run_service": Provide(provide_discovery_run_service, sync_to_thread=False),
     "discovery_emit_service": Provide(provide_discovery_emit_service, sync_to_thread=False),
+    "discovery_flow_service": Provide(provide_discovery_flow_service, sync_to_thread=False),
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),
     "suggestion_service": Provide(provide_suggestion_service, sync_to_thread=False),
     "machine_principal": Provide(provide_machine_principal, sync_to_thread=False),
