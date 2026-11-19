@@ -175,6 +175,22 @@ class TaskSummary(BaseModel):
     failed: int
 
 
+class TaskSupersededRequest(BaseModel):
+    """Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``."""
+
+    kind: DiscoveryTaskKind
+    input_key: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=50, ge=1, le=200)
+    dry_run: bool = False
+
+
+class TaskSupersededResponse(BaseModel):
+    """What the superseded requeue matched, and how many it re-pended (none on a dry run)."""
+
+    matched: int
+    requeued: int
+
+
 class FetchLogAppendRequest(BaseModel):
     """One HTTP fetch attempt against a task target."""
 
