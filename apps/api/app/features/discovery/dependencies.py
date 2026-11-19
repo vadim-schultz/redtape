@@ -21,6 +21,7 @@ from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.emit import DiscoveryEmitService
+from app.features.discovery.flow.context import FlowSources
 from app.features.discovery.flow.service import FlowService
 from app.features.discovery.repository import DiscoveryRepository
 from app.features.discovery.run_service import DiscoveryRunService
@@ -146,10 +147,13 @@ def provide_discovery_emit_service(
 
 
 def provide_discovery_flow_service(
-    discovery_repository: DiscoveryRepository, discovery_budget_service: BudgetService
+    discovery_repository: DiscoveryRepository,
+    discovery_budget_service: BudgetService,
+    discovery_artifact_read_service: ArtifactReadService,
 ) -> FlowService:
-    """Build the pipeline flow service over the repository, the queues and the budget ledger."""
-    return FlowService(discovery_repository, discovery_budget_service)
+    """Build the pipeline flow service over the repository, the queues, the artifact reads and the budget ledger."""
+    sources = FlowSources(discovery_repository, discovery_budget_service, discovery_artifact_read_service)
+    return FlowService(sources)
 
 
 router_dependencies = {

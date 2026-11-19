@@ -24,6 +24,7 @@ class StageReading:
     queue: QueueFigures
     intake: Intake
     last_run: LastRun | None
+    last_run_age_hours: float | None
     upstream_overdue: bool
     allotment: BudgetStatus | None
 
@@ -33,25 +34,27 @@ def age_hours(run: LastRun | None, now: datetime) -> float | None:
     return None if run is None else (now - run.started_at).total_seconds() / SECONDS_PER_HOUR
 
 
-def upstream_overdue(stage: Stage, runs: Mapping[str, LastRun], now: datetime, thresholds: FlowThresholds) -> bool:
-    """Return whether any stage that feeds ``stage`` has a last run overdue for that stage's own cadence."""
-    return any(_overdue_upstream(STAGE_BY_ID[source], runs, now, thresholds) for source in upstream_ids(stage.id))
+def upstream_overdue(stage: Stage, ages: Mapping[str, float | None], thresholds: FlowThresholds) -> bool:
+    """Return whether any stage that feeds ``stage`` has a last run overdue for that stage's own cadence.
+
+    ``ages`` maps each run stage name to the hours since its newest run started.
+    """
+    return any(_overdue_upstream(STAGE_BY_ID[source], ages, thresholds) for source in upstream_ids(stage.id))
 
 
-def _overdue_upstream(source: Stage, runs: Mapping[str, LastRun], now: datetime, thresholds: FlowThresholds) -> bool:
-    run = runs.get(source.run_stage.value)
-    return run_overdue(age_hours(run, now), source.cadence_hours, thresholds)
+def _overdue_upstream(source: Stage, ages: Mapping[str, float | None], thresholds: FlowThresholds) -> bool:
+    return run_overdue(ages.get(source.run_stage.value), source.cadence_hours, thresholds)
 
 
-def stage_facts(reading: StageReading, now: datetime, thresholds: FlowThresholds) -> StageFacts:
-    """Return the facts the state rules read for one stage, measured at ``now``."""
+def stage_facts(reading: StageReading, thresholds: FlowThresholds) -> StageFacts:
+    """Return the facts the state rules read for one stage."""
     return StageFacts(
         has_producer=reading.intake.total > 0,
         ready=reading.queue.ready,
         completed_24h=reading.queue.completed_24h,
         failed_24h=reading.queue.failed_24h,
         last_stop_reason=None if reading.last_run is None else reading.last_run.stop_reason,
-        last_run_age_hours=age_hours(reading.last_run, now),
+        last_run_age_hours=reading.last_run_age_hours,
         upstream_overdue=reading.upstream_overdue,
         has_headroom=_has_headroom(reading.allotment, thresholds),
         allotment_full=_is_full(reading.allotment),

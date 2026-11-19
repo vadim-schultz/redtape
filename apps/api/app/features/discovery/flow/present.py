@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from app.features.discovery.budgets import BudgetStatus
 from app.features.discovery.flow.reads import Intake, LastRun
@@ -26,15 +27,25 @@ def last_run_read(run: LastRun | None) -> FlowLastRunRead | None:
     )
 
 
-def stage_read(stage: Stage, state: StageState, facts: StageFacts, run: LastRun | None) -> FlowStageRead:
+@dataclass(frozen=True, slots=True)
+class StageView:
+    """One stage as the response shows it: its definition, its state, its facts and its newest run."""
+
+    stage: Stage
+    state: StageState
+    facts: StageFacts
+    run: LastRun | None
+
+
+def stage_read(view: StageView) -> FlowStageRead:
     """Return the response form of one stage with its state, its ready work and its last run."""
     return FlowStageRead(
-        id=stage.id,
-        label=stage.label,
-        state=state.value,
-        ready=facts.ready,
-        failed_24h=facts.failed_24h,
-        last_run=last_run_read(run),
+        id=view.stage.id,
+        label=view.stage.label,
+        state=view.state.value,
+        ready=view.facts.ready,
+        failed_24h=view.facts.failed_24h,
+        last_run=last_run_read(view.run),
     )
 
 
