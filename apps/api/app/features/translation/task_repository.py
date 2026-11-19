@@ -2,17 +2,24 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, delete, func, or_, tuple_
+from sqlalchemy import Select, and_, delete, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.features.discovery.repository.base import SessionRepository
+from app.features.search.leased_queue import ready_clause
 from app.features.search.task_states import OPEN_TASK_PREDICATE
+from app.features.translation.lanes import TAIL_ENGINE, azure_clause
+from app.features.translation.priority import UPGRADE_BASE
 from app.models.search import WorkTaskStatus
 from app.models.snapshot_translation import SnapshotTranslationTask
-from app.models.translation import TranslationTask
+from app.models.translation import CandidateTranslation, TranslationSource, TranslationTask
+
+_UPGRADE_COLUMNS = ("id", "candidate_id", "locale", "source_hash", "priority")
+"""The columns an upgrade inserts; ``id`` comes from the database per row, since a Python default is one value per statement."""
 
 
 class TaskRepository(SessionRepository):
@@ -70,12 +77,41 @@ class TaskRepository(SessionRepository):
         return self._session.execute(upsert.returning(SnapshotTranslationTask.id)).first() is not None
 
     def retire_pending(self, slots: Collection[tuple[UUID, str]]) -> None:
-        """Delete the pending tasks of ``(candidate, locale)`` pairs whose translation no longer needs work."""
+        """Delete the pending first and re-translation tasks of ``(candidate, locale)`` pairs that need no work.
+
+        An upgrade is not retired: its row is current by design, and it waits for idle Azure capacity.
+        """
         if not slots:
             return
         self._session.execute(
             delete(TranslationTask).where(
                 tuple_(TranslationTask.candidate_id, TranslationTask.locale).in_(list(slots)),
                 TranslationTask.status == WorkTaskStatus.PENDING,
+                TranslationTask.priority < UPGRADE_BASE,
             )
         )
+
+    def queue_upgrades(self, locales: Sequence[str], now: datetime, limit: int) -> int:
+        """Queue an Azure upgrade for up to ``limit`` machine rows of the tail engine in ``locales``; return how many.
+
+        One statement. It queues nothing while an Azure task is ready. ``source`` is machine, so a human row is never a
+        candidate, and the conflict clause leaves an open task for the same unit at its own priority.
+        """
+        rows = _upgrade_select(locales, now, limit)
+        insert = pg_insert(TranslationTask).from_select(_UPGRADE_COLUMNS, rows, include_defaults=False)
+        upsert = insert.on_conflict_do_nothing(
+            index_elements=[TranslationTask.candidate_id, TranslationTask.locale], index_where=OPEN_TASK_PREDICATE
+        )
+        return len(self._session.scalars(upsert.returning(TranslationTask.id)).all())
+
+
+def _upgrade_select(locales: Sequence[str], now: datetime, limit: int) -> Select[tuple[UUID, UUID, str, str, int]]:
+    """Return up to ``limit`` tail rows of ``locales`` as upgrade tasks, oldest candidates first, while Azure is idle."""
+    row = CandidateTranslation
+    azure_ready = select(TranslationTask.id).where(*ready_clause(TranslationTask, now), azure_clause()).exists()
+    return (
+        select(func.gen_random_uuid(), row.candidate_id, row.locale, row.source_hash, literal(UPGRADE_BASE))
+        .where(row.engine == TAIL_ENGINE, row.source == TranslationSource.MT, row.locale.in_(locales), ~azure_ready)
+        .order_by(row.candidate_id, row.locale)
+        .limit(limit)
+    )
