@@ -8,7 +8,8 @@ from pathlib import Path
 
 import httpx
 
-from discovery_ingest.browser.canary_run import canary_lines, run_canary
+from discovery_ingest.browser.canary_report import canary_lines
+from discovery_ingest.browser.canary_run import run_canary
 from discovery_ingest.browser.client import CloudflareBrowserClient
 from discovery_ingest.browser.probe import run_probe as run_browser_probe_plan
 from discovery_ingest.browser.probe_plan import probe_plan
