@@ -5461,13 +5461,46 @@
   "translation_machine.TranslationClaimRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Claim up to ``limit`` pending translation tasks, highest-priority candidates first.",
+    "description": "Claim up to ``limit`` pending translation tasks of ``engine``'s lane within a priority band, best candidates first.\n\nAn absent ``engine`` claims without a lane, as a claim did before lanes existed. ``priority_max`` is inclusive and\nabsent when the band is open above.",
     "properties": {
+     "engine": {
+      "anyOf": [
+       {
+        "maxLength": 50,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Engine"
+     },
      "limit": {
       "default": 50,
       "maximum": 50,
       "minimum": 1,
       "title": "Limit",
+      "type": "integer"
+     },
+     "priority_max": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Priority Max"
+     },
+     "priority_min": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Priority Min",
       "type": "integer"
      }
     },

@@ -5809,10 +5809,37 @@
   },
   "TranslationClaimRequest": {
     "properties": {
+      "engine": {
+        "maxLength": 50,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "limit": {
         "default": 50,
         "maximum": 50.0,
         "minimum": 1.0,
+        "type": "integer"
+      },
+      "priority_max": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "priority_min": {
+        "default": 0,
+        "minimum": 0.0,
         "type": "integer"
       }
     },

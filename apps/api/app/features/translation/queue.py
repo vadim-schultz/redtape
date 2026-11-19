@@ -13,6 +13,7 @@ from app.features.search.clock import Clock, utc_now
 from app.features.search.leased_queue import LeasedQueue
 from app.features.search.leased_settle import fail_owned, release_owned
 from app.features.search.task_settle import fail_task
+from app.features.translation.lanes import ClaimScope, scope_clauses
 from app.features.translation.repository import TranslationRepository
 from app.features.translation.source import SourceRepository
 from app.features.translation.unit import TranslationUnit
@@ -54,14 +55,16 @@ class TranslationQueue:
         self._index = TranslationRepository(session)
         self._clock = clock
 
-    def claim(self, api_key_id: UUID, limit: int) -> TranslationClaimResponse:
-        """Lease up to ``limit`` ready tasks of the target locales, best candidates first, with their current unit.
+    def claim(self, api_key_id: UUID, limit: int, scope: ClaimScope | None = None) -> TranslationClaimResponse:
+        """Lease up to ``limit`` ready tasks of the target locales inside ``scope``, best candidates first, with their unit.
 
-        A task whose candidate has lost its German title is failed, not served.
+        ``scope`` names the engine's lane and the priority band; without it every target-locale task is eligible. A
+        task whose candidate has lost its German title is failed, not served.
         """
         now = self._clock()
-        scope = (TranslationTask.locale.in_(settings.translation_target_locale_codes),)
-        tasks = self._leased.claim(api_key_id, now, limit, scope, grouping=(TranslationTask.candidate_id,))
+        targets = (TranslationTask.locale.in_(settings.translation_target_locale_codes),)
+        clauses = (*targets, *scope_clauses(scope or ClaimScope()))
+        tasks = self._leased.claim(api_key_id, now, limit, clauses, grouping=(TranslationTask.candidate_id,))
         units = self._source.units_for(list({task.candidate_id for task in tasks}))
         return TranslationClaimResponse(items=[item for task in tasks if (item := self._serve(task, units, now))])
 
