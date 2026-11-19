@@ -6289,6 +6289,10 @@
   },
   {
    "method": "POST",
+   "path": "/api/v1/discovery/machine/retention/prune"
+  },
+  {
+   "method": "POST",
    "path": "/api/v1/discovery/machine/runs"
   },
   {

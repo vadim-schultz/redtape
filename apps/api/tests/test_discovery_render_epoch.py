@@ -25,7 +25,9 @@ WEEK_47 = datetime(2026, 11, 19, 12, tzinfo=UTC)
 TASKS_URL = "/api/v1/discovery/machine/tasks"
 
 
-def _completed_render(session: Session, catalogue_id: uuid.UUID, *, input_key: str | None, finished_at: datetime) -> None:
+def _completed_render(
+    session: Session, catalogue_id: uuid.UUID, *, input_key: str | None, finished_at: datetime
+) -> None:
     """Insert a completed render_page for the portal page under ``input_key``, finished at ``finished_at``."""
     target = TaskTarget(
         catalogue_service_id=catalogue_id,

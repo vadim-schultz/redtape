@@ -4683,6 +4683,22 @@
     "title": "RequirementRead",
     "type": "object"
   },
+  "RetentionPruneResponse": {
+    "properties": {
+      "events_deleted": {
+        "type": "integer"
+      },
+      "fetch_logs_deleted": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "events_deleted",
+      "fetch_logs_deleted"
+    ],
+    "title": "RetentionPruneResponse",
+    "type": "object"
+  },
   "RowBlock": {
     "properties": {
       "cells": {

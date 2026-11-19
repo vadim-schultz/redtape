@@ -229,6 +229,13 @@ class FetchLogAppendResponse(BaseModel):
     render_input_key: str | None = None
 
 
+class RetentionPruneResponse(BaseModel):
+    """Rows the retention prune deleted: fetch logs and events that had aged out of the window."""
+
+    fetch_logs_deleted: int
+    events_deleted: int
+
+
 class EntityUpsertRequest(BaseModel):
     """Upsert a discovery entity under an existing catalogue row."""
 
