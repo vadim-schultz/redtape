@@ -100,6 +100,8 @@ def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:
 
 
 DiscoveryTaskStatus = Literal["pending", "claimed", "completed", "failed"]
+FailureClass = Literal["transient", "permanent", "login_wall", "robots", "not_found"]
+"""Why a task failed, as the API stores it; a failure that names no class counts as permanent on the API."""
 
 
 class TaskClaimRequest(BaseModel):
@@ -145,6 +147,21 @@ class TaskClaimResponse(BaseModel):
     """Tasks claimed in one request."""
 
     items: list[ClaimedTask]
+
+
+class TextExtractedQuery(BaseModel):
+    """The page, input key and cleaned-text hash that ask whether a completed extraction already read the text."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    input_key: str = Field(min_length=1, max_length=128)
+    text_hash: str
+
+
+class TextExtractedResponse(BaseModel):
+    """Whether a completed extraction of this page under these versions already read the cleaned text."""
+
+    extracted: bool
 
 
 class TaskSummary(BaseModel):

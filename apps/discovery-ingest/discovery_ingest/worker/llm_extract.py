@@ -16,7 +16,15 @@ from discovery_ingest.worker.fetcher import PoliteUrlFetcher
 from discovery_ingest.worker.llm_call import ModelCaller
 from discovery_ingest.worker.llm_post import post_staged
 from discovery_ingest.worker.llm_runtime import LlmResources
-from discovery_ingest.worker.llm_steps import counts_note, guarded, read_page, require_documents
+from discovery_ingest.worker.llm_steps import (
+    UNCHANGED,
+    already_extracted,
+    cleaned_text_hash,
+    counts_note,
+    guarded,
+    read_page,
+    require_documents,
+)
 from discovery_ingest.worker.tally import COMPLETED, COMPLETED_CAPTURE_ENQUEUE_FAILED
 
 AfterExtract = Callable[[DiscoveryIngestClient, ClaimedTask], bool]
@@ -54,12 +62,15 @@ class LlmExtractHandler:
 
     def _pipeline(self, job: Job) -> str:
         cleaned = read_page(job, self._resources.max_chars)
+        text_hash = cleaned_text_hash(cleaned)
+        if already_extracted(job, text_hash):
+            return complete(job, UNCHANGED)
         grounded = ground(self._caller.extract(job, cleaned), cleaned, self._resources.taxonomy)
-        require_documents(job, grounded)
+        require_documents(job, grounded, text_hash)
         mentions, edges = to_items(grounded, self._context(job.task, cleaned))
         unknown_codes = guarded(job, lambda: post_staged(job.client, mentions, edges))
         enqueued = self._after_extract(job.client, job.task)
-        complete(job, counts_note(grounded, len(mentions), len(edges), unknown_codes))
+        complete(job, counts_note(grounded, len(mentions), len(edges), unknown_codes), text_hash=text_hash)
         return COMPLETED if enqueued else COMPLETED_CAPTURE_ENQUEUE_FAILED
 
     def _context(self, task: ClaimedTask, cleaned: CleanPage) -> MappingContext:
