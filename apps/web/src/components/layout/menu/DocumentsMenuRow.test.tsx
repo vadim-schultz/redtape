@@ -54,12 +54,12 @@ it("documents menu row renders browse and discovery links in one container", asy
   await screen.findByRole("link", { name: "Tasks" });
 
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(5);
+  expect(links).toHaveLength(6);
   expect(new Set(links.map(rowOf)).size).toBe(1);
-  expect(rowOf(links[0]).children).toHaveLength(5);
+  expect(rowOf(links[0]).children).toHaveLength(6);
 });
 
-it("documents menu row links the admin documents list as the fifth icon in the same row", async () => {
+it("documents menu row links the admin documents list as the sixth icon in the same row", async () => {
   renderRow(200);
 
   const link = await screen.findByRole("link", { name: "Documents" });
