@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from discovery_ingest.browser.canary import PageCompare, compare_page, judge
+from discovery_ingest.browser.canary import MAX_TEXT_LOSS, PageCompare, compare_page, judge
 
 BASE = "https://portal.example/service/1"
 PARAGRAPH = "Wer einen Wohnsitz in der Stadt hat, kann den Antrag online stellen und die Unterlagen hochladen."
@@ -50,10 +50,10 @@ def test_extra_dynamic_text_changes_the_hash_but_loses_nothing() -> None:
 
 def test_a_fused_dom_missing_half_its_text_reports_the_loss() -> None:
     """canary · dropping a paragraph from the fused DOM is a text loss the gate reads, not a silent match."""
-    page = compare_page(_page(LONG, LONG), _page(LONG), BASE)
+    page = compare_page(_page(LONG, "Die Bearbeitung dauert in der Regel vier Wochen."), _page(LONG), BASE)
 
     assert page.identical is False
-    assert page.text_loss > 0.4
+    assert page.text_loss > MAX_TEXT_LOSS
 
 
 def test_a_fused_dom_without_a_link_is_a_lost_link() -> None:

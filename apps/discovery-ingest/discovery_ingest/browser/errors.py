@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from discovery_ingest.browser.port import RenderedPage
+
 
 class BrowserError(Exception):
     """Base class for every browser client failure; ``ms_used`` is the browser time the failed call cost, when known."""
@@ -39,8 +41,11 @@ class ScreenshotOversize(BrowserError):
 
     ms_used: int
     """Always known: the oversize image is returned as a value, and its browser time is booked like any other call."""
+    page: RenderedPage | None
+    """The DOM of the same call when Cloudflare sent one: the fused render keeps it when the image is too large."""
 
-    def __init__(self, byte_size: int, ms_used: int = 0) -> None:
-        """Keep the size that broke the cap and the browser milliseconds the call cost."""
+    def __init__(self, byte_size: int, ms_used: int = 0, *, page: RenderedPage | None = None) -> None:
+        """Keep the size that broke the cap, the browser milliseconds the call cost and the DOM of that call."""
         super().__init__(f"screenshot is {byte_size} bytes", ms_used=ms_used)
         self.byte_size = byte_size
+        self.page = page

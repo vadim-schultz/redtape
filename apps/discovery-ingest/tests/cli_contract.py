@@ -166,6 +166,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--error-url", "str", repeatable=True),
             _opt("--variant", "custom", repeatable=True),
             _opt("--max-browser-seconds", "float", default=240.0),
+            _opt("--canary", "custom"),
         ),
     ),
     CommandSpec(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from discovery_ingest.browser.canary_run import CanaryRun, run_canary
-from discovery_ingest.browser.port import RenderedPage, ScreenshotImage
 
 from canary_fakes import FakeCanaryBrowser, page
 

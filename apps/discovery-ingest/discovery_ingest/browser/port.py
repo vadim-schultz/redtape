@@ -35,6 +35,6 @@ class BrowserClient(Protocol):
         """Return the rendered DOM of ``url``."""
         ...
 
-    def screenshot(self, url: str) -> ScreenshotImage:
-        """Return a full-page image of ``url`` (and its DOM when available)."""
+    def screenshot(self, url: str, *, consent_click: bool = True) -> ScreenshotImage:
+        """Return a full-page image of ``url`` (and its DOM when available); ``consent_click`` sends the accept script."""
         ...
