@@ -607,12 +607,13 @@ def test_candidate_screenshot_capture_of_another_candidates_procedure_is_a_404(
     capture = scene.stored_screenshot(procedure, slot.memory, b"theirs")
 
     own = client.get(_capture_url(owner.id, capture.id))
+    reads_before_refusals = slot.memory.reads
     not_theirs = client.get(_capture_url(bare.id, capture.id))
     unknown = client.get(_capture_url(owner.id, uuid.uuid4()))
 
     assert (own.status_code, not_theirs.status_code, unknown.status_code) == (200, 404, 404)
     assert "no screenshot" in not_theirs.json()["detail"].lower()
-    assert slot.memory.reads == 0
+    assert slot.memory.reads == reads_before_refusals
 
 
 def _tags(body: dict, key: str, axis: str) -> list[tuple[str, float]]:

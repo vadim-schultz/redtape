@@ -85,6 +85,17 @@ class CandidatesController(Controller):
         """Serve a candidate's screenshot, answering 304 when the client's ETag is current."""
         return _screenshot_response(candidate_screenshot_service.serve(candidate_id, if_none_match))
 
+    @get("/{candidate_id:uuid}/screenshots/{artifact_id:uuid}", sync_to_thread=True)
+    def candidate_screenshot_capture(
+        self,
+        candidate_screenshot_service: ScreenshotService,
+        candidate_id: UUID,
+        artifact_id: UUID,
+        if_none_match: str | None = Parameter(header="If-None-Match", default=None),
+    ) -> Response[bytes]:
+        """Serve one capture of a candidate's screenshot history by its artifact id, 304 when the client's ETag is current."""
+        return _screenshot_response(candidate_screenshot_service.serve_by_id(candidate_id, artifact_id, if_none_match))
+
     @get("/{candidate_id:uuid}/translation", sync_to_thread=True)
     def candidate_translation(
         self,

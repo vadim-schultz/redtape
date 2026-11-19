@@ -625,6 +625,12 @@
           }
         ]
       },
+      "screenshots": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateScreenshot"
+        },
+        "type": "array"
+      },
       "similarity": {
         "oneOf": [
           {
