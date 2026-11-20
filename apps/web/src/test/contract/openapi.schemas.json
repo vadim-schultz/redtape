@@ -5199,6 +5199,51 @@
     "title": "SnapshotSummaryResponse",
     "type": "object"
   },
+  "StaleFetchRead": {
+    "properties": {
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "last_fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "target_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "last_fetched_at",
+      "target_url"
+    ],
+    "title": "StaleFetchRead",
+    "type": "object"
+  },
+  "StaleFetchesResponse": {
+    "properties": {
+      "input_key": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/StaleFetchRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "input_key",
+      "items"
+    ],
+    "title": "StaleFetchesResponse",
+    "type": "object"
+  },
   "SubmitterRead": {
     "properties": {
       "display_name": {
