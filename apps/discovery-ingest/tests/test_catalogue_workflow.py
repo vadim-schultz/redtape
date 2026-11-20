@@ -15,6 +15,7 @@ MAINTENANCE = WORKFLOWS / "platform-maintenance.yml"
 GOVDATA = "python -m discovery_ingest govdata fetch"
 PVOG = "python -m discovery_ingest pvog run"
 OPENPLZ = "scripts/import_openplz_locations.py"
+REFRESH = "python -m discovery_ingest catalogue refresh"
 
 
 def _load(path: Path) -> dict[Any, Any]:
@@ -80,3 +81,25 @@ def test_the_monthly_maintenance_no_longer_offers_a_discovery_choice(maintenance
     choices = maintenance[True]["workflow_dispatch"]["inputs"]["job"]["options"]
 
     assert choices == ["all", "openplz"]
+
+
+def test_the_weekly_workflow_refreshes_stale_pages_after_the_ingest_within_the_variable_bound(
+    catalogue: dict[Any, Any],
+) -> None:
+    """catalogue workflow · happy: one refresh step runs after both ingests and takes its bound from the repository variable."""
+    job = catalogue["jobs"]["catalogue"]
+    scripts = _run_scripts(job)
+    refresh = [index for index, run in enumerate(scripts) if REFRESH in run]
+    ingest = [index for index, run in enumerate(scripts) if GOVDATA in run or PVOG in run]
+
+    assert job["env"]["REFRESH_MAX_ROWS"] == "${{ vars.CATALOGUE_REFRESH_MAX_ROWS || '0' }}"
+    assert len(refresh) == 1 and refresh[0] > max(ingest)
+    assert '--max-rows "${REFRESH_MAX_ROWS}"' in scripts[refresh[0]]
+
+
+def test_the_refresh_is_off_unless_the_variable_is_set(catalogue: dict[Any, Any]) -> None:
+    """catalogue workflow · negative: the bound defaults to zero, and no run line names a literal bound."""
+    job = catalogue["jobs"]["catalogue"]
+
+    assert job["env"]["REFRESH_MAX_ROWS"].endswith("|| '0' }}")
+    assert not any(re.search(r"--max-rows \d", run) for run in _run_scripts(job))

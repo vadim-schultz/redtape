@@ -27,6 +27,9 @@ jobs:
       # Page caps per source. The defaults are the values the production runbook names; set the variables to change them.
       GOVDATA_MAX_PAGES: ${{ vars.CATALOGUE_GOVDATA_MAX_PAGES || '150' }}
       PVOG_MAX_PAGES: ${{ vars.CATALOGUE_PVOG_MAX_PAGES || '50' }}
+      # Stale portal pages re-fetched this run, through the same enqueue as a new page. The bound never exceeds the smaller
+      # page cap above. 0, the default, turns the refresh off.
+      REFRESH_MAX_ROWS: ${{ vars.CATALOGUE_REFRESH_MAX_ROWS || '0' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -60,3 +63,11 @@ jobs:
           python -m discovery_ingest pvog run \
             --jurisdiction-id "${FEDERAL_JURISDICTION_ID}" \
             --max-pages "${PVOG_MAX_PAGES}"
+
+      - name: Re-fetch stale catalogue pages (bounded)
+        run: |
+          set -euo pipefail
+          python -m discovery_ingest catalogue refresh \
+            --max-rows "${REFRESH_MAX_ROWS}" \
+            --govdata-max-pages "${GOVDATA_MAX_PAGES}" \
+            --pvog-max-pages "${PVOG_MAX_PAGES}"
