@@ -3124,6 +3124,63 @@
     "type": "object"
    }
   },
+  "machine.StaleFetchesResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "StaleFetchRead": {
+      "description": "A portal page whose newest fetch finished before the refresh cutoff, with no fetch of it still open.",
+      "properties": {
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "last_fetched_at": {
+        "format": "date-time",
+        "title": "Last Fetched At",
+        "type": "string"
+       },
+       "target_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Target Url",
+        "type": "string"
+       }
+      },
+      "required": [
+       "catalogue_service_id",
+       "target_url",
+       "last_fetched_at"
+      ],
+      "title": "StaleFetchRead",
+      "type": "object"
+     }
+    },
+    "description": "Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under.",
+    "properties": {
+     "input_key": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Input Key",
+      "type": "string"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/$defs/StaleFetchRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "input_key",
+     "items"
+    ],
+    "title": "StaleFetchesResponse",
+    "type": "object"
+   }
+  },
   "machine.TaskClaimRequest": {
    "mode": "validation",
    "schema": {
@@ -6323,6 +6380,10 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/catalogue/batch"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/catalogue/stale-fetches"
   },
   {
    "method": "GET",

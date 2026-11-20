@@ -12,7 +12,7 @@ from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.lookups import require_artifact, require_catalogue, require_task
-from app.features.discovery.render_gate import NO_RENDER, RenderHistory, RenderVerdict, decide_render
+from app.features.discovery.render_gate import NO_RENDER, RenderHistory, RenderVerdict, decide_render, refresh_key
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
 from app.features.discovery.repository.task_target import ExtractedText
 from app.features.discovery.stage_sync import advance_stage
@@ -38,6 +38,8 @@ from app.schema.discovery.machine import (
     EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
+    StaleFetchesResponse,
+    StaleFetchRead,
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteRequest,
@@ -204,7 +206,9 @@ class DiscoveryMachineService:
     def append_fetch_log(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
         """Record a fetch attempt, answer whether its body earns a render, and advance the catalogue stage."""
         task = require_task(self._repo, task_id)
-        previous = self._repo.last_body_sha256(task.id)
+        previous = self._repo.last_body_sha256(
+            catalogue_service_id=task.catalogue_service_id, kind=task.kind, target_url=task.target_url
+        )
         row = self._repo.append_fetch_log(_fetch_log_entry(task, body))
         self._repo.record_event(_fetch_logged(task, str(row.id)))
         verdict = self._render_verdict(task, body, previous)
@@ -215,6 +219,14 @@ class DiscoveryMachineService:
             task_status=task.status,
             render_due=verdict.due,
             render_input_key=verdict.input_key,
+        )
+
+    def stale_fetches(self, limit: int) -> StaleFetchesResponse:
+        """List up to ``limit`` portal pages due a refresh, stalest first, with the week's key their refresh fetches go under."""
+        now = datetime.now(UTC)
+        rows = self._repo.stale_fetch_targets(cutoff=now - self._refresh_max_age, limit=limit)
+        return StaleFetchesResponse(
+            input_key=refresh_key(now), items=[StaleFetchRead.model_validate(asdict(row)) for row in rows]
         )
 
     def _render_verdict(self, task: DiscoveryTask, body: FetchLogAppendRequest, previous: str | None) -> RenderVerdict:

@@ -15,6 +15,7 @@ from discovery_ingest.schemas import (
     ClaimAppendResponse,
     EntityUpsertRequest,
     EntityUpsertResponse,
+    StaleFetchPage,
 )
 
 MAX_BATCH_SIZE = 50
@@ -35,6 +36,10 @@ class CatalogueAPI:
         for start in range(0, len(deduped), batch_size):
             body = CatalogueBatchRequest(items=deduped[start : start + batch_size])
             self._http.request("POST", "/catalogue/batch", json=body.model_dump(mode="json"))
+
+    def stale_fetches(self, *, limit: int) -> StaleFetchPage:
+        """List up to ``limit`` portal pages due a weekly refresh, stalest first, with the input key their fetches go under."""
+        return self._http.request_model(StaleFetchPage, "GET", "/catalogue/stale-fetches", params={"limit": limit})
 
     def get(self, catalogue_id: UUID) -> CatalogueMachineRead:
         """Load the minimal catalogue row that enrich workers read."""

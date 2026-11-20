@@ -96,6 +96,7 @@ MODELS: dict[str, tuple[type[BaseModel], Mode]] = {
     "translation_machine.TranslationReleaseRequest": (translation_machine.TranslationReleaseRequest, "validation"),
     # Responses the ingest package validates: serialized by the API.
     "machine.CatalogueMachineRead": (machine.CatalogueMachineRead, "serialization"),
+    "machine.StaleFetchesResponse": (machine.StaleFetchesResponse, "serialization"),
     "machine.EntityUpsertResponse": (machine.EntityUpsertResponse, "serialization"),
     "machine.ClaimAppendResponse": (machine.ClaimAppendResponse, "serialization"),
     "machine.TaskClaimResponse": (machine.TaskClaimResponse, "serialization"),

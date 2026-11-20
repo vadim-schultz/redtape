@@ -21,6 +21,8 @@ from run_stub import run_response
 
 API_BASE = "https://redtape.test"
 CATALOGUE_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+STALE_INPUT_KEY = "rr:2026-W47"
+"""The week key the stale listing names; a refresh fetch is enqueued under it."""
 _REAL_HTTPX_CLIENT = httpx.Client
 
 
@@ -71,6 +73,9 @@ class FakeApi:
         self.missing_screenshots: list[dict[str, object]] = [missing_row()]
         self.missing_status = 200
         self.gap_queries: list[dict[str, str]] = []
+        self.stale_rows: list[dict[str, object]] = []
+        self.stale_status = 200
+        self.stale_queries: list[dict[str, str]] = []
         self.storage_enabled = True
         self.status_http = 200
         self.enqueue_status = 200
@@ -109,6 +114,8 @@ class FakeApi:
             return self._enqueue(request)
         if path.endswith("/artifacts/missing-screenshot"):
             return self._missing_route(request)
+        if path.endswith("/catalogue/stale-fetches"):
+            return self._stale_route(request)
         return httpx.Response(500, text="no stub")
 
     def _missing_route(self, request: httpx.Request) -> httpx.Response:
@@ -119,6 +126,14 @@ class FakeApi:
         catalogue = params.get("catalogue_service_id")
         rows = [row for row in self.missing_screenshots if catalogue in (None, row["catalogue_service_id"])]
         return httpx.Response(200, json={"items": rows[: int(params.get("limit", "50"))]})
+
+    def _stale_route(self, request: httpx.Request) -> httpx.Response:
+        params = dict(request.url.params)
+        self.stale_queries.append(params)
+        if self.stale_status >= 400:
+            return httpx.Response(self.stale_status, text="refused")
+        rows = self.stale_rows[: int(params.get("limit", "10"))]
+        return httpx.Response(200, json={"input_key": STALE_INPUT_KEY, "items": rows})
 
     def _enqueue(self, request: httpx.Request) -> httpx.Response:
         self.calls.append(("enqueue", "", json.loads(request.content)))
@@ -244,3 +259,8 @@ class FakeBrowser:
 def page(html: str = "<html><body>rendered</body></html>", *, ms: int = 2000, status: int | None = 200) -> RenderedPage:
     """Return a rendered page costing ``ms`` browser milliseconds."""
     return RenderedPage(html, ms, status, "https://portal.example/final")
+
+
+def stale_row(url: str = "https://portal.example/service/1", catalogue: uuid.UUID = CATALOGUE_ID) -> dict[str, object]:
+    """Return a stale catalogue page as the stale-fetch listing answers it."""
+    return {"catalogue_service_id": str(catalogue), "target_url": url, "last_fetched_at": "2026-10-01T00:00:00+00:00"}

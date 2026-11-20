@@ -66,6 +66,21 @@ class CatalogueMachineRead(BaseModel):
     raw_payload: dict[str, object] = Field(default_factory=dict)
 
 
+class StaleFetchRead(BaseModel):
+    """A portal page whose newest fetch finished before the refresh cutoff, with no fetch of it still open."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    last_fetched_at: datetime
+
+
+class StaleFetchesResponse(BaseModel):
+    """Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under."""
+
+    input_key: str = Field(min_length=1, max_length=128)
+    items: list[StaleFetchRead]
+
+
 def resolve_task_kinds(kinds: Sequence[DiscoveryTaskKind] | None) -> tuple[DiscoveryTaskKind, ...]:
     """Return the named kinds, or the legacy kinds when none were named."""
     return LEGACY_TASK_KINDS if kinds is None else tuple(kinds)

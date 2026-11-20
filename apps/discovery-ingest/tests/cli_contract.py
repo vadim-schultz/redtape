@@ -1,4 +1,4 @@
-"""The command line contract of ``python -m discovery_ingest``: the 27 commands as data.
+"""The command line contract of ``python -m discovery_ingest``: the 28 commands as data.
 
 Every row is a fact the workflows in ``.github/workflows`` and the operator docs rely on: command names,
 flags, value kinds, defaults, choices and repeatability. The adapters in ``cli_adapters.py`` read the real
@@ -21,6 +21,7 @@ from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 GROUPS = (
     "govdata",
     "pvog",
+    "catalogue",
     "fim",
     "leika",
     "worker",
@@ -88,6 +89,15 @@ COMMANDS: tuple[CommandSpec, ...] = (
     ),
     CommandSpec("pvog", "run", (UUID_REQUIRED, _opt("--max-pages", "int"))),
     CommandSpec("pvog", "vocabulary"),
+    CommandSpec(
+        "catalogue",
+        "refresh",
+        (
+            _opt("--max-rows", "int", default=0),
+            _opt("--govdata-max-pages", "int", default=150),
+            _opt("--pvog-max-pages", "int", default=50),
+        ),
+    ),
     CommandSpec(
         "fim",
         "enrich",
@@ -281,5 +291,5 @@ COMMANDS: tuple[CommandSpec, ...] = (
     ),
 )
 
-assert len(COMMANDS) == 27, "the contract documents exactly twenty-seven commands"
+assert len(COMMANDS) == 28, "the contract documents exactly twenty-eight commands"
 assert {spec.group for spec in COMMANDS} == set(GROUPS)

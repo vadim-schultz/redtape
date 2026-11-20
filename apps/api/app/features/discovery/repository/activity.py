@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from app.features.discovery.repository.base import SessionRepository
-from app.models.discovery import DiscoveryEvent, DiscoveryEventType, DiscoveryFetchLog, DiscoveryTask
+from app.models.discovery import DiscoveryEvent, DiscoveryEventType, DiscoveryFetchLog, DiscoveryTask, DiscoveryTaskKind
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,11 +65,21 @@ class ActivityRepository(SessionRepository):
         self._session.flush()
         return row
 
-    def last_body_sha256(self, task_id: UUID) -> str | None:
-        """Return the body hash of the newest fetch of ``task_id`` that recorded one, or ``None`` when none did."""
+    def last_body_sha256(self, *, catalogue_service_id: UUID, kind: DiscoveryTaskKind, target_url: str) -> str | None:
+        """Return the body hash of the newest fetch of the page that recorded one, or ``None`` when none did.
+
+        The page is the catalogue row, kind and target URL. Its tasks differ by input key (a refresh is a new task),
+        so the comparison is with the page's last body whichever task fetched it.
+        """
         stmt = (
             select(DiscoveryFetchLog.body_sha256)
-            .where(DiscoveryFetchLog.discovery_task_id == task_id, DiscoveryFetchLog.body_sha256.is_not(None))
+            .join(DiscoveryTask, DiscoveryFetchLog.discovery_task_id == DiscoveryTask.id)
+            .where(
+                DiscoveryTask.catalogue_service_id == catalogue_service_id,
+                DiscoveryTask.kind == kind,
+                DiscoveryTask.target_url == target_url,
+                DiscoveryFetchLog.body_sha256.is_not(None),
+            )
             .order_by(DiscoveryFetchLog.fetched_at.desc(), DiscoveryFetchLog.id.desc())
             .limit(1)
         )

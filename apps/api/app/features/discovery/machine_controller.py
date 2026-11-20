@@ -34,6 +34,7 @@ from app.schema.discovery.machine import (
     RunFinishRequest,
     RunRead,
     RunStartRequest,
+    StaleFetchesResponse,
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteRequest,
@@ -52,6 +53,11 @@ from app.schema.discovery.machine import (
     TextExtractedResponse,
 )
 
+STALE_FETCH_LIMIT = 50
+"""Pages listed per request when the caller names no limit; the weekly run passes its own bound."""
+STALE_FETCH_CEILING = 500
+"""The most pages one listing may return."""
+
 
 class DiscoveryMachineController(Controller):
     """Machine clients upsert catalogue rows and claim fetch work."""
@@ -67,6 +73,15 @@ class DiscoveryMachineController(Controller):
     ) -> CatalogueMachineRead:
         """Return one catalogue row in the shape machine clients read it."""
         return discovery_machine_service.get_catalogue_for_machine(catalogue_id)
+
+    @get("/catalogue/stale-fetches", sync_to_thread=True, status_code=HTTP_200_OK)
+    def stale_fetches(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        limit: int = Parameter(query="limit", default=STALE_FETCH_LIMIT, ge=1, le=STALE_FETCH_CEILING),
+    ) -> StaleFetchesResponse:
+        """List the portal pages due a weekly refresh, stalest first, at most ``limit``, with the key their fetches go under."""
+        return discovery_machine_service.stale_fetches(limit)
 
     @post("/catalogue/batch", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def batch_catalogue(
