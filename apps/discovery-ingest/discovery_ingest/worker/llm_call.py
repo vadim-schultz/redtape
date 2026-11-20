@@ -29,7 +29,11 @@ class ModelCaller:
         self._resources = resources
         self._meter = meter
         self._schema = build_json_schema(resources.taxonomy)
-        self.calls = 0
+
+    @property
+    def calls(self) -> int:
+        """How many model calls the meter granted, repair attempts included; every grant is one call."""
+        return self._meter.granted_calls
 
     def extract(self, job: Job, cleaned: CleanPage) -> PageExtraction:
         """Return the model's extraction; settle the task as failed after a second unusable answer."""
@@ -45,7 +49,6 @@ class ModelCaller:
 
     def _attempt(self, job: Job, cleaned: CleanPage, messages: Messages) -> PageExtraction | Invalid:
         reservation = self._reserve(len(cleaned.text))
-        self.calls += 1
         try:
             result = self._resources.client.extract(messages, self._schema, max_tokens=self._resources.max_tokens)
         except LlmError as err:

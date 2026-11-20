@@ -5796,6 +5796,50 @@
     "title": "TaskSummaryResponse",
     "type": "object"
   },
+  "TaskSupersededRequest": {
+    "properties": {
+      "dry_run": {
+        "default": false,
+        "type": "boolean"
+      },
+      "input_key": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryTaskKind"
+      },
+      "limit": {
+        "default": 50,
+        "maximum": 200.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "input_key",
+      "kind"
+    ],
+    "title": "TaskSupersededRequest",
+    "type": "object"
+  },
+  "TaskSupersededResponse": {
+    "properties": {
+      "matched": {
+        "type": "integer"
+      },
+      "requeued": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "matched",
+      "requeued"
+    ],
+    "title": "TaskSupersededResponse",
+    "type": "object"
+  },
   "TextBlock": {
     "properties": {
       "kind": {

@@ -3571,6 +3571,79 @@
     "type": "object"
    }
   },
+  "machine.TaskSupersededRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     }
+    },
+    "description": "Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``.",
+    "properties": {
+     "dry_run": {
+      "default": false,
+      "title": "Dry Run",
+      "type": "boolean"
+     },
+     "input_key": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Input Key",
+      "type": "string"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryTaskKind"
+     },
+     "limit": {
+      "default": 50,
+      "maximum": 200,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "kind",
+     "input_key"
+    ],
+    "title": "TaskSupersededRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskSupersededResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "What the superseded requeue matched, and how many it re-pended (none on a dry run).",
+    "properties": {
+     "matched": {
+      "title": "Matched",
+      "type": "integer"
+     },
+     "requeued": {
+      "title": "Requeued",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "matched",
+     "requeued"
+    ],
+    "title": "TaskSupersededResponse",
+    "type": "object"
+   }
+  },
   "machine.TextExtractedResponse": {
    "mode": "serialization",
    "schema": {
@@ -6326,6 +6399,10 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/tasks/claim"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/requeue-superseded"
   },
   {
    "method": "POST",

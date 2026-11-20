@@ -28,6 +28,7 @@ from discovery_ingest.schemas import (
     FetchLogAppendRequest,
     RunFinishRequest,
     TaskEnqueueRequest,
+    TaskSupersededRequest,
     TextExtractedQuery,
 )
 from pydantic import SecretStr, ValidationError
@@ -168,6 +169,14 @@ ROUTES: list[tuple[str, Call, str, str]] = [
         ),
         "GET",
         "/tasks/text-extracted",
+    ),
+    (
+        "tasks.requeue_superseded",
+        lambda c: c.tasks.requeue_superseded(
+            TaskSupersededRequest(kind="llm_extract", input_key="llm:0a1b2c3d", limit=5, dry_run=True)
+        ),
+        "POST",
+        "/tasks/requeue-superseded",
     ),
     ("tasks.release", lambda c: c.tasks.release(ID, "limit"), "POST", f"/tasks/{ID}/release"),
     ("tasks.fail", lambda c: c.tasks.fail(ID, error="boom"), "POST", f"/tasks/{ID}/fail"),

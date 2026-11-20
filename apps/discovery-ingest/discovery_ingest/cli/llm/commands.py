@@ -28,11 +28,19 @@ from discovery_ingest.operations.eval import (
     startup_problem,
 )
 from discovery_ingest.operations.probes import llm_probe
-from discovery_ingest.operations.requeue import DEFAULT_LIMIT, Counts, llm_requeue
+from discovery_ingest.operations.requeue import DEFAULT_LIMIT, Counts, llm_requeue, llm_superseded_requeue
+from discovery_ingest.schemas import TaskSupersededResponse
 from discovery_ingest.worker.llm_enqueue import llm_input_key
 
 EXIT_MISSING_MODEL = 2
 DEFAULT_MAX_NEURONS = 900.0
+StaleOnly = Annotated[
+    bool,
+    typer.Option(
+        "--stale-only",
+        help="Re-pend the extractions made under an older key, once per page (no --host: the selection spans hosts)",
+    ),
+]
 
 llm_app = typer.Typer(
     name="llm",
@@ -107,6 +115,19 @@ def _requeue_report(model: str, counts: Counts, *, dry_run: bool) -> str:
     return " ".join([*fields, "dry_run=true"] if dry_run else fields)
 
 
+def _superseded_report(model: str, result: TaskSupersededResponse, *, dry_run: bool) -> str:
+    return (
+        f"key={llm_input_key(model)} matched={result.matched} requeued={result.requeued} dry_run={str(dry_run).lower()}"
+    )
+
+
+def _requeue_superseded(ctx: typer.Context, host: str | None, limit: int, dry_run: bool, model: str) -> None:
+    if host is not None:
+        fail("--host does not combine with --stale-only: the superseded requeue selects across hosts", EXIT_USAGE)
+    result = llm_superseded_requeue(api_client(ctx), limit=limit, model=model, dry_run=dry_run)
+    typer.echo(_superseded_report(model, result, dry_run=dry_run))
+
+
 @llm_app.command("requeue")
 @handles_api_errors("llm requeue")
 def llm_requeue_command(
@@ -114,11 +135,15 @@ def llm_requeue_command(
     host: RequeueHost = None,
     limit: RequeueLimit = DEFAULT_LIMIT,
     dry_run: RequeueDryRun = False,
+    stale_only: StaleOnly = False,
 ) -> None:
-    """Queue llm_extract for the latest snapshots under the current key."""
+    """Queue llm_extract for the latest snapshots under the current key; --stale-only re-pends the older extractions."""
     settings = settings_of(ctx)
     if not settings.llm_model:
         fail("llm requeue needs the environment variable LLM_MODEL (it keys the task)", EXIT_MISSING_MODEL)
+    if stale_only:
+        _requeue_superseded(ctx, host, limit, dry_run, settings.llm_model)
+        return
     counts = llm_requeue(api_client(ctx), host=host, limit=limit, model=settings.llm_model, dry_run=dry_run)
     typer.echo(_requeue_report(settings.llm_model, counts, dry_run=dry_run))
     if counts.failed:

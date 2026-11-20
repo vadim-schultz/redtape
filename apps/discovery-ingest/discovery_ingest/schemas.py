@@ -179,6 +179,22 @@ SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
 """A SHA-256 digest in lowercase hex, as the API checks a fetched body's hash."""
 
 
+class TaskSupersededRequest(BaseModel):
+    """Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``."""
+
+    kind: DiscoveryTaskKind
+    input_key: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=50, ge=1, le=200)
+    dry_run: bool = False
+
+
+class TaskSupersededResponse(BaseModel):
+    """What the superseded requeue matched, and how many it re-pended (none on a dry run)."""
+
+    matched: int
+    requeued: int
+
+
 class FetchLogAppendRequest(BaseModel):
     """One HTTP fetch attempt against a task target: the sha256 of the body it read, and the final url it landed on."""
 

@@ -19,6 +19,8 @@ from discovery_ingest.schemas import (
     TaskEnqueueRequest,
     TaskEnqueueResponse,
     TaskSummary,
+    TaskSupersededRequest,
+    TaskSupersededResponse,
     TextExtractedQuery,
     TextExtractedResponse,
 )
@@ -39,6 +41,12 @@ class TasksAPI:
     def summary(self, *, kinds: Sequence[DiscoveryTaskKind]) -> TaskSummary:
         """Return queue counts for ``kinds`` without leasing anything."""
         return self._http.request_model(TaskSummary, "GET", "/tasks/summary", params={"kinds": list(kinds)})
+
+    def requeue_superseded(self, body: TaskSupersededRequest) -> TaskSupersededResponse:
+        """Re-pend completed tasks that completed under an older input key, under the key of ``body``, once per page."""
+        return self._http.request_model(
+            TaskSupersededResponse, "POST", "/tasks/requeue-superseded", json=body.model_dump(mode="json")
+        )
 
     def enqueue(self, body: TaskEnqueueRequest) -> TaskEnqueueResponse:
         """Enqueue a follow-up task; an equivalent existing task is returned instead."""
