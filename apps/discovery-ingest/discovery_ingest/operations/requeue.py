@@ -14,9 +14,9 @@ from discovery_ingest.artifacts import ArtifactRead
 from discovery_ingest.candidate_sources import CandidateSourceRead, SourceQuery
 from discovery_ingest.client import DiscoveryIngestClient, DiscoveryMachineApiError
 from discovery_ingest.latest_snapshots import latest_snapshots
-from discovery_ingest.schemas import TaskEnqueueRequest
+from discovery_ingest.schemas import TaskEnqueueRequest, TaskSupersededRequest, TaskSupersededResponse
 from discovery_ingest.worker.capture_enqueue import capture_request
-from discovery_ingest.worker.llm_enqueue import llm_extract_request
+from discovery_ingest.worker.llm_enqueue import llm_extract_request, llm_input_key
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -61,6 +61,17 @@ def _enqueue_llm(client: DiscoveryIngestClient, snapshots: list[ArtifactRead], m
     for artifact in snapshots:
         enqueue_counted(client, llm_extract_request(artifact, model), counts)
     return counts
+
+
+def llm_superseded_requeue(
+    client: DiscoveryIngestClient, *, limit: int, model: str, dry_run: bool
+) -> TaskSupersededResponse:
+    """Re-pend up to ``limit`` llm_extract extractions made under another key, under the key of ``model`` now.
+
+    The API does the selection, so a page is re-pended once; ``dry_run`` asks for the count only.
+    """
+    body = TaskSupersededRequest(kind="llm_extract", input_key=llm_input_key(model), limit=limit, dry_run=dry_run)
+    return client.tasks.requeue_superseded(body)
 
 
 def _sources(

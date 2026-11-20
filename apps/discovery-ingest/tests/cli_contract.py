@@ -121,6 +121,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--browser-budget-seconds", "float", default=570.0),
             _opt("--neuron-budget", "float"),
             _opt("--kinds", "str", default=",".join(WORKER_DEFAULT_TASK_KINDS)),
+            _opt("--concurrency", "custom", default=1),
         ),
     ),
     CommandSpec(
@@ -185,7 +186,12 @@ COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(
         "llm",
         "requeue",
-        (_opt("--host", "str"), _opt("--limit", "custom", default=50), _opt("--dry-run", FLAG)),
+        (
+            _opt("--host", "str"),
+            _opt("--limit", "custom", default=50),
+            _opt("--dry-run", FLAG),
+            _opt("--stale-only", FLAG),
+        ),
     ),
     CommandSpec(
         "llm",

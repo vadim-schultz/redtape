@@ -13,7 +13,9 @@ from app.features.discovery.repository.task_clauses import (
     claimable,
     fail_exhausted_stmt,
     repend_expired_stmt,
+    requeue_superseded_stmt,
     requeue_transient_stmt,
+    superseded_ids_stmt,
 )
 from app.features.discovery.repository.task_page_completeness import page_completeness_subquery
 from app.features.discovery.repository.task_target import ExtractedText, TaskTarget, identity_clauses
@@ -93,6 +95,19 @@ class TaskRepository(SessionRepository):
     def requeue_transient(self, *, cutoff: datetime, limit: int) -> int:
         """Return up to ``limit`` transient failures last failed before ``cutoff`` to pending; return how many."""
         return len(self._session.scalars(requeue_transient_stmt(cutoff, limit)).all())
+
+    def superseded_task_ids(self, *, kind: DiscoveryTaskKind, input_key: str, limit: int) -> list[UUID]:
+        """Return the ids of up to ``limit`` superseded tasks of ``kind`` under ``input_key``, changing nothing."""
+        return list(self._session.scalars(superseded_ids_stmt(kind, input_key, limit)).all())
+
+    def requeue_superseded(self, *, kind: DiscoveryTaskKind, input_key: str, limit: int) -> list[UUID]:
+        """Re-pend up to ``limit`` superseded tasks of ``kind`` under ``input_key``; return the ids that were re-pended.
+
+        The selected rows are taken ``FOR UPDATE SKIP LOCKED``, so a concurrent requeue skips them.
+        """
+        locked = superseded_ids_stmt(kind, input_key, limit).with_for_update(skip_locked=True, of=DiscoveryTask)
+        stmt = requeue_superseded_stmt(locked, input_key)
+        return list(self._session.scalars(stmt).all())
 
     def list_pending_tasks_for_claim(
         self, *, limit: int, kinds: Sequence[DiscoveryTaskKind], now: datetime

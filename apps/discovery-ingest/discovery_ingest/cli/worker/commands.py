@@ -13,6 +13,7 @@ from discovery_ingest.operations.drain import DrainOptions, run_drain
 from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 from discovery_ingest.worker.browser_setup import BrowserSetupError
 from discovery_ingest.worker.llm_setup import LlmSetupError
+from discovery_ingest.worker.policy import MAX_LLM_CONCURRENCY
 
 worker_app = typer.Typer(
     name="worker",
@@ -64,6 +65,18 @@ def worker_drain(
             ),
         ),
     ] = None,
+    concurrency: Annotated[
+        int,
+        typer.Option(
+            "--concurrency",
+            min=1,
+            max=MAX_LLM_CONCURRENCY,
+            help=(
+                f"Model calls in flight at once, 1 to {MAX_LLM_CONCURRENCY} (default 1); above 1 only with "
+                "--kinds llm_extract, settled in waves of this size"
+            ),
+        ),
+    ] = 1,
     kinds: Annotated[
         str,
         typer.Option(
@@ -86,6 +99,7 @@ def worker_drain(
         time_budget_seconds=time_budget_seconds,
         browser_budget_seconds=browser_budget_seconds,
         neuron_budget=neuron_budget,
+        concurrency=concurrency,
     )
     try:
         options.policy()

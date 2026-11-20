@@ -23,6 +23,7 @@ ENV_NAMES = {
     "time_budget_seconds": "TIME_BUDGET_SECONDS",
     "neuron_budget": "NEURON_BUDGET",
     "kinds": "TASK_KINDS",
+    "concurrency": "CONCURRENCY",
 }
 SECRETS = {"DISCOVERY_API_URL", "DISCOVERY_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_AI_API_TOKEN"}
 DEFAULTS = {
@@ -31,6 +32,7 @@ DEFAULTS = {
     "time_budget_seconds": "600",
     "neuron_budget": "2500",
     "kinds": "llm_extract",
+    "concurrency": "3",
 }
 
 

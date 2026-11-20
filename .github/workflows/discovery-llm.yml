@@ -37,6 +37,11 @@ on:
         required: false
         default: "llm_extract"
         type: string
+      concurrency:
+        description: "Model calls in flight at once, 1 to 8 (a batch's calls run in waves of this size)"
+        required: false
+        default: "3"
+        type: string
 
 permissions:
   contents: read
@@ -63,6 +68,7 @@ jobs:
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '600' }}
       NEURON_BUDGET: ${{ inputs.neuron_budget || '2500' }}
       TASK_KINDS: ${{ inputs.kinds || 'llm_extract' }}
+      CONCURRENCY: ${{ inputs.concurrency || '3' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
@@ -113,7 +119,7 @@ jobs:
         if: steps.budget.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          python -m discovery_ingest worker drain --max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" --neuron-budget "${NEURON_BUDGET}" --kinds "${TASK_KINDS}" | tee drain-report.json
+          python -m discovery_ingest worker drain --max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" --neuron-budget "${NEURON_BUDGET}" --kinds "${TASK_KINDS}" --concurrency "${CONCURRENCY}" | tee drain-report.json
 
       - name: Write drain report to job summary
         if: always() && steps.budget.outputs.skip != 'true'
