@@ -1,0 +1,9 @@
+Usage: discovery_ingest catalogue [OPTIONS] COMMAND [ARGS]...
+
+  Weekly upkeep of the catalogue rows
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  refresh  Re-enqueue stale portal pages for a bounded weekly refresh.

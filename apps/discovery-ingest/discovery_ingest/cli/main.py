@@ -15,6 +15,7 @@ from discovery_ingest.cli.browser import browser_app
 from discovery_ingest.cli.budget import budget_app
 from discovery_ingest.cli.candidates import candidates_app
 from discovery_ingest.cli.capture import capture_app
+from discovery_ingest.cli.catalogue import catalogue_app
 from discovery_ingest.cli.context import CliContext
 from discovery_ingest.cli.embed import embed_app
 from discovery_ingest.cli.errors import HELP_OPTIONS, show_help_without_subcommand
@@ -39,6 +40,7 @@ app = typer.Typer(
 )
 app.add_typer(govdata_app, name="govdata")
 app.add_typer(pvog_app, name="pvog")
+app.add_typer(catalogue_app, name="catalogue")
 app.add_typer(fim_app, name="fim")
 app.add_typer(leika_app, name="leika")
 app.add_typer(worker_app, name="worker")

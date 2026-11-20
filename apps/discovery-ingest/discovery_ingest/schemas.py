@@ -129,6 +129,21 @@ class TaskEnqueueResponse(BaseModel):
     created: bool
 
 
+class StaleFetchRead(BaseModel):
+    """A portal page whose newest fetch is due a refresh, and the row it belongs to."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    last_fetched_at: datetime
+
+
+class StaleFetchPage(BaseModel):
+    """Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under."""
+
+    input_key: str = Field(min_length=1, max_length=128)
+    items: list[StaleFetchRead]
+
+
 class ClaimedTask(BaseModel):
     """Task assigned to the caller with an active lease."""
 

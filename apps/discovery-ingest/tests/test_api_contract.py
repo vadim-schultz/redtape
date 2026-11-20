@@ -61,6 +61,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.CatalogueBatchItem", "machine.CatalogueBatchItem", "request"),
     Pair("schemas.CatalogueBatchRequest", "machine.CatalogueBatchRequest", "request"),
     Pair("schemas.CatalogueMachineRead", "machine.CatalogueMachineRead", "response"),
+    Pair("schemas.StaleFetchPage", "machine.StaleFetchesResponse", "response"),
     Pair("schemas.EntityUpsertRequest", "machine.EntityUpsertRequest", "request"),
     Pair("schemas.EntityUpsertResponse", "machine.EntityUpsertResponse", "response"),
     Pair("schemas.ClaimAppendRequest", "machine.ClaimAppendRequest", "request"),
@@ -142,6 +143,7 @@ UNPAIRED: dict[str, str] = {
     "schemas.SnapshotRowBlock": "a row of SnapshotCompleteItem, covered through the request",
     "mentions.MentionDraft": "the base of MentionItem, covered through it",
     "schemas.TextExtractedQuery": "the query string of GET /tasks/text-extracted, bound as route parameters, not a body model",
+    "schemas.StaleFetchRead": "an item of StaleFetchPage, covered through it",
 }
 
 ENUM_SETS: tuple[tuple[str, tuple[str, ...]], ...] = (
