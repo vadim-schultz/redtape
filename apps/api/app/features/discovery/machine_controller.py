@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from litestar import Controller, Response, get, post
@@ -13,6 +14,7 @@ from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
 from app.features.discovery.repository.task_target import ExtractedText
+from app.features.discovery.retention import DiscoveryRetentionService
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
 from app.models.discovery import DiscoveryTaskKind
@@ -28,6 +30,7 @@ from app.schema.discovery.machine import (
     EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
+    RetentionPruneResponse,
     RunFinishRequest,
     RunRead,
     RunStartRequest,
@@ -178,6 +181,15 @@ class DiscoveryMachineController(Controller):
     ) -> FetchLogAppendResponse:
         """Append one fetch-log entry to a task."""
         return discovery_machine_service.append_fetch_log(task_id, data)
+
+    @post("/retention/prune", sync_to_thread=True, status_code=HTTP_200_OK)
+    def prune_retention(
+        self,
+        discovery_retention_service: DiscoveryRetentionService,
+    ) -> RetentionPruneResponse:
+        """Delete fetch logs and events past the retention window, keeping the latest fetch of every target."""
+        totals = discovery_retention_service.prune(now=datetime.now(UTC))
+        return RetentionPruneResponse(fetch_logs_deleted=totals.fetch_logs, events_deleted=totals.events)
 
     @post("/runs", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def start_run(

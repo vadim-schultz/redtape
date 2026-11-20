@@ -2765,8 +2765,21 @@
   "machine.FetchLogAppendRequest": {
    "mode": "validation",
    "schema": {
-    "description": "One HTTP fetch attempt against a task target.",
+    "description": "One HTTP fetch attempt against a task target; the body hash and the final url feed the render verdict.",
     "properties": {
+     "body_sha256": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Body Sha256"
+     },
      "byte_length": {
       "anyOf": [
        {
@@ -2805,6 +2818,19 @@
       "default": null,
       "title": "Error Message"
      },
+     "final_url": {
+      "anyOf": [
+       {
+        "maxLength": 2048,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Final Url"
+     },
      "http_status": {
       "anyOf": [
        {
@@ -2819,6 +2845,66 @@
      }
     },
     "title": "FetchLogAppendRequest",
+    "type": "object"
+   }
+  },
+  "machine.FetchLogAppendResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskStatus": {
+      "description": "Lifecycle of a queued fetch or enrich task.",
+      "enum": [
+       "pending",
+       "claimed",
+       "completed",
+       "failed"
+      ],
+      "title": "DiscoveryTaskStatus",
+      "type": "string"
+     }
+    },
+    "description": "Created fetch log row, and whether its body earns a render and under which input key.",
+    "properties": {
+     "discovery_task_id": {
+      "format": "uuid",
+      "title": "Discovery Task Id",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "render_due": {
+      "default": false,
+      "title": "Render Due",
+      "type": "boolean"
+     },
+     "render_input_key": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Render Input Key"
+     },
+     "task_status": {
+      "$ref": "#/$defs/DiscoveryTaskStatus"
+     }
+    },
+    "required": [
+     "discovery_task_id",
+     "id",
+     "render_due",
+     "render_input_key",
+     "task_status"
+    ],
+    "title": "FetchLogAppendResponse",
     "type": "object"
    }
   },
@@ -6273,6 +6359,10 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/entities"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/retention/prune"
   },
   {
    "method": "POST",

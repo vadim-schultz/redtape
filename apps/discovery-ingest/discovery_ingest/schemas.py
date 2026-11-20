@@ -175,6 +175,10 @@ class TaskSummary(BaseModel):
     failed: int
 
 
+SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
+"""A SHA-256 digest in lowercase hex, as the API checks a fetched body's hash."""
+
+
 class TaskSupersededRequest(BaseModel):
     """Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``."""
 
@@ -192,12 +196,27 @@ class TaskSupersededResponse(BaseModel):
 
 
 class FetchLogAppendRequest(BaseModel):
-    """One HTTP fetch attempt against a task target."""
+    """One HTTP fetch attempt against a task target: the sha256 of the body it read, and the final url it landed on."""
 
     http_status: int | None = None
     content_type: str | None = Field(default=None, max_length=200)
     byte_length: int | None = Field(default=None, ge=0)
     error_message: str | None = None
+    body_sha256: str | None = Field(default=None, pattern=SHA256_HEX_PATTERN)
+    final_url: str | None = Field(default=None, max_length=2048)
+
+
+class FetchLogAppendResponse(BaseModel):
+    """The created fetch row, and whether its body earns a render under ``render_input_key``.
+
+    ``render_due`` defaults to true so that an API which predates the verdict keeps the render stage's old behaviour.
+    """
+
+    id: UUID
+    discovery_task_id: UUID
+    task_status: DiscoveryTaskStatus
+    render_due: bool = True
+    render_input_key: str | None = None
 
 
 StopReason = Literal[

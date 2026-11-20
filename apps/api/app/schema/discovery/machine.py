@@ -142,7 +142,7 @@ class TaskClaimResponse(BaseModel):
 
 
 TEXT_HASH_PATTERN = r"^[0-9a-f]{64}$"
-"""A SHA-256 digest in lowercase hex: the cleaned-text hash of an extraction."""
+"""A SHA-256 digest in lowercase hex: a cleaned-text hash, or the hash of a fetched body."""
 
 
 class TaskCompleteRequest(BaseModel):
@@ -225,20 +225,31 @@ class TaskFailResponse(BaseModel):
 
 
 class FetchLogAppendRequest(BaseModel):
-    """One HTTP fetch attempt against a task target."""
+    """One HTTP fetch attempt against a task target; the body hash and the final url feed the render verdict."""
 
     http_status: int | None = None
     content_type: str | None = Field(default=None, max_length=200)
     byte_length: int | None = Field(default=None, ge=0)
     error_message: str | None = None
+    body_sha256: str | None = Field(default=None, pattern=TEXT_HASH_PATTERN)
+    final_url: str | None = Field(default=None, max_length=2048)
 
 
 class FetchLogAppendResponse(BaseModel):
-    """Created fetch log row."""
+    """Created fetch log row, and whether its body earns a render and under which input key."""
 
     id: UUID
     discovery_task_id: UUID
     task_status: DiscoveryTaskStatus
+    render_due: bool = False
+    render_input_key: str | None = None
+
+
+class RetentionPruneResponse(BaseModel):
+    """Rows the retention prune deleted: fetch logs and events that had aged out of the window."""
+
+    fetch_logs_deleted: int
+    events_deleted: int
 
 
 class EntityUpsertRequest(BaseModel):

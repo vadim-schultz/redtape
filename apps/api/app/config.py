@@ -61,6 +61,16 @@ class Settings(BaseSettings):
         default=9_500_000_000,
         description="Ceiling for the sum of stored artifact bytes: 95 percent of the R2 free 10 GB; enforced on upload.",
     )
+    refresh_max_age_days: int = Field(
+        default=30,
+        ge=1,
+        description="A page whose last finished render is at least this many days old is rendered again even when its body is unchanged.",
+    )
+    event_retention_days: int = Field(
+        default=180,
+        ge=1,
+        description="Fetch logs and events older than this many days are pruned; the latest fetch of every target is kept.",
+    )
     screenshot_keep_per_page: int = Field(
         default=5,
         ge=1,

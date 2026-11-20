@@ -3750,6 +3750,16 @@
   },
   "FetchLogAppendRequest": {
     "properties": {
+      "body_sha256": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "byte_length": {
         "oneOf": [
           {
@@ -3772,6 +3782,17 @@
         ]
       },
       "error_message": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "final_url": {
+        "maxLength": 2048,
         "oneOf": [
           {
             "type": "string"
@@ -3805,6 +3826,20 @@
       "id": {
         "format": "uuid",
         "type": "string"
+      },
+      "render_due": {
+        "default": false,
+        "type": "boolean"
+      },
+      "render_input_key": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "task_status": {
         "$ref": "#/components/schemas/DiscoveryTaskStatus"
@@ -4646,6 +4681,22 @@
       "required_document"
     ],
     "title": "RequirementRead",
+    "type": "object"
+  },
+  "RetentionPruneResponse": {
+    "properties": {
+      "events_deleted": {
+        "type": "integer"
+      },
+      "fetch_logs_deleted": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "events_deleted",
+      "fetch_logs_deleted"
+    ],
+    "title": "RetentionPruneResponse",
     "type": "object"
   },
   "RowBlock": {

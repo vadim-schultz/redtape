@@ -75,6 +75,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.TaskSupersededResponse", "machine.TaskSupersededResponse", "response"),
     Pair("schemas.TextExtractedResponse", "machine.TextExtractedResponse", "response"),
     Pair("schemas.FetchLogAppendRequest", "machine.FetchLogAppendRequest", "request"),
+    Pair("schemas.FetchLogAppendResponse", "machine.FetchLogAppendResponse", "response"),
     Pair("schemas.RunStartResponse", "machine.RunRead", "response", reads_subset=True),
     Pair("schemas.RunFinishRequest", "machine.RunFinishRequest", "request"),
     Pair("artifacts.ArtifactRead", "artifacts.ArtifactRead", "response", reads_subset=True),

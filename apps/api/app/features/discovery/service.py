@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from app.features.discovery.catalogue_upsert import CatalogueUpsertService
@@ -12,6 +12,7 @@ from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.errors import InvalidDiscoveryInputError
 from app.features.discovery.fanout import apply_fanout_for_service
 from app.features.discovery.lookups import require_artifact, require_catalogue, require_task
+from app.features.discovery.render_gate import NO_RENDER, RenderHistory, RenderVerdict, decide_render
 from app.features.discovery.repository import DiscoveryRepository, FetchLogEntry, NewEvent, TaskTarget
 from app.features.discovery.repository.task_target import ExtractedText
 from app.features.discovery.stage_sync import advance_stage
@@ -106,12 +107,14 @@ class DiscoveryMachineService:
         catalogue_upserts: CatalogueUpsertService,
         queue: TaskQueue,
         claim_ingest: ClaimIngest,
+        refresh_max_age: timedelta,
     ) -> None:
         """Bind the service to ``repository`` and to the collaborators that write catalogue rows, tasks and claims."""
         self._repo = repository
         self._catalogue_upserts = catalogue_upserts
         self._queue = queue
         self._claim_ingest = claim_ingest
+        self._refresh_max_age = refresh_max_age
 
     def batch_upsert(self, body: CatalogueBatchRequest) -> CatalogueBatchResponse:
         """Upsert catalogue rows, enqueue their tasks and fan out."""
@@ -199,12 +202,33 @@ class DiscoveryMachineService:
         return self._claim_ingest.append(body)
 
     def append_fetch_log(self, task_id: UUID, body: FetchLogAppendRequest) -> FetchLogAppendResponse:
-        """Record a fetch attempt and advance the catalogue stage."""
+        """Record a fetch attempt, answer whether its body earns a render, and advance the catalogue stage."""
         task = require_task(self._repo, task_id)
+        previous = self._repo.last_body_sha256(task.id)
         row = self._repo.append_fetch_log(_fetch_log_entry(task, body))
         self._repo.record_event(_fetch_logged(task, str(row.id)))
+        verdict = self._render_verdict(task, body, previous)
         self._advance_task_catalogue(task.catalogue_service_id)
-        return FetchLogAppendResponse(id=row.id, discovery_task_id=task.id, task_status=task.status)
+        return FetchLogAppendResponse(
+            id=row.id,
+            discovery_task_id=task.id,
+            task_status=task.status,
+            render_due=verdict.due,
+            render_input_key=verdict.input_key,
+        )
+
+    def _render_verdict(self, task: DiscoveryTask, body: FetchLogAppendRequest, previous: str | None) -> RenderVerdict:
+        """Return the render verdict for a fetched body; a fetch that read no body, or landed nowhere, asks for no render."""
+        if body.body_sha256 is None or body.final_url is None:
+            return NO_RENDER
+        last_completed_at = self._repo.last_render_completed_at(task.catalogue_service_id, body.final_url)
+        return decide_render(
+            previous_sha256=previous,
+            body_sha256=body.body_sha256,
+            history=RenderHistory(last_completed_at=last_completed_at),
+            now=datetime.now(UTC),
+            max_age=self._refresh_max_age,
+        )
 
     def _require_own_artifact(self, body: TaskEnqueueRequest) -> None:
         if body.artifact_id is None:
@@ -233,6 +257,7 @@ def _fetch_log_entry(task: DiscoveryTask, body: FetchLogAppendRequest) -> FetchL
         byte_length=body.byte_length,
         error_message=body.error_message,
         fetched_at=datetime.now(UTC),
+        body_sha256=body.body_sha256,
     )
 
 
