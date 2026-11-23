@@ -12,7 +12,7 @@ from discovery_ingest.client.errors import DiscoveryMachineApiError
 from discovery_ingest.operations.pipeline.deadline import RUN_CEILING_SECONDS, stage_seconds
 from discovery_ingest.operations.pipeline.outcome import RunResult, StageOutcome
 from discovery_ingest.operations.pipeline.plan import PlanFacts, PlannedStage, build_plan
-from discovery_ingest.operations.pipeline.process import Spawner, collect_output, parse_report
+from discovery_ingest.operations.pipeline.process import Spawner, StageProcess, collect_output, parse_report
 from discovery_ingest.operations.pipeline.report import PipelineReport, build_report
 from discovery_ingest.operations.pipeline.signals import StageRegistry
 from discovery_ingest.operations.pipeline.stages import PHASES, Phase, stage_by_id
@@ -125,11 +125,16 @@ def _not_started(stage: PlannedStage, note: str) -> StageOutcome:
 
 
 def _execute(stage: PlannedStage, seconds: float, ctx: RunContext) -> StageOutcome:
-    """Run the stage's process under its budget, and return the outcome with the report it printed."""
+    """Start the stage's process under its budget and wait for it; a process that cannot be started is a failure."""
     try:
         process = ctx.spawn(stage_by_id(stage.stage).argv(stage.caps, seconds))
     except OSError as err:
         return _spawn_failed(stage, err)
+    return _wait_started(stage, seconds, process, ctx)
+
+
+def _wait_started(stage: PlannedStage, seconds: float, process: StageProcess, ctx: RunContext) -> StageOutcome:
+    """Register a started process, wait for its output under its budget, and return the outcome with its report."""
     ctx.registry.admit(process)
     try:
         stdout = collect_output(process, seconds)
