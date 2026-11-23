@@ -78,7 +78,11 @@ DRIFT_CHECKS: tuple[DriftCheck, ...] = (
         ("docs/operations/crawlers-operator-checklist.md",),
         r"(?i)minute[^\n]*\b(1,?000|600)\b|\b(1,?000|600)\b[^\n]*minute",
     ),
-    DriftCheck("LLM time 06:00 (is 04:30)", ("docs/operations/extraction-operator-checklist.md",), r"\b06:00\b"),
+    DriftCheck(
+        "LLM time 06:00 (is 04:30)",
+        ("docs/operations/extraction-operator-checklist.md",),
+        r"\b06:00\b",
+    ),
     DriftCheck(
         "LLM_ENQUEUE rollback by repository variable",
         ("docs/operations/extraction-operator-checklist.md",),
@@ -99,7 +103,11 @@ DRIFT_CHECKS: tuple[DriftCheck, ...] = (
         (".plans/search-first/chapters/06-embedding-drain-worker.md",),
         r"every 6 hours|6-hour cadence",
     ),
-    DriftCheck("retired extract workflow and variables", OPERATOR_DOCS, r"discovery-extract|DISCOVERY_EXTRACT_"),
+    DriftCheck(
+        "retired extract workflow and variables",
+        OPERATOR_DOCS,
+        r"discovery-extract|DISCOVERY_EXTRACT_",
+    ),
 )
 
 
@@ -125,7 +133,9 @@ def _findings(check: DriftCheck) -> list[str]:
         for path in sorted(REPO_ROOT.glob(glob)):
             if path.is_file():
                 label = path.relative_to(REPO_ROOT).as_posix()
-                found += _findings_in_text(check, path.read_text(encoding="utf-8"), label)
+                found += _findings_in_text(
+                    check, path.read_text(encoding="utf-8"), label
+                )
     return found
 
 
@@ -152,7 +162,9 @@ def test_no_operator_doc_names_the_1000_cap_as_the_repository_cap() -> None:
     _expect_none(_findings(_named("1,000-minute repository cap")))
 
 
-def test_the_drift_table_has_no_findings_in_the_operator_docs_or_the_search_first_chapter() -> None:
+def test_the_drift_table_has_no_findings_in_the_operator_docs_or_the_search_first_chapter() -> (
+    None
+):
     """Negative grep for every row of the table, each with its own allowed history lines."""
     _expect_none([finding for check in DRIFT_CHECKS for finding in _findings(check)])
 
@@ -161,7 +173,9 @@ def test_a_drift_check_flags_the_line_it_names_and_skips_history_lines() -> None
     """Negative path: a planted line is reported with its number; a History: line and a clean line are not."""
     check = _named("old drain group name")
     text = "clean line\nshares the concurrency group `discovery-drain`\nHistory: group `discovery-drain` before 11-23\n"
-    assert _findings_in_text(check, text, "doc.md") == ["doc.md:2: shares the concurrency group `discovery-drain`"]
+    assert _findings_in_text(check, text, "doc.md") == [
+        "doc.md:2: shares the concurrency group `discovery-drain`"
+    ]
 
 
 def test_a_clean_text_has_no_drift_findings() -> None:
@@ -176,7 +190,9 @@ def test_the_stage_cron_times_in_the_docs_match_the_workflows() -> None:
     scheduled = (OPERATIONS / "scheduled-jobs.md").read_text(encoding="utf-8")
     for name in STAGE_WORKFLOWS:
         expected = _cron_time(WORKFLOWS / name)
-        assert expected in scheduled, f"{name} runs at {expected} but scheduled-jobs.md does not print it"
+        assert expected in scheduled, (
+            f"{name} runs at {expected} but scheduled-jobs.md does not print it"
+        )
 
 
 def _cron_time(path: Path) -> str:
@@ -188,7 +204,9 @@ def _cron_time(path: Path) -> str:
 
 def test_discovery_extract_yml_is_absent() -> None:
     """Happy path: the retired extract workflow is gone."""
-    assert not RETIRED_WORKFLOW.exists(), "discovery-extract.yml is still in .github/workflows"
+    assert not RETIRED_WORKFLOW.exists(), (
+        "discovery-extract.yml is still in .github/workflows"
+    )
 
 
 # --- the activation walkthrough ----------------------------------------------------------------------------------------
@@ -204,19 +222,62 @@ def _sections(text: str) -> list[tuple[str, str]]:
     return [(part.split("\n", 1)[0].strip(), part) for part in parts]
 
 
+def _steps(sections: list[tuple[str, str]]) -> list[tuple[int, str]]:
+    """Return ``(number, body)`` for each ``Step N`` section, in document order."""
+    return [
+        (int(match.group(1)), body)
+        for title, body in sections
+        if (match := _STEP.match(title))
+    ]
+
+
+def _missing_section_problems(sections: list[tuple[str, str]]) -> list[str]:
+    """Return a problem for each required section title that no section starts with."""
+    titles = [title for title, _body in sections]
+    return [
+        f"missing section '{name}'"
+        for name in REQUIRED_SECTIONS
+        if not any(t.startswith(name) for t in titles)
+    ]
+
+
+def _step_order_problems(steps: list[tuple[int, str]]) -> list[str]:
+    """Return a problem unless the steps are numbered 1 to 6 in document order."""
+    numbers = [number for number, _body in steps]
+    if numbers == list(REQUIRED_STEPS):
+        return []
+    return [f"steps are {numbers}, expected {list(REQUIRED_STEPS)} in order"]
+
+
+def _no_go_problems(steps: list[tuple[int, str]]) -> list[str]:
+    """Return a problem for each step whose section has no no-go check."""
+    return [
+        f"Step {number} has no no-go check"
+        for number, body in steps
+        if "No-go" not in body
+    ]
+
+
+def _length_problems(text: str) -> list[str]:
+    """Return a problem when the walkthrough is longer than one page."""
+    lines = len(text.splitlines())
+    return (
+        []
+        if lines <= MAX_WALKTHROUGH_LINES
+        else [f"{lines} lines, more than {MAX_WALKTHROUGH_LINES}"]
+    )
+
+
 def activation_problems(text: str) -> list[str]:
     """Return why ``text`` is not a walkthrough with the required sections, six steps in order, and a no-go per step."""
     sections = _sections(text)
-    titles = [title for title, _body in sections]
-    problems = [f"missing section '{name}'" for name in REQUIRED_SECTIONS if not any(t.startswith(name) for t in titles)]
-    steps = [(int(match.group(1)), body) for title, body in sections if (match := _STEP.match(title))]
-    numbers = [number for number, _body in steps]
-    if numbers != list(REQUIRED_STEPS):
-        problems.append(f"steps are {numbers}, expected {list(REQUIRED_STEPS)} in order")
-    problems += [f"Step {number} has no no-go check" for number, body in steps if "No-go" not in body]
-    if len(text.splitlines()) > MAX_WALKTHROUGH_LINES:
-        problems.append(f"{len(text.splitlines())} lines, more than {MAX_WALKTHROUGH_LINES}")
-    return problems
+    steps = _steps(sections)
+    return (
+        _missing_section_problems(sections)
+        + _step_order_problems(steps)
+        + _no_go_problems(steps)
+        + _length_problems(text)
+    )
 
 
 def test_the_activation_walkthrough_has_one_section_per_step_in_order() -> None:
@@ -225,14 +286,20 @@ def test_the_activation_walkthrough_has_one_section_per_step_in_order() -> None:
     _expect_none(activation_problems(ACTIVATION.read_text(encoding="utf-8")))
 
 
-def test_the_walkthrough_check_flags_a_missing_step_and_a_step_without_a_no_go() -> None:
+def test_the_walkthrough_check_flags_a_missing_step_and_a_step_without_a_no_go() -> (
+    None
+):
     """Negative path: a walkthrough without step 3, and one whose step 2 has no no-go, both fail."""
     good = "## Before anything\nGo.\n## Before enabling any stage\nGo.\n"
     steps = "".join(f"## Step {n}: a\nGo. No-go: stop.\n" for n in REQUIRED_STEPS)
     assert activation_problems(good + steps) == []
-    without_three = good + "".join(f"## Step {n}: a\nGo. No-go: stop.\n" for n in (1, 2, 4, 5, 6))
+    without_three = good + "".join(
+        f"## Step {n}: a\nGo. No-go: stop.\n" for n in (1, 2, 4, 5, 6)
+    )
     assert "steps are [1, 2, 4, 5, 6]" in " ".join(activation_problems(without_three))
-    no_go_two = good + steps.replace("## Step 2: a\nGo. No-go: stop.\n", "## Step 2: a\nGo.\n")
+    no_go_two = good + steps.replace(
+        "## Step 2: a\nGo. No-go: stop.\n", "## Step 2: a\nGo.\n"
+    )
     assert "Step 2 has no no-go check" in activation_problems(no_go_two)
 
 
@@ -262,7 +329,10 @@ def _slug(heading: str) -> str:
 
 def _anchors(path: Path) -> set[str]:
     """Return the anchors that the headings of ``path`` define."""
-    headings = (_HEADING_LINE.match(line) for line in _outside_fences(path.read_text(encoding="utf-8")))
+    headings = (
+        _HEADING_LINE.match(line)
+        for line in _outside_fences(path.read_text(encoding="utf-8"))
+    )
     return {_slug(match.group(1)) for match in headings if match}
 
 
@@ -319,7 +389,9 @@ def test_the_link_check_reports_a_missing_file_and_a_missing_heading() -> None:
         base = Path(root)
         (base / "target.md").write_text("## Drain times\n", encoding="utf-8")
         page = base / "page.md"
-        page.write_text("[gone](nope.md) [anchor](target.md#no-such-heading)\n", encoding="utf-8")
+        page.write_text(
+            "[gone](nope.md) [anchor](target.md#no-such-heading)\n", encoding="utf-8"
+        )
         problems = broken_links(page)
         assert len(problems) == 2, problems
         assert "(no such file)" in problems[0] and "(no such heading)" in problems[1]
@@ -330,7 +402,11 @@ def test_the_link_check_reports_a_missing_file_and_a_missing_heading() -> None:
 
 def _run_all() -> int:
     """Run every test function in this module and print one line for each; return the process exit code."""
-    tests = [value for name, value in sorted(globals().items()) if name.startswith("test_") and callable(value)]
+    tests = [
+        value
+        for name, value in sorted(globals().items())
+        if name.startswith("test_") and callable(value)
+    ]
     failed = 0
     for test in tests:
         try:
