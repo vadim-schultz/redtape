@@ -1,10 +1,14 @@
 # GitHub Actions budget and operator checklist
 
-This repository runs on the GitHub Free plan: 2,000 Linux minutes a month, shared by every repository on the account. **This repository is capped at 1,000 minutes a month**, and a CI reserve inside that cap is not for drains. This page records where the minutes went, the budget, and the steps that only the account owner can do. Workflow behaviour and the budget ledger are in [scheduled-jobs.md](scheduled-jobs.md).
+This repository is public. GitHub does not meter Actions minutes on standard runners of a public repository, so no minute
+cap binds (pipeline-optimisation decision D17). The limits that bind are Cloudflare browser seconds, Workers AI neurons,
+Azure characters, and R2 and database size. This page keeps the October and November minute records and the steps that
+still apply. Workflow behaviour and the budget ledger are in [scheduled-jobs.md](scheduled-jobs.md).
 
-## What happened in October
+## What happened in October (history)
 
-The account reached 2,000 minutes a week early. This repository used 960 of them; the other repositories used about 1,040. When the quota is gone, every job fails in about 3 seconds with a billing error.
+The account reached its Free-plan pool early. This repository used 960 of the minutes; the other repositories used about
+1,040. When the pool is gone, every job fails in about 3 seconds with a billing error.
 
 | Workflow | Min (October) | Runs | Cause |
 | --- | --- | --- | --- |
@@ -18,11 +22,14 @@ The account reached 2,000 minutes a week early. This repository used 960 of them
 
 GitHub bills per job and rounds up to a whole minute, so short jobs cost much more than their work.
 
-## Measured in November (pipeline-optimisation chapter 1, 2026-11-13)
+## Measured in November (history)
 
-`scripts/gha_minutes.py --since 2026-11-01` reads each run's timing through `gh` (read-only) and sums the billable minutes per workflow, rounding each job up to a whole minute. On 2026-11-13 GitHub's run timing reported **zero billable minutes for every run checked**: runs from 2026-10-14 to 2026-11-13, including successful runs with a 786 s wall-clock time. The script therefore prints zero and a note, and no billed per-workflow figure can be taken from this endpoint for this repository yet. The billed figure comes from the account's usage report (checklist O1 and S1 in [pipeline-optimisation](../../.plans/pipeline-optimisation/00-architecture.md)). The account usage API needs the `user` scope, which the operator grants with `gh auth refresh -s user`.
+`scripts/gha_minutes.py --since 2026-11-01` reads each run's timing through `gh` (read-only) and sums the billable minutes
+per workflow. On 2026-11-13 GitHub's run timing reported zero billable minutes for every run checked, including successful
+runs with a 786 s wall-clock time. No billed per-workflow figure could be taken from that endpoint. Under D17 no figure is
+needed for this repository.
 
-Completed runs from 2026-11-01 to 2026-11-13, counted from `gh run list`:
+Completed runs from 2026-11-01 to 2026-11-13, counted from `gh run list`. The retired extract workflow (14 runs) is omitted:
 
 | Workflow | Runs | Pull request runs | Cancelled | Skipped | Failed |
 | --- | --- | --- | --- | --- | --- |
@@ -32,42 +39,23 @@ Completed runs from 2026-11-01 to 2026-11-13, counted from `gh run list`:
 | `discovery-render.yml` | 17 | 0 | 1 | 0 | 1 |
 | `discovery-llm.yml` | 16 | 0 | 0 | 7 | 0 |
 | `discovery-drain.yml` | 14 | 0 | 0 | 0 | 0 |
-| `discovery-extract.yml` | 14 | 0 | 0 | 0 | 0 |
 | `discovery-screenshot.yml` | 14 | 0 | 0 | 0 | 0 |
 | `discovery-embed.yml` | 4 | 0 | 0 | 4 | 0 |
 | `discovery-translate.yml` | 2 | 0 | 0 | 2 | 0 |
 
-No pull request run was cancelled in this window. That does not show the cancellation is broken: the window may have had no overlapping pushes. The concurrency block in `api-lint-test.yml` and `web-ci.yml` is unchanged.
+No pull request run was cancelled in this window. That does not show the cancellation is broken: the window may have had no
+overlapping pushes. The concurrency block in `api-lint-test.yml` and `web-ci.yml` is unchanged.
 
-## Target budget
+## Minutes are not a budget
 
-The cap is **1,000 minutes a month** for this repository (revised 2026-10-26). The budget ledger in the API enforces the
-split below, so a drain workflow skips itself when its share is gone. The first estimate for this page was lower and is superseded; the 960 minutes of October are history.
+Under D17 the standard runners of this repository are not metered, so this page sets no minute cap and no per-drain minute share.
+The stage workflows still read the ledger's `actions_minutes` before they run. `discovery-drain.yml` skips itself under
+30 minutes left. The other stage workflows skip under 20 minutes left, and the browser workflows also skip under 30 browser
+seconds. Those prechecks are code that a later change removes. Until then, a scheduled drain can skip when the ledger's
+minute figure runs low. Check it with `python -m discovery_ingest budget show --resource actions_minutes` when a
+scheduled drain is missing.
 
-| Item | Min per month | Notes |
-| --- | --- | --- |
-| **Repository cap** | **1,000** | `BUDGET_ACTIONS_MINUTES_MONTHLY` |
-| CI reserve | 600 | `ACTIONS_CI_RESERVE_MINUTES`: API, web and ingest CI, monthly platform maintenance and headroom. Drains do not spend it |
-| **Drain allowance** | **400** | Cap minus reserve: `discovery-drain.yml` and `discovery-render.yml` together |
-
-The trimming targets were about 330 minutes for CI and about 65 for platform maintenance in a normal month. The crawlers suite adds about 17 pull
-requests at 5 to 10 billed minutes each (web CI runs only when `apps/web` changes), which is why the reserve is 600.
-
-A fifteen-minute drain bills about 16 minutes. The render backlog is about 22 such runs (about 5.5 hours) for the 1,423
-known pages, which would use most of the allowance. Run the backlog on a laptop (checklist S18) and keep
-`DISCOVERY_RENDER_SCHEDULE` unset. A drain skips itself when fewer than 45 minutes (render: 30) are left in the ledger.
 Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs report nothing and cost nothing.
-
-> **2026-11, revised again:** this repository's share raised to 2,000/1,000/1,000, superseding the 2026-10-26 figures
-> above (`BUDGET_ACTIONS_MINUTES_MONTHLY=2000`, `ACTIONS_CI_RESERVE_MINUTES=1000`, a 1,000-minute drain allowance
-> across the five `discovery-*.yml` workflows). The table above stays as the record of what was true on 2026-10-26;
-> see [`discovery-throughput/gaps-and-decisions.md`](../../.plans/discovery-throughput/gaps-and-decisions.md) D1/D2
-> and [scheduled-jobs.md](scheduled-jobs.md) for the current numbers.
-
-Compare the ledger with GitHub's usage report once a month (checklist S20): `python -m discovery_ingest budget show`
-prints `actions_minutes`; GitHub shows the repository's real minutes. If CI alone approaches the reserve, lower the
-drain allowance (raise `ACTIONS_CI_RESERVE_MINUTES`), not the other way round. Raise `DISCOVERY_DRAIN_BUDGET_SECONDS`
-only when the usage report shows headroom.
 
 ## Workflow inventory
 
@@ -75,34 +63,34 @@ only when the usage report shows headroom.
 | --- | --- |
 | `api-lint-test.yml`, `web-ci.yml`, `discovery-ingest-ci.yml` | `pull_request` and `push` to `main`, path filtered. A new push cancels the superseded PR run. |
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
-| `discovery-drain.yml` | Daily 04:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 45 ledger minutes. |
+| `discovery-daily.yml` | Two UTC slots, 03:17 and 15:17, when `PIPELINE_ORCHESTRATOR` is `enabled`, and `workflow_dispatch`. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-drain.yml` | Daily 02:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-render.yml` | Daily 03:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-llm.yml` | Daily 04:30 UTC when `DISCOVERY_LLM_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 300 neurons. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-screenshot.yml` | Daily 05:00 UTC when `DISCOVERY_SCREENSHOT_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes, when the engine's own budget is short (`llm`: no more than 100 neurons above the `QUERY_EMBED_RESERVE` floor; `azure-translator`, the default: fewer characters than `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` left this month), and when no translation task is ready. The snapshot job in the same file runs only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-render.yml` | Daily 05:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-drain`. |
 | `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
-`keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to `main` is what saves minutes.
+`keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to
+`main` is what turns them on.
 
 ## Embedding drain cadence (search-first, chapter 6)
 
-`discovery-embed.yml` runs **twice a day** (06:10 and 18:10 UTC), not every six hours. The cost that decides it is the
-idle run, because the queue is empty most of the time once the backfill is done: an idle run still pays for checkout,
-`pip install`, the ledger check, the Render wake-up (`wait_for_api`, up to a minute on a cold start) and the queue
-precheck, and the job is billed in whole minutes.
+`discovery-embed.yml` runs **twice a day** (06:10 and 18:10 UTC), not every six hours. The cost that decided it was the idle
+run: even with an empty queue, a run pays for checkout, `pip install`, the ledger check, the Render wake-up
+(`wait_for_api`, up to a minute on a cold start) and the queue precheck. Under D17 those minutes do not bill against a
+limit, so the cadence is now set by the queue and the neuron budget.
 
 | Run | Estimate (not yet measured) | Ledger minutes (`ceil(elapsed / 60) + 1`) |
 | --- | --- | --- |
 | Idle (the queue precheck skips the drain) | 1.5 to 2 minutes | 3 |
 | Working, 3,000 neurons (about 2,700 texts of 1,500 characters, 54 batches of 50) | 5 to 8 minutes: about 1 s to embed a batch of 50 and a few seconds to post 50 vectors of 1024 numbers, plus the same setup | 7 to 10 |
 
-At two runs a day an always-idle month is about 60 runs, so about 180 ledger minutes (about 120 billed minutes) of the
-1,000-minute drain allowance; every six hours would double that. A working run per day finishes about 2,700 texts, so
-the German backfill of about 4,700 candidates takes two days and the six translated locales follow as translation lands
-(the neuron ledger, 9,500 a day shared with `llm_extract` and later translation, is the real limit, not minutes). To
-backfill faster, dispatch the workflow by hand or run `embed drain` on a laptop (it costs no Actions minutes and shares
-the same ledger). **The measured minutes per run are recorded by the operator after the first runs** (the `Report
-Actions minutes` step writes them to the ledger; `python -m discovery_ingest budget show --resource actions_minutes`
-shows the total). If the allowance is tight, drop the schedule to once a day.
+A working run per day finishes about 2,700 texts, so the German backfill of about 4,700 candidates takes two days and the
+six translated locales follow as translation lands. The neuron ledger, 9,500 a day shared with `llm_extract` and later
+translation, is the real limit. To backfill faster, dispatch the workflow by hand or run `embed drain` on a laptop. It
+costs no Actions minutes and shares the same ledger.
 
 ## Translation drain cadence (search-first, chapter 15)
 
@@ -128,50 +116,45 @@ the operator narrows `TRANSLATION_TARGET_LOCALES` (decision D13) before enabling
 are shared: `llm_extract` (up to 2,500), `embed drain` (up to 3,000), `translate drain` (up to 2,500) and the
 **query-embedding floor** `QUERY_EMBED_RESERVE` (1,000), which the translate drain never takes the ledger below.
 
-A month of working runs is about 30 x 14 = 420 ledger minutes of the 1,000-minute drain allowance on top of the other
-drains: if the allowance is tight, lower `time_budget_seconds`, dispatch by hand, or unset
-`DISCOVERY_TRANSLATE_SCHEDULE`. Running `translate drain` on a laptop costs no Actions minutes and shares the same
-ledger. **The measured minutes per run are recorded by the operator after the first runs** (the `Report Actions minutes`
-step writes them to the ledger).
+Minutes do not limit this schedule (D17). Neurons and characters do. Running `translate drain` on a laptop costs no
+Actions minutes and shares the same ledger.
 
 ## Operator checklist
 
-No remote CI was available while this work was built, so none of the changed workflows has run on GitHub yet. Do these steps after the quota resets (about 2026-11-01).
+The steps below are the ones that still apply after the release. Schedules and flags are set only in
+`pipeline-activation.md`, in its order.
 
-### O1 Billing
+### O1 Account billing
 
-1. Open GitHub **Settings -> Billing and licensing -> Usage**.
-2. Check the usage of the other repositories on the account. Apply the same trimming: cancel superseded runs, avoid frequent crons, avoid polling workflows.
-3. Consider a spending limit above $0 as a safety valve.
-4. After the reset, confirm that a job starts instead of failing in 3 seconds.
+This repository's minutes are not metered (D17). Remote checks still need the account to start Actions jobs. The run
+ledger records billing-lock failures from 2026-11-15 to 2026-11-20. Before the release pull request, check **Settings,
+Billing and licensing** for a failed payment or a spending limit, then confirm that a `workflow_dispatch` run starts.
 
 ### O2 External pinger
 
 Create a free UptimeRobot (5 minute interval) or cron-job.org monitor on `https://redtape-api.onrender.com/health`. This replaces the removed keep-alive workflow. Details: [deployment-checklist.md](deployment-checklist.md).
 
-### O3 Repository variables
+### O3 Schedule and flag variables
 
-Set under **Settings -> Secrets and variables -> Actions -> Variables**:
-
-- `DISCOVERY_DRAIN_BUDGET_SECONDS`: seconds per scheduled drain. When unset, the drain uses 900.
-- `DISCOVERY_DRAIN_SCHEDULE`: leave unset until [crawlers-operator-checklist.md](crawlers-operator-checklist.md) step S13. Setting it to `enabled` turns on the daily drain.
-- `DISCOVERY_RENDER_SCHEDULE`: leave unset until there is budget (S13); the render backlog is cheaper on a laptop.
+Do not set schedule or flag variables from this page. The order is in `pipeline-activation.md`.
+Under **Settings, Secrets and variables, Actions, Variables**, `DISCOVERY_DRAIN_BUDGET_SECONDS` sets the scheduled drain's
+wall-clock budget in seconds. When it is unset, the drain uses 900.
 
 ### O4 First live verification
 
-Do this once, early in the month. It costs minutes.
+Do this once, after the release reaches `main`.
 
 1. Push two commits in quick succession to a PR. Confirm that the first CI run is `cancelled`.
 2. Run `gh workflow run platform-maintenance.yml -f job=discovery`. Confirm that only the discovery job runs and that the Render health wait works.
 3. Run `gh workflow run platform-maintenance.yml -f job=openplz` once. Record the duration. The target is under 15 minutes.
 4. Run `gh workflow list`. Confirm that Keep Render API Awake and OpenPLZ Import are absent.
 
-### O5 Monthly check
+### O5 Retired monthly check
 
-Compare the usage report with the targets: keep-alive 0, maintenance at most ~70, CI inside the 600 minute reserve, and the drains inside 400. Also compare the ledger's `actions_minutes` with GitHub's figure for the repository (S20). Raise `DISCOVERY_DRAIN_BUDGET_SECONDS` when other repositories leave headroom.
+The monthly comparison of minutes is retired under D17. Nothing here needs a monthly figure from GitHub.
 
 ## Notes
 
 - Free Supabase pauses a project after 7 idle days. A drain that runs at least weekly (scheduled or dispatched) reaches the database through the API and keeps it active.
 - Free Render cold-starts after 15 idle minutes. The external pinger avoids most cold starts.
-- `GITHUB_TOKEN` cannot read the remaining minutes. The heavy monthly job runs on day 28 to use leftover minutes; when the quota is gone it fails to start, which is harmless.
+- The monthly platform-maintenance job runs on day 28 at 02:00 UTC.

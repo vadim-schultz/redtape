@@ -126,13 +126,13 @@ def test_the_loop_doc_lists_the_out_of_scope_topics() -> None:
     assert all(topic in text for topic in ("link-following", "freshness crawling", "llm extraction", "new_requirement"))
 
 
-def test_crawl_docs_state_the_free_allocation_caps_and_the_1000_minute_actions_cap() -> None:
-    """Each cap the ledger enforces is written down, and the Actions share is 1,000 minutes with a CI reserve."""
+def test_crawl_docs_state_the_free_allocation_caps_and_that_actions_minutes_are_not_metered() -> None:
+    """Each cap the ledger enforces is written down, and this repository's Actions minutes are not metered (D17)."""
     assert not missing_terms(DEPLOYMENT_CHECKLIST, ("BUDGET_R2_CLASS_A_MONTHLY", "BUDGET_R2_CLASS_B_MONTHLY"))
     assert not missing_terms(
         DEPLOYMENT_CHECKLIST, ("BUDGET_BROWSER_SECONDS_DAILY", "DB_SOFT_LIMIT_BYTES", "9500000000")
     )
-    assert not missing_terms(GHA_BUDGET, ("1,000 minutes", "CI reserve", "ACTIONS_CI_RESERVE_MINUTES", "budget show"))
+    assert not missing_terms(GHA_BUDGET, ("not metered", "D17", "budget show"))
     assert not missing_terms(SCHEDULED_JOBS, ("actions_minutes", "browser_seconds", "report-minutes"))
 
 

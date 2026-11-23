@@ -53,7 +53,7 @@ Compute embeddings whenever free neurons are available, without the worker ever 
 - Per-batch flow: claim → embed → `complete`. Per-item results: `stored` and `stale` need nothing more; `rejected` is logged with the reason. A `LlmQuotaExceeded`-style error or an exhausted reservation raises the stop reason and **releases** the unprocessed tasks so attempts are not burned; a retryable HTTP error fails the batch's tasks as retryable; an auth error stops the drain as infrastructure.
 - CLI: `python -m discovery_ingest embed drain [--max-tasks N --time-budget S --neuron-budget N]` prints one JSON `DrainReport`; exit codes follow the existing convention.
 - Workflow `.github/workflows/discovery-embed.yml` copies the structure of `discovery-drain.yml`: `schedule` plus `workflow_dispatch`, gated by repo variable `DISCOVERY_EMBED_SCHEDULE == 'enabled'`, shared `concurrency: discovery-pipeline` (`cancel-in-progress: false`), `budget show --require-remaining …` precheck, `wait_for_api`, **an early exit when `GET …/embeddings/summary` reports `pending_ready = 0`** (saves Actions minutes), the drain with `tee drain-report.json`, a step summary, failure only if `succeeded` is false, and an `if: always()` minutes report.
-- Cadence is chosen against `docs/operations/gha-budget.md` in this chapter (default every 6 hours); the Workers AI token is a GitHub secret, never printed.
+- Cadence is chosen against `docs/operations/gha-budget.md` in this chapter (shipped as twice a day, 06:10 and 18:10 UTC; see gha-budget.md); the Workers AI token is a GitHub secret, never printed.
 - Docs updated: `docs/operations/scheduled-jobs.md`, `gha-budget.md`, `apps/discovery-ingest/README.md`.
 
 ## Files

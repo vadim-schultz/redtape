@@ -8,7 +8,7 @@ This project has no GitLab CI — all scheduling runs on **GitHub Actions**. Ope
 
 - **Triggers:** `schedule` — monthly cron `0 2 28 * *` (02:00 UTC on day 28, which exists in every month), and `workflow_dispatch` with a `job` input: `all` (default), `openplz`, or `discovery`.
 - **Jobs on a scheduled run:** `openplz` first, then `discovery` (catalogue ingest: health wait, GovData fetch, PVOG run). `discovery` waits for `openplz` but still runs when it failed or was skipped.
-- **No worker drain here.** Draining the task queue is the job of the five `discovery-*.yml` workflows ([`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml), [`discovery-render.yml`](../../.github/workflows/discovery-render.yml), [`discovery-extract.yml`](../../.github/workflows/discovery-extract.yml), [`discovery-llm.yml`](../../.github/workflows/discovery-llm.yml), [`discovery-screenshot.yml`](../../.github/workflows/discovery-screenshot.yml)); see § Worker drains and the budget ledger.
+- **No worker drain here.** Draining the task queue is the job of the stage workflows ([`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml), [`discovery-render.yml`](../../.github/workflows/discovery-render.yml), [`discovery-llm.yml`](../../.github/workflows/discovery-llm.yml), [`discovery-screenshot.yml`](../../.github/workflows/discovery-screenshot.yml)); see § Worker drains and the budget ledger.
 - **OpenPLZ job steps:** checkout → Python 3.12 → `pip install -e .` in `apps/api` → `alembic upgrade head` → verify `uq_jurisdiction_kind_code` on `jurisdiction` → `python scripts/import_openplz_locations.py --language de`.
 
 A manual dispatch runs only the job named in `job` (`all` runs both, in order).
@@ -43,7 +43,7 @@ Discovery ingest never uses `DATABASE_URL` in GHA (machine API boundary). Operat
 
 ## Worker drains and the budget ledger
 
-Five workflows drain the task queue, one per pipeline stage; a sixth, [`discovery-embed.yml`](../../.github/workflows/discovery-embed.yml), drains the embedding queue and a seventh, [`discovery-translate.yml`](../../.github/workflows/discovery-translate.yml), the translation queue (see below). Chapter 2 of `discovery-throughput` split what used to be
+Four workflows drain the task queue, one per pipeline stage; a fifth, [`discovery-embed.yml`](../../.github/workflows/discovery-embed.yml), drains the embedding queue and a sixth, [`discovery-translate.yml`](../../.github/workflows/discovery-translate.yml), the translation queue (see below). Chapter 2 of `discovery-throughput` split what used to be
 two bundled workflows (`discovery-drain.yml`'s `extract_page` kind, `discovery-render.yml`'s `capture_screenshot` kind)
 into their own files and retimed every stage so each hop's consumer runs after its producer on the same UTC day. All
 ship with their schedule switched off.
@@ -52,7 +52,6 @@ ship with their schedule switched off.
 | --- | --- | --- | --- | --- |
 | [`discovery-drain.yml`](../../.github/workflows/discovery-drain.yml) | `fetch_url`, `enrich_metadata`, `harvest_payload` | daily 02:00 | `DISCOVERY_DRAIN_SCHEDULE=enabled` | 30 min |
 | [`discovery-render.yml`](../../.github/workflows/discovery-render.yml) | `render_page` | daily 03:00 | `DISCOVERY_RENDER_SCHEDULE=enabled` | 20 min |
-| [`discovery-extract.yml`](../../.github/workflows/discovery-extract.yml) | `extract_page` | daily 04:00 | `DISCOVERY_EXTRACT_SCHEDULE=enabled` | 20 min |
 | [`discovery-llm.yml`](../../.github/workflows/discovery-llm.yml) | `llm_extract` | daily 04:30 | `DISCOVERY_LLM_SCHEDULE=enabled` | 20 min |
 | [`discovery-screenshot.yml`](../../.github/workflows/discovery-screenshot.yml) | `capture_screenshot` | daily 05:00 | `DISCOVERY_SCREENSHOT_SCHEDULE=enabled` | 20 min |
 
@@ -62,8 +61,7 @@ Manual dispatch always works once the file is on `main`.
 **Drain inputs.** `discovery-drain.yml`: `max_tasks` (50), `max_batches` (20), `time_budget_seconds` (empty: the variable
 `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900), `kinds` (`fetch_url,enrich_metadata,harvest_payload`). `discovery-render.yml`:
 `max_tasks` (5), `max_batches` (40), `time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds` (`render_page`).
-`discovery-extract.yml`: `max_tasks` (50), `max_batches` (20), `time_budget_seconds` (empty: the variable
-`DISCOVERY_EXTRACT_BUDGET_SECONDS`, else 900), `kinds` (`extract_page`). `discovery-llm.yml`: `llm_model` (default
+`discovery-llm.yml`: `llm_model` (default
 `@cf/qwen/qwen3-30b-a3b-fp8`, the X16 choice, decided 2026-10-30), `max_tasks` (5), `max_batches` (20), `time_budget_seconds` (600),
 `neuron_budget` (2500), `kinds` (`llm_extract`). `discovery-screenshot.yml`: `max_tasks` (5), `max_batches` (40),
 `time_budget_seconds` (900), `browser_budget_seconds` (570), `kinds` (`capture_screenshot`). Browser and LLM drains use
@@ -144,7 +142,7 @@ step (`if: always()`) adds the elapsed minutes, rounded up, plus one.
 
 | Resource | Period | Default cap | Who spends it |
 | --- | --- | --- | --- |
-| `actions_minutes` | month | 1,000 (2,000 minus the 1,000 CI reserve) | Drain workflows, through `budget report-minutes`. `discovery-drain.yml` skips under 30 minutes left; the other four skip under 20 |
+| `actions_minutes` | month | Not binding (D17). The prechecks skip a drain under 30 minutes left (`discovery-drain.yml`) or under 20 (the others) | Drain workflows, through `budget report-minutes` |
 | `browser_seconds` | day | 570 | Browser drains (`discovery-render.yml`, `discovery-screenshot.yml`). Both skip under 30 seconds left |
 | `r2_class_a`, `r2_class_b` | month | 950,000 and 9,500,000 | The metered object store in the API |
 | `neurons` | day | 9,500 | `llm_extract` drains, `embed drain` (1,075 neurons per million input tokens, reserved at characters / 3), `translate drain` on `llm` (about 10 to 13 neurons per card, never below the `QUERY_EMBED_RESERVE` floor) and `llm eval`, through reserve and settle. `llm probe` bypasses the ledger, and Cloudflare's own 10,000-neuron allocation counts every use on the account, so a provider 429 can come before the ledger is spent. The drain skips under 300 neurons left |
@@ -154,24 +152,16 @@ Caps are API settings (`BUDGET_*`, `ACTIONS_CI_RESERVE_MINUTES`, `DB_SOFT_LIMIT_
 [deployment-checklist.md](deployment-checklist.md). Show the ledger with `python -m discovery_ingest budget show`
 (exit 3 when a `--require-remaining RESOURCE=N` is short, exit 4 with `--strict` when the API is unreachable).
 
-**Actions minutes.** The account is on the GitHub Free plan: 2,000 Linux minutes a month shared by every repository.
-This repository's cap (`BUDGET_ACTIONS_MINUTES_MONTHLY`) moved to **2,000** (revised 2026-11; this assumes the
-account-wide pool has grown to cover this repository alone, or other repositories' usage dropped — unverified, see
-[`discovery-throughput/gaps-and-decisions.md`](../../.plans/discovery-throughput/gaps-and-decisions.md) D1). A CI
-reserve of 1,000 (`ACTIONS_CI_RESERVE_MINUTES`) is not for drains, so the drains above (and the embedding and translation drains) share 1,000. The monthly
-comparison of the ledger with GitHub's usage report and the plan for the minutes are in [gha-budget.md](gha-budget.md).
-Prefer a drain on a laptop: it costs no Actions minutes.
+**Actions minutes.** This repository is public, so its standard runners are not metered (D17). No minute cap binds, and this page keeps no monthly comparison with GitHub's usage report; [gha-budget.md](gha-budget.md) records the history. The ledger still records minutes (`budget report-minutes`), and the stage prechecks still read `actions_minutes`; removing those prechecks is a later code change. A drain on a laptop costs no Actions minutes and shares the same ledger.
 
 Set these under **Settings → Secrets and variables → Actions → Variables**:
 
 | Variable | Purpose |
 | --- | --- |
 | `DISCOVERY_DRAIN_BUDGET_SECONDS` | Wall-clock budget of one scheduled `discovery-drain.yml` run in seconds. Unset means 900. Raise it when other repositories on the account use fewer minutes. |
-| `DISCOVERY_EXTRACT_BUDGET_SECONDS` | Wall-clock budget of one scheduled `discovery-extract.yml` run in seconds. Unset means 900. |
 | `DISCOVERY_DRAIN_SCHEDULE` | Set to `enabled` to turn on the daily seed drain (`fetch_url`, `enrich_metadata`, `harvest_payload`). Any other value leaves only manual dispatch. Keep it unset until the checklist step S13. |
-| `DISCOVERY_RENDER_SCHEDULE` | Set to `enabled` to turn on the daily `render_page` drain. Because `discovery-render.yml`'s job `env` sets `LLM_ENQUEUE: "true"` by default (chapter 2 of `discovery-throughput`), enabling this schedule also turns on the `llm_extract` fan-out, not rendering alone. Keep it unset until there is budget; run the drain on a laptop instead. |
-| `DISCOVERY_EXTRACT_SCHEDULE` | Set to `enabled` to turn on the daily `extract_page` drain. Any other value leaves only manual dispatch. |
-| `DISCOVERY_LLM_SCHEDULE` | Set to `enabled` to turn on the daily `llm_extract` drain. Keep it unset until the extraction live gate passed and the monthly Actions allowance has room; delete it to pause (manual dispatch keeps working). |
+| `DISCOVERY_RENDER_SCHEDULE` | Set to `enabled` to turn on the daily `render_page` drain. Because `discovery-render.yml`'s job `env` sets `LLM_ENQUEUE: "true"` by default (chapter 2 of `discovery-throughput`), enabling this schedule also turns on the `llm_extract` fan-out, not rendering alone. It is removed in activation step 6 of `pipeline-activation.md`, not before. |
+| `DISCOVERY_LLM_SCHEDULE` | Set to `enabled` to turn on the daily `llm_extract` drain. Keep it unset until activation step 1 of `pipeline-activation.md` passes; delete it to pause (manual dispatch keeps working). |
 | `DISCOVERY_EMBED_SCHEDULE` | Set to `enabled` to turn on the twice-daily `embed drain`. Set it only after the search-text backfill (chapter 4) has queued the tasks and the API has `EMBEDDING_MODEL` at its default or the same value as the workers. Any other value leaves only manual dispatch. |
 | `DISCOVERY_TRANSLATE_SCHEDULE` | Set to `enabled` to turn on the daily `translate drain`. Set it only after `backfill_translations.py` has queued the card tasks, and the API has its R2 object-store variables (without them every `complete` answers `unavailable`). Narrowing `TRANSLATION_TARGET_LOCALES` on Render is the lever if the monthly characters run short. Any other value leaves only manual dispatch. |
 | `QUERY_EMBED_RESERVE` | `llm` only: neurons of the day's ledger the translate drain leaves for query embedding (a whole number; unset means 1000). |
@@ -228,9 +218,6 @@ gh workflow run discovery-drain.yml -f max_batches=3 -f time_budget_seconds=600
 # Render a few pages (spends Cloudflare browser time; see the budget table above)
 gh workflow run discovery-render.yml -f max_tasks=5 -f max_batches=2 -f time_budget_seconds=300
 
-# Drain extract_page from stored snapshots, a short run
-gh workflow run discovery-extract.yml -f max_batches=3 -f time_budget_seconds=600
-
 # Extract from stored snapshots (spends Workers AI neurons; the model is required)
 gh workflow run discovery-llm.yml -f llm_model=<model id> -f max_batches=2 -f neuron_budget=2500
 
@@ -241,7 +228,7 @@ gh workflow run discovery-screenshot.yml -f max_tasks=5 -f max_batches=2 -f time
 ## Related
 
 - Manual steps that unlock live gates: [crawlers-operator-checklist.md](crawlers-operator-checklist.md) and [extraction-operator-checklist.md](extraction-operator-checklist.md)
-- Actions minute budget and operator checklist: [gha-budget.md](gha-budget.md)
+- Actions usage and operator checklist: [gha-budget.md](gha-budget.md)
 - Discovery online operations: [discovery-online.md](discovery-online.md)
 - Import script details: [openplz-import.md](openplz-import.md)
 - Import script: [`apps/api/scripts/import_openplz_locations.py`](../../apps/api/scripts/import_openplz_locations.py)
