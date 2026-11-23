@@ -143,9 +143,7 @@ class FakeMachine:
     def _translation_summary(self) -> TranslationSummary:
         self.calls["translations"] += 1
         rows = [
-            TranslationLocaleSummary(
-                locale=locale, pending_ready=count, claimed=0, failed=0, stale=0, translated=0
-            )
+            TranslationLocaleSummary(locale=locale, pending_ready=count, claimed=0, failed=0, stale=0, translated=0)
             for locale, count in self._cards.items()
         ]
         return TranslationSummary(locales=rows)

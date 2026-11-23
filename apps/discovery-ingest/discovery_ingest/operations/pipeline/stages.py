@@ -1,7 +1,7 @@
-"""The stages the daily pipeline runs: each one's command, its fixed flags, its allotment cap and its floor, and the phases.
+"""The stages the daily pipeline runs: each one's command, fixed flags, allotment cap and floor, and the phases.
 
-Data only. A stage is ``python -m discovery_ingest <command>`` with these flags; the caps come from the plan. The
-phases list the stages that run side by side; a phase starts only after the one before it ends.
+Data only. A stage is ``python -m discovery_ingest <command>`` with these flags; the caps come from the plan. A phase
+starts only after the one before it ends. The final pass runs every stage that still has ready work.
 """
 
 from __future__ import annotations
@@ -14,11 +14,7 @@ PHASE_ONE: tuple[str, ...] = ("seed", "render", "embed", "card_translation", "pa
 PHASE_TWO: tuple[str, ...] = ("extract_page", "llm", "capture", "card_tail")
 """Rules extraction (it reads what render stored), llm_extract with concurrency, the screenshot sweeper and the tail."""
 FINAL_PHASE = 3
-"""The final pass: each stage with leftover ready work, run one after another under what time is left."""
-STAGE_CAP_SECONDS = 1200.0
-"""Most time one stage may take in one phase (20 minutes)."""
-MIN_STAGE_SECONDS = 60.0
-"""Least time a stage is started with; less than this and the stage is left for a later pass."""
+"""The final pass: every stage with ready work left after phase two, each run under the time that is left."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,16 +110,14 @@ STAGES: tuple[StageSpec, ...] = (
 )
 """Every stage in run order: the first phase's stages, then the second's. Caps are granted in this order."""
 
+STAGE_IDS: tuple[str, ...] = tuple(spec.id for spec in STAGES)
+"""Every stage id, in run order."""
+PHASES: tuple[tuple[int, tuple[str, ...]], ...] = ((1, PHASE_ONE), (2, PHASE_TWO), (FINAL_PHASE, STAGE_IDS))
+"""The phases in run order: the phase number each stage record carries, and the stages that phase may plan."""
+FIRST_PASS: Mapping[str, int] = {stage: number for number, ids in PHASES[:2] for stage in ids}
+"""Each stage of the first two phases, mapped to its phase: the stages the plan command shows."""
+
 
 def stage_by_id(stage_id: str) -> StageSpec:
     """Return the stage named ``stage_id``; a name that is not a stage raises :class:`KeyError`."""
     return next(spec for spec in STAGES if spec.id == stage_id)
-
-
-def phase_of(stage_id: str) -> int:
-    """Return the phase a stage runs in: 1 or 2 by its membership, and :data:`FINAL_PHASE` for anything else."""
-    if stage_id in PHASE_ONE:
-        return 1
-    if stage_id in PHASE_TWO:
-        return 2
-    return FINAL_PHASE

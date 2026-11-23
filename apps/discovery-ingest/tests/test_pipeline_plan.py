@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from discovery_ingest.operations.pipeline import (
+    RUN_CEILING_SECONDS,
     STAGES,
     OmittedStage,
     PlanContext,
     PlanFacts,
-    RUN_CEILING_SECONDS,
     build_plan,
     read_plan_facts,
     stage_by_id,

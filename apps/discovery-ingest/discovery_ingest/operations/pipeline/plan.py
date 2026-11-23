@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
-from discovery_ingest.operations.pipeline.deadline import run_seconds
-from discovery_ingest.operations.pipeline.stages import STAGES, StageSpec, phase_of
+from discovery_ingest.operations.pipeline.deadline import RUN_CEILING_SECONDS
+from discovery_ingest.operations.pipeline.stages import FIRST_PASS, STAGES, StageSpec
 
 
 @dataclass(frozen=True, slots=True)
 class PlanFacts:
-    """What the planner knows: ready work per stage, the headroom of each allotment, the Actions minutes and the days left.
+    """What the planner knows: the ready work per stage, the headroom of each allotment, and the stages that cannot run.
 
     ``headroom`` is what each allotment may still give after its reserve (the query-embedding floor for neurons).
     ``unconfigured`` names the stages that cannot run here (no model, no tail locales); they are omitted, not planned.
@@ -21,8 +21,6 @@ class PlanFacts:
 
     ready: Mapping[str, int]
     headroom: Mapping[str, float]
-    actions_minutes_remaining: float
-    days_left: int
     unconfigured: frozenset[str] = frozenset()
 
 
@@ -44,32 +42,25 @@ class OmittedStage(BaseModel):
 
 
 class PipelinePlan(BaseModel):
-    """The stages to run, the stages left out, and the run's seconds from the Actions minutes and the days left."""
+    """The stages to run, the stages left out, and the fixed ceiling the run is held to."""
 
-    run_seconds: float
+    ceiling_seconds: float
     stages: list[PlannedStage]
     omitted: list[OmittedStage]
 
 
-def build_plan(facts: PlanFacts, stage_ids: Sequence[str] | None = None) -> PipelinePlan:
-    """Plan the stages named by ``stage_ids`` (every stage when ``None``), in run order, from ``facts``."""
-    selected = [spec for spec in STAGES if stage_ids is None or spec.id in stage_ids]
+def build_plan(facts: PlanFacts, phases: Mapping[str, int] = FIRST_PASS) -> PipelinePlan:
+    """Plan each stage named in ``phases`` (stage id to phase), in run order, from ``facts``."""
     grants = dict(facts.headroom)
-    planned: list[PlannedStage] = []
-    omitted: list[OmittedStage] = []
-    for spec in selected:
-        outcome = _plan_one(spec, facts, grants)
-        if isinstance(outcome, PlannedStage):
-            planned.append(outcome)
-        else:
-            omitted.append(outcome)
-    seconds = run_seconds(facts.actions_minutes_remaining, facts.days_left)
-    return PipelinePlan(run_seconds=seconds, stages=planned, omitted=omitted)
+    selected = [spec for spec in STAGES if spec.id in phases]
+    outcomes = [_plan_one(spec, phases[spec.id], facts, grants) for spec in selected]
+    planned = [item for item in outcomes if isinstance(item, PlannedStage)]
+    omitted = [item for item in outcomes if isinstance(item, OmittedStage)]
+    return PipelinePlan(ceiling_seconds=RUN_CEILING_SECONDS, stages=planned, omitted=omitted)
 
 
-def _plan_one(spec: StageSpec, facts: PlanFacts, grants: dict[str, float]) -> PlannedStage | OmittedStage:
+def _plan_one(spec: StageSpec, phase: int, facts: PlanFacts, grants: dict[str, float]) -> PlannedStage | OmittedStage:
     """Plan one stage, or say why it is left out; a granted cap comes off ``grants``."""
-    phase = phase_of(spec.id)
     if spec.id in facts.unconfigured:
         return OmittedStage(stage=spec.id, phase=phase, reason="not configured")
     ready = facts.ready.get(spec.id, 0)

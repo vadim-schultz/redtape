@@ -24,6 +24,7 @@ from discovery_ingest.cli.govdata import govdata_app
 from discovery_ingest.cli.i18n import i18n_app
 from discovery_ingest.cli.leika import leika_app
 from discovery_ingest.cli.llm import llm_app
+from discovery_ingest.cli.pipeline import pipeline_app
 from discovery_ingest.cli.pvog import pvog_app
 from discovery_ingest.cli.translate import translate_app
 from discovery_ingest.cli.worker import worker_app
@@ -53,6 +54,7 @@ app.add_typer(capture_app, name="capture")
 app.add_typer(embed_app, name="embed")
 app.add_typer(translate_app, name="translate")
 app.add_typer(i18n_app, name="i18n")
+app.add_typer(pipeline_app, name="pipeline")
 
 
 @app.callback(invoke_without_command=True)

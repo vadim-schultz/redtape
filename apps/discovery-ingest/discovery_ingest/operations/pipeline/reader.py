@@ -1,13 +1,11 @@
-"""Read the plan's facts from the machine API, once per read: the queue summaries, the ledger and the sweep candidates."""
+"""Read the plan's facts from the machine API: the queue summaries, the ledger and the sweep candidates."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date
 
 from discovery_ingest.client import DiscoveryIngestClient
-from discovery_ingest.operations.pipeline.deadline import days_left
 from discovery_ingest.operations.pipeline.plan import PlanFacts
 from discovery_ingest.schemas import DiscoveryTaskKind
 
@@ -25,9 +23,8 @@ SWEEP_PAGE_LIMIT = 50
 
 @dataclass(frozen=True, slots=True)
 class PlanContext:
-    """The settings the reader needs: the day, the embedding model, the neuron reserve, the tail and the model."""
+    """The settings the reader needs: the embedding model, the neuron reserve, the tail locales and the LLM model."""
 
-    today: date
     embedding_model: str
     query_embed_reserve: float
     tail_locales: tuple[str, ...]
@@ -37,17 +34,24 @@ class PlanContext:
 def read_plan_facts(client: DiscoveryIngestClient, context: PlanContext) -> PlanFacts:
     """Read every summary and the ledger once, and return the facts the planner works from."""
     remaining = _remaining(client)
-    unconfigured = {*(() if context.llm_model else ("llm",)), *(() if context.tail_locales else ("card_tail",))}
     return PlanFacts(
         ready={**_task_ready(client), **_queue_ready(client, context)},
         headroom={
             "browser_seconds": remaining.get("browser_seconds", 0.0),
             "neurons": max(remaining.get("neurons", 0.0) - context.query_embed_reserve, 0.0),
         },
-        actions_minutes_remaining=remaining.get("actions_minutes", 0.0),
-        days_left=days_left(context.today),
-        unconfigured=frozenset(unconfigured),
+        unconfigured=_unconfigured(context),
     )
+
+
+def _unconfigured(context: PlanContext) -> frozenset[str]:
+    """Return the stages that cannot run here: the LLM stage without a model, the tail without tail locales."""
+    names: set[str] = set()
+    if not context.llm_model:
+        names.add("llm")
+    if not context.tail_locales:
+        names.add("card_tail")
+    return frozenset(names)
 
 
 def _remaining(client: DiscoveryIngestClient) -> dict[str, float]:
