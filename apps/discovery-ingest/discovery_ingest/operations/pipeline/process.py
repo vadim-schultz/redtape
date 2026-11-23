@@ -14,6 +14,8 @@ from discovery_ingest.schemas import DrainReport
 
 GRACE_SECONDS = 180.0
 """How long past its own budget a stage may run before it is sent SIGTERM and its report is read as it stands."""
+TERM_GRACE_SECONDS = 60.0
+"""How long a stage has to stop after SIGTERM before it is killed."""
 
 
 class StageProcess(Protocol):
@@ -40,11 +42,21 @@ def spawn_stage(argv: Sequence[str]) -> StageProcess:
 
 
 def collect_output(process: StageProcess, seconds: float) -> str | None:
-    """Wait for the stage's output; past its budget plus the grace, send SIGTERM and read what it prints then."""
+    """Wait for the stage's output; past its budget plus the grace, stop it and read what it prints."""
     try:
         stdout, _ = process.communicate(timeout=seconds + GRACE_SECONDS)
     except subprocess.TimeoutExpired:
-        process.send_signal(signal.SIGTERM)
+        return _stop(process)
+    return stdout
+
+
+def _stop(process: StageProcess) -> str | None:
+    """Send SIGTERM and read what the stage prints; a stage still alive after the second grace gets SIGKILL."""
+    process.send_signal(signal.SIGTERM)
+    try:
+        stdout, _ = process.communicate(timeout=TERM_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.send_signal(signal.SIGKILL)
         stdout, _ = process.communicate()
     return stdout
 
