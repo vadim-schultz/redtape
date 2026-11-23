@@ -10,7 +10,11 @@ from discovery_ingest.schemas import DrainReport
 
 @dataclass(frozen=True, slots=True)
 class StageOutcome:
-    """What one stage did in its phase: whether it started, its budget, its exit code and the report it printed."""
+    """What one stage did in its phase: whether it started, its budget, its exit code and the report it printed.
+
+    ``spawn_error`` names the error that stopped the stage from starting (for example ``OSError``); it is ``None``
+    when the process was started.
+    """
 
     stage: str
     phase: int
@@ -19,10 +23,13 @@ class StageOutcome:
     exit_code: int | None = None
     report: DrainReport | None = None
     note: str = ""
+    spawn_error: str | None = None
 
     @property
     def failed(self) -> bool:
-        """Return whether a started stage failed: no report, a report of failure, or a non-zero exit."""
+        """Return whether the stage failed: it could not be spawned, or it started and then failed."""
+        if self.spawn_error is not None:
+            return True
         if not self.started:
             return False
         return self.report is None or not self.report.succeeded or self.exit_code != 0

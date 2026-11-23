@@ -106,6 +106,19 @@ def _run_one(stage: PlannedStage, ctx: RunContext) -> StageOutcome:
     return _execute(stage, seconds, ctx)
 
 
+def _spawn_failed(stage: PlannedStage, err: OSError) -> StageOutcome:
+    """Return the outcome of a stage whose process could not be started: a failure that names the error type."""
+    name = type(err).__name__
+    return StageOutcome(
+        stage=stage.stage,
+        phase=stage.phase,
+        started=False,
+        time_budget_seconds=None,
+        note=f"could not start: {name}: {err}",
+        spawn_error=name,
+    )
+
+
 def _not_started(stage: PlannedStage, note: str) -> StageOutcome:
     """Return the outcome of a stage that was not started, with the reason."""
     return StageOutcome(stage=stage.stage, phase=stage.phase, started=False, time_budget_seconds=None, note=note)
@@ -113,7 +126,10 @@ def _not_started(stage: PlannedStage, note: str) -> StageOutcome:
 
 def _execute(stage: PlannedStage, seconds: float, ctx: RunContext) -> StageOutcome:
     """Run the stage's process under its budget, and return the outcome with the report it printed."""
-    process = ctx.spawn(stage_by_id(stage.stage).argv(stage.caps, seconds))
+    try:
+        process = ctx.spawn(stage_by_id(stage.stage).argv(stage.caps, seconds))
+    except OSError as err:
+        return _spawn_failed(stage, err)
     ctx.registry.admit(process)
     try:
         stdout = collect_output(process, seconds)
