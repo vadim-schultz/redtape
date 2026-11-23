@@ -6,8 +6,8 @@ import typer
 
 from discovery_ingest.cli.context import api_client
 from discovery_ingest.cli.errors import HELP_OPTIONS, handles_api_errors, show_help_without_subcommand
-from discovery_ingest.cli.pipeline.ports import plan_context
-from discovery_ingest.operations.pipeline import FIRST_PASS, build_plan, read_plan_facts
+from discovery_ingest.cli.pipeline.ports import live_ports, plan_context
+from discovery_ingest.operations.pipeline import FIRST_PASS, build_plan, read_plan_facts, run_pipeline
 
 pipeline_app = typer.Typer(
     name="pipeline",
@@ -31,3 +31,10 @@ def pipeline_plan(ctx: typer.Context) -> None:
     """Print the stages with ready work and their caps as one JSON document."""
     plan = build_plan(read_plan_facts(api_client(ctx), plan_context(ctx)), FIRST_PASS)
     typer.echo(plan.model_dump_json())
+
+
+@pipeline_app.command("run")
+@handles_api_errors("pipeline")
+def pipeline_run(ctx: typer.Context) -> None:
+    """Run the stages in three phases (placeholder: no flag check and no exit code until the run is implemented)."""
+    run_pipeline(live_ports(ctx))

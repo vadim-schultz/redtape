@@ -93,6 +93,8 @@ class IngestSettings(BotSettings, BrowserSettings, LlmSettings):
         default=DEFAULT_FIM_PORTAL_URL,
         validation_alias="FIM_PORTAL_BASE_URL",
     )
+    pipeline_orchestrator: str = Field(default="disabled", validation_alias="PIPELINE_ORCHESTRATOR")
+    github_step_summary: str | None = Field(default=None, validation_alias="GITHUB_STEP_SUMMARY")
 
 
 def load_ingest_settings() -> IngestSettings:

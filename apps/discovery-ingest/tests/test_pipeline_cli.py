@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -11,7 +12,7 @@ import pytest
 from discovery_ingest.cli import main
 from discovery_ingest.operations.pipeline import RUN_CEILING_SECONDS
 
-from pipeline_fakes import row
+from pipeline_fakes import Behaviour, FakeSpawner, report_line, row
 
 API_BASE = "https://redtape.test"
 _REAL_HTTPX_CLIENT = httpx.Client
@@ -99,3 +100,72 @@ def test_plan_exits_1_when_the_ledger_cannot_be_read(
 
     assert main(["pipeline", "plan"]) == 1
     assert "pipeline command failed" in capsys.readouterr().err
+
+
+@pytest.fixture
+def spawner(monkeypatch: pytest.MonkeyPatch) -> FakeSpawner:
+    """Route the live stage starter to a fake, and return it so a test can read which stages started."""
+    fake = FakeSpawner()
+    monkeypatch.setattr("discovery_ingest.cli.pipeline.ports.spawn_stage", fake)
+    return fake
+
+
+def test_run_does_nothing_unless_the_flag_is_enabled(
+    serve: Callable[[Handler], list[httpx.Request]],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    spawner: FakeSpawner,
+) -> None:
+    seen = serve(_answer)
+    monkeypatch.delenv("PIPELINE_ORCHESTRATOR", raising=False)
+
+    assert main(["pipeline", "run"]) == 0
+
+    assert seen == []
+    assert spawner.started() == []
+    assert "PIPELINE_ORCHESTRATOR is not enabled" in capsys.readouterr().err
+
+
+def test_run_starts_no_stage_when_the_ledger_cannot_be_read(
+    serve: Callable[[Handler], list[httpx.Request]],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    spawner: FakeSpawner,
+) -> None:
+    monkeypatch.setenv("PIPELINE_ORCHESTRATOR", "enabled")
+    serve(lambda request: httpx.Response(500, json={"detail": "down"}))
+
+    assert main(["pipeline", "run"]) == 1
+
+    assert spawner.started() == []
+    assert "pipeline command failed" in capsys.readouterr().err
+
+
+def test_run_exits_1_when_a_stage_fails(
+    serve: Callable[[Handler], list[httpx.Request]],
+    monkeypatch: pytest.MonkeyPatch,
+    spawner: FakeSpawner,
+) -> None:
+    monkeypatch.setenv("PIPELINE_ORCHESTRATOR", "enabled")
+    serve(_answer)
+    spawner.behaviours["render"] = Behaviour(stdout=report_line(succeeded=False, stop_reason="error"), exit_code=1)
+
+    assert main(["pipeline", "run"]) == 1
+
+    assert "render" in spawner.started()
+
+
+def test_run_writes_one_step_summary_and_exits_0_when_every_stage_succeeds(
+    serve: Callable[[Handler], list[httpx.Request]],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    spawner: FakeSpawner,
+) -> None:
+    monkeypatch.setenv("PIPELINE_ORCHESTRATOR", "enabled")
+    summary = tmp_path / "step-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    serve(_answer)
+
+    assert main(["pipeline", "run"]) == 0
+
+    assert summary.read_text(encoding="utf-8").count("### Discovery pipeline") == 1
