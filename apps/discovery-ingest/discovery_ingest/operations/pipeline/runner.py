@@ -6,6 +6,8 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 
+import httpx
+
 from discovery_ingest.client.errors import DiscoveryMachineApiError
 from discovery_ingest.operations.pipeline.deadline import RUN_CEILING_SECONDS, stage_seconds
 from discovery_ingest.operations.pipeline.outcome import RunResult, StageOutcome
@@ -83,7 +85,7 @@ def _run_one_phase(ctx: RunContext, result: RunResult, phase: Phase) -> RunResul
     """Plan one phase from fresh facts and run it; a ledger that cannot be read starts no stage of it."""
     try:
         facts = ctx.read_facts()
-    except DiscoveryMachineApiError as err:
+    except (DiscoveryMachineApiError, httpx.HTTPError) as err:
         return replace(result, ledger_error=str(err))
     plan = build_plan(facts, {stage: phase.number for stage in phase.stage_ids})
     outcomes = run_phase(plan.stages, ctx)
