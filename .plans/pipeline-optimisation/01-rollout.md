@@ -107,7 +107,7 @@ Within a wave, the chapters are independent except where the arrow is written. C
 - All fifteen chapters merged to the loop branch, and the release PR merged to `main`.
 - `./ci.sh` green in `apps/api`, `apps/discovery-ingest` and `apps/web`.
 - The admin flow page shows every stage with a state and a last run, and an allotment strip for each resource.
-- A full day's run shows a rendered page with its screenshot the same day, and the Actions minutes of that day are recorded from GitHub.
+- A full day's run shows a rendered page with its screenshot the same day, and the release pull request's remote checks are green (D17: the repository is public, so the checks have no minute limit).
 - Free-tier targets from the architecture's verification table are reported, with any shortfall named.
 
 ## Branch and release protocol

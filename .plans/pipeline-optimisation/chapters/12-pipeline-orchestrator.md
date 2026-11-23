@@ -30,9 +30,9 @@ Eight scheduled workflows each check out the repository, install the package and
 - **Plan.** `discovery_ingest pipeline plan` calls the machine summaries (chapter 2) and the budget endpoint once. It emits the stages with ready work and their caps, and omits idle stages. Its output is JSON, so the workflow can log it.
 - **Phases.** Phase 1 runs fetch and drain, the browser render (one process), embedding and the Azure card and page translation. Phase 2 runs `llm_extract` with concurrency, the screenshot sweeper and the Workers AI tail. Phase 3 runs a final pass of any stage with leftover ready work. Each phase starts only after the previous one ends.
 - **Subprocesses.** Each stage is `python -m discovery_ingest <command>` run with its own flags. The orchestrator reads each stage's report from its output. Exit 1 only if a stage reports `succeeded=false`, and only after every stage has run.
-- **Deadline.** The orchestrator computes the deadline from `ACTIONS_MINUTES_REMAINING` and the days left, capped at 20 minutes per stage, and gives each stage the time left. The YAML `timeout-minutes` stays as a backstop.
+- **Deadline.** The run has a fixed ceiling, `RUN_CEILING_SECONDS`, set below the job's `timeout-minutes`. No minute budget is computed, because Actions minutes are not metered on the public repository (D17). The orchestrator gives each stage the time left to that ceiling, capped at 20 minutes per stage. The YAML `timeout-minutes` stays as the backstop.
 - **Signals.** SIGTERM and SIGINT are forwarded to the running stage and turned into a clean finish; the stage's run closes as failed (chapter 2).
-- **Report and budget.** One aggregated markdown summary to `GITHUB_STEP_SUMMARY`, and one `budget report-minutes` call at the end.
+- **Report.** One aggregated markdown summary to `GITHUB_STEP_SUMMARY` at the end. There is no minute report (D17).
 - **Workflow.** `discovery-daily.yml` runs at one off-peak minute, with a second idempotent slot. Its concurrency group is `discovery-pipeline`. Every stage workflow loses its `schedule:` trigger and keeps `workflow_dispatch`. `discovery-extract.yml` is made dispatch-only here and deleted in chapter 15.
 - **Flag.** The new workflow runs only when `PIPELINE_ORCHESTRATOR` is `enabled` (D16). The old schedules stay until the flag has run a full day.
 
@@ -63,7 +63,7 @@ Eight scheduled workflows each check out the repository, install the package and
 | `phase two starts only after phase one ends` | Happy: ordering with fake processes. |
 | `the deadline gives each stage the time left, capped` | Happy and boundary, with a fake clock. |
 | `SIGTERM closes the run as failed and exits` | Negative: the stage receives the signal and the run closes. |
-| `the budget report is called once` | Happy: a single call. |
+| `the run summary is written once` | Happy: a single write to `GITHUB_STEP_SUMMARY`. |
 | `the daily workflow does nothing when the flag is off` | Negative: the job condition is false. |
 
 ## Green
@@ -71,7 +71,7 @@ Eight scheduled workflows each check out the repository, install the package and
 1. Write the plan tests against fake summaries, then the plan.
 2. Write the phase and failure tests with fake processes, then the runner.
 3. Write the deadline and signal tests, then add them.
-4. Add the workflow, then remove the schedules from the stage workflows in the same commit as the flag check.
+4. Add the workflow. Keep every stage schedule in this merge (carried decision, run ledger of 2026-11-20). Chapter 15 removes them after the flag has run a full day.
 
 ## Refactor gate
 

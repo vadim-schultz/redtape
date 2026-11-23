@@ -12,7 +12,7 @@ isProject: false
 
 | # | Decision | Source |
 | --- | --- | --- |
-| D1 | The Actions pool is the Free plan's 2,000 minutes a month. CI is the largest consumer, so the drain budget comes from measured use, not from the assumed 1,000 | operator |
+| D1 | The Actions pool is the Free plan's 2,000 minutes a month. CI is the largest consumer, so the drain budget comes from measured use, not from the assumed 1,000. Superseded by D17 | operator |
 | D2 | The LLM schedule returns after the verification query in operator step S2. The verification is the one in `.plans/category-taxonomy-remediation/run-ledger.md` (part C of `c8_queries_4.sql`) | operator and evidence |
 | D3 | The long tail of card translation uses Azure for the top priority tier and Workers AI `llm` for the rest. Cards only: pages stay on Azure | operator, refined by review |
 | D4 | Idle capacity is filled with change-driven refresh, a wider catalogue ingest and backfills | operator |
@@ -28,12 +28,14 @@ isProject: false
 | D14 | A new translation tail is off by default. `TRANSLATION_TAIL_LOCALES` is empty until a locale passes the probe, so nothing reaches Workers AI by accident | default |
 | D15 | A 429 from Azure releases the work without consuming an attempt. A failure that is not transient still consumes one | default |
 | D16 | Flags for new behaviour (`RENDER_FUSED_SCREENSHOT`, `PIPELINE_ORCHESTRATOR`, `SEARCH_TAIL_TRANSLATION`) default to off. Each is turned on only after its live gate is recorded | default |
+| D17 | The repository is public, so standard runners are unmetered and there is no Actions minute limit. The minute pool, the minute-derived deadline, the `budget report-minutes` call and operator step S1 are not constraints. Remote CI runs again on the release pull request. Cloudflare seconds, neurons, Azure characters and R2 stay as limits. D1 is superseded | operator, 2026-11-23 |
 
 ## Open seams
 
 | Seam | Forcing condition | Owner |
 | --- | --- | --- |
-| The real Actions pool and CI usage | Operator reads the November usage report (operator step S1). The estimate of about 1,820 minutes in 13 days is per-run rounding, not billing data, and no job has failed, so the estimate may be high or the pool may differ | operator, chapter 1 |
+| The real Actions pool and CI usage | Closed by D17. The repository is public, so the pool and the usage report (step S1) no longer bind | operator, chapter 1 |
+| Runner-local Chromium as the render path | D17 removes the Actions minute cost of chapter 10's fallback. Measured locally at 2.55 minutes per 100 pages. Whether render moves off Cloudflare's 570 browser seconds a day is a new decision, not made by this suite | operator |
 | The cause of the 4006 neuron refusal on 2026-11-11 | Chapter 3 compares the ledger with Cloudflare's usage for each day | chapter 3 |
 | Browser Sessions cost per page | Chapter 10 measures pages per billed minute; session time may accrue while idle | chapter 10 |
 | Fused-call DOM parity | The canary in chapter 8 compares `/content` with the fused `/snapshot` on about 25 stable pages | chapter 8 |
