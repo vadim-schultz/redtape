@@ -123,3 +123,4 @@ Recorded at implementation (chapter branch `feat/pipeline-optimisation-orchestra
 | k | (not in chapter) | An unreachable API ends the run as failed, with one summary and no stage started | Data-design finding DD26: httpx errors escaped the run |
 | l | (not in chapter) | A stage that ignores SIGTERM gets SIGKILL after `TERM_GRACE_SECONDS` (60 s) | Data-design finding: an unbounded wait held the run to the job timeout |
 | m | Budget report called once | No Actions-minute report; one step summary only | D17: the repository is public, so there is no minute budget |
+| n | (not in chapter) | The pinned CLI contract lists name the new group and commands: `GROUPS` gets `pipeline`, `COMMANDS` gets `pipeline plan` and `pipeline run` (count 30), and three golden help files are added for the new paths | The full ingest run failed three contract tests on the new group (coordinator-approved update, commit ec42d29e). Test names keep their older number words |
