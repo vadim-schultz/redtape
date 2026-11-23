@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 
+import httpx
 from discovery_ingest.client.errors import DiscoveryMachineApiError
 from discovery_ingest.operations.pipeline import (
     PipelinePorts,
@@ -212,3 +213,27 @@ def test_a_run_whose_ledger_cannot_be_read_starts_no_stage() -> None:
     assert spawner.started() == []
     assert report.ledger_error is not None
     assert report.succeeded is False
+
+
+def test_an_unreachable_api_closes_the_run_as_failed_and_publishes_it_once() -> None:
+    published = Published()
+
+    def unreachable() -> PlanFacts:
+        raise httpx.ConnectError("connection refused")
+
+    report = run_pipeline(make_ports(FakeSpawner(), unreachable, publish=published))
+
+    assert published.reports == [report]
+    assert report.ledger_error is not None
+    assert report.succeeded is False
+
+
+def test_an_unreachable_api_starts_no_stage() -> None:
+    spawner = FakeSpawner()
+
+    def unreachable() -> PlanFacts:
+        raise httpx.ConnectError("connection refused")
+
+    run_pipeline(make_ports(spawner, unreachable))
+
+    assert spawner.started() == []
