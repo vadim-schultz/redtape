@@ -537,10 +537,10 @@ Use every free allotment the discovery pipeline has (Actions minutes, Cloudflare
 | --- | --- |
 | [00-architecture.md](pipeline-optimisation/00-architecture.md) | Measured state, the flow today, free-tier use, the target design |
 | [01-rollout.md](pipeline-optimisation/01-rollout.md) | Invariants, dependency graph, chief-of-staff execution order, waves, exit criteria |
-| [gaps-and-decisions.md](pipeline-optimisation/gaps-and-decisions.md) | Decisions D1–D16 and the open seams |
+| [gaps-and-decisions.md](pipeline-optimisation/gaps-and-decisions.md) | Decisions D1–D20 and the open seams |
 | [chapters/](pipeline-optimisation/chapters/) | One executable plan per chapter |
 
-Status: planned — documentation suite only; the first chapter is [chapters/01-ci-minute-diet.md](pipeline-optimisation/chapters/01-ci-minute-diet.md). The operator steps S0 to S3 (the snapshot schedule, the Actions usage report, the LLM and embed schedules) do not wait for code.
+Status: merged to the loop branch `feat/plans-pipeline-optimisation`, awaiting the release pull request to `main`. Chapters 1 to 14 are merged and chapter 10 is a no-go spike; chapter 15 awaits its merge into the loop branch. Not shipped until the release pull request merges. The activation steps are in [pipeline-activation.md](../docs/operations/pipeline-activation.md).
 
 ## Conventions
 
