@@ -29,12 +29,16 @@ isProject: false
 | D15 | A 429 from Azure releases the work without consuming an attempt. A failure that is not transient still consumes one | default |
 | D16 | Flags for new behaviour (`RENDER_FUSED_SCREENSHOT`, `PIPELINE_ORCHESTRATOR`, `SEARCH_TAIL_TRANSLATION`) default to off. Each is turned on only after its live gate is recorded | default |
 | D17 | The repository is public, so standard runners are unmetered and there is no Actions minute limit. The minute pool, the minute-derived deadline, the `budget report-minutes` call and operator step S1 are not constraints. Remote CI runs again on the release pull request. Cloudflare seconds, neurons, Azure characters and R2 stay as limits. D1 is superseded | operator, 2026-11-23 |
+| D18 | Refresh cadence: the ceiling is 50 pages a week (`CATALOGUE_REFRESH_MAX_ROWS`, bounded by the GovData cap of 150 and the PVOG cap of 50). A failed refresh counts as the latest fetch, so the page waits another 30 days | operator, 2026-11-23 |
+| D19 | `CATALOGUE_REFRESH_MAX_ROWS` stays unset until the release pull request is merged to `main`, Render has redeployed the API (its start script migrates the database on every start), and production is at the new alembic head. Then it is set to 50. Production runs `main` today: alembic head `20261112_locale_machine_flag` and no drain run recorded since 2026-11-13 | chief of staff, 2026-11-23, for the operator to confirm |
+| D20 | The stage schedules (the `schedule:` triggers and the `DISCOVERY_*_SCHEDULE` repository variables) are removed only as the last activation step in chapter 15, after `PIPELINE_ORCHESTRATOR` has run a full day with them still on. They are production cron runs, not test schedules | operator, 2026-11-23 |
 
 ## Open seams
 
 | Seam | Forcing condition | Owner |
 | --- | --- | --- |
 | The real Actions pool and CI usage | Closed by D17. The repository is public, so the pool and the usage report (step S1) no longer bind | operator, chapter 1 |
+| Render and screenshot schedules fail daily | Both schedules have failed on each run since 2026-11-17, at the "Drain browser tasks" step. The run log has expired, and production records no drain run after 2026-11-13. The cause is not known; it must be found before the first live gate | operator, before release |
 | Runner-local Chromium as the render path | D17 removes the Actions minute cost of chapter 10's fallback. Measured locally at 2.55 minutes per 100 pages. Whether render moves off Cloudflare's 570 browser seconds a day is a new decision, not made by this suite | operator |
 | The cause of the 4006 neuron refusal on 2026-11-11 | Chapter 3 compares the ledger with Cloudflare's usage for each day | chapter 3 |
 | Browser Sessions cost per page | Chapter 10 measures pages per billed minute; session time may accrue while idle | chapter 10 |
