@@ -1,0 +1,7 @@
+Usage: discovery_ingest pipeline run [OPTIONS]
+
+  Run the stages in three phases; exit 1 when a stage failed, the run was stopped or the ledger
+  was unreadable.
+
+Options:
+  -h, --help  Show this message and exit.
