@@ -60,12 +60,12 @@ def _argv_without(spec: CommandSpec, skipped_flag: str) -> list[str]:
     return argv
 
 
-def test_the_command_set_is_exactly_the_twenty_eight_documented_commands() -> None:
+def test_the_command_set_is_exactly_the_thirty_documented_commands() -> None:
     assert [spec.path for spec in describe()] == [spec.path for spec in COMMANDS]
     assert len(describe()) == 30
 
 
-def test_the_root_registers_the_fifteen_groups_in_order() -> None:
+def test_the_root_registers_the_sixteen_groups_in_order() -> None:
     assert groups() == list(GROUPS)
 
 
