@@ -1,0 +1,10 @@
+Usage: discovery_ingest pipeline [OPTIONS] COMMAND [ARGS]...
+
+  Daily pipeline: plan the stages, then run them in three phases
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  plan  Print the stages with ready work and their caps as one JSON document.
+  run   Run the stages in three phases; exit 1 when a stage failed, the run was stopped or...

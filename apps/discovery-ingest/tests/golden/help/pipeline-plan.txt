@@ -1,0 +1,6 @@
+Usage: discovery_ingest pipeline plan [OPTIONS]
+
+  Print the stages with ready work and their caps as one JSON document.
+
+Options:
+  -h, --help  Show this message and exit.
