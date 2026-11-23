@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date
-
 from discovery_ingest.operations.pipeline import (
     STAGES,
     OmittedStage,
     PlanContext,
     PlanFacts,
+    RUN_CEILING_SECONDS,
     build_plan,
     read_plan_facts,
     stage_by_id,
@@ -29,8 +28,6 @@ def facts(
     return PlanFacts(
         ready=ready or {},
         headroom={"browser_seconds": browser, "neurons": neurons},
-        actions_minutes_remaining=600.0,
-        days_left=10,
         unconfigured=unconfigured,
     )
 
@@ -86,6 +83,12 @@ def test_plan_gives_browser_seconds_to_render_before_capture() -> None:
     assert caps == {"render": 570.0, "capture": 30.0}
 
 
+def test_plan_names_the_fixed_ceiling_the_run_is_held_to() -> None:
+    plan = build_plan(facts({"render": 5}))
+
+    assert plan.ceiling_seconds == RUN_CEILING_SECONDS
+
+
 def test_every_planned_stage_builds_arguments_the_cli_accepts() -> None:
     plan = build_plan(facts({spec.id: 5 for spec in STAGES}, browser=1000.0))
 
@@ -101,11 +104,10 @@ def test_the_reader_reads_each_summary_and_the_ledger_once_and_folds_the_sweep_i
         embeddings=11,
         cards={"tr": 4, "uk": 3},
         pages=5,
-        budget_rows=[row("browser_seconds", 400.0), row("neurons", 3000.0), row("actions_minutes", 90.0)],
+        budget_rows=[row("browser_seconds", 400.0), row("neurons", 3000.0)],
         missing=3,
     )
     context = PlanContext(
-        today=date(2026, 11, 20),
         embedding_model="@cf/baai/bge-m3",
         query_embed_reserve=1000.0,
         tail_locales=("tr",),
@@ -121,27 +123,18 @@ def test_the_reader_reads_each_summary_and_the_ledger_once_and_folds_the_sweep_i
     assert read.ready["card_tail"] == 4
     assert read.ready["page_translation"] == 5
     assert read.headroom == {"browser_seconds": 400.0, "neurons": 2000.0}
-    assert read.actions_minutes_remaining == 90.0
-    assert read.days_left == 11
     assert read.unconfigured == frozenset()
-    assert machine.calls["budget"] == 1
-    assert machine.calls["embeddings"] == 1
-    assert machine.calls["translations"] == 1
-    assert machine.calls["snapshots"] == 1
-    assert machine.calls["missing_screenshot"] == 1
     assert all(count == 1 for count in machine.calls.values())
 
 
 def test_the_reader_marks_the_model_and_the_tail_unconfigured_when_they_are_not_set() -> None:
     context = PlanContext(
-        today=date(2026, 11, 30),
         embedding_model="@cf/baai/bge-m3",
         query_embed_reserve=1000.0,
         tail_locales=(),
         llm_model="",
     )
 
-    read = read_plan_facts(FakeMachine(budget_rows=[row("actions_minutes", 10.0)]), context)
+    read = read_plan_facts(FakeMachine(budget_rows=[row("browser_seconds", 10.0)]), context)
 
     assert read.unconfigured == frozenset({"llm", "card_tail"})
-    assert read.days_left == 1
