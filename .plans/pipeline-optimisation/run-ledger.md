@@ -28,6 +28,26 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 **S6 (Azure reset boundary), answered by the operator on 2026-11-15:** the Translator was configured on 2026-11-13 and has run only once manually (26,832 characters), with no reset since. The operator counts 2026-11-13 as the reset anchor. The monthly rule (window restarts on the 13th) is inferred from that anchor, not confirmed in the portal. Chapter 6 uses the anchor as its default (`AZURE_WINDOW_ANCHOR`).
 
+## Chapter 10 re-measure (2026-11-23): decision pending the operator
+
+The operator asked for a re-measure with an explicit session close. The probe ran from the scratch folder with the credentials in `~/.config/redtape/probe.env` (values not recorded). The same 50 pages were used in both arms: the 50 most recent completed render targets. Production has no `text_hash` column, so stability was not checked.
+
+| Arm | Method | Result | Billed basis |
+| --- | --- | --- | --- |
+| A, quick actions | `/content` then `/screenshot` per page, 10.5 s apart | 50 pages, 100 of 100 calls 200 | Cloudflare's `x-browser-ms-used` header: 160.5 s, so **18.7 pages per billed minute** |
+| B, one session | `POST /devtools/browser`, Playwright over CDP, then an explicit `DELETE` | 50 of 50 pages, session lifetime 54.5 s, DELETE 200 | Client-side lifetime from create to DELETE: **55.0 pages per session minute** |
+| Idle | Session held 60 s with no commands, then DELETE | lifetime 60.4 s, DELETE 200 | Client-side only |
+
+Ratio B to A: **2.94**, so the chapter's rule (go at 2 times or more, with idle accounting measurable) would pass on these figures. Three caveats keep this from being a clean go:
+
+1. Arm B's figure is the client's view of session lifetime, not Cloudflare's invoice. Arm A's figure comes from Cloudflare. The two are not like for like. The Cloudflare usage dataset was not found, so billing after the close could not be read.
+2. Arm B does not check HTTP status codes, so a 404 counts as a loaded page. Arm A counts a page when `/content` returns 200.
+3. The 2026-11-20 run measured 17.0 per billed minute for Arm A and 19.5 for Arm B. The new Arm A figure, 18.7, agrees with it. The Arm B figure moved from 19.5 to 55.0, which is the effect of the explicit close and of a different page set. The two runs are not comparable on the Arm B side.
+
+The earlier caveat stands: about 65 s of the 2026-11-20 session was billed after `browser.close()`. This run closed with DELETE and did not measure billing after that. Whether the close ends billing at once is still unknown.
+
+**Recommendation (not applied):** do not record a go yet. The next step is to read the billed seconds for a session from Cloudflare, either the Browser Run usage in the dashboard or the right analytics dataset, and compare them with the 54.5 s client lifetime. A go would open the follow-up chapter for `BrowserClient`. The runner-local question is separate and still open. Raw results: the scratch folder, `remeasure-2026-11-23.json`.
+
 ## Chapter 3 decision (neuron reconciliation)
 
 **Decision: build a rolling window** (a follow-up, not built here). Calibrating the estimate is not supported. Both the rolling reading and a fixed 12:00 UTC reset fit the evidence; a controlled check is still needed before chapter 12 relies on the window shape.
