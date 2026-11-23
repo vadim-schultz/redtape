@@ -112,9 +112,19 @@ STAGES: tuple[StageSpec, ...] = (
 
 STAGE_IDS: tuple[str, ...] = tuple(spec.id for spec in STAGES)
 """Every stage id, in run order."""
-PHASES: tuple[tuple[int, tuple[str, ...]], ...] = ((1, PHASE_ONE), (2, PHASE_TWO), (FINAL_PHASE, STAGE_IDS))
-"""The phases in run order: the phase number each stage record carries, and the stages that phase may plan."""
-FIRST_PASS: Mapping[str, int] = {stage: number for number, ids in PHASES[:2] for stage in ids}
+
+
+@dataclass(frozen=True, slots=True)
+class Phase:
+    """One phase: the number its stage records carry, and the stages it may plan."""
+
+    number: int
+    stage_ids: tuple[str, ...]
+
+
+PHASES: tuple[Phase, ...] = (Phase(1, PHASE_ONE), Phase(2, PHASE_TWO), Phase(FINAL_PHASE, STAGE_IDS))
+"""The phases in run order."""
+FIRST_PASS: Mapping[str, int] = {stage: phase.number for phase in PHASES[:2] for stage in phase.stage_ids}
 """Each stage of the first two phases, mapped to its phase: the stages the plan command shows."""
 
 

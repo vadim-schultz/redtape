@@ -13,7 +13,7 @@ from discovery_ingest.operations.pipeline.plan import PlanFacts, PlannedStage, b
 from discovery_ingest.operations.pipeline.process import Spawner, collect_output, parse_report
 from discovery_ingest.operations.pipeline.report import PipelineReport, build_report
 from discovery_ingest.operations.pipeline.signals import StageRegistry
-from discovery_ingest.operations.pipeline.stages import PHASES, stage_by_id
+from discovery_ingest.operations.pipeline.stages import PHASES, Phase, stage_by_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,8 +29,9 @@ class PipelinePorts:
 
 @dataclass(frozen=True, slots=True)
 class RunContext:
-    """What a phase needs to run its stages: the run's deadline, the clock, the running processes and how to start one."""
+    """What the phases of one run need: the plan reads, the deadline, the clock, the running processes and the starter."""
 
+    read_facts: Callable[[], PlanFacts]
     deadline_at: float
     clock: Callable[[], float]
     registry: StageRegistry
@@ -41,10 +42,14 @@ def run_pipeline(ports: PipelinePorts) -> PipelineReport:
     """Run the phases in order, publish the report once, and return it."""
     started = ports.clock()
     ctx = RunContext(
-        deadline_at=started + RUN_CEILING_SECONDS, clock=ports.clock, registry=ports.registry, spawn=ports.spawn
+        read_facts=ports.read_facts,
+        deadline_at=started + RUN_CEILING_SECONDS,
+        clock=ports.clock,
+        registry=ports.registry,
+        spawn=ports.spawn,
     )
     with ports.registry.handlers():
-        result = _run_phases(ports.read_facts, ctx)
+        result = _run_phases(ctx)
     report = build_report(
         result,
         elapsed_seconds=ports.clock() - started,
@@ -64,29 +69,23 @@ def run_phase(stages: Sequence[PlannedStage], ctx: RunContext) -> list[StageOutc
         return [future.result() for future in futures]
 
 
-def _run_phases(read_facts: Callable[[], PlanFacts], ctx: RunContext) -> RunResult:
+def _run_phases(ctx: RunContext) -> RunResult:
     """Run each phase in turn; a ledger error or a stop ends the run before the next phase."""
     result = RunResult()
-    for number, stage_ids in PHASES:
-        result = _run_phase_number(read_facts, ctx, result, number, stage_ids)
+    for phase in PHASES:
+        result = _run_one_phase(ctx, result, phase)
         if result.ledger_error is not None or ctx.registry.stopping:
             break
     return result
 
 
-def _run_phase_number(
-    read_facts: Callable[[], PlanFacts],
-    ctx: RunContext,
-    result: RunResult,
-    number: int,
-    stage_ids: Sequence[str],
-) -> RunResult:
-    """Plan phase ``number`` from fresh facts and run it; a ledger that cannot be read starts no stage of it."""
+def _run_one_phase(ctx: RunContext, result: RunResult, phase: Phase) -> RunResult:
+    """Plan one phase from fresh facts and run it; a ledger that cannot be read starts no stage of it."""
     try:
-        facts = read_facts()
+        facts = ctx.read_facts()
     except DiscoveryMachineApiError as err:
         return replace(result, ledger_error=str(err))
-    plan = build_plan(facts, {stage: number for stage in stage_ids})
+    plan = build_plan(facts, {stage: phase.number for stage in phase.stage_ids})
     outcomes = run_phase(plan.stages, ctx)
     return replace(
         result,

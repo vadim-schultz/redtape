@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pydantic import BaseModel
 
 from discovery_ingest.operations.pipeline.outcome import RunResult, StageOutcome
 from discovery_ingest.operations.pipeline.plan import OmittedStage
+from discovery_ingest.schemas import DrainReport
 
 
 class StageRecord(BaseModel):
@@ -39,9 +42,37 @@ class PipelineReport(BaseModel):
     stages: list[StageRecord]
 
 
+@dataclass(frozen=True, slots=True)
+class _Counts:
+    """What a stage's drain report counted, or zeros and no stop reason when the stage printed no report."""
+
+    stop_reason: str | None
+    claimed: int
+    completed: int
+    failed: int
+    browser_seconds_used: float
+    neurons_used: float
+    characters_used: int
+
+    @classmethod
+    def of(cls, report: DrainReport | None) -> _Counts:
+        """Return the counts of ``report``, or the empty counts when there is no report."""
+        if report is None:
+            return cls(None, 0, 0, 0, 0.0, 0.0, 0)
+        return cls(
+            report.stop_reason,
+            report.claimed,
+            report.completed,
+            report.failed,
+            report.browser_seconds_used,
+            report.neurons_used,
+            report.characters_used,
+        )
+
+
 def stage_record(outcome: StageOutcome) -> StageRecord:
     """Return the record of one stage outcome, with the counts of its report when it printed one."""
-    report = outcome.report
+    counts = _Counts.of(outcome.report)
     return StageRecord(
         stage=outcome.stage,
         phase=outcome.phase,
@@ -50,13 +81,13 @@ def stage_record(outcome: StageOutcome) -> StageRecord:
         note=outcome.note,
         time_budget_seconds=outcome.time_budget_seconds,
         exit_code=outcome.exit_code,
-        stop_reason=None if report is None else report.stop_reason,
-        claimed=0 if report is None else report.claimed,
-        completed=0 if report is None else report.completed,
-        failed=0 if report is None else report.failed,
-        browser_seconds_used=0.0 if report is None else report.browser_seconds_used,
-        neurons_used=0.0 if report is None else report.neurons_used,
-        characters_used=0 if report is None else report.characters_used,
+        stop_reason=counts.stop_reason,
+        claimed=counts.claimed,
+        completed=counts.completed,
+        failed=counts.failed,
+        browser_seconds_used=counts.browser_seconds_used,
+        neurons_used=counts.neurons_used,
+        characters_used=counts.characters_used,
     )
 
 

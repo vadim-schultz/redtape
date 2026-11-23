@@ -42,34 +42,49 @@ class OmittedStage(BaseModel):
 
 
 class PipelinePlan(BaseModel):
-    """The stages to run, the stages left out, and the fixed ceiling the run is held to."""
+    """The stages to plan, the stages left out, and the fixed ceiling the run is held to."""
 
     ceiling_seconds: float
     stages: list[PlannedStage]
     omitted: list[OmittedStage]
 
 
+@dataclass(frozen=True, slots=True)
+class _Pass:
+    """One plan in progress: its facts, and the allotments not yet granted to a stage."""
+
+    facts: PlanFacts
+    grants: dict[str, float]
+
+
 def build_plan(facts: PlanFacts, phases: Mapping[str, int] = FIRST_PASS) -> PipelinePlan:
     """Plan each stage named in ``phases`` (stage id to phase), in run order, from ``facts``."""
-    grants = dict(facts.headroom)
+    budget = _Pass(facts=facts, grants=dict(facts.headroom))
     selected = [spec for spec in STAGES if spec.id in phases]
-    outcomes = [_plan_one(spec, phases[spec.id], facts, grants) for spec in selected]
+    outcomes = [_plan_one(spec, phases[spec.id], budget) for spec in selected]
     planned = [item for item in outcomes if isinstance(item, PlannedStage)]
     omitted = [item for item in outcomes if isinstance(item, OmittedStage)]
     return PipelinePlan(ceiling_seconds=RUN_CEILING_SECONDS, stages=planned, omitted=omitted)
 
 
-def _plan_one(spec: StageSpec, phase: int, facts: PlanFacts, grants: dict[str, float]) -> PlannedStage | OmittedStage:
-    """Plan one stage, or say why it is left out; a granted cap comes off ``grants``."""
-    if spec.id in facts.unconfigured:
-        return OmittedStage(stage=spec.id, phase=phase, reason="not configured")
-    ready = facts.ready.get(spec.id, 0)
-    if ready <= 0:
-        return OmittedStage(stage=spec.id, phase=phase, reason="no ready work")
-    caps = _grant(spec, grants)
+def _plan_one(spec: StageSpec, phase: int, budget: _Pass) -> PlannedStage | OmittedStage:
+    """Plan one stage, or say why it is left out; a granted cap comes off the pass's allotments."""
+    reason = _skip_reason(spec, budget.facts)
+    if reason is not None:
+        return OmittedStage(stage=spec.id, phase=phase, reason=reason)
+    caps = _grant(spec, budget.grants)
     if caps is None:
         return OmittedStage(stage=spec.id, phase=phase, reason="allotment short")
-    return PlannedStage(stage=spec.id, phase=phase, ready=ready, caps=caps)
+    return PlannedStage(stage=spec.id, phase=phase, ready=budget.facts.ready[spec.id], caps=caps)
+
+
+def _skip_reason(spec: StageSpec, facts: PlanFacts) -> str | None:
+    """Return why ``spec`` cannot be planned from ``facts``, or ``None`` when it can."""
+    if spec.id in facts.unconfigured:
+        return "not configured"
+    if facts.ready.get(spec.id, 0) <= 0:
+        return "no ready work"
+    return None
 
 
 def _grant(spec: StageSpec, grants: dict[str, float]) -> dict[str, float] | None:
