@@ -228,9 +228,9 @@ so scheduled renders queue `llm_extract` work automatically; no operator step is
 empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a render; it is counted as
 `llm_enqueue_failed`. A laptop render with both variables exported does the same.
 
-**OP14: Enable the schedule (optional).** Only after the OP9 live gate and only if the monthly Actions allowance has room
-(crawlers S20). Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`
-(Settings, Secrets and variables, Actions, Variables). The run is daily at 06:00 UTC with 2,500 neurons and skips itself
+**OP14: Enable the schedule (optional).** Only after the OP9 live gate and only after activation step 1 of
+[pipeline-activation.md](pipeline-activation.md) has passed. Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`
+(Settings, Secrets and variables, Actions, Variables). The run is daily at 04:30 UTC with 2,500 neurons and skips itself
 when the model, the Actions minutes (under 20) or the neurons (under 300) are missing. To pause, delete
 `DISCOVERY_LLM_SCHEDULE`; manual dispatch keeps working:
 `gh workflow run discovery-llm.yml -f neuron_budget=2500` (add `-f llm_model=<id>` for another model than the default).
@@ -253,6 +253,5 @@ edges are never emitted.
 ## Rotation and rollback
 
 **Rotate the token:** create a new one (OP1), replace the secret (`gh secret set CLOUDFLARE_AI_API_TOKEN`), run the probe
-(OP5), delete the old token. **Roll back:** delete `DISCOVERY_LLM_SCHEDULE` and the `CLOUDFLARE_AI_API_TOKEN` secret, or
-set `LLM_ENQUEUE` back to false. Pending `llm_extract` tasks wait harmlessly and the render and fetch drains are
+(OP5), delete the old token. **Roll back:** delete `DISCOVERY_LLM_SCHEDULE` and the `CLOUDFLARE_AI_API_TOKEN` secret. `LLM_ENQUEUE` is hard-coded to `"true"` in the `env` block of `discovery-render.yml`, so no repository variable switches it off. Stopping new `llm_extract` work needs an edit to that line. Pending `llm_extract` tasks wait harmlessly and the render and fetch drains are
 unaffected. The staged output is additive: nothing was emitted, so there is nothing to undo downstream.

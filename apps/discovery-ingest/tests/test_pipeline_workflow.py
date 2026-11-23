@@ -15,7 +15,6 @@ DAILY = WORKFLOWS / "discovery-daily.yml"
 STAGE_WORKFLOWS = (
     "discovery-drain.yml",
     "discovery-render.yml",
-    "discovery-extract.yml",
     "discovery-llm.yml",
     "discovery-screenshot.yml",
     "discovery-embed.yml",

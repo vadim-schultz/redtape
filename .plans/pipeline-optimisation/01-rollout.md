@@ -67,21 +67,21 @@ Chapter 15 comes last because it documents the shipped shape and runs the operat
 
 | # | Chapter | Branch | Depends on | Size | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | [CI minute diet and real-minute reconciliation](chapters/01-ci-minute-diet.md) | `feat/pipeline-optimisation-ci-minute-diet` | none | M | planned |
-| 2 | [Observability and run hygiene](chapters/02-observability-run-hygiene.md) | `feat/pipeline-optimisation-observability` | none | M | planned |
-| 3 | [Neuron reconciliation spike](chapters/03-neuron-reconciliation-spike.md) | `feat/pipeline-optimisation-neuron-spike` | none | S | planned |
-| 4 | [Queue hardening](chapters/04-queue-hardening.md) | `feat/pipeline-optimisation-queue-hardening` | 2 | L | planned |
-| 5 | [LLM readiness](chapters/05-llm-readiness.md) | `feat/pipeline-optimisation-llm-readiness` | 2 | M | planned |
-| 6 | [Azure economy](chapters/06-azure-economy.md) | `feat/pipeline-optimisation-azure-economy` | none | M | planned |
-| 7 | [Tiered translation routing](chapters/07-tiered-translation-routing.md) | `feat/pipeline-optimisation-tiered-translation` | 3, 6 | M | planned |
-| 8 | [Fused render, screenshot sweeper and pruning](chapters/08-fused-render-screenshot-sweeper.md) | `feat/pipeline-optimisation-fused-render` | 2 | L | planned |
-| 9 | [Screenshot history Tabs](chapters/09-screenshot-history-tabs.md) | `feat/pipeline-optimisation-screenshot-tabs` | 8 | M | planned |
-| 10 | [Browser Sessions spike](chapters/10-browser-sessions-spike.md) | `feat/pipeline-optimisation-sessions-spike` | none | S | planned |
-| 11 | [Funnel: change detection, refresh and ingest split](chapters/11-funnel-change-detection.md) | `feat/pipeline-optimisation-funnel` | 2, 4 | L | planned |
-| 12 | [Pipeline orchestrator and single workflow](chapters/12-pipeline-orchestrator.md) | `feat/pipeline-optimisation-orchestrator` | 1, 2, 5 | L | planned |
-| 13 | [Pipeline flow API](chapters/13-pipeline-flow-api.md) | `feat/pipeline-optimisation-flow-api` | 2 | M | planned |
-| 14 | [Admin pipeline flow graph](chapters/14-admin-pipeline-flow-graph.md) | `feat/pipeline-optimisation-flow-graph` | 13 | L | planned |
-| 15 | [Docs, drift fixes and staged activation](chapters/15-docs-activation.md) | `feat/pipeline-optimisation-docs-activation` | all | S | planned |
+| 1 | [CI minute diet and real-minute reconciliation](chapters/01-ci-minute-diet.md) | `feat/pipeline-optimisation-ci-minute-diet` | none | M | merged to loop (0ccc2ccb) |
+| 2 | [Observability and run hygiene](chapters/02-observability-run-hygiene.md) | `feat/pipeline-optimisation-observability` | none | M | merged to loop (f09d4fd9) |
+| 3 | [Neuron reconciliation spike](chapters/03-neuron-reconciliation-spike.md) | `feat/pipeline-optimisation-neuron-spike` | none | S | merged to loop (861f6050) |
+| 4 | [Queue hardening](chapters/04-queue-hardening.md) | `feat/pipeline-optimisation-queue-hardening` | 2 | L | merged to loop (18d987f3) |
+| 5 | [LLM readiness](chapters/05-llm-readiness.md) | `feat/pipeline-optimisation-llm-readiness` | 2 | M | merged to loop (1c8d398e) |
+| 6 | [Azure economy](chapters/06-azure-economy.md) | `feat/pipeline-optimisation-azure-economy` | none | M | merged to loop (8b8d025d) |
+| 7 | [Tiered translation routing](chapters/07-tiered-translation-routing.md) | `feat/pipeline-optimisation-tiered-translation` | 3, 6 | M | merged to loop (deff59d1) |
+| 8 | [Fused render, screenshot sweeper and pruning](chapters/08-fused-render-screenshot-sweeper.md) | `feat/pipeline-optimisation-fused-render` | 2 | L | merged to loop (d4655762) |
+| 9 | [Screenshot history Tabs](chapters/09-screenshot-history-tabs.md) | `feat/pipeline-optimisation-screenshot-tabs` | 8 | M | merged to loop (8cfe22d8) |
+| 10 | [Browser Sessions spike](chapters/10-browser-sessions-spike.md) | `feat/pipeline-optimisation-sessions-spike` | none | S | no-go as measured (spike; billing check open) |
+| 11 | [Funnel: change detection, refresh and ingest split](chapters/11-funnel-change-detection.md) | `feat/pipeline-optimisation-funnel` | 2, 4 | L | merged to loop (f6cae73c; refresh 11b merged 03b37cff) |
+| 12 | [Pipeline orchestrator and single workflow](chapters/12-pipeline-orchestrator.md) | `feat/pipeline-optimisation-orchestrator` | 1, 2, 5 | L | merged to loop (cae9fcb7) |
+| 13 | [Pipeline flow API](chapters/13-pipeline-flow-api.md) | `feat/pipeline-optimisation-flow-api` | 2 | M | merged to loop (7bca31ad) |
+| 14 | [Admin pipeline flow graph](chapters/14-admin-pipeline-flow-graph.md) | `feat/pipeline-optimisation-flow-graph` | 13 | L | merged to loop (f50e0720) |
+| 15 | [Docs, drift fixes and staged activation](chapters/15-docs-activation.md) | `feat/pipeline-optimisation-docs-activation` | all | S | merged to loop on chief merge (this branch) |
 
 ## Waves
 

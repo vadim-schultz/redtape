@@ -75,7 +75,7 @@ is written for that version only: the v3.0 API is not compatible. `TRANSLATION_M
   row resets on the calendar month, so the two agree only while the window and the calendar month start together. `python -m discovery_ingest budget show --resource
   azure_translator_chars` prints it.
 - The cap is 1,900,000 characters: 95 percent of the free F0 allowance of 2,000,000 a month, the repository's margin for
-  free tiers. F0 also has an hourly sliding-window quota of the same size. At this volume the hourly quota does not bind.
+  free tiers. F0 also limits characters a minute. The adapter sends at most 28,000 characters in any 60 seconds (`CHARACTERS_PER_MINUTE`) and paces requests to that window, so the per-minute limit, not the monthly cap, sets a drain's pace.
 - Each call reserves its exact characters before it is sent, all or nothing. A refused reservation stops the drain and
   releases its tasks without consuming an attempt. After the call, the ledger is settled to the characters Azure reports
   in the `X-metered-usage` header. Each target locale counts separately: a 3,000-character text sent to three targets

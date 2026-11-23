@@ -81,8 +81,8 @@ Both schedules ship switched off. A person decides when to enable them.
 
 - [ ] **`DISCOVERY_DRAIN_SCHEDULE=enabled`** only after S14 is done and a render run has produced snapshots. Otherwise
   the backlog is fetched without enqueuing any render.
-- [ ] **`DISCOVERY_RENDER_SCHEDULE=enabled`** only after the render live gate and with Actions minutes to spare: a
-  render run is about 15 runner minutes, this repository is capped at 1,000 minutes a month with 600 reserved for CI.
+- [ ] **`DISCOVERY_RENDER_SCHEDULE=enabled`** only after the render live gate. A
+  render run is about 15 runner minutes, which D17 leaves unmetered for this repository.
   Leaving it unset and dispatching by hand (or running the drain on a laptop, S18) is a valid choice. To pause a
   schedule, delete its variable; manual dispatch keeps working.
 
@@ -116,9 +116,8 @@ Both schedules ship switched off. A person decides when to enable them.
 
 ## 7. Monthly and ongoing
 
-- [ ] **S20: compare Actions usage.** GitHub, Billing and plans, Usage for Actions, against
-  `python -m discovery_ingest budget show` (resource `actions_minutes`). Record the month and both figures. If CI alone
-  nears the 600-minute reserve, lower the drain allowance.
+- [ ] **S20: Actions usage (retired by D17).** Nothing to compare. This repository is public, and its standard runners
+  are not metered. `python -m discovery_ingest budget show` still prints `actions_minutes` for the stage prechecks.
 - [ ] **S8: watch the limits** monthly or when an alert arrives: Supabase database size (500 MB, soft limit 475 MB),
   R2 bytes and operations, browser minutes.
 - [ ] **S9: rotation.** Rotate the R2 key and the Cloudflare token when needed; the steps are in the checklist.

@@ -57,12 +57,11 @@ python -m discovery_ingest worker drain --max-tasks 50 --max-batches 5 --time-bu
 Invalid bounds exit with code 2. An API failure exits with code 1. A drain that ends on a limit exits 0.
 
 `discovery-drain.yml` passes its inputs to the same flags. `max_tasks` defaults to 50, `max_batches` to 20 and `kinds`
-to `fetch_url,enrich_metadata,harvest_payload` — trimmed from the CLI default above, because `extract_page` now drains
-in its own workflow (chapter 2 of `discovery-throughput`'s same-day restructuring). The time budget is the
+to `fetch_url,enrich_metadata,harvest_payload` — trimmed from the CLI default above, because `extract_page` has no
+workflow: no extractor is registered, so the drain has nothing to do (`pipeline-optimisation` chapter 15 retired its workflow). The time budget is the
 `time_budget_seconds` input, else the repository variable `DISCOVERY_DRAIN_BUDGET_SECONDS`, else 900 seconds. The
-daily 02:00 UTC schedule runs only when the variable `DISCOVERY_DRAIN_SCHEDULE` is `enabled`; the other four stages
-each drain on their own daily schedule, same-day: `render_page` at 03:00 UTC (`discovery-render.yml`), `extract_page`
-at 04:00 UTC (`discovery-extract.yml`), `llm_extract` at 04:30 UTC (`discovery-llm.yml`) and `capture_screenshot` at
+daily 02:00 UTC schedule runs only when the variable `DISCOVERY_DRAIN_SCHEDULE` is `enabled`; the other three stages
+each drain on their own daily schedule, same-day: `render_page` at 03:00 UTC (`discovery-render.yml`), `llm_extract` at 04:30 UTC (`discovery-llm.yml`) and `capture_screenshot` at
 05:00 UTC (`discovery-screenshot.yml`). See [scheduled-jobs.md](scheduled-jobs.md).
 
 ### Task kinds and the kind filter
