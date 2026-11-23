@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import signal
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -20,7 +21,7 @@ from discovery_ingest.operations.pipeline import (
     run_pipeline,
 )
 
-from pipeline_fakes import Behaviour, FakeSpawner, report_line
+from pipeline_fakes import Behaviour, FakeSpawner, report_line, stage_of
 
 
 class FakeClock:
@@ -237,3 +238,51 @@ def test_an_unreachable_api_starts_no_stage() -> None:
     run_pipeline(make_ports(spawner, unreachable))
 
     assert spawner.started() == []
+
+
+def spawn_refusing(stage: str, spawner: FakeSpawner) -> Callable[[Sequence[str]], object]:
+    """Return a starter that raises OSError for ``stage`` and starts every other stage through ``spawner``."""
+
+    def spawn(argv: Sequence[str]) -> object:
+        if stage_of(argv) == stage:
+            raise OSError(errno.ENOEXEC, "Exec format error")
+        return spawner(argv)
+
+    return spawn
+
+
+def test_a_stage_that_cannot_be_spawned_does_not_stop_the_other_stages() -> None:
+    spawner = FakeSpawner()
+    ports = PipelinePorts(
+        read_facts=reads_in_order({"render": 5, "seed": 5}),
+        spawn=spawn_refusing("render", spawner),  # type: ignore[arg-type]
+        clock=FakeClock(),
+        registry=StageRegistry(),
+        publish=Published(),
+    )
+
+    report = run_pipeline(ports)
+
+    assert "seed" in spawner.started()
+    assert record_of(report, "seed").succeeded is True
+
+
+def test_a_stage_that_cannot_be_spawned_fails_the_run_with_one_report_that_names_the_error() -> None:
+    spawner = FakeSpawner()
+    published = Published()
+    ports = PipelinePorts(
+        read_facts=reads_in_order({"render": 5, "seed": 5}),
+        spawn=spawn_refusing("render", spawner),  # type: ignore[arg-type]
+        clock=FakeClock(),
+        registry=StageRegistry(),
+        publish=published,
+    )
+
+    report = run_pipeline(ports)
+
+    assert published.reports == [report]
+    assert report.succeeded is False
+    render = record_of(report, "render")
+    assert render.started is False
+    assert render.succeeded is False
+    assert "OSError" in render.note
