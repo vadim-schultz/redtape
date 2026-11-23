@@ -252,7 +252,7 @@ where k ilike any (array['%lebenslage%', '%leika%', '%categor%', '%thema%', '%ta
 group by 1, 2 order by rows desc limit 40;
 ```
 
-**S13: Enable schedules (variables).** Do not set schedule variables from this step. The activation order, with a go or no-go check at each step, is in `pipeline-activation.md`. To pause a schedule, delete its variable; manual dispatch keeps working.
+**S13: Enable schedules (variables).** Do not set schedule variables from this step. The activation order, with a go or no-go check at each step, is in [pipeline-activation.md](pipeline-activation.md). To pause a schedule, delete its variable; manual dispatch keeps working.
 
 **S14: Re-pend completed fetches so each gets a render task (after the release is deployed).** About a hundred pages. A
 completed task is never enqueued again, so a page fetched before `render_page` existed gets no render until it is

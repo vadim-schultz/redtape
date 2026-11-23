@@ -229,7 +229,7 @@ empty `LLM_MODEL` the render drain exits 2. A failed enqueue never fails a rende
 `llm_enqueue_failed`. A laptop render with both variables exported does the same.
 
 **OP14: Enable the schedule (optional).** Only after the OP9 live gate and only after activation step 1 of
-`pipeline-activation.md` has passed. Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`
+[pipeline-activation.md](pipeline-activation.md) has passed. Set the repository variables `DISCOVERY_LLM_MODEL` (the OP7 model) and `DISCOVERY_LLM_SCHEDULE=enabled`
 (Settings, Secrets and variables, Actions, Variables). The run is daily at 04:30 UTC with 2,500 neurons and skips itself
 when the model, the Actions minutes (under 20) or the neurons (under 300) are missing. To pause, delete
 `DISCOVERY_LLM_SCHEDULE`; manual dispatch keeps working:

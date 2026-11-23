@@ -122,7 +122,7 @@ Actions minutes and shares the same ledger.
 ## Operator checklist
 
 The steps below are the ones that still apply after the release. Schedules and flags are set only in
-`pipeline-activation.md`, in its order.
+[pipeline-activation.md](pipeline-activation.md), in its order.
 
 ### O1 Account billing
 
@@ -136,7 +136,7 @@ Create a free UptimeRobot (5 minute interval) or cron-job.org monitor on `https:
 
 ### O3 Schedule and flag variables
 
-Do not set schedule or flag variables from this page. The order is in `pipeline-activation.md`.
+Do not set schedule or flag variables from this page. The order is in [pipeline-activation.md](pipeline-activation.md).
 Under **Settings, Secrets and variables, Actions, Variables**, `DISCOVERY_DRAIN_BUDGET_SECONDS` sets the scheduled drain's
 wall-clock budget in seconds. When it is unset, the drain uses 900.
 
