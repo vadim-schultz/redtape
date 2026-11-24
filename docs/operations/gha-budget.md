@@ -49,11 +49,8 @@ overlapping pushes. The concurrency block in `api-lint-test.yml` and `web-ci.yml
 ## Minutes are not a budget
 
 Under D17 the standard runners of this repository are not metered, so this page sets no minute cap and no per-drain minute share.
-The stage workflows still read the ledger's `actions_minutes` before they run. `discovery-drain.yml` skips itself under
-30 minutes left. The other stage workflows skip under 20 minutes left, and the browser workflows also skip under 30 browser
-seconds. Those prechecks are code that a later change removes. Until then, a scheduled drain can skip when the ledger's
-minute figure runs low. Check it with `python -m discovery_ingest budget show --resource actions_minutes` when a
-scheduled drain is missing.
+The stage workflows do not read the ledger's `actions_minutes` before they run (chapter 16), so no run skips for minutes.
+The browser workflows skip under 30 browser seconds left. The neuron and character floors of the other stages are unchanged.
 
 Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs report nothing and cost nothing.
 
@@ -64,12 +61,12 @@ Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs rep
 | `api-lint-test.yml`, `web-ci.yml`, `discovery-ingest-ci.yml` | `pull_request` and `push` to `main`, path filtered. A new push cancels the superseded PR run. |
 | `platform-maintenance.yml` | Cron `0 2 28 * *` (monthly) and `workflow_dispatch` with `job` = `all`, `openplz` or `discovery`. The OpenPLZ job times out after 30 minutes; the import is incremental. |
 | `discovery-daily.yml` | Two UTC slots, 03:17 and 15:17, when `PIPELINE_ORCHESTRATOR` is `enabled`, and `workflow_dispatch`. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-drain.yml` | Daily 02:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 ledger minutes. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-render.yml` | Daily 03:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-llm.yml` | Daily 04:30 UTC when `DISCOVERY_LLM_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 300 neurons. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-screenshot.yml` | Daily 05:00 UTC when `DISCOVERY_SCREENSHOT_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes or 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
-| `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 20 ledger minutes, when the engine's own budget is short (`llm`: no more than 100 neurons above the `QUERY_EMBED_RESERVE` floor; `azure-translator`, the default: fewer characters than `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` left this month), and when no translation task is ready. The snapshot job in the same file runs only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-drain.yml` | Daily 02:00 UTC when `DISCOVERY_DRAIN_SCHEDULE` is `enabled`, and `workflow_dispatch`. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-render.yml` | Daily 03:00 UTC when `DISCOVERY_RENDER_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-llm.yml` | Daily 04:30 UTC when `DISCOVERY_LLM_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 300 neurons. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-screenshot.yml` | Daily 05:00 UTC when `DISCOVERY_SCREENSHOT_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 30 browser seconds. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-embed.yml` | 06:10 and 18:10 UTC when `DISCOVERY_EMBED_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself under 100 neurons, and when no embedding task is ready. Shares the concurrency group `discovery-pipeline`. |
+| `discovery-translate.yml` | 17:10 UTC when `DISCOVERY_TRANSLATE_SCHEDULE` is `enabled`, and `workflow_dispatch`. Skips itself when the engine's own budget is short (`llm`: no more than 100 neurons above the `QUERY_EMBED_RESERVE` floor; `azure-translator`, the default: fewer characters than `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` left this month), and when no translation task is ready. The snapshot job in the same file runs only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`. Shares the concurrency group `discovery-pipeline`. |
 | `discovery-storage-probe.yml`, `discovery-browser-probe.yml`, `discovery-fim-probe.yml`, `discovery-fixture-capture.yml` | `workflow_dispatch` only. Each is short and budget-neutral. |
 
 `keep-alive.yml` and `openplz-import.yml` no longer exist. Schedules fire only from the default branch, so the release to
