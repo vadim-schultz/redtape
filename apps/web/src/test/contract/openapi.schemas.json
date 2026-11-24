@@ -625,6 +625,12 @@
           }
         ]
       },
+      "screenshots": {
+        "items": {
+          "$ref": "#/components/schemas/CandidateScreenshot"
+        },
+        "type": "array"
+      },
       "similarity": {
         "oneOf": [
           {
@@ -2779,6 +2785,18 @@
     "title": "DiscoveryEventType",
     "type": "string"
   },
+  "DiscoveryFailureClass": {
+    "description": "Why a discovery task failed, as the worker classifies it; a task with no class counts as permanent.",
+    "enum": [
+      "transient",
+      "permanent",
+      "login_wall",
+      "robots",
+      "not_found"
+    ],
+    "title": "DiscoveryFailureClass",
+    "type": "string"
+  },
   "DiscoveryMentionRole": {
     "description": "How a procedure relates to a mentioned document.",
     "enum": [
@@ -2880,6 +2898,17 @@
     ],
     "title": "DiscoveryRunRead",
     "type": "object"
+  },
+  "DiscoveryRunStage": {
+    "description": "The drain a run record belongs to; a run that names no stage is a worker drain.",
+    "enum": [
+      "worker_drain",
+      "embed",
+      "translate",
+      "snapshot_translate"
+    ],
+    "title": "DiscoveryRunStage",
+    "type": "string"
   },
   "DiscoverySource": {
     "description": "Which government or manual feed produced a catalogue row.",
@@ -3481,8 +3510,24 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
         "type": "integer"
+      },
+      "failed_24h": {
+        "type": "integer"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -3493,7 +3538,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "pending_ready",
       "stale_candidates"
     ],
@@ -3703,6 +3750,16 @@
   },
   "FetchLogAppendRequest": {
     "properties": {
+      "body_sha256": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "byte_length": {
         "oneOf": [
           {
@@ -3725,6 +3782,17 @@
         ]
       },
       "error_message": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "final_url": {
+        "maxLength": 2048,
         "oneOf": [
           {
             "type": "string"
@@ -3758,6 +3826,20 @@
       "id": {
         "format": "uuid",
         "type": "string"
+      },
+      "render_due": {
+        "default": false,
+        "type": "boolean"
+      },
+      "render_input_key": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "task_status": {
         "$ref": "#/components/schemas/DiscoveryTaskStatus"
@@ -3832,6 +3914,217 @@
       "id"
     ],
     "title": "FetchLogRow",
+    "type": "object"
+  },
+  "FlowAllotmentRead": {
+    "properties": {
+      "cap": {
+        "type": "integer"
+      },
+      "resource": {
+        "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+        ],
+        "type": "string"
+      },
+      "spent_by_stage": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "used": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "cap",
+      "resource",
+      "spent_by_stage",
+      "used"
+    ],
+    "title": "FlowAllotmentRead",
+    "type": "object"
+  },
+  "FlowEdgeRead": {
+    "properties": {
+      "from": {
+        "type": "string"
+      },
+      "manual_only": {
+        "type": "boolean"
+      },
+      "tasks_created_24h": {
+        "type": "integer"
+      },
+      "to": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "from",
+      "manual_only",
+      "tasks_created_24h",
+      "to"
+    ],
+    "title": "FlowEdgeRead",
+    "type": "object"
+  },
+  "FlowHeadroomRead": {
+    "properties": {
+      "resource": {
+        "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+        ],
+        "type": "string"
+      },
+      "stage": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "resource",
+      "stage"
+    ],
+    "title": "FlowHeadroomRead",
+    "type": "object"
+  },
+  "FlowLastRunRead": {
+    "properties": {
+      "finished_at": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "started_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "stop_reason": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "started_at",
+      "status"
+    ],
+    "title": "FlowLastRunRead",
+    "type": "object"
+  },
+  "FlowResponse": {
+    "properties": {
+      "allotments": {
+        "items": {
+          "$ref": "#/components/schemas/FlowAllotmentRead"
+        },
+        "type": "array"
+      },
+      "edges": {
+        "items": {
+          "$ref": "#/components/schemas/FlowEdgeRead"
+        },
+        "type": "array"
+      },
+      "stages": {
+        "items": {
+          "$ref": "#/components/schemas/FlowStageRead"
+        },
+        "type": "array"
+      },
+      "unused_headroom": {
+        "items": {
+          "$ref": "#/components/schemas/FlowHeadroomRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "allotments",
+      "edges",
+      "stages",
+      "unused_headroom"
+    ],
+    "title": "FlowResponse",
+    "type": "object"
+  },
+  "FlowStageRead": {
+    "properties": {
+      "failed_24h": {
+        "type": "integer"
+      },
+      "id": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "last_run": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FlowLastRunRead"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ready": {
+        "type": "integer"
+      },
+      "state": {
+        "enum": [
+          "dead",
+          "budget_stopped",
+          "throttled",
+          "blocked",
+          "starved",
+          "overdue",
+          "backlogged",
+          "flowing",
+          "idle"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "failed_24h",
+      "id",
+      "label",
+      "ready",
+      "state"
+    ],
+    "title": "FlowStageRead",
     "type": "object"
   },
   "JurisdictionPathNode": {
@@ -3977,6 +4270,21 @@
       "name"
     ],
     "title": "LocationNode",
+    "type": "object"
+  },
+  "MissingScreenshotResponse": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/ArtifactRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "MissingScreenshotResponse",
     "type": "object"
   },
   "NewDocumentPayload": {
@@ -4375,6 +4683,22 @@
     "title": "RequirementRead",
     "type": "object"
   },
+  "RetentionPruneResponse": {
+    "properties": {
+      "events_deleted": {
+        "type": "integer"
+      },
+      "fetch_logs_deleted": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "events_deleted",
+      "fetch_logs_deleted"
+    ],
+    "title": "RetentionPruneResponse",
+    "type": "object"
+  },
   "RowBlock": {
     "properties": {
       "cells": {
@@ -4438,6 +4762,19 @@
         "minimum": 0.0,
         "type": "integer"
       },
+      "spend": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "status": {
         "enum": [
           "succeeded",
@@ -4457,6 +4794,7 @@
           "db_limit",
           "llm_budget",
           "llm_quota",
+          "rate_limited",
           null
         ],
         "type": [
@@ -4516,6 +4854,16 @@
     "properties": {
       "kind": {
         "$ref": "#/components/schemas/DiscoveryRunKind"
+      },
+      "stage": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DiscoveryRunStage"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [],
@@ -4778,11 +5126,27 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
+        "type": "integer"
+      },
+      "failed_24h": {
         "type": "integer"
       },
       "locale": {
         "type": "string"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -4799,7 +5163,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "locale",
       "pending_ready",
       "skipped",
@@ -4831,6 +5197,51 @@
       "locales"
     ],
     "title": "SnapshotSummaryResponse",
+    "type": "object"
+  },
+  "StaleFetchRead": {
+    "properties": {
+      "catalogue_service_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "last_fetched_at": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "target_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "catalogue_service_id",
+      "last_fetched_at",
+      "target_url"
+    ],
+    "title": "StaleFetchRead",
+    "type": "object"
+  },
+  "StaleFetchesResponse": {
+    "properties": {
+      "input_key": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/StaleFetchRead"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "input_key",
+      "items"
+    ],
+    "title": "StaleFetchesResponse",
     "type": "object"
   },
   "SubmitterRead": {
@@ -5132,6 +5543,16 @@
             "type": "null"
           }
         ]
+      },
+      "text_hash": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [],
@@ -5257,6 +5678,16 @@
         "minLength": 1,
         "type": "string"
       },
+      "failure_class": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DiscoveryFailureClass"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "retryable": {
         "default": false,
         "type": "boolean"
@@ -5335,6 +5766,31 @@
     "title": "TaskReleaseResponse",
     "type": "object"
   },
+  "TaskRequeueRequest": {
+    "properties": {
+      "limit": {
+        "default": 50,
+        "maximum": 200.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [],
+    "title": "TaskRequeueRequest",
+    "type": "object"
+  },
+  "TaskRequeueResponse": {
+    "properties": {
+      "requeued": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "requeued"
+    ],
+    "title": "TaskRequeueResponse",
+    "type": "object"
+  },
   "TaskSummaryResponse": {
     "properties": {
       "claimed": {
@@ -5346,8 +5802,24 @@
       "completed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
         "type": "integer"
+      },
+      "failed_24h": {
+        "type": "integer"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_delayed": {
         "type": "integer"
@@ -5360,11 +5832,57 @@
       "claimed",
       "claimed_stale",
       "completed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "pending_delayed",
       "pending_ready"
     ],
     "title": "TaskSummaryResponse",
+    "type": "object"
+  },
+  "TaskSupersededRequest": {
+    "properties": {
+      "dry_run": {
+        "default": false,
+        "type": "boolean"
+      },
+      "input_key": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/DiscoveryTaskKind"
+      },
+      "limit": {
+        "default": 50,
+        "maximum": 200.0,
+        "minimum": 1.0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "input_key",
+      "kind"
+    ],
+    "title": "TaskSupersededRequest",
+    "type": "object"
+  },
+  "TaskSupersededResponse": {
+    "properties": {
+      "matched": {
+        "type": "integer"
+      },
+      "requeued": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "matched",
+      "requeued"
+    ],
+    "title": "TaskSupersededResponse",
     "type": "object"
   },
   "TextBlock": {
@@ -5398,6 +5916,18 @@
     "title": "TextBlock",
     "type": "object"
   },
+  "TextExtractedResponse": {
+    "properties": {
+      "extracted": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "extracted"
+    ],
+    "title": "TextExtractedResponse",
+    "type": "object"
+  },
   "TranslationBundle": {
     "properties": {
       "locale": {
@@ -5419,10 +5949,37 @@
   },
   "TranslationClaimRequest": {
     "properties": {
+      "engine": {
+        "maxLength": 50,
+        "minLength": 1,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "limit": {
         "default": 50,
         "maximum": 50.0,
         "minimum": 1.0,
+        "type": "integer"
+      },
+      "priority_max": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "priority_min": {
+        "default": 0,
+        "minimum": 0.0,
         "type": "integer"
       }
     },
@@ -5656,11 +6213,27 @@
       "claimed": {
         "type": "integer"
       },
+      "completed_24h": {
+        "type": "integer"
+      },
       "failed": {
+        "type": "integer"
+      },
+      "failed_24h": {
         "type": "integer"
       },
       "locale": {
         "type": "string"
+      },
+      "oldest_pending_age_seconds": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "pending_ready": {
         "type": "integer"
@@ -5674,7 +6247,9 @@
     },
     "required": [
       "claimed",
+      "completed_24h",
       "failed",
+      "failed_24h",
       "locale",
       "pending_ready",
       "stale",

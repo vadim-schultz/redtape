@@ -107,6 +107,7 @@
     "screenshot_alt": "Screenshot of the source page for {title}",
     "screenshot_missing": "No screenshot available yet",
     "screenshot_fetched": "Captured {time}",
+    "screenshot_history": "Screenshot history",
     "sources": "Sources",
     "source_role_required": "Required",
     "source_role_form": "Form",
@@ -405,6 +406,93 @@
       "col_status": "Status",
       "translator_title": "Azure Translator",
       "translator_missing": "Not configured: the Azure character budget row is missing."
+    },
+    "flow": {
+      "title": "Pipeline flow",
+      "graph_label": "Pipeline stages and the stages they feed",
+      "list_label": "Pipeline stages in order",
+      "empty": "No pipeline stages yet.",
+      "layout_error": "The flow could not be laid out.",
+      "detail_empty": "Select a stage to see its last run, its failures and its spend.",
+      "ready": "Ready: {count}",
+      "failed_24h": "Failed in 24 h: {count}",
+      "last_run": "Last run: {age}",
+      "no_run": "No run recorded",
+      "stop_reason": "Stop reason: {reason}",
+      "run_status": {
+        "running": "Running",
+        "succeeded": "Succeeded",
+        "failed": "Failed"
+      },
+      "spend_title": "Spend in the last 24 h",
+      "spend_none": "This stage draws on no free allotment.",
+      "spend_row": "{stage}: {spent}",
+      "headroom": "{resource} has unused headroom while {stage} has ready work.",
+      "strip_label": "Allotments",
+      "stage": {
+        "seed": "Seed",
+        "render": "Render",
+        "extract_page": "Extract (rules)",
+        "llm": "Extract (LLM)",
+        "capture": "Screenshot",
+        "embed": "Embed",
+        "card_translation": "Card translation",
+        "page_translation": "Page translation"
+      },
+      "run_stage": {
+        "worker_drain": "Worker drain",
+        "embed": "Embed",
+        "translate": "Card translation",
+        "snapshot_translate": "Page translation"
+      },
+      "stop_reasons": {
+        "queue_empty": "queue empty",
+        "time_budget": "time budget",
+        "rate_limited": "rate limited",
+        "browser_budget": "browser budget",
+        "browser_quota": "browser quota",
+        "llm_budget": "LLM budget",
+        "llm_quota": "LLM quota"
+      },
+      "state": {
+        "dead": {
+          "label": "Dead",
+          "description": "No task of this stage has ever been queued."
+        },
+        "budget_stopped": {
+          "label": "Budget stopped",
+          "description": "The stage stopped on its allotment, and ready work waits for the next period."
+        },
+        "throttled": {
+          "label": "Throttled",
+          "description": "Ready work and headroom are left, but the last run stopped on its clock or a rate limit."
+        },
+        "blocked": {
+          "label": "Blocked",
+          "description": "Nothing is ready, and a stage upstream is overdue."
+        },
+        "starved": {
+          "label": "Starved",
+          "description": "Nothing is ready, and the last run found the queue empty."
+        },
+        "overdue": {
+          "label": "Overdue",
+          "description": "The last run is older than the stage's cadence allows."
+        },
+        "backlogged": {
+          "label": "Backlogged",
+          "description": "At the 24 h clearing rate the ready work would take longer than the cadence allows."
+        },
+        "flowing": {
+          "label": "Flowing",
+          "description": "The stage completed work in the last 24 h."
+        },
+        "idle": {
+          "label": "Idle",
+          "description": "Nothing is ready, and the stage reports no trouble."
+        }
+      },
+      "updated": "Updated {age}"
     }
   },
   "suggest": {

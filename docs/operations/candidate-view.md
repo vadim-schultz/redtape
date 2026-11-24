@@ -148,7 +148,7 @@ sources route answers 200 with the machine key.
 ## Screenshot cadence
 
 Production had no screenshot on 2026-10-30. `llm_extract` queues a `capture_screenshot` task after
-it posts mentions, but no default drain handles that kind. Drain it on a laptop, within one UTC
+it posts mentions. `discovery-screenshot.yml` drains that kind on its own daily schedule (see scheduled-jobs.md). A laptop drain, within one UTC
 day's 570 browser seconds. Cloudflare allows one request every 10 seconds and the worker waits 11,
 so about 55 to 65 pages fit in 900 seconds.
 

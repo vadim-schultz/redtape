@@ -29,6 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_discovery_admin_api import _catalogue
+from test_discovery_task_superseded import _artifact, _completed
 
 BATCH_URL = "/api/v1/discovery/machine/catalogue/batch"
 CLAIM_URL = "/api/v1/discovery/machine/tasks/claim"
@@ -563,3 +564,134 @@ def test_post_task_release_rejects_a_task_that_is_not_claimed_and_an_unknown_tas
 
     assert (not_claimed.status_code, unknown.status_code, missing_reason.status_code) == (409, 404, 422)
     assert pending.status == DiscoveryTaskStatus.PENDING
+
+
+REQUEUE_URL = "/api/v1/discovery/machine/tasks/requeue-transient"
+
+
+def _task_row(db_session: Session, task_id: uuid.UUID) -> DiscoveryTask:
+    row = db_session.get(DiscoveryTask, task_id)
+    assert row is not None
+    return row
+
+
+def _failed_task(db_session: Session, *, failure_class: str, age: timedelta) -> DiscoveryTask:
+    task = _seed_pending(db_session, DiscoveryTaskKind.FETCH_URL)
+    task.status = DiscoveryTaskStatus.FAILED
+    task.failure_class = failure_class
+    task.attempt_count = 3
+    task.updated_at = datetime.now(UTC) - age
+    db_session.flush()
+    return task
+
+
+def test_post_requeue_transient_returns_the_count_of_tasks_put_back(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    due = _failed_task(db_session, failure_class="transient", age=timedelta(hours=25))
+
+    response = client.post(REQUEUE_URL, json={"limit": 10}, headers={"X-API-Key": key})
+
+    assert response.status_code == 200
+    assert response.json() == {"requeued": 1}
+    assert _task_row(db_session, due.id).status is DiscoveryTaskStatus.PENDING
+
+
+@pytest.mark.parametrize("limit", [0, 201])
+def test_post_requeue_transient_rejects_a_limit_outside_one_to_200(
+    client: TestClient[Litestar],
+    db_session: Session,
+    limit: int,
+) -> None:
+    key = _issue_key(db_session)
+    failed = _failed_task(db_session, failure_class="transient", age=timedelta(hours=25))
+
+    response = client.post(REQUEUE_URL, json={"limit": limit}, headers={"X-API-Key": key})
+
+    assert response.status_code == 422
+    assert _task_row(db_session, failed.id).status is DiscoveryTaskStatus.FAILED
+
+
+SUPERSEDED_URL = "/api/v1/discovery/machine/tasks/requeue-superseded"
+
+
+def test_post_requeue_superseded_repends_an_older_extraction_and_reports_both_counts(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    """machine API · happy: the route answers matched and requeued, and the older extraction is pending under the new key."""
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session, external_id="superseded-route")
+    artifact = _artifact(db_session, catalogue)
+    old = _completed(
+        db_session, catalogue, url="https://example.gov/route", input_key="llm:old00005", artifact=artifact
+    )
+
+    response = client.post(
+        SUPERSEDED_URL,
+        json={"kind": "llm_extract", "input_key": "llm:cur00001", "limit": 10},
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"matched": 1, "requeued": 1}
+    assert _task_row(db_session, old.id).input_key == "llm:cur00001"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{"kind": "llm_extract", "input_key": "llm:cur00001", "limit": 0}, {"kind": "llm_extract", "limit": 10}],
+)
+def test_post_requeue_superseded_rejects_a_limit_below_one_or_a_missing_key(
+    client: TestClient[Litestar],
+    db_session: Session,
+    body: dict[str, object],
+) -> None:
+    """machine API · negative: a limit of 0 or a missing input_key is a validation error (422) and changes no row."""
+    key = _issue_key(db_session)
+    catalogue = _catalogue(db_session, external_id="superseded-refused")
+    artifact = _artifact(db_session, catalogue)
+    old = _completed(
+        db_session, catalogue, url="https://example.gov/refused", input_key="llm:old00005", artifact=artifact
+    )
+
+    response = client.post(SUPERSEDED_URL, json=body, headers={"X-API-Key": key})
+
+    assert response.status_code == 422
+    assert _task_row(db_session, old.id).status is DiscoveryTaskStatus.COMPLETED
+
+
+def test_post_task_fail_stores_the_failure_class_the_worker_sends(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(
+        _fail_url(task_id),
+        json={"error": "robots.txt disallows", "failure_class": "robots"},
+        headers={"X-API-Key": key},
+    )
+
+    assert response.status_code == 201
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.failure_class == "robots"
+
+
+def test_post_task_fail_rejects_an_unknown_failure_class_and_changes_nothing(
+    client: TestClient[Litestar],
+    db_session: Session,
+) -> None:
+    key = _issue_key(db_session)
+    task_id = _claimed_task(client, db_session, key)
+
+    response = client.post(
+        _fail_url(task_id), json={"error": "boom", "failure_class": "fatal"}, headers={"X-API-Key": key}
+    )
+
+    assert response.status_code == 422
+    task = db_session.get(DiscoveryTask, task_id)
+    assert task is not None and task.status is DiscoveryTaskStatus.CLAIMED

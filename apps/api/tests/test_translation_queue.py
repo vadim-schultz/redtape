@@ -12,14 +12,27 @@ from app.config import settings
 from app.db import engine as db_engine
 from app.features.discovery.task_retry import BACKOFF, MAX_ATTEMPTS
 from app.features.search.errors import TaskNotOwnedError
+from app.features.translation.lanes import ClaimScope
+from app.features.translation.priority import PriorityRange
 from app.features.translation.queue import TranslationQueue
 from app.models.search import WorkTaskStatus
-from app.schema.translation.machine import TranslationFailRequest
+from app.models.translation import TranslationTask
+from app.schema.translation.machine import TranslationClaimRequest, TranslationFailRequest
+from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from embedding_support import CommittedWorld, _forget
-from translation_support import NOW, claimed_by, enqueuer, make_key, queued_task, unit_candidate, unit_hash
+from translation_support import (
+    NOW,
+    claimed_by,
+    enqueuer,
+    make_key,
+    queued_task,
+    task_rows,
+    unit_candidate,
+    unit_hash,
+)
 
 LATER = NOW + timedelta(minutes=16)
 
@@ -176,6 +189,24 @@ def test_summary_of_an_empty_queue_is_zero_for_every_target_locale(db_session: S
     )
 
 
+def test_summary_reports_the_oldest_ready_age_and_the_24_hour_counts_per_locale(db_session: Session) -> None:
+    """stats · the oldest ready task of a locale sets its age; a task finished 25 h ago is not counted in 24 h."""
+    _, waiting = queued_task(db_session, "tr", "Erster Antrag")
+    waiting.created_at = NOW - timedelta(hours=4)
+    _, done = queued_task(db_session, "tr", "Zweiter Antrag")
+    done.status = WorkTaskStatus.COMPLETED
+    done.updated_at = NOW - timedelta(hours=1)
+    _, old_done = queued_task(db_session, "tr", "Dritter Antrag")
+    old_done.status = WorkTaskStatus.COMPLETED
+    old_done.updated_at = NOW - timedelta(hours=25)
+    db_session.flush()
+
+    summary = {entry.locale: entry for entry in _queue(db_session).summary().locales}["tr"]
+
+    assert summary.oldest_pending_age_seconds == 4 * 3600
+    assert (summary.completed_24h, summary.failed_24h) == (1, 0)
+
+
 @contextmanager
 def _committed_candidates(count: int) -> Iterator[tuple[CommittedWorld, list[uuid.UUID]]]:
     world = CommittedWorld()
@@ -217,3 +248,76 @@ def test_a_claim_committed_by_one_session_is_not_claimable_again() -> None:
             again = TranslationQueue(second, clock=lambda: NOW).claim(key_b, limit=2).items
 
         assert again == []
+
+
+def _tail_task(session: Session, locale: str, confidence: float) -> TranslationTask:
+    """Queue ``locale`` for a new candidate of ``confidence``; its priority is ``1000 - 1000 x confidence``."""
+    candidate = unit_candidate(session, f"Antrag {confidence}", score=confidence)
+    enqueuer(session, (locale,)).enqueue_many([candidate.id])
+    (task,) = [row for row in task_rows(session) if row.candidate_id == candidate.id]
+    return task
+
+
+def test_a_claim_within_a_priority_range_returns_only_tasks_inside_it(db_session: Session) -> None:
+    inside = _tail_task(db_session, "en", 0.3)
+    _tail_task(db_session, "en", 0.9)
+    scope = ClaimScope(priority=PriorityRange(minimum=600, maximum=1000))
+
+    items = _queue(db_session).claim(make_key(db_session).id, limit=5, scope=scope).items
+
+    assert (inside.priority, [item.task_id for item in items]) == (700, [inside.id])
+
+
+def test_a_task_outside_the_priority_range_stays_pending_and_is_not_leased(db_session: Session) -> None:
+    outside = _tail_task(db_session, "en", 0.9)
+    scope = ClaimScope(priority=PriorityRange(minimum=600, maximum=1000))
+
+    items = _queue(db_session).claim(make_key(db_session).id, limit=5, scope=scope).items
+
+    assert (items, outside.status, outside.attempt_count) == ([], WorkTaskStatus.PENDING, 0)
+
+
+def test_an_llm_drain_claims_only_tail_locale_rows(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "translation_tail_locales", "tr")
+    english = _tail_task(db_session, "en", 0.3)
+    turkish = _tail_task(db_session, "tr", 0.3)
+
+    items = _queue(db_session).claim(make_key(db_session).id, limit=5, scope=ClaimScope(engine="llm")).items
+
+    assert [item.task_id for item in items] == [turkish.id]
+    assert english.status is WorkTaskStatus.PENDING
+
+
+def test_with_an_empty_tail_list_no_row_is_routed_to_llm(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "translation_tail_locales", "")
+    turkish = _tail_task(db_session, "tr", 0.3)
+
+    items = _queue(db_session).claim(make_key(db_session).id, limit=5, scope=ClaimScope(engine="llm")).items
+
+    assert (items, turkish.status) == ([], WorkTaskStatus.PENDING)
+
+
+def test_tier_boundaries_599_is_azure_600_is_the_tail(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "translation_tail_locales", "tr")
+    below = _tail_task(db_session, "tr", 0.401)
+    edge = _tail_task(db_session, "tr", 0.4)
+    queue = _queue(db_session)
+
+    azure = queue.claim(make_key(db_session, "azure").id, limit=5, scope=ClaimScope(engine="azure-translator"))
+    tail = queue.claim(make_key(db_session, "llm").id, limit=5, scope=ClaimScope(engine="llm"))
+
+    assert (below.priority, edge.priority) == (599, 600)
+    assert ([item.task_id for item in azure.items], [item.task_id for item in tail.items]) == ([below.id], [edge.id])
+
+
+def test_an_inverted_priority_range_is_refused() -> None:
+    with pytest.raises(ValueError):
+        PriorityRange(minimum=700, maximum=600)
+
+
+def test_a_claim_body_names_its_engine_and_band_and_refuses_an_inverted_band() -> None:
+    body = TranslationClaimRequest(limit=3, engine="llm", priority_min=600, priority_max=1000)
+
+    assert (body.engine, body.priority_min, body.priority_max) == ("llm", 600, 1000)
+    with pytest.raises(ValidationError):
+        TranslationClaimRequest(priority_min=700, priority_max=600)

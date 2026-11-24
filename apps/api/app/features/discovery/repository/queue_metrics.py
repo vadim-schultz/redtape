@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, Row, func, select
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.task_clauses import claimable, delayed, expired_lease
@@ -18,6 +18,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.shared.queue_stats import age_seconds, finished_recently, oldest_ready
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +34,11 @@ class TaskStatusCounts:
 
 @dataclass(frozen=True, slots=True)
 class TaskSummary:
-    """Queue counts for a set of task kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+    """Queue counts for a set of task kinds; ``claimed`` includes the ``claimed_stale`` leases.
+
+    ``oldest_pending_age_seconds`` is the age of the oldest ready task (``None`` when none is ready); the 24 h counts
+    are the tasks completed or failed within the last day.
+    """
 
     pending_ready: int
     pending_delayed: int
@@ -41,6 +46,9 @@ class TaskSummary:
     claimed_stale: int
     completed: int
     failed: int
+    oldest_pending_age_seconds: float | None = None
+    completed_24h: int = 0
+    failed_24h: int = 0
 
 
 def _status_counts(tally: Counter[DiscoveryTaskStatus]) -> TaskStatusCounts:
@@ -82,9 +90,14 @@ class QueueMetricsRepository(SessionRepository):
 
     def task_summary(self, *, kinds: Sequence[DiscoveryTaskKind], now: datetime) -> TaskSummary:
         """Return one grouped count of ``kinds`` tasks at ``now`` without leasing or mutating anything."""
-        columns = [func.count().filter(*clauses) for clauses in _summary_clauses(now)]
-        row = self._session.execute(select(*columns).where(DiscoveryTask.kind.in_(kinds))).one()
-        return TaskSummary(*(int(value) for value in row))
+        counts = [func.count().filter(*clauses) for clauses in _summary_clauses(now)]
+        oldest = oldest_ready(DiscoveryTask.created_at, claimable(now))
+        completed = finished_recently(
+            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED, DiscoveryTask.updated_at, now
+        )
+        failed = finished_recently(DiscoveryTask.status == DiscoveryTaskStatus.FAILED, DiscoveryTask.updated_at, now)
+        stmt = select(*counts, oldest, completed, failed).where(DiscoveryTask.kind.in_(kinds))
+        return _task_summary(self._session.execute(stmt).one(), now)
 
     def count_fetch_attempts(self) -> int:
         """Return the number of append-only fetch log rows."""
@@ -105,6 +118,24 @@ class QueueMetricsRepository(SessionRepository):
             .group_by(CatalogueService.source)
         )
         return {str(row[0].value): int(row[1]) for row in self._session.execute(stmt).all()}
+
+
+def _task_summary(
+    row: Row[tuple[int, int, int, int, int, int, datetime | None, int, int]], now: datetime
+) -> TaskSummary:
+    """Map one summary row: the six counts, the oldest ready creation time, then the 24 h completed and failed counts."""
+    pending_ready, pending_delayed, claimed, claimed_stale, done, broke, oldest, completed, failed = row
+    return TaskSummary(
+        pending_ready=pending_ready,
+        pending_delayed=pending_delayed,
+        claimed=claimed,
+        claimed_stale=claimed_stale,
+        completed=done,
+        failed=broke,
+        oldest_pending_age_seconds=age_seconds(oldest, now),
+        completed_24h=completed,
+        failed_24h=failed,
+    )
 
 
 def _summary_clauses(now: datetime) -> tuple[tuple[ColumnElement[bool], ...], ...]:

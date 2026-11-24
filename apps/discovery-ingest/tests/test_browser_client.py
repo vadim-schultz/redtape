@@ -333,3 +333,56 @@ def test_a_reported_zero_is_kept_and_not_replaced_by_the_measured_duration() -> 
         return _page(ms="0")
 
     assert _client(handler, clock).render(PAGE).ms_used == 0
+
+
+def test_a_failed_call_carries_the_browser_milliseconds_it_cost() -> None:
+    """render · a 5xx that reports 4 s carries ms_used 4000; a refused connection never reached Cloudflare, so 0."""
+    reported = _client(lambda request: _error(502, 1, "bad gateway", **{"X-Browser-Ms-Used": "4000"}))
+    with pytest.raises(BrowserRequestError) as caught:
+        reported.render(PAGE)
+    assert caught.value.ms_used == 4000
+
+    def refused(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("no route", request=request)
+
+    with pytest.raises(BrowserRequestError) as unsent:
+        _client(refused).render(PAGE)
+    assert unsent.value.ms_used == 0
+
+
+def test_a_timeout_after_the_send_carries_the_measured_duration() -> None:
+    """render · a read timeout reached Cloudflare, so it costs the time it ran (the measured 2 s here)."""
+    clock = Clock()
+
+    def timeout(request: httpx.Request) -> httpx.Response:
+        clock.now += 2.0
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    with pytest.raises(BrowserRequestError) as caught:
+        _client(timeout, clock).render(PAGE)
+
+    assert caught.value.ms_used == 2000
+
+
+def test_the_fused_screenshot_call_sends_no_accept_script_and_keeps_the_stylesheet() -> None:
+    """screenshot · consent_click off: the /snapshot request carries addStyleTag and no addScriptTag."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return _snapshot(JPEG)
+
+    _client(handler).screenshot(PAGE, consent_click=False)
+
+    body = httpx.Response(200, content=seen[0].content).json()
+    assert "addStyleTag" in body and "addScriptTag" not in body
+
+
+def test_an_oversize_screenshot_keeps_the_dom_of_the_same_call() -> None:
+    """screenshot · ScreenshotOversize carries the page of its own call, so a fused render can keep the HTML."""
+    big = b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES
+
+    with pytest.raises(ScreenshotOversize) as caught:
+        _client(lambda request: _snapshot(big, html="<p>kept</p>")).screenshot(PAGE)
+
+    assert caught.value.page is not None and caught.value.page.html == "<p>kept</p>"

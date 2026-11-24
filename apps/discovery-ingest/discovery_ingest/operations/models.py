@@ -6,9 +6,9 @@ from contextlib import ExitStack
 
 import httpx
 
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.config import IngestSettings
 from discovery_ingest.extract.llm.cloudflare import DEFAULT_MIN_INTERVAL_SECONDS, CloudflareAiClient
+from discovery_ingest.extract.llm.start_pacer import StartPacer
 
 
 def build_model_client(settings: IngestSettings, model: str, stack: ExitStack) -> CloudflareAiClient:
@@ -17,4 +17,4 @@ def build_model_client(settings: IngestSettings, model: str, stack: ExitStack) -
     The owner closes ``stack`` on every exit path. Raises :class:`ValueError` when the credentials are missing.
     """
     http = stack.enter_context(httpx.Client(trust_env=True))
-    return CloudflareAiClient(settings, model=model, http=http, throttle=Throttle(DEFAULT_MIN_INTERVAL_SECONDS))
+    return CloudflareAiClient(settings, model=model, http=http, throttle=StartPacer(DEFAULT_MIN_INTERVAL_SECONDS))

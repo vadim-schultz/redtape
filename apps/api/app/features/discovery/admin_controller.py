@@ -9,10 +9,12 @@ from litestar.di import Provide
 
 from app.features.discovery.admin_service import DiscoveryAdminService
 from app.features.discovery.catalogue_list_query import CATALOGUE_LIST_SPEC, provide_catalogue_query
+from app.features.discovery.flow.service import FlowService
 from app.features.discovery.guards import DISCOVERY_ADMIN_GUARDS
 from app.features.discovery.list_query import DiscoveryListQuery
 from app.features.discovery.repository import CatalogueFilter, TaskFilter
 from app.features.discovery.task_list_query import TASK_LIST_SPEC, provide_task_query
+from app.schema.discovery.flow import FlowResponse
 from app.schema.discovery.read import (
     CatalogueListResponse,
     CataloguePipelineResponse,
@@ -65,6 +67,11 @@ class DiscoveryAdminController(Controller):
     def coverage(self, discovery_admin_service: DiscoveryAdminService) -> DiscoveryCoverageResponse:
         """Report coverage counters across sources and the last successful run."""
         return discovery_admin_service.coverage()
+
+    @get("/flow", sync_to_thread=True)
+    def flow(self, discovery_flow_service: FlowService) -> FlowResponse:
+        """Describe the pipeline: every stage with its state and last run, the edges, the allotments and the unused headroom."""
+        return discovery_flow_service.flow()
 
     @get("/catalogue/{catalogue_id:uuid}/pipeline", sync_to_thread=True)
     def catalogue_pipeline(

@@ -9,6 +9,7 @@ from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.translation.glossary import GlossaryMode
 from discovery_ingest.translation.repair import Translator
 from discovery_ingest.translation.units import CallLimits
+from discovery_ingest.translation_models import PriorityBand
 from discovery_ingest.worker.batch import BatchResult
 from discovery_ingest.worker.lease_settle import refusals_as_stops, release_batch
 from discovery_ingest.worker.open_tasks import OpenTasks
@@ -22,7 +23,7 @@ from discovery_ingest.worker.translate_window import Window, settle_window
 
 @dataclass(frozen=True, slots=True)
 class TranslateContext:
-    """Everything one translate drain shares across batches: the client, the translator, the bounds, the engine's limits and the glossary mode."""
+    """Everything one translate drain shares across batches: the client, the translator, the bounds, the engine's limits, the glossary mode and the priority band its claims take."""
 
     client: DiscoveryIngestClient
     translator: Translator
@@ -30,6 +31,7 @@ class TranslateContext:
     policy: DrainPolicy
     limits: CallLimits
     glossary: GlossaryMode
+    band: PriorityBand
 
 
 def _settle_groups(ctx: TranslateContext, tasks: Tasks, state: BatchState) -> None:
@@ -57,7 +59,8 @@ def _settle(ctx: TranslateContext, tasks: Tasks, tally: Tally) -> StopDrain | No
 
 def _claim(ctx: TranslateContext) -> Tasks:
     with refusals_as_stops():
-        return ctx.client.translations.claim(limit=ctx.policy.max_tasks).items
+        claim = ctx.client.translations.claim(limit=ctx.policy.max_tasks, engine=ctx.engine, band=ctx.band)
+        return claim.items
 
 
 def run_translate_batch(ctx: TranslateContext, tally: Tally) -> BatchResult:

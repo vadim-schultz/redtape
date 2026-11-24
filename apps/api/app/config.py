@@ -61,6 +61,21 @@ class Settings(BaseSettings):
         default=9_500_000_000,
         description="Ceiling for the sum of stored artifact bytes: 95 percent of the R2 free 10 GB; enforced on upload.",
     )
+    refresh_max_age_days: int = Field(
+        default=30,
+        ge=1,
+        description="A page whose last finished render is at least this many days old is rendered again even when its body is unchanged.",
+    )
+    event_retention_days: int = Field(
+        default=180,
+        ge=1,
+        description="Fetch logs and events older than this many days are pruned; the latest fetch of every target is kept.",
+    )
+    screenshot_keep_per_page: int = Field(
+        default=5,
+        ge=1,
+        description="Screenshots kept per catalogue row; an upload deletes the older ones from the store and the table.",
+    )
 
     budget_r2_class_a_monthly: int = Field(
         default=950_000,
@@ -198,6 +213,20 @@ class Settings(BaseSettings):
         min_length=1,
         description="Version of how a translation unit (title and card description) is built; bumping it makes every translation stale.",
     )
+    translation_tail_locales: str = Field(
+        default="",
+        description=(
+            "Target locales whose first translations at or above TRANSLATION_TAIL_PRIORITY_MIN go to Workers AI (the "
+            "llm engine) instead of Azure. Empty by default: nothing is routed to Workers AI until a locale passes "
+            "`translate probe --engine llm` at 90% valid or more."
+        ),
+    )
+    translation_tail_priority_min: int = Field(
+        default=600,
+        ge=0,
+        le=1000,
+        description="Lowest first-translation priority (0 to 1000) that the Workers AI tail takes; 599 stays on Azure.",
+    )
 
     @property
     def embedding_locale_codes(self) -> tuple[str, ...]:
@@ -208,6 +237,11 @@ class Settings(BaseSettings):
     def translation_target_locale_codes(self) -> tuple[str, ...]:
         """Return the target locale codes of :attr:`translation_target_locales`, in order."""
         return tuple(self.translation_target_locales.replace(",", " ").split())
+
+    @property
+    def translation_tail_locale_codes(self) -> tuple[str, ...]:
+        """Return the tail locale codes of :attr:`translation_tail_locales`, in order."""
+        return tuple(self.translation_tail_locales.replace(",", " ").split())
 
     @property
     def auth_enabled(self) -> bool:
@@ -248,6 +282,14 @@ class Settings(BaseSettings):
             )
         if len(set(codes)) != len(codes):
             raise ValueError("translation_target_locales: a locale is listed twice")
+        return self
+
+    @model_validator(mode="after")
+    def _check_tail_locales(self) -> Settings:
+        """Refuse a tail locale that is not a target, so the tail never routes a locale the queue does not serve."""
+        stray = sorted(set(self.translation_tail_locale_codes) - set(self.translation_target_locale_codes))
+        if stray:
+            raise ValueError(f"translation_tail_locales: {stray} are not translation_target_locales")
         return self
 
     @model_validator(mode="after")

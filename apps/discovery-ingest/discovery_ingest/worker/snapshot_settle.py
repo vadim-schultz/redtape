@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import ClaimedSnapshotTask, SnapshotCompleteItem, SnapshotItemResult
 from discovery_ingest.snapshot_translation import Rejected, SkippedPage, SourcePage, finish_page
-from discovery_ingest.translation.errors import TranslationEngineError
+from discovery_ingest.translation.errors import RateLimited, TranslationEngineError
 from discovery_ingest.translation.repair import Translator
-from discovery_ingest.worker.lease_settle import Failure, fail_batch, release_batch
+from discovery_ingest.worker.lease_settle import Failure, fail_batch, limit_stop, release_batch
 from discovery_ingest.worker.open_tasks import OpenTasks
 from discovery_ingest.worker.snapshot_translate import translate_page, translated_blocks, wire_blocks
 from discovery_ingest.worker.stop import StopDrain
@@ -68,6 +68,8 @@ class PageSettler:
         """Translate and validate the page, then post it; a refused page fails the task, an engine error fails it as it says."""
         try:
             outcome = translate_page(self.translator, task.locale, page)
+        except RateLimited as err:
+            raise limit_stop(err) from err
         except TranslationEngineError as err:
             self.fail(task, failure_of(err))
             return

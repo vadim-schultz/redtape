@@ -59,14 +59,11 @@ def test_it_shares_the_pipeline_concurrency_group_and_never_cancels_a_running_dr
     assert document["permissions"] == {"contents": "read"}
 
 
-def test_the_job_has_a_timeout_and_requires_that_many_minutes_and_the_llm_neurons_above_the_floor(
-    job: dict[str, Any],
-) -> None:
-    """workflow · the ledger precheck requires the job's timeout in minutes; llm also needs neurons above the query-embedding floor."""
+def test_the_job_requires_the_llm_neurons_above_the_floor_and_no_actions_minutes(job: dict[str, Any]) -> None:
+    """workflow · the ledger precheck needs llm neurons above the query-embedding floor; Actions minutes are not checked (D17)."""
     check = job["steps"][_index(job["steps"], BUDGET_CHECK)]["run"]
 
-    minutes = re.search(r"--require-remaining\s+actions_minutes=(\d+)", check)
-    assert minutes is not None and int(minutes.group(1)) == job["timeout-minutes"]
+    assert "actions_minutes" not in check
     assert re.search(r'neurons=\$\(\( QUERY_EMBED_RESERVE \+ \d+ \)\)"', check)
 
 

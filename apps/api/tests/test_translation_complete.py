@@ -451,3 +451,34 @@ def test_the_default_settings_name_the_locales_a_completion_may_store(db_session
 
     assert "tr" in settings.translation_target_locale_codes
     assert result.outcome is TranslationOutcome.STORED
+
+
+def test_an_azure_upgrade_supersedes_an_llm_row_with_the_same_source_hash(db_session: Session) -> None:
+    candidate = unit_candidate(db_session, "Antrag Ersatz")
+    row = stored_row(db_session, candidate, "tr", unit_hash(db_session, candidate), key="k/llm.json")
+    enqueuer(db_session, ("tr",)).enqueue_upgrades(NOW)
+    (task,) = task_rows(db_session, WorkTaskStatus.PENDING)
+    key = make_key(db_session)
+    claimed_by(db_session, task, key)
+    item = complete_item(task, db_session, engine="azure-translator", model=None)
+
+    (result,) = _complete(db_session, key, item, store=InMemoryObjectStore())
+
+    assert result.outcome is TranslationOutcome.STORED
+    assert (row.engine, row.source, row.source_hash) == (
+        "azure-translator",
+        TranslationSource.MT,
+        unit_hash(db_session, candidate),
+    )
+    assert row.storage_key != "k/llm.json"
+
+
+def test_an_azure_upgrade_never_overwrites_a_human_row(db_session: Session) -> None:
+    candidate, task, key = _claimed(db_session, "tr")
+    human = human_row(db_session, candidate, "tr")
+    item = complete_item(task, db_session, engine="azure-translator", model=None)
+
+    (result,) = _complete(db_session, key, item, store=UntouchableStore())
+
+    assert (result.outcome, result.reason) == (TranslationOutcome.REJECTED, "human_exists")
+    assert (human.source, human.engine, human.storage_key) == (TranslationSource.HUMAN, "llm", "k/human.json")

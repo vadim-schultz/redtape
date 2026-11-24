@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 
 import httpx
@@ -93,3 +94,63 @@ def test_an_enqueue_error_is_counted_and_does_not_fail_the_fetch(monkeypatch: py
 
     assert (report.completed, report.failed, report.render_enqueue_failed) == (1, 0, 1)
     assert [call for call in api.calls if call[0] == "complete"]
+
+
+def test_an_unchanged_body_enqueues_no_render_and_the_fetch_still_completes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · negative: the API says the body is unchanged and was rendered recently, so no render_page is enqueued."""
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=b"<html>x</html>")}
+    api.fetch_answer = {"render_due": False, "render_input_key": None}
+
+    report = _fetch(monkeypatch, api)
+
+    assert [call for call in api.calls if call[0] == "enqueue"] == []
+    assert report.completed == 1
+
+
+def test_a_changed_body_enqueues_a_render_and_logs_the_sha256_of_the_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · happy: a body the API marks due is enqueued, and the fetch log carries the sha256 of the bytes read."""
+    body = b"<html>x</html>"
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=body)}
+    api.fetch_answer = {"render_due": True, "render_input_key": None}
+
+    _fetch(monkeypatch, api)
+
+    ((_, log),) = api.named("fetches")
+    assert log["body_sha256"] == hashlib.sha256(body).hexdigest()
+    assert log["final_url"] == PAGE
+    assert [call[2] for call in api.calls if call[0] == "enqueue"] == [
+        {"catalogue_service_id": str(CATALOGUE_ID), "kind": "render_page", "target_url": PAGE, "priority": 100}
+    ]
+
+
+def test_a_refresh_verdict_enqueues_the_render_under_its_input_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · happy: a refresh the API keys by week is enqueued under that key, so it does not collide with the first render."""
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=b"<html>x</html>")}
+    api.fetch_answer = {"render_due": True, "render_input_key": "rr:2026-W47"}
+
+    _fetch(monkeypatch, api)
+
+    assert [call[2] for call in api.calls if call[0] == "enqueue"] == [
+        {
+            "catalogue_service_id": str(CATALOGUE_ID),
+            "kind": "render_page",
+            "target_url": PAGE,
+            "priority": 100,
+            "input_key": "rr:2026-W47",
+        }
+    ]
+
+
+def test_an_answer_that_predates_the_verdict_still_enqueues_the_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_url · happy: an API that answers without the verdict fields keeps the render, as it did before the change gate."""
+    api = FakeApi([])
+    api.pages = {PAGE: httpx.Response(200, headers=HTML, content=b"<html>x</html>")}
+    api.fetch_answer = None
+
+    report = _fetch(monkeypatch, api)
+
+    assert [call for call in api.calls if call[0] == "enqueue"] != []
+    assert report.completed == 1

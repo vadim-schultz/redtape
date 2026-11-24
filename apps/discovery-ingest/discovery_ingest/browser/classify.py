@@ -48,20 +48,20 @@ def _describe(response: httpx.Response, scrub: Scrub) -> str:
     return scrub(f"Cloudflare HTTP {response.status_code}" + (f" {detail}" if detail else ""))
 
 
-def raise_for_response(response: httpx.Response, scrub: Scrub) -> None:
-    """Raise the browser error that ``response`` stands for; return for a success."""
+def raise_for_response(response: httpx.Response, scrub: Scrub, ms_used: int | None = None) -> None:
+    """Raise the browser error that ``response`` stands for, carrying ``ms_used``; return for a success."""
     status = response.status_code
     if status == 429:
-        raise BrowserQuotaExceeded(_describe(response, scrub), retry_after(response))
+        raise BrowserQuotaExceeded(_describe(response, scrub), retry_after(response), ms_used=ms_used)
     if status in (401, 403):
-        raise BrowserAuthError(_describe(response, scrub))
+        raise BrowserAuthError(_describe(response, scrub), ms_used=ms_used)
     if status >= 400:
-        raise BrowserRequestError(_describe(response, scrub), retryable=status >= 500)
+        raise BrowserRequestError(_describe(response, scrub), retryable=status >= 500, ms_used=ms_used)
 
 
-def envelope(response: httpx.Response) -> dict[str, JsonValue]:
+def envelope(response: httpx.Response, ms_used: int | None = None) -> dict[str, JsonValue]:
     """Return the JSON envelope of a successful response, or raise a permanent :class:`BrowserRequestError`."""
     payload = _payload(response)
     if payload is None or payload.get("success") is not True:
-        raise BrowserRequestError("Cloudflare answered 200 without a usable result", retryable=False)
+        raise BrowserRequestError("Cloudflare answered 200 without a usable result", retryable=False, ms_used=ms_used)
     return payload

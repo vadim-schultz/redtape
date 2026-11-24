@@ -12,7 +12,7 @@ isProject: false
 
 | # | Decision | Source |
 | --- | --- | --- |
-| D1 | The Actions pool is the Free plan's 2,000 minutes a month. CI is the largest consumer, so the drain budget comes from measured use, not from the assumed 1,000 | operator |
+| D1 | The Actions pool is the Free plan's 2,000 minutes a month. CI is the largest consumer, so the drain budget comes from measured use, not from the assumed 1,000. Superseded by D17 | operator |
 | D2 | The LLM schedule returns after the verification query in operator step S2. The verification is the one in `.plans/category-taxonomy-remediation/run-ledger.md` (part C of `c8_queries_4.sql`) | operator and evidence |
 | D3 | The long tail of card translation uses Azure for the top priority tier and Workers AI `llm` for the rest. Cards only: pages stay on Azure | operator, refined by review |
 | D4 | Idle capacity is filled with change-driven refresh, a wider catalogue ingest and backfills | operator |
@@ -28,12 +28,20 @@ isProject: false
 | D14 | A new translation tail is off by default. `TRANSLATION_TAIL_LOCALES` is empty until a locale passes the probe, so nothing reaches Workers AI by accident | default |
 | D15 | A 429 from Azure releases the work without consuming an attempt. A failure that is not transient still consumes one | default |
 | D16 | Flags for new behaviour (`RENDER_FUSED_SCREENSHOT`, `PIPELINE_ORCHESTRATOR`, `SEARCH_TAIL_TRANSLATION`) default to off. Each is turned on only after its live gate is recorded | default |
+| D17 | The repository is public, so standard runners are unmetered and there is no Actions minute limit. The minute pool, the minute-derived deadline, the `budget report-minutes` call and operator step S1 are not constraints. Remote CI runs again on the release pull request. Cloudflare seconds, neurons, Azure characters and R2 stay as limits. D1 is superseded | operator, 2026-11-23 |
+| D18 | Refresh cadence: the ceiling is 50 pages a week (`CATALOGUE_REFRESH_MAX_ROWS`, bounded by the GovData cap of 150 and the PVOG cap of 50). A failed refresh counts as the latest fetch, so the page waits another 30 days | operator, 2026-11-23 |
+| D19 | `CATALOGUE_REFRESH_MAX_ROWS` stays unset until the release pull request is merged to `main`, Render has redeployed the API (its start script migrates the database on every start), and production is at the new alembic head. Then it is set to 50. Production runs `main` today: alembic head `20261112_locale_machine_flag` and no drain run recorded since 2026-11-13 | chief of staff, 2026-11-23, for the operator to confirm |
+| D20 | The stage schedules (the `schedule:` triggers and the `DISCOVERY_*_SCHEDULE` repository variables) are removed only as the last activation step in chapter 15, after `PIPELINE_ORCHESTRATOR` has run a full day with them still on. They are production cron runs, not test schedules | operator, 2026-11-23 |
 
 ## Open seams
 
 | Seam | Forcing condition | Owner |
 | --- | --- | --- |
-| The real Actions pool and CI usage | Operator reads the November usage report (operator step S1). The estimate of about 1,820 minutes in 13 days is per-run rounding, not billing data, and no job has failed, so the estimate may be high or the pool may differ | operator, chapter 1 |
+| The real Actions pool and CI usage | Closed by D17. The repository is public, so the pool and the usage report (step S1) no longer bind | operator, chapter 1 |
+| Render and screenshot schedules fail | Render failed or was skipped on every run from 2026-11-18 to 2026-11-23. The checked run failed at the "Drain browser tasks" step, and its log has expired. Screenshot failed on most runs and succeeded once, on 2026-11-23 at 15:39 UTC. Production records no drain run after 2026-11-13. The minute precheck is not the cause: the ledger shows 409 of 1,000 minutes used. The cause is not known and must be found before the first render-dependent flag | operator, before release |
+| `RENDER_FUSED_SCREENSHOT` is not wired | The flag is read by the config only. No workflow passes it into the render job, so setting the repository variable does nothing. Chapter 8 did not wire it. Step 5 of the walkthrough needs the wiring first, which is a code change outside chapter 15 | chief of staff, before step 5 |
+| Minute precheck can skip drains | The render, screenshot, drain, embed, translate and LLM workflows each check the monthly Actions-minutes ledger before a run. Render skips when fewer than 20 minutes remain; the other five carry the same check, and I have not read their thresholds. The cap is 2,000 less a 1,000 reserve, so a skip comes at about 980 minutes used this month. D17 says minutes do not bind, so the precheck should go. Latent: 409 used today | chief of staff, follow-up |
+| Runner-local Chromium as the render path | D17 removes the Actions minute cost of chapter 10's fallback. Measured locally at 2.55 minutes per 100 pages. Whether render moves off Cloudflare's 570 browser seconds a day is a new decision, not made by this suite | operator |
 | The cause of the 4006 neuron refusal on 2026-11-11 | Chapter 3 compares the ledger with Cloudflare's usage for each day | chapter 3 |
 | Browser Sessions cost per page | Chapter 10 measures pages per billed minute; session time may accrue while idle | chapter 10 |
 | Fused-call DOM parity | The canary in chapter 8 compares `/content` with the fused `/snapshot` on about 25 stable pages | chapter 8 |

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
+from typing import Final
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -15,6 +17,9 @@ from app.features.translation.repository import TranslationRepository
 from app.features.translation.snapshot_enqueue import SnapshotEnqueuer
 from app.features.translation.source import SourceRepository
 from app.features.translation.task_repository import TaskRepository
+
+UPGRADE_SWEEP_LIMIT: Final = 200
+"""Most tail rows one upgrade sweep queues; a sweep is bounded like a backfill, and the next run takes the rest."""
 
 
 class TranslationEnqueuer:
@@ -46,6 +51,14 @@ class TranslationEnqueuer:
         totals = EnqueueTotals(counts=Counter(slot.kind for slot in slots))
         totals.enqueued = self._queue([slot for slot in slots if slot.kind in _NEEDS_WORK])
         return totals
+
+    def enqueue_upgrades(self, now: datetime, limit: int = UPGRADE_SWEEP_LIMIT) -> int:
+        """Queue an Azure upgrade for up to ``limit`` tail rows of the target locales; return how many were queued.
+
+        A tail row is a machine translation the tail engine wrote. Nothing is queued while an Azure task is ready, so
+        upgrades run on idle Azure capacity. A human row is never queued, and an open task keeps its priority.
+        """
+        return self._tasks.queue_upgrades(self._locales, now, limit)
 
     def _queue(self, work: Sequence[Slot]) -> int:
         confidences = self._source.confidences_for(list(dict.fromkeys(slot.candidate_id for slot in work)))

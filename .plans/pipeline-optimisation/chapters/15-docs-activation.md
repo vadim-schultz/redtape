@@ -28,7 +28,7 @@ The operator docs describe the pipeline as it ran in November, and several of th
 ## Design
 
 - **Drift list.** Fix these, each with a grep that proves it is gone:
-  - `docs/operations/gha-budget.md`: the old drain and render times (04:00, 05:00), the group name `discovery-drain`, the 45-minute skip threshold, and the 1,000-minute cap table.
+  - `docs/operations/gha-budget.md`: the old drain and render times (04:00, 05:00), the group name `discovery-drain`, the 45-minute skip threshold, and the 1,000-minute cap table. Also replace its claim that Actions minutes bind: the repository is public, so standard runners are unmetered (D17).
   - `docs/operations/crawlers-operator-checklist.md`: the 1,000 and 600 figures in the S13 and S20 steps.
   - `docs/operations/extraction-operator-checklist.md`: the LLM time (06:00 should be 04:30) and the `LLM_ENQUEUE` rollback wording, which is hard-coded in the render workflow.
   - `docs/operations/candidate-view.md`: "no default drain handles `capture_screenshot`", which `discovery-screenshot.yml` now does.

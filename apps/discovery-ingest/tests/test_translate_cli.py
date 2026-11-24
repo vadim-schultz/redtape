@@ -198,3 +198,39 @@ def test_the_probe_needs_a_locale_for_every_engine_but_azure_translator(capsys: 
     """translate probe · without --locale the llm engine exits 2 naming the option; azure-translator probes every target locale."""
     assert main(["translate", "probe", "--engine", "llm"]) == 2
     assert "--locale" in capsys.readouterr().err
+
+
+def test_the_engine_and_band_flags_name_the_engine_and_the_band_in_every_claim(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """translate drain · --engine and the priority band are sent with the claim, and the drain runs on that engine."""
+    api = TranslateApi([task(number, "tr") for number in range(2)])
+    _install(monkeypatch, api)
+
+    code = main(["translate", "drain", "--engine", "llm", "--priority-min", "600", "--priority-max", "1000"])
+
+    capsys.readouterr()
+    assert code == 0
+    assert api.bodies["claim"][0] == {"limit": 10, "engine": "llm", "priority_min": 600, "priority_max": 1000}
+    assert api.posted()[0]["engine"] == "llm"
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--engine", "not-an-engine"],
+        ["--priority-min", "700", "--priority-max", "600"],
+        ["--unit", "snapshot", "--engine", "llm"],
+        ["--unit", "snapshot", "--priority-min", "600"],
+    ],
+)
+def test_an_unknown_engine_an_inverted_band_or_a_card_flag_on_snapshots_exits_2_before_any_claim(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], argv: list[str]
+) -> None:
+    """translate drain · a bad engine, an inverted band, or a card-only flag on --unit snapshot exits 2 and claims nothing."""
+    api = TranslateApi([task(0)])
+    api.install(monkeypatch)
+
+    assert main(["translate", "drain", *argv]) == 2
+    assert not api.bodies["claim"]
+    assert capsys.readouterr().err

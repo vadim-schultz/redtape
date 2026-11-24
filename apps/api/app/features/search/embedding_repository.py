@@ -15,6 +15,7 @@ from app.features.search.text import BuiltText
 from app.models.search import CandidateEmbedding, EmbeddingTask, WorkTaskStatus
 from app.models.search import CandidateSearchText as SearchText
 from app.schema.search.machine import EmbeddingSummaryResponse
+from app.shared.queue_stats import age_seconds, finished_recently, oldest_ready
 
 TextKey = tuple[UUID, str]
 """``(candidate_id, locale)``: the key of a search text."""
@@ -65,14 +66,24 @@ class EmbeddingRepository(SessionRepository):
 
     def summary(self, model: str, now: datetime) -> EmbeddingSummaryResponse:
         """Count the ready, claimed and failed tasks of ``model`` and the search texts without a current vector."""
+        ready = ready_clause(EmbeddingTask, now)
         tasks = select(
-            func.count().filter(*ready_clause(EmbeddingTask, now)),
+            func.count().filter(*ready),
             func.count().filter(EmbeddingTask.status == WorkTaskStatus.CLAIMED),
             func.count().filter(EmbeddingTask.status == WorkTaskStatus.FAILED),
+            oldest_ready(EmbeddingTask.created_at, ready),
+            finished_recently(EmbeddingTask.status == WorkTaskStatus.COMPLETED, EmbeddingTask.updated_at, now),
+            finished_recently(EmbeddingTask.status == WorkTaskStatus.FAILED, EmbeddingTask.updated_at, now),
         ).where(EmbeddingTask.model == model)
-        ready, claimed, failed = self._session.execute(tasks).one()
+        ready_count, claimed, failed, oldest, completed, failed_recent = self._session.execute(tasks).one()
         return EmbeddingSummaryResponse(
-            pending_ready=ready, claimed=claimed, failed=failed, stale_candidates=self._stale_texts(model)
+            pending_ready=ready_count,
+            claimed=claimed,
+            failed=failed,
+            stale_candidates=self._stale_texts(model),
+            oldest_pending_age_seconds=age_seconds(oldest, now),
+            completed_24h=completed,
+            failed_24h=failed_recent,
         )
 
     def _stale_texts(self, model: str) -> int:

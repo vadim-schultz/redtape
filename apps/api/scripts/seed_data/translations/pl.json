@@ -37,6 +37,7 @@
     "optional": "Opcjonalne",
     "screenshot_alt": "Zrzut ekranu strony źródłowej dla: {title}",
     "screenshot_fetched": "Wykonano: {time}",
+    "screenshot_history": "Historia zrzutów ekranu",
     "screenshot_missing": "Brak jeszcze zrzutu ekranu",
     "source_role_form": "Formularz",
     "source_role_issued": "Wydawany",
@@ -340,6 +341,93 @@
       "task_status_completed": "Zakończone",
       "task_status_failed": "Nieudane",
       "task_status_pending": "Oczekujące"
+    },
+    "flow": {
+      "title": "Przebieg potoku",
+      "graph_label": "Etapy potoku i etapy, które zasilają",
+      "list_label": "Etapy potoku w kolejności",
+      "empty": "Brak etapów potoku.",
+      "layout_error": "Nie udało się rozmieścić przebiegu.",
+      "detail_empty": "Wybierz etap, aby zobaczyć jego ostatni przebieg, błędy i zużycie.",
+      "ready": "Gotowe: {count}",
+      "failed_24h": "Błędy w ciągu 24 h: {count}",
+      "last_run": "Ostatni przebieg: {age}",
+      "no_run": "Nie zarejestrowano przebiegu",
+      "stop_reason": "Powód zatrzymania: {reason}",
+      "run_status": {
+        "running": "W toku",
+        "succeeded": "Zakończony",
+        "failed": "Nieudany"
+      },
+      "spend_title": "Zużycie w ciągu 24 h",
+      "spend_none": "Ten etap nie korzysta z darmowego limitu.",
+      "spend_row": "{stage}: {spent}",
+      "headroom": "{resource} ma niewykorzystany zapas, podczas gdy {stage} ma gotową pracę.",
+      "strip_label": "Limity",
+      "stage": {
+        "seed": "Zasiewanie",
+        "render": "Renderowanie",
+        "extract_page": "Ekstrakcja (reguły)",
+        "llm": "Ekstrakcja (LLM)",
+        "capture": "Zrzut ekranu",
+        "embed": "Osadzanie",
+        "card_translation": "Tłumaczenie kart",
+        "page_translation": "Tłumaczenie stron"
+      },
+      "run_stage": {
+        "worker_drain": "Przebieg workera",
+        "embed": "Osadzanie",
+        "translate": "Tłumaczenie kart",
+        "snapshot_translate": "Tłumaczenie stron"
+      },
+      "stop_reasons": {
+        "queue_empty": "pusta kolejka",
+        "time_budget": "budżet czasu",
+        "rate_limited": "limit częstotliwości",
+        "browser_budget": "budżet przeglądarki",
+        "browser_quota": "limit przeglądarki",
+        "llm_budget": "budżet LLM",
+        "llm_quota": "limit LLM"
+      },
+      "state": {
+        "dead": {
+          "label": "Martwy",
+          "description": "Dla tego etapu nigdy nie dodano zadania do kolejki."
+        },
+        "budget_stopped": {
+          "label": "Wyczerpany budżet",
+          "description": "Etap zatrzymał się na limicie, a gotowa praca czeka na kolejny okres."
+        },
+        "throttled": {
+          "label": "Ograniczony",
+          "description": "Gotowa praca i zapas są, ale ostatni przebieg zakończył się przez zegar lub limit częstotliwości."
+        },
+        "blocked": {
+          "label": "Zablokowany",
+          "description": "Nic nie jest gotowe, a etap wcześniejszy jest spóźniony."
+        },
+        "starved": {
+          "label": "Bez pracy",
+          "description": "Nic nie jest gotowe, a ostatni przebieg zastał pustą kolejkę."
+        },
+        "overdue": {
+          "label": "Spóźniony",
+          "description": "Ostatni przebieg jest starszy, niż pozwala rytm etapu."
+        },
+        "backlogged": {
+          "label": "Zaległości",
+          "description": "Przy tempie opróżniania z ostatnich 24 h gotowa praca zajęłaby dłużej, niż pozwala rytm."
+        },
+        "flowing": {
+          "label": "Płynący",
+          "description": "Etap ukończył pracę w ciągu ostatnich 24 h."
+        },
+        "idle": {
+          "label": "Bezczynny",
+          "description": "Nic nie jest gotowe i etap nie zgłasza problemów."
+        }
+      },
+      "updated": "Zaktualizowano {age}"
     }
   },
   "documents": {

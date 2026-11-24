@@ -6,9 +6,8 @@ import json
 from collections.abc import Callable, Mapping
 
 import httpx
-from discovery_ingest.browser.throttle import Throttle
 from discovery_ingest.translation.adapters.azure_translator import AzureTranslator
-from discovery_ingest.translation.adapters.azure_translator_http import AzureConnection, AzureTransport
+from discovery_ingest.translation.adapters.azure_translator_http import AzureConnection, AzureTransport, CharacterWindow
 
 KEY = "azure-key-SECRET-0123456789"
 REGION = "westeurope"
@@ -17,17 +16,34 @@ API_VERSION = "2026-06-06"
 Handler = Callable[[httpx.Request], httpx.Response]
 
 
+class FakeClock:
+    """A clock that moves only when something sleeps; every sleep is recorded in ``slept``."""
+
+    def __init__(self) -> None:
+        self.t = 0.0
+        self.slept: list[float] = []
+
+    def now(self) -> float:
+        """The fake time in seconds."""
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        """Record the wait and move the time on by it."""
+        self.slept.append(seconds)
+        self.t += seconds
+
+
 def connection(key: str = KEY) -> AzureConnection:
     """The connection the tests use: the global host, the pinned API version and the test key and region."""
     return AzureConnection(endpoint=ENDPOINT, api_version=API_VERSION, key=key, region=REGION)
 
 
-def engine(handler: Handler, *, sleeps: list[float] | None = None, key: str = KEY) -> AzureTranslator:
-    """An engine whose HTTP is ``handler``; its throttle never really sleeps and records the waits in ``sleeps``."""
-    waits = sleeps if sleeps is not None else []
-    throttle = Throttle(1.0, clock=lambda: 0.0, sleep=waits.append)
+def engine(handler: Handler, *, clock: FakeClock | None = None, key: str = KEY) -> AzureTranslator:
+    """An engine whose HTTP is ``handler``; its limiter has no minimum gap, and every wait goes to ``clock``."""
+    fake = clock or FakeClock()
+    window = CharacterWindow(min_gap_seconds=0.0, clock=fake.now, sleep=fake.sleep)
     http = httpx.Client(transport=httpx.MockTransport(handler))
-    return AzureTranslator(AzureTransport(connection(key), throttle, http))
+    return AzureTranslator(AzureTransport(connection(key), window, http, sleep=fake.sleep))
 
 
 def inputs_in(request: httpx.Request) -> list[dict[str, object]]:
@@ -55,6 +71,6 @@ def _answer_for(item: dict[str, object]) -> dict[str, object]:
     return {"translations": [{"text": f"[en] {item['text']}", "to": target["language"]}]}
 
 
-def failure(status: int, code: str, message: str) -> httpx.Response:
-    """An Azure error envelope with one error, as the service returns it."""
-    return httpx.Response(status, json={"error": {"code": code, "message": message}})
+def failure(status: int, code: str, message: str, headers: Mapping[str, str] | None = None) -> httpx.Response:
+    """An Azure error envelope with one error, as the service returns it, with any extra ``headers``."""
+    return httpx.Response(status, json={"error": {"code": code, "message": message}}, headers=headers)

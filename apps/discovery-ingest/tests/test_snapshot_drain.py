@@ -6,16 +6,23 @@ denial or a quota stop releases the tasks nobody settled (azure-translation chap
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 from discovery_ingest.operations.snapshot_drain import (
+    Pacing,
     SnapshotDeps,
     SnapshotOptions,
+    adaptive_share,
+    daily_allowance,
     document_budget_share,
+    load_pacing_settings,
     run_snapshot_drain,
+    window_end,
 )
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.snapshot_translation import prepare_page
-from discovery_ingest.translation.errors import QuotaExceeded, TransientError
+from discovery_ingest.translation.errors import QuotaExceeded, RateLimited, TransientError
 from discovery_ingest.worker.llm_setup import LlmSetupError
 
 from ledger_fakes import CHARACTERS, FakeLedger
@@ -285,3 +292,62 @@ def test_the_document_share_defaults_to_0_6_and_reads_the_environment(monkeypatc
 
     monkeypatch.setenv("AZURE_DOCUMENT_BUDGET_SHARE", "0.5")
     assert document_budget_share() == 0.5
+
+
+def test_drain_a_rate_limited_page_releases_the_batch_without_an_attempt_and_stops_the_drain() -> None:
+    """Drain · a 429 releases every open task without an attempt, stops with rate_limited, and no second claim follows."""
+    api = SnapshotApi([snapshot_task(n) for n in range(3)], {n: page_html() for n in range(3)})
+
+    report = _drain(api, ScriptedAzure(RateLimited("429000: slow down", retry_after=5.0)))
+
+    claims = [path for path in api.paths if path.endswith("/claim")]
+    assert (report.stop_reason, report.succeeded, report.released, report.failed) == ("rate_limited", True, 3, 0)
+    assert api.bodies["fail"] == [] and api.bodies["release"][0]["task_ids"] == [task_id(n) for n in range(3)]
+    assert len(claims) == 1
+
+
+def test_the_window_anchor_defaults_to_2026_11_13_and_changes_with_its_setting(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pacing · the window anchor is 2026-11-13 (UTC) by default, and AZURE_WINDOW_ANCHOR moves it and the window with it."""
+    monkeypatch.delenv("AZURE_WINDOW_ANCHOR", raising=False)
+    assert load_pacing_settings().window_anchor == date(2026, 11, 13)
+    assert window_end(date(2026, 11, 13), date(2026, 11, 15)) == date(2026, 12, 13)
+
+    monkeypatch.setenv("AZURE_WINDOW_ANCHOR", "2026-11-01")
+    assert load_pacing_settings().window_anchor == date(2026, 11, 1)
+    assert window_end(date(2026, 11, 1), date(2026, 11, 15)) == date(2026, 12, 1)
+
+
+def test_the_daily_pace_carries_an_unspent_amount_to_the_next_day() -> None:
+    """Pacing · what day one leaves unspent stays in the remaining amount, so day two's allowance is larger than day one's."""
+    anchor = date(2026, 11, 13)
+    day_one = daily_allowance(1_900_000.0, anchor=anchor, today=date(2026, 11, 13))
+    day_two = daily_allowance(1_900_000.0 - 20_000.0, anchor=anchor, today=date(2026, 11, 14))
+
+    assert day_one == pytest.approx(1_900_000.0 / 30)
+    assert day_two == pytest.approx(1_880_000.0 / 29) and day_two > day_one
+
+
+def test_the_daily_pace_setting_replaces_the_computed_allowance() -> None:
+    """Pacing · AZURE_DAILY_CHAR_PACE, when set, is the day's allowance; unset, the allowance is computed."""
+    anchor = date(2026, 11, 13)
+
+    assert daily_allowance(1_900_000.0, anchor=anchor, today=date(2026, 11, 13), daily_pace=5_000.0) == 5_000.0
+
+
+def test_a_run_may_not_spend_more_than_todays_pace_and_its_pages_are_released() -> None:
+    """Drain · a run whose page would take it past the daily pace is denied, and the page is released without an attempt."""
+    api = SnapshotApi([snapshot_task(0)], {0: page_html()})
+    deps = SnapshotDeps(api.client(), ScriptedAzure(), pacing=Pacing(daily_pace=10.0))
+
+    report = run_snapshot_drain(deps, SnapshotOptions(max_tasks=5, max_batches=10).policy())
+
+    assert (report.stop_reason, report.released, report.llm_calls) == ("llm_budget", 1, 0)
+    assert api.bodies["fail"] == []
+
+
+@pytest.mark.parametrize(("documents", "cards", "share"), [(0, 4200, 0.0), (300, 700, 0.3), (5000, 500, 0.6)])
+def test_the_adaptive_share_is_the_documents_part_of_the_demand_and_never_above_the_card_band_limit(
+    documents: int, cards: int, share: float
+) -> None:
+    """Pacing · the documents' share follows their part of the pending demand, and cards keep at least 40% of the cap."""
+    assert adaptive_share(documents, cards, ceiling=0.6) == pytest.approx(share)

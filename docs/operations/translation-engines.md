@@ -44,8 +44,12 @@ GitHub variables (Settings, Secrets and variables, Actions, Variables):
 | --- | --- | --- |
 | `TRANSLATION_ENGINE` | `azure-translator` | The card drain and `translate-ui` engine. Set `llm` to roll back |
 | `TRANSLATION_GLOSSARY_MODE` | `strict` | `strict` or `advisory`. Set it from the probe's `recommended_glossary_mode` (see Probe) |
+| `TRANSLATION_TAIL_LOCALES` | unset (none) | Target locales whose lower-priority card translations go to Workers AI (`llm`). Empty routes nothing there. See Tail routing |
+| `TRANSLATION_TAIL_PRIORITY_MIN` | `600` | The lowest first-translation priority (0 to 1000) the tail takes. Priority 599 and below stays on Azure |
 | `AZURE_TRANSLATOR_MIN_REMAINING_CHARS` | `20000` | The `azure-translator` precheck: the job skips when fewer characters remain this month |
-| `AZURE_DOCUMENT_BUDGET_SHARE` | `0.6` | The share of the monthly cap that snapshot pages may use (see The character ledger below) |
+| `AZURE_DOCUMENT_BUDGET_SHARE` | `0.6` | The ceiling of the share of the monthly cap that snapshot pages may use. The drain takes less when cards have more pending work (see The character ledger below) |
+| `AZURE_WINDOW_ANCHOR` | `2026-11-13` | The first day (UTC) of the Azure allowance window. The daily pace counts the days left to the next anniversary of this day |
+| `AZURE_DAILY_CHAR_PACE` | unset | Characters a run may spend today. Unset, the drain computes the day's share of what the window has left |
 | `QUERY_EMBED_RESERVE` | `1000` | `llm` only: neurons the drain leaves for query embedding |
 | `DISCOVERY_TRANSLATE_SCHEDULE` | unset | `enabled` turns on the daily card drain. Manual dispatch works either way |
 | `SNAPSHOT_TRANSLATE_SCHEDULE` | unset | `enabled` turns on the snapshot job. Set it after the first inspected drain (see Snapshot schedule) |
@@ -66,22 +70,28 @@ is written for that version only: the v3.0 API is not compatible. `TRANSLATION_M
 ## The character ledger, the cap and the document share
 
 - The ledger resource `azure_translator_chars` counts characters for each UTC calendar month (`%Y-%m`). The API keeps
-  it, so GitHub runs, laptop runs and `translate-ui` share one count. `python -m discovery_ingest budget show --resource
+  it, so GitHub runs, laptop runs and `translate-ui` share one count. The daily pace reads the remainder of that row, but
+  counts its days to the end of the anchored window (`AZURE_WINDOW_ANCHOR`). Until the API's period is anchored too, the
+  row resets on the calendar month, so the two agree only while the window and the calendar month start together. `python -m discovery_ingest budget show --resource
   azure_translator_chars` prints it.
 - The cap is 1,900,000 characters: 95 percent of the free F0 allowance of 2,000,000 a month, the repository's margin for
-  free tiers. F0 also has an hourly sliding-window quota of the same size. At this volume the hourly quota does not bind.
+  free tiers. F0 also limits characters a minute. The adapter sends at most 28,000 characters in any 60 seconds (`CHARACTERS_PER_MINUTE`) and paces requests to that window, so the per-minute limit, not the monthly cap, sets a drain's pace.
 - Each call reserves its exact characters before it is sent, all or nothing. A refused reservation stops the drain and
   releases its tasks without consuming an attempt. After the call, the ledger is settled to the characters Azure reports
   in the `X-metered-usage` header. Each target locale counts separately: a 3,000-character text sent to three targets
   is 9,000 characters.
-- Documents share the cap with cards and interface strings. The snapshot drain keeps `(1 − AZURE_DOCUMENT_BUDGET_SHARE)`
-  of the cap for cards and interface strings, so documents never take that card band. With the default share of 0.6,
-  documents may use the 60% of the cap that lies above the card band, and the band keeps 40%.
+- Documents share the cap with cards and interface strings. The snapshot drain's share follows the pending documents
+  and cards, and never exceeds `AZURE_DOCUMENT_BUDGET_SHARE` (default 0.6). Cards therefore keep at least 40% of the cap.
+  A run also stops at today's pace: the remainder over the days left in the anchored window, unless
+  `AZURE_DAILY_CHAR_PACE` sets it.
 - Azure answers `403001` when the free quota is used up. That stops the drain and marks the month exhausted in the
-  ledger. Throttling (HTTP 429, codes 429000 to 429002) is a transient error. Azure documents no `Retry-After` header.
-- The adapter sends at most 500 inputs and 40,000 characters in one request. Azure's documented ceilings are 1,000
-  inputs and 50,000 characters, counted across targets. Calls are at least one second apart. Text is sent as `plain`:
-  the snapshot unit goes as a list of blocks, not as markup.
+  ledger. Throttling (HTTP 429, codes 429000 to 429002) is a rate limit: the request waits (its `Retry-After` when Azure
+  sends one, otherwise 2 s, then 4 s) and is sent again, at most twice. If it is still throttled, the batch's tasks are
+  released without an attempt and the drain stops `rate_limited`. Azure documents no `Retry-After` header.
+- The adapter sends at most 500 inputs and 28,000 characters in one request, and holds the characters it sends in any 60
+  seconds at or below 28,000. The free tier enforces 33,300 a minute; the headroom covers requests in flight. Calls are at
+  least one second apart. A single text over 28,000 characters is refused before anything is sent. Text is sent as
+  `plain`: the snapshot unit goes as a list of blocks, not as markup.
 - The `neuron_budget` option of the drain does not apply to `azure-translator`. Its characters are bounded by the
   monthly ledger and by the precheck, not by neurons.
 
@@ -148,6 +158,21 @@ cd apps/api
 - Both accept `--locale` to cover one target locale, `--batch-size` and `--after <id>` to resume after the id a previous run
   printed.
 - Record the counts of each run in the run ledger.
+
+## Tail routing to Workers AI
+
+The card queue is split by priority. A first translation ranks by confidence, so 0 is the best and 1000 the lowest. The
+Azure lane takes everything except the tail. The tail is the first translations of the `TRANSLATION_TAIL_LOCALES` at or
+above `TRANSLATION_TAIL_PRIORITY_MIN`, and only `translate drain --engine llm` claims them. Re-translations and upgrades
+stay on Azure.
+
+- `TRANSLATION_TAIL_LOCALES` is empty by default, so nothing reaches Workers AI. Set it only for a locale whose
+  `translate probe --engine llm` valid share is 90% or more, and record the share in the run ledger first. Each value
+  must also be a target locale, or the API refuses to start.
+- `translate drain --engine llm` claims only the tail. `--priority-min` and `--priority-max` narrow the band for one run.
+- An Azure translation of a unit supersedes a tail row. To queue those upgrades, run
+  `.venv/bin/python -m scripts.upgrade_tail_translations --limit 200` from `apps/api`. It queues only while no Azure task
+  is ready, never replaces a human translation, and a re-run changes nothing.
 
 ## Snapshot schedule
 

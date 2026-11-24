@@ -37,6 +37,7 @@
     "optional": "Opțional",
     "screenshot_alt": "Captură de ecran a paginii sursă pentru {title}",
     "screenshot_fetched": "Realizată {time}",
+    "screenshot_history": "Istoricul capturilor de ecran",
     "screenshot_missing": "Încă nu există o captură de ecran",
     "source_role_form": "Formular",
     "source_role_issued": "Emis",
@@ -337,6 +338,93 @@
       "task_status_completed": "Finalizat",
       "task_status_failed": "Eșuat",
       "task_status_pending": "În așteptare"
+    },
+    "flow": {
+      "title": "Fluxul pipeline-ului",
+      "graph_label": "Etapele pipeline-ului și etapele pe care le alimentează",
+      "list_label": "Etapele pipeline-ului în ordine",
+      "empty": "Încă nu există etape ale pipeline-ului.",
+      "layout_error": "Fluxul nu a putut fi aranjat.",
+      "detail_empty": "Selectați o etapă pentru a vedea ultima rulare, erorile și consumul.",
+      "ready": "Pregătite: {count}",
+      "failed_24h": "Eșuate în 24 h: {count}",
+      "last_run": "Ultima rulare: {age}",
+      "no_run": "Nicio rulare înregistrată",
+      "stop_reason": "Motivul opririi: {reason}",
+      "run_status": {
+        "running": "În curs",
+        "succeeded": "Reușită",
+        "failed": "Eșuată"
+      },
+      "spend_title": "Consum în ultimele 24 h",
+      "spend_none": "Această etapă nu consumă un contingent gratuit.",
+      "spend_row": "{stage}: {spent}",
+      "headroom": "{resource} are rezervă neutilizată, în timp ce {stage} are lucru pregătit.",
+      "strip_label": "Contingente",
+      "stage": {
+        "seed": "Semănarea",
+        "render": "Randare",
+        "extract_page": "Extracție (reguli)",
+        "llm": "Extracție (LLM)",
+        "capture": "Captură de ecran",
+        "embed": "Embedding",
+        "card_translation": "Traducerea cardurilor",
+        "page_translation": "Traducerea paginilor"
+      },
+      "run_stage": {
+        "worker_drain": "Rulare worker",
+        "embed": "Embedding",
+        "translate": "Traducerea cardurilor",
+        "snapshot_translate": "Traducerea paginilor"
+      },
+      "stop_reasons": {
+        "queue_empty": "coadă goală",
+        "time_budget": "buget de timp",
+        "rate_limited": "limită de rată",
+        "browser_budget": "buget browser",
+        "browser_quota": "cotă browser",
+        "llm_budget": "buget LLM",
+        "llm_quota": "cotă LLM"
+      },
+      "state": {
+        "dead": {
+          "label": "Inactiv definitiv",
+          "description": "Nicio sarcină a acestei etape nu a fost pusă vreodată în coadă."
+        },
+        "budget_stopped": {
+          "label": "Buget epuizat",
+          "description": "Etapa s-a oprit la contingent, iar lucrul pregătit așteaptă perioada următoare."
+        },
+        "throttled": {
+          "label": "Limitat",
+          "description": "Există lucru pregătit și rezervă, dar ultima rulare s-a oprit din cauza ceasului sau a unei limite de rată."
+        },
+        "blocked": {
+          "label": "Blocat",
+          "description": "Nimic nu este pregătit, iar o etapă din amonte este întârziată."
+        },
+        "starved": {
+          "label": "Fără lucru",
+          "description": "Nimic nu este pregătit, iar ultima rulare a găsit coada goală."
+        },
+        "overdue": {
+          "label": "Întârziat",
+          "description": "Ultima rulare este mai veche decât permite ritmul etapei."
+        },
+        "backlogged": {
+          "label": "Restanță",
+          "description": "Cu ritmul de golire din ultimele 24 h, lucrul pregătit ar dura mai mult decât permite ritmul."
+        },
+        "flowing": {
+          "label": "În flux",
+          "description": "Etapa a finalizat lucru în ultimele 24 h."
+        },
+        "idle": {
+          "label": "Inactiv",
+          "description": "Nimic nu este pregătit, iar etapa nu raportează probleme."
+        }
+      },
+      "updated": "Actualizat {age}"
     }
   },
   "documents": {

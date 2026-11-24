@@ -7,7 +7,7 @@ import typer
 from discovery_ingest.cli.errors import EXIT_FAILED, HELP_OPTIONS, fail, show_help_without_subcommand
 from discovery_ingest.cli.options import probe_variant
 from discovery_ingest.config import load_browser_settings
-from discovery_ingest.operations.probes import browser_probe
+from discovery_ingest.operations.probes import browser_probe, canary_probe
 
 DEFAULT_MAX_BROWSER_SECONDS = 240.0
 EXIT_MISSING_SETTINGS = 2
@@ -47,18 +47,29 @@ def browser_probe_command(
             help=f"Stop once this many browser seconds are spent (default {DEFAULT_MAX_BROWSER_SECONDS:g})",
         ),
     ] = DEFAULT_MAX_BROWSER_SECONDS,
+    canary: Annotated[
+        int | None,
+        typer.Option(
+            "--canary",
+            min=1,
+            help="Compare /content with the fused /snapshot on this many stable pages (from --url) and print the verdict",
+        ),
+    ] = None,
 ) -> None:
-    """Call every quick action the worker uses and print a table."""
+    """Call every quick action the worker uses and print a table; ``--canary`` runs the fused-render comparison instead."""
     settings = load_browser_settings()
     if settings.missing_credentials():
         fail(f"missing environment: {', '.join(settings.missing_credentials())}", EXIT_MISSING_SETTINGS)
-    outcome = browser_probe(
-        settings,
-        urls=url or [],
-        error_urls=error_url or [],
-        variants=variant,
-        max_browser_seconds=max_browser_seconds,
-    )
+    if canary is not None:
+        outcome = canary_probe(settings, urls=url or [], required=canary, max_browser_seconds=max_browser_seconds)
+    else:
+        outcome = browser_probe(
+            settings,
+            urls=url or [],
+            error_urls=error_url or [],
+            variants=variant,
+            max_browser_seconds=max_browser_seconds,
+        )
     typer.echo("\n".join(outcome.lines))
     if outcome.failed:
         raise typer.Exit(EXIT_FAILED)

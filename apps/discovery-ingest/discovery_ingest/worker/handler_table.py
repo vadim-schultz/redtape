@@ -17,17 +17,18 @@ from discovery_ingest.worker.fetch_url import handle_fetch_url
 from discovery_ingest.worker.harvest import HarvestPayloadHandler
 from discovery_ingest.worker.llm_drain import LlmDrain
 from discovery_ingest.worker.render import AfterSnapshot, RenderPageHandler
+from discovery_ingest.worker.render_fused import FusedRenderPageHandler
 
 BrowserParts = tuple[BrowserClient | None, BrowserSpend | None, AfterSnapshot]
 """The browser port, its spend and the after-snapshot hook; the browser kinds are served only when the first two exist."""
 
 
-def _browser_handlers(parts: BrowserParts) -> Mapping[DiscoveryTaskKind, TaskHandler]:
+def _browser_handlers(parts: BrowserParts, render: type[RenderPageHandler]) -> Mapping[DiscoveryTaskKind, TaskHandler]:
     browser, spend, hook = parts
     if browser is None or spend is None:
         return {}
     return {
-        "render_page": RenderPageHandler(browser, spend, hook),
+        "render_page": render(browser, spend, hook),
         "capture_screenshot": CaptureScreenshotHandler(browser, spend),
     }
 
@@ -37,11 +38,12 @@ def handler_table(
 ) -> Mapping[DiscoveryTaskKind, TaskHandler]:
     """Map each task kind to its handler; browser and llm kinds appear only when their parts exist."""
     llm_handlers = llm_drain.handlers() if llm_drain else {}
+    render = FusedRenderPageHandler if deps.fused_screenshot else RenderPageHandler
     return {
         "fetch_url": handle_fetch_url,
         "enrich_metadata": EnrichMetadataHandler(deps.fim_base_url),
         "harvest_payload": HarvestPayloadHandler(FetchedCrosswalk(lambda: deps.client.candidates.crosswalk())),
         "extract_page": ExtractPageHandler(deps.extractors),
-        **_browser_handlers(browser),
+        **_browser_handlers(browser, render),
         **llm_handlers,
     }

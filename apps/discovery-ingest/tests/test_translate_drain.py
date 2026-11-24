@@ -14,6 +14,7 @@ from discovery_ingest.translation.engine import TranslationEngine
 from discovery_ingest.translation.errors import (
     PermanentError,
     QuotaExceeded,
+    RateLimited,
     TransientError,
     Unauthorised,
 )
@@ -26,6 +27,7 @@ from discovery_ingest.translation.meter import NoMeterForUnitError, UsageMeter
 from discovery_ingest.translation.registry import register_engine, unregister_engine
 from discovery_ingest.translation.settings import TranslationSettings
 from discovery_ingest.translation.units import TranslationBatch, TranslationOutcome, UsageUnit
+from discovery_ingest.translation_models import PriorityBand
 from discovery_ingest.worker.policy import DrainPolicy
 from discovery_ingest.worker.translate_drain import TranslateDeps, run_translate_drain
 
@@ -234,6 +236,23 @@ def test_quota_exhaustion_stops_with_llm_quota_and_releases_what_was_not_transla
     assert (report.stop_reason, report.succeeded, report.completed, report.released) == ("llm_quota", True, 3, 3)
     assert api.bodies["release"][0]["task_ids"] == _ids(1, 3, 5) and "llm_quota" in api.bodies["release"][0]["reason"]
     assert not api.bodies["fail"] and "exhaust" in api.ledger.actions()
+
+
+def test_a_rate_limited_batch_releases_its_tasks_without_an_attempt_and_stops_the_drain() -> None:
+    """translate drain · a 429 releases the open tasks without an attempt, stops rate_limited, and the next claim never runs."""
+    api = TranslateApi(_mixed())
+
+    class Limited(ScriptedEngine):
+        def translate(self, batch: TranslationBatch) -> TranslationOutcome:
+            if batch.target_locale == "tr":
+                raise RateLimited("429000: slow down", retry_after=5.0)
+            return super().translate(batch)
+
+    report = _drain(api, Limited(), max_batches=3)
+
+    assert (report.stop_reason, report.succeeded, report.completed, report.released) == ("rate_limited", True, 3, 3)
+    assert not api.bodies["fail"] and api.bodies["release"][0]["task_ids"] == _ids(1, 3, 5)
+    assert len(api.bodies["claim"]) == 1
 
 
 def test_an_unavailable_item_ends_the_drain_cleanly_and_the_unstarted_locales_are_released() -> None:
@@ -491,3 +510,24 @@ def test_a_reservation_that_clears_the_floor_after_the_reserve_is_kept() -> None
 
     assert (report.completed, report.stop_reason) == (3, "batch_limit")
     assert api.ledger.remaining == pytest.approx(1000.0 - 6.0)
+
+
+def test_the_claim_names_the_drain_engine_and_the_band_it_takes() -> None:
+    """translate drain · every claim names the engine the drain runs on and the priority band it was given."""
+    api = TranslateApi(_mixed())
+    deps = TranslateDeps(api.client(), ScriptedEngine())
+
+    run_translate_drain(
+        deps, DrainPolicy(max_tasks=10, max_batches=1, neuron_budget=1000.0), band=PriorityBand(minimum=600)
+    )
+
+    assert api.bodies["claim"][0] == {"limit": 10, "engine": ENGINE_NAME, "priority_min": 600}
+
+
+def test_a_drain_without_a_band_claims_without_priority_bounds() -> None:
+    """translate drain · the default drain sends its engine and no bounds, so the claim is not narrowed."""
+    api = TranslateApi(_mixed())
+
+    _drain(api, ScriptedEngine(), max_batches=1)
+
+    assert api.bodies["claim"][0] == {"limit": 10, "engine": ENGINE_NAME}

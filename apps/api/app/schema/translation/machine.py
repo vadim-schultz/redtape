@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Final, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.search import WorkTaskStatus
 
@@ -18,9 +18,23 @@ MAX_BODY_BYTES: Final = 2 * 1024 * 1024
 
 
 class TranslationClaimRequest(BaseModel):
-    """Claim up to ``limit`` pending translation tasks, highest-priority candidates first."""
+    """Claim up to ``limit`` pending translation tasks of ``engine``'s lane within a priority band, best candidates first.
+
+    An absent ``engine`` claims without a lane, as a claim did before lanes existed. ``priority_max`` is inclusive and
+    absent when the band is open above.
+    """
 
     limit: int = Field(default=MAX_BATCH, ge=1, le=MAX_BATCH)
+    engine: str | None = Field(default=None, min_length=1, max_length=50)
+    priority_min: int = Field(default=0, ge=0)
+    priority_max: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _band_is_ordered(self) -> TranslationClaimRequest:
+        """Refuse a band whose maximum is below its minimum."""
+        if self.priority_max is not None and self.priority_max < self.priority_min:
+            raise ValueError("priority_max is below priority_min")
+        return self
 
 
 class ClaimedTranslationTask(BaseModel):
@@ -115,7 +129,8 @@ class TranslationReleaseResponse(BaseModel):
 class TranslationLocaleSummary(BaseModel):
     """Queue and store counts of one target locale.
 
-    ``stale`` counts stored translations that an open task is replacing with a newer German unit.
+    ``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the
+    oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.
     """
 
     locale: str
@@ -124,6 +139,9 @@ class TranslationLocaleSummary(BaseModel):
     failed: int
     stale: int
     translated: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
 
 
 class TranslationSummaryResponse(BaseModel):

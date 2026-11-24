@@ -21,6 +21,13 @@
    "explicit",
    "derived_single_issued"
   ],
+  "DiscoveryFailureClass": [
+   "transient",
+   "permanent",
+   "login_wall",
+   "robots",
+   "not_found"
+  ],
   "DiscoveryMentionRole": [
    "required",
    "form",
@@ -28,6 +35,12 @@
   ],
   "DiscoveryRunKind": [
    "worker_drain"
+  ],
+  "DiscoveryRunStage": [
+   "worker_drain",
+   "embed",
+   "translate",
+   "snapshot_translate"
   ],
   "DiscoverySource": [
    "govdata",
@@ -93,7 +106,8 @@
    "storage_unavailable",
    "db_limit",
    "llm_budget",
-   "llm_quota"
+   "llm_quota",
+   "rate_limited"
   ],
   "TranslationOutcome": [
    "stored",
@@ -377,6 +391,124 @@
      "storage_enabled"
     ],
     "title": "ArtifactStatusResponse",
+    "type": "object"
+   }
+  },
+  "artifacts.MissingScreenshotResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "ArtifactRead": {
+      "description": "Artifact metadata; the bytes stay in the object store.",
+      "properties": {
+       "byte_size": {
+        "title": "Byte Size",
+        "type": "integer"
+       },
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "content_type": {
+        "title": "Content Type",
+        "type": "string"
+       },
+       "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+       },
+       "discovery_task_id": {
+        "anyOf": [
+         {
+          "format": "uuid",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Discovery Task Id"
+       },
+       "fetched_at": {
+        "format": "date-time",
+        "title": "Fetched At",
+        "type": "string"
+       },
+       "final_url": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Final Url"
+       },
+       "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+       },
+       "kind": {
+        "$ref": "#/$defs/DiscoveryArtifactKind"
+       },
+       "sha256": {
+        "title": "Sha256",
+        "type": "string"
+       },
+       "source_url": {
+        "title": "Source Url",
+        "type": "string"
+       },
+       "storage_key": {
+        "title": "Storage Key",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "catalogue_service_id",
+       "discovery_task_id",
+       "kind",
+       "storage_key",
+       "sha256",
+       "content_type",
+       "byte_size",
+       "source_url",
+       "final_url",
+       "fetched_at",
+       "created_at"
+      ],
+      "title": "ArtifactRead",
+      "type": "object"
+     },
+     "DiscoveryArtifactKind": {
+      "description": "What an object-store artifact holds.",
+      "enum": [
+       "html_snapshot",
+       "screenshot"
+      ],
+      "title": "DiscoveryArtifactKind",
+      "type": "string"
+     }
+    },
+    "description": "The newest HTML snapshot of each rendered catalogue row that has no screenshot yet, newest first.",
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/$defs/ArtifactRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "items"
+    ],
+    "title": "MissingScreenshotResponse",
     "type": "object"
    }
   },
@@ -2633,8 +2765,21 @@
   "machine.FetchLogAppendRequest": {
    "mode": "validation",
    "schema": {
-    "description": "One HTTP fetch attempt against a task target.",
+    "description": "One HTTP fetch attempt against a task target; the body hash and the final url feed the render verdict.",
     "properties": {
+     "body_sha256": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Body Sha256"
+     },
      "byte_length": {
       "anyOf": [
        {
@@ -2673,6 +2818,19 @@
       "default": null,
       "title": "Error Message"
      },
+     "final_url": {
+      "anyOf": [
+       {
+        "maxLength": 2048,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Final Url"
+     },
      "http_status": {
       "anyOf": [
        {
@@ -2690,10 +2848,70 @@
     "type": "object"
    }
   },
+  "machine.FetchLogAppendResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskStatus": {
+      "description": "Lifecycle of a queued fetch or enrich task.",
+      "enum": [
+       "pending",
+       "claimed",
+       "completed",
+       "failed"
+      ],
+      "title": "DiscoveryTaskStatus",
+      "type": "string"
+     }
+    },
+    "description": "Created fetch log row, and whether its body earns a render and under which input key.",
+    "properties": {
+     "discovery_task_id": {
+      "format": "uuid",
+      "title": "Discovery Task Id",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "render_due": {
+      "default": false,
+      "title": "Render Due",
+      "type": "boolean"
+     },
+     "render_input_key": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Render Input Key"
+     },
+     "task_status": {
+      "$ref": "#/$defs/DiscoveryTaskStatus"
+     }
+    },
+    "required": [
+     "discovery_task_id",
+     "id",
+     "render_due",
+     "render_input_key",
+     "task_status"
+    ],
+    "title": "FetchLogAppendResponse",
+    "type": "object"
+   }
+  },
   "machine.RunFinishRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Close a run with its report.",
+    "description": "Close a run with its report and the spend it made per budget resource.",
     "properties": {
      "claimed_count": {
       "minimum": 0,
@@ -2741,6 +2959,32 @@
       "title": "Skipped Count",
       "type": "integer"
      },
+     "spend": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "minimum": 0,
+         "type": "number"
+        },
+        "propertyNames": {
+         "enum": [
+          "r2_class_a",
+          "r2_class_b",
+          "browser_seconds",
+          "neurons",
+          "actions_minutes",
+          "azure_translator_chars"
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Spend"
+     },
      "status": {
       "enum": [
        "succeeded",
@@ -2762,7 +3006,8 @@
          "storage_unavailable",
          "db_limit",
          "llm_budget",
-         "llm_quota"
+         "llm_quota",
+         "rate_limited"
         ],
         "type": "string"
        },
@@ -2844,16 +3089,95 @@
       ],
       "title": "DiscoveryRunKind",
       "type": "string"
+     },
+     "DiscoveryRunStage": {
+      "description": "The drain a run record belongs to; a run that names no stage is a worker drain.",
+      "enum": [
+       "worker_drain",
+       "embed",
+       "translate",
+       "snapshot_translate"
+      ],
+      "title": "DiscoveryRunStage",
+      "type": "string"
      }
     },
-    "description": "Open a run record before the worker starts draining.",
+    "description": "Open a run record before the worker starts draining; the stage defaults to the kind.",
     "properties": {
      "kind": {
       "$ref": "#/$defs/DiscoveryRunKind",
       "default": "worker_drain"
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/DiscoveryRunStage"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
      }
     },
     "title": "RunStartRequest",
+    "type": "object"
+   }
+  },
+  "machine.StaleFetchesResponse": {
+   "mode": "serialization",
+   "schema": {
+    "$defs": {
+     "StaleFetchRead": {
+      "description": "A portal page whose newest fetch finished before the refresh cutoff, with no fetch of it still open.",
+      "properties": {
+       "catalogue_service_id": {
+        "format": "uuid",
+        "title": "Catalogue Service Id",
+        "type": "string"
+       },
+       "last_fetched_at": {
+        "format": "date-time",
+        "title": "Last Fetched At",
+        "type": "string"
+       },
+       "target_url": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Target Url",
+        "type": "string"
+       }
+      },
+      "required": [
+       "catalogue_service_id",
+       "target_url",
+       "last_fetched_at"
+      ],
+      "title": "StaleFetchRead",
+      "type": "object"
+     }
+    },
+    "description": "Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under.",
+    "properties": {
+     "input_key": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Input Key",
+      "type": "string"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/$defs/StaleFetchRead"
+      },
+      "title": "Items",
+      "type": "array"
+     }
+    },
+    "required": [
+     "input_key",
+     "items"
+    ],
+    "title": "StaleFetchesResponse",
     "type": "object"
    }
   },
@@ -3026,7 +3350,7 @@
   "machine.TaskCompleteRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Optional note on why a task completed without producing anything (for example ``no_mentions``).",
+    "description": "Optional note on why a task completed (for example ``no_mentions``) and the cleaned-text hash it read.",
     "properties": {
      "note": {
       "anyOf": [
@@ -3040,6 +3364,19 @@
       ],
       "default": null,
       "title": "Note"
+     },
+     "text_hash": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Text Hash"
      }
     },
     "title": "TaskCompleteRequest",
@@ -3150,12 +3487,37 @@
   "machine.TaskFailRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Failure reason for a discovery task.",
+    "$defs": {
+     "DiscoveryFailureClass": {
+      "description": "Why a discovery task failed, as the worker classifies it; a task with no class counts as permanent.",
+      "enum": [
+       "transient",
+       "permanent",
+       "login_wall",
+       "robots",
+       "not_found"
+      ],
+      "title": "DiscoveryFailureClass",
+      "type": "string"
+     }
+    },
+    "description": "Failure reason for a discovery task; ``failure_class`` says why, and a missing class counts as permanent.",
     "properties": {
      "error": {
       "minLength": 1,
       "title": "Error",
       "type": "string"
+     },
+     "failure_class": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/DiscoveryFailureClass"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
      },
      "retryable": {
       "default": false,
@@ -3205,7 +3567,7 @@
   "machine.TaskSummaryResponse": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.",
+    "description": "Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.\n\n``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the\ntasks finished in the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
@@ -3219,9 +3581,28 @@
       "title": "Completed",
       "type": "integer"
      },
+     "completed_24h": {
+      "title": "Completed 24H",
+      "type": "integer"
+     },
      "failed": {
       "title": "Failed",
       "type": "integer"
+     },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_delayed": {
       "title": "Pending Delayed",
@@ -3236,11 +3617,104 @@
      "claimed",
      "claimed_stale",
      "completed",
+     "completed_24h",
      "failed",
+     "failed_24h",
+     "oldest_pending_age_seconds",
      "pending_delayed",
      "pending_ready"
     ],
     "title": "TaskSummaryResponse",
+    "type": "object"
+   }
+  },
+  "machine.TaskSupersededRequest": {
+   "mode": "validation",
+   "schema": {
+    "$defs": {
+     "DiscoveryTaskKind": {
+      "description": "What kind of work a discovery task performs.",
+      "enum": [
+       "fetch_url",
+       "enrich_metadata",
+       "harvest_payload",
+       "extract_page",
+       "capture_screenshot",
+       "render_page",
+       "llm_extract"
+      ],
+      "title": "DiscoveryTaskKind",
+      "type": "string"
+     }
+    },
+    "description": "Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``.",
+    "properties": {
+     "dry_run": {
+      "default": false,
+      "title": "Dry Run",
+      "type": "boolean"
+     },
+     "input_key": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Input Key",
+      "type": "string"
+     },
+     "kind": {
+      "$ref": "#/$defs/DiscoveryTaskKind"
+     },
+     "limit": {
+      "default": 50,
+      "maximum": 200,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "kind",
+     "input_key"
+    ],
+    "title": "TaskSupersededRequest",
+    "type": "object"
+   }
+  },
+  "machine.TaskSupersededResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "What the superseded requeue matched, and how many it re-pended (none on a dry run).",
+    "properties": {
+     "matched": {
+      "title": "Matched",
+      "type": "integer"
+     },
+     "requeued": {
+      "title": "Requeued",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "matched",
+     "requeued"
+    ],
+    "title": "TaskSupersededResponse",
+    "type": "object"
+   }
+  },
+  "machine.TextExtractedResponse": {
+   "mode": "serialization",
+   "schema": {
+    "description": "Whether a completed extraction of this page under these versions recorded the text hash.",
+    "properties": {
+     "extracted": {
+      "title": "Extracted",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "extracted"
+    ],
+    "title": "TextExtractedResponse",
     "type": "object"
    }
   },
@@ -4081,15 +4555,34 @@
   "search_machine.EmbeddingSummaryResponse": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.",
+    "description": "Queue counts for a workflow's early exit; ``stale_candidates`` are search texts without a current vector.\n\n``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the\ntasks finished in the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
       "type": "integer"
      },
+     "completed_24h": {
+      "title": "Completed 24H",
+      "type": "integer"
+     },
      "failed": {
       "title": "Failed",
       "type": "integer"
+     },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -4102,7 +4595,10 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "stale_candidates"
     ],
@@ -4623,19 +5119,38 @@
   "snapshot_machine.SnapshotLocaleSummary": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+    "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.\nThe age of the oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the\nlast day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
+      "type": "integer"
+     },
+     "completed_24h": {
+      "title": "Completed 24H",
       "type": "integer"
      },
      "failed": {
       "title": "Failed",
       "type": "integer"
      },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
      "locale": {
       "title": "Locale",
       "type": "string"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -4656,8 +5171,11 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
      "locale",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "skipped",
      "stale",
@@ -4672,19 +5190,38 @@
    "schema": {
     "$defs": {
      "SnapshotLocaleSummary": {
-      "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.",
+      "description": "Queue and store counts of one target locale for snapshot pages.\n\n``stale`` counts translated pages that an open task is replacing with a newer artifact; ``skipped`` counts markers.\nThe age of the oldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the\nlast day.",
       "properties": {
        "claimed": {
         "title": "Claimed",
+        "type": "integer"
+       },
+       "completed_24h": {
+        "title": "Completed 24H",
         "type": "integer"
        },
        "failed": {
         "title": "Failed",
         "type": "integer"
        },
+       "failed_24h": {
+        "title": "Failed 24H",
+        "type": "integer"
+       },
        "locale": {
         "title": "Locale",
         "type": "string"
+       },
+       "oldest_pending_age_seconds": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Oldest Pending Age Seconds"
        },
        "pending_ready": {
         "title": "Pending Ready",
@@ -4710,7 +5247,10 @@
        "failed",
        "translated",
        "stale",
-       "skipped"
+       "skipped",
+       "oldest_pending_age_seconds",
+       "completed_24h",
+       "failed_24h"
       ],
       "title": "SnapshotLocaleSummary",
       "type": "object"
@@ -5137,13 +5677,46 @@
   "translation_machine.TranslationClaimRequest": {
    "mode": "validation",
    "schema": {
-    "description": "Claim up to ``limit`` pending translation tasks, highest-priority candidates first.",
+    "description": "Claim up to ``limit`` pending translation tasks of ``engine``'s lane within a priority band, best candidates first.\n\nAn absent ``engine`` claims without a lane, as a claim did before lanes existed. ``priority_max`` is inclusive and\nabsent when the band is open above.",
     "properties": {
+     "engine": {
+      "anyOf": [
+       {
+        "maxLength": 50,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Engine"
+     },
      "limit": {
       "default": 50,
       "maximum": 50,
       "minimum": 1,
       "title": "Limit",
+      "type": "integer"
+     },
+     "priority_max": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Priority Max"
+     },
+     "priority_min": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Priority Min",
       "type": "integer"
      }
     },
@@ -5542,19 +6115,38 @@
   "translation_machine.TranslationLocaleSummary": {
    "mode": "serialization",
    "schema": {
-    "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit.",
+    "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the\noldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.",
     "properties": {
      "claimed": {
       "title": "Claimed",
+      "type": "integer"
+     },
+     "completed_24h": {
+      "title": "Completed 24H",
       "type": "integer"
      },
      "failed": {
       "title": "Failed",
       "type": "integer"
      },
+     "failed_24h": {
+      "title": "Failed 24H",
+      "type": "integer"
+     },
      "locale": {
       "title": "Locale",
       "type": "string"
+     },
+     "oldest_pending_age_seconds": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Oldest Pending Age Seconds"
      },
      "pending_ready": {
       "title": "Pending Ready",
@@ -5571,8 +6163,11 @@
     },
     "required": [
      "claimed",
+     "completed_24h",
      "failed",
+     "failed_24h",
      "locale",
+     "oldest_pending_age_seconds",
      "pending_ready",
      "stale",
      "translated"
@@ -5646,19 +6241,38 @@
    "schema": {
     "$defs": {
      "TranslationLocaleSummary": {
-      "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit.",
+      "description": "Queue and store counts of one target locale.\n\n``stale`` counts stored translations that an open task is replacing with a newer German unit. The age of the\noldest ready task is ``null`` when none is ready; ``completed_24h`` and ``failed_24h`` count the last day.",
       "properties": {
        "claimed": {
         "title": "Claimed",
+        "type": "integer"
+       },
+       "completed_24h": {
+        "title": "Completed 24H",
         "type": "integer"
        },
        "failed": {
         "title": "Failed",
         "type": "integer"
        },
+       "failed_24h": {
+        "title": "Failed 24H",
+        "type": "integer"
+       },
        "locale": {
         "title": "Locale",
         "type": "string"
+       },
+       "oldest_pending_age_seconds": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Oldest Pending Age Seconds"
        },
        "pending_ready": {
         "title": "Pending Ready",
@@ -5679,7 +6293,10 @@
        "claimed",
        "failed",
        "stale",
-       "translated"
+       "translated",
+       "oldest_pending_age_seconds",
+       "completed_24h",
+       "failed_24h"
       ],
       "title": "TranslationLocaleSummary",
       "type": "object"
@@ -5707,6 +6324,10 @@
   {
    "method": "GET",
    "path": "/api/v1/discovery/machine/artifacts"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/artifacts/missing-screenshot"
   },
   {
    "method": "GET",
@@ -5762,6 +6383,10 @@
   },
   {
    "method": "GET",
+   "path": "/api/v1/discovery/machine/catalogue/stale-fetches"
+  },
+  {
+   "method": "GET",
    "path": "/api/v1/discovery/machine/catalogue/{catalogue_id}"
   },
   {
@@ -5795,6 +6420,10 @@
   {
    "method": "POST",
    "path": "/api/v1/discovery/machine/entities"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/retention/prune"
   },
   {
    "method": "POST",
@@ -5833,8 +6462,20 @@
    "path": "/api/v1/discovery/machine/tasks/claim"
   },
   {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/requeue-superseded"
+  },
+  {
+   "method": "POST",
+   "path": "/api/v1/discovery/machine/tasks/requeue-transient"
+  },
+  {
    "method": "GET",
    "path": "/api/v1/discovery/machine/tasks/summary"
+  },
+  {
+   "method": "GET",
+   "path": "/api/v1/discovery/machine/tasks/text-extracted"
   },
   {
    "method": "POST",

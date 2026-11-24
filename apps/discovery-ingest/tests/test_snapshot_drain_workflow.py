@@ -64,14 +64,14 @@ def test_it_drains_snapshot_pages_five_at_a_time_and_checks_the_queue_first(job:
 
 
 def test_it_has_its_own_character_precheck_before_the_drain(job: dict[str, Any]) -> None:
-    """workflow · the snapshot job checks the monthly character ledger, and the actions minutes, before it claims."""
+    """workflow · the snapshot job checks the monthly character ledger before it claims; Actions minutes are not checked (D17)."""
     steps = job["steps"]
     check = _step(job, BUDGET_CHECK)
 
     assert steps.index(check) < steps.index(_step(job, DRAIN))
     assert "--resource azure_translator_chars --require-remaining" in check["run"]
     assert "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}" in check["run"]
-    assert "--resource actions_minutes --require-remaining actions_minutes=20" in check["run"]
+    assert "actions_minutes" not in check["run"]
 
 
 def test_the_document_share_is_read_from_the_workflow_variable_with_a_default_of_0_6(job: dict[str, Any]) -> None:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
@@ -21,7 +23,10 @@ from app.features.discovery.catalogue_upsert import CatalogueUpsertService
 from app.features.discovery.claim_ingest import ClaimIngest
 from app.features.discovery.edge_service import EdgeService
 from app.features.discovery.emit import DiscoveryEmitService
+from app.features.discovery.flow.context import FlowSources
+from app.features.discovery.flow.service import FlowService
 from app.features.discovery.repository import DiscoveryRepository
+from app.features.discovery.retention import DiscoveryRetentionService
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
 from app.features.discovery.task_queue import TaskQueue
@@ -52,13 +57,19 @@ def provide_discovery_admin_service(discovery_repository: DiscoveryRepository) -
 
 
 def provide_discovery_machine_service(discovery_repository: DiscoveryRepository) -> DiscoveryMachineService:
-    """Build the machine service with its upsert, queue and claim collaborators."""
+    """Build the machine service with its upsert, queue and claim collaborators and the refresh age of fetched pages."""
     return DiscoveryMachineService(
         discovery_repository,
         CatalogueUpsertService(discovery_repository),
         TaskQueue(discovery_repository),
         ClaimIngest(discovery_repository),
+        refresh_max_age=timedelta(days=settings.refresh_max_age_days),
     )
+
+
+def provide_discovery_retention_service(discovery_repository: DiscoveryRepository) -> DiscoveryRetentionService:
+    """Build the retention service over the repository, with the configured window for fetch logs and events."""
+    return DiscoveryRetentionService(discovery_repository, retention=timedelta(days=settings.event_retention_days))
 
 
 def provide_discovery_candidate_service(
@@ -96,7 +107,11 @@ def provide_discovery_artifact_upload_service(
 ) -> ArtifactUploadService:
     """Build the artifact upload service with the object store, the configured byte cap and the snapshot listener."""
     listener = SnapshotEnqueuer(discovery_repository.session)
-    policy = UploadPolicy(max_bytes=settings.object_store_max_bytes, listener=listener)
+    policy = UploadPolicy(
+        max_bytes=settings.object_store_max_bytes,
+        listener=listener,
+        keep_screenshots=settings.screenshot_keep_per_page,
+    )
     return ArtifactUploadService(discovery_repository, object_store, policy)
 
 
@@ -144,6 +159,16 @@ def provide_discovery_emit_service(
     return DiscoveryEmitService(discovery_repository, suggestion_service)
 
 
+def provide_discovery_flow_service(
+    discovery_repository: DiscoveryRepository,
+    discovery_budget_service: BudgetService,
+    discovery_artifact_read_service: ArtifactReadService,
+) -> FlowService:
+    """Build the pipeline flow service over the repository, the queues, the artifact reads and the budget ledger."""
+    sources = FlowSources(discovery_repository, discovery_budget_service, discovery_artifact_read_service)
+    return FlowService(sources)
+
+
 router_dependencies = {
     **auth_dependencies,
     **document_dependencies,
@@ -151,6 +176,7 @@ router_dependencies = {
     "discovery_repository": Provide(provide_discovery_repository, sync_to_thread=False),
     "discovery_admin_service": Provide(provide_discovery_admin_service, sync_to_thread=False),
     "discovery_machine_service": Provide(provide_discovery_machine_service, sync_to_thread=False),
+    "discovery_retention_service": Provide(provide_discovery_retention_service, sync_to_thread=False),
     "discovery_candidate_service": Provide(provide_discovery_candidate_service, sync_to_thread=False),
     "discovery_edge_service": Provide(provide_discovery_edge_service, sync_to_thread=False),
     "discovery_candidate_admin_service": Provide(provide_discovery_candidate_admin_service, sync_to_thread=False),
@@ -162,6 +188,7 @@ router_dependencies = {
     "object_store": Provide(provide_metered_object_store, sync_to_thread=False),
     "discovery_run_service": Provide(provide_discovery_run_service, sync_to_thread=False),
     "discovery_emit_service": Provide(provide_discovery_emit_service, sync_to_thread=False),
+    "discovery_flow_service": Provide(provide_discovery_flow_service, sync_to_thread=False),
     "suggestion_repository": Provide(provide_suggestion_repository, sync_to_thread=False),
     "suggestion_service": Provide(provide_suggestion_service, sync_to_thread=False),
     "machine_principal": Provide(provide_machine_principal, sync_to_thread=False),

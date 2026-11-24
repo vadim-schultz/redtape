@@ -46,6 +46,9 @@ class BrowserSettings(CloudflareAccountSettings):
     browser_request_timeout_seconds: float = Field(
         default=60.0, gt=0, validation_alias="BROWSER_REQUEST_TIMEOUT_SECONDS"
     )
+    render_fused_screenshot: bool = Field(default=False, validation_alias="RENDER_FUSED_SCREENSHOT")
+    screenshot_sweep_limit: int = Field(default=50, ge=1, le=100, validation_alias="SCREENSHOT_SWEEP_LIMIT")
+    """Store the HTML and the screenshot of a render from one /snapshot call; off until the canary is recorded (chapter 8)."""
 
     def credentials(self) -> tuple[str, str]:
         """Return the account id and the API token, or raise :class:`ValueError` naming what is missing."""
@@ -90,6 +93,8 @@ class IngestSettings(BotSettings, BrowserSettings, LlmSettings):
         default=DEFAULT_FIM_PORTAL_URL,
         validation_alias="FIM_PORTAL_BASE_URL",
     )
+    pipeline_orchestrator: str = Field(default="disabled", validation_alias="PIPELINE_ORCHESTRATOR")
+    github_step_summary: str | None = Field(default=None, validation_alias="GITHUB_STEP_SUMMARY")
 
 
 def load_ingest_settings() -> IngestSettings:

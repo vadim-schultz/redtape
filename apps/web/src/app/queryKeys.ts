@@ -77,6 +77,8 @@ export const queryKeys = {
       [...queryKeys.discoveryAdmin.all, "catalogue", query, locale] as const,
     coverage: (locale: string) =>
       [...queryKeys.discoveryAdmin.all, "coverage", locale] as const,
+    flow: (locale: string) =>
+      [...queryKeys.discoveryAdmin.all, "flow", locale] as const,
     tasks: (query: object, locale: string) =>
       [...queryKeys.discoveryAdmin.all, "tasks", query, locale] as const,
     candidates: (query: object, locale: string) =>

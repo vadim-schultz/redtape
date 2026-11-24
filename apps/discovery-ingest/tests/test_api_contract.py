@@ -61,6 +61,7 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.CatalogueBatchItem", "machine.CatalogueBatchItem", "request"),
     Pair("schemas.CatalogueBatchRequest", "machine.CatalogueBatchRequest", "request"),
     Pair("schemas.CatalogueMachineRead", "machine.CatalogueMachineRead", "response"),
+    Pair("schemas.StaleFetchPage", "machine.StaleFetchesResponse", "response"),
     Pair("schemas.EntityUpsertRequest", "machine.EntityUpsertRequest", "request"),
     Pair("schemas.EntityUpsertResponse", "machine.EntityUpsertResponse", "response"),
     Pair("schemas.ClaimAppendRequest", "machine.ClaimAppendRequest", "request"),
@@ -68,14 +69,19 @@ PAIRS: tuple[Pair, ...] = (
     Pair("schemas.TaskClaimRequest", "machine.TaskClaimRequest", "request"),
     Pair("schemas.TaskClaimResponse", "machine.TaskClaimResponse", "response"),
     Pair("schemas.ClaimedTask", "machine.ClaimedTaskRead", "response"),
-    Pair("schemas.TaskSummary", "machine.TaskSummaryResponse", "response"),
+    Pair("schemas.TaskSummary", "machine.TaskSummaryResponse", "response", reads_subset=True),
     Pair("schemas.TaskEnqueueRequest", "machine.TaskEnqueueRequest", "request"),
     Pair("schemas.TaskEnqueueResponse", "machine.TaskEnqueueResponse", "response"),
+    Pair("schemas.TaskSupersededRequest", "machine.TaskSupersededRequest", "request"),
+    Pair("schemas.TaskSupersededResponse", "machine.TaskSupersededResponse", "response"),
+    Pair("schemas.TextExtractedResponse", "machine.TextExtractedResponse", "response"),
     Pair("schemas.FetchLogAppendRequest", "machine.FetchLogAppendRequest", "request"),
+    Pair("schemas.FetchLogAppendResponse", "machine.FetchLogAppendResponse", "response"),
     Pair("schemas.RunStartResponse", "machine.RunRead", "response", reads_subset=True),
     Pair("schemas.RunFinishRequest", "machine.RunFinishRequest", "request"),
     Pair("artifacts.ArtifactRead", "artifacts.ArtifactRead", "response", reads_subset=True),
     Pair("artifacts.ArtifactPage", "artifacts.ArtifactListResponse", "response"),
+    Pair("artifacts.MissingScreenshotPage", "artifacts.MissingScreenshotResponse", "response"),
     Pair("artifacts.ArtifactStatus", "artifacts.ArtifactStatusResponse", "response"),
     Pair("mentions.MentionItem", "candidates.CandidateMentionItem", "request"),
     Pair("mentions.MentionsRequest", "candidates.CandidateMentionsRequest", "request"),
@@ -118,17 +124,17 @@ PAIRS: tuple[Pair, ...] = (
     Pair("embedding_models.EmbeddingFailResponse", "search_machine.EmbeddingFailResponse", "response"),
     Pair("embedding_models.EmbeddingReleaseRequest", "search_machine.EmbeddingReleaseRequest", "request"),
     Pair("embedding_models.EmbeddingReleaseResponse", "search_machine.EmbeddingReleaseResponse", "response"),
-    Pair("embedding_models.EmbeddingSummary", "search_machine.EmbeddingSummaryResponse", "response"),
+    Pair("embedding_models.EmbeddingSummary", "search_machine.EmbeddingSummaryResponse", "response", reads_subset=True),
     Pair("schemas.SnapshotClaimRequest", "snapshot_machine.SnapshotClaimRequest", "request"),
     Pair("schemas.ClaimedSnapshotTask", "snapshot_machine.ClaimedSnapshotTask", "response"),
     Pair("schemas.SnapshotClaimResponse", "snapshot_machine.SnapshotClaimResponse", "response"),
     Pair("schemas.SnapshotCompleteRequest", "snapshot_machine.SnapshotCompleteRequest", "request"),
     Pair("schemas.SnapshotItemResult", "snapshot_machine.SnapshotItemResult", "response"),
     Pair("schemas.SnapshotCompleteResponse", "snapshot_machine.SnapshotCompleteResponse", "response"),
-    Pair("schemas.SnapshotLocaleSummary", "snapshot_machine.SnapshotLocaleSummary", "response"),
+    Pair("schemas.SnapshotLocaleSummary", "snapshot_machine.SnapshotLocaleSummary", "response", reads_subset=True),
     Pair("schemas.SnapshotSummaryResponse", "snapshot_machine.SnapshotSummaryResponse", "response"),
 )
-"""The 64 ingest-to-API pairs: 20 requests and 44 responses. Unpaired wire models are listed in ``UNPAIRED``."""
+"""The ingest-to-API pairs: each request and response model the ingest mirrors. Unpaired wire models are listed in ``UNPAIRED``."""
 
 UNPAIRED: dict[str, str] = {
     "schemas.DrainReport": "a CLI report, never on the wire",
@@ -136,17 +142,21 @@ UNPAIRED: dict[str, str] = {
     "schemas.SnapshotTextBlock": "a block of SnapshotCompleteItem, covered through the request",
     "schemas.SnapshotRowBlock": "a row of SnapshotCompleteItem, covered through the request",
     "mentions.MentionDraft": "the base of MentionItem, covered through it",
+    "schemas.TextExtractedQuery": "the query string of GET /tasks/text-extracted, bound as route parameters, not a body model",
+    "schemas.StaleFetchRead": "an item of StaleFetchPage, covered through it",
 }
 
 ENUM_SETS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("DiscoverySource", get_args(schemas.DiscoverySource)),
     ("DiscoveryTaskKind", get_args(schemas.DiscoveryTaskKind)),
     ("DiscoveryTaskStatus", get_args(schemas.DiscoveryTaskStatus)),
+    ("DiscoveryFailureClass", get_args(schemas.FailureClass)),
     ("DiscoveryClaimKind", get_args(schemas.DiscoveryClaimKind)),
     ("DiscoveryMentionRole", get_args(mentions.MentionRole)),
     ("DiscoveryArtifactKind", get_args(artifacts.ArtifactKind)),
     ("DiscoveryEdgeBasis", get_args(edges.EdgeBasis)),
     ("StopReason", get_args(schemas.StopReason)),
+    ("DiscoveryRunStage", get_args(schemas.RunStage)),
     ("EdgeSkipReason", get_args(edges.EdgeSkipReason)),
     ("BudgetResource", BUDGET_RESOURCES),
     ("EmbeddingOutcome", get_args(embedding_models.EmbeddingOutcome)),
@@ -169,6 +179,7 @@ ROUTE_BODY: dict[tuple[str, str], str] = {
     ("POST", "/api/v1/discovery/machine/tasks/{task_id}/complete"): "machine.TaskCompleteRequest",
     ("POST", "/api/v1/discovery/machine/tasks/{task_id}/release"): "machine.TaskReleaseRequest",
     ("POST", "/api/v1/discovery/machine/tasks/{task_id}/fail"): "machine.TaskFailRequest",
+    ("POST", "/api/v1/discovery/machine/tasks/requeue-superseded"): "machine.TaskSupersededRequest",
     ("POST", "/api/v1/discovery/machine/budgets/{resource}/reserve"): "budgets.BudgetReserveRequest",
     ("POST", "/api/v1/discovery/machine/budgets/{resource}/adjust"): "budgets.BudgetAdjustRequest",
     ("POST", "/api/v1/discovery/machine/embeddings/claim"): "search_machine.EmbeddingClaimRequest",
@@ -328,7 +339,10 @@ def test_every_client_route_exists_in_the_api(name: str, call: Call, method: str
 
 
 # A route whose body depends on an argument is recorded with the argument that sends the body.
-BODY_VARIANTS: dict[str, Call] = {"tasks.complete": lambda client: client.tasks.complete(ID, note="login_wall")}
+BODY_VARIANTS: dict[str, Call] = {
+    "tasks.complete": lambda client: client.tasks.complete(ID, note="login_wall", text_hash="ab" * 32),
+    "tasks.fail": lambda client: client.tasks.fail(ID, error="boom", failure_class="transient"),
+}
 RECORDED_CALLS: tuple[tuple[str, str, str, Call], ...] = tuple(
     (name, method, path, BODY_VARIANTS.get(name, call)) for name, call, method, path in ROUTES
 )

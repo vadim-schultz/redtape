@@ -8,13 +8,31 @@ A procedure page has no confidence of its own: it ranks by the best candidate it
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Final
 
 RANK_STEPS: Final = 1000
 """Resolution of the confidence rank: a confidence of ``0.9`` ranks 100, of ``0.0`` ranks 1000."""
 FIRST_BASE: Final = 0
+FIRST_CEILING: Final = FIRST_BASE + RANK_STEPS
+"""The lowest-ranked first translation (confidence ``0.0``): the top of the first-translation band."""
 RETRANSLATION_BASE: Final = 10_000
 """A stale translation still serves readers, so its refresh waits behind every untranslated candidate."""
+UPGRADE_BASE: Final = 20_000
+"""An Azure upgrade of a tail row waits behind every first and re-translation, so it runs on idle Azure capacity."""
+
+
+@dataclass(frozen=True, slots=True)
+class PriorityRange:
+    """An inclusive band of claim priorities; a ``None`` maximum leaves the band open above."""
+
+    minimum: int = 0
+    maximum: int | None = None
+
+    def __post_init__(self) -> None:
+        """Refuse a band whose maximum is below its minimum."""
+        if self.maximum is not None and self.maximum < self.minimum:
+            raise ValueError(f"priority range {self.minimum}..{self.maximum} is inverted")
 
 
 def _rank(confidence: float) -> int:

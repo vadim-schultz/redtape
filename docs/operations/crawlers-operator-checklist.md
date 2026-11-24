@@ -252,12 +252,7 @@ where k ilike any (array['%lebenslage%', '%leika%', '%categor%', '%thema%', '%ta
 group by 1, 2 order by rows desc limit 40;
 ```
 
-**S13: Enable schedules (variables).** Repository, Settings, Secrets and variables, Actions, Variables. Set
-`DISCOVERY_DRAIN_SCHEDULE=enabled` only after S14 is done and the release is deployed (otherwise the backlog is fetched
-without enqueuing a render). Set `DISCOVERY_RENDER_SCHEDULE=enabled` only after the chapter 15 live gate and after you
-checked the ledger: the render schedule spends about 15 runner minutes a day, the drain allowance is 400 minutes a
-month (1,000 minus the 600 CI reserve), and the backlog is about 22 such runs. Prefer a laptop drain (S18) or manual
-dispatch. To pause, delete the variable; manual dispatch keeps working.
+**S13: Enable schedules (variables).** Do not set schedule variables from this step. The activation order, with a go or no-go check at each step, is in [pipeline-activation.md](pipeline-activation.md). To pause a schedule, delete its variable; manual dispatch keeps working.
 
 **S14: Re-pend completed fetches so each gets a render task (after the release is deployed).** About a hundred pages. A
 completed task is never enqueued again, so a page fetched before `render_page` existed gets no render until it is
@@ -327,16 +322,12 @@ $0.011 per 1,000 neurons, and R2 bills regardless. Dashboard, Notifications: add
 offered, R2 storage and operation alerts at 80 percent of the free allowance. Record the plan name and the alert ids in
 the ledger. This is the only guard that sees what the application cannot.
 
-**S20: Compare Actions usage monthly.** GitHub, Settings, Billing and plans, Usage for Actions. Compare the
-repository's minutes with the ledger resource `actions_minutes` (`python -m discovery_ingest budget show`). The cap is
-1,000 minutes a month for this repository, with a 600 minute CI reserve. If CI alone approaches the reserve, lower the
-drain allowance, not the other way round. Record the month, the GitHub figure and the ledger figure.
+**S20: Actions usage (retired by D17).** This repository is public, so its standard runners are not metered and nothing needs a monthly comparison. `python -m discovery_ingest budget show` still prints the ledger's `actions_minutes`, which the stage prechecks read.
 
 **S21: Set the budget caps (Render).** Variables on `redtape-api`: `OBJECT_STORE_MAX_BYTES` (default 9500000000),
 `BUDGET_R2_CLASS_A_MONTHLY` (950000), `BUDGET_R2_CLASS_B_MONTHLY` (9500000), `BUDGET_BROWSER_SECONDS_DAILY` (570),
-`BUDGET_NEURONS_DAILY` (9500), `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` (1900000), `BUDGET_ACTIONS_MINUTES_MONTHLY` (1000), `ACTIONS_CI_RESERVE_MINUTES` (600) and
-`DB_SOFT_LIMIT_BYTES` (475000000). The defaults sit at 95 percent of each free allowance (extraction chapter E11); the
-Actions minutes are a repository share of an account-wide pool and stay at 1000. An explicit Render value beats the
+`BUDGET_NEURONS_DAILY` (9500), `BUDGET_AZURE_TRANSLATOR_CHARS_MONTHLY` (1900000) and
+`DB_SOFT_LIMIT_BYTES` (475000000). The defaults sit at 95 percent of each free allowance (extraction chapter E11). An explicit Render value beats the
 default, so delete an old override or set the new number. Tighten a variable if other workloads share the account.
 Check with `GET /api/v1/discovery/machine/budgets`.
 

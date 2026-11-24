@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from litestar import Controller, Response, get, post
+from litestar.params import Parameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.features.auth.principal import MachinePrincipal
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.emit import DiscoveryEmitService
 from app.features.discovery.guards import require_discovery_machine
+from app.features.discovery.repository.task_target import ExtractedText
+from app.features.discovery.retention import DiscoveryRetentionService
 from app.features.discovery.run_service import DiscoveryRunService
 from app.features.discovery.service import DiscoveryMachineService
 from app.models.discovery import DiscoveryTaskKind
 from app.schema.discovery.machine import (
+    TEXT_HASH_PATTERN,
     CatalogueBatchRequest,
     CatalogueBatchResponse,
     CatalogueEmitResponse,
@@ -25,9 +30,11 @@ from app.schema.discovery.machine import (
     EntityUpsertResponse,
     FetchLogAppendRequest,
     FetchLogAppendResponse,
+    RetentionPruneResponse,
     RunFinishRequest,
     RunRead,
     RunStartRequest,
+    StaleFetchesResponse,
     TaskClaimRequest,
     TaskClaimResponse,
     TaskCompleteRequest,
@@ -38,8 +45,18 @@ from app.schema.discovery.machine import (
     TaskFailResponse,
     TaskReleaseRequest,
     TaskReleaseResponse,
+    TaskRequeueRequest,
+    TaskRequeueResponse,
     TaskSummaryResponse,
+    TaskSupersededRequest,
+    TaskSupersededResponse,
+    TextExtractedResponse,
 )
+
+STALE_FETCH_LIMIT = 50
+"""Pages listed per request when the caller names no limit; the weekly run passes its own bound."""
+STALE_FETCH_CEILING = 500
+"""The most pages one listing may return."""
 
 
 class DiscoveryMachineController(Controller):
@@ -56,6 +73,15 @@ class DiscoveryMachineController(Controller):
     ) -> CatalogueMachineRead:
         """Return one catalogue row in the shape machine clients read it."""
         return discovery_machine_service.get_catalogue_for_machine(catalogue_id)
+
+    @get("/catalogue/stale-fetches", sync_to_thread=True, status_code=HTTP_200_OK)
+    def stale_fetches(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        limit: int = Parameter(query="limit", default=STALE_FETCH_LIMIT, ge=1, le=STALE_FETCH_CEILING),
+    ) -> StaleFetchesResponse:
+        """List the portal pages due a weekly refresh, stalest first, at most ``limit``, with the key their fetches go under."""
+        return discovery_machine_service.stale_fetches(limit)
 
     @post("/catalogue/batch", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def batch_catalogue(
@@ -125,6 +151,42 @@ class DiscoveryMachineController(Controller):
         """Record that a claimed task failed, with the reason from the request."""
         return discovery_machine_service.fail_task(task_id, data)
 
+    @get("/tasks/text-extracted", sync_to_thread=True, status_code=HTTP_200_OK)
+    def text_extracted(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        catalogue_service_id: UUID,
+        target_url: str = Parameter(min_length=1, max_length=500),
+        input_key: str = Parameter(min_length=1, max_length=128),
+        text_hash: str = Parameter(pattern=TEXT_HASH_PATTERN),
+    ) -> TextExtractedResponse:
+        """Report whether a completed extraction of the page under ``input_key`` already read the same cleaned text."""
+        extracted = ExtractedText(
+            catalogue_service_id=catalogue_service_id, target_url=target_url, input_key=input_key, text_hash=text_hash
+        )
+        return discovery_machine_service.text_extracted(extracted)
+
+    @post("/tasks/requeue-transient", sync_to_thread=True, status_code=HTTP_200_OK)
+    def requeue_transient_tasks(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskRequeueRequest,
+    ) -> TaskRequeueResponse:
+        """Return failed transient tasks that are at least 24 h old to the queue; permanent failures are never touched."""
+        return discovery_machine_service.requeue_transient(data)
+
+    @post("/tasks/requeue-superseded", sync_to_thread=True, status_code=HTTP_200_OK)
+    def requeue_superseded_tasks(
+        self,
+        discovery_machine_service: DiscoveryMachineService,
+        data: TaskSupersededRequest,
+    ) -> TaskSupersededResponse:
+        """Re-pend completed tasks of a kind that completed under another input key, once per page, under ``input_key``.
+
+        A page that already has a task under the key is left alone; ``dry_run`` counts the matches and changes nothing.
+        """
+        return discovery_machine_service.requeue_superseded(data)
+
     @post("/tasks/{task_id:uuid}/fetches", sync_to_thread=True, status_code=HTTP_201_CREATED, guards=DB_WRITE_GUARDS)
     def append_fetch_log(
         self,
@@ -134,6 +196,15 @@ class DiscoveryMachineController(Controller):
     ) -> FetchLogAppendResponse:
         """Append one fetch-log entry to a task."""
         return discovery_machine_service.append_fetch_log(task_id, data)
+
+    @post("/retention/prune", sync_to_thread=True, status_code=HTTP_200_OK)
+    def prune_retention(
+        self,
+        discovery_retention_service: DiscoveryRetentionService,
+    ) -> RetentionPruneResponse:
+        """Delete fetch logs and events past the retention window, keeping the latest fetch of every target."""
+        totals = discovery_retention_service.prune(now=datetime.now(UTC))
+        return RetentionPruneResponse(fetch_logs_deleted=totals.fetch_logs, events_deleted=totals.events)
 
     @post("/runs", sync_to_thread=True, status_code=HTTP_201_CREATED)
     def start_run(

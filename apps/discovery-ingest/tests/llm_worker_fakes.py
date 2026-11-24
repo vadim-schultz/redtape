@@ -109,6 +109,9 @@ class LlmApi(ExtractApi):
         self.mention_detail = ""
         self.posts: list[str] = []
         self.edge_posts: list[list[dict[str, Any]]] = []
+        self.known_texts: set[str] = set()
+        self.text_queries: list[dict[str, str]] = []
+        self.text_status = 200
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         """Serve edges and the taxonomy here; everything else as :class:`ExtractApi`."""
@@ -117,7 +120,17 @@ class LlmApi(ExtractApi):
             return self._edges(request)
         if path.endswith("/taxonomy"):
             return httpx.Response(self.taxonomy_status, json=taxonomy().model_dump(mode="json"))
+        if path.endswith("/tasks/text-extracted"):
+            return self._text_extracted(request)
         return super().handler(request)
+
+    def _text_extracted(self, request: httpx.Request) -> httpx.Response:
+        """Answer whether a completed extraction read the asked text hash; record every question."""
+        query = dict(request.url.params)
+        self.text_queries.append(query)
+        if self.text_status != 200:
+            return httpx.Response(self.text_status, text="text check refused")
+        return httpx.Response(200, json={"extracted": query["text_hash"] in self.known_texts})
 
     def _mentions(self, request: httpx.Request) -> httpx.Response:
         self.posts.append("mentions")

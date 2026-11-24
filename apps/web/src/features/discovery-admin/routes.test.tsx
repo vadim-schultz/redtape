@@ -88,6 +88,50 @@ it("DiscoveryAdminRoutes · renders the coverage page at /admin/discovery/covera
   ).toBeInTheDocument();
 });
 
+it("DiscoveryAdminRoutes · renders the pipeline flow at /admin/discovery/flow", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input?: unknown) => {
+      const pathname = new URL(String(input)).pathname;
+      if (pathname.endsWith("/api/v1/me")) {
+        return new Response(
+          JSON.stringify({
+            id: "user-1",
+            email: session.email,
+            display_name: null,
+            role: "user",
+          }),
+        );
+      }
+      if (pathname.endsWith("/api/v1/discovery/admin/tasks")) {
+        return new Response(
+          JSON.stringify({ items: [], total: 0, offset: 0, limit: 1 }),
+        );
+      }
+      if (pathname.endsWith("/api/v1/discovery/admin/flow")) {
+        return new Response(
+          JSON.stringify({
+            stages: [],
+            edges: [],
+            allotments: [],
+            unused_headroom: [],
+          }),
+        );
+      }
+      return new Response("", { status: 503 });
+    }),
+  );
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/flow"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByText("No pipeline stages yet."),
+  ).toBeInTheDocument();
+});
+
 it("DiscoveryAdminRoutes · renders a fallback for an unknown discovery path", async () => {
   stubDiscoveryFetch();
 
@@ -149,6 +193,22 @@ function stubGuardedDocumentsFetch(
 }
 
 const candidatesPath = "/api/v1/discovery/admin/candidates";
+
+it("flow route is guarded: a non-admin sees the forbidden view and no flow request is made", async () => {
+  const paths = stubGuardedDocumentsFetch(403);
+
+  renderWithProviders(<Mounted />, {
+    initialEntries: ["/admin/discovery/flow"],
+    authGateway: createFakeAuthGateway({ session }),
+  });
+
+  expect(
+    await screen.findByRole("heading", { name: "Access denied" }),
+  ).toBeInTheDocument();
+  expect(
+    paths.some((path) => path.endsWith("/api/v1/discovery/admin/flow")),
+  ).toBe(false);
+});
 
 it("documents route is guarded: a non-admin sees the forbidden view and no candidate request is made", async () => {
   const paths = stubGuardedDocumentsFetch(403);

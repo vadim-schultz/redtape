@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 MAX_BATCH = 50
 """Most tasks one claim hands out and most translations one complete call carries (the API's own bound)."""
@@ -15,10 +15,27 @@ TranslationOutcome = Literal["stored", "stale", "rejected", "unavailable"]
 WorkTaskStatus = Literal["pending", "claimed", "completed", "failed"]
 
 
+class PriorityBand(BaseModel):
+    """An inclusive band of claim priorities for one drain; an absent end leaves the band open on that side."""
+
+    minimum: int | None = Field(default=None, ge=0)
+    maximum: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _ordered(self) -> PriorityBand:
+        """Refuse a band whose maximum is below its minimum, before any request is made."""
+        if self.minimum is not None and self.maximum is not None and self.maximum < self.minimum:
+            raise ValueError(f"priority band {self.minimum}..{self.maximum} is inverted")
+        return self
+
+
 class TranslationClaimRequest(BaseModel):
-    """Claim up to ``limit`` pending translation tasks, highest-priority candidates first."""
+    """Claim up to ``limit`` pending translation tasks of ``engine``'s lane within a priority band, best candidates first."""
 
     limit: int = Field(default=MAX_BATCH, ge=1, le=MAX_BATCH)
+    engine: str | None = Field(default=None, min_length=1, max_length=50)
+    priority_min: int | None = Field(default=None, ge=0)
+    priority_max: int | None = Field(default=None, ge=0)
 
 
 class ClaimedTranslationTask(BaseModel):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -14,8 +14,10 @@ from discovery_ingest.translation.locale_codes import UnmappedLocaleError
 from discovery_ingest.translation.meter import LEDGER_RESOURCE
 from discovery_ingest.translation.registry import EngineConfig, UnknownEngineError, build_engine
 from discovery_ingest.translation.settings import TranslationSettings
+from discovery_ingest.translation_models import PriorityBand
 from discovery_ingest.worker.llm_setup import EXIT_MISSING_SETTINGS, EXIT_NOT_READY, LlmSetupError
 from discovery_ingest.worker.policy import DrainPolicy
+from discovery_ingest.worker.run import run_recorded
 from discovery_ingest.worker.translate_drain import TranslateDeps, run_translate_drain
 from discovery_ingest.worker.translate_meter import own_meters_for
 
@@ -29,13 +31,15 @@ DEFAULT_CONCURRENCY = 2
 
 @dataclass(frozen=True, slots=True)
 class TranslateOptions:
-    """The bounds of one translation drain as the operator gave them."""
+    """The bounds of one translation drain as the operator gave them, the engine it runs on (``None``: ``TRANSLATION_ENGINE``) and its priority band."""
 
     max_tasks: int = DEFAULT_TASKS_PER_BATCH
     max_batches: int = 1
     time_budget_seconds: float | None = None
     neuron_budget: float = DEFAULT_NEURON_BUDGET
     concurrency: int = DEFAULT_CONCURRENCY
+    engine: str | None = None
+    band: PriorityBand = field(default_factory=PriorityBand)
 
     def policy(self) -> DrainPolicy:
         """Return the validated policy, or raise :class:`ValueError` naming the bound that is out of range."""
@@ -89,15 +93,23 @@ def _drain_deps(
     )
 
 
+def _with_engine(settings: TranslationSettings, engine: str | None) -> TranslationSettings:
+    """Return ``settings`` with ``engine`` in place of ``TRANSLATION_ENGINE`` when one was named; the name is checked by the caller."""
+    return settings if engine is None else settings.model_copy(update={"translation_engine": engine})
+
+
 def run_translate(
     options: TranslateOptions, settings: TranslationSettings, client: DiscoveryIngestClient
 ) -> DrainReport:
-    """Build the engine named by ``settings``, check the ledger and run the drain; return its report.
+    """Build the engine the options or ``settings`` name and check its ledger, then run the drain as a ``translate`` run.
 
-    :class:`LlmSetupError` propagates with its ``exit_code`` (the engine cannot start, the ledger cannot be read);
-    :class:`ValueError` names an out-of-range bound; :class:`~discovery_ingest.translation.meter.NoMeterForUnitError` means no meter fits the engine's unit.
+    The engine and the ledger are checked before the run opens: :class:`LlmSetupError` (the engine cannot start, the
+    ledger cannot be read) propagates with its ``exit_code``. :class:`ValueError` names an out-of-range bound;
+    :class:`~discovery_ingest.translation.meter.NoMeterForUnitError` means no meter fits the engine's unit. The claims
+    name that engine and take ``options.band``.
     """
-    policy = options.policy()
+    policy, chosen = options.policy(), _with_engine(settings, options.engine)
     with httpx.Client(trust_env=True) as http:
-        engine = build_translation_engine(settings, http, TRANSLATE_MIN_INTERVAL_SECONDS)
-        return run_translate_drain(_drain_deps(client, engine, settings), policy)
+        engine = build_translation_engine(chosen, http, TRANSLATE_MIN_INTERVAL_SECONDS)
+        deps = _drain_deps(client, engine, chosen)
+        return run_recorded(client, "translate", lambda: run_translate_drain(deps, policy, band=options.band))

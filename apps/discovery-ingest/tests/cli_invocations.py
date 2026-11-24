@@ -13,26 +13,6 @@ ARTIFACT_ID = "00000000-0000-0000-0000-000000000003"
 INVOCATIONS: tuple[tuple[str, list[str]], ...] = (
     # .github/workflows
     (
-        "discovery-extract.yml:78",
-        ["budget", "show", "--resource", "actions_minutes", "--require-remaining", "actions_minutes=20"],
-    ),
-    (
-        "discovery-extract.yml:101",
-        [
-            "worker",
-            "drain",
-            "--max-tasks",
-            "50",
-            "--max-batches",
-            "5",
-            "--time-budget-seconds",
-            "300",
-            "--kinds",
-            "fetch_url,harvest_payload",
-        ],
-    ),
-    ("discovery-extract.yml:132", ["budget", "report-minutes", "--minutes", "3"]),
-    (
         "discovery-llm.yml:99",
         [
             "budget",

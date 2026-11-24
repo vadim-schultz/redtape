@@ -15,7 +15,9 @@ from app.features.discovery.repository.claims import ClaimRepository
 from app.features.discovery.repository.coverage import CoverageRepository
 from app.features.discovery.repository.edges import EdgeRepository
 from app.features.discovery.repository.entities import EntityRepository
+from app.features.discovery.repository.retention import RetentionRepository
 from app.features.discovery.repository.runs import RunRepository
+from app.features.discovery.repository.stale_fetches import StaleFetchRepository
 from app.features.discovery.repository.task_listing import TaskListingRepository
 from app.features.discovery.repository.tasks import TaskRepository
 
@@ -37,5 +39,7 @@ class DiscoveryRepository(
     ArtifactRepository,
     BudgetRepository,
     EdgeRepository,
+    RetentionRepository,
+    StaleFetchRepository,
 ):
     """One session-bound handle exposing every discovery aggregate repository."""

@@ -211,10 +211,38 @@ def test_summary_counts_ready_claimed_failed_and_stale_candidates(db_session: Se
     assert ready.status is WorkTaskStatus.PENDING
 
 
+def test_summary_reports_the_oldest_ready_age_and_the_24_hour_finished_counts(db_session: Session) -> None:
+    """stats · the oldest ready task sets the age; a task finished 25 h ago is not in the 24 h counts."""
+    (_, old), (_, recent_done), (_, old_done), (_, recent_failed) = (
+        queued(db_session, f"Antrag {n}") for n in range(4)
+    )
+    old.created_at = NOW - timedelta(hours=3)
+    recent_done.status = WorkTaskStatus.COMPLETED
+    recent_done.updated_at = NOW - timedelta(hours=1)
+    old_done.status = WorkTaskStatus.COMPLETED
+    old_done.updated_at = NOW - timedelta(hours=25)
+    recent_failed.status = WorkTaskStatus.FAILED
+    recent_failed.updated_at = NOW - timedelta(hours=2)
+    db_session.flush()
+
+    summary = _queue(db_session).summary(MODEL)
+
+    assert summary.oldest_pending_age_seconds == 3 * 3600
+    assert (summary.completed_24h, summary.failed_24h) == (1, 1)
+
+
 def test_summary_of_an_empty_queue_is_all_zero(db_session: Session) -> None:
     summary = _queue(db_session).summary(MODEL)
 
-    assert summary.model_dump() == {"pending_ready": 0, "claimed": 0, "failed": 0, "stale_candidates": 0}
+    assert summary.model_dump() == {
+        "pending_ready": 0,
+        "claimed": 0,
+        "failed": 0,
+        "stale_candidates": 0,
+        "oldest_pending_age_seconds": None,
+        "completed_24h": 0,
+        "failed_24h": 0,
+    }
 
 
 def test_two_concurrent_claimers_never_receive_the_same_task(db_session: Session) -> None:

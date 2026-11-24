@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { toQueryStatus } from "../../../components/feedback/queryStatus";
 import { CandidateDetailView } from "../components/CandidateDetailView";
 import { useCandidateDetailQuery } from "../hooks/useCandidateDetailQuery";
-import { candidateScreenshotUrl } from "../services/candidatesApi";
+import { candidateCaptures } from "../services/candidatesApi";
 
 /** `/candidates/:id`: one public candidate with its neighbours and evidence. */
 export default function CandidateDetailPage() {
@@ -14,7 +14,7 @@ export default function CandidateDetailPage() {
     <CandidateDetailView
       status={toQueryStatus(query)}
       candidate={query.data}
-      screenshotUrl={candidateScreenshotUrl(id)}
+      captures={query.data ? candidateCaptures(query.data) : []}
     />
   );
 }

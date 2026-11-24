@@ -8,6 +8,9 @@ from pathlib import Path
 
 import httpx
 
+from discovery_ingest.browser.canary_report import canary_lines
+from discovery_ingest.browser.canary_run import run_canary
+from discovery_ingest.browser.client import CloudflareBrowserClient
 from discovery_ingest.browser.probe import run_probe as run_browser_probe_plan
 from discovery_ingest.browser.probe_plan import probe_plan
 from discovery_ingest.browser.probe_report import report_lines as browser_report_lines
@@ -59,6 +62,16 @@ def browser_probe(
             plain_size=plain_size,
         )
     return ProbeOutcome(browser_report_lines(report, settings), report.refused)
+
+
+def canary_probe(
+    settings: BrowserSettings, *, urls: Sequence[str], required: int, max_browser_seconds: float
+) -> ProbeOutcome:
+    """Compare /content with the fused /snapshot on ``required`` stable pages from ``urls``; fails when the canary does."""
+    with httpx.Client(trust_env=True) as http:
+        client = CloudflareBrowserClient(settings, user_agent=load_bot_settings().user_agent, http=http)
+        run = run_canary(client, urls, required=required, max_ms=round(max_browser_seconds * 1000))
+    return ProbeOutcome(canary_lines(run), not run.verdict.passed)
 
 
 def llm_probe(settings: LlmSettings, *, models: Sequence[str], fixture: Path, max_neurons: float) -> ProbeOutcome:

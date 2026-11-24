@@ -10,11 +10,12 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from discovery_ingest.translation.errors import TranslationEngineError
+from discovery_ingest.translation.errors import RateLimited, TranslationEngineError
 from discovery_ingest.translation.glossary import GlossaryMode, load_glossary
 from discovery_ingest.translation.repair import Checked, Translator, check_outcome, repair_once
 from discovery_ingest.translation.units import TranslationBatch, TranslationUnit
 from discovery_ingest.translation_models import ClaimedTranslationTask
+from discovery_ingest.worker.lease_settle import limit_stop
 from discovery_ingest.worker.stop import StopDrain
 from discovery_ingest.worker.translate_settle import BatchState, GroupSettler, failure_of
 
@@ -104,14 +105,23 @@ def settle_call(state: BatchState, group: Tasks, answer: CallResult) -> None:
     settler.post([item for item in answer.checked if item.valid])
     state.tally.repaired += answer.repaired
     failure = answer.repair_failure
-    if isinstance(failure, StopDrain):
-        raise failure
+    if isinstance(failure, StopDrain | RateLimited):
+        raise _stop_of(failure)
     if failure is not None:
         settler.fail_unfinished(failure_of(failure))
     else:
         settler.fail_invalid([item for item in answer.checked if not item.valid])
 
 
+def _stop_of(failure: StopDrain | RateLimited) -> StopDrain:
+    return failure if isinstance(failure, StopDrain) else limit_stop(failure)
+
+
 def settle_failed_call(state: BatchState, group: Tasks, err: TranslationEngineError) -> None:
-    """Fail the tasks of a call the engine could not translate, retryably or not as the error says."""
+    """Fail the tasks of a call the engine could not translate, retryably or not as the error says.
+
+    A throttled call is not a failure: its tasks are released and the drain stops ``rate_limited``.
+    """
+    if isinstance(err, RateLimited):
+        raise limit_stop(err)
     GroupSettler(state, group).fail_unfinished(failure_of(err))

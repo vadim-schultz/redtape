@@ -1,0 +1,66 @@
+name: Discovery pipeline (daily)
+
+# One job runs the discovery stages in three phases and writes one summary. It runs only when the repository variable
+# PIPELINE_ORCHESTRATOR is "enabled" (D16). The stage workflows keep their own schedules until the flag has run a day.
+on:
+  schedule:
+    # Two off-peak slots, not on the hour. A slot that finds no ready work plans nothing and ends.
+    - cron: "17 3 * * *"
+    - cron: "17 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-pipeline
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    name: Run the discovery pipeline
+    if: vars.PIPELINE_ORCHESTRATOR == 'enabled'
+    runs-on: ubuntu-latest
+    # The run's own ceiling (RUN_CEILING_SECONDS, 3300 s) is set below this. The job timeout is the backstop.
+    timeout-minutes: 60
+    # The Azure translator secrets are in this environment, as in discovery-translate.yml.
+    environment: discovery-translate
+    env:
+      PIPELINE_ORCHESTRATOR: ${{ vars.PIPELINE_ORCHESTRATOR }}
+      DISCOVERY_API_URL: ${{ secrets.DISCOVERY_API_URL }}
+      DISCOVERY_API_KEY: ${{ secrets.DISCOVERY_API_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
+      CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+      # The render stage enqueues LLM work only when a model is set; LLM_ENQUEUE on without LLM_MODEL is a setup error.
+      LLM_ENQUEUE: ${{ vars.DISCOVERY_LLM_MODEL != '' && 'true' || 'false' }}
+      LLM_MODEL: ${{ vars.DISCOVERY_LLM_MODEL }}
+      TRANSLATION_ENGINE: ${{ vars.TRANSLATION_ENGINE || 'azure-translator' }}
+      TRANSLATION_GLOSSARY_MODE: ${{ vars.TRANSLATION_GLOSSARY_MODE || 'strict' }}
+      QUERY_EMBED_RESERVE: ${{ vars.QUERY_EMBED_RESERVE || '1000' }}
+      AZURE_TRANSLATOR_KEY: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_KEY || '' }}
+      AZURE_TRANSLATOR_REGION: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_REGION || '' }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ (vars.TRANSLATION_ENGINE || 'azure-translator') == 'azure-translator' && secrets.AZURE_TRANSLATOR_ENDPOINT || 'https://api.cognitive.microsofttranslator.com' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/discovery-ingest/pyproject.toml
+
+      - name: Install discovery ingest
+        working-directory: apps/discovery-ingest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Wait for Render API health
+        run: |
+          python -c "import os; from discovery_ingest.health import wait_for_api; wait_for_api(os.environ['DISCOVERY_API_URL'])"
+
+      - name: Run the pipeline stages
+        run: python -m discovery_ingest pipeline run

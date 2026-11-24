@@ -1,4 +1,4 @@
-"""The command line contract of ``python -m discovery_ingest``: the 27 commands as data.
+"""The command line contract of ``python -m discovery_ingest``: the 30 commands as data.
 
 Every row is a fact the workflows in ``.github/workflows`` and the operator docs rely on: command names,
 flags, value kinds, defaults, choices and repeatability. The adapters in ``cli_adapters.py`` read the real
@@ -21,6 +21,7 @@ from discovery_ingest.schemas import WORKER_DEFAULT_TASK_KINDS
 GROUPS = (
     "govdata",
     "pvog",
+    "catalogue",
     "fim",
     "leika",
     "worker",
@@ -33,6 +34,7 @@ GROUPS = (
     "embed",
     "translate",
     "i18n",
+    "pipeline",
 )
 
 DEFAULT_GOLD_DIR = Path(discovery_ingest.__file__).resolve().parents[1] / "tests" / "fixtures" / "gold"
@@ -89,6 +91,15 @@ COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec("pvog", "run", (UUID_REQUIRED, _opt("--max-pages", "int"))),
     CommandSpec("pvog", "vocabulary"),
     CommandSpec(
+        "catalogue",
+        "refresh",
+        (
+            _opt("--max-rows", "int", default=0),
+            _opt("--govdata-max-pages", "int", default=150),
+            _opt("--pvog-max-pages", "int", default=50),
+        ),
+    ),
+    CommandSpec(
         "fim",
         "enrich",
         (
@@ -121,6 +132,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--browser-budget-seconds", "float", default=570.0),
             _opt("--neuron-budget", "float"),
             _opt("--kinds", "str", default=",".join(WORKER_DEFAULT_TASK_KINDS)),
+            _opt("--concurrency", "custom", default=1),
         ),
     ),
     CommandSpec(
@@ -166,6 +178,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--error-url", "str", repeatable=True),
             _opt("--variant", "custom", repeatable=True),
             _opt("--max-browser-seconds", "float", default=240.0),
+            _opt("--canary", "custom"),
         ),
     ),
     CommandSpec(
@@ -184,7 +197,12 @@ COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(
         "llm",
         "requeue",
-        (_opt("--host", "str"), _opt("--limit", "custom", default=50), _opt("--dry-run", FLAG)),
+        (
+            _opt("--host", "str"),
+            _opt("--limit", "custom", default=50),
+            _opt("--dry-run", FLAG),
+            _opt("--stale-only", FLAG),
+        ),
     ),
     CommandSpec(
         "llm",
@@ -252,6 +270,9 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--time-budget-seconds", "float"),
             _opt("--neuron-budget", "float", default=2500.0),
             _opt("--concurrency", "int", default=2),
+            _opt("--engine", "str"),
+            _opt("--priority-min", "int"),
+            _opt("--priority-max", "int"),
         ),
     ),
     CommandSpec(
@@ -269,7 +290,9 @@ COMMANDS: tuple[CommandSpec, ...] = (
             _opt("--neuron-budget", "float", default=3000.0),
         ),
     ),
+    CommandSpec("pipeline", "plan"),
+    CommandSpec("pipeline", "run"),
 )
 
-assert len(COMMANDS) == 27, "the contract documents exactly twenty-seven commands"
+assert len(COMMANDS) == 30, "the contract documents exactly thirty commands"
 assert {spec.group for spec in COMMANDS} == set(GROUPS)

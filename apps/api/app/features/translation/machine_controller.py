@@ -8,6 +8,7 @@ from litestar.status_codes import HTTP_200_OK
 from app.features.auth.principal import MachinePrincipal
 from app.features.discovery.db_headroom import DB_WRITE_GUARDS
 from app.features.discovery.guards import require_discovery_machine
+from app.features.translation.lanes import claim_scope
 from app.features.translation.queue import TranslationQueue
 from app.features.translation.service import TranslationCompletion
 from app.schema.translation.machine import (
@@ -35,8 +36,8 @@ class TranslationMachineController(Controller):
     def claim(
         self, translation_queue: TranslationQueue, machine_principal: MachinePrincipal, data: TranslationClaimRequest
     ) -> TranslationClaimResponse:
-        """Lease pending translation tasks to the calling key, highest-priority candidates first."""
-        return translation_queue.claim(machine_principal.api_key.id, data.limit)
+        """Lease pending translation tasks of the body's engine lane and priority band to the calling key."""
+        return translation_queue.claim(machine_principal.api_key.id, data.limit, claim_scope(data))
 
     @post("/complete", sync_to_thread=True, status_code=HTTP_200_OK, guards=DB_WRITE_GUARDS)
     def complete(

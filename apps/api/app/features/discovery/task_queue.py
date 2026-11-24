@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
@@ -12,16 +13,25 @@ from app.features.discovery.repository import DiscoveryRepository, NewEvent, Tas
 from app.features.discovery.stage_sync import advance_stage
 from app.features.discovery.task_enqueue import EnqueueOutcome, enqueue_task_if_needed, enqueue_task_with_outcome
 from app.features.discovery.task_lease import clear_lease, hand_back, lease
-from app.features.discovery.task_retry import MAX_ATTEMPTS, settle_failure
+from app.features.discovery.task_retry import MAX_ATTEMPTS, TRANSIENT_COOLDOWN, settle_failure
 from app.models.api_key import ApiKey
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
     CatalogueService,
     DiscoveryEventType,
+    DiscoveryFailureClass,
     DiscoveryTask,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SupersededResult:
+    """What a superseded requeue matched, and how many it re-pended; a dry run re-pends none."""
+
+    matched: int
+    requeued: int
 
 
 class TaskQueue:
@@ -61,11 +71,12 @@ class TaskQueue:
         pending = self._repo.list_pending_tasks_for_claim(limit=limit, kinds=kinds, now=now)
         return [self._lease(task, api_key, now) for task in pending]
 
-    def complete(self, task_id: UUID, note: str | None = None) -> DiscoveryTask:
-        """Mark a task completed, release its lease and keep the optional ``note`` explaining an empty result."""
+    def complete(self, task_id: UUID, note: str | None = None, *, text_hash: str | None = None) -> DiscoveryTask:
+        """Mark a task completed, release its lease, and keep the optional ``note`` and the ``text_hash`` it read."""
         task = require_task(self._repo, task_id)
         task.status = DiscoveryTaskStatus.COMPLETED
         task.result_note = note
+        task.text_hash = text_hash
         clear_lease(task)
         return task
 
@@ -82,11 +93,37 @@ class TaskQueue:
         self._repo.record_event(_released_event(task, reason))
         return task
 
-    def fail(self, task_id: UUID, error: str, *, retryable: bool = False, now: datetime) -> DiscoveryTask:
-        """Record ``error`` on a task: re-pend it with backoff if retryable and under the cap, else fail it."""
+    def fail(
+        self,
+        task_id: UUID,
+        error: str,
+        *,
+        retryable: bool = False,
+        now: datetime,
+        failure_class: DiscoveryFailureClass | None = None,
+    ) -> DiscoveryTask:
+        """Record ``error`` and its ``failure_class`` on a task: re-pend it with backoff if retryable and under the cap, else fail it."""
         task = require_task(self._repo, task_id)
-        settle_failure(task, error, retryable=retryable, now=now)
+        settle_failure(task, error, retryable=retryable, now=now, failure_class=failure_class)
         return task
+
+    def requeue_transient(self, *, limit: int, now: datetime) -> int:
+        """Return up to ``limit`` transient failures that are at least the cooldown old to pending; return how many."""
+        return self._repo.requeue_transient(cutoff=now - TRANSIENT_COOLDOWN, limit=limit)
+
+    def requeue_superseded(
+        self, *, kind: DiscoveryTaskKind, input_key: str, limit: int, dry_run: bool
+    ) -> SupersededResult:
+        """Re-pend up to ``limit`` completed ``kind`` tasks that completed under another key, under ``input_key``.
+
+        A dry run only counts them. A page that already has a task under ``input_key`` is left alone, so each page
+        holds one open identity; the rows are locked, so a concurrent requeue skips them.
+        """
+        if dry_run:
+            found = self._repo.superseded_task_ids(kind=kind, input_key=input_key, limit=limit)
+            return SupersededResult(matched=len(found), requeued=0)
+        requeued = len(self._repo.requeue_superseded(kind=kind, input_key=input_key, limit=limit))
+        return SupersededResult(matched=requeued, requeued=requeued)
 
     def _lease(self, task: DiscoveryTask, api_key: ApiKey, now: datetime) -> DiscoveryTask:
         task.status = DiscoveryTaskStatus.CLAIMED

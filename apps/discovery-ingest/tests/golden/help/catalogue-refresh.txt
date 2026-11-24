@@ -1,0 +1,12 @@
+Usage: discovery_ingest catalogue refresh [OPTIONS]
+
+  Re-enqueue stale portal pages for a bounded weekly refresh.
+
+Options:
+  --max-rows <int>           Stale pages to re-fetch this run; 0, the default, turns the refresh
+                             off  [default: 0]
+  --govdata-max-pages <int>  The GovData page cap of the weekly run; the bound stays under it
+                             [default: 150]
+  --pvog-max-pages <int>     The PVOG page cap of the weekly run; the bound stays under it
+                             [default: 50]
+  -h, --help                 Show this message and exit.

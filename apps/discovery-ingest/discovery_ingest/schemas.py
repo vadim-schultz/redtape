@@ -100,6 +100,8 @@ def is_task_kind(value: str) -> TypeGuard[DiscoveryTaskKind]:
 
 
 DiscoveryTaskStatus = Literal["pending", "claimed", "completed", "failed"]
+FailureClass = Literal["transient", "permanent", "login_wall", "robots", "not_found"]
+"""Why a task failed, as the API stores it; a failure that names no class counts as permanent on the API."""
 
 
 class TaskClaimRequest(BaseModel):
@@ -127,6 +129,21 @@ class TaskEnqueueResponse(BaseModel):
     created: bool
 
 
+class StaleFetchRead(BaseModel):
+    """A portal page whose newest fetch is due a refresh, and the row it belongs to."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    last_fetched_at: datetime
+
+
+class StaleFetchPage(BaseModel):
+    """Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under."""
+
+    input_key: str = Field(min_length=1, max_length=128)
+    items: list[StaleFetchRead]
+
+
 class ClaimedTask(BaseModel):
     """Task assigned to the caller with an active lease."""
 
@@ -147,6 +164,21 @@ class TaskClaimResponse(BaseModel):
     items: list[ClaimedTask]
 
 
+class TextExtractedQuery(BaseModel):
+    """The page, input key and cleaned-text hash that ask whether a completed extraction already read the text."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    input_key: str = Field(min_length=1, max_length=128)
+    text_hash: str
+
+
+class TextExtractedResponse(BaseModel):
+    """Whether a completed extraction of this page under these versions already read the cleaned text."""
+
+    extracted: bool
+
+
 class TaskSummary(BaseModel):
     """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
 
@@ -158,13 +190,48 @@ class TaskSummary(BaseModel):
     failed: int
 
 
+SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
+"""A SHA-256 digest in lowercase hex, as the API checks a fetched body's hash."""
+
+
+class TaskSupersededRequest(BaseModel):
+    """Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``."""
+
+    kind: DiscoveryTaskKind
+    input_key: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=50, ge=1, le=200)
+    dry_run: bool = False
+
+
+class TaskSupersededResponse(BaseModel):
+    """What the superseded requeue matched, and how many it re-pended (none on a dry run)."""
+
+    matched: int
+    requeued: int
+
+
 class FetchLogAppendRequest(BaseModel):
-    """One HTTP fetch attempt against a task target."""
+    """One HTTP fetch attempt against a task target: the sha256 of the body it read, and the final url it landed on."""
 
     http_status: int | None = None
     content_type: str | None = Field(default=None, max_length=200)
     byte_length: int | None = Field(default=None, ge=0)
     error_message: str | None = None
+    body_sha256: str | None = Field(default=None, pattern=SHA256_HEX_PATTERN)
+    final_url: str | None = Field(default=None, max_length=2048)
+
+
+class FetchLogAppendResponse(BaseModel):
+    """The created fetch row, and whether its body earns a render under ``render_input_key``.
+
+    ``render_due`` defaults to true so that an API which predates the verdict keeps the render stage's old behaviour.
+    """
+
+    id: UUID
+    discovery_task_id: UUID
+    task_status: DiscoveryTaskStatus
+    render_due: bool = True
+    render_input_key: str | None = None
 
 
 StopReason = Literal[
@@ -178,6 +245,7 @@ StopReason = Literal[
     "db_limit",
     "llm_budget",
     "llm_quota",
+    "rate_limited",
 ]
 
 
@@ -222,8 +290,12 @@ class RunStartResponse(BaseModel):
     id: UUID
 
 
+RunStage = Literal["worker_drain", "embed", "translate", "snapshot_translate"]
+"""The drain a run record belongs to; the API defaults a run that names none to its kind."""
+
+
 class RunFinishRequest(BaseModel):
-    """Report that closes a worker run."""
+    """Report that closes a worker run, with the spend per budget resource the drain made."""
 
     status: Literal["succeeded", "failed"]
     claimed_count: int = Field(ge=0)
@@ -233,6 +305,7 @@ class RunFinishRequest(BaseModel):
     remaining_count: int | None = Field(default=None, ge=0)
     stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
+    spend: dict[str, float] | None = None
 
 
 MAX_SNAPSHOT_BATCH: Final = 5

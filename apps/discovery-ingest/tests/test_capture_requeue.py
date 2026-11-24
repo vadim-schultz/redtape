@@ -18,6 +18,8 @@ from discovery_ingest.worker.capture_enqueue import (
 )
 from pydantic import SecretStr
 
+from render_fakes import missing_row
+
 API_BASE = "https://redtape.test"
 API_KEY = "test-machine-key"
 _REAL_HTTPX_CLIENT = httpx.Client
@@ -42,6 +44,7 @@ class Api:
         self.known: set[tuple[str, str, str | None]] = set()
         self.refused_urls: set[str] = set()
         self.list_status = 200
+        self.gaps: list[dict[str, object]] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -49,6 +52,8 @@ class Api:
             return self._list(request)
         if request.method == "POST" and request.url.path.endswith("/machine/tasks"):
             return self._enqueue(request)
+        if request.method == "GET" and request.url.path.endswith("/artifacts/missing-screenshot"):
+            return httpx.Response(200, json={"items": self.gaps})
         return httpx.Response(500, text="no stub")
 
     def _list(self, request: httpx.Request) -> httpx.Response:
@@ -214,6 +219,8 @@ def test_capture_request_is_shared_with_the_extraction_hook(api: Api, monkeypatc
             "lease_expires_at": "2026-10-30T12:00:00Z",
         }
     )
+
+    api.gaps = [missing_row(url, row)]
 
     assert enqueue_screenshot_for_mentions(DiscoveryIngestClient(API_BASE, SecretStr(API_KEY)), task) is True
 

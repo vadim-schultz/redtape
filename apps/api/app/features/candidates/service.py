@@ -6,6 +6,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from uuid import UUID
 
+from app.config import settings
 from app.features.candidates.card_builder import CardContext, card_for
 from app.features.candidates.detail import Evidence, detail_of
 from app.features.candidates.links import public_url
@@ -79,7 +80,8 @@ class CandidateReadService:
 
     def _evidence(self, candidate_id: UUID, edges: Sequence[EdgeRow]) -> Evidence:
         mentions = self._repo.list_candidate_mentions(candidate_id)
-        return Evidence(edges, mentions, self._repo.newest_screenshot(candidate_id))
+        screenshots = self._repo.list_screenshots(candidate_id, settings.screenshot_keep_per_page)
+        return Evidence(edges, mentions, screenshots)
 
     def _context(self, candidate_ids: Sequence[UUID], locale: ResolvedLocale) -> CardContext:
         return CardContext(

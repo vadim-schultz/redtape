@@ -7,10 +7,12 @@ from datetime import datetime, timedelta
 from typing import Final, Protocol
 
 from app.features.discovery.task_lease import LeaseFields, clear_claim, clear_lease
-from app.models.discovery import DiscoveryTask, DiscoveryTaskStatus
+from app.models.discovery import DiscoveryFailureClass, DiscoveryTask, DiscoveryTaskStatus
 
 MAX_ATTEMPTS: Final = 3
 BACKOFF: Final[tuple[timedelta, ...]] = (timedelta(minutes=5), timedelta(minutes=30), timedelta(hours=3))
+TRANSIENT_COOLDOWN: Final = timedelta(hours=24)
+"""How long a transient failure waits before the requeue route may return it to the queue."""
 
 
 class FailureKind(enum.StrEnum):
@@ -43,8 +45,16 @@ def apply_retry_policy(task: RetryFields, error: str, kind: FailureKind, now: da
     return True
 
 
-def settle_failure(task: DiscoveryTask, error: str, *, retryable: bool, now: datetime) -> None:
-    """Record ``error``; re-pend ``task`` with backoff if retryable and under the cap, else fail it."""
+def settle_failure(
+    task: DiscoveryTask,
+    error: str,
+    *,
+    retryable: bool,
+    now: datetime,
+    failure_class: DiscoveryFailureClass | None = None,
+) -> None:
+    """Record ``error`` and its ``failure_class``; re-pend ``task`` with backoff if retryable and under the cap, else fail it."""
+    task.failure_class = failure_class
     kind = FailureKind.RETRYABLE if retryable else FailureKind.PERMANENT
     repended = apply_retry_policy(task, error, kind, now)
     task.status = DiscoveryTaskStatus.PENDING if repended else DiscoveryTaskStatus.FAILED

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,7 +12,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.models.discovery import (
     LEGACY_TASK_KINDS,
     DiscoveryClaimKind,
+    DiscoveryFailureClass,
     DiscoveryRunKind,
+    DiscoveryRunStage,
     DiscoverySource,
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
@@ -64,6 +66,21 @@ class CatalogueMachineRead(BaseModel):
     raw_payload: dict[str, object] = Field(default_factory=dict)
 
 
+class StaleFetchRead(BaseModel):
+    """A portal page whose newest fetch finished before the refresh cutoff, with no fetch of it still open."""
+
+    catalogue_service_id: UUID
+    target_url: str = Field(min_length=1, max_length=500)
+    last_fetched_at: datetime
+
+
+class StaleFetchesResponse(BaseModel):
+    """Pages due a refresh, stalest first, and the input key their refresh fetches are enqueued under."""
+
+    input_key: str = Field(min_length=1, max_length=128)
+    items: list[StaleFetchRead]
+
+
 def resolve_task_kinds(kinds: Sequence[DiscoveryTaskKind] | None) -> tuple[DiscoveryTaskKind, ...]:
     """Return the named kinds, or the legacy kinds when none were named."""
     return LEGACY_TASK_KINDS if kinds is None else tuple(kinds)
@@ -82,7 +99,11 @@ class TaskClaimRequest(BaseModel):
 
 
 class TaskSummaryResponse(BaseModel):
-    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases."""
+    """Queue counts for the requested kinds; ``claimed`` includes the ``claimed_stale`` leases.
+
+    ``oldest_pending_age_seconds`` is ``null`` when no task is ready; ``completed_24h`` and ``failed_24h`` count the
+    tasks finished in the last day.
+    """
 
     pending_ready: int
     pending_delayed: int
@@ -90,6 +111,9 @@ class TaskSummaryResponse(BaseModel):
     claimed_stale: int
     completed: int
     failed: int
+    oldest_pending_age_seconds: float | None
+    completed_24h: int
+    failed_24h: int
 
 
 class TaskEnqueueRequest(BaseModel):
@@ -132,10 +156,21 @@ class TaskClaimResponse(BaseModel):
     items: list[ClaimedTaskRead]
 
 
+TEXT_HASH_PATTERN = r"^[0-9a-f]{64}$"
+"""A SHA-256 digest in lowercase hex: a cleaned-text hash, or the hash of a fetched body."""
+
+
 class TaskCompleteRequest(BaseModel):
-    """Optional note on why a task completed without producing anything (for example ``no_mentions``)."""
+    """Optional note on why a task completed (for example ``no_mentions``) and the cleaned-text hash it read."""
 
     note: str | None = Field(default=None, max_length=200)
+    text_hash: str | None = Field(default=None, pattern=TEXT_HASH_PATTERN)
+
+
+class TextExtractedResponse(BaseModel):
+    """Whether a completed extraction of this page under these versions recorded the text hash."""
+
+    extracted: bool
 
 
 class TaskReleaseRequest(BaseModel):
@@ -161,10 +196,39 @@ class TaskCompleteResponse(BaseModel):
 
 
 class TaskFailRequest(BaseModel):
-    """Failure reason for a discovery task."""
+    """Failure reason for a discovery task; ``failure_class`` says why, and a missing class counts as permanent."""
 
     error: str = Field(min_length=1)
     retryable: bool = False
+    failure_class: DiscoveryFailureClass | None = None
+
+
+class TaskRequeueRequest(BaseModel):
+    """How many transient failures, at most, to return to the queue."""
+
+    limit: int = Field(default=50, ge=1, le=200)
+
+
+class TaskRequeueResponse(BaseModel):
+    """Transient failures returned to the pending queue."""
+
+    requeued: int
+
+
+class TaskSupersededRequest(BaseModel):
+    """Re-pend completed tasks of ``kind`` that completed under another key, once per page, under ``input_key``."""
+
+    kind: DiscoveryTaskKind
+    input_key: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=50, ge=1, le=200)
+    dry_run: bool = False
+
+
+class TaskSupersededResponse(BaseModel):
+    """What the superseded requeue matched, and how many it re-pended (none on a dry run)."""
+
+    matched: int
+    requeued: int
 
 
 class TaskFailResponse(BaseModel):
@@ -176,20 +240,31 @@ class TaskFailResponse(BaseModel):
 
 
 class FetchLogAppendRequest(BaseModel):
-    """One HTTP fetch attempt against a task target."""
+    """One HTTP fetch attempt against a task target; the body hash and the final url feed the render verdict."""
 
     http_status: int | None = None
     content_type: str | None = Field(default=None, max_length=200)
     byte_length: int | None = Field(default=None, ge=0)
     error_message: str | None = None
+    body_sha256: str | None = Field(default=None, pattern=TEXT_HASH_PATTERN)
+    final_url: str | None = Field(default=None, max_length=2048)
 
 
 class FetchLogAppendResponse(BaseModel):
-    """Created fetch log row."""
+    """Created fetch log row, and whether its body earns a render and under which input key."""
 
     id: UUID
     discovery_task_id: UUID
     task_status: DiscoveryTaskStatus
+    render_due: bool = False
+    render_input_key: str | None = None
+
+
+class RetentionPruneResponse(BaseModel):
+    """Rows the retention prune deleted: fetch logs and events that had aged out of the window."""
+
+    fetch_logs_deleted: int
+    events_deleted: int
 
 
 class EntityUpsertRequest(BaseModel):
@@ -239,9 +314,10 @@ class CatalogueEmitResponse(EmitCounts):
 
 
 class RunStartRequest(BaseModel):
-    """Open a run record before the worker starts draining."""
+    """Open a run record before the worker starts draining; the stage defaults to the kind."""
 
     kind: DiscoveryRunKind = DiscoveryRunKind.WORKER_DRAIN
+    stage: DiscoveryRunStage | None = None
 
 
 StopReason = Literal[
@@ -255,12 +331,25 @@ StopReason = Literal[
     "db_limit",
     "llm_budget",
     "llm_quota",
+    "rate_limited",
 ]
 """Why a worker drain ended; mirrors the ingest worker's ``StopReason``."""
 
 
+SpendResource = Literal[
+    "r2_class_a",
+    "r2_class_b",
+    "browser_seconds",
+    "neurons",
+    "actions_minutes",
+    "azure_translator_chars",
+]
+"""The budget ledger's resources, the only names a run may report spend against (see the budget resources)."""
+SpendAmount = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+
+
 class RunFinishRequest(BaseModel):
-    """Close a run with its report."""
+    """Close a run with its report and the spend it made per budget resource."""
 
     status: Literal["succeeded", "failed"]
     claimed_count: int = Field(ge=0)
@@ -270,6 +359,7 @@ class RunFinishRequest(BaseModel):
     remaining_count: int | None = Field(default=None, ge=0)
     stop_reason: StopReason | None = None
     error_detail: str | None = Field(default=None, max_length=1000)
+    spend: dict[SpendResource, SpendAmount] | None = None
 
 
 class RunRead(BaseModel):

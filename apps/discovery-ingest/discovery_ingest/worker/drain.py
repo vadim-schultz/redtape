@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import sys
+
 from discovery_ingest.browser.port import BrowserClient
 from discovery_ingest.budget import BudgetGuard
 from discovery_ingest.client import DiscoveryIngestClient
 from discovery_ingest.schemas import DrainReport
 from discovery_ingest.worker.batch import DrainContext, run_batch
 from discovery_ingest.worker.browser_spend import BrowserSpend, open_browser_spend
+from discovery_ingest.worker.capture_enqueue import sweep_screenshots
 from discovery_ingest.worker.drain_deps import DrainDeps
 from discovery_ingest.worker.drain_loop import Finish, drain_until_stop
 from discovery_ingest.worker.extract_enqueue import ExtractEnqueuer
@@ -47,6 +50,7 @@ def run_worker_drain(deps: DrainDeps, policy: DrainPolicy) -> DrainReport:
     spend, tally = _open_spend(policy, guard, deps.browser), Tally()
     if policy.drains_browser_kinds and spend is None:
         return _report(client, policy, tally, Finish("browser_budget"))
+    _sweep_screenshots(deps, policy)
     llm_drain = open_llm_drain(policy, guard, deps.llm, deps.after_extract)
     if policy.drains_llm_kinds and llm_drain is None:
         return _report(client, policy, tally, Finish("llm_budget"))
@@ -55,6 +59,14 @@ def run_worker_drain(deps: DrainDeps, policy: DrainPolicy) -> DrainReport:
     finish = drain_until_stop(lambda: run_batch(ctx, tally), policy, deps.clock)
     _close_tally(tally, guard, spend, (llm_drain, deps.llm_enqueue))
     return _report(client, policy, tally, finish)
+
+
+def _sweep_screenshots(deps: DrainDeps, policy: DrainPolicy) -> None:
+    """Queue capture_screenshot for rendered pages that lack one, before the drain claims them (chapter 8)."""
+    if "capture_screenshot" not in policy.kinds or deps.screenshot_sweep_limit is None:
+        return
+    queued = sweep_screenshots(deps.client, limit=deps.screenshot_sweep_limit)
+    print(f"screenshot sweep queued={queued}", file=sys.stderr)
 
 
 def _close_tally(

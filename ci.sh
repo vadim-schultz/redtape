@@ -105,6 +105,11 @@ NODE_OPTIONS="--max-old-space-size=8192" npm run build
 echo "=== Discovery skill checks ==="
 bash "$ROOT/scripts/check_discovery_skills.sh" all
 
+echo "=== Actions scripts ==="
+# Standard library plus pytest and PyYAML, provided per run by uv (no project lock).
+cd "$ROOT"
+uv run --no-project --with pytest --with pyyaml python -m pytest scripts/tests -q
+
 echo "=== Discovery ingest checks ==="
 cd "$ROOT/apps/discovery-ingest"
 if [ ! -d ".venv" ]; then

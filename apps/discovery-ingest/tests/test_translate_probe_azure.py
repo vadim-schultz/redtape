@@ -10,10 +10,12 @@ import json
 import re
 from collections.abc import Callable, Iterator
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
 from discovery_ingest.cli import main
+from discovery_ingest.translation.adapters import azure_translator_http
 from discovery_ingest.translation.locale_codes import DEFAULT_TARGET_LOCALES
 from discovery_ingest.translation.probe_azure import run_azure_probe
 from discovery_ingest.translation.probe_azure_model import AzureProbeReport
@@ -27,7 +29,16 @@ from discovery_ingest.translation.probe_azure_units import (
 )
 from discovery_ingest.translation.units import TranslationUnit
 
-from azure_transport import ENDPOINT, KEY, REGION, connection, failure, inputs_in
+from azure_transport import ENDPOINT, KEY, REGION, FakeClock, connection, failure, inputs_in
+
+
+@pytest.fixture(autouse=True)
+def _fake_clock(monkeypatch: pytest.MonkeyPatch) -> FakeClock:
+    """The transport waits on a fake clock, so the per-minute window and the retries never sleep for real."""
+    clock = FakeClock()
+    monkeypatch.setattr(azure_translator_http, "time", SimpleNamespace(monotonic=clock.now, sleep=clock.sleep))
+    return clock
+
 
 Handler = Callable[[httpx.Request], httpx.Response]
 Mangle = Callable[[str, str], str]

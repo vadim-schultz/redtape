@@ -37,6 +37,11 @@ on:
         required: false
         default: "llm_extract"
         type: string
+      concurrency:
+        description: "Model calls in flight at once, 1 to 8 (a batch's calls run in waves of this size)"
+        required: false
+        default: "3"
+        type: string
 
 permissions:
   contents: read
@@ -63,6 +68,7 @@ jobs:
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '600' }}
       NEURON_BUDGET: ${{ inputs.neuron_budget || '2500' }}
       TASK_KINDS: ${{ inputs.kinds || 'llm_extract' }}
+      CONCURRENCY: ${{ inputs.concurrency || '3' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
@@ -83,7 +89,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Check the model, the Actions minutes and the neurons budgets
+      - name: Check the model and the neurons budget
         id: budget
         run: |
           # No model: skip without failing (a scheduled run takes it from the repository variable DISCOVERY_LLM_MODEL).
@@ -92,14 +98,14 @@ jobs:
             echo "### Discovery llm skipped: no model (pass llm_model, or set the repository variable DISCOVERY_LLM_MODEL)" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or fewer than
-          # 300 neurons left today (a short page reserves about 200); skip the drain without failing the run. An
-          # unreachable ledger lets the drain run, and the drain itself refuses to start without a readable ledger.
+          # Exit 3 means fewer than 300 neurons are left today (a short page reserves about 200); skip the drain without
+          # failing the run. An unreachable ledger lets the drain run, and the drain itself refuses to start without a
+          # readable ledger.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource neurons --require-remaining actions_minutes=20 --require-remaining neurons=300 || code=$?
+          python -m discovery_ingest budget show --resource neurons --require-remaining neurons=300 || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery llm skipped: the Actions minutes or the neurons are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery llm skipped: the neurons are used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"
@@ -113,7 +119,7 @@ jobs:
         if: steps.budget.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          python -m discovery_ingest worker drain --max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" --neuron-budget "${NEURON_BUDGET}" --kinds "${TASK_KINDS}" | tee drain-report.json
+          python -m discovery_ingest worker drain --max-tasks "${MAX_TASKS}" --max-batches "${MAX_BATCHES}" --time-budget-seconds "${TIME_BUDGET_SECONDS}" --neuron-budget "${NEURON_BUDGET}" --kinds "${TASK_KINDS}" --concurrency "${CONCURRENCY}" | tee drain-report.json
 
       - name: Write drain report to job summary
         if: always() && steps.budget.outputs.skip != 'true'

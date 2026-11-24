@@ -116,12 +116,20 @@ class ArtifactRepository(SessionRepository):
 
     def delete_old_snapshots(self, catalogue_id: UUID, *, keep: int) -> list[str]:
         """Delete all but the ``keep`` latest HTML snapshots of a catalogue row; return the deleted storage keys."""
+        return self._delete_beyond(catalogue_id, DiscoveryArtifactKind.HTML_SNAPSHOT, keep)
+
+    def delete_old_screenshots(self, catalogue_id: UUID, *, keep: int) -> list[str]:
+        """Delete all but the ``keep`` latest screenshots of a catalogue row; the newest is never deleted.
+
+        Return the deleted storage keys. ``keep`` below one is treated as one, so a page keeps its only capture.
+        """
+        return self._delete_beyond(catalogue_id, DiscoveryArtifactKind.SCREENSHOT, max(keep, 1))
+
+    def _delete_beyond(self, catalogue_id: UUID, kind: DiscoveryArtifactKind, keep: int) -> list[str]:
+        """Delete the artifacts of ``kind`` past the ``keep`` newest of ``catalogue_id``; return their storage keys."""
         stale = (
             select(DiscoveryArtifact.id)
-            .where(
-                DiscoveryArtifact.catalogue_service_id == catalogue_id,
-                DiscoveryArtifact.kind == DiscoveryArtifactKind.HTML_SNAPSHOT,
-            )
+            .where(DiscoveryArtifact.catalogue_service_id == catalogue_id, DiscoveryArtifact.kind == kind)
             .order_by(DiscoveryArtifact.fetched_at.desc(), DiscoveryArtifact.created_at.desc(), DiscoveryArtifact.id)
             .offset(keep)
         )
