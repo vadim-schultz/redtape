@@ -73,6 +73,14 @@ def test_every_flag_used_in_workflows_is_in_the_contract(path: Path) -> None:
 
 
 def test_budget_show_exit_3_is_the_skip_signal_the_workflows_test_for() -> None:
-    text = (WORKFLOW_DIR / "discovery-drain.yml").read_text(encoding="utf-8")
-    assert "|| code=$?" in text
-    assert "-eq 3" in text, "the workflow compares the exit code with 3"
+    # The drain has no budget call after chapter 16, so the five stage workflows that still check a budget carry the signal.
+    for name in (
+        "discovery-render.yml",
+        "discovery-screenshot.yml",
+        "discovery-embed.yml",
+        "discovery-translate.yml",
+        "discovery-llm.yml",
+    ):
+        text = (WORKFLOW_DIR / name).read_text(encoding="utf-8")
+        assert "|| code=$?" in text, name
+        assert "-eq 3" in text, f"{name} compares the exit code with 3"

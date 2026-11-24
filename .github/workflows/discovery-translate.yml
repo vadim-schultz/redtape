@@ -95,24 +95,23 @@ jobs:
             fi
           done
 
-      - name: Check the Actions minutes and the budget of the engine
+      - name: Check the budget of the engine
         id: budget
         run: |
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes), or the engine's own
-          # budget is short: llm needs more than 100 neurons above the floor kept for query embedding (QUERY_EMBED_RESERVE,
-          # a whole number); azure-translator needs AZURE_TRANSLATOR_MIN_REMAINING_CHARS characters left this month. Skip
-          # the drain without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to
-          # start without a readable one.
+          # Exit 3 means the engine's own budget is short: llm needs more than 100 neurons above the floor kept for query
+          # embedding (QUERY_EMBED_RESERVE, a whole number); azure-translator needs AZURE_TRANSLATOR_MIN_REMAINING_CHARS
+          # characters left this month. Skip the drain without failing the run. An unreachable ledger lets the job go on,
+          # and the drain itself refuses to start without a readable one.
           case "${TRANSLATION_ENGINE}" in
             llm) engine_check=(--resource neurons --require-remaining "neurons=$(( QUERY_EMBED_RESERVE + 100 ))") ;;
             azure-translator) engine_check=(--resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}") ;;
             *) engine_check=() ;;
           esac
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=20 "${engine_check[@]}" || code=$?
+          python -m discovery_ingest budget show "${engine_check[@]}" || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery translate skipped: the Actions minutes or the ${TRANSLATION_ENGINE} budget are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery translate skipped: the ${TRANSLATION_ENGINE} budget is used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"
@@ -228,17 +227,17 @@ jobs:
             fi
           done
 
-      - name: Check the Actions minutes and the character budget
+      - name: Check the character budget
         id: budget
         run: |
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use, or fewer characters than
-          # AZURE_TRANSLATOR_MIN_REMAINING_CHARS left this month. Skip the drain without failing the run. An unreachable
-          # ledger lets the job go on, and the drain itself refuses to claim without a readable one.
+          # Exit 3 means fewer characters than AZURE_TRANSLATOR_MIN_REMAINING_CHARS are left this month. Skip the drain
+          # without failing the run. An unreachable ledger lets the job go on, and the drain itself refuses to claim
+          # without a readable one.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --require-remaining actions_minutes=20 --resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}" || code=$?
+          python -m discovery_ingest budget show --resource azure_translator_chars --require-remaining "azure_translator_chars=${AZURE_TRANSLATOR_MIN_REMAINING_CHARS}" || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Snapshot translate skipped: the Actions minutes or the Azure character budget are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Snapshot translate skipped: the Azure character budget is used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"

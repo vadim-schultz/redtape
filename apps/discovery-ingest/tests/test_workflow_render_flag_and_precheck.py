@@ -85,7 +85,12 @@ def test_no_stage_workflow_asks_the_budget_for_actions_minutes() -> None:
 def test_render_and_screenshot_still_skip_when_their_browser_seconds_are_used_up() -> None:
     """workflow · the precheck is exactly budget show for browser_seconds, skipping under 30 seconds."""
     for name in ("discovery-render.yml", "discovery-screenshot.yml"):
-        assert _budget_arguments(name) == ["--resource", "browser_seconds", "--require-remaining", "browser_seconds=30"], name
+        assert _budget_arguments(name) == [
+            "--resource",
+            "browser_seconds",
+            "--require-remaining",
+            "browser_seconds=30",
+        ], name
 
 
 def test_embed_and_llm_still_skip_when_their_neuron_budget_is_short() -> None:
