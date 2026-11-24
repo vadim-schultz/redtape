@@ -61,6 +61,8 @@ jobs:
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '900' }}
       BROWSER_BUDGET_SECONDS: ${{ inputs.browser_budget_seconds || '570' }}
       TASK_KINDS: ${{ inputs.kinds || 'render_page' }}
+      # Off by default (D16). Set the repository variable to true only after the canary gate in chapter 8 passes.
+      RENDER_FUSED_SCREENSHOT: ${{ vars.RENDER_FUSED_SCREENSHOT || 'false' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
