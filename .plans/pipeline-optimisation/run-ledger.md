@@ -100,3 +100,10 @@ The earlier caveat stands: about 65 s of the 2026-11-20 session was billed after
   - `RENDER_FUSED_SCREENSHOT`. Not a schedule. Needs the chapter 8 canary first.
   - Removal of the stage schedules (D20). After the orchestrator has run a full day with them on.
 - **Open.** Render failures are still unexplained. The local web test exception is closed by commit `1cb23584`. Chapter 10's billing check is still open. Stale extraction docs remain a follow-up.
+
+## Embed backlog and translate activation (2026-11-24)
+
+- **Embed, three manual runs** (`discovery-embed.yml`, `neuron_budget=2000`, each dispatched after the last completed): run `45418497698` (success), run `45420585606` (success), run `45422876884` (success). Pending `embedding_task` rows went from 5,720 to 3,770, then 1,820, then 0. Totals after run 3: 5,070 completed and 650 failed. The failures rose by about 150 per run and are not retried. They are terminal, so they need a look before the next backfill.
+- **Embed schedule set.** `DISCOVERY_EMBED_SCHEDULE=enabled`, after the walkthrough's gate (backlog cleared by three manual runs).
+- **Translate schedule set.** `DISCOVERY_TRANSLATE_SCHEDULE=enabled`, per the operator's decision: free-tier Azure, use what is available. The chapter 6 pacing item stays open for December, when the allowance overstatement applies.
+- **All schedule variables now set:** drain, extract (retired, D20), LLM, embed, translate, render, screenshot, snapshot translate, orchestrator (flag) and the catalogue refresh ceiling (50). The stage schedules stay until the orchestrator has run a full day.
