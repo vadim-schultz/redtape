@@ -29,6 +29,11 @@ Chapter MRs merge into the loop branch only. The chapter-implementer **does not*
 
 **S6 (Azure reset boundary), answered by the operator on 2026-11-15:** the Translator was configured on 2026-11-13 and has run only once manually (26,832 characters), with no reset since. The operator counts 2026-11-13 as the reset anchor. The monthly rule (window restarts on the 13th) is inferred from that anchor, not confirmed in the portal. Chapter 6 uses the anchor as its default (`AZURE_WINDOW_ANCHOR`).
 
+## Activation pre-checks (2026-11-24)
+
+- **D2, LLM verification (walkthrough step 1): passes.** The local `c8_queries_4.sql` is not in the repository. Its part C was run as a read-only query on production: no `ext-5` row in `discovery_candidate_mention` or `discovery_candidate_edge` was written at or after 2026-11-06 12:24 UTC. The six mention rows at 12:23 fall within the cutoff minute. The LLM schedule is **not** set: main still runs the legacy `ext-5` extractor, so the schedule waits for the release, which is the walkthrough's rule.
+- Chapter 16 (render flag wiring and minute precheck removal) is in progress; see its row once it is merged.
+
 ## Chapter 10 re-measure (2026-11-23): decision pending the operator
 
 The operator asked for a re-measure with an explicit session close. The probe ran from the scratch folder with the credentials in `~/.config/redtape/probe.env` (values not recorded). The same 50 pages were used in both arms: the 50 most recent completed render targets. Production has no `text_hash` column, so stability was not checked.
