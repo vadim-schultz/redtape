@@ -51,6 +51,7 @@ overlapping pushes. The concurrency block in `api-lint-test.yml` and `web-ci.yml
 Under D17 the standard runners of this repository are not metered, so this page sets no minute cap and no per-drain minute share.
 The stage workflows do not read the ledger's `actions_minutes` before they run (chapter 16), so no run skips for minutes.
 The browser workflows skip under 30 browser seconds left. The neuron and character floors of the other stages are unchanged.
+The ledger still counts minutes: show them with `python -m discovery_ingest budget show --resource actions_minutes`.
 
 Each drain reports `ceil(elapsed / 60) + 1` minutes when it ends. Local runs report nothing and cost nothing.
 
