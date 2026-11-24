@@ -88,3 +88,15 @@ The earlier caveat stands: about 65 s of the 2026-11-20 session was billed after
 5. Manual cleanup of merged chapter branches on origin, whose deletion was denied by the permission check.
 
 **Last orchestration:** 2026-11-20, stopped at chapter 12 at the operator's request. Resume from the WIP commit, then chapter 15.
+
+## Release and activation (2026-11-24)
+
+- **Release.** PR #445 (loop `feat/plans-pipeline-optimisation` into `main`) merged with `--merge` at `803596af`, 14:38 UTC, after all checks passed on the fix commit `1cb23584`: `change-set`, `lint-and-test` (both jobs), `lint-format-typecheck-build`, `migrations`, and Workers Builds. The fix changed one web test to wait for focus that Zag moves on the next frame, after the test failed on the clean runner. Its assertion is unchanged; the full web suite passed on the fix: 1332 tests, 1 expected fail.
+- **Deploy.** The production migration head moved from `20261112_locale_machine_flag` to `20261119_fetch_body_sha256` at 14:39 UTC, which is the walkthrough's "before anything" check.
+- **Set.** `DISCOVERY_LLM_SCHEDULE=enabled`, after D2 passed (the ext-5 cutoff, read-only). `CATALOGUE_REFRESH_MAX_ROWS=50` (D19, now that the release is deployed). `PIPELINE_ORCHESTRATOR=enabled` (walkthrough step 4: one day with the stage schedules still on; compare the reports).
+- **Held.**
+  - `DISCOVERY_EMBED_SCHEDULE`. The gate is three manual embed runs first. The backlog is 5,720 pending `embedding_task` rows.
+  - `DISCOVERY_TRANSLATE_SCHEDULE`. Held on the open Azure pacing decision (chapter 6: the anchor is 13 November, against the calendar-month ledger; it overstates the remaining allowance from 1 to 12 December). Needs the operator's decision.
+  - `RENDER_FUSED_SCREENSHOT`. Not a schedule. Needs the chapter 8 canary first.
+  - Removal of the stage schedules (D20). After the orchestrator has run a full day with them on.
+- **Open.** Render failures are still unexplained. The local web test exception is closed by commit `1cb23584`. Chapter 10's billing check is still open. Stale extraction docs remain a follow-up.
