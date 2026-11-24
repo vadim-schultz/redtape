@@ -91,13 +91,12 @@ def test_the_render_workflow_shares_the_drain_concurrency_group_and_has_the_four
     }
 
 
-def test_the_render_job_requires_its_timeout_in_minutes_and_30_browser_seconds_before_draining() -> None:
-    """render workflow · the budget step skips the drain when minutes or browser seconds are gone."""
+def test_the_render_job_requires_30_browser_seconds_before_draining() -> None:
+    """render workflow · the budget step skips the drain when fewer than 30 browser seconds are left."""
     job = _render_job()
     steps = job["steps"]
     check = steps[_index(steps, BUDGET_CHECK)]
 
-    assert f"actions_minutes={job['timeout-minutes']}" in check["run"]
     assert "--require-remaining browser_seconds=30" in check["run"]
     assert check["id"] == "budget" and "skip=true" in check["run"]
     drain = _index(steps, "worker drain")

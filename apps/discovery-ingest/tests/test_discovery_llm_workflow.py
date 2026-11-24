@@ -66,10 +66,7 @@ def test_the_job_has_a_timeout_a_budget_skip_an_always_minutes_step_and_the_shar
 
     assert job["timeout-minutes"] == 20
     assert document["concurrency"] == {"group": "discovery-pipeline", "cancel-in-progress": False}
-    assert (
-        f"actions_minutes={job['timeout-minutes']}" in check["run"]
-        and "--require-remaining neurons=300" in check["run"]
-    )
+    assert "actions_minutes" not in check["run"] and "--require-remaining neurons=300" in check["run"]
     assert check["id"] == "budget" and "skip=true" in check["run"] and _index(steps, BUDGET_CHECK) < drain
     assert steps[_index(steps, REPORT)] is steps[-1] and steps[-1]["if"] == "always()"
     assert "DRAIN_STARTED_AT" in steps[0]["run"]

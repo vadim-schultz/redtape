@@ -52,12 +52,11 @@ def test_it_shares_the_pipeline_concurrency_group_and_never_cancels_a_running_dr
     assert document["permissions"] == {"contents": "read"}
 
 
-def test_the_job_has_a_timeout_and_requires_that_many_minutes_and_some_neurons(job: dict[str, Any]) -> None:
-    """workflow · the ledger precheck requires the job's timeout in minutes and a floor of neurons."""
+def test_the_precheck_requires_a_floor_of_neurons_and_no_actions_minutes(job: dict[str, Any]) -> None:
+    """workflow · the ledger precheck requires a floor of neurons; Actions minutes are not checked (D17)."""
     check = job["steps"][_index(job["steps"], BUDGET_CHECK)]["run"]
 
-    minutes = re.search(r"--require-remaining\s+actions_minutes=(\d+)", check)
-    assert minutes is not None and int(minutes.group(1)) == job["timeout-minutes"]
+    assert "actions_minutes" not in check
     assert re.search(r"--require-remaining\s+neurons=\d+", check)
 
 

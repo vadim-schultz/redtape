@@ -61,6 +61,8 @@ jobs:
       TIME_BUDGET_SECONDS: ${{ inputs.time_budget_seconds || '900' }}
       BROWSER_BUDGET_SECONDS: ${{ inputs.browser_budget_seconds || '570' }}
       TASK_KINDS: ${{ inputs.kinds || 'render_page' }}
+      # Off by default (D16). Set the repository variable to true only after the canary gate in chapter 8 passes.
+      RENDER_FUSED_SCREENSHOT: ${{ vars.RENDER_FUSED_SCREENSHOT || 'false' }}
     steps:
       - name: Record the job start time
         run: echo "DRAIN_STARTED_AT=$(date +%s)" >> "${GITHUB_ENV}"
@@ -81,17 +83,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Check the Actions minutes and browser seconds budgets
+      - name: Check the browser seconds budget
         id: budget
         run: |
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or fewer than
-          # 30 browser seconds left today (one call reserves 30); skip the drain without failing the run. An
-          # unreachable ledger lets the drain run.
+          # Exit 3 means fewer than 30 browser seconds are left today (one call reserves 30); skip the drain without
+          # failing the run. An unreachable ledger lets the drain run.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource browser_seconds --require-remaining actions_minutes=20 --require-remaining browser_seconds=30 || code=$?
+          python -m discovery_ingest budget show --resource browser_seconds --require-remaining browser_seconds=30 || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery render skipped: the Actions minutes or the browser seconds are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery render skipped: the browser seconds are used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"

@@ -70,7 +70,7 @@ small batches because a limit releases every task of the batch.
 **The LLM drain workflow.** `discovery-llm.yml` runs `worker drain --kinds llm_extract` with `--neuron-budget`. A
 scheduled run takes the model from the repository variable `DISCOVERY_LLM_MODEL` and runs only when
 `DISCOVERY_LLM_SCHEDULE` is `enabled`; with no model it skips itself and says so in the job summary. It also skips,
-without failing, when the ledger has under 20 Actions minutes or under 300 neurons left. It does not claim the browser
+without failing, when the ledger has under 300 neurons left. It does not claim the browser
 kinds. Its four secrets are `DISCOVERY_API_URL`, `DISCOVERY_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` and
 `CLOUDFLARE_AI_API_TOKEN`; the Workers AI token is used only by this workflow and the probe, and is not a Render
 variable. `discovery-render.yml` sets `LLM_ENQUEUE: "true"` (and `LLM_MODEL`) in its job `env` by default, so scheduled renders
@@ -81,7 +81,7 @@ embedding tasks that the API queues when a candidate's search text changes, embe
 (`@cf/qwen/qwen3-embedding-0.6b`) and posts the vectors. It is not a `discovery_task` kind, so it has its own queue and
 summary route. Schedule: **06:10 and 18:10 UTC**, only when `DISCOVERY_EMBED_SCHEDULE` is `enabled`; manual dispatch
 always works. Dispatch inputs: `max_tasks` (50), `max_batches` (60), `time_budget_seconds` (600), `neuron_budget` (3000).
-The job skips itself, without failing, in two places: the ledger precheck (under 20 Actions minutes or 100 neurons
+The job skips itself, without failing, in two places: the ledger precheck (under 100 neurons
 left) and the queue precheck (`embed summary --require-pending` exits 3 when `GET /embeddings/summary` reports
 `pending_ready = 0`), which saves the drain step. It shares the group `discovery-pipeline`, fails only when the report's
 `succeeded` is false, and reports its minutes in an `if: always()` step. Secrets: `DISCOVERY_API_URL`,
@@ -97,7 +97,7 @@ the engine can repair (`llm`; Azure cannot, so an invalid unit fails) and posts 
 after the 06:10 embed drain and the discovery drains of the same day, and an hour before the 18:10 embed drain, which
 embeds the fresh translations. Manual dispatch always works. Dispatch inputs: `max_tasks` (10), `max_batches` (60),
 `time_budget_seconds` (600), `neuron_budget` (2500). The job skips itself, without failing, in two places: the ledger
-precheck (under 20 Actions minutes, or no more than 100 neurons above the query-embedding floor) and the queue precheck
+precheck (no more than 100 neurons above the query-embedding floor) and the queue precheck
 (`translate summary --require-pending` exits 3 when `pending_ready` is 0 in every locale). It shares the group
 `discovery-pipeline`, fails only when the report's `succeeded` is false, and reports its minutes in an `if: always()`
 step. **The floor.** The drain never takes the day's neuron ledger below `QUERY_EMBED_RESERVE` (repository variable,
@@ -115,8 +115,8 @@ miss on a card fails the card (`strict`) or is logged while the card is posted (
 
 **The snapshot translation job.** The `snapshot-drain` job of `discovery-translate.yml` runs `translate drain --unit
 snapshot` after the card drain, in the same group. It translates the text of procedure pages with `azure-translator`,
-whatever `TRANSLATION_ENGINE` says, and reads the Azure key, region and endpoint from the same environment. Its prechecks are
-`actions_minutes` (20 minutes) and `azure_translator_chars` (`AZURE_TRANSLATOR_MIN_REMAINING_CHARS`); it also skips when no
+whatever `TRANSLATION_ENGINE` says, and reads the Azure key, region and endpoint from the same environment. Its precheck is
+`azure_translator_chars` (`AZURE_TRANSLATOR_MIN_REMAINING_CHARS`); it also skips when no
 page is ready. Documents keep to `AZURE_DOCUMENT_BUDGET_SHARE` (default 0.6) of the monthly cap, so cards keep the rest. It runs
 only when `SNAPSHOT_TRANSLATE_SCHEDULE` is `enabled`, which is off by default and applies to manual dispatch too. Up to five
 pages a claim, 60 claims and 600 seconds a run. The backfill, the first manual drain and the rollback are in
@@ -137,12 +137,12 @@ glossary rule are in [translation-engines.md](translation-engines.md#probe-opera
 overlap. GitHub keeps one pending run per group, so a later queued run cancels the older pending one.
 
 **Budget ledger.** The API keeps one count per resource and period (UTC), so GitHub runs and laptop runs share it. Each
-drain workflow reads the ledger first and skips itself, without failing, when the budget is gone. After the drain, a final
+stage workflow except `discovery-drain.yml` reads the ledger first and skips itself, without failing, when the budget is gone. After the drain, a final
 step (`if: always()`) adds the elapsed minutes, rounded up, plus one.
 
 | Resource | Period | Default cap | Who spends it |
 | --- | --- | --- | --- |
-| `actions_minutes` | month | Not binding (D17). The prechecks skip a drain under 30 minutes left (`discovery-drain.yml`) or under 20 (the others) | Drain workflows, through `budget report-minutes` |
+| `actions_minutes` | month | Not binding (D17). No stage workflow prechecks it (chapter 16) | Drain workflows, through `budget report-minutes` |
 | `browser_seconds` | day | 570 | Browser drains (`discovery-render.yml`, `discovery-screenshot.yml`). Both skip under 30 seconds left |
 | `r2_class_a`, `r2_class_b` | month | 950,000 and 9,500,000 | The metered object store in the API |
 | `neurons` | day | 9,500 | `llm_extract` drains, `embed drain` (1,075 neurons per million input tokens, reserved at characters / 3), `translate drain` on `llm` (about 10 to 13 neurons per card, never below the `QUERY_EMBED_RESERVE` floor) and `llm eval`, through reserve and settle. `llm probe` bypasses the ledger, and Cloudflare's own 10,000-neuron allocation counts every use on the account, so a provider 429 can come before the ledger is spent. The drain skips under 300 neurons left |
@@ -152,7 +152,7 @@ Caps are API settings (`BUDGET_*`, `ACTIONS_CI_RESERVE_MINUTES`, `DB_SOFT_LIMIT_
 [deployment-checklist.md](deployment-checklist.md). Show the ledger with `python -m discovery_ingest budget show`
 (exit 3 when a `--require-remaining RESOURCE=N` is short, exit 4 with `--strict` when the API is unreachable).
 
-**Actions minutes.** This repository is public, so its standard runners are not metered (D17). No minute cap binds, and this page keeps no monthly comparison with GitHub's usage report; [gha-budget.md](gha-budget.md) records the history. The ledger still records minutes (`budget report-minutes`), and the stage prechecks still read `actions_minutes`; removing those prechecks is a later code change. A drain on a laptop costs no Actions minutes and shares the same ledger.
+**Actions minutes.** This repository is public, so its standard runners are not metered (D17). No minute cap binds, and this page keeps no monthly comparison with GitHub's usage report; [gha-budget.md](gha-budget.md) records the history. The ledger still records minutes (`budget report-minutes`), and no stage precheck reads `actions_minutes` (chapter 16). A drain on a laptop costs no Actions minutes and shares the same ledger.
 
 Set these under **Settings → Secrets and variables → Actions → Variables**:
 

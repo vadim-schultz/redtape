@@ -89,7 +89,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Check the model, the Actions minutes and the neurons budgets
+      - name: Check the model and the neurons budget
         id: budget
         run: |
           # No model: skip without failing (a scheduled run takes it from the repository variable DISCOVERY_LLM_MODEL).
@@ -98,14 +98,14 @@ jobs:
             echo "### Discovery llm skipped: no model (pass llm_model, or set the repository variable DISCOVERY_LLM_MODEL)" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
-          # Exit 3 means the ledger has fewer Actions minutes than this job may use (timeout-minutes) or fewer than
-          # 300 neurons left today (a short page reserves about 200); skip the drain without failing the run. An
-          # unreachable ledger lets the drain run, and the drain itself refuses to start without a readable ledger.
+          # Exit 3 means fewer than 300 neurons are left today (a short page reserves about 200); skip the drain without
+          # failing the run. An unreachable ledger lets the drain run, and the drain itself refuses to start without a
+          # readable ledger.
           code=0
-          python -m discovery_ingest budget show --resource actions_minutes --resource neurons --require-remaining actions_minutes=20 --require-remaining neurons=300 || code=$?
+          python -m discovery_ingest budget show --resource neurons --require-remaining neurons=300 || code=$?
           if [ "${code}" -eq 3 ]; then
             echo "skip=true" >> "${GITHUB_OUTPUT}"
-            echo "### Discovery llm skipped: the Actions minutes or the neurons are used up" >> "${GITHUB_STEP_SUMMARY}"
+            echo "### Discovery llm skipped: the neurons are used up" >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
           exit "${code}"
