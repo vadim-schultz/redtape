@@ -57,7 +57,8 @@ it("arrow keys move focus between tabs, and Enter chooses the tab reached", asyn
   first.focus();
   await user.keyboard("{ArrowRight}");
 
-  expect(second).toHaveFocus();
+  // Zag moves focus on the next animation frame, so wait for the focus to land.
+  await waitFor(() => expect(second).toHaveFocus());
   expect(screen.getByRole("img")).toHaveAttribute("src", NEWEST.src);
 
   await user.keyboard("{Enter}");
