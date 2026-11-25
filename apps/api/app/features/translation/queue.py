@@ -60,11 +60,21 @@ class TranslationQueue:
 
         ``scope`` names the engine's lane and the priority band; without it every target-locale task is eligible. A
         task whose candidate has lost its German title is failed, not served.
+
+        Tasks are claimed in order: phase, priority, candidate (grouping), created_at, id.
+        This ensures breadth-first coverage (phase 1) followed by depth-first (phase 2).
         """
         now = self._clock()
         targets = (TranslationTask.locale.in_(settings.translation_target_locale_codes),)
         clauses = (*targets, *scope_clauses(scope or ClaimScope()))
-        tasks = self._leased.claim(api_key_id, now, limit, clauses, grouping=(TranslationTask.candidate_id,))
+        tasks = self._leased.claim(
+            api_key_id,
+            now,
+            limit,
+            clauses,
+            grouping=(TranslationTask.candidate_id,),
+            phase_field=TranslationTask.phase,
+        )
         units = self._source.units_for(list({task.candidate_id for task in tasks}))
         return TranslationClaimResponse(items=[item for task in tasks if (item := self._serve(task, units, now))])
 

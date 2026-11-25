@@ -7,8 +7,8 @@ Execution log for the fair task selection work package. Updated as each chapter 
 | Phase | Chapters | Status | Integrated | Notes |
 |-------|----------|--------|-----------|-------|
 | Design & Schema | C1, C2 | ✅ Complete | ✅ | Merged into loop branch |
-| Priorities | C3–C7 | 🔄 Running | — | Launched in parallel |
-| Integration | C8 | — | — | Blocked on C3–C7 |
+| Priorities | C3–C7 | ✅ Complete | ✅ | All 5 chapters merged (C7 conflict resolved) |
+| Integration | C8 | 🔄 Ready | — | Launching now |
 | Validation | C9, C10 | — | — | Blocked on C8 |
 
 ## Chapter Integration Log

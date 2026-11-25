@@ -55,11 +55,19 @@ class SnapshotQueue:
         """Lease up to ``limit`` ready page tasks of the target locales, each stamped with the latest snapshot.
 
         A page whose catalogue row has no snapshot is failed, not served.
+
+        Tasks are claimed in order: phase, priority, catalogue_service (grouping), created_at, id.
+        This ensures breadth-first coverage (phase 1) followed by depth-first (phase 2).
         """
         now = self._clock()
         scope = (SnapshotTranslationTask.locale.in_(settings.translation_target_locale_codes),)
         tasks = self._leased.claim(
-            api_key_id, now, limit, scope, grouping=(SnapshotTranslationTask.catalogue_service_id,)
+            api_key_id,
+            now,
+            limit,
+            scope,
+            grouping=(SnapshotTranslationTask.catalogue_service_id,),
+            phase_field=SnapshotTranslationTask.phase,
         )
         return SnapshotClaimResponse(items=[item for task in tasks if (item := self._serve(task, now))])
 
