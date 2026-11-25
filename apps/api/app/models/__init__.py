@@ -18,6 +18,7 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.models.fair_selection_state import FairSelectionState
 from app.models.document import Document, DocumentRequirement
 from app.models.jurisdiction import Jurisdiction, JurisdictionKind
 from app.models.locale import SupportedLocale, UITranslation
@@ -66,6 +67,7 @@ __all__ = [
     "DocumentRequirement",
     "EmbeddingTask",
     "EventType",
+    "FairSelectionState",
     "Jurisdiction",
     "JurisdictionKind",
     "Locality",

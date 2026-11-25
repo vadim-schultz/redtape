@@ -41,6 +41,7 @@ class DiscoveryTask(TimestampMixin, Base):
         server_default=text("'pending'"),
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100, server_default=text("100"))
+    phase: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     claimed_by_api_key_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("api_key.id", ondelete="SET NULL"), nullable=True

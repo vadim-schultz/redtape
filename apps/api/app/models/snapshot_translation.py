@@ -80,6 +80,7 @@ class SnapshotTranslationTask(TimestampMixin, Base):
         server_default=text("'pending'"),
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100, server_default=text("100"))
+    phase: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
     not_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
