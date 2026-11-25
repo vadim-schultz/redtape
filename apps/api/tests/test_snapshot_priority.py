@@ -31,6 +31,23 @@ def test_a_page_ranks_by_its_highest_candidate_confidence_and_a_page_without_can
     assert snapshot_first_priority([]) == snapshot_first_priority([0.0])
 
 
+# Slice 2: Compute Page Confidence (Max of Mentioning Candidates)
+def test_page_confidence_returns_max_of_candidate_scores() -> None:
+    """priority · page confidence is the maximum of candidate scores."""
+    from app.features.translation.priority import page_confidence
+
+    assert page_confidence([0.5, 0.9, 0.3]) == 0.9
+    assert page_confidence([0.1, 0.1]) == 0.1
+    assert page_confidence([0.9]) == 0.9
+
+
+def test_page_confidence_returns_zero_when_no_candidates() -> None:
+    """priority · page with no candidates has confidence 0.0."""
+    from app.features.translation.priority import page_confidence
+
+    assert page_confidence([]) == 0.0
+
+
 # Slice 3: Modify Snapshot Priority Functions to Include Phase Component
 def test_snapshot_first_priority_includes_phase_band() -> None:
     """priority · phase 1 band (0–99,999) ranks before phase 2 band (100,000–199,999)."""

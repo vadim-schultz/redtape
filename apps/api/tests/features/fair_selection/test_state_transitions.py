@@ -46,7 +46,7 @@ class TestCheckPhaseOneComplete:
 
         Setup: 5 candidates in DB, translation pipeline active
         Create completed translation tasks: 1 per candidate
-        Call: check_phase_one_complete('translation')
+        Call: check_phase_one_complete('translation', session=db_session)
         Assert: Returns True
         """
         # Create 5 candidates
@@ -80,7 +80,7 @@ class TestCheckPhaseOneComplete:
         db_session.commit()
 
         # Check phase one complete
-        result = check_phase_one_complete("translation")
+        result = check_phase_one_complete("translation", session=db_session)
         assert result is True
 
     def test_check_phase_one_complete_partial(self, db_session: Session) -> None:
@@ -122,7 +122,7 @@ class TestCheckPhaseOneComplete:
         db_session.commit()
 
         # Check phase one complete
-        result = check_phase_one_complete("translation")
+        result = check_phase_one_complete("translation", session=db_session)
         assert result is False
 
 
@@ -174,7 +174,7 @@ class TestTransitionPhase:
         db_session.commit()
 
         # Perform transition
-        updated_count = transition_phase("translation", from_phase=1, to_phase=2)
+        updated_count = transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
 
         # Verify
         assert updated_count == 3
@@ -226,7 +226,7 @@ class TestTransitionPhase:
         db_session.commit()
 
         # Perform transition (should fail silently)
-        updated_count = transition_phase("translation", from_phase=1, to_phase=2)
+        updated_count = transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
 
         # Verify no update occurred
         assert updated_count == 0
@@ -496,7 +496,7 @@ class TestTransitionMetrics:
         with mock.patch(
             "app.features.fair_selection.state_machine.phase_transition_counter"
         ) as mock_counter:
-            transition_phase("translation", from_phase=1, to_phase=2)
+            transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
             # Verify metrics counter was called
             if mock_counter is not None:
                 mock_counter.labels.assert_called()
@@ -542,7 +542,7 @@ class TestTransitionMetrics:
         with mock.patch(
             "app.features.fair_selection.state_machine.phase_transition_blocked"
         ) as mock_blocked:
-            updated_count = transition_phase("translation", from_phase=1, to_phase=2)
+            updated_count = transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
             assert updated_count == 0
             # Verify blocked metric was called if mocked
             if mock_blocked is not None:

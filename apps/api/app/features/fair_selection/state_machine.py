@@ -16,12 +16,13 @@ from typing import TYPE_CHECKING
 
 from prometheus_client import Counter, Histogram
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from app.db import db
+from app.db import SessionLocal
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
 from app.models.translation import TranslationTask, SnapshotTranslationTask
-from app.models.discovery.document import DiscoveryTask
+from app.models.discovery.discovery_task import DiscoveryTask
 
 if TYPE_CHECKING:
     pass
@@ -186,11 +187,12 @@ def calculate_priority(
 # ============================================================================
 
 
-def check_phase_one_complete(pipeline: str) -> bool:
+def check_phase_one_complete(pipeline: str, session: Session | None = None) -> bool:
     """Check if all documents have ≥1 completed task per pipeline.
 
     Args:
         pipeline: Name of pipeline ('translation', 'embedding', 'discovery', etc.)
+        session: SQLAlchemy session. If None, creates a new one.
 
     Returns:
         True if all documents have ≥1 completed task; False otherwise.
@@ -208,31 +210,38 @@ def check_phase_one_complete(pipeline: str) -> bool:
 
     task_model, entity_col = task_model_map[pipeline]
 
-    # Count total unique entities tracked for this pipeline
-    total_entities = db.session.query(
-        func.count(func.distinct(FairSelectionState.entity_id))
-    ).filter(
-        FairSelectionState.pipeline == pipeline
-    ).scalar() or 0
+    # Use provided session or create new one
+    s = session or SessionLocal()
+    try:
+        # Count total unique entities tracked for this pipeline
+        total_entities = s.query(
+            func.count(func.distinct(FairSelectionState.entity_id))
+        ).filter(
+            FairSelectionState.pipeline == pipeline
+        ).scalar() or 0
 
-    if total_entities == 0:
-        return True  # No entities = vacuously true
+        if total_entities == 0:
+            return True  # No entities = vacuously true
 
-    # Count unique entities with ≥1 completed task
-    completed_entities = db.session.query(
-        func.count(func.distinct(entity_col))
-    ).filter(
-        task_model.status == WorkTaskStatus.COMPLETED
-    ).scalar() or 0
+        # Count unique entities with ≥1 completed task
+        completed_entities = s.query(
+            func.count(func.distinct(entity_col))
+        ).filter(
+            task_model.status == WorkTaskStatus.COMPLETED
+        ).scalar() or 0
 
-    return completed_entities >= total_entities
+        return completed_entities >= total_entities
+    finally:
+        if session is None:
+            s.close()
 
 
-def _check_phase_two_complete(pipeline: str) -> bool:
+def _check_phase_two_complete(pipeline: str, session: Session | None = None) -> bool:
     """Check if all phase 2 tasks are completed.
 
     Args:
         pipeline: Pipeline name.
+        session: SQLAlchemy session. If None, creates a new one.
 
     Returns:
         True if all phase 2 entities are complete; False otherwise.
@@ -242,27 +251,34 @@ def _check_phase_two_complete(pipeline: str) -> bool:
     return False
 
 
-def _check_phase_three_exists(pipeline: str) -> bool:
+def _check_phase_three_exists(pipeline: str, session: Session | None = None) -> bool:
     """Check if any phase 3 items exist for this pipeline.
 
     Args:
         pipeline: Pipeline name.
+        session: SQLAlchemy session. If None, creates a new one.
 
     Returns:
         True if phase 3 items exist; False otherwise.
     """
-    phase_three_count = db.session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == pipeline,
-        FairSelectionState.phase == 3,
-    ).count()
+    s = session or SessionLocal()
+    try:
+        phase_three_count = s.query(FairSelectionState).filter(
+            FairSelectionState.pipeline == pipeline,
+            FairSelectionState.phase == 3,
+        ).count()
 
-    return phase_three_count > 0
+        return phase_three_count > 0
+    finally:
+        if session is None:
+            s.close()
 
 
 def transition_phase(
     pipeline: str,
     from_phase: int,
     to_phase: int,
+    session: Session | None = None,
 ) -> int:
     """Advance all entities in a pipeline from one phase to another if conditions are met.
 
@@ -274,6 +290,7 @@ def transition_phase(
         pipeline: Pipeline name ('translation', 'embedding', 'discovery', etc.)
         from_phase: Current phase (1, 2, or 3).
         to_phase: Target phase (1, 2, or 3).
+        session: SQLAlchemy session. If None, creates a new one.
 
     Returns:
         Number of rows updated.
@@ -292,59 +309,65 @@ def transition_phase(
     if (from_phase, to_phase) not in valid_transitions:
         raise ValueError(f"Invalid transition: phase {from_phase} → {to_phase}")
 
-    # Check if transition condition is met
-    condition_met = True
-    blocked_reason = None
+    s = session or SessionLocal()
+    try:
+        # Check if transition condition is met
+        condition_met = True
+        blocked_reason = None
 
-    if from_phase == 1 and to_phase == 2:
-        if not check_phase_one_complete(pipeline):
-            condition_met = False
-            blocked_reason = "incomplete_coverage"
-    elif from_phase == 2 and to_phase == 3:
-        if not _check_phase_two_complete(pipeline):
-            condition_met = False
-            blocked_reason = "incomplete_phase_two"
-    elif from_phase == 3 and to_phase == 1:
-        if _check_phase_three_exists(pipeline):
-            condition_met = False
-            blocked_reason = "phase_three_exists"
+        if from_phase == 1 and to_phase == 2:
+            if not check_phase_one_complete(pipeline, session=s):
+                condition_met = False
+                blocked_reason = "incomplete_coverage"
+        elif from_phase == 2 and to_phase == 3:
+            if not _check_phase_two_complete(pipeline, session=s):
+                condition_met = False
+                blocked_reason = "incomplete_phase_two"
+        elif from_phase == 3 and to_phase == 1:
+            if _check_phase_three_exists(pipeline, session=s):
+                condition_met = False
+                blocked_reason = "phase_three_exists"
 
-    # If condition not met, record blocked metric and return 0
-    if not condition_met:
-        phase_transition_blocked.labels(
+        # If condition not met, record blocked metric and return 0
+        if not condition_met:
+            phase_transition_blocked.labels(
+                pipeline=pipeline,
+                from_phase=from_phase,
+                to_phase=to_phase,
+                reason=blocked_reason or "unknown",
+            ).inc()
+            return 0
+
+        # Perform transition: update all entities in from_phase to to_phase
+        updated = s.query(FairSelectionState).filter(
+            FairSelectionState.pipeline == pipeline,
+            FairSelectionState.phase == from_phase,
+        ).update(
+            {FairSelectionState.phase: to_phase, FairSelectionState.updated_at: func.now()},
+            synchronize_session=False
+        )
+        s.commit()
+
+        # Record metrics
+        duration = time.time() - start_time
+        phase_transition_counter.labels(
             pipeline=pipeline,
             from_phase=from_phase,
-            to_phase=to_phase,
-            reason=blocked_reason or "unknown",
+            to_phase=to_phase
         ).inc()
-        return 0
+        phase_transition_duration.labels(pipeline=pipeline).observe(duration)
 
-    # Perform transition: update all entities in from_phase to to_phase
-    updated = db.session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == pipeline,
-        FairSelectionState.phase == from_phase,
-    ).update(
-        {FairSelectionState.phase: to_phase, FairSelectionState.updated_at: func.now()},
-        synchronize_session=False
-    )
-    db.session.commit()
-
-    # Record metrics
-    duration = time.time() - start_time
-    phase_transition_counter.labels(
-        pipeline=pipeline,
-        from_phase=from_phase,
-        to_phase=to_phase
-    ).inc()
-    phase_transition_duration.labels(pipeline=pipeline).observe(duration)
-
-    return updated
+        return updated
+    finally:
+        if session is None:
+            s.close()
 
 
 def on_task_settled(
     pipeline: str,
     entity_id: uuid.UUID,
     task_status: str,  # 'COMPLETED', 'FAILED', etc.
+    session: Session | None = None,
 ) -> None:
     """Called when a task is settled (completed or failed).
 
@@ -355,11 +378,12 @@ def on_task_settled(
         pipeline: Pipeline that settled the task.
         entity_id: Candidate or catalogue_service_id.
         task_status: Final status of the task.
+        session: SQLAlchemy session. If None, creates a new one.
     """
     if task_status != "COMPLETED":
         return  # Only phase transitions on completion
 
     # Attempt phase 1 → 2 transition
-    transition_phase(pipeline, from_phase=1, to_phase=2)
+    transition_phase(pipeline, from_phase=1, to_phase=2, session=session)
 
     # Note: Phase 2 → 3 may happen during periodic audit, not on every task

@@ -27,6 +27,7 @@ class TranslationEnqueuer:
 
     def __init__(self, session: Session, locales: Sequence[str] | None = None) -> None:
         """Bind the enqueuer to ``session`` and the target ``locales`` (the configured ones by default)."""
+        self._session = session
         self._locales = tuple(settings.translation_target_locale_codes if locales is None else locales)
         self._source = SourceRepository(session)
         self._index = TranslationRepository(session)
@@ -61,18 +62,20 @@ class TranslationEnqueuer:
         return self._tasks.queue_upgrades(self._locales, now, limit)
 
     def _queue(self, work: Sequence[Slot]) -> int:
-        confidences = self._source.confidences_for(list(dict.fromkeys(slot.candidate_id for slot in work)))
-        return sum(self._upsert(slot, confidences[slot.candidate_id]) for slot in work)
+        candidate_ids = list(dict.fromkeys(slot.candidate_id for slot in work))
+        confidences = self._source.confidences_for(candidate_ids)
+        phases = get_phases_for_candidates(self._session, candidate_ids)
+        return sum(self._upsert(slot, confidences[slot.candidate_id], phases[slot.candidate_id]) for slot in work)
 
-    def _upsert(self, slot: Slot, confidence: float) -> bool:
+    def _upsert(self, slot: Slot, confidence: float, phase: int) -> bool:
         assert slot.source_hash is not None
-        priority = _PRIORITY[slot.kind](confidence)
+        priority = _PRIORITY[slot.kind](confidence, phase)
         return self._tasks.upsert_pending(slot.candidate_id, slot.locale, slot.source_hash, priority)
 
 
 _NEEDS_WORK = frozenset({Classification.MISSING, Classification.STALE})
 _SETTLED = frozenset({Classification.CURRENT, Classification.HUMAN})
-_PRIORITY: Mapping[Classification, Callable[[float], int]] = {
+_PRIORITY: Mapping[Classification, Callable[[float, int], int]] = {
     Classification.MISSING: first_priority,
     Classification.STALE: retranslation_priority,
 }

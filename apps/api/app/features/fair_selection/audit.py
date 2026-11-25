@@ -9,15 +9,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from app.db import db
+from app.db import SessionLocal
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
 from app.models.translation import TranslationTask, SnapshotTranslationTask
-from app.models.discovery.document import DiscoveryTask
+from app.models.discovery.discovery_task import DiscoveryTask
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    pass
 
 
 @dataclass
@@ -35,7 +36,7 @@ class AuditReport:
 
 
 def _compute_expected_state(
-    pipeline: str, entity_id: str
+    pipeline: str, entity_id: str, session: Session
 ) -> tuple[int, int]:
     """Compute expected phase and coverage_bitmap for an entity.
 
@@ -45,6 +46,7 @@ def _compute_expected_state(
     Args:
         pipeline: Pipeline name ('translation', 'embedding', 'discovery', etc.)
         entity_id: Entity ID (candidate_id or catalogue_service_id)
+        session: SQLAlchemy session.
 
     Returns:
         Tuple of (expected_phase, coverage_bitmap)
@@ -63,7 +65,7 @@ def _compute_expected_state(
     task_model, entity_col = task_model_map[pipeline]
 
     # Count completed tasks for this entity
-    completed_tasks = db.session.query(task_model).filter(
+    completed_tasks = session.query(task_model).filter(
         entity_col == entity_id,
         task_model.status == WorkTaskStatus.COMPLETED,
     ).count()
@@ -80,7 +82,7 @@ def _compute_expected_state(
     return expected_phase, coverage_bitmap
 
 
-def audit_fair_selection_state(pipeline: str) -> AuditReport:
+def audit_fair_selection_state(pipeline: str, session: Session | None = None) -> AuditReport:
     """Audit and repair fair_selection_state consistency.
 
     Recomputes phase and coverage_bitmap for all entities in the pipeline
@@ -89,35 +91,41 @@ def audit_fair_selection_state(pipeline: str) -> AuditReport:
 
     Args:
         pipeline: Pipeline name to audit ('translation', 'embedding', 'discovery', etc.)
+        session: SQLAlchemy session. If None, creates a new one.
 
     Returns:
         AuditReport with counts and any errors encountered.
     """
     report = AuditReport(pipeline=pipeline)
 
-    # Query all entities in fair_selection_state for this pipeline
-    entities = db.session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == pipeline
-    ).all()
+    s = session or SessionLocal()
+    try:
+        # Query all entities in fair_selection_state for this pipeline
+        entities = s.query(FairSelectionState).filter(
+            FairSelectionState.pipeline == pipeline
+        ).all()
 
-    for entity in entities:
-        report.entities_checked += 1
+        for entity in entities:
+            report.entities_checked += 1
 
-        try:
-            # Compute expected phase and coverage based on completed tasks
-            expected_phase, expected_coverage = _compute_expected_state(
-                pipeline, str(entity.entity_id)
-            )
+            try:
+                # Compute expected phase and coverage based on completed tasks
+                expected_phase, expected_coverage = _compute_expected_state(
+                    pipeline, str(entity.entity_id), s
+                )
 
-            # Compare with current state
-            if (entity.phase != expected_phase or
-                entity.coverage_bitmap != expected_coverage):
-                report.drift_detected += 1
-                entity.phase = expected_phase
-                entity.coverage_bitmap = expected_coverage
-                report.corrected += 1
-        except Exception as e:
-            report.errors.append(f"Entity {entity.entity_id}: {str(e)}")
+                # Compare with current state
+                if (entity.phase != expected_phase or
+                    entity.coverage_bitmap != expected_coverage):
+                    report.drift_detected += 1
+                    entity.phase = expected_phase
+                    entity.coverage_bitmap = expected_coverage
+                    report.corrected += 1
+            except Exception as e:
+                report.errors.append(f"Entity {entity.entity_id}: {str(e)}")
 
-    db.session.commit()
-    return report
+        s.commit()
+        return report
+    finally:
+        if session is None:
+            s.close()

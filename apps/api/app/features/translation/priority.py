@@ -87,11 +87,18 @@ def page_confidence(confidences: Iterable[float]) -> float:
     return max(confidences, default=0.0)
 
 
-def snapshot_first_priority(confidences: Iterable[float]) -> int:
-    """Return the priority of a page's first translation, ranked by its best candidate."""
-    return first_priority(page_confidence(confidences))
+def snapshot_first_priority(confidences: Iterable[float], phase: int = 1) -> int:
+    """Return the priority of a page's first translation, ranked by its best candidate and phase.
+
+    Priority includes phase component: phase-1 items rank 0–99,999, phase-2 items
+    rank 100,000–199,999, etc. Within phase, confidence determines rank.
+    """
+    return first_priority(page_confidence(confidences), phase=phase)
 
 
-def snapshot_retranslation_priority(confidences: Iterable[float]) -> int:
-    """Return the priority of re-translating a page, ranked by its best candidate."""
-    return retranslation_priority(page_confidence(confidences))
+def snapshot_retranslation_priority(confidences: Iterable[float], phase: int = 1) -> int:
+    """Return the priority of re-translating a page, ranked by its best candidate and phase.
+
+    Priority includes phase component, same as snapshot_first_priority.
+    """
+    return retranslation_priority(page_confidence(confidences), phase=phase)
