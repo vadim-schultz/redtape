@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.features.candidates.card_builder import DESCRIPTION_MAX_LENGTH
 from app.features.candidates.repository.descriptions import DescriptionRepository, DescriptionRow
@@ -13,6 +14,7 @@ from app.features.candidates.repository.tag_scores import TagScoreRepository
 from app.features.discovery.repository.base import SessionRepository
 from app.features.translation.unit import TranslationUnit, german_title
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
+from app.models.fair_selection_state import FairSelectionState
 
 
 class SourceRepository(SessionRepository):
@@ -46,3 +48,32 @@ class SourceRepository(SessionRepository):
 def _description(row: DescriptionRow | None) -> str:
     """Return the excerpt of ``row`` cut as the card cuts it, so the unit is the text the card shows."""
     return "" if row is None else row.excerpt[:DESCRIPTION_MAX_LENGTH]
+
+
+def get_phase_for_candidate(session: Session, candidate_id: UUID) -> int:
+    """Read phase for a candidate; default to phase 1 if not found."""
+    state = session.query(FairSelectionState).filter(
+        FairSelectionState.pipeline == "translation",
+        FairSelectionState.entity_id == candidate_id,
+    ).first()
+    return state.phase if state else 1
+
+
+def get_phases_for_candidates(session: Session, candidate_ids: Sequence[UUID]) -> dict[UUID, int]:
+    """Read phases for multiple candidates; fill in defaults for missing entries."""
+    if not candidate_ids:
+        return {}
+
+    states = session.query(FairSelectionState).filter(
+        FairSelectionState.pipeline == "translation",
+        FairSelectionState.entity_id.in_(candidate_ids),
+    ).all()
+
+    result = {s.entity_id: s.phase for s in states}
+
+    # Fill in defaults for missing entries
+    for cid in candidate_ids:
+        if cid not in result:
+            result[cid] = 1
+
+    return result

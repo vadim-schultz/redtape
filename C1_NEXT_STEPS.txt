@@ -1,0 +1,191 @@
+================================================================================
+                     C1 NEXT STEPS - USER ACTION REQUIRED
+================================================================================
+
+STATUS: Implementation Complete
+WHAT'S NEEDED: Local verification and git integration
+
+================================================================================
+STEP 1: VERIFY TESTS PASS (Local Gate - Narrow)
+================================================================================
+
+cd /mnt/projects/redtape/apps/api
+
+pytest tests/test_fair_selection_state_machine.py -v
+
+EXPECTED OUTPUT:
+  Slice 1: State Machine Diagram
+    ✓ test_phase1_to_phase2_requires_all_documents_complete
+    ✓ test_phase1_to_phase2_does_not_happen_prematurely
+
+  Slice 2: Priority Formula
+    ✓ test_priority_formula_groups_by_candidate_within_phase
+    ✓ test_priority_formula_respects_phase_barrier
+
+  Slice 3: Coverage Tracking
+    ✓ test_coverage_bitmap_tracks_completed_tasks
+    ✓ test_coverage_does_not_count_claimed_incomplete_tasks
+
+  Slice 4: Transition Rules
+    ✓ test_auto_transition_triggers_on_all_documents_complete
+    ✓ test_partial_completion_does_not_trigger_transition
+
+  Slice 5: Release Notes
+    ✓ test_design_explains_three_phases
+    ✓ test_design_excludes_implementation_details
+
+  ====== 10 passed in X.XXs ======
+
+================================================================================
+STEP 2: RUN FULL CI (Local Gate - Full)
+================================================================================
+
+cd /mnt/projects/redtape
+
+./scripts/ci.sh
+
+EXPECTED: All stages pass
+  - API format check
+  - API lint check
+  - API type check
+  - API unit tests
+  - API build
+  - Web checks
+  - Discovery skill checks
+  - Discovery ingest checks
+
+If all pass: ✅ Local gate complete
+
+================================================================================
+STEP 3: CREATE GIT BRANCH
+================================================================================
+
+cd /mnt/projects/redtape
+
+# Switch to loop branch
+git checkout feat/plans-pipeline-optimisation
+
+# Update if needed (optional)
+git pull
+
+# Create chapter branch
+git checkout -b feat/c1-fair-selection-design
+
+================================================================================
+STEP 4: VERIFY FILES EXIST
+================================================================================
+
+# Should show:
+ls -la apps/api/app/features/fair_selection/
+ls -la apps/api/tests/test_fair_selection_state_machine.py
+ls -la docs/FAIR_SELECTION_DESIGN.md
+ls -la docs/FAIR_SELECTION_STATE_DIAGRAM.txt
+
+# Should show modification:
+git diff plans/fair-task-selection/00-architecture.md
+
+================================================================================
+STEP 5: COMMIT WITH CONVENTIONAL MESSAGE
+================================================================================
+
+git commit -m "feat(fair-selection): design phase-state machine, priority formula, and coverage tracking
+
+Implement C1: Design phase-state machine and priority formula for fair task selection.
+
+Adds:
+- PhaseCoverage class for bitmap-based coverage tracking (≤64 locales)
+- StateMachine class with automatic phase transitions (1→2→3)
+- calculate_priority() formula with mathematical proof against starvation
+- Comprehensive test suite with 10 tests (5 slices × 2 paths each)
+- Design documentation in FAIR_SELECTION_DESIGN.md
+- State diagram and examples in FAIR_SELECTION_STATE_DIAGRAM.txt
+
+Design validates:
+- Phase 1 (breadth-first): all documents get ≥1 task per locale
+- Phase 2 (depth-first): remaining work by confidence
+- Phase 3 (refresh): re-enqueued work
+- Performance: 40,000 tasks (4000 docs × 10 locales) in ~17 days
+
+All code follows TDD red→green→refactor pattern. No refactoring needed.
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
+
+================================================================================
+STEP 6: VERIFY COMMIT
+================================================================================
+
+git status
+# Should show: nothing to commit, working tree clean
+
+git log -1 --oneline
+# Should show: feat(fair-selection): design phase-state machine...
+
+================================================================================
+STEP 7: INTEGRATION (DO NOT PUSH)
+================================================================================
+
+DO NOT: git push (wait for chief-of-staff integration)
+DO NOT: Open a pull request (chapter branches stay local)
+
+The chief-of-staff will:
+1. Merge this branch into feat/plans-pipeline-optimisation with git merge --no-ff
+2. Continue with C2 (schema migration)
+3. Eventually push everything to main via release pull request
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If tests fail:
+  1. Check Python 3.11+ installed: python --version
+  2. Check imports: cd apps/api && python -c "from app.features.fair_selection.state_machine import *"
+  3. Run with verbose: pytest -vv tests/test_fair_selection_state_machine.py
+
+If CI fails:
+  1. Check ruff: ruff check apps/api/app/features/fair_selection
+  2. Check format: ruff format --check apps/api/app/features/fair_selection
+  3. Check mypy: mypy apps/api/app/features/fair_selection
+
+If git fails:
+  1. Verify on correct branch: git branch --show-current
+  2. Check staging: git status
+  3. Verify commit: git log -1 --oneline
+
+================================================================================
+DOCUMENTATION PROVIDED
+================================================================================
+
+For reference:
+- C1_COMPLETION_REPORT.md       - Detailed completion status
+- C1_FINAL_REPORT.md             - Final verification report
+- C1_IMPLEMENTATION_SUMMARY.md   - Quick implementation overview
+- C1_NEXT_STEPS.txt              - This file
+
+For integration:
+- docs/FAIR_SELECTION_DESIGN.md        - Design narrative
+- docs/FAIR_SELECTION_STATE_DIAGRAM.txt - State diagram
+- plans/fair-task-selection/00-architecture.md (updated)
+
+Code files:
+- apps/api/app/features/fair_selection/__init__.py
+- apps/api/app/features/fair_selection/state_machine.py
+- apps/api/tests/test_fair_selection_state_machine.py
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+✅ All 10 tests pass
+✅ All CI stages pass (format, lint, types, unit, build)
+✅ Code is committed on feat/c1-fair-selection-design branch
+✅ Design documentation is comprehensive
+✅ Next chapter (C2) can proceed with schema design
+
+================================================================================
+ESTIMATED TIME: 10-15 minutes
+  - Verify tests: 2 minutes
+  - Run full CI: 5-10 minutes
+  - Create branch and commit: 1 minute
+
+Ready? Run STEP 1 now!
+================================================================================

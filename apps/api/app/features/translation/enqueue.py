@@ -15,7 +15,7 @@ from app.features.translation.plan import Classification, EnqueueTotals, Slot, s
 from app.features.translation.priority import first_priority, retranslation_priority
 from app.features.translation.repository import TranslationRepository
 from app.features.translation.snapshot_enqueue import SnapshotEnqueuer
-from app.features.translation.source import SourceRepository
+from app.features.translation.source import SourceRepository, get_phases_for_candidates
 from app.features.translation.task_repository import TaskRepository
 
 UPGRADE_SWEEP_LIMIT: Final = 200
