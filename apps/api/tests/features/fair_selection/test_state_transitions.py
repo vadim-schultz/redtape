@@ -290,7 +290,7 @@ class TestAuditFairSelectionState:
         db_session.commit()
 
         # Run audit
-        report = audit_fair_selection_state("translation")
+        report = audit_fair_selection_state("translation", session=db_session)
 
         # Verify report
         assert isinstance(report, AuditReport)
@@ -339,7 +339,7 @@ class TestAuditFairSelectionState:
         db_session.commit()
 
         # Run audit
-        report = audit_fair_selection_state("translation")
+        report = audit_fair_selection_state("translation", session=db_session)
 
         # Verify no drift detected
         assert report.drift_detected == 0
@@ -395,7 +395,7 @@ class TestSettlementHookIntegration:
             "app.features.fair_selection.state_machine.transition_phase",
             wraps=transition_phase,
         ) as mock_transition:
-            on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED")
+            on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED", session=db_session)
             # Verify transition_phase was called
             mock_transition.assert_called()
 
@@ -436,7 +436,7 @@ class TestSettlementHookIntegration:
         db_session.commit()
 
         # Call on_task_settled for another candidate
-        on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED")
+        on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED", session=db_session)
 
         # Verify phase remains 1 (no transition occurred)
         states = db_session.query(FairSelectionState).filter(
