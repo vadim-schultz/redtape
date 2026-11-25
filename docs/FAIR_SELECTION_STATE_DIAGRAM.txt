@@ -1,0 +1,125 @@
+Fair Task Selection - Phase State Machine Diagram
+=================================================
+
+                    ┌─────────────────────────────────────┐
+                    │  Phase 1: Breadth-First Coverage    │
+                    │  - All documents get ≥1 task/locale │
+                    │  - Priority: (phase_component=0)    │
+                    │  - Range: 0–99,999                  │
+                    └─────────────────────────────────────┘
+                                  │
+                                  │
+                    [All documents have ≥1 completed task
+                     per pipeline-locale combination]
+                                  │
+                                  ▼
+                    ┌─────────────────────────────────────┐
+                    │  Phase 2: Depth-First Completion    │
+                    │  - Remaining work by confidence     │
+                    │  - Priority: (phase_component=1)    │
+                    │  - Range: 100,000–199,999          │
+                    └─────────────────────────────────────┘
+                                  │
+                                  │
+                    [All phase 2 tasks completed OR
+                     any phase 3 items exist]
+                                  │
+                                  ▼
+                    ┌─────────────────────────────────────┐
+                    │  Phase 3: Refresh Mode              │
+                    │  - New versions re-enqueued         │
+                    │  - Priority: (phase_component=2)    │
+                    │  - Range: 200,000+                  │
+                    └─────────────────────────────────────┘
+                                  │
+                                  │
+                    [All phase 3 tasks completed]
+                                  │
+                                  ▼
+                    ┌─────────────────────────────────────┐
+                    │  Loop back to Phase 1               │
+                    │  (optional: restart cycle)          │
+                    └─────────────────────────────────────┘
+
+
+State Transition Rules
+======================
+
+Phase 1 → Phase 2:
+  Trigger: COUNT(*) FROM fair_selection_state
+           WHERE phase=1 AND coverage_bitmap != (1 << num_locales)-1 == 0
+  Action:  UPDATE fair_selection_state SET phase = 2 WHERE phase = 1
+  Cadence: Check on each task settlement
+
+Phase 2 → Phase 3:
+  Trigger: No pending tasks with phase=2, AND any phase=3 tasks exist
+  Action:  UPDATE fair_selection_state SET phase = 3 WHERE phase = 2
+  Cadence: Periodic check (hourly or on-demand)
+
+Phase 3 → Phase 1:
+  Trigger: All phase 3 tasks completed OR timeout
+  Action:  UPDATE fair_selection_state SET phase = 1 WHERE phase = 3
+  Cadence: Optional; depends on refresh policy
+
+
+Priority Formula Examples
+==========================
+
+Example 1: Phase 1, high confidence (0.9), locale 0
+  phase_component = (1 - 1) * 100_000 = 0
+  confidence_rank = 1000 - round(0.9 * 1000) = 100
+  locale_index = 0
+  priority = 0 + (100 * 100) + 0 = 10,000
+
+Example 2: Phase 1, low confidence (0.1), locale 0
+  phase_component = (1 - 1) * 100_000 = 0
+  confidence_rank = 1000 - round(0.1 * 1000) = 900
+  locale_index = 0
+  priority = 0 + (900 * 100) + 0 = 90,000
+
+Example 3: Phase 2, high confidence (0.9), locale 0
+  phase_component = (2 - 1) * 100_000 = 100_000
+  confidence_rank = 1000 - round(0.9 * 1000) = 100
+  locale_index = 0
+  priority = 100_000 + (100 * 100) + 0 = 110,000
+
+Example 4: Phase 2, low confidence (0.1), locale 0
+  phase_component = (2 - 1) * 100_000 = 100_000
+  confidence_rank = 1000 - round(0.1 * 1000) = 900
+  locale_index = 0
+  priority = 100_000 + (900 * 100) + 0 = 190,000
+
+
+Result
+======
+
+Within Phase 1:
+  - All items range: 0–99,999
+  - Both high-confidence and low-confidence items claim fairly
+  - No single candidate starves
+
+Across Phases:
+  - Phase 1 items (0–99,999) ALWAYS claim before Phase 2 (100,000–199,999)
+  - Phase 2 items (100,000–199,999) ALWAYS claim before Phase 3 (200,000+)
+  - Mathematical barrier prevents reordering
+
+
+Coverage Bitmap Example
+=======================
+
+Document D, 10 locales (en, de, fr, es, it, pt, nl, pl, ru, ja):
+
+Initial state:
+  coverage_bitmap = 0b0000000000 (no tasks completed)
+
+After settling tasks for locales 0, 1, 2:
+  coverage_bitmap = 0b0000000111 (bits 0, 1, 2 set)
+  Binary: 0b0000000111 = 7 (decimal)
+
+Phase 1 complete when:
+  coverage_bitmap = 0b1111111111 (all 10 bits set)
+  Binary: 0b1111111111 = 1023 (decimal)
+  Condition: (1 << 10) - 1 = 1023
+
+Bitmap supports up to 64 locales (64-bit BIGINT).
+If more locales needed, switch to BYTEA column.
