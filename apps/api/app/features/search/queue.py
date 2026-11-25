@@ -52,9 +52,20 @@ class EmbeddingQueue:
         self._clock = clock
 
     def claim(self, api_key_id: UUID, model: str, limit: int) -> EmbeddingClaimResponse:
-        """Lease up to ``limit`` ready tasks of ``model`` with their current text; a task with no text is failed."""
+        """Lease up to ``limit`` ready tasks of ``model`` with their current text; a task with no text is failed.
+
+        Tasks are claimed in order: phase, priority, candidate (grouping), created_at, id.
+        This ensures breadth-first coverage (phase 1) followed by depth-first (phase 2).
+        """
         now = self._clock()
-        tasks = self._leased.claim(api_key_id, now, limit, scope=(EmbeddingTask.model == model,))
+        tasks = self._leased.claim(
+            api_key_id,
+            now,
+            limit,
+            scope=(EmbeddingTask.model == model,),
+            grouping=(EmbeddingTask.candidate_id,),
+            phase_field=EmbeddingTask.phase,
+        )
         texts = self._repo.texts_for(tasks)
         return EmbeddingClaimResponse(items=[item for task in tasks if (item := self._serve(task, texts, now))])
 
