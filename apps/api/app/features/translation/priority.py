@@ -3,6 +3,10 @@
 The queue hands out the lowest number first. The rank is the confidence in thousandths, inverted, so candidates with
 close confidences are still told apart; the two bases keep every first translation ahead of every re-translation.
 A procedure page has no confidence of its own: it ranks by the best candidate it mentions.
+
+Priority includes a phase component: phase-1 items (breadth-first coverage) rank 0–99,999,
+phase-2 items rank 100,000–199,999, and phase-3 items rank 200,000+. Within each phase,
+confidence determines rank, with an optional locale_index for stable tie-breaking.
 """
 
 from __future__ import annotations

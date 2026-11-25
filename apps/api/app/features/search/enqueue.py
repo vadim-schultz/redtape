@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.features.discovery.repository.base import SessionRepository
+from app.features.search.phase import embedding_priority, get_phase_for_embedding
 from app.features.search.task_states import OPEN_TASK_PREDICATE
 from app.features.search.text import BuiltText
 from app.models.search import CandidateEmbedding, EmbeddingTask, WorkTaskStatus
@@ -71,13 +72,27 @@ class EmbeddingEnqueuer(SessionRepository):
         )
 
     def _upsert_pending(self, candidate_id: UUID, built: BuiltText) -> bool:
+        """Upsert a pending embedding task; set phase=1 and phase-aware priority for new tasks.
+
+        New tasks always start in phase 1. On conflict (task exists), only the text_hash
+        is updated; phase is preserved to maintain phase transitions.
+        """
+        phase = get_phase_for_embedding(self._session, candidate_id)
+        priority = embedding_priority(phase=phase)
+
         insert = pg_insert(EmbeddingTask).values(
-            candidate_id=candidate_id, model=self._model, locale=built.locale, text_hash=built.content_hash
+            candidate_id=candidate_id,
+            model=self._model,
+            locale=built.locale,
+            text_hash=built.content_hash,
+            phase=phase,
+            priority=priority,
         )
         upsert = insert.on_conflict_do_update(
             index_elements=[EmbeddingTask.candidate_id, EmbeddingTask.model, EmbeddingTask.locale],
             index_where=OPEN_TASK_PREDICATE,
             set_={"text_hash": insert.excluded.text_hash, "updated_at": func.now()},
             where=(EmbeddingTask.status == WorkTaskStatus.PENDING) & (EmbeddingTask.text_hash != built.content_hash),
+            # NOTE: phase is NOT updated on conflict; existing phase is preserved
         )
         return self._session.execute(upsert.returning(EmbeddingTask.id)).first() is not None

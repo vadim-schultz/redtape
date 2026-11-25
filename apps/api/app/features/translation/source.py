@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -75,5 +75,35 @@ def get_phases_for_candidates(session: Session, candidate_ids: Sequence[UUID]) -
     for cid in candidate_ids:
         if cid not in result:
             result[cid] = 1
+
+    return result
+
+
+def get_phase_for_page(session: Session, catalogue_service_id: UUID) -> int:
+    """Read phase for a page; default to phase 1 if not found."""
+    state = session.query(FairSelectionState).filter(
+        FairSelectionState.pipeline == "translation",
+        FairSelectionState.entity_id == catalogue_service_id,
+    ).first()
+    return state.phase if state else 1
+
+
+def get_phases_for_pages(session: Session, page_ids: Iterable[UUID]) -> dict[UUID, int]:
+    """Read phases for multiple pages in one batch query; fill in defaults for missing entries."""
+    page_ids_list = list(page_ids)
+    if not page_ids_list:
+        return {}
+
+    states = session.query(FairSelectionState).filter(
+        FairSelectionState.pipeline == "translation",
+        FairSelectionState.entity_id.in_(page_ids_list),
+    ).all()
+
+    result = {s.entity_id: s.phase for s in states}
+
+    # Fill in defaults for missing entries
+    for page_id in page_ids_list:
+        if page_id not in result:
+            result[page_id] = 1
 
     return result
