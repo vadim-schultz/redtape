@@ -15,23 +15,19 @@ from __future__ import annotations
 import uuid
 from unittest import mock
 
-import pytest
-from sqlalchemy.orm import Session
-
+from app.features.fair_selection.audit import (
+    AuditReport,
+    audit_fair_selection_state,
+)
 from app.features.fair_selection.state_machine import (
     check_phase_one_complete,
-    transition_phase,
     on_task_settled,
-)
-from app.features.fair_selection.audit import (
-    audit_fair_selection_state,
-    AuditReport,
+    transition_phase,
 )
 from app.models.fair_selection_state import FairSelectionState
-from app.models.search import EmbeddingTask, WorkTaskStatus
+from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
-from app.models.discovery.discovery_task import DiscoveryTask
-
+from sqlalchemy.orm import Session
 
 # ============================================================================
 # Slice 1: check_phase_one_complete() Function
@@ -50,10 +46,7 @@ class TestCheckPhaseOneComplete:
         Assert: Returns True
         """
         # Create 5 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(5)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
 
         # Create fair_selection_state rows for each candidate
         for cand in candidates:
@@ -92,10 +85,7 @@ class TestCheckPhaseOneComplete:
         Assert: Returns False
         """
         # Create 5 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(5)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
 
         # Create fair_selection_state rows for each candidate
         for cand in candidates:
@@ -144,10 +134,7 @@ class TestTransitionPhase:
         Assert: Returns count of updated rows (3)
         """
         # Create 3 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(3)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
 
         # Create fair_selection_state rows for each candidate with phase=1
         for cand in candidates:
@@ -180,9 +167,7 @@ class TestTransitionPhase:
         assert updated_count == 3
 
         # Verify all candidates are now in phase 2
-        states = db_session.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == "translation"
-        ).all()
+        states = db_session.query(FairSelectionState).filter(FairSelectionState.pipeline == "translation").all()
         assert len(states) == 3
         for state in states:
             assert state.phase == 2
@@ -198,10 +183,7 @@ class TestTransitionPhase:
         Assert: Does not raise exception (graceful fail)
         """
         # Create 3 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(3)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
 
         # Create fair_selection_state rows for each candidate with phase=1
         for cand in candidates:
@@ -232,9 +214,7 @@ class TestTransitionPhase:
         assert updated_count == 0
 
         # Verify all candidates still in phase 1
-        states = db_session.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == "translation"
-        ).all()
+        states = db_session.query(FairSelectionState).filter(FairSelectionState.pipeline == "translation").all()
         assert len(states) == 3
         for state in states:
             assert state.phase == 1
@@ -259,10 +239,7 @@ class TestAuditFairSelectionState:
         Assert: coverage_bitmap updated to reflect completed task types
         """
         # Create 5 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(5)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
 
         # Create fair_selection_state rows with incorrect phase (all phase 2)
         for cand in candidates:
@@ -308,10 +285,7 @@ class TestAuditFairSelectionState:
         Assert: No rows modified
         """
         # Create 3 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(3)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
 
         # Create fair_selection_state rows with correct phase=1
         for cand in candidates:
@@ -363,10 +337,7 @@ class TestSettlementHookIntegration:
         Assert: Resulting state reflects new phase
         """
         # Create 2 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(2)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
@@ -408,10 +379,7 @@ class TestSettlementHookIntegration:
         Assert: Phase remains 1
         """
         # Create 3 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(3)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
@@ -439,9 +407,7 @@ class TestSettlementHookIntegration:
         on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED", session=db_session)
 
         # Verify phase remains 1 (no transition occurred)
-        states = db_session.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == "translation"
-        ).all()
+        states = db_session.query(FairSelectionState).filter(FairSelectionState.pipeline == "translation").all()
         for state in states:
             assert state.phase == 1
 
@@ -463,10 +429,7 @@ class TestTransitionMetrics:
         Assert: Metric fair_selection_phase_transition_duration_seconds recorded
         """
         # Create 2 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(2)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
@@ -493,17 +456,13 @@ class TestTransitionMetrics:
         db_session.commit()
 
         # Perform transition and check metrics are recorded
-        with mock.patch(
-            "app.features.fair_selection.state_machine.phase_transition_counter"
-        ) as mock_counter:
+        with mock.patch("app.features.fair_selection.state_machine.phase_transition_counter") as mock_counter:
             transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
             # Verify metrics counter was called
             if mock_counter is not None:
                 mock_counter.labels.assert_called()
 
-    def test_transition_metrics_recorded_on_condition_failure(
-        self, db_session: Session
-    ) -> None:
+    def test_transition_metrics_recorded_on_condition_failure(self, db_session: Session) -> None:
         """Negative path: metrics track non-transitions (blocked transitions).
 
         Setup: Attempt phase 1 → 2 transition when condition not met
@@ -511,10 +470,7 @@ class TestTransitionMetrics:
         Assert: Metric fair_selection_phase_transition_blocked_total incremented
         """
         # Create 2 candidates
-        candidates = [
-            {"id": uuid.uuid4(), "entity_id": uuid.uuid4()}
-            for _ in range(2)
-        ]
+        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
@@ -539,9 +495,7 @@ class TestTransitionMetrics:
         db_session.commit()
 
         # Perform transition (should be blocked and metrics recorded)
-        with mock.patch(
-            "app.features.fair_selection.state_machine.phase_transition_blocked"
-        ) as mock_blocked:
+        with mock.patch("app.features.fair_selection.state_machine.phase_transition_blocked") as mock_blocked:
             updated_count = transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
             assert updated_count == 0
             # Verify blocked metric was called if mocked

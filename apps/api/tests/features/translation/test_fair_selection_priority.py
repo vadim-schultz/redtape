@@ -9,9 +9,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from sqlalchemy.orm import Session
-
 from app.features.translation.priority import (
     first_priority,
     retranslation_priority,
@@ -21,7 +18,7 @@ from app.features.translation.source import (
     get_phases_for_candidates,
 )
 from app.models.fair_selection_state import FairSelectionState
-
+from sqlalchemy.orm import Session
 
 # ============================================================================
 # Slice 1: Read Phase from Database
@@ -86,7 +83,7 @@ class TestGetPhasesForCandidates:
         phases_input = [1, 2, 2]
 
         # Create state entries
-        for cid, phase in zip(candidate_ids, phases_input):
+        for cid, phase in zip(candidate_ids, phases_input, strict=True):
             state = FairSelectionState(
                 pipeline="translation",
                 entity_id=cid,

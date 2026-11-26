@@ -9,7 +9,6 @@ from app.features.search.leased_queue import LeasedQueue
 from app.models.search import EmbeddingTask, WorkTaskStatus
 from app.models.translation import TranslationTask
 
-
 # ===== SLICE 1: Add phase_field and grouping_field Parameters =====
 
 
@@ -197,7 +196,7 @@ def test_claim_without_phase_ignores_phase_in_order(db_session):
     # Assert: phase=2 (priority=5) comes before phase=1 (priority=100) because priority order is used
     assert len(claimed) == 2
     assert claimed[0].id == t_phase2_high_priority.id  # priority=5 comes first
-    assert claimed[1].id == t_phase1_low_priority.id   # priority=100 comes second
+    assert claimed[1].id == t_phase1_low_priority.id  # priority=100 comes second
 
 
 # ===== SLICE 5: Integration Tests (All Pipelines) =====

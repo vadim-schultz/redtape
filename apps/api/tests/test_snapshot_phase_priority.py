@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import pytest
-from app.config import settings
-from app.features.translation.priority import snapshot_first_priority, snapshot_retranslation_priority
 from app.features.translation.snapshot_enqueue import SnapshotEnqueuer
 from app.models.fair_selection_state import FairSelectionState
 from app.models.snapshot_translation import SnapshotTranslationTask
 from scripts.seed_taxonomy import seed_canonical_taxonomy
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from snapshot_machine_support import SHA_A, add_snapshot
 from test_discovery_admin_api import _catalogue
 from test_discovery_candidates_api import _item
-from test_discovery_machine_api import _issue_key
 
 
 @pytest.fixture
@@ -32,8 +28,9 @@ def _page(session: Session, external_id: str) -> tuple[object, float]:
 
 def test_get_phase_for_page_reads_from_state(db_session: Session) -> None:
     """Verify get_phase_for_page reads phase from fair_selection_state."""
-    from app.features.translation.source import get_phase_for_page
     import uuid
+
+    from app.features.translation.source import get_phase_for_page
 
     page_id = uuid.uuid4()
 
@@ -48,8 +45,9 @@ def test_get_phase_for_page_reads_from_state(db_session: Session) -> None:
 
 def test_get_phase_for_page_defaults_to_one_when_not_found(db_session: Session) -> None:
     """Verify get_phase_for_page defaults to phase 1 when no entry exists."""
-    from app.features.translation.source import get_phase_for_page
     import uuid
+
+    from app.features.translation.source import get_phase_for_page
 
     page_id = uuid.uuid4()
 
@@ -63,24 +61,13 @@ def test_snapshot_enqueue_applies_phase_to_priority(
     vocabulary: None,
 ) -> None:
     """Verify snapshot enqueue reads phase and applies it to task priority."""
+
     from app.features.translation.source import get_phases_for_pages
-    import uuid
 
     # Create a page
     catalogue = _catalogue(db_session, external_id="page-phase-2")
     page_id = catalogue.id
     add_snapshot(db_session, catalogue, SHA_A)
-
-    # Create a candidate mention with confidence 0.9
-    candidate_item = _item(
-        catalogue,
-        title_i18n={"de": "Testdoc"},
-        source_field="details[0]",
-        category_codes=["home-and-housing"],
-        direct_category_confidence=0.9,
-    )
-    # Note: _item returns a dict, need to handle this differently
-    # For now, just verify the enqueuer logic works
 
     # Set page to phase=2 in fair_selection_state
     state = FairSelectionState(pipeline="translation", entity_id=page_id, phase=2)
@@ -144,9 +131,7 @@ def test_snapshot_phase_one_pages_rank_before_phase_two(db_session: Session, voc
     enqueuer.enqueue_pages([page_a.id, page_b.id])
 
     # Query tasks sorted by priority
-    tasks = list(
-        db_session.query(SnapshotTranslationTask).order_by(SnapshotTranslationTask.priority.asc()).all()
-    )
+    tasks = list(db_session.query(SnapshotTranslationTask).order_by(SnapshotTranslationTask.priority.asc()).all())
 
     # Assert: 4 tasks (2 pages × 2 locales)
     assert len(tasks) == 4, f"Expected 4 tasks, got {len(tasks)}"
@@ -208,9 +193,7 @@ def test_snapshot_pages_of_same_phase_ordered_by_confidence_and_grouped_by_page(
     enqueuer.enqueue_pages([page_high.id, page_low.id])
 
     # Query tasks sorted by priority
-    tasks = list(
-        db_session.query(SnapshotTranslationTask).order_by(SnapshotTranslationTask.priority.asc()).all()
-    )
+    tasks = list(db_session.query(SnapshotTranslationTask).order_by(SnapshotTranslationTask.priority.asc()).all())
 
     # Assert: 4 tasks (2 pages × 2 locales)
     assert len(tasks) == 4, f"Expected 4 tasks, got {len(tasks)}"
@@ -230,6 +213,6 @@ def test_snapshot_pages_of_same_phase_ordered_by_confidence_and_grouped_by_page(
     high_priorities_sorted = sorted(t.priority for t in page_high_tasks)
     if len(high_priorities_sorted) == 2:
         # Locales should be close (may differ by up to 1 due to locale_index in priority formula)
-        assert (
-            high_priorities_sorted[1] - high_priorities_sorted[0] <= 1
-        ), f"Page high locales not grouped: {high_priorities_sorted}"
+        assert high_priorities_sorted[1] - high_priorities_sorted[0] <= 1, (
+            f"Page high locales not grouped: {high_priorities_sorted}"
+        )

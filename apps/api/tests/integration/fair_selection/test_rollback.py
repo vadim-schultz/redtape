@@ -8,14 +8,12 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from sqlalchemy.orm import Session
-
-from app.features.search.leased_queue import LeasedQueue
 from app.features.search.clock import utc_now
+from app.features.search.leased_queue import LeasedQueue
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
 from tests.integration.fair_selection.conftest import create_candidate_tasks
 
 
@@ -36,12 +34,8 @@ class TestRollback:
         candidate_a = uuid4()
         candidate_b = uuid4()
 
-        state_a = FairSelectionState(
-            pipeline="translation", entity_id=candidate_a, phase=1
-        )
-        state_b = FairSelectionState(
-            pipeline="translation", entity_id=candidate_b, phase=2
-        )
+        state_a = FairSelectionState(pipeline="translation", entity_id=candidate_a, phase=1)
+        state_b = FairSelectionState(pipeline="translation", entity_id=candidate_b, phase=2)
         db_session.add_all([state_a, state_b])
         db_session.commit()
 
@@ -127,9 +121,7 @@ class TestRollback:
         db_session.commit()
 
         # Create fair selection state for new enqueue
-        state = FairSelectionState(
-            pipeline="translation", entity_id=candidate, phase=1
-        )
+        state = FairSelectionState(pipeline="translation", entity_id=candidate, phase=1)
         db_session.add(state)
         db_session.commit()
 

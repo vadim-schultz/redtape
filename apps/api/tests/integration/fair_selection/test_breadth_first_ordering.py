@@ -7,15 +7,10 @@ before phase 2 claims.
 
 from __future__ import annotations
 
-from uuid import uuid4
-
-import pytest
-from sqlalchemy.orm import Session
-
 from app.models.fair_selection_state import FairSelectionState
 from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
 from tests.integration.fair_selection.conftest import (
-    setup_candidates_with_phase,
     claim_all_tasks,
     create_candidate_tasks,
 )
@@ -39,15 +34,9 @@ class TestBreadthFirstOrdering:
         candidate_c = create_candidate_tasks(session, locales=["en", "de", "fr"], phase=1, title="Candidate C")
 
         # Create fair selection state
-        state_a = FairSelectionState(
-            pipeline="translation", entity_id=candidate_a, phase=1
-        )
-        state_b = FairSelectionState(
-            pipeline="translation", entity_id=candidate_b, phase=1
-        )
-        state_c = FairSelectionState(
-            pipeline="translation", entity_id=candidate_c, phase=1
-        )
+        state_a = FairSelectionState(pipeline="translation", entity_id=candidate_a, phase=1)
+        state_b = FairSelectionState(pipeline="translation", entity_id=candidate_b, phase=1)
+        state_c = FairSelectionState(pipeline="translation", entity_id=candidate_c, phase=1)
         session.add_all([state_a, state_b, state_c])
         session.commit()
 
@@ -68,14 +57,11 @@ class TestBreadthFirstOrdering:
             if task.candidate_id in seen_candidates:
                 # We've claimed a repeat; ensure all 3 candidates were seen first
                 assert len(seen_candidates) == 3, (
-                    f"Repeated candidate {task.candidate_id} at index {i} "
-                    f"before all 3 candidates touched"
+                    f"Repeated candidate {task.candidate_id} at index {i} before all 3 candidates touched"
                 )
             seen_candidates.add(task.candidate_id)
 
-    def test_breadth_first_phase_1_completes_before_phase_2_claims(
-        self, session: Session
-    ) -> None:
+    def test_breadth_first_phase_1_completes_before_phase_2_claims(self, session: Session) -> None:
         """Negative path: phase 1 always claims before phase 2.
 
         Setup: 2 candidates (A: phase=1, confidence=0.9), (B: phase=2, confidence=0.1), 2 locales each.
@@ -89,12 +75,8 @@ class TestBreadthFirstOrdering:
         candidate_phase2 = create_candidate_tasks(session, locales=["en", "de"], phase=2, title="Phase 2 Candidate")
 
         # Create fair selection state
-        state_phase1 = FairSelectionState(
-            pipeline="translation", entity_id=candidate_phase1, phase=1
-        )
-        state_phase2 = FairSelectionState(
-            pipeline="translation", entity_id=candidate_phase2, phase=2
-        )
+        state_phase1 = FairSelectionState(pipeline="translation", entity_id=candidate_phase1, phase=1)
+        state_phase2 = FairSelectionState(pipeline="translation", entity_id=candidate_phase2, phase=2)
         session.add_all([state_phase1, state_phase2])
         session.commit()
 
@@ -111,9 +93,6 @@ class TestBreadthFirstOrdering:
         assert len(claimed_tasks) >= 2, f"Expected at least 2 claimed tasks, got {len(claimed_tasks)}"
         for task in claimed_tasks:
             assert task.candidate_id == candidate_phase1, (
-                f"Expected phase-1 task, got candidate {task.candidate_id} in phase "
-                f"{task.phase}"
+                f"Expected phase-1 task, got candidate {task.candidate_id} in phase {task.phase}"
             )
-            assert task.phase == 1, (
-                f"Expected phase 1, got phase {task.phase} for task {task.id}"
-            )
+            assert task.phase == 1, f"Expected phase 1, got phase {task.phase} for task {task.id}"

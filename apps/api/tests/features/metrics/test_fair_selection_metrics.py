@@ -41,9 +41,7 @@ LOCALES = ["de", "en", "fr", "es", "it", "pt", "nl", "pl", "cs", "sk", "hu", "ro
 class TestPendingByPhase:
     """Test coverage for pending tasks by phase metric."""
 
-    def test_task_queue_pending_by_phase_increments_on_enqueue(
-        self, db_session: Session
-    ) -> None:
+    def test_task_queue_pending_by_phase_increments_on_enqueue(self, db_session: Session) -> None:
         """Happy path: metric increments on enqueue.
 
         Setup: Create translation pipeline context
@@ -80,18 +78,10 @@ class TestPendingByPhase:
         update_all_metrics(db_session)
 
         # Assert pending counts
-        assert (
-            task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get()
-            == 10
-        )
-        assert (
-            task_queue_pending_by_phase.labels(pipeline="translation", phase="2")._value.get()
-            == 5
-        )
+        assert task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get() == 10
+        assert task_queue_pending_by_phase.labels(pipeline="translation", phase="2")._value.get() == 5
 
-    def test_task_queue_pending_by_phase_excludes_claimed_completed(
-        self, db_session: Session
-    ) -> None:
+    def test_task_queue_pending_by_phase_excludes_claimed_completed(self, db_session: Session) -> None:
         """Negative path: excludes claimed and completed tasks.
 
         Setup: 10 phase-1 tasks enqueued
@@ -114,16 +104,12 @@ class TestPendingByPhase:
         db_session.commit()
 
         # Claim 3 tasks
-        pending_tasks = db_session.query(TranslationTask).filter_by(
-            status=WorkTaskStatus.PENDING
-        ).limit(3).all()
+        pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(3).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.CLAIMED
 
         # Complete 2 tasks
-        pending_tasks = db_session.query(TranslationTask).filter_by(
-            status=WorkTaskStatus.PENDING
-        ).limit(2).all()
+        pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(2).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.COMPLETED
 
@@ -133,9 +119,7 @@ class TestPendingByPhase:
         update_all_metrics(db_session)
 
         # Assert only 5 pending remain
-        metric_value = task_queue_pending_by_phase.labels(
-            pipeline="translation", phase="1"
-        )._value.get()
+        metric_value = task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get()
         assert metric_value == 5
         assert metric_value >= 0
 
@@ -148,9 +132,7 @@ class TestPendingByPhase:
 class TestClaimedByPhase:
     """Test coverage for claimed tasks by phase metric."""
 
-    def test_task_queue_claimed_by_phase_increments_on_claim(
-        self, db_session: Session
-    ) -> None:
+    def test_task_queue_claimed_by_phase_increments_on_claim(self, db_session: Session) -> None:
         """Happy path: increments on claim.
 
         Setup: 10 phase-1 tasks enqueued
@@ -173,9 +155,7 @@ class TestClaimedByPhase:
         db_session.commit()
 
         # Claim 7 tasks
-        pending_tasks = db_session.query(TranslationTask).filter_by(
-            status=WorkTaskStatus.PENDING
-        ).limit(7).all()
+        pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(7).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.CLAIMED
 
@@ -185,18 +165,10 @@ class TestClaimedByPhase:
         update_all_metrics(db_session)
 
         # Assert claimed count
-        assert (
-            task_queue_claimed_by_phase.labels(pipeline="translation", phase="1")._value.get()
-            == 7
-        )
-        assert (
-            task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get()
-            == 3
-        )
+        assert task_queue_claimed_by_phase.labels(pipeline="translation", phase="1")._value.get() == 7
+        assert task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get() == 3
 
-    def test_task_queue_claimed_by_phase_excludes_expired_leases(
-        self, db_session: Session
-    ) -> None:
+    def test_task_queue_claimed_by_phase_excludes_expired_leases(self, db_session: Session) -> None:
         """Negative path: excludes expired leases.
 
         Setup: Claim 5 tasks
@@ -222,9 +194,7 @@ class TestClaimedByPhase:
         update_all_metrics(db_session)
 
         # Assert claimed count
-        metric_value = task_queue_claimed_by_phase.labels(
-            pipeline="translation", phase="1"
-        )._value.get()
+        metric_value = task_queue_claimed_by_phase.labels(pipeline="translation", phase="1")._value.get()
         assert metric_value == 5
         assert metric_value >= 0
 
@@ -292,9 +262,7 @@ class TestPhaseTransition:
 class TestDocumentCoveragePct:
     """Test coverage for document coverage percentage metric."""
 
-    def test_document_coverage_pct_calculated_correctly(
-        self, db_session: Session
-    ) -> None:
+    def test_document_coverage_pct_calculated_correctly(self, db_session: Session) -> None:
         """Happy path: calculated correctly.
 
         Setup: 10 documents (candidates), translation pipeline
@@ -423,16 +391,12 @@ class TestMetricsIntegration:
         db_session.commit()
 
         # Claim 5 tasks
-        pending_tasks = db_session.query(TranslationTask).filter_by(
-            status=WorkTaskStatus.PENDING
-        ).limit(5).all()
+        pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(5).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.CLAIMED
 
         # Complete 3 tasks
-        pending_tasks = db_session.query(TranslationTask).filter_by(
-            status=WorkTaskStatus.PENDING
-        ).limit(3).all()
+        pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(3).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.COMPLETED
 
@@ -444,15 +408,9 @@ class TestMetricsIntegration:
         increment_phase_transition("translation", from_phase=1, to_phase=2)
 
         # Assert all metrics are readable and have expected properties
-        pending_p1 = task_queue_pending_by_phase.labels(
-            pipeline="translation", phase="1"
-        )._value.get()
-        claimed_p1 = task_queue_claimed_by_phase.labels(
-            pipeline="translation", phase="1"
-        )._value.get()
-        completed_p1 = task_queue_completed_by_phase.labels(
-            pipeline="translation", phase="1"
-        )._value.get()
+        pending_p1 = task_queue_pending_by_phase.labels(pipeline="translation", phase="1")._value.get()
+        claimed_p1 = task_queue_claimed_by_phase.labels(pipeline="translation", phase="1")._value.get()
+        completed_p1 = task_queue_completed_by_phase.labels(pipeline="translation", phase="1")._value.get()
         coverage = document_coverage_pct.labels(pipeline="translation")._value.get()
 
         # Basic sanity checks

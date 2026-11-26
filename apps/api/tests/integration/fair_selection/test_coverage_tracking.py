@@ -8,13 +8,12 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from sqlalchemy.orm import Session
-
 from app.features.fair_selection.audit import audit_fair_selection_state
+from app.features.translation.enqueue import TranslationEnqueuer
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
 from tests.integration.fair_selection.conftest import create_candidate_tasks
 
 
@@ -35,18 +34,14 @@ class TestCoverageTracking:
         """
         # Setup
         candidate = uuid4()
-        state = FairSelectionState(
-            pipeline="translation", entity_id=candidate, phase=1
-        )
+        state = FairSelectionState(pipeline="translation", entity_id=candidate, phase=1)
         session.add(state)
         session.commit()
 
         # Create tasks
         create_candidate_tasks(session, candidate, ["en", "de", "fr", "it"], phase=1)
 
-        tasks = session.query(TranslationTask).filter(
-            TranslationTask.candidate_id == candidate
-        ).all()
+        tasks = session.query(TranslationTask).filter(TranslationTask.candidate_id == candidate).all()
         assert len(tasks) == 4
 
         # Settle tasks 0 and 2 (en, fr)
@@ -64,9 +59,7 @@ class TestCoverageTracking:
         )
 
         # Check coverage complete query
-        assert not report.is_complete, (
-            "Expected is_complete=False with 2 of 4 locales complete"
-        )
+        assert not report.is_complete, "Expected is_complete=False with 2 of 4 locales complete"
 
         # Settle remaining tasks
         for task in [tasks[1], tasks[3]]:
@@ -99,9 +92,7 @@ class TestCoverageTracking:
         """
         # Setup
         candidate = uuid4()
-        state = FairSelectionState(
-            pipeline="translation", entity_id=candidate, phase=1
-        )
+        state = FairSelectionState(pipeline="translation", entity_id=candidate, phase=1)
         session.add(state)
         session.commit()
 
@@ -111,9 +102,7 @@ class TestCoverageTracking:
         session.commit()
 
         # Claim (simulate worker claiming tasks)
-        tasks = session.query(TranslationTask).filter(
-            TranslationTask.candidate_id == candidate
-        ).all()
+        tasks = session.query(TranslationTask).filter(TranslationTask.candidate_id == candidate).all()
         for task in tasks:
             task.status = WorkTaskStatus.CLAIMED
 
@@ -124,14 +113,10 @@ class TestCoverageTracking:
         session.refresh(state)
 
         # Bitmap should still be 0 (no tasks completed)
-        assert state.coverage_bitmap == 0, (
-            f"Expected bitmap 0 for claimed-only tasks, got {bin(state.coverage_bitmap)}"
-        )
+        assert state.coverage_bitmap == 0, f"Expected bitmap 0 for claimed-only tasks, got {bin(state.coverage_bitmap)}"
 
         # Assert: coverage not complete
-        assert not report.is_complete, (
-            "Expected is_complete=False with no completed tasks"
-        )
+        assert not report.is_complete, "Expected is_complete=False with no completed tasks"
 
         # Complete task 0
         tasks[0].status = WorkTaskStatus.COMPLETED
@@ -147,6 +132,4 @@ class TestCoverageTracking:
         )
 
         # Still not complete (only 1 of 2 locales)
-        assert not report.is_complete, (
-            "Expected is_complete=False with only 1 of 2 locales complete"
-        )
+        assert not report.is_complete, "Expected is_complete=False with only 1 of 2 locales complete"

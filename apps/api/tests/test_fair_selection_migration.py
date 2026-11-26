@@ -95,7 +95,13 @@ def test_downgrade_drops_state_and_phase_keeps_task_rows_and_upgrade_rebuilds_it
 
     assert _scalars(engine, "select coalesce(to_regclass('fair_selection_state')::text, 'absent')") == ["absent"]
     assert _scalars(engine, "select count(*)::text from translation_task") == ["2"]
-    assert _scalars(engine, "select column_name from information_schema.columns where table_name = 'translation_task' and column_name = 'phase'") == []
+    assert (
+        _scalars(
+            engine,
+            "select column_name from information_schema.columns where table_name = 'translation_task' and column_name = 'phase'",
+        )
+        == []
+    )
 
     _alembic(url, "upgrade", "head")
 

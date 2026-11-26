@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Generator
+from collections.abc import Generator
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy.orm import Session
-
 from app.features.search.leased_queue import LeasedQueue
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.translation import TranslationTask
 from app.models.snapshot_translation import SnapshotTranslationTask
+from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
+
 from search_support import make_candidate
 
 
@@ -89,9 +88,7 @@ def setup_candidates_with_phase(
     """
     candidates = [uuid4() for _ in range(num_candidates)]
     for cid in candidates:
-        state = FairSelectionState(
-            pipeline=pipeline, entity_id=cid, phase=phase
-        )
+        state = FairSelectionState(pipeline=pipeline, entity_id=cid, phase=phase)
         session.add(state)
     session.commit()
     return candidates

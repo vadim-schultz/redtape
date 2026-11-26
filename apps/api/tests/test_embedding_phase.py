@@ -10,9 +10,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-import pytest
-from sqlalchemy.orm import Session
-
 from app.features.search.enqueue import EmbeddingEnqueuer, EnqueueOutcome
 from app.features.search.hashing import content_hash
 from app.features.search.phase import (
@@ -24,7 +21,9 @@ from app.features.search.phase import (
 from app.features.search.text import BuiltText
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
-from search_support import embed, make_candidate, open_tasks
+from sqlalchemy.orm import Session
+
+from search_support import make_candidate
 
 
 def _built(text: str, locale: str = "de") -> BuiltText:
@@ -157,9 +156,7 @@ class TestEnqueueEmbeddingPhase:
         # Priority should be in phase 1 band (0–99,999)
         assert 0 <= task.priority <= 99_999
 
-    def test_enqueue_embedding_does_not_override_existing_phase(
-        self, db_session: Session
-    ) -> None:
+    def test_enqueue_embedding_does_not_override_existing_phase(self, db_session: Session) -> None:
         """Negative path: re-enqueue doesn't reset phase.
 
         Setup: EmbeddingTask(candidate_id, status=PENDING, phase=2) exists
@@ -237,9 +234,7 @@ class TestCoverageTracking:
         first_locale_idx = locales.index(first_task.locale)
 
         # Simulate settlement - update coverage bitmap
-        state = db_session.query(FairSelectionState).filter_by(
-            pipeline="embedding", entity_id=candidate.id
-        ).first()
+        state = db_session.query(FairSelectionState).filter_by(pipeline="embedding", entity_id=candidate.id).first()
         if state is None:
             state = FairSelectionState(
                 pipeline="embedding",
@@ -333,9 +328,7 @@ class TestPhaseTransition:
 
         # Create fair selection state for each candidate (phase 1)
         for candidate in candidates:
-            state = db_session.query(FairSelectionState).filter_by(
-                pipeline="embedding", entity_id=candidate.id
-            ).first()
+            state = db_session.query(FairSelectionState).filter_by(pipeline="embedding", entity_id=candidate.id).first()
             if state is None:
                 state = FairSelectionState(
                     pipeline="embedding",
@@ -355,9 +348,7 @@ class TestPhaseTransition:
                 task.status = WorkTaskStatus.COMPLETED
 
             # Update coverage bitmap to show all locales complete
-            state = db_session.query(FairSelectionState).filter_by(
-                pipeline="embedding", entity_id=candidate.id
-            ).one()
+            state = db_session.query(FairSelectionState).filter_by(pipeline="embedding", entity_id=candidate.id).one()
             state.coverage_bitmap = full_mask
 
         db_session.flush()
@@ -392,9 +383,7 @@ class TestPhaseTransition:
 
         # Create fair selection state for each candidate (phase 1)
         for candidate in candidates:
-            state = db_session.query(FairSelectionState).filter_by(
-                pipeline="embedding", entity_id=candidate.id
-            ).first()
+            state = db_session.query(FairSelectionState).filter_by(pipeline="embedding", entity_id=candidate.id).first()
             if state is None:
                 state = FairSelectionState(
                     pipeline="embedding",
@@ -419,9 +408,7 @@ class TestPhaseTransition:
 
         # Update coverage for first 2 candidates (complete) and last candidate (partial)
         for idx, candidate in enumerate(candidates):
-            state = db_session.query(FairSelectionState).filter_by(
-                pipeline="embedding", entity_id=candidate.id
-            ).one()
+            state = db_session.query(FairSelectionState).filter_by(pipeline="embedding", entity_id=candidate.id).one()
             if idx < 2:
                 state.coverage_bitmap = full_mask
             else:

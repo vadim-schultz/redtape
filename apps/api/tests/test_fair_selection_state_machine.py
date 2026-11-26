@@ -6,14 +6,11 @@ and coverage tracking mechanism that will be implemented in C2–C10.
 
 from __future__ import annotations
 
-import pytest
-
 from app.features.fair_selection.state_machine import (
     PhaseCoverage,
     StateMachine,
     calculate_priority,
 )
-
 
 # ============================================================================
 # Slice 1: State Machine Diagram — Phase Transitions
@@ -114,9 +111,20 @@ class TestPriorityFormula:
         priority_c_fr = calculate_priority(phase=1, confidence=0.9, locale_index=2, candidate_id="C")
 
         # Within phase 1, all items should have priority < 100,000
-        assert all(p < 100_000 for p in [priority_a_en, priority_a_de, priority_a_fr,
-                                          priority_b_en, priority_b_de, priority_b_fr,
-                                          priority_c_en, priority_c_de, priority_c_fr])
+        assert all(
+            p < 100_000
+            for p in [
+                priority_a_en,
+                priority_a_de,
+                priority_a_fr,
+                priority_b_en,
+                priority_b_de,
+                priority_b_fr,
+                priority_c_en,
+                priority_c_de,
+                priority_c_fr,
+            ]
+        )
 
         # Locales of same candidate should be in order: en < de < fr
         assert priority_a_en < priority_a_de < priority_a_fr

@@ -10,9 +10,6 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from sqlalchemy import text
-from sqlalchemy.orm import Session
-
 from app.models import (
     DiscoveryTask,
     EmbeddingTask,
@@ -20,6 +17,12 @@ from app.models import (
     SnapshotTranslationTask,
     TranslationTask,
 )
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from search_support import make_candidate
+from test_discovery_admin_api import _catalogue
 
 
 class TestFairSelectionStateTableSchema:
@@ -48,9 +51,7 @@ class TestFairSelectionStateTableSchema:
             "updated_at": "timestamp with time zone",
         }
 
-        assert (
-            actual_columns == expected_columns
-        ), f"Expected columns {expected_columns}, got {actual_columns}"
+        assert actual_columns == expected_columns, f"Expected columns {expected_columns}, got {actual_columns}"
 
     def test_fair_selection_state_unique_index(self, db_session: Session) -> None:
         """Verify the index on (pipeline, entity_id) is unique."""
@@ -76,9 +77,7 @@ class TestFairSelectionStateTableSchema:
         ).fetchall()
 
         index_names = {row[0] for row in result}
-        assert (
-            "ix_fair_selection_state_pipeline_entity" in index_names
-        ), f"Expected index not found in {index_names}"
+        assert "ix_fair_selection_state_pipeline_entity" in index_names, f"Expected index not found in {index_names}"
 
     def test_fair_selection_state_insert_and_query(self, db_session: Session) -> None:
         """Verify can insert and query fair_selection_state rows."""
@@ -115,7 +114,7 @@ class TestFairSelectionStateDuplicateInsert:
         state2 = FairSelectionState(pipeline=pipeline, entity_id=entity_id, phase=1, coverage_bitmap=0)
         db_session.add(state2)
 
-        with pytest.raises(Exception):  # Unique constraint violation
+        with pytest.raises(IntegrityError, match="ix_fair_selection_state_pipeline_entity"):
             db_session.commit()
 
 
@@ -175,22 +174,18 @@ class TestPhaseColumnOnTaskTables:
         assert result[1] == "integer"
 
     def test_translation_task_phase_defaults_to_one(self, db_session: Session) -> None:
-        """Verify new translation_task rows get phase=1 by default."""
-        # Create a minimal translation task (without all required fields for now,
-        # just testing phase defaults from schema perspective)
-        db_session.execute(
+        """Verify a translation_task row inserted without a phase gets phase=1 from the schema default."""
+        candidate = make_candidate(db_session)
+        phase = db_session.execute(
             text("""
-            INSERT INTO translation_task (candidate_id, locale, source_hash, status, priority)
-            VALUES (:cid, 'en', 'abc123', 'pending', 100)
+            INSERT INTO translation_task (id, candidate_id, locale, source_hash)
+            VALUES (gen_random_uuid(), :cid, 'en', 'abc123')
+            RETURNING phase
             """),
-            {"cid": uuid.uuid4()},
-        )
-        db_session.commit()
+            {"cid": candidate.id},
+        ).scalar_one()
 
-        result = db_session.execute(text("SELECT phase FROM translation_task ORDER BY created_at DESC LIMIT 1")).fetchone()
-
-        assert result is not None
-        assert result[0] == 1, f"Expected phase=1, got {result[0]}"
+        assert phase == 1, f"Expected phase=1, got {phase}"
 
 
 class TestPhaseNullConstraint:
@@ -198,27 +193,27 @@ class TestPhaseNullConstraint:
 
     def test_translation_task_phase_not_null(self, db_session: Session) -> None:
         """Verify NOT NULL constraint on phase column."""
-        with pytest.raises(Exception):  # NOT NULL constraint violation
+        candidate = make_candidate(db_session)
+        with pytest.raises(IntegrityError, match='"phase"'):
             db_session.execute(
                 text("""
-                INSERT INTO translation_task (candidate_id, locale, source_hash, status, priority, phase)
-                VALUES (:cid, 'en', 'abc123', 'pending', 100, NULL)
+                INSERT INTO translation_task (id, candidate_id, locale, source_hash, phase)
+                VALUES (gen_random_uuid(), :cid, 'en', 'abc123', NULL)
                 """),
-                {"cid": uuid.uuid4()},
+                {"cid": candidate.id},
             )
-            db_session.commit()
 
     def test_snapshot_translation_task_phase_not_null(self, db_session: Session) -> None:
         """Verify NOT NULL constraint on snapshot_translation_task phase."""
-        with pytest.raises(Exception):  # NOT NULL constraint violation
+        catalogue = _catalogue(db_session, external_id=f"svc-{uuid.uuid4().hex[:8]}")
+        with pytest.raises(IntegrityError, match='"phase"'):
             db_session.execute(
                 text("""
-                INSERT INTO snapshot_translation_task (catalogue_service_id, locale, source_hash, status, priority, phase)
-                VALUES (:csid, 'en', 'abc123', 'pending', 100, NULL)
+                INSERT INTO snapshot_translation_task (id, catalogue_service_id, locale, source_hash, phase)
+                VALUES (gen_random_uuid(), :csid, 'en', 'abc123', NULL)
                 """),
-                {"csid": uuid.uuid4()},
+                {"csid": catalogue.id},
             )
-            db_session.commit()
 
 
 class TestOrmModelsReflectSchema:
