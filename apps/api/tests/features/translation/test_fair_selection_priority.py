@@ -204,27 +204,3 @@ class TestRetranslationPriorityWithPhase:
 
         # Phase 1 ranks before phase 2
         assert rp1 < rp2
-
-
-# ============================================================================
-# Slice 4: Locale Index for Grouping (future test placeholder)
-# ============================================================================
-
-
-class TestLocaleIndexTiebreak:
-    """Validate locale_index provides stable tie-breaking."""
-
-    def test_locale_index_provides_stable_tiebreak(self) -> None:
-        """Verify locale_index ensures adjacent priorities.
-
-        Scenario: Same candidate (confidence=0.9, phase=1), different locales
-        Calculate: priority with locale_index 0, 1, 2, ...
-        Assert: Priorities differ by 1 for each locale index
-        """
-        p0 = first_priority(0.9, phase=1, locale_index=0)
-        p1 = first_priority(0.9, phase=1, locale_index=1)
-        p2 = first_priority(0.9, phase=1, locale_index=2)
-
-        # Locale indices should produce adjacent priorities
-        assert p1 == p0 + 1, f"Locale indices should differ by 1: {p1} vs {p0}"
-        assert p2 == p1 + 1, f"Locale indices should differ by 1: {p2} vs {p1}"

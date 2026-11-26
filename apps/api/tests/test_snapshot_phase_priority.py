@@ -4,14 +4,35 @@ from __future__ import annotations
 
 import pytest
 from app.features.translation.snapshot_enqueue import SnapshotEnqueuer
+from app.models.discovery import CatalogueService, DiscoveryCandidateMention, DiscoveryMentionRole
 from app.models.fair_selection_state import FairSelectionState
 from app.models.snapshot_translation import SnapshotTranslationTask
 from scripts.seed_taxonomy import seed_canonical_taxonomy
 from sqlalchemy.orm import Session
 
+from search_support import make_candidate
 from snapshot_machine_support import SHA_A, add_snapshot
 from test_discovery_admin_api import _catalogue
 from test_discovery_candidates_api import _item
+
+
+def _scored_mention(session: Session, page: CatalogueService, confidence: float) -> None:
+    """Persist a candidate on ``page`` whose one category carries ``confidence`` as its direct confidence."""
+    candidate = make_candidate(session)
+    session.add(
+        DiscoveryCandidateMention(
+            candidate_id=candidate.id,
+            catalogue_service_id=page.id,
+            role=DiscoveryMentionRole.REQUIRED,
+            excerpt="Bitte bringen Sie Ihren Personalausweis mit.",
+            source_field="details[0]",
+            extractor="pvog_payload",
+            extractor_version="1",
+            category_codes=["home-and-housing"],
+            direct_category_confidence=confidence,
+        )
+    )
+    session.flush()
 
 
 @pytest.fixture
@@ -170,20 +191,8 @@ def test_snapshot_pages_of_same_phase_ordered_by_confidence_and_grouped_by_page(
     add_snapshot(db_session, page_low, SHA_A)
 
     # Create mentions with different confidences
-    _item(
-        page_high,
-        title_i18n={"de": "HighConf"},
-        source_field="details[0]",
-        category_codes=["home-and-housing"],
-        direct_category_confidence=0.9,
-    )
-    _item(
-        page_low,
-        title_i18n={"de": "LowConf"},
-        source_field="details[0]",
-        category_codes=["home-and-housing"],
-        direct_category_confidence=0.3,
-    )
+    _scored_mention(db_session, page_high, 0.9)
+    _scored_mention(db_session, page_low, 0.3)
 
     # Both default to phase 1
     db_session.commit()
@@ -209,10 +218,7 @@ def test_snapshot_pages_of_same_phase_ordered_by_confidence_and_grouped_by_page(
         f"Max high: {max_high_priority}, Min low: {min_low_priority}"
     )
 
-    # Assert: Locales of same page are adjacent in priority (grouped)
-    high_priorities_sorted = sorted(t.priority for t in page_high_tasks)
-    if len(high_priorities_sorted) == 2:
-        # Locales should be close (may differ by up to 1 due to locale_index in priority formula)
-        assert high_priorities_sorted[1] - high_priorities_sorted[0] <= 1, (
-            f"Page high locales not grouped: {high_priorities_sorted}"
-        )
+    # Assert: every locale of one page shares the page's priority, so the page's tasks stay together
+    assert len({task.priority for task in page_high_tasks}) == 1, (
+        f"Page high locales not grouped: {sorted(task.priority for task in page_high_tasks)}"
+    )

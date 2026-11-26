@@ -6,7 +6,7 @@ A procedure page has no confidence of its own: it ranks by the best candidate it
 
 Priority includes a phase component: phase-1 items (breadth-first coverage) rank 0–99,999,
 phase-2 items rank 100,000–199,999, and phase-3 items rank 200,000+. Within each phase,
-confidence determines rank, with an optional locale_index for stable tie-breaking.
+confidence determines rank.
 """
 
 from __future__ import annotations
@@ -51,26 +51,21 @@ def _phase_band(phase: int) -> int:
     return (phase - 1) * PHASE_BAND_WIDTH
 
 
-def first_priority(confidence: float, phase: int = 1, locale_index: int = 0) -> int:
+def first_priority(confidence: float, phase: int = 1) -> int:
     """Return the priority of a candidate's first translation.
 
     Priority includes phase component: phase-1 items rank 0–99,999, phase-2 items
     rank 100,000–199,999, etc. Within phase, confidence determines rank.
-    locale_index provides stable tie-breaking for same (phase, confidence).
     """
-    phase_offset = _phase_band(phase)
-    rank = _rank(confidence)
-    return phase_offset + FIRST_BASE + rank * 100 + locale_index
+    return _phase_band(phase) + FIRST_BASE + _rank(confidence)
 
 
-def retranslation_priority(confidence: float, phase: int = 1, locale_index: int = 0) -> int:
+def retranslation_priority(confidence: float, phase: int = 1) -> int:
     """Return the priority of re-translating a stale translation.
 
     Priority includes phase component, same as first_priority.
     """
-    phase_offset = _phase_band(phase)
-    rank = _rank(confidence)
-    return phase_offset + RETRANSLATION_BASE + rank * 100 + locale_index
+    return _phase_band(phase) + RETRANSLATION_BASE + _rank(confidence)
 
 
 def upgrade_priority(phase: int = 1) -> int:
@@ -78,8 +73,7 @@ def upgrade_priority(phase: int = 1) -> int:
 
     Upgrades rank behind all first and re-translations but respect phase ordering.
     """
-    phase_offset = _phase_band(phase)
-    return phase_offset + UPGRADE_BASE
+    return _phase_band(phase) + UPGRADE_BASE
 
 
 def page_confidence(confidences: Iterable[float]) -> float:
