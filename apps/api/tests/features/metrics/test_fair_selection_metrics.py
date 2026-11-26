@@ -14,17 +14,10 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-from sqlalchemy.orm import Session
-
 from app.features.metrics.fair_selection_metrics import (
     document_coverage_pct,
     fair_selection_phase_transition,
     increment_phase_transition,
-    set_claimed_by_phase,
-    set_completed_by_phase,
-    set_coverage_pct,
-    set_pending_by_phase,
     task_queue_claimed_by_phase,
     task_queue_completed_by_phase,
     task_queue_pending_by_phase,
@@ -33,9 +26,9 @@ from app.features.metrics.fair_selection_registry import (
     update_all_metrics,
     update_coverage_metrics,
 )
-from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.snapshot_translation import SnapshotTranslationTask
+from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
 
 LOCALES = ["de", "en", "fr", "es", "it", "pt", "nl", "pl", "cs", "sk", "hu", "ro", "bg", "hr", "sv"]
 
@@ -415,7 +408,7 @@ class TestMetricsIntegration:
         task_id = 0
         for candidate_id in candidate_ids:
             for phase in [1, 2]:
-                for locale_idx in range(2):
+                for _ in range(2):
                     task = TranslationTask(
                         candidate_id=candidate_id,
                         locale=LOCALES[task_id % len(LOCALES)],

@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-
-from app.models.discovery.discovery_task import DiscoveryTask
-from app.models.discovery.enums import DiscoveryTaskStatus
-from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.snapshot_translation import SnapshotTranslationTask
-from app.models.translation import TranslationTask
 
 from app.features.metrics.fair_selection_metrics import (
     set_claimed_by_phase,
@@ -17,6 +13,11 @@ from app.features.metrics.fair_selection_metrics import (
     set_coverage_pct,
     set_pending_by_phase,
 )
+from app.models.discovery.discovery_task import DiscoveryTask
+from app.models.discovery.enums import DiscoveryTaskStatus
+from app.models.search import EmbeddingTask, WorkTaskStatus
+from app.models.snapshot_translation import SnapshotTranslationTask
+from app.models.translation import TranslationTask
 
 
 def update_all_metrics(session: Session) -> None:
@@ -44,7 +45,7 @@ def _task_counts_by_status_and_phase(
 ) -> dict[tuple[str, int], int]:
     """Query task counts grouped by status and phase for a given pipeline."""
     if pipeline == "translation":
-        task_model = TranslationTask
+        task_model: Any = TranslationTask
     elif pipeline == "snapshot_translation":
         task_model = SnapshotTranslationTask
     elif pipeline == "embedding":
