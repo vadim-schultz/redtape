@@ -79,16 +79,16 @@ class LeasedQueue(Generic[TaskT]):
 
         # Phase first (if provided)
         if phase_field is not None:
-            order_clauses.append(phase_field)
+            order_clauses.append(phase_field.expression)
 
         # Priority always comes next
-        order_clauses.append(model.priority)
+        order_clauses.append(model.priority.expression)
 
         # Grouping fields (if provided)
-        order_clauses.extend(grouping)
+        order_clauses.extend(column.expression for column in grouping)
 
         # Age and id as final tie-breakers
-        order_clauses.extend([model.created_at, model.id])
+        order_clauses.extend([model.created_at.expression, model.id.expression])
 
         stmt = (
             select(model)

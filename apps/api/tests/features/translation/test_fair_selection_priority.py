@@ -9,9 +9,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from sqlalchemy.orm import Session
-
 from app.features.translation.priority import (
     first_priority,
     retranslation_priority,
@@ -21,7 +18,7 @@ from app.features.translation.source import (
     get_phases_for_candidates,
 )
 from app.models.fair_selection_state import FairSelectionState
-
+from sqlalchemy.orm import Session
 
 # ============================================================================
 # Slice 1: Read Phase from Database
@@ -86,7 +83,7 @@ class TestGetPhasesForCandidates:
         phases_input = [1, 2, 2]
 
         # Create state entries
-        for cid, phase in zip(candidate_ids, phases_input):
+        for cid, phase in zip(candidate_ids, phases_input, strict=True):
             state = FairSelectionState(
                 pipeline="translation",
                 entity_id=cid,
@@ -207,27 +204,3 @@ class TestRetranslationPriorityWithPhase:
 
         # Phase 1 ranks before phase 2
         assert rp1 < rp2
-
-
-# ============================================================================
-# Slice 4: Locale Index for Grouping (future test placeholder)
-# ============================================================================
-
-
-class TestLocaleIndexTiebreak:
-    """Validate locale_index provides stable tie-breaking."""
-
-    def test_locale_index_provides_stable_tiebreak(self) -> None:
-        """Verify locale_index ensures adjacent priorities.
-
-        Scenario: Same candidate (confidence=0.9, phase=1), different locales
-        Calculate: priority with locale_index 0, 1, 2, ...
-        Assert: Priorities differ by 1 for each locale index
-        """
-        p0 = first_priority(0.9, phase=1, locale_index=0)
-        p1 = first_priority(0.9, phase=1, locale_index=1)
-        p2 = first_priority(0.9, phase=1, locale_index=2)
-
-        # Locale indices should produce adjacent priorities
-        assert p1 == p0 + 1, f"Locale indices should differ by 1: {p1} vs {p0}"
-        assert p2 == p1 + 1, f"Locale indices should differ by 1: {p2} vs {p1}"

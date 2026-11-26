@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Generator
+from collections.abc import Generator
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy.orm import Session
-
 from app.features.search.leased_queue import LeasedQueue
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.translation import TranslationTask
 from app.models.snapshot_translation import SnapshotTranslationTask
+from app.models.translation import TranslationTask
+from sqlalchemy.orm import Session
+
+from embedding_support import make_key
 from search_support import make_candidate
 
 
@@ -53,7 +53,7 @@ def create_candidate_tasks(
 
     # Create tasks for each locale
     for locale_index, locale in enumerate(locales):
-        # Priority formula: (phase - 1) * 100_000 + locale_index
+        # The phase band, then the locale position so the locales of one candidate keep their order
         priority = (phase - 1) * 100_000 + locale_index
         task = TranslationTask(
             id=uuid4(),
@@ -89,9 +89,7 @@ def setup_candidates_with_phase(
     """
     candidates = [uuid4() for _ in range(num_candidates)]
     for cid in candidates:
-        state = FairSelectionState(
-            pipeline=pipeline, entity_id=cid, phase=phase
-        )
+        state = FairSelectionState(pipeline=pipeline, entity_id=cid, phase=phase)
         session.add(state)
     session.commit()
     return candidates
@@ -120,7 +118,7 @@ def claim_all_tasks(
 
     queue = LeasedQueue(session, model=task_model)
     claimed_tasks = []
-    api_key_id = uuid4()
+    api_key_id = make_key(session).id
     now = utc_now()
 
     grouping = ()

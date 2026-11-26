@@ -11,11 +11,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.fair_selection_state import FairSelectionState
-from app.models.search import CandidateSearchText, EmbeddingTask, WorkTaskStatus
+from app.models.search import CandidateSearchText
 
 
 def get_phase_for_embedding(session: Session, candidate_id: UUID) -> int:
@@ -28,10 +28,14 @@ def get_phase_for_embedding(session: Session, candidate_id: UUID) -> int:
     Returns:
         The phase (default 1 if no state entry exists)
     """
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "embedding",
-        FairSelectionState.entity_id == candidate_id,
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "embedding",
+            FairSelectionState.entity_id == candidate_id,
+        )
+        .first()
+    )
     return state.phase if state else 1
 
 
@@ -68,10 +72,14 @@ def get_embedding_coverage_for_candidate(session: Session, candidate_id: UUID) -
     Returns:
         The coverage bitmap (0 if no state entry exists)
     """
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "embedding",
-        FairSelectionState.entity_id == candidate_id,
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "embedding",
+            FairSelectionState.entity_id == candidate_id,
+        )
+        .first()
+    )
     return state.coverage_bitmap if state else 0
 
 
@@ -89,9 +97,7 @@ def should_transition_embedding_phase_1_to_2(session: Session) -> bool:
         True if phase 1 → 2 transition should occur, False otherwise
     """
     # Count total candidates with embeddings
-    total_candidates = session.query(
-        func.count(func.distinct(CandidateSearchText.candidate_id))
-    ).scalar() or 0
+    total_candidates = session.query(func.count(func.distinct(CandidateSearchText.candidate_id))).scalar() or 0
 
     if total_candidates == 0:
         return False
@@ -106,11 +112,16 @@ def should_transition_embedding_phase_1_to_2(session: Session) -> bool:
     full_mask = (1 << num_locales) - 1
 
     # Count candidates in phase 1 with full coverage
-    complete_count = session.query(func.count(func.distinct(FairSelectionState.entity_id))).filter(
-        FairSelectionState.pipeline == "embedding",
-        FairSelectionState.phase == 1,
-        FairSelectionState.coverage_bitmap == full_mask,
-    ).scalar() or 0
+    complete_count = (
+        session.query(func.count(func.distinct(FairSelectionState.entity_id)))
+        .filter(
+            FairSelectionState.pipeline == "embedding",
+            FairSelectionState.phase == 1,
+            FairSelectionState.coverage_bitmap == full_mask,
+        )
+        .scalar()
+        or 0
+    )
 
     # Phase 1 → 2 when ALL candidates have full coverage
     return complete_count >= total_candidates
@@ -128,13 +139,11 @@ def apply_embedding_phase_transition(session: Session) -> int:
     if not should_transition_embedding_phase_1_to_2(session):
         return 0
 
-    result = session.execute(
-        update(FairSelectionState).where(
-            and_(
-                FairSelectionState.pipeline == "embedding",
-                FairSelectionState.phase == 1,
-            )
-        ).values(phase=2)
+    return (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "embedding",
+            FairSelectionState.phase == 1,
+        )
+        .update({FairSelectionState.phase: 2}, synchronize_session=False)
     )
-
-    return result.rowcount or 0

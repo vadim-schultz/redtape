@@ -9,13 +9,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from app.db import SessionLocal
-from app.models.fair_selection_state import FairSelectionState
-from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.translation import TranslationTask, SnapshotTranslationTask
-from app.models.discovery.discovery_task import DiscoveryTask
-from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+from app.db import SessionLocal
+from app.features.fair_selection.pipelines import PIPELINE_TASKS
+from app.models.fair_selection_state import FairSelectionState
+from app.models.search import WorkTaskStatus
 
 if TYPE_CHECKING:
     pass
@@ -35,9 +34,7 @@ class AuditReport:
     errors: list[str] = field(default_factory=list)
 
 
-def _compute_expected_state(
-    pipeline: str, entity_id: str, session: Session
-) -> tuple[int, int]:
+def _compute_expected_state(pipeline: str, entity_id: str, session: Session) -> tuple[int, int]:
     """Compute expected phase and coverage_bitmap for an entity.
 
     Based on actual completed tasks in the database, determines what the
@@ -51,24 +48,20 @@ def _compute_expected_state(
     Returns:
         Tuple of (expected_phase, coverage_bitmap)
     """
-    # Map pipeline to task model and entity column
-    task_model_map = {
-        "translation": (TranslationTask, TranslationTask.candidate_id),
-        "embedding": (EmbeddingTask, EmbeddingTask.candidate_id),
-        "discovery": (DiscoveryTask, DiscoveryTask.catalogue_service_id),
-        "translation_snapshot": (SnapshotTranslationTask, SnapshotTranslationTask.catalogue_service_id),
-    }
-
-    if pipeline not in task_model_map:
+    if pipeline not in PIPELINE_TASKS:
         return 1, 0  # Default to phase 1 if unknown pipeline
 
-    task_model, entity_col = task_model_map[pipeline]
+    task_model, entity_col = PIPELINE_TASKS[pipeline]
 
     # Count completed tasks for this entity
-    completed_tasks = session.query(task_model).filter(
-        entity_col == entity_id,
-        task_model.status == WorkTaskStatus.COMPLETED,
-    ).count()
+    completed_tasks = (
+        session.query(task_model)
+        .filter(
+            entity_col == entity_id,
+            task_model.status == WorkTaskStatus.COMPLETED,
+        )
+        .count()
+    )
 
     # Compute coverage bitmap (simplified: just check if any task completed)
     # In production, would track specific locale completion
@@ -101,22 +94,17 @@ def audit_fair_selection_state(pipeline: str, session: Session | None = None) ->
     s = session or SessionLocal()
     try:
         # Query all entities in fair_selection_state for this pipeline
-        entities = s.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == pipeline
-        ).all()
+        entities = s.query(FairSelectionState).filter(FairSelectionState.pipeline == pipeline).all()
 
         for entity in entities:
             report.entities_checked += 1
 
             try:
                 # Compute expected phase and coverage based on completed tasks
-                expected_phase, expected_coverage = _compute_expected_state(
-                    pipeline, str(entity.entity_id), s
-                )
+                expected_phase, expected_coverage = _compute_expected_state(pipeline, str(entity.entity_id), s)
 
                 # Compare with current state
-                if (entity.phase != expected_phase or
-                    entity.coverage_bitmap != expected_coverage):
+                if entity.phase != expected_phase or entity.coverage_bitmap != expected_coverage:
                     report.drift_detected += 1
                     entity.phase = expected_phase
                     entity.coverage_bitmap = expected_coverage

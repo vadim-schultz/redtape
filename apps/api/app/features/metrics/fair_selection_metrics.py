@@ -52,9 +52,7 @@ def set_completed_by_phase(pipeline: str, phase: int, count: int) -> None:
 
 def increment_phase_transition(pipeline: str, from_phase: int, to_phase: int) -> None:
     """Increment counter for a phase transition."""
-    fair_selection_phase_transition.labels(
-        pipeline=pipeline, from_phase=str(from_phase), to_phase=str(to_phase)
-    ).inc()
+    fair_selection_phase_transition.labels(pipeline=pipeline, from_phase=str(from_phase), to_phase=str(to_phase)).inc()
 
 
 def set_coverage_pct(pipeline: str, pct: float) -> None:

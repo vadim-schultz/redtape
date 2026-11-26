@@ -14,11 +14,13 @@ from app.models import Jurisdiction, JurisdictionKind
 from sqlalchemy import select
 from sqlalchemy.engine import make_url
 
+from migration_chain import single_head
+
 API_ROOT = Path(__file__).resolve().parent.parent
 REAL_ALEMBIC_DIR = API_ROOT / "alembic"
 SCRIPT = API_ROOT / "scripts" / "check_migrations.sh"
 
-CURRENT_HEAD = "20261119_fetch_body_sha256"
+CURRENT_HEAD = single_head()
 
 TWO_HEADS_REVISION = '''"""Temp revision that forks the chain (test fixture only)."""
 

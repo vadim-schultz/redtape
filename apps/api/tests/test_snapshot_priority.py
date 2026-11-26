@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from app.features.translation.priority import (
     RETRANSLATION_BASE,
     snapshot_first_priority,
     snapshot_retranslation_priority,
 )
-from app.models.fair_selection_state import FairSelectionState
-from sqlalchemy.orm import Session
 
 
 def test_a_first_translation_has_base_zero_and_a_retranslation_base_ten_thousand() -> None:

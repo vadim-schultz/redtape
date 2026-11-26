@@ -9,10 +9,9 @@ from app.models.locale import SupportedLocale
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
-from test_check_migrations_script import _fresh_database
+from test_check_migrations_script import CURRENT_HEAD, _fresh_database
 from test_search_migration import _alembic, _scalars
 
-REVISION = "20261119_fetch_body_sha256"
 PARENT = "20261111_snapshot_translation"
 COLUMN_SQL = (
     "select is_nullable || ' ' || column_default from information_schema.columns "
@@ -41,7 +40,7 @@ def test_upgrade_adds_a_not_null_column_that_defaults_to_false(migrated: tuple[s
     """migration · upgrade ends on the new revision and adds supported_locale.machine_translated, NOT NULL, default false."""
     _, engine = migrated
 
-    assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    assert _scalars(engine, "select version_num from alembic_version") == [CURRENT_HEAD]
     assert _scalars(engine, COLUMN_SQL) == ["NO false"]
     assert SupportedLocale.__table__.c.machine_translated.nullable is False
 
@@ -68,7 +67,7 @@ def test_downgrade_removes_the_column_and_upgrade_restores_it_with_false(migrate
 def test_the_model_and_the_migration_agree_and_alembic_check_is_clean(migrated: tuple[str, Engine]) -> None:
     """migration · after the round trip the schema matches the models and alembic check is clean."""
     url, engine = migrated
-    assert _scalars(engine, "select version_num from alembic_version") == [REVISION]
+    assert _scalars(engine, "select version_num from alembic_version") == [CURRENT_HEAD]
 
     _alembic(url, "downgrade", PARENT)
     _alembic(url, "upgrade", "head")

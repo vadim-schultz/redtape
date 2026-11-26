@@ -10,16 +10,16 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-import pytest
-
+from app.features.discovery.repository.task_target import TaskTarget
 from app.features.discovery.repository.tasks import (
     TaskRepository,
     get_phase_for_discovery_page,
 )
-from app.features.discovery.repository.task_target import TaskTarget
-from app.models.discovery import DiscoveryTask, DiscoveryTaskKind, DiscoveryTaskStatus
+from app.models.discovery import DiscoveryTask, DiscoveryTaskKind
 from app.models.fair_selection_state import FairSelectionState
 from sqlalchemy.orm import Session
+
+from fair_selection_support import catalogue_page
 
 
 class TestDiscoveryTaskPhaseColumn:
@@ -28,7 +28,7 @@ class TestDiscoveryTaskPhaseColumn:
     def test_discovery_task_has_phase_column(self, db_session: Session) -> None:
         """Happy path: DiscoveryTask has phase attribute and accepts explicit phase."""
         task = DiscoveryTask(
-            catalogue_service_id=uuid4(),
+            catalogue_service_id=catalogue_page(db_session).id,
             kind=DiscoveryTaskKind.RENDER_PAGE,
             target_url="https://example.com",
             phase=2,
@@ -41,7 +41,7 @@ class TestDiscoveryTaskPhaseColumn:
     def test_discovery_task_phase_defaults_to_one(self, db_session: Session) -> None:
         """Negative path: DiscoveryTask defaults phase to 1 when not specified."""
         task = DiscoveryTask(
-            catalogue_service_id=uuid4(),
+            catalogue_service_id=catalogue_page(db_session).id,
             kind=DiscoveryTaskKind.RENDER_PAGE,
             target_url="https://example.com",
         )
@@ -54,23 +54,17 @@ class TestDiscoveryTaskPhaseColumn:
 class TestGetPhaseForDiscoveryPage:
     """Slice 2: Verify reading phase from fair_selection_state."""
 
-    def test_get_phase_for_discovery_page_reads_from_state(
-        self, db_session: Session
-    ) -> None:
+    def test_get_phase_for_discovery_page_reads_from_state(self, db_session: Session) -> None:
         """Happy path: Read phase from fair_selection_state for a discovery page."""
         page_id = uuid4()
-        state = FairSelectionState(
-            pipeline="discovery", entity_id=page_id, phase=2, coverage_bitmap=0
-        )
+        state = FairSelectionState(pipeline="discovery", entity_id=page_id, phase=2, coverage_bitmap=0)
         db_session.add(state)
         db_session.flush()
 
         phase = get_phase_for_discovery_page(db_session, page_id)
         assert phase == 2
 
-    def test_get_phase_for_discovery_page_defaults_to_one_when_missing(
-        self, db_session: Session
-    ) -> None:
+    def test_get_phase_for_discovery_page_defaults_to_one_when_missing(self, db_session: Session) -> None:
         """Negative path: Default to phase 1 when page has no entry in fair_selection_state."""
         page_id = uuid4()
 
@@ -81,12 +75,10 @@ class TestGetPhaseForDiscoveryPage:
 class TestClaimOrderIncludesPhase:
     """Slice 3: Verify phase is included in claim order."""
 
-    def test_claim_order_ranks_phase_before_priority(
-        self, db_session: Session
-    ) -> None:
+    def test_claim_order_ranks_phase_before_priority(self, db_session: Session) -> None:
         """Happy path: Phase component in claim order sorts phase 1 before phase 2."""
-        catalogue_id_a = uuid4()
-        catalogue_id_b = uuid4()
+        catalogue_id_a = catalogue_page(db_session).id
+        catalogue_id_b = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         # Create tasks with different phases and priorities
@@ -125,12 +117,10 @@ class TestClaimOrderIncludesPhase:
         assert claimed[0].id == task_a.id
         assert claimed[1].id == task_b.id
 
-    def test_claim_order_preserves_completeness_within_phase(
-        self, db_session: Session
-    ) -> None:
+    def test_claim_order_preserves_completeness_within_phase(self, db_session: Session) -> None:
         """Negative path: Page completeness applies within same phase after phase+priority."""
-        catalogue_id_a = uuid4()
-        catalogue_id_b = uuid4()
+        catalogue_id_a = catalogue_page(db_session).id
+        catalogue_id_b = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         # Create two tasks with same phase and priority
@@ -174,7 +164,7 @@ class TestEnqueueTasksWithPhase:
 
     def test_enqueue_discovery_task_with_phase_one(self, db_session: Session) -> None:
         """Happy path: New discovery tasks inserted with phase=1 by default."""
-        catalogue_id = uuid4()
+        catalogue_id = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         task = repo.insert_task(
@@ -188,11 +178,9 @@ class TestEnqueueTasksWithPhase:
 
         assert task.phase == 1
 
-    def test_insert_task_allows_explicit_phase_override(
-        self, db_session: Session
-    ) -> None:
+    def test_insert_task_allows_explicit_phase_override(self, db_session: Session) -> None:
         """Negative path: Task insertion respects explicit phase override."""
-        catalogue_id = uuid4()
+        catalogue_id = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         task = repo.insert_task(
@@ -211,12 +199,10 @@ class TestEnqueueTasksWithPhase:
 class TestPhaseAwareClaimOrdering:
     """Slice 5: Integration test verifying phase + completeness ordering."""
 
-    def test_discover_tasks_claim_phase_1_before_phase_2_regardless_of_completeness(
-        self, db_session: Session
-    ) -> None:
+    def test_discover_tasks_claim_phase_1_before_phase_2_regardless_of_completeness(self, db_session: Session) -> None:
         """Happy path: Phase 1 items claim before phase 2, independent of completeness."""
-        page_a_id = uuid4()
-        page_b_id = uuid4()
+        page_a_id = catalogue_page(db_session).id
+        page_b_id = catalogue_page(db_session).id
 
         repo = TaskRepository(db_session)
 
@@ -273,23 +259,17 @@ class TestPhaseAwareClaimOrdering:
         # Phase 1 tasks must claim before phase 2
         assert len(claimed) == 4
         claimed_ids = [t.id for t in claimed]
-        phase_1_indices = [
-            i for i, tid in enumerate(claimed_ids) if tid in {task_a1.id, task_a2.id}
-        ]
-        phase_2_indices = [
-            i for i, tid in enumerate(claimed_ids) if tid in {task_b1.id, task_b2.id}
-        ]
+        phase_1_indices = [i for i, tid in enumerate(claimed_ids) if tid in {task_a1.id, task_a2.id}]
+        phase_2_indices = [i for i, tid in enumerate(claimed_ids) if tid in {task_b1.id, task_b2.id}]
 
         assert all(i < min(phase_2_indices) for i in phase_1_indices), (
             f"Phase 1 tasks must claim before phase 2: {claimed_ids}"
         )
 
-    def test_discovery_tasks_within_phase_respect_completeness(
-        self, db_session: Session
-    ) -> None:
+    def test_discovery_tasks_within_phase_respect_completeness(self, db_session: Session) -> None:
         """Negative path: Completeness tie-breaks within phase are preserved."""
-        page_a_id = uuid4()
-        page_b_id = uuid4()
+        page_a_id = catalogue_page(db_session).id
+        page_b_id = catalogue_page(db_session).id
 
         repo = TaskRepository(db_session)
 

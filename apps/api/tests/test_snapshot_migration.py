@@ -25,16 +25,27 @@ CHECK = "ck_snapshot_translation_storage_xor_skip"
 HASH = "a" * 64
 
 
-@pytest.fixture
-def migrated() -> Iterator[tuple[str, Engine]]:
-    """Yield a throwaway database migrated to this revision with a connected engine."""
+def _migrated_to(revision: str) -> Iterator[tuple[str, Engine]]:
+    """Yield a throwaway database migrated to ``revision`` with a connected engine."""
     with _fresh_database() as url:
-        _alembic(url, "upgrade", REVISION)
+        _alembic(url, "upgrade", revision)
         engine = create_engine(url)
         try:
             yield url, engine
         finally:
             engine.dispose()
+
+
+@pytest.fixture
+def migrated() -> Iterator[tuple[str, Engine]]:
+    """Yield a database at this revision: the migration-specific tests check the schema as this revision created it."""
+    yield from _migrated_to(REVISION)
+
+
+@pytest.fixture
+def head_migrated() -> Iterator[tuple[str, Engine]]:
+    """Yield a database at head, the only state where the model and the schema are meant to agree."""
+    yield from _migrated_to("head")
 
 
 def test_upgrade_creates_both_tables_the_open_task_index_and_the_storage_check(migrated: tuple[str, Engine]) -> None:
@@ -58,9 +69,9 @@ def test_upgrade_ends_on_the_snapshot_revision_and_keeps_the_translation_schema(
     assert "work_task_status" in _present(engine, "enums")
 
 
-def test_model_and_migration_agree_on_columns_and_index_names(migrated: tuple[str, Engine]) -> None:
+def test_model_and_migration_agree_on_columns_and_index_names(head_migrated: tuple[str, Engine]) -> None:
     """migration · the model and the migration agree on the columns of both tables and the open-task index name."""
-    _, engine = migrated
+    _, engine = head_migrated
 
     for table in TABLES:
         columns = _scalars(
@@ -99,10 +110,10 @@ def test_upgrade_downgrade_upgrade_round_trip_restores_the_schema_and_alembic_ch
 
 
 def test_the_partial_unique_index_allows_one_open_task_per_catalogue_row_and_locale_and_a_new_one_after_completion(
-    migrated: tuple[str, Engine],
+    head_migrated: tuple[str, Engine],
 ) -> None:
     """migration · one open task per (catalogue row, locale); once it completes, a new open task is allowed."""
-    _, engine = migrated
+    _, engine = head_migrated
     with Session(engine) as session:
         catalogue = catalogue_row(session)
         first = SnapshotTranslationTask(catalogue_service_id=catalogue.id, locale="en", source_hash=HASH)
