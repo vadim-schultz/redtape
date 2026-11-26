@@ -19,6 +19,8 @@ from app.models.discovery import DiscoveryTask, DiscoveryTaskKind
 from app.models.fair_selection_state import FairSelectionState
 from sqlalchemy.orm import Session
 
+from fair_selection_support import catalogue_page
+
 
 class TestDiscoveryTaskPhaseColumn:
     """Slice 1: Verify phase column exists and defaults correctly."""
@@ -26,7 +28,7 @@ class TestDiscoveryTaskPhaseColumn:
     def test_discovery_task_has_phase_column(self, db_session: Session) -> None:
         """Happy path: DiscoveryTask has phase attribute and accepts explicit phase."""
         task = DiscoveryTask(
-            catalogue_service_id=uuid4(),
+            catalogue_service_id=catalogue_page(db_session).id,
             kind=DiscoveryTaskKind.RENDER_PAGE,
             target_url="https://example.com",
             phase=2,
@@ -39,7 +41,7 @@ class TestDiscoveryTaskPhaseColumn:
     def test_discovery_task_phase_defaults_to_one(self, db_session: Session) -> None:
         """Negative path: DiscoveryTask defaults phase to 1 when not specified."""
         task = DiscoveryTask(
-            catalogue_service_id=uuid4(),
+            catalogue_service_id=catalogue_page(db_session).id,
             kind=DiscoveryTaskKind.RENDER_PAGE,
             target_url="https://example.com",
         )
@@ -75,8 +77,8 @@ class TestClaimOrderIncludesPhase:
 
     def test_claim_order_ranks_phase_before_priority(self, db_session: Session) -> None:
         """Happy path: Phase component in claim order sorts phase 1 before phase 2."""
-        catalogue_id_a = uuid4()
-        catalogue_id_b = uuid4()
+        catalogue_id_a = catalogue_page(db_session).id
+        catalogue_id_b = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         # Create tasks with different phases and priorities
@@ -117,8 +119,8 @@ class TestClaimOrderIncludesPhase:
 
     def test_claim_order_preserves_completeness_within_phase(self, db_session: Session) -> None:
         """Negative path: Page completeness applies within same phase after phase+priority."""
-        catalogue_id_a = uuid4()
-        catalogue_id_b = uuid4()
+        catalogue_id_a = catalogue_page(db_session).id
+        catalogue_id_b = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         # Create two tasks with same phase and priority
@@ -162,7 +164,7 @@ class TestEnqueueTasksWithPhase:
 
     def test_enqueue_discovery_task_with_phase_one(self, db_session: Session) -> None:
         """Happy path: New discovery tasks inserted with phase=1 by default."""
-        catalogue_id = uuid4()
+        catalogue_id = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         task = repo.insert_task(
@@ -178,7 +180,7 @@ class TestEnqueueTasksWithPhase:
 
     def test_insert_task_allows_explicit_phase_override(self, db_session: Session) -> None:
         """Negative path: Task insertion respects explicit phase override."""
-        catalogue_id = uuid4()
+        catalogue_id = catalogue_page(db_session).id
         repo = TaskRepository(db_session)
 
         task = repo.insert_task(
@@ -199,8 +201,8 @@ class TestPhaseAwareClaimOrdering:
 
     def test_discover_tasks_claim_phase_1_before_phase_2_regardless_of_completeness(self, db_session: Session) -> None:
         """Happy path: Phase 1 items claim before phase 2, independent of completeness."""
-        page_a_id = uuid4()
-        page_b_id = uuid4()
+        page_a_id = catalogue_page(db_session).id
+        page_b_id = catalogue_page(db_session).id
 
         repo = TaskRepository(db_session)
 
@@ -266,8 +268,8 @@ class TestPhaseAwareClaimOrdering:
 
     def test_discovery_tasks_within_phase_respect_completeness(self, db_session: Session) -> None:
         """Negative path: Completeness tie-breaks within phase are preserved."""
-        page_a_id = uuid4()
-        page_b_id = uuid4()
+        page_a_id = catalogue_page(db_session).id
+        page_b_id = catalogue_page(db_session).id
 
         repo = TaskRepository(db_session)
 

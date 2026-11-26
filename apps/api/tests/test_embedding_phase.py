@@ -18,6 +18,7 @@ from app.features.search.phase import (
     get_phase_for_embedding,
     should_transition_embedding_phase_1_to_2,
 )
+from app.features.search.repository import SearchTextRepository
 from app.features.search.text import BuiltText
 from app.models.fair_selection_state import FairSelectionState
 from app.models.search import EmbeddingTask, WorkTaskStatus
@@ -318,10 +319,13 @@ class TestPhaseTransition:
         # Enqueue for all locales
         locales = settings.embedding_locale_codes[:10]  # Use first 10 locales
         enqueuer = EmbeddingEnqueuer(db_session, settings.embedding_model, locales=locales)
+        search_text = SearchTextRepository(db_session)
 
         for candidate in candidates:
             for locale in locales:
                 built = _built(f"content in {locale}", locale=locale)
+                # The transition check counts candidates and locales from candidate_search_text
+                search_text.upsert_search_text(candidate.id, built)
                 enqueuer.enqueue(candidate.id, built)
 
         db_session.flush()

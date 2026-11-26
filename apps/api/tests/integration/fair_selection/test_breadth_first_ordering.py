@@ -66,9 +66,9 @@ class TestBreadthFirstOrdering:
 
         Setup: 2 candidates (A: phase=1, confidence=0.9), (B: phase=2, confidence=0.1), 2 locales each.
         Enqueue: 4 tasks total (A has 2, B has 2).
-        Claim: Retrieve first 3 claims.
-        Assert: All three are from A (phase 1).
-        Assert: B's phase-2 task is not claimed until A's phase-1 work exhausted.
+        Claim: Retrieve 3 claims.
+        Assert: The first two are A's phase-1 tasks; the third is B's phase-2 task, so B waits until
+                A's phase-1 work is exhausted.
         """
         # Create tasks (creates candidates internally)
         candidate_phase1 = create_candidate_tasks(session, locales=["en", "de"], phase=1, title="Phase 1 Candidate")
@@ -80,7 +80,7 @@ class TestBreadthFirstOrdering:
         session.add_all([state_phase1, state_phase2])
         session.commit()
 
-        # Claim first 3 (should all be phase 1)
+        # Claim 3. Phase 1 holds only two tasks, so the first two claims are its locales and the third is phase 2.
         claimed_tasks = claim_all_tasks(
             session,
             TranslationTask,
@@ -89,10 +89,8 @@ class TestBreadthFirstOrdering:
             phase_field=True,
         )
 
-        # Assert: all 3 are phase 1
-        assert len(claimed_tasks) >= 2, f"Expected at least 2 claimed tasks, got {len(claimed_tasks)}"
-        for task in claimed_tasks:
-            assert task.candidate_id == candidate_phase1, (
-                f"Expected phase-1 task, got candidate {task.candidate_id} in phase {task.phase}"
-            )
-            assert task.phase == 1, f"Expected phase 1, got phase {task.phase} for task {task.id}"
+        assert [task.phase for task in claimed_tasks] == [1, 1, 2], (
+            f"Expected phase-1 work before phase 2, got phases {[task.phase for task in claimed_tasks]}"
+        )
+        assert [task.candidate_id for task in claimed_tasks[:2]] == [candidate_phase1, candidate_phase1]
+        assert claimed_tasks[2].candidate_id == candidate_phase2

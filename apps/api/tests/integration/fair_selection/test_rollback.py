@@ -16,6 +16,10 @@ from app.models.translation import TranslationTask
 from sqlalchemy.orm import Session
 from tests.integration.fair_selection.conftest import create_candidate_tasks
 
+from embedding_support import make_key
+from fair_selection_support import candidate_ids
+from search_support import make_candidate
+
 
 class TestRollback:
     """Test rollback resilience for fair task selection."""
@@ -31,8 +35,7 @@ class TestRollback:
         Claim: Verify claims work and respect new priorities.
         """
         # Setup
-        candidate_a = uuid4()
-        candidate_b = uuid4()
+        candidate_a, candidate_b = candidate_ids(db_session, 2)
 
         state_a = FairSelectionState(pipeline="translation", entity_id=candidate_a, phase=1)
         state_b = FairSelectionState(pipeline="translation", entity_id=candidate_b, phase=2)
@@ -58,7 +61,7 @@ class TestRollback:
         # This simulates the idempotency of enqueue_many
 
         # Claim
-        api_key_id = uuid4()
+        api_key_id = make_key(db_session).id
         queue = LeasedQueue(db_session, model=TranslationTask)
         claimed = queue.claim(
             api_key_id,
@@ -85,13 +88,14 @@ class TestRollback:
         Claim: New task claimed; priority in correct band.
         """
         # Setup: Create a task with old-style priority (no phase field)
-        candidate = uuid4()
+        candidate = make_candidate(db_session).id
 
         # Manually create old-style task (priority in old range, default phase=1)
         old_task = TranslationTask(
             id=uuid4(),
             candidate_id=candidate,
             locale="en",
+            source_hash="test-hash",
             priority=50,  # Old-style priority (would be 0–1000 range)
             status=WorkTaskStatus.PENDING,
             phase=1,  # Default phase
@@ -100,7 +104,7 @@ class TestRollback:
         db_session.commit()
 
         # Claim with new code (should handle gracefully)
-        api_key_id = uuid4()
+        api_key_id = make_key(db_session).id
         queue = LeasedQueue(db_session, model=TranslationTask)
         claimed = queue.claim(
             api_key_id,

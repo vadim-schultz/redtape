@@ -12,7 +12,6 @@ Each slice has happy and negative path tests.
 
 from __future__ import annotations
 
-import uuid
 from unittest import mock
 
 from app.features.fair_selection.audit import (
@@ -28,6 +27,8 @@ from app.models.fair_selection_state import FairSelectionState
 from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
 from sqlalchemy.orm import Session
+
+from fair_selection_support import candidate_ids
 
 # ============================================================================
 # Slice 1: check_phase_one_complete() Function
@@ -46,13 +47,13 @@ class TestCheckPhaseOneComplete:
         Assert: Returns True
         """
         # Create 5 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
+        candidates = candidate_ids(db_session, 5)
 
         # Create fair_selection_state rows for each candidate
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -62,7 +63,7 @@ class TestCheckPhaseOneComplete:
         # Create completed translation tasks for each candidate
         for cand in candidates:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -85,13 +86,13 @@ class TestCheckPhaseOneComplete:
         Assert: Returns False
         """
         # Create 5 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
+        candidates = candidate_ids(db_session, 5)
 
         # Create fair_selection_state rows for each candidate
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -101,7 +102,7 @@ class TestCheckPhaseOneComplete:
         # Create completed translation tasks for only 3 candidates
         for cand in candidates[:3]:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -134,13 +135,13 @@ class TestTransitionPhase:
         Assert: Returns count of updated rows (3)
         """
         # Create 3 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
+        candidates = candidate_ids(db_session, 3)
 
         # Create fair_selection_state rows for each candidate with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -150,7 +151,7 @@ class TestTransitionPhase:
         # Create completed translation tasks for each candidate
         for cand in candidates:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -183,13 +184,13 @@ class TestTransitionPhase:
         Assert: Does not raise exception (graceful fail)
         """
         # Create 3 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
+        candidates = candidate_ids(db_session, 3)
 
         # Create fair_selection_state rows for each candidate with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -198,7 +199,7 @@ class TestTransitionPhase:
 
         # Create completed translation task for only 1 candidate
         task = TranslationTask(
-            candidate_id=candidates[0]["entity_id"],
+            candidate_id=candidates[0],
             locale="de",
             source_hash="test_hash",
             status=WorkTaskStatus.COMPLETED,
@@ -239,13 +240,13 @@ class TestAuditFairSelectionState:
         Assert: coverage_bitmap updated to reflect completed task types
         """
         # Create 5 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(5)]
+        candidates = candidate_ids(db_session, 5)
 
         # Create fair_selection_state rows with incorrect phase (all phase 2)
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=2,  # Incorrect - should be 1
                 coverage_bitmap=0,
             )
@@ -256,7 +257,7 @@ class TestAuditFairSelectionState:
         # Create completed translation tasks for all 5 candidates
         for cand in candidates:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -285,15 +286,15 @@ class TestAuditFairSelectionState:
         Assert: No rows modified
         """
         # Create 3 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
+        candidates = candidate_ids(db_session, 3)
 
         # Create fair_selection_state rows with correct phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
-                phase=1,  # Correct
-                coverage_bitmap=0,
+                entity_id=cand,
+                phase=1,  # Correct: the audit sets bitmap 1 once any task of the entity completed
+                coverage_bitmap=1,
             )
             db_session.add(state)
 
@@ -302,7 +303,7 @@ class TestAuditFairSelectionState:
         # Create completed translation tasks for all candidates
         for cand in candidates:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -337,13 +338,13 @@ class TestSettlementHookIntegration:
         Assert: Resulting state reflects new phase
         """
         # Create 2 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
+        candidates = candidate_ids(db_session, 2)
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -352,7 +353,7 @@ class TestSettlementHookIntegration:
 
         # Create completed tasks for first candidate (not covering all)
         task1 = TranslationTask(
-            candidate_id=candidates[0]["entity_id"],
+            candidate_id=candidates[0],
             locale="de",
             source_hash="test_hash",
             status=WorkTaskStatus.COMPLETED,
@@ -366,7 +367,7 @@ class TestSettlementHookIntegration:
             "app.features.fair_selection.state_machine.transition_phase",
             wraps=transition_phase,
         ) as mock_transition:
-            on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED", session=db_session)
+            on_task_settled("translation", candidates[1], "COMPLETED", session=db_session)
             # Verify transition_phase was called
             mock_transition.assert_called()
 
@@ -379,13 +380,13 @@ class TestSettlementHookIntegration:
         Assert: Phase remains 1
         """
         # Create 3 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(3)]
+        candidates = candidate_ids(db_session, 3)
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -394,7 +395,7 @@ class TestSettlementHookIntegration:
 
         # Create completed task for only 1 candidate
         task = TranslationTask(
-            candidate_id=candidates[0]["entity_id"],
+            candidate_id=candidates[0],
             locale="de",
             source_hash="test_hash",
             status=WorkTaskStatus.COMPLETED,
@@ -404,7 +405,7 @@ class TestSettlementHookIntegration:
         db_session.commit()
 
         # Call on_task_settled for another candidate
-        on_task_settled("translation", candidates[1]["entity_id"], "COMPLETED", session=db_session)
+        on_task_settled("translation", candidates[1], "COMPLETED", session=db_session)
 
         # Verify phase remains 1 (no transition occurred)
         states = db_session.query(FairSelectionState).filter(FairSelectionState.pipeline == "translation").all()
@@ -429,13 +430,13 @@ class TestTransitionMetrics:
         Assert: Metric fair_selection_phase_transition_duration_seconds recorded
         """
         # Create 2 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
+        candidates = candidate_ids(db_session, 2)
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -445,7 +446,7 @@ class TestTransitionMetrics:
         # Create completed tasks for all candidates
         for cand in candidates:
             task = TranslationTask(
-                candidate_id=cand["entity_id"],
+                candidate_id=cand,
                 locale="de",
                 source_hash="test_hash",
                 status=WorkTaskStatus.COMPLETED,
@@ -455,12 +456,10 @@ class TestTransitionMetrics:
 
         db_session.commit()
 
-        # Perform transition and check metrics are recorded
-        with mock.patch("app.features.fair_selection.state_machine.phase_transition_counter") as mock_counter:
+        # Perform transition and check the completed-transition counter is incremented once
+        with mock.patch("app.features.fair_selection.state_machine.increment_phase_transition") as mock_increment:
             transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
-            # Verify metrics counter was called
-            if mock_counter is not None:
-                mock_counter.labels.assert_called()
+        mock_increment.assert_called_once_with("translation", 1, 2)
 
     def test_transition_metrics_recorded_on_condition_failure(self, db_session: Session) -> None:
         """Negative path: metrics track non-transitions (blocked transitions).
@@ -470,13 +469,13 @@ class TestTransitionMetrics:
         Assert: Metric fair_selection_phase_transition_blocked_total incremented
         """
         # Create 2 candidates
-        candidates = [{"id": uuid.uuid4(), "entity_id": uuid.uuid4()} for _ in range(2)]
+        candidates = candidate_ids(db_session, 2)
 
         # Create fair_selection_state rows with phase=1
         for cand in candidates:
             state = FairSelectionState(
                 pipeline="translation",
-                entity_id=cand["entity_id"],
+                entity_id=cand,
                 phase=1,
             )
             db_session.add(state)
@@ -485,7 +484,7 @@ class TestTransitionMetrics:
 
         # Create completed task for only 1 candidate
         task = TranslationTask(
-            candidate_id=candidates[0]["entity_id"],
+            candidate_id=candidates[0],
             locale="de",
             source_hash="test_hash",
             status=WorkTaskStatus.COMPLETED,
@@ -497,8 +496,7 @@ class TestTransitionMetrics:
         # Perform transition (should be blocked and metrics recorded)
         with mock.patch("app.features.fair_selection.state_machine.phase_transition_blocked") as mock_blocked:
             updated_count = transition_phase("translation", from_phase=1, to_phase=2, session=db_session)
-            assert updated_count == 0
-            # Verify blocked metric was called if mocked
-            if mock_blocked is not None:
-                # Optionally check blocked metric
-                pass
+        assert updated_count == 0
+        mock_blocked.labels.assert_called_once_with(
+            pipeline="translation", from_phase=1, to_phase=2, reason="incomplete_coverage"
+        )

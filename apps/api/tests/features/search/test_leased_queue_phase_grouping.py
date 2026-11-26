@@ -9,19 +9,23 @@ from app.features.search.leased_queue import LeasedQueue
 from app.models.search import EmbeddingTask, WorkTaskStatus
 from app.models.translation import TranslationTask
 
+from embedding_support import make_key
+from search_support import make_candidate
+
 # ===== SLICE 1: Add phase_field and grouping_field Parameters =====
 
 
 def test_claim_accepts_phase_and_grouping_parameters(db_session):
     """Happy path: claim() accepts phase_field and grouping_field without TypeError."""
-    api_key_id = uuid4()
-    candidate_id = uuid4()
+    api_key_id = make_key(db_session).id
+    candidate_id = make_candidate(db_session).id
     now = datetime.utcnow()
 
     # Create a task to claim
     task = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -39,7 +43,7 @@ def test_claim_accepts_phase_and_grouping_parameters(db_session):
         limit=1,
         scope=[],
         phase_field=TranslationTask.phase,
-        grouping_field=(TranslationTask.candidate_id,),
+        grouping=(TranslationTask.candidate_id,),
     )
 
     # Assert claim succeeded and returned the task
@@ -49,14 +53,15 @@ def test_claim_accepts_phase_and_grouping_parameters(db_session):
 
 def test_claim_backward_compatible_without_phase_or_grouping(db_session):
     """Negative path: claim() works without phase_field and grouping_field (backward compatible)."""
-    api_key_id = uuid4()
-    candidate_id = uuid4()
+    api_key_id = make_key(db_session).id
+    candidate_id = make_candidate(db_session).id
     now = datetime.utcnow()
 
     # Create a task
     task = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -85,15 +90,16 @@ def test_claim_backward_compatible_without_phase_or_grouping(db_session):
 
 def test_claim_respects_phase_and_grouping_order(db_session):
     """Happy path: Tasks claimed in phase → priority → grouping → created_at → id order."""
-    api_key_id = uuid4()
-    candidate_id_1 = uuid4()
-    candidate_id_2 = uuid4()
+    api_key_id = make_key(db_session).id
+    # grouping orders candidates by id, so the lower id is the first group
+    candidate_id_1, candidate_id_2 = sorted(make_candidate(db_session).id for _ in range(2))
     now = datetime.utcnow()
 
     # Create tasks with explicit phase and grouping
     t_a1 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_1,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -103,6 +109,7 @@ def test_claim_respects_phase_and_grouping_order(db_session):
     t_a2 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_1,
+        source_hash="test-hash",
         locale="fr",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -112,6 +119,7 @@ def test_claim_respects_phase_and_grouping_order(db_session):
     t_b1 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_2,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -121,6 +129,7 @@ def test_claim_respects_phase_and_grouping_order(db_session):
     t_c1 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_1,
+        source_hash="test-hash",
         locale="de",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -140,7 +149,7 @@ def test_claim_respects_phase_and_grouping_order(db_session):
         limit=4,
         scope=[],
         phase_field=TranslationTask.phase,
-        grouping_field=(TranslationTask.candidate_id,),
+        grouping=(TranslationTask.candidate_id,),
     )
 
     # Assert order: phase 1 (group 1 in order, then group 2), then phase 2
@@ -153,15 +162,16 @@ def test_claim_respects_phase_and_grouping_order(db_session):
 
 def test_claim_without_phase_ignores_phase_in_order(db_session):
     """Negative path: Claim without phase_field uses priority order, ignoring phase."""
-    api_key_id = uuid4()
-    candidate_id_1 = uuid4()
-    candidate_id_2 = uuid4()
+    api_key_id = make_key(db_session).id
+    # grouping orders candidates by id, so the lower id is the first group
+    candidate_id_1, candidate_id_2 = sorted(make_candidate(db_session).id for _ in range(2))
     now = datetime.utcnow()
 
     # Create tasks: one phase=2 with high priority (low number), one phase=1 with low priority (high number)
     t_phase2_high_priority = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_1,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=5,  # High priority (low number)
@@ -171,6 +181,7 @@ def test_claim_without_phase_ignores_phase_in_order(db_session):
     t_phase1_low_priority = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_2,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=100,  # Low priority (high number)
@@ -190,7 +201,7 @@ def test_claim_without_phase_ignores_phase_in_order(db_session):
         limit=2,
         scope=[],
         # Note: no phase_field provided
-        grouping_field=(TranslationTask.candidate_id,),
+        grouping=(TranslationTask.candidate_id,),
     )
 
     # Assert: phase=2 (priority=5) comes before phase=1 (priority=100) because priority order is used
@@ -204,9 +215,9 @@ def test_claim_without_phase_ignores_phase_in_order(db_session):
 
 def test_all_pipelines_respect_phase_and_grouping_order(db_session):
     """Integration: Translation and Embedding pipelines claim in correct phase+grouping order."""
-    api_key_id = uuid4()
-    candidate_id_1 = uuid4()
-    candidate_id_2 = uuid4()
+    api_key_id = make_key(db_session).id
+    # grouping orders candidates by id, so the lower id is the first group
+    candidate_id_1, candidate_id_2 = sorted(make_candidate(db_session).id for _ in range(2))
     now = datetime.utcnow()
 
     # Enqueue across translation and embedding pipelines
@@ -214,6 +225,7 @@ def test_all_pipelines_respect_phase_and_grouping_order(db_session):
     trans_c1_p1 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_1,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -223,6 +235,7 @@ def test_all_pipelines_respect_phase_and_grouping_order(db_session):
     trans_c2_p2 = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id_2,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,
@@ -266,7 +279,7 @@ def test_all_pipelines_respect_phase_and_grouping_order(db_session):
         limit=10,
         scope=[],
         phase_field=TranslationTask.phase,
-        grouping_field=(TranslationTask.candidate_id,),
+        grouping=(TranslationTask.candidate_id,),
     )
 
     # Claim from embedding pipeline
@@ -277,7 +290,7 @@ def test_all_pipelines_respect_phase_and_grouping_order(db_session):
         limit=10,
         scope=[],
         phase_field=EmbeddingTask.phase,
-        grouping_field=(EmbeddingTask.candidate_id,),
+        grouping=(EmbeddingTask.candidate_id,),
     )
 
     # Assert ordering within each pipeline
@@ -292,13 +305,14 @@ def test_all_pipelines_respect_phase_and_grouping_order(db_session):
 
 def test_claim_backward_compatible_without_phase_field(db_session):
     """Negative path: Existing code without phase/grouping still works."""
-    api_key_id = uuid4()
-    candidate_id = uuid4()
+    api_key_id = make_key(db_session).id
+    candidate_id = make_candidate(db_session).id
     now = datetime.utcnow()
 
     task = TranslationTask(
         id=uuid4(),
         candidate_id=candidate_id,
+        source_hash="test-hash",
         locale="en",
         status=WorkTaskStatus.PENDING,
         priority=10,

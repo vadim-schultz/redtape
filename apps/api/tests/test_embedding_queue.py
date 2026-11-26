@@ -17,6 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from embedding_support import MODEL, NOW, claimed_by, committed_world, current_hash, make_key, queued
+from fair_selection_support import embedding_task
 
 LATER = NOW + timedelta(minutes=16)
 
@@ -70,7 +71,10 @@ def test_claim_fails_a_task_whose_search_text_is_gone_and_does_not_serve_it(db_s
 
 
 def test_claim_orders_by_priority_then_age_then_id_and_honours_the_limit(db_session: Session) -> None:
-    (_, old), (_, new), (_, urgent) = (queued(db_session, f"Antrag {n}") for n in range(3))
+    # Two tasks of one candidate share a claim group, so their age decides; the urgent task is another candidate.
+    candidate, old = queued(db_session, "Antrag")
+    new = embedding_task(db_session, candidate, locale="en")
+    _, urgent = queued(db_session, "Dringend")
     old.created_at, new.created_at = NOW - timedelta(hours=2), NOW - timedelta(hours=1)
     urgent.created_at, urgent.priority = NOW, 10
     db_session.flush()

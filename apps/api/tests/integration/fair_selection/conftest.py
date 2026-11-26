@@ -13,6 +13,7 @@ from app.models.snapshot_translation import SnapshotTranslationTask
 from app.models.translation import TranslationTask
 from sqlalchemy.orm import Session
 
+from embedding_support import make_key
 from search_support import make_candidate
 
 
@@ -52,7 +53,7 @@ def create_candidate_tasks(
 
     # Create tasks for each locale
     for locale_index, locale in enumerate(locales):
-        # Priority formula: (phase - 1) * 100_000 + locale_index
+        # The phase band, then the locale position so the locales of one candidate keep their order
         priority = (phase - 1) * 100_000 + locale_index
         task = TranslationTask(
             id=uuid4(),
@@ -117,7 +118,7 @@ def claim_all_tasks(
 
     queue = LeasedQueue(session, model=task_model)
     claimed_tasks = []
-    api_key_id = uuid4()
+    api_key_id = make_key(session).id
     now = utc_now()
 
     grouping = ()
