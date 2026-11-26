@@ -8,6 +8,7 @@ from collections.abc import Iterator
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 
 from test_check_migrations_script import _fresh_database
 from test_search_migration import _alembic, _scalars
@@ -99,3 +100,39 @@ def test_downgrade_drops_state_and_phase_keeps_task_rows_and_upgrade_rebuilds_it
     _alembic(url, "upgrade", "head")
 
     assert _state_rows(engine) == before
+
+
+def test_alembic_check_is_clean_after_upgrade() -> None:
+    """Happy path: a database upgraded to head matches the models, so ``alembic check`` passes."""
+    with _fresh_database() as url:
+        _alembic(url, "upgrade", "head")
+
+        _alembic(url, "check")
+
+
+def test_duplicate_pipeline_entity_is_rejected_on_the_migrated_schema() -> None:
+    """Negative path: the migrated schema rejects a second state row for the same (pipeline, entity_id)."""
+    with _fresh_database() as url:
+        _alembic(url, "upgrade", "head")
+        engine = create_engine(url)
+        try:
+            _insert_state(engine, "translation", CANDIDATE)
+
+            with pytest.raises(IntegrityError):
+                _insert_state(engine, "translation", CANDIDATE)
+
+            assert _scalars(engine, "select count(*)::text from fair_selection_state") == ["1"]
+        finally:
+            engine.dispose()
+
+
+def _insert_state(engine: Engine, pipeline: str, entity_id: uuid.UUID) -> None:
+    """Insert one phase-1 fair_selection_state row for ``entity_id`` in ``pipeline``."""
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "insert into fair_selection_state (id, pipeline, entity_id, phase, coverage_bitmap) "
+                "values (gen_random_uuid(), :pipeline, :entity, 1, 0)"
+            ),
+            {"pipeline": pipeline, "entity": entity_id},
+        )

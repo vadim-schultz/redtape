@@ -54,18 +54,12 @@ def _create_fair_selection_state_table() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
 
-    # Unique constraint on (pipeline, entity_id) pair
-    op.create_unique_constraint(
-        "uq_fair_selection_state_entity",
-        "fair_selection_state",
-        ["pipeline", "entity_id"],
-    )
-
-    # Index for efficient lookup by pipeline and entity_id
+    # One state row per (pipeline, entity_id). Also the ON CONFLICT target for the backfill; same index as the model.
     op.create_index(
         "ix_fair_selection_state_pipeline_entity",
         "fair_selection_state",
         ["pipeline", "entity_id"],
+        unique=True,
     )
 
 

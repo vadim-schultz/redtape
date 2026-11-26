@@ -52,21 +52,18 @@ class TestFairSelectionStateTableSchema:
             actual_columns == expected_columns
         ), f"Expected columns {expected_columns}, got {actual_columns}"
 
-    def test_fair_selection_state_unique_constraint(self, db_session: Session) -> None:
-        """Verify unique constraint exists on (pipeline, entity_id)."""
-        result = db_session.execute(
+    def test_fair_selection_state_unique_index(self, db_session: Session) -> None:
+        """Verify the index on (pipeline, entity_id) is unique."""
+        is_unique = db_session.execute(
             text("""
-            SELECT constraint_name
-            FROM information_schema.table_constraints
-            WHERE table_name = 'fair_selection_state'
-            AND constraint_type = 'UNIQUE'
+            SELECT i.indisunique
+            FROM pg_index i
+            JOIN pg_class c ON c.oid = i.indexrelid
+            WHERE c.relname = 'ix_fair_selection_state_pipeline_entity'
             """)
-        ).fetchall()
+        ).scalar_one_or_none()
 
-        constraint_names = {row[0] for row in result}
-        assert (
-            "uq_fair_selection_state_entity" in constraint_names
-        ), f"Expected unique constraint not found in {constraint_names}"
+        assert is_unique is True, "Expected ix_fair_selection_state_pipeline_entity to be a unique index"
 
     def test_fair_selection_state_index_exists(self, db_session: Session) -> None:
         """Verify index exists on (pipeline, entity_id)."""
