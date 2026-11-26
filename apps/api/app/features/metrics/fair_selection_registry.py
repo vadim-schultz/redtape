@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -45,16 +43,22 @@ def _task_counts_by_status_and_phase(
 ) -> dict[tuple[str, int], int]:
     """Query task counts grouped by status and phase for a given pipeline."""
     if pipeline == "translation":
-        task_model: Any = TranslationTask
+        return _query_task_counts(session, TranslationTask)
     elif pipeline == "snapshot_translation":
-        task_model = SnapshotTranslationTask
+        return _query_task_counts(session, SnapshotTranslationTask)
     elif pipeline == "embedding":
-        task_model = EmbeddingTask
+        return _query_task_counts(session, EmbeddingTask)
     elif pipeline == "discovery":
-        task_model = DiscoveryTask
+        return _query_task_counts(session, DiscoveryTask)
     else:
         return {}
 
+
+def _query_task_counts(
+    session: Session,
+    task_model: type[TranslationTask] | type[SnapshotTranslationTask] | type[EmbeddingTask] | type[DiscoveryTask],
+) -> dict[tuple[str, int], int]:
+    """Query task counts for a specific task model."""
     stmt = (
         select(task_model.status, task_model.phase, func.count())
         .group_by(task_model.status, task_model.phase)
