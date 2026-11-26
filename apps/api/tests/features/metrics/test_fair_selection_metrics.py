@@ -12,8 +12,9 @@ Each slice has happy and negative path tests.
 
 from __future__ import annotations
 
-import uuid
+from collections.abc import Callable
 
+import pytest
 from app.features.metrics.fair_selection_metrics import (
     document_coverage_pct,
     fair_selection_phase_transition,
@@ -26,9 +27,13 @@ from app.features.metrics.fair_selection_registry import (
     update_all_metrics,
     update_coverage_metrics,
 )
+from app.models.discovery.enums import DiscoveryTaskStatus
 from app.models.search import WorkTaskStatus
 from app.models.translation import TranslationTask
 from sqlalchemy.orm import Session
+
+from fair_selection_support import discovery_task, embedding_task, snapshot_task, translation_task
+from search_support import make_candidate
 
 LOCALES = ["de", "en", "fr", "es", "it", "pt", "nl", "pl", "cs", "sk", "hu", "ro", "bg", "hr", "sv"]
 
@@ -52,7 +57,7 @@ class TestPendingByPhase:
         # Create 10 phase-1 and 5 phase-2 tasks (each with unique candidate-locale pair)
         for i in range(10):
             task = TranslationTask(
-                candidate_id=uuid.uuid4(),
+                candidate_id=make_candidate(db_session).id,
                 locale=LOCALES[i % len(LOCALES)],
                 source_hash=f"hash_{i}",
                 status=WorkTaskStatus.PENDING,
@@ -63,7 +68,7 @@ class TestPendingByPhase:
 
         for i in range(5):
             task = TranslationTask(
-                candidate_id=uuid.uuid4(),
+                candidate_id=make_candidate(db_session).id,
                 locale=LOCALES[(i + 10) % len(LOCALES)],
                 source_hash=f"hash_phase2_{i}",
                 status=WorkTaskStatus.PENDING,
@@ -92,7 +97,7 @@ class TestPendingByPhase:
         # Create 10 phase-1 pending tasks (each with unique candidate-locale pair)
         for i in range(10):
             task = TranslationTask(
-                candidate_id=uuid.uuid4(),
+                candidate_id=make_candidate(db_session).id,
                 locale=LOCALES[i % len(LOCALES)],
                 source_hash=f"hash_{i}",
                 status=WorkTaskStatus.PENDING,
@@ -103,12 +108,13 @@ class TestPendingByPhase:
 
         db_session.commit()
 
-        # Claim 3 tasks
+        # Claim 3 tasks; flush so the next query sees them (the test session has autoflush off)
         pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(3).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.CLAIMED
+        db_session.flush()
 
-        # Complete 2 tasks
+        # Complete 2 of the 7 still pending tasks
         pending_tasks = db_session.query(TranslationTask).filter_by(status=WorkTaskStatus.PENDING).limit(2).all()
         for task in pending_tasks:
             task.status = WorkTaskStatus.COMPLETED
@@ -143,7 +149,7 @@ class TestClaimedByPhase:
         # Create 10 phase-1 pending tasks
         for i in range(10):
             task = TranslationTask(
-                candidate_id=uuid.uuid4(),
+                candidate_id=make_candidate(db_session).id,
                 locale=LOCALES[i % len(LOCALES)],
                 source_hash=f"hash_{i}",
                 status=WorkTaskStatus.PENDING,
@@ -179,7 +185,7 @@ class TestClaimedByPhase:
         # Create 5 phase-1 tasks claimed
         for i in range(5):
             task = TranslationTask(
-                candidate_id=uuid.uuid4(),
+                candidate_id=make_candidate(db_session).id,
                 locale=LOCALES[i % len(LOCALES)],
                 source_hash=f"hash_{i}",
                 status=WorkTaskStatus.CLAIMED,
@@ -271,7 +277,7 @@ class TestDocumentCoveragePct:
         Assert: Metric document_coverage_pct{pipeline="translation"} = 50.0
         """
         # Create 10 candidates
-        candidate_ids = [uuid.uuid4() for _ in range(10)]
+        candidate_ids = [make_candidate(db_session).id for _ in range(10)]
 
         # Create 1 completed task per document for first 5 documents
         for i, candidate_id in enumerate(candidate_ids[:5]):
@@ -314,7 +320,7 @@ class TestDocumentCoveragePct:
         Assert: Metric never exceeds 100.0
         """
         # Create 10 candidates
-        candidate_ids = [uuid.uuid4() for _ in range(10)]
+        candidate_ids = [make_candidate(db_session).id for _ in range(10)]
 
         # Create 1 completed task per document for first 5 documents
         for i, candidate_id in enumerate(candidate_ids[:5]):
@@ -349,6 +355,48 @@ class TestDocumentCoveragePct:
         assert coverage <= 100.0
 
 
+def _work_status(completed: bool) -> WorkTaskStatus:
+    return WorkTaskStatus.COMPLETED if completed else WorkTaskStatus.PENDING
+
+
+_TASK_SEEDERS: dict[str, Callable[[Session, bool], object]] = {
+    "translation": lambda session, done: translation_task(session, status=_work_status(done)),
+    "embedding": lambda session, done: embedding_task(session, status=_work_status(done)),
+    "snapshot_translation": lambda session, done: snapshot_task(session, status=_work_status(done)),
+    "discovery": lambda session, done: discovery_task(
+        session, status=DiscoveryTaskStatus.COMPLETED if done else DiscoveryTaskStatus.PENDING
+    ),
+}
+
+
+class TestCoverageOfEveryPipeline:
+    """Coverage is the share of a pipeline's entities that have a completed task, for each pipeline."""
+
+    @pytest.mark.parametrize("pipeline", sorted(_TASK_SEEDERS))
+    def test_coverage_is_completed_entities_over_all_entities(self, db_session: Session, pipeline: str) -> None:
+        """Happy path: two of four entities have a completed task, so coverage is 50%."""
+        seed = _TASK_SEEDERS[pipeline]
+        for done in (True, True, False, False):
+            seed(db_session, done)
+        db_session.commit()
+
+        update_coverage_metrics(db_session)
+
+        assert document_coverage_pct.labels(pipeline=pipeline)._value.get() == 50.0
+
+    @pytest.mark.parametrize("pipeline", sorted(_TASK_SEEDERS))
+    def test_coverage_is_zero_while_no_entity_has_a_completed_task(self, db_session: Session, pipeline: str) -> None:
+        """Negative path: entities with only pending tasks are not covered, so coverage is 0%."""
+        seed = _TASK_SEEDERS[pipeline]
+        for _ in range(3):
+            seed(db_session, False)
+        db_session.commit()
+
+        update_coverage_metrics(db_session)
+
+        assert document_coverage_pct.labels(pipeline=pipeline)._value.get() == 0.0
+
+
 # ============================================================================
 # Slice 5: Integration Test
 # ============================================================================
@@ -370,7 +418,7 @@ class TestMetricsIntegration:
         Assert: No exceptions or errors during metric update
         """
         # Create 5 candidates
-        candidate_ids = [uuid.uuid4() for _ in range(5)]
+        candidate_ids = [make_candidate(db_session).id for _ in range(5)]
 
         # Create 20 tasks: 10 phase-1, 10 phase-2
         task_id = 0

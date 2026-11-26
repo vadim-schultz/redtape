@@ -1,10 +1,13 @@
-"""Query and update fair-selection metrics."""
+"""Query and update fair-selection metrics: queue counts and coverage for every pipeline."""
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from uuid import UUID
 
+from sqlalchemy import ColumnElement, func, select
+from sqlalchemy.orm import InstrumentedAttribute, Session
+
+from app.features.fair_selection.pipelines import PIPELINE_TASKS, TaskModel
 from app.features.metrics.fair_selection_metrics import (
     set_claimed_by_phase,
     set_completed_by_phase,
@@ -13,14 +16,12 @@ from app.features.metrics.fair_selection_metrics import (
 )
 from app.models.discovery.discovery_task import DiscoveryTask
 from app.models.discovery.enums import DiscoveryTaskStatus
-from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.snapshot_translation import SnapshotTranslationTask
-from app.models.translation import TranslationTask
+from app.models.search import WorkTaskStatus
 
 
 def update_all_metrics(session: Session) -> None:
     """Refresh all queue metrics from current database state."""
-    for pipeline in ["translation", "snapshot_translation", "embedding", "discovery"]:
+    for pipeline in PIPELINE_TASKS:
         counts = _task_counts_by_status_and_phase(session, pipeline)
         for (status, phase), count in counts.items():
             if status == "pending":
@@ -33,29 +34,17 @@ def update_all_metrics(session: Session) -> None:
 
 def update_coverage_metrics(session: Session) -> None:
     """Calculate and set document coverage percentage per pipeline."""
-    for pipeline in ["translation", "snapshot_translation", "embedding", "discovery"]:
-        pct = _calculate_coverage_pct(session, pipeline)
-        set_coverage_pct(pipeline, pct)
+    for pipeline in PIPELINE_TASKS:
+        set_coverage_pct(pipeline, _calculate_coverage_pct(session, pipeline))
 
 
 def _task_counts_by_status_and_phase(session: Session, pipeline: str) -> dict[tuple[str, int], int]:
     """Query task counts grouped by status and phase for a given pipeline."""
-    if pipeline == "translation":
-        return _query_task_counts(session, TranslationTask)
-    elif pipeline == "snapshot_translation":
-        return _query_task_counts(session, SnapshotTranslationTask)
-    elif pipeline == "embedding":
-        return _query_task_counts(session, EmbeddingTask)
-    elif pipeline == "discovery":
-        return _query_task_counts(session, DiscoveryTask)
-    else:
-        return {}
+    task_model, _ = PIPELINE_TASKS[pipeline]
+    return _query_task_counts(session, task_model)
 
 
-def _query_task_counts(
-    session: Session,
-    task_model: type[TranslationTask] | type[SnapshotTranslationTask] | type[EmbeddingTask] | type[DiscoveryTask],
-) -> dict[tuple[str, int], int]:
+def _query_task_counts(session: Session, task_model: TaskModel) -> dict[tuple[str, int], int]:
     """Query task counts for a specific task model."""
     stmt = select(task_model.status, task_model.phase, func.count()).group_by(task_model.status, task_model.phase)
 
@@ -69,55 +58,26 @@ def _query_task_counts(
 
 
 def _calculate_coverage_pct(session: Session, pipeline: str) -> float:
-    """Calculate percentage of documents with ≥1 completed task.
+    """Return the percentage of a pipeline's entities with at least one completed task.
 
-    For translation: document = candidate; for discovery: document = catalogue_service.
+    An entity is a candidate for translation and embedding, and a catalogue page for snapshot translation and
+    discovery. Every entity with any task in the pipeline counts toward the total, so a pending or failed task
+    does not hide an uncovered entity.
     """
-    if pipeline == "translation":
-        # Count distinct candidates with ≥1 completed task
-        stmt_total = select(func.count(func.distinct(TranslationTask.candidate_id))).where(
-            TranslationTask.status == WorkTaskStatus.COMPLETED
-        )
-        stmt_covered = select(func.count(func.distinct(TranslationTask.candidate_id))).where(
-            TranslationTask.status == WorkTaskStatus.COMPLETED
-        )
-
-        total_count = int(session.scalar(stmt_total) or 0)
-        covered_count = int(session.scalar(stmt_covered) or 0)
-    elif pipeline == "snapshot_translation":
-        stmt_total = select(func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))).where(
-            SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED
-        )
-        stmt_covered = select(func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))).where(
-            SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED
-        )
-
-        total_count = int(session.scalar(stmt_total) or 0)
-        covered_count = int(session.scalar(stmt_covered) or 0)
-    elif pipeline == "embedding":
-        stmt_total = select(func.count(func.distinct(EmbeddingTask.candidate_id))).where(
-            EmbeddingTask.status == WorkTaskStatus.COMPLETED
-        )
-        stmt_covered = select(func.count(func.distinct(EmbeddingTask.candidate_id))).where(
-            EmbeddingTask.status == WorkTaskStatus.COMPLETED
-        )
-
-        total_count = int(session.scalar(stmt_total) or 0)
-        covered_count = int(session.scalar(stmt_covered) or 0)
-    elif pipeline == "discovery":
-        stmt_total = select(func.count(func.distinct(DiscoveryTask.catalogue_service_id))).where(
-            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED
-        )
-        stmt_covered = select(func.count(func.distinct(DiscoveryTask.catalogue_service_id))).where(
-            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED
-        )
-
-        total_count = int(session.scalar(stmt_total) or 0)
-        covered_count = int(session.scalar(stmt_covered) or 0)
-    else:
+    task_model, entity_col = PIPELINE_TASKS[pipeline]
+    total = _distinct_entities(session, entity_col)
+    if total == 0:
         return 0.0
+    covered = _distinct_entities(session, entity_col, task_model.status == _completed_status(task_model))
+    return covered / total * 100.0
 
-    if total_count == 0:
-        return 0.0
 
-    return (covered_count / total_count) * 100.0
+def _distinct_entities(session: Session, entity_col: InstrumentedAttribute[UUID], *where: ColumnElement[bool]) -> int:
+    """Count the distinct entities in ``entity_col`` among the task rows that satisfy ``where``."""
+    stmt = select(func.count(func.distinct(entity_col))).where(*where)
+    return int(session.scalar(stmt) or 0)
+
+
+def _completed_status(task_model: TaskModel) -> WorkTaskStatus | DiscoveryTaskStatus:
+    """Return the status a completed task of ``task_model`` carries; discovery has its own status enum."""
+    return DiscoveryTaskStatus.COMPLETED if task_model is DiscoveryTask else WorkTaskStatus.COMPLETED
