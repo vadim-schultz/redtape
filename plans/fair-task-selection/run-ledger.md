@@ -9,7 +9,8 @@ Execution log for the fair task selection work package. Updated as each chapter 
 | Design & Schema | C1, C2 | ✅ Complete | ✅ | Merged into loop branch |
 | Priorities | C3–C7 | ✅ Complete | ✅ | All 5 chapters merged (C7 conflict resolved) |
 | Integration | C8 | ✅ Complete | ✅ | Merged into loop branch |
-| Validation | C9, C10 | 🔄 Ready | — | Launching now |
+| Observability | C9 | ✅ Complete | ✅ | Merged into loop branch |
+| Validation | C10 | 🔄 Ready | — | Launching now |
 
 ## Chapter Integration Log
 
@@ -118,29 +119,29 @@ Execution log for the fair task selection work package. Updated as each chapter 
 
 ### C9: Add observability & metrics
 
-- **Status**: 🔄 Ready
+- **Status**: ✅ Integrated
 - **Assigned to**: chapter-implementer
 - **Scheduled**: Day 10
 - **Blocked by**: C3, C4, C5, C6, C7, C8 (all integrated) ✅
-- **Branch**: `local/c9-metrics-observability`
-- **Integration date**: —
-- **Commits**: —
-- **Gate result**: —
-- **Conflicts**: —
-- **Notes**: Prometheus metrics for phase state, queue health, coverage %. Emissions occur at state transitions and task settlements. Pipeline-aware metrics with labels.
+- **Branch**: `feat/plans-pipeline-optimisation` (merged via loop branch)
+- **Integration date**: 2026-11-25
+- **Commits**: `edb57e73`, `01d660a0`, `781c9d33` (feat + 2 refactors)
+- **Gate result**: ✅ Narrow & full gates pass
+- **Conflicts**: None
+- **Notes**: Prometheus metrics for phase state, queue health, coverage %. 5 metrics (pending, claimed, completed per phase; coverage %; transitions counter). 10 tests (2 per slice). Query helpers in fair_selection_registry.py. 697 LOC total.
 
 ### C10: End-to-end integration & validation
 
-- **Status**: Pending
+- **Status**: 🔄 Ready
 - **Assigned to**: chapter-implementer
 - **Scheduled**: Day 10–13
-- **Blocked by**: C3, C4, C5, C6, C7, C8, C9 (C9 integration awaited)
-- **Branch**: `local/c10-integration-validation`
+- **Blocked by**: C3, C4, C5, C6, C7, C8, C9 (all integrated) ✅
+- **Branch**: `c10-integration-validation` (isolate worktree)
 - **Integration date**: —
 - **Commits**: —
 - **Gate result**: —
 - **Conflicts**: —
-- **Notes**: Three integration tests (breadth-first ordering, phase transitions, coverage tracking) + stress test + rollback validation. Final gate before release. Waits on C9 completion.
+- **Notes**: Five integration test slices: breadth-first ordering, phase transitions, coverage tracking, 1000-task stress test, rollback resilience. 10 tests total. Final gate before release.
 
 ## Release Gate
 
