@@ -38,9 +38,7 @@ def update_coverage_metrics(session: Session) -> None:
         set_coverage_pct(pipeline, pct)
 
 
-def _task_counts_by_status_and_phase(
-    session: Session, pipeline: str
-) -> dict[tuple[str, int], int]:
+def _task_counts_by_status_and_phase(session: Session, pipeline: str) -> dict[tuple[str, int], int]:
     """Query task counts grouped by status and phase for a given pipeline."""
     if pipeline == "translation":
         return _query_task_counts(session, TranslationTask)
@@ -59,10 +57,7 @@ def _query_task_counts(
     task_model: type[TranslationTask] | type[SnapshotTranslationTask] | type[EmbeddingTask] | type[DiscoveryTask],
 ) -> dict[tuple[str, int], int]:
     """Query task counts for a specific task model."""
-    stmt = (
-        select(task_model.status, task_model.phase, func.count())
-        .group_by(task_model.status, task_model.phase)
-    )
+    stmt = select(task_model.status, task_model.phase, func.count()).group_by(task_model.status, task_model.phase)
 
     result = {}
     for status, phase, count in session.execute(stmt).all():
@@ -80,42 +75,42 @@ def _calculate_coverage_pct(session: Session, pipeline: str) -> float:
     """
     if pipeline == "translation":
         # Count distinct candidates with ≥1 completed task
-        stmt_total = select(
-            func.count(func.distinct(TranslationTask.candidate_id))
-        ).where(TranslationTask.status == WorkTaskStatus.COMPLETED)
-        stmt_covered = select(
-            func.count(func.distinct(TranslationTask.candidate_id))
-        ).where(TranslationTask.status == WorkTaskStatus.COMPLETED)
+        stmt_total = select(func.count(func.distinct(TranslationTask.candidate_id))).where(
+            TranslationTask.status == WorkTaskStatus.COMPLETED
+        )
+        stmt_covered = select(func.count(func.distinct(TranslationTask.candidate_id))).where(
+            TranslationTask.status == WorkTaskStatus.COMPLETED
+        )
 
         total_count = int(session.scalar(stmt_total) or 0)
         covered_count = int(session.scalar(stmt_covered) or 0)
     elif pipeline == "snapshot_translation":
-        stmt_total = select(
-            func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))
-        ).where(SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED)
-        stmt_covered = select(
-            func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))
-        ).where(SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED)
+        stmt_total = select(func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))).where(
+            SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED
+        )
+        stmt_covered = select(func.count(func.distinct(SnapshotTranslationTask.catalogue_service_id))).where(
+            SnapshotTranslationTask.status == WorkTaskStatus.COMPLETED
+        )
 
         total_count = int(session.scalar(stmt_total) or 0)
         covered_count = int(session.scalar(stmt_covered) or 0)
     elif pipeline == "embedding":
-        stmt_total = select(
-            func.count(func.distinct(EmbeddingTask.candidate_id))
-        ).where(EmbeddingTask.status == WorkTaskStatus.COMPLETED)
-        stmt_covered = select(
-            func.count(func.distinct(EmbeddingTask.candidate_id))
-        ).where(EmbeddingTask.status == WorkTaskStatus.COMPLETED)
+        stmt_total = select(func.count(func.distinct(EmbeddingTask.candidate_id))).where(
+            EmbeddingTask.status == WorkTaskStatus.COMPLETED
+        )
+        stmt_covered = select(func.count(func.distinct(EmbeddingTask.candidate_id))).where(
+            EmbeddingTask.status == WorkTaskStatus.COMPLETED
+        )
 
         total_count = int(session.scalar(stmt_total) or 0)
         covered_count = int(session.scalar(stmt_covered) or 0)
     elif pipeline == "discovery":
-        stmt_total = select(
-            func.count(func.distinct(DiscoveryTask.catalogue_service_id))
-        ).where(DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED)
-        stmt_covered = select(
-            func.count(func.distinct(DiscoveryTask.catalogue_service_id))
-        ).where(DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED)
+        stmt_total = select(func.count(func.distinct(DiscoveryTask.catalogue_service_id))).where(
+            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED
+        )
+        stmt_covered = select(func.count(func.distinct(DiscoveryTask.catalogue_service_id))).where(
+            DiscoveryTask.status == DiscoveryTaskStatus.COMPLETED
+        )
 
         total_count = int(session.scalar(stmt_total) or 0)
         covered_count = int(session.scalar(stmt_covered) or 0)

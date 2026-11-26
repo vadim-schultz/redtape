@@ -60,17 +60,24 @@ def update_embedding_coverage_bitmap(session: Session, candidate_id: UUID, local
     """
     # Map locale to bit index (assume locales are sorted; use a registry if order changes)
     # For now: canonical locale = bit 0, others in sorted order
-    locales = session.query(CandidateSearchText.locale).filter(
-        CandidateSearchText.candidate_id == candidate_id
-    ).order_by(CandidateSearchText.locale).all()
+    locales = (
+        session.query(CandidateSearchText.locale)
+        .filter(CandidateSearchText.candidate_id == candidate_id)
+        .order_by(CandidateSearchText.locale)
+        .all()
+    )
 
     locale_index = next((i for i, (loc,) in enumerate(locales) if loc == locale), 0)
 
     # Update or insert fair_selection_state with coverage bit set
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "embedding",
-        FairSelectionState.entity_id == candidate_id,
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "embedding",
+            FairSelectionState.entity_id == candidate_id,
+        )
+        .first()
+    )
 
     if state is None:
         state = FairSelectionState(

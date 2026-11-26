@@ -37,10 +37,11 @@ def get_phase_for_discovery_page(session: Session, catalogue_service_id: UUID) -
 
     Discovery entity_id is catalogue_service_id (page).
     """
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "discovery",
-        FairSelectionState.entity_id == catalogue_service_id
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(FairSelectionState.pipeline == "discovery", FairSelectionState.entity_id == catalogue_service_id)
+        .first()
+    )
     return state.phase if state else 1
 
 

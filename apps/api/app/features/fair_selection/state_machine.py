@@ -19,21 +19,16 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.features.fair_selection.pipelines import PIPELINE_TASKS
+from app.features.metrics.fair_selection_metrics import increment_phase_transition
 from app.models.fair_selection_state import FairSelectionState
-from app.models.search import EmbeddingTask, WorkTaskStatus
-from app.models.translation import TranslationTask, SnapshotTranslationTask
-from app.models.discovery.discovery_task import DiscoveryTask
+from app.models.search import WorkTaskStatus
 
 if TYPE_CHECKING:
     pass
 
-# Prometheus metrics
-phase_transition_counter = Counter(
-    "fair_selection_phase_transition_total",
-    "Count of phase transitions completed",
-    ["pipeline", "from_phase", "to_phase"],
-)
-
+# Prometheus metrics. The completed-transition counter lives in app.features.metrics.fair_selection_metrics:
+# registering the same metric name twice in one process raises DuplicateTimeseries.
 phase_transition_duration = Histogram(
     "fair_selection_phase_transition_duration_seconds",
     "Duration of phase transition operation",
@@ -104,9 +99,7 @@ class StateMachine:
         self.phase_1_complete = False
 
         # Track coverage per document
-        self._coverages: list[PhaseCoverage] = [
-            PhaseCoverage(num_locales) for _ in range(num_documents)
-        ]
+        self._coverages: list[PhaseCoverage] = [PhaseCoverage(num_locales) for _ in range(num_documents)]
 
     def settle_task(self, doc_index: int, locale_index: int) -> None:
         """Mark a task as settled (completed).
@@ -197,38 +190,32 @@ def check_phase_one_complete(pipeline: str, session: Session | None = None) -> b
     Returns:
         True if all documents have ≥1 completed task; False otherwise.
     """
-    # Map pipeline to task model and entity column
-    task_model_map = {
-        "translation": (TranslationTask, TranslationTask.candidate_id),
-        "embedding": (EmbeddingTask, EmbeddingTask.candidate_id),
-        "discovery": (DiscoveryTask, DiscoveryTask.catalogue_service_id),
-        "translation_snapshot": (SnapshotTranslationTask, SnapshotTranslationTask.catalogue_service_id),
-    }
-
-    if pipeline not in task_model_map:
+    if pipeline not in PIPELINE_TASKS:
         raise ValueError(f"Unknown pipeline: {pipeline}")
 
-    task_model, entity_col = task_model_map[pipeline]
+    task_model, entity_col = PIPELINE_TASKS[pipeline]
 
     # Use provided session or create new one
     s = session or SessionLocal()
     try:
         # Count total unique entities tracked for this pipeline
-        total_entities = s.query(
-            func.count(func.distinct(FairSelectionState.entity_id))
-        ).filter(
-            FairSelectionState.pipeline == pipeline
-        ).scalar() or 0
+        total_entities = (
+            s.query(func.count(func.distinct(FairSelectionState.entity_id)))
+            .filter(FairSelectionState.pipeline == pipeline)
+            .scalar()
+            or 0
+        )
 
         if total_entities == 0:
             return True  # No entities = vacuously true
 
         # Count unique entities with ≥1 completed task
-        completed_entities = s.query(
-            func.count(func.distinct(entity_col))
-        ).filter(
-            task_model.status == WorkTaskStatus.COMPLETED
-        ).scalar() or 0
+        completed_entities = (
+            s.query(func.count(func.distinct(entity_col)))
+            .filter(task_model.status == WorkTaskStatus.COMPLETED)
+            .scalar()
+            or 0
+        )
 
         return completed_entities >= total_entities
     finally:
@@ -263,10 +250,14 @@ def _check_phase_three_exists(pipeline: str, session: Session | None = None) -> 
     """
     s = session or SessionLocal()
     try:
-        phase_three_count = s.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == pipeline,
-            FairSelectionState.phase == 3,
-        ).count()
+        phase_three_count = (
+            s.query(FairSelectionState)
+            .filter(
+                FairSelectionState.pipeline == pipeline,
+                FairSelectionState.phase == 3,
+            )
+            .count()
+        )
 
         return phase_three_count > 0
     finally:
@@ -323,10 +314,9 @@ def transition_phase(
             if not _check_phase_two_complete(pipeline, session=s):
                 condition_met = False
                 blocked_reason = "incomplete_phase_two"
-        elif from_phase == 3 and to_phase == 1:
-            if _check_phase_three_exists(pipeline, session=s):
-                condition_met = False
-                blocked_reason = "phase_three_exists"
+        elif from_phase == 3 and to_phase == 1 and _check_phase_three_exists(pipeline, session=s):
+            condition_met = False
+            blocked_reason = "phase_three_exists"
 
         # If condition not met, record blocked metric and return 0
         if not condition_met:
@@ -339,22 +329,22 @@ def transition_phase(
             return 0
 
         # Perform transition: update all entities in from_phase to to_phase
-        updated = s.query(FairSelectionState).filter(
-            FairSelectionState.pipeline == pipeline,
-            FairSelectionState.phase == from_phase,
-        ).update(
-            {FairSelectionState.phase: to_phase, FairSelectionState.updated_at: func.now()},
-            synchronize_session=False
+        updated = (
+            s.query(FairSelectionState)
+            .filter(
+                FairSelectionState.pipeline == pipeline,
+                FairSelectionState.phase == from_phase,
+            )
+            .update(
+                {FairSelectionState.phase: to_phase, FairSelectionState.updated_at: func.now()},
+                synchronize_session=False,
+            )
         )
         s.commit()
 
         # Record metrics
         duration = time.time() - start_time
-        phase_transition_counter.labels(
-            pipeline=pipeline,
-            from_phase=from_phase,
-            to_phase=to_phase
-        ).inc()
+        increment_phase_transition(pipeline, from_phase, to_phase)
         phase_transition_duration.labels(pipeline=pipeline).observe(duration)
 
         return updated
@@ -369,7 +359,7 @@ def on_task_settled(
     task_status: str,  # 'COMPLETED', 'FAILED', etc.
     session: Session | None = None,
 ) -> None:
-    """Called when a task is settled (completed or failed).
+    """Handle a task settlement (completed or failed).
 
     Checks if this settlement allows a phase transition, and triggers
     automatic advancement if criteria are met.

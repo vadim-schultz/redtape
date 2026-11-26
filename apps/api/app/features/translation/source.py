@@ -52,10 +52,14 @@ def _description(row: DescriptionRow | None) -> str:
 
 def get_phase_for_candidate(session: Session, candidate_id: UUID) -> int:
     """Read phase for a candidate; default to phase 1 if not found."""
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "translation",
-        FairSelectionState.entity_id == candidate_id,
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "translation",
+            FairSelectionState.entity_id == candidate_id,
+        )
+        .first()
+    )
     return state.phase if state else 1
 
 
@@ -64,10 +68,14 @@ def get_phases_for_candidates(session: Session, candidate_ids: Sequence[UUID]) -
     if not candidate_ids:
         return {}
 
-    states = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "translation",
-        FairSelectionState.entity_id.in_(candidate_ids),
-    ).all()
+    states = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "translation",
+            FairSelectionState.entity_id.in_(candidate_ids),
+        )
+        .all()
+    )
 
     result = {s.entity_id: s.phase for s in states}
 
@@ -81,10 +89,14 @@ def get_phases_for_candidates(session: Session, candidate_ids: Sequence[UUID]) -
 
 def get_phase_for_page(session: Session, catalogue_service_id: UUID) -> int:
     """Read phase for a page; default to phase 1 if not found."""
-    state = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "translation",
-        FairSelectionState.entity_id == catalogue_service_id,
-    ).first()
+    state = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "translation",
+            FairSelectionState.entity_id == catalogue_service_id,
+        )
+        .first()
+    )
     return state.phase if state else 1
 
 
@@ -94,10 +106,14 @@ def get_phases_for_pages(session: Session, page_ids: Iterable[UUID]) -> dict[UUI
     if not page_ids_list:
         return {}
 
-    states = session.query(FairSelectionState).filter(
-        FairSelectionState.pipeline == "translation",
-        FairSelectionState.entity_id.in_(page_ids_list),
-    ).all()
+    states = (
+        session.query(FairSelectionState)
+        .filter(
+            FairSelectionState.pipeline == "translation",
+            FairSelectionState.entity_id.in_(page_ids_list),
+        )
+        .all()
+    )
 
     result = {s.entity_id: s.phase for s in states}
 
