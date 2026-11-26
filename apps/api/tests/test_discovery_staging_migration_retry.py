@@ -13,11 +13,13 @@ import psycopg
 import pytest
 from sqlalchemy.engine import make_url
 
+from test_check_migrations_script import CURRENT_HEAD
+
 API_ROOT = Path(__file__).resolve().parent.parent
 PARENT_REVISION = "20260929b_suggestion_event"
 STAGING_REVISION = "20261012_discovery_staging"
-HEAD_REVISION = "20261119_fetch_body_sha256"
 BUDGET_REVISION = "20261028_budget_ledger"
+PRE_RETIREMENT_REVISION = "20261104_category_backfill"
 
 DISCOVERY_SOURCE_ENUM_SQL = "CREATE TYPE discovery_source AS ENUM ('govdata', 'pvog', 'fim', 'leika', 'manual')"
 
@@ -99,7 +101,7 @@ def test_discovery_staging_upgrade_from_clean_database() -> None:
     with _fresh_database() as database_url:
         result = _run_alembic(database_url, "upgrade", "head")
         assert result.returncode == 0, result.stdout + result.stderr
-        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _alembic_version(database_url) == CURRENT_HEAD
         assert _table_exists(database_url, "catalogue_service")
         assert _table_exists(database_url, "discovery_event")
         assert _table_exists(database_url, "discovery_document_candidate")
@@ -119,7 +121,7 @@ def test_discovery_staging_upgrade_succeeds_when_discovery_source_enum_exists() 
 
         head = _run_alembic(database_url, "upgrade", "head")
         assert head.returncode == 0, head.stdout + head.stderr
-        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _alembic_version(database_url) == CURRENT_HEAD
         assert _table_exists(database_url, "catalogue_service")
 
 
@@ -128,10 +130,9 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
     with _fresh_database() as database_url:
         first = _run_alembic(database_url, "upgrade", "head")
         assert first.returncode == 0, first.stdout + first.stderr
-        # Step the fetch body hash, the run stage and spend, the locale flag, the snapshot schema, the translation schema,
-        # the search schema and the retirement back so the legacy tables exist again; the simulated stuck state below
-        # rolls them back.
-        back = _run_alembic(database_url, "downgrade", "-8")
+        # Downgrade to just before the legacy taxonomy retirement so the legacy tables exist again; the simulated stuck
+        # state below rolls them back. Absolute target, not a step count: a count breaks whenever a revision is added.
+        back = _run_alembic(database_url, "downgrade", PRE_RETIREMENT_REVISION)
         assert back.returncode == 0, back.stdout + back.stderr
 
         with psycopg.connect(_psycopg_dsn(database_url)) as conn:
@@ -180,7 +181,7 @@ def test_discovery_staging_upgrade_succeeds_when_tables_exist_but_version_is_par
 
         retry = _run_alembic(database_url, "upgrade", "head")
         assert retry.returncode == 0, retry.stdout + retry.stderr
-        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _alembic_version(database_url) == CURRENT_HEAD
 
 
 def _enum_labels(database_url: str, type_name: str) -> list[str]:
@@ -218,17 +219,13 @@ def test_staging_edges_upgrade_adds_labels_columns_and_edge_table() -> None:
 def test_staging_edges_downgrade_drops_the_additions_but_keeps_enum_labels() -> None:
     """Round trip: the downgrade removes columns, table and basis enum; labels stay (Postgres cannot drop them).
 
-    ``-17`` walks back past the sixteen migrations stacked on top of ``staging_edges`` (situation-tag-hierarchy's
-    mention direct-confidence, link-table confidence, life_situation_group and pvog_leaf_code,
-    document-browse-confidence's remove_seeded_documents, the stored normalised URL, the two category
-    migrations, the legacy taxonomy retirement, the search schema, the translation schema, the snapshot
-    translation schema, the locale machine flag, the run stage and spend, the failure class and the fetch body hash)
-    to reach this revision's own step.
+    Downgrades to ``BUDGET_REVISION``, the revision just below ``staging_edges``, which undoes every migration stacked
+    above it. Targets the revision by id, not by step count, so adding a migration does not move the target.
     """
     with _fresh_database() as database_url:
         assert _run_alembic(database_url, "upgrade", "head").returncode == 0
 
-        down = _run_alembic(database_url, "downgrade", "-17")
+        down = _run_alembic(database_url, "downgrade", BUDGET_REVISION)
         assert down.returncode == 0, down.stdout + down.stderr
         assert _alembic_version(database_url) == BUDGET_REVISION
         assert not _table_exists(database_url, "discovery_candidate_edge")
@@ -239,4 +236,4 @@ def test_staging_edges_downgrade_drops_the_additions_but_keeps_enum_labels() -> 
 
         up = _run_alembic(database_url, "upgrade", "head")
         assert up.returncode == 0, up.stdout + up.stderr
-        assert _alembic_version(database_url) == HEAD_REVISION
+        assert _alembic_version(database_url) == CURRENT_HEAD

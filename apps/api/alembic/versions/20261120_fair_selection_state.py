@@ -1,7 +1,7 @@
 """Create fair_selection_state table and add phase column to task tables.
 
 Revision ID: 20261120_fair_selection_state
-Revises: 20261119_task_failure_class
+Revises: 20261119_fetch_body_sha256
 Create Date: 2026-11-20
 
 This migration creates the fair_selection_state table which tracks the phase of each
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "20261120_fair_selection_state"
-down_revision: str | None = "20261119_task_failure_class"
+down_revision: str | None = "20261119_fetch_body_sha256"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
