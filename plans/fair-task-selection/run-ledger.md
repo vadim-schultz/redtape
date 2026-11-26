@@ -8,8 +8,8 @@ Execution log for the fair task selection work package. Updated as each chapter 
 |-------|----------|--------|-----------|-------|
 | Design & Schema | C1, C2 | ✅ Complete | ✅ | Merged into loop branch |
 | Priorities | C3–C7 | ✅ Complete | ✅ | All 5 chapters merged (C7 conflict resolved) |
-| Integration | C8 | 🔄 Ready | — | Launching now |
-| Validation | C9, C10 | — | — | Blocked on C8 |
+| Integration | C8 | ✅ Complete | ✅ | Merged into loop branch |
+| Validation | C9, C10 | 🔄 Ready | — | Launching now |
 
 ## Chapter Integration Log
 
@@ -105,23 +105,23 @@ Execution log for the fair task selection work package. Updated as each chapter 
 
 ### C8: Modify `LeasedQueue.claim()` for phase/grouping
 
-- **Status**: Pending
+- **Status**: ✅ Integrated
 - **Assigned to**: chapter-implementer
 - **Scheduled**: Day 8–9
 - **Blocked by**: C2, C3, C4, C5, C6, C7 (all integrated)
-- **Branch**: `local/c8-leased-queue-integration`
-- **Integration date**: —
-- **Commits**: —
-- **Gate result**: —
-- **Conflicts**: —
-- **Notes**: Generic queue base class modified to support phase and grouping. All four pipelines (translation, snapshot, embedding, discovery) updated to pass grouping field.
+- **Branch**: `feat/plans-pipeline-optimisation` (merged via loop branch)
+- **Integration date**: 2026-11-25
+- **Commits**: `987b4107` (feat(C8): modify LeasedQueue.claim() for phase/grouping integration)
+- **Gate result**: ✅ Narrow & full gates pass
+- **Conflicts**: None
+- **Notes**: Generic queue base class modified to support phase and grouping. All four pipelines (translation, snapshot, embedding, discovery) updated to pass grouping field. 6 integration tests covering all 5 TDD slices (happy+negative paths).
 
 ### C9: Add observability & metrics
 
-- **Status**: Pending
+- **Status**: 🔄 Ready
 - **Assigned to**: chapter-implementer
 - **Scheduled**: Day 10
-- **Blocked by**: C3, C4, C5, C6, C7, C8 (all integrated)
+- **Blocked by**: C3, C4, C5, C6, C7, C8 (all integrated) ✅
 - **Branch**: `local/c9-metrics-observability`
 - **Integration date**: —
 - **Commits**: —
@@ -134,13 +134,13 @@ Execution log for the fair task selection work package. Updated as each chapter 
 - **Status**: Pending
 - **Assigned to**: chapter-implementer
 - **Scheduled**: Day 10–13
-- **Blocked by**: C3, C4, C5, C6, C7, C8, C9 (all integrated)
+- **Blocked by**: C3, C4, C5, C6, C7, C8, C9 (C9 integration awaited)
 - **Branch**: `local/c10-integration-validation`
 - **Integration date**: —
 - **Commits**: —
 - **Gate result**: —
 - **Conflicts**: —
-- **Notes**: Three integration tests (breadth-first ordering, phase transitions, coverage tracking) + stress test + rollback validation. Final gate before release.
+- **Notes**: Three integration tests (breadth-first ordering, phase transitions, coverage tracking) + stress test + rollback validation. Final gate before release. Waits on C9 completion.
 
 ## Release Gate
 

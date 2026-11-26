@@ -30,11 +30,12 @@ class FairSelectionState(Base):
             "ix_fair_selection_state_pipeline_entity",
             "pipeline",
             "entity_id",
+            unique=True,
         ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     pipeline: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)

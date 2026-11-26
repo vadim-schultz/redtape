@@ -37,7 +37,7 @@ def _create_fair_selection_state_table() -> None:
     """Create the fair_selection_state table with indices."""
     op.create_table(
         "fair_selection_state",
-        sa.Column("id", sa.Uuid(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column("id", sa.Uuid(as_uuid=True), primary_key=True),
         sa.Column("pipeline", sa.String(50), nullable=False),
         sa.Column("entity_id", sa.Uuid(as_uuid=True), nullable=False),
         sa.Column("phase", sa.Integer(), nullable=False, server_default=sa.text("1")),
