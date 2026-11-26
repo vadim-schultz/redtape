@@ -77,8 +77,4 @@ The decisions D1 to D12 hold for the whole work package. They live in [gaps-and-
 
 ## Open
 
-Three questions remain open. Each has a default in [gaps-and-decisions.md](gaps-and-decisions.md):
-
-- O1: whether the flow keeps row-level detail. Default: no. The flow shows totals and at most 20 recent failed tasks per stage.
-- O2: whether the admin emit previews survive. Default: no. The machine emit route is unchanged.
-- O3: whether the one-minute flow refresh still fits the added queries. Default: keep the refresh. C1 records the query count and the elapsed time of one read.
+No question remains open. The user confirmed the defaults of the former questions O1 to O3. They are recorded as D14 to D16 in [gaps-and-decisions.md](gaps-and-decisions.md).

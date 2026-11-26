@@ -25,11 +25,10 @@ isProject: false
 | D11 | The work package adds no migration and changes no stored data. | The removals are reads. The additions are read-only fields. | C1, C3, C6 |
 | D12 | This work package supersedes decisions D1, D2, D3 and D6 of [`.plans/discovery-admin-ui/gaps-and-decisions.md`](../discovery-admin-ui/gaps-and-decisions.md). Their route, probe and link rules describe views that this work package removes. The archive text stays unchanged. | Decisions of an older suite must not block this one. | C4, C5 |
 | D13 | The loop records under `docs/operations/loops/` and the plan folders under `.plans/` are history. They stay unchanged, except for links that the link check reports as broken. | History is not rewritten. | C7 |
+| D14 | The flow page does not keep row-level detail. It shows totals per stage and at most 20 recent failed tasks per stage. The row-level pages are removed. | The user confirmed the default of former question O1. | C3, C4 |
+| D15 | The admin emit previews are removed: `catalogue/{id}/emit-preview` and `candidates/{id}/emit-preview`. The machine emit route is unchanged. | The user confirmed the default of former question O2. | C6 |
+| D16 | The flow page keeps its one-minute refresh. C1 records the query count and the elapsed time of one flow read in its refactor report. | The user confirmed the default of former question O3. | C1 |
 
 ## Open
 
-| ID | Question | Owner | Blocks | Default if unanswered |
-| --- | --- | --- | --- | --- |
-| O1 | Should the flow page keep row-level detail? Row-level detail means catalogue rows, task rows beyond the 20 recent failures, candidate rows, or the artifacts of one row. | User | C3, C4 | No. The flow shows totals per stage and at most 20 recent failed tasks per stage. The row-level pages are removed. |
-| O2 | Should the admin emit previews survive? The previews are read-only. Only the removed drill-down pages use them. The emit write path is on the machine router. | User | C6 | Remove both admin preview endpoints. The machine emit route is unchanged. |
-| O3 | Does the one-minute refresh of the flow page still fit the added queries? | User | C1 | Keep the one-minute refresh. C1 records the query count and the elapsed time of one flow read in its refactor report. The chief of staff shows the figures to the user at integration. |
+None. The user confirmed the defaults of the former questions O1 to O3. They are settled as D14 to D16.
