@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from search_support import make_candidate
 from snapshot_machine_support import SHA_A, add_snapshot
 from test_discovery_admin_api import _catalogue
-from test_discovery_candidates_api import _item
 
 
 def _scored_mention(session: Session, page: CatalogueService, confidence: float) -> None:
@@ -56,7 +55,7 @@ def test_get_phase_for_page_reads_from_state(db_session: Session) -> None:
     page_id = uuid.uuid4()
 
     # Create a FairSelectionState entry for this page with phase=2
-    state = FairSelectionState(pipeline="translation", entity_id=page_id, phase=2)
+    state = FairSelectionState(pipeline="snapshot_translation", entity_id=page_id, phase=2)
     db_session.add(state)
     db_session.commit()
 
@@ -81,23 +80,18 @@ def test_snapshot_enqueue_applies_phase_to_priority(
     db_session: Session,
     vocabulary: None,
 ) -> None:
-    """Verify snapshot enqueue reads phase and applies it to task priority."""
-
-    from app.features.translation.source import get_phases_for_pages
-
-    # Create a page
+    """A page recorded in phase 2 of the snapshot pipeline enqueues its tasks in the phase-2 band."""
     catalogue = _catalogue(db_session, external_id="page-phase-2")
-    page_id = catalogue.id
     add_snapshot(db_session, catalogue, SHA_A)
-
-    # Set page to phase=2 in fair_selection_state
-    state = FairSelectionState(pipeline="translation", entity_id=page_id, phase=2)
-    db_session.add(state)
+    db_session.add(FairSelectionState(pipeline="snapshot_translation", entity_id=catalogue.id, phase=2))
     db_session.commit()
 
-    # Verify get_phases_for_pages returns phase 2
-    phases = get_phases_for_pages(db_session, [page_id])
-    assert phases[page_id] == 2, f"Expected phase 2 for page, got {phases[page_id]}"
+    SnapshotEnqueuer(db_session, ("en", "de")).enqueue_pages([catalogue.id])
+
+    tasks = db_session.query(SnapshotTranslationTask).filter_by(catalogue_service_id=catalogue.id).all()
+    assert len(tasks) == 2, f"Expected one task per locale, got {len(tasks)}"
+    for task in tasks:
+        assert 100_000 <= task.priority < 200_000, f"Phase-2 page priority {task.priority} not in phase-2 band"
 
 
 def test_snapshot_enqueue_defaults_to_phase_one_when_not_in_state(
@@ -126,24 +120,12 @@ def test_snapshot_phase_one_pages_rank_before_phase_two(db_session: Session, voc
     add_snapshot(db_session, page_a, SHA_A)
     add_snapshot(db_session, page_b, SHA_A)
 
-    # Create mentions for both pages
-    _item(
-        page_a,
-        title_i18n={"de": "PageA"},
-        source_field="details[0]",
-        category_codes=["home-and-housing"],
-        direct_category_confidence=0.3,  # Low confidence
-    )
-    _item(
-        page_b,
-        title_i18n={"de": "PageB"},
-        source_field="details[0]",
-        category_codes=["home-and-housing"],
-        direct_category_confidence=0.9,  # High confidence
-    )
+    # Create mentions for both pages: page A low confidence, page B high confidence
+    _scored_mention(db_session, page_a, 0.3)
+    _scored_mention(db_session, page_b, 0.9)
 
     # Set page A to phase 1 (default), page B to phase 2
-    state_b = FairSelectionState(pipeline="translation", entity_id=page_b.id, phase=2)
+    state_b = FairSelectionState(pipeline="snapshot_translation", entity_id=page_b.id, phase=2)
     db_session.add(state_b)
     db_session.commit()
 

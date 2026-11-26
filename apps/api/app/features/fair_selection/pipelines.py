@@ -14,11 +14,10 @@ from app.models.translation import TranslationTask
 
 TaskModel: TypeAlias = type[TranslationTask] | type[EmbeddingTask] | type[DiscoveryTask] | type[SnapshotTranslationTask]
 
-# Pipeline key -> (task model, entity-id column). Known mismatch: fair_selection_state rows use
-# "snapshot_translation", not "translation_snapshot". Fixing it changes behaviour, so it needs its own test first.
+# Pipeline key -> (task model, entity-id column). The keys are the names fair_selection_state rows carry.
 PIPELINE_TASKS: dict[str, tuple[TaskModel, InstrumentedAttribute[UUID]]] = {
     "translation": (TranslationTask, TranslationTask.candidate_id),
     "embedding": (EmbeddingTask, EmbeddingTask.candidate_id),
     "discovery": (DiscoveryTask, DiscoveryTask.catalogue_service_id),
-    "translation_snapshot": (SnapshotTranslationTask, SnapshotTranslationTask.catalogue_service_id),
+    "snapshot_translation": (SnapshotTranslationTask, SnapshotTranslationTask.catalogue_service_id),
 }

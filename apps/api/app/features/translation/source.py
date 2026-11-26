@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import Final
 from uuid import UUID
 
 from sqlalchemy import select
@@ -15,6 +16,11 @@ from app.features.discovery.repository.base import SessionRepository
 from app.features.translation.unit import TranslationUnit, german_title
 from app.models.discovery import DiscoveryDocumentCandidate as Candidate
 from app.models.fair_selection_state import FairSelectionState
+
+CANDIDATE_PIPELINE: Final = "translation"
+"""The fair_selection_state pipeline of candidates, the entities of the translation queue."""
+PAGE_PIPELINE: Final = "snapshot_translation"
+"""The fair_selection_state pipeline of procedure pages, the entities of the snapshot translation queue."""
 
 
 class SourceRepository(SessionRepository):
@@ -55,7 +61,7 @@ def get_phase_for_candidate(session: Session, candidate_id: UUID) -> int:
     state = (
         session.query(FairSelectionState)
         .filter(
-            FairSelectionState.pipeline == "translation",
+            FairSelectionState.pipeline == CANDIDATE_PIPELINE,
             FairSelectionState.entity_id == candidate_id,
         )
         .first()
@@ -71,7 +77,7 @@ def get_phases_for_candidates(session: Session, candidate_ids: Sequence[UUID]) -
     states = (
         session.query(FairSelectionState)
         .filter(
-            FairSelectionState.pipeline == "translation",
+            FairSelectionState.pipeline == CANDIDATE_PIPELINE,
             FairSelectionState.entity_id.in_(candidate_ids),
         )
         .all()
@@ -92,7 +98,7 @@ def get_phase_for_page(session: Session, catalogue_service_id: UUID) -> int:
     state = (
         session.query(FairSelectionState)
         .filter(
-            FairSelectionState.pipeline == "translation",
+            FairSelectionState.pipeline == PAGE_PIPELINE,
             FairSelectionState.entity_id == catalogue_service_id,
         )
         .first()
@@ -109,7 +115,7 @@ def get_phases_for_pages(session: Session, page_ids: Iterable[UUID]) -> dict[UUI
     states = (
         session.query(FairSelectionState)
         .filter(
-            FairSelectionState.pipeline == "translation",
+            FairSelectionState.pipeline == PAGE_PIPELINE,
             FairSelectionState.entity_id.in_(page_ids_list),
         )
         .all()
