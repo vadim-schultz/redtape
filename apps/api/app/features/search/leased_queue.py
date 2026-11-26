@@ -51,18 +51,49 @@ class LeasedQueue(Generic[TaskT]):
         limit: int,
         scope: Sequence[ColumnElement[bool]],
         grouping: Sequence[InstrumentedAttribute[UUID]] = (),
+        phase_field: InstrumentedAttribute[int] | None = None,
     ) -> list[TaskT]:
         """Reclaim expired leases, then lease up to ``limit`` ready tasks matching ``scope`` to ``api_key_id``.
 
-        Tasks come out by priority, then ``grouping`` (columns whose equal values must stay together, such as the
-        candidate of per-locale tasks), then age, then id, so the order is stable for every claimer.
+        Tasks are ordered by:
+        1. phase (if phase_field provided)
+        2. priority
+        3. grouping (columns whose equal values must stay together, such as the
+           candidate of per-locale tasks)
+        4. created_at
+        5. id
+
+        The order is stable for every claimer.
+
+        Args:
+            api_key_id: Worker identifier claiming the lease.
+            now: Current timestamp for expiry checks.
+            limit: Maximum tasks to claim.
+            scope: WHERE clause predicates to filter tasks.
+            grouping: Columns that must stay together (e.g., [task.candidate_id]).
+            phase_field: Column to sort by before priority (e.g., task.phase).
         """
         self.reclaim_expired(now)
         model = self._model
+        order_clauses: list[ColumnElement] = []
+
+        # Phase first (if provided)
+        if phase_field is not None:
+            order_clauses.append(phase_field)
+
+        # Priority always comes next
+        order_clauses.append(model.priority)
+
+        # Grouping fields (if provided)
+        order_clauses.extend(grouping)
+
+        # Age and id as final tie-breakers
+        order_clauses.extend([model.created_at, model.id])
+
         stmt = (
             select(model)
             .where(*ready_clause(model, now), *scope)
-            .order_by(model.priority, *grouping, model.created_at, model.id)
+            .order_by(*order_clauses)
             .limit(limit)
             .with_for_update(skip_locked=True)
             .execution_options(populate_existing=True)

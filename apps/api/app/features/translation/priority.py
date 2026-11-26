@@ -3,6 +3,10 @@
 The queue hands out the lowest number first. The rank is the confidence in thousandths, inverted, so candidates with
 close confidences are still told apart; the two bases keep every first translation ahead of every re-translation.
 A procedure page has no confidence of its own: it ranks by the best candidate it mentions.
+
+Priority includes a phase component: phase-1 items (breadth-first coverage) rank 0–99,999,
+phase-2 items rank 100,000–199,999, and phase-3 items rank 200,000+. Within each phase,
+confidence determines rank, with an optional locale_index for stable tie-breaking.
 """
 
 from __future__ import annotations
@@ -20,6 +24,8 @@ RETRANSLATION_BASE: Final = 10_000
 """A stale translation still serves readers, so its refresh waits behind every untranslated candidate."""
 UPGRADE_BASE: Final = 20_000
 """An Azure upgrade of a tail row waits behind every first and re-translation, so it runs on idle Azure capacity."""
+PHASE_BAND_WIDTH: Final = 100_000
+"""Width of each phase band: phase 1 → 0–99,999, phase 2 → 100,000–199,999, phase 3 → 200,000+."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,17 +42,44 @@ class PriorityRange:
 
 
 def _rank(confidence: float) -> int:
+    """Convert confidence [0.0, 1.0] to rank [0, 1000]."""
     return RANK_STEPS - round(min(max(confidence, 0.0), 1.0) * RANK_STEPS)
 
 
-def first_priority(confidence: float) -> int:
-    """Return the priority of a candidate's first translation at ``confidence``."""
-    return FIRST_BASE + _rank(confidence)
+def _phase_band(phase: int) -> int:
+    """Convert phase (1–3) to priority band offset."""
+    return (phase - 1) * PHASE_BAND_WIDTH
 
 
-def retranslation_priority(confidence: float) -> int:
-    """Return the priority of re-translating a stale translation at ``confidence``."""
-    return RETRANSLATION_BASE + _rank(confidence)
+def first_priority(confidence: float, phase: int = 1, locale_index: int = 0) -> int:
+    """Return the priority of a candidate's first translation.
+
+    Priority includes phase component: phase-1 items rank 0–99,999, phase-2 items
+    rank 100,000–199,999, etc. Within phase, confidence determines rank.
+    locale_index provides stable tie-breaking for same (phase, confidence).
+    """
+    phase_offset = _phase_band(phase)
+    rank = _rank(confidence)
+    return phase_offset + FIRST_BASE + rank * 100 + locale_index
+
+
+def retranslation_priority(confidence: float, phase: int = 1, locale_index: int = 0) -> int:
+    """Return the priority of re-translating a stale translation.
+
+    Priority includes phase component, same as first_priority.
+    """
+    phase_offset = _phase_band(phase)
+    rank = _rank(confidence)
+    return phase_offset + RETRANSLATION_BASE + rank * 100 + locale_index
+
+
+def upgrade_priority(phase: int = 1) -> int:
+    """Return the priority of an Azure upgrade task.
+
+    Upgrades rank behind all first and re-translations but respect phase ordering.
+    """
+    phase_offset = _phase_band(phase)
+    return phase_offset + UPGRADE_BASE
 
 
 def page_confidence(confidences: Iterable[float]) -> float:
@@ -54,11 +87,18 @@ def page_confidence(confidences: Iterable[float]) -> float:
     return max(confidences, default=0.0)
 
 
-def snapshot_first_priority(confidences: Iterable[float]) -> int:
-    """Return the priority of a page's first translation, ranked by its best candidate."""
-    return first_priority(page_confidence(confidences))
+def snapshot_first_priority(confidences: Iterable[float], phase: int = 1) -> int:
+    """Return the priority of a page's first translation, ranked by its best candidate and phase.
+
+    Priority includes phase component: phase-1 items rank 0–99,999, phase-2 items
+    rank 100,000–199,999, etc. Within phase, confidence determines rank.
+    """
+    return first_priority(page_confidence(confidences), phase=phase)
 
 
-def snapshot_retranslation_priority(confidences: Iterable[float]) -> int:
-    """Return the priority of re-translating a page, ranked by its best candidate."""
-    return retranslation_priority(page_confidence(confidences))
+def snapshot_retranslation_priority(confidences: Iterable[float], phase: int = 1) -> int:
+    """Return the priority of re-translating a page, ranked by its best candidate and phase.
+
+    Priority includes phase component, same as snapshot_first_priority.
+    """
+    return retranslation_priority(page_confidence(confidences), phase=phase)

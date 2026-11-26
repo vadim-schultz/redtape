@@ -7,6 +7,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, exists, func, select
+from sqlalchemy.orm import Session
 
 from app.features.discovery.repository.base import SessionRepository
 from app.features.discovery.repository.task_clauses import (
@@ -24,22 +25,34 @@ from app.models.discovery import (
     DiscoveryTaskKind,
     DiscoveryTaskStatus,
 )
+from app.models.fair_selection_state import FairSelectionState
 
 # Admin/general task listing order (task_sort.py): priority, then created_at, then id. Unaffected by
 # page completeness — that heuristic is claim-order-only, see ``_claim_order`` below.
 QUEUE_ORDER = (DiscoveryTask.priority.asc(), DiscoveryTask.created_at.asc(), DiscoveryTask.id.asc())
 
 
-def _claim_order(page_completeness: ColumnElement) -> tuple[ColumnElement, ...]:
-    """Return the claim order: priority, then page-completeness-desc, then created_at, then id.
+def get_phase_for_discovery_page(session: Session, catalogue_service_id: UUID) -> int:
+    """Read phase for a discovery page; default to phase 1 if not found.
 
-    This supersedes ``discovery-operations`` decision D7's ordering clause (D5): within a priority tier,
-    the created-time tie-break now runs after a page-completeness-desc tie-break, so a page one chip from
-    done claims ahead of an older, emptier page of the same priority. D7's other guarantees — the 1-50
-    claim limit, 15-minute lease, reclaim-on-claim, idempotent catalogue upsert, fingerprint dedup — are
-    unaffected; only this ordering changes.
+    Discovery entity_id is catalogue_service_id (page).
+    """
+    state = session.query(FairSelectionState).filter(
+        FairSelectionState.pipeline == "discovery",
+        FairSelectionState.entity_id == catalogue_service_id
+    ).first()
+    return state.phase if state else 1
+
+
+def _claim_order(page_completeness: ColumnElement) -> tuple[ColumnElement, ...]:
+    """Return the claim order: phase, priority, page-completeness-desc, created_at, id.
+
+    Phase (ASC) ensures breadth-first (phase 1) items claim before depth-first (phase 2).
+    Within phase and priority, page-completeness-desc tie-breaks to claim pages nearing
+    completion before emptier pages (original D7 logic, now under phase constraint).
     """
     return (
+        DiscoveryTask.phase.asc(),
         DiscoveryTask.priority.asc(),
         func.coalesce(page_completeness, 0).desc(),
         DiscoveryTask.created_at.asc(),
@@ -57,8 +70,8 @@ class TaskRepository(SessionRepository):
         stmt = select(DiscoveryTask).where(*identity_clauses(target), DiscoveryTask.status.in_(statuses)).limit(1)
         return self._session.scalar(stmt)
 
-    def insert_task(self, target: TaskTarget, *, priority: int = 100) -> DiscoveryTask:
-        """Insert a pending task for ``target``."""
+    def insert_task(self, target: TaskTarget, *, priority: int = 100, phase: int = 1) -> DiscoveryTask:
+        """Insert a pending task for ``target`` with optional phase override."""
         task = DiscoveryTask(
             catalogue_service_id=target.catalogue_service_id,
             kind=target.kind,
@@ -67,6 +80,7 @@ class TaskRepository(SessionRepository):
             artifact_id=target.artifact_id,
             status=DiscoveryTaskStatus.PENDING,
             priority=priority,
+            phase=phase,
         )
         self._session.add(task)
         self._session.flush()

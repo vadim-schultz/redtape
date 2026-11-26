@@ -19,7 +19,7 @@ from app.features.discovery.page_reads import ProcedurePageReads
 from app.features.translation.plan import Classification, EnqueueTotals
 from app.features.translation.priority import snapshot_first_priority, snapshot_retranslation_priority
 from app.features.translation.snapshot_repository import SnapshotRepository
-from app.features.translation.source import SourceRepository
+from app.features.translation.source import SourceRepository, get_phases_for_pages
 from app.features.translation.task_repository import TaskRepository
 
 
@@ -29,7 +29,7 @@ class PageState:
 
     ``stored`` maps a locale to the artifact sha its stored translation was made from; a skip marker counts as stored.
     ``open_locales`` are the locales with an open (pending or claimed) task. ``confidences`` holds the card confidence of
-    each candidate that mentions the page.
+    each candidate that mentions the page. ``phase`` is the phase from fair_selection_state, defaulting to 1.
     """
 
     catalogue_service_id: UUID
@@ -37,6 +37,7 @@ class PageState:
     stored: Mapping[str, str]
     open_locales: frozenset[str]
     confidences: tuple[float, ...]
+    phase: int = 1
 
     @property
     def has_candidates(self) -> bool:
@@ -66,10 +67,10 @@ def _is_skipped(kind: Classification) -> bool:
 
 
 def _priority(page: PageState, locale: str) -> int:
-    """Rank a first translation by the page's best candidate, and a stale one behind every first translation."""
+    """Rank a first translation by the page's best candidate and phase, and a stale one behind every first translation."""
     if locale in page.stored:
-        return snapshot_retranslation_priority(page.confidences)
-    return snapshot_first_priority(page.confidences)
+        return snapshot_retranslation_priority(page.confidences, phase=page.phase)
+    return snapshot_first_priority(page.confidences, phase=page.phase)
 
 
 def _scores_of(candidate_ids: Sequence[UUID], scores: Mapping[UUID, float]) -> tuple[float, ...]:
@@ -81,6 +82,7 @@ class SnapshotEnqueuer:
 
     def __init__(self, session: Session, locales: Sequence[str] | None = None) -> None:
         """Bind the enqueuer to ``session`` and the target ``locales`` (the configured ones by default)."""
+        self._session = session
         self._locales = tuple(settings.translation_target_locale_codes if locales is None else locales)
         self._pages = ProcedurePageReads.for_session(session)
         self._index = SnapshotRepository(session)
@@ -122,6 +124,7 @@ class SnapshotEnqueuer:
         candidates = self._pages.candidate_ids_by_page(pages)
         scores = self._source.confidences_for(sorted({c for ids in candidates.values() for c in ids}))
         stored, open_locales = self._index.stored_shas(pages), self._index.open_locales(pages)
+        phases = get_phases_for_pages(self._session, pages)
         return [
             PageState(
                 page,
@@ -129,6 +132,7 @@ class SnapshotEnqueuer:
                 stored.get(page, {}),
                 open_locales.get(page, frozenset()),
                 _scores_of(candidates.get(page, ()), scores),
+                phases.get(page, 1),
             )
             for page, sha in shas.items()
         ]
