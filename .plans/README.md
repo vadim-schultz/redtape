@@ -5,6 +5,19 @@ they version alongside the code they describe.
 
 ## Folders
 
+### [discovery-admin-flow/](discovery-admin-flow/) — Flow-only discovery admin
+
+Make the pipeline flow page the only discovery admin view. Move the figures of the catalogue, coverage, tasks and documents views into the flow response, remove those views and their endpoints, show one discovery menu link, and reduce the language menu to flags. Eight chapters in seven batches.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](discovery-admin-flow/00-architecture.md) | Current admin surface, flow response contract, invariants |
+| [01-rollout.md](discovery-admin-flow/01-rollout.md) | Eight chapters, dependency graph, parallel batches, per-chapter gate |
+| [gaps-and-decisions.md](discovery-admin-flow/gaps-and-decisions.md) | Settled decisions, and open questions with their defaults |
+| [chapters/](discovery-admin-flow/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. Orchestrate with **chief of staff**; loop branch `feat/plans-discovery-admin-flow`.
+
 ### [web-frontend/](web-frontend/) — Wave 2 visual alignment
 
 Restyle the existing document list, detail, and location-picker screens: custom Chakra theme (red
