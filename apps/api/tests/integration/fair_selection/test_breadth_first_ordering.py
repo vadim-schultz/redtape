@@ -84,10 +84,11 @@ class TestBreadthFirstOrdering:
         Assert: All three are from A (phase 1).
         Assert: B's phase-2 task is not claimed until A's phase-1 work exhausted.
         """
-        # Setup
-        candidate_phase1 = uuid4()
-        candidate_phase2 = uuid4()
+        # Create tasks (creates candidates internally)
+        candidate_phase1 = create_candidate_tasks(session, locales=["en", "de"], phase=1, title="Phase 1 Candidate")
+        candidate_phase2 = create_candidate_tasks(session, locales=["en", "de"], phase=2, title="Phase 2 Candidate")
 
+        # Create fair selection state
         state_phase1 = FairSelectionState(
             pipeline="translation", entity_id=candidate_phase1, phase=1
         )
@@ -96,10 +97,6 @@ class TestBreadthFirstOrdering:
         )
         session.add_all([state_phase1, state_phase2])
         session.commit()
-
-        # Create tasks
-        create_candidate_tasks(session, candidate_phase1, ["en", "de"], phase=1)
-        create_candidate_tasks(session, candidate_phase2, ["en", "de"], phase=2)
 
         # Claim first 3 (should all be phase 1)
         claimed_tasks = claim_all_tasks(
