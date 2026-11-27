@@ -28,6 +28,16 @@ isProject: false
 | D14 | Qwen4-Max is not a candidate for now. Its blog page is JavaScript-only: the raw HTML holds no article text. The Hugging Face Qwen organisation has no Qwen4 repository, and Qwen3.8 is the newest family there (operator, 2026-11-27). The "Max" tier was API-only in earlier Qwen releases (background knowledge, not verified here). | The page could not be read, so its licence and weights status are unknown. Revisit when weights appear on Hugging Face or ModelScope. | C4 |
 | D15 | The operator creates the machine key for local workers; C0 records its name only. | Operator confirmed, 2026-11-27. Closes former O9. | C0 |
 | D16 | The project is non-commercial, so NLLB-200 distilled 600M (CC-BY-NC-4.0) and Tower-Plus-9B (CC-BY-NC-SA-4.0) are eligible alongside MADLAD-400-3B-MT and Opus-MT. | Operator, 2026-11-27. The non-commercial licences restrict commercial use only. | C3 |
+| D17 | The worker control and the dashboard are thin interfaces over facades, following chief. `fleet/` and `monitor/` return data and never print; the typer and Textual code wraps them; an AST fence enforces it. | Chief's `chief.api` facade and `chief.cli` commands, and its fence test (`tests/test_cli_fence.py`). | C6, C7, C8 |
+| D18 | Each worker type runs as a detached process, started with a new session the way `nohup` starts a job: no terminal, output appended to a log file, one pidfile per type. No systemd unit and no root. | The operator asked for nohup-style workers that keep working when not logged in. A systemd unit would need root for linger. | C5, C6, C9 |
+| D19 | The dashboard is a Textual app that the operator runs in a terminal of their choice. Where that terminal sits is not a concern of this plan. | The operator places the terminal. | C8 |
+| D20 | The dashboard reads only the queue of the kinds that the local types drain (machine `GET /tasks/summary`, one request), the machine budgets, the local heartbeats, the local logs and the host metrics. It is read-only. It uses no admin route and no GitHub data. | The operator asked for read-only information about the local workers only. | C7, C8 |
+| D21 | Textual and psutil are an optional `dashboard` extra. The workers import neither. | Keeps the worker processes small and the UI out of them. | C8 |
+| D22 | Each source fails alone. Its error shows on its own panel, and the dashboard keeps running. | One unreachable API should not blank the host or worker panels. | C7, C8 |
+| D23 | The fleet, the monitor and the dashboard ship inside the existing `redtape-discovery-ingest` distribution, with a console script `discovery-ingest` and one extra per provider. | The fleet starts the drain code, and the launcher needs an installed command. A second distribution would copy the drain code. | C10 |
+| D24 | `workers up` starts every worker type in `worker_types.py`. There is no enable list. | Operator, 2026-11-27: all available workers can start. Closes former O13. | C6, C10 |
+| D25 | The workers keep running after logout, but not after a reboot. Logind does not kill user processes on this machine (`#KillUserProcesses=no`). | Operator, 2026-11-27: let the workers work when not logged in, nohup style. The logout check in C9 confirms it. | C9 |
+| D26 | The dashboard is least intrusive. One machine request per queue refresh, no request more often than its interval, no admin route and no write. Intervals: queues 15 s, budgets 60 s, host and heartbeats 5 s, logs on demand. | Operator, 2026-11-27: read-only information, in the least intrusive manner. | C7, C8 |
 
 ## Open
 
@@ -39,6 +49,7 @@ isProject: false
 | O5 | Stock Playwright, or Patchright for the anti-bot targets? | Stock Playwright, with the probe showing whether the canary pages block it. Switch only on evidence. | C2 probe. |
 | O6 | Keep the `actions_minutes` resource and its config, or remove them? | Keep them, marked obsolete, until a separate chapter removes the enum values. Removal changes API contracts. | C0. |
 | O8 | Hosted runners for browser work (a matrix of free public-repo jobs)? Their concurrency cap and per-job limits are not verified. | Not planned now. Revisit after C2, once a concurrency figure is verified in GitHub's documentation. | C2 gate passes and the local browser is not enough. |
+| O10 | Survival across a reboot. Not built: a systemd user unit with linger would add it, at the cost of one `sudo loginctl enable-linger` command. | Not planned. The operator restarts the fleet with `workers up` after a reboot. | The operator asks for it. |
 
 ## Measured on this machine (2026-11-27)
 
