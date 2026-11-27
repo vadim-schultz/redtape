@@ -557,7 +557,7 @@ Status: merged to the loop branch `feat/plans-pipeline-optimisation`, awaiting t
 
 ### [local-queue-drain/](local-queue-drain/) — Local and hosted workers on the discovery queue
 
-Drain the discovery queues on this machine next to Cloudflare and GitHub: local embedding behind a parity gate, local browser rendering, a local translation engine with its own lane, local LLM extraction, and a bounded daemon. Six chapters. Every local stage is gated by a measurement, and the stale minute-cap docs are fixed first.
+Drain the discovery queues on this machine next to Cloudflare and GitHub: local embedding behind a parity gate, local browser rendering, a local translation engine with its own lane, local LLM extraction, and a bounded daemon. Then a process fleet facade, a read-only monitor facade, a terminal dashboard, an operator runbook and an installable package. Eleven chapters. Every local stage is gated by a measurement, and the stale minute-cap docs are fixed first.
 
 | Doc | What it is |
 | --- | --- |

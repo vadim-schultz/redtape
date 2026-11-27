@@ -105,6 +105,11 @@ A local adapter implements one existing port and nothing more: `Embedder` (`extr
 | I7 | Each chapter passes the local gate before it merges: `./ci.sh` in the affected packages. | The run ledger records the gate for each chapter. |
 | I8 | A local worker claims one task per claim (D11). | C1–C5 claim tests assert `limit=1`. |
 | I9 | A local worker creates no tasks ahead of a claim. Settling a task still runs the completion effects the pipeline already has (D10). | C2 and C4 tests: the screenshot sweep is off; a render's completion hooks run once per render. |
+| I10 | The facades (`fleet/`, `monitor/`) never import typer or textual. The CLI and the TUI import only the facades and their own packages. | AST fence tests in C6 and C7, following chief's `tests/test_cli_fence.py`. |
+| I11 | The dashboard is read-only against the queue and budgets: it makes only machine `GET` calls. | C7 test with a recording client. |
+| I12 | A failing source yields an error value for its panel. `snapshot()` never raises for a source failure. | C7 negative test for each source. |
+| I13 | The dashboard never starts or stops a worker process. Only the `workers` commands do. | C8 test: zero fleet calls on every key. |
+| I14 | The dashboard is least intrusive: one machine request per queue refresh, no request more often than its interval, no admin route and no write. | C7 scheduler test with a fake clock, and the recording client. |
 
 ## 8. Out of scope
 
@@ -123,3 +128,61 @@ A grep for the minute-cap wording (`1,000 min`, `2,000 minutes`, `actions_minute
 - Workflows: `budget report-minutes` in `.github/workflows/discovery-drain.yml`, and the minute precheck in the discovery drain workflows. Pipeline-optimisation chapter 16 covers part of this and recorded a partial pass.
 - Config and enums: `budget_actions_minutes_monthly` and `actions_ci_reserve_minutes` (`apps/api/app/config.py`), the `actions_minutes` resource (`budget_resources.py`, `schema/discovery/machine.py`, `schema/discovery/flow.py`, `discovery_ingest/budget_models.py`).
 - History: `.plans/gha-budget/` and `.plans/discovery-throughput/gaps-and-decisions.md` (D1, D2). Per the admin-flow plan's D13, plan folders are history. Add a superseded note, do not rewrite them.
+
+## 10. Operator dashboard and worker fleet
+
+The operator starts the local workers in the background and watches them from a terminal dashboard (D18, D19). The design follows chief's split (D17): a facade class returns data, and the typer and Textual interfaces wrap it. Out of scope for this section: the admin flow page, the run history of other workers, and GitHub run data.
+
+### Layers
+
+| Layer | Module | Holds | Imports |
+| --- | --- | --- | --- |
+| Facades | `fleet/` (`WorkerFleet`), `monitor/` (`Monitor`) | process start, stop and status; read-only queue, budget, host, heartbeat and log sources | the machine client, psutil, the standard library. Never typer or textual (I10). |
+| Interface: CLI | `cli/workers.py`, `cli/dashboard.py` | `workers status`, `up`, `down`, `restart`, and `dashboard` | the facades and typer |
+| Interface: TUI | `tui/` | the Textual application and its panels | the `Monitor` facade and textual, behind the `dashboard` extra (D21) |
+| Shared | `worker_state.py`, `worker_types.py` (C5) | heartbeat files, the process check, the worker-type table | the standard library |
+| Worker | `daemon.py` (C5) | the worker loop and its heartbeats | the drain code of C1–C4 |
+
+### Worker types
+
+Each type is one detached process (D18). `worker_types.py` lists every type with its kinds, its provider and its resource limits. The limits come from measurements in C1–C4, not from guesses. A type enters the table when its chapter's gate passes, and `workers up` starts every type in the table (D24).
+
+| Type | Kinds | Provider | Chapter |
+| --- | --- | --- | --- |
+| `render` | `render_page` | local Playwright | C2 |
+| `capture` | `capture_screenshot` | local Playwright | C2 |
+| `extract` | `extract_page` | in-process rules | none needed |
+| `llm` | `llm_extract` | local Qwen through llama.cpp | C4 |
+| `embed` | embedding tasks | local Qwen3-Embedding-0.6B | C1 |
+| `translate` | translation tasks for the local lane | the local engine chosen in C3 | C3 |
+| `seed` | `fetch_url`, `enrich_metadata`, `harvest_payload` | HTTP | none needed |
+
+### Data the dashboard can show
+
+| Data | Source | Access | Refresh | Status |
+| --- | --- | --- | --- | --- |
+| Queue state of the kinds the local types drain: pending, claimed, failed, completed | machine `GET /tasks/summary`, one request for all those kinds | machine key | 15 s | available (`TaskSummary`) |
+| Budgets per resource | machine `GET /budgets` | machine key | 60 s | available (`BudgetSnapshot`) |
+| Local worker state | heartbeat files (C5) | local files | 5 s | new |
+| Worker process liveness | the pid in the heartbeat and the pidfile, checked against `/proc` | local | 5 s | available |
+| Worker logs | the log file of each type, last 64 KiB | local files | on demand | available |
+| Host CPU and memory | psutil | local | 5 s | available |
+| GPU | `nvidia-smi` | local | 5 s | after the reboot (O1) |
+| llama-server | `GET /health` on localhost, 1 s timeout | local | 5 s | when C4 runs |
+
+Rates and ETAs come from two successive queue snapshots. A source that fails shows its error on its own panel (D22).
+
+### Process model
+
+- `workers up` starts each type as a detached process, with no terminal attached and output appended to a log file. No systemd and no root (D18).
+- Processes survive logout. Logind does not kill user processes here (`#KillUserProcesses=no`, the default), and C9 confirms it with a real logout (D25).
+- Processes do not survive a reboot. Starting them again is `workers up` (O10).
+- The dashboard is a terminal app. The operator runs it in whichever terminal they choose (D19).
+
+### Packaging
+
+The fleet, the monitor and the dashboard ship inside the existing `redtape-discovery-ingest` distribution (D23). The distribution gets a console script, `discovery-ingest`, and extras: `dashboard` (textual, psutil), plus one extra per local provider when its chapter lands. `uv tool install` puts the command on PATH. The launcher runs that installed command, so the workers do not depend on the repository venv.
+
+### Refresh
+
+Queues every 15 s, budgets every 60 s, host and heartbeats every 5 s, logs on demand. Each source runs with its own timeout on a worker thread, so a slow source cannot freeze the screen. These are the least intrusive intervals that keep the view live (D26).

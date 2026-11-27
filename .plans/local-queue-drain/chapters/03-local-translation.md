@@ -64,4 +64,4 @@ The lane change touches the API, so the API `./ci.sh` runs on the chapter branch
 
 - The German benchmark and the per-locale gate decision are recorded in the ledger (O2 closed).
 - One bounded local translate drain completes against the live queue. Azure's characters for the same period do not grow for the first passes the local engine took.
-- The admin flow shows the local lane's translated count (through the existing flow translation figures).
+- The local lane's translated count is visible in the translation summary that the monitor reads (C7).
