@@ -44,9 +44,9 @@ Translation tasks are created when a mention makes a page relevant, ordered by t
 
 Glossary adherence on MT output is a hard failure for cards only if the probe reaches at least 90% valid units per locale. Otherwise glossary findings become advisory for the Azure engine: they are logged and counted in coverage but do not fail the unit. The setting is `TRANSLATION_GLOSSARY_MODE` (`strict` or `advisory`), chosen after the probe and recorded in the run ledger.
 
-### D9 — Independent of the Claude engine; the Cloudflare translation role is retired later
+### D9 — The Claude engine is on main; Cloudflare translation is retired later
 
-The suite branches from `main` and assumes nothing from `feat/plans-search-first`. The `claude-code` engine is not released by this suite. If it is released first, chapter 02 must set `repairs = True` on that engine and resolve the shared port changes. The Cloudflare translation adapter stays selectable until chapter 17, which runs only after about a month of Azure operation with no rollback.
+Chapter 19 of search-first, the `claude-code` engine, reached `main` through PR #410. This suite builds on the current port: every engine declares `limits`, `UsageUnit` includes `subscription`, and `run_translate` wires `SubscriptionMeter` as an own meter. The Azure adapter implements `limits` and leaves `TranslationOutcome.auth` unset. The `claude-code` engine and the Cloudflare translation adapter both stay selectable until chapter 17, which removes them after about a month of Azure operation with no rollback. Nothing in this suite selects `claude-code`.
 
 ## Open seams
 

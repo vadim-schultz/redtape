@@ -32,12 +32,12 @@ Make `azure-translator` a working engine that the drain can select, translating 
 ## Design
 
 1. **Modules** (each ≤100 lines):
-   - `translation/adapters/azure_translator.py`: `NAME = "azure-translator"` and the `AzureTranslator` class (`name`, `usage_unit = "characters"`, `repairs = False`, `translate`, `estimate`). It registers its locale map and engine at import, and `adapters/__init__.py` imports it.
+   - `translation/adapters/azure_translator.py`: `NAME = "azure-translator"` and the `AzureTranslator` class (`name`, `usage_unit = "characters"`, `repairs = False`, `limits`, `translate`, `estimate`). It registers its locale map and engine at import, and `adapters/__init__.py` imports it.
    - `translation/adapters/azure_translator_wire.py`: builds the request body and reads the answers back by position.
    - `translation/adapters/azure_translator_http.py`: sends one request, reads `X-metered-usage`, and maps HTTP status and error codes to port errors.
    - `translation/azure_settings.py`: a pydantic-settings class, the same pattern as the LLM settings. Fields: `AZURE_TRANSLATOR_KEY` (secret), `AZURE_TRANSLATOR_REGION`, `AZURE_TRANSLATOR_ENDPOINT` (default `https://api.cognitive.microsofttranslator.com`), `AZURE_TRANSLATOR_API_VERSION` (default `2026-06-06`).
 2. **Request.** `POST {endpoint}/translate?api-version=…`, with `Ocp-Apim-Subscription-Key`, `Ocp-Apim-Subscription-Region` and `X-ClientTraceId`. Body: `{"inputs":[{"text":…,"language":"de","textType":"plain","targets":[{"language":<code>}]}]}`. The drain groups units per locale, so each call has one target. A card unit becomes two inputs, title and description. An empty description is skipped.
-3. **Chunking.** A call is split so that no request exceeds 500 inputs or 40,000 characters, and the answers are put back in input order.
+3. **Chunking.** A call is split so that no request exceeds 500 inputs or 40,000 characters, and the answers are put back in input order. `limits` returns `CallLimits(units_per_call=250, concurrency=1)`: two inputs per unit, so 250 units stay within 500 inputs. Concurrency stays at 1 until the probe in chapter 05 shows how the service throttles.
 4. **Answer.** Each input's `translations[0].text` is matched by position. A missing or misaligned answer raises `UnusableOutputError`, and nothing is stored.
 5. **Usage.** The usage amount is the sum of `X-metered-usage` over the chunks, which is the billed figure. The estimate counts source characters.
 6. **Errors** (into `translation/errors.py`):
@@ -46,7 +46,7 @@ Make `azure-translator` a working engine that the drain can select, translating 
    - `429000`–`429002`, `408`, `5xx` → `TransientError`.
    - `400xxx` → `PermanentError`.
    - Messages never include the key. The shared suite checks this.
-7. **`repairs` capability.** `TranslationEngine` gains `repairs: bool`. The `llm` adapter sets `True`. Both repair sites (`translate_group.py::_repair`, `i18n/batch.py::_repair`) return without a second call when it is `False`. If the claude-code engine has been released first, set it `True` there too.
+7. **`repairs` capability.** `TranslationEngine` gains `repairs: bool`. The `llm` and `claude-code` adapters set `True`, so their behaviour is unchanged. Both repair sites skip the second call when it is `False`: `repair_once` in `worker/translate_group.py`, and `repair_batch` in `i18n/batch.py::_repair`.
 8. **Locale map.** Identity for `en tr ru uk pl ro`, through `register_locale_map`. Coverage of all six targets is enforced by `build_engine`.
 9. **Harness.** `translation_harnesses.py` gets `HARNESSES["azure-translator"]`. Behaviours: faithful, short, quota (`403001`), transient (`429000`), unauthorised (`401000`), permanent (`400050`), built on `httpx.MockTransport` as `llm_transport.py` is.
 
@@ -60,7 +60,7 @@ Make `azure-translator` a working engine that the drain can select, translating 
 | `translation/azure_settings.py` (new) | Azure settings |
 | `translation/adapters/__init__.py` | import the new adapter |
 | `translation/engine.py` | `repairs` on the protocol |
-| `translation/adapters/cloudflare_llm.py` | `repairs = True` |
+| `translation/adapters/cloudflare_llm.py`, `translation/adapters/claude_code.py` | `repairs = True` |
 | `worker/translate_group.py`, `i18n/batch.py` | skip repair when `repairs` is false |
 | `tests/translation_harnesses.py`, `tests/translation_engine_contract.py` | Azure harness; contract unchanged |
 | `tests/test_azure_translator_*.py` (new) | request, chunking, answers, errors, settings |
@@ -81,7 +81,7 @@ Make `azure-translator` a working engine that the drain can select, translating 
 - `Azure · an answer with fewer translations than inputs raises UnusableOutputError and stores nothing`
 - `Azure · the key never appears in an error message or log line`
 - `Repair · an invalid unit is not resent when repairs is false (exactly one call)`
-- `Repair · llm still repairs once when repairs is true`
+- `Repair · llm and claude-code still repair once when repairs is true`
 
 ## Green
 

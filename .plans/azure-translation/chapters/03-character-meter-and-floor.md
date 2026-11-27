@@ -42,7 +42,7 @@ Make the Azure engine spend `azure_translator_chars` correctly. Each call reserv
 2. **`Floor`** replaces the float in `FlooredMeter`: `Floor(resource: str, amount: float)`. The neuron floor becomes `Floor(RESOURCE, floor)`. The class no longer imports the neuron constant. The denial reason stays `"floor"`.
 3. **`Remaining.cap`** (`budget.py`) gains `cap: float | None = None`, filled from the ledger row, so a floor can be computed from the cap.
 4. **`DENIAL_TEXT["floor"]`** (`metered.py`) becomes generic: "the usage kept for other work would be used".
-5. **Own-meter wiring.** `run_translate` builds `{"characters": CharacterMeter(guard)}` when the engine's unit is `characters`, and `run_translate_ui` does the same. Today `run_translate_ui` passes `{}`, so a characters engine exits 2. The neuron path is unchanged.
+5. **Own-meter wiring.** `run_translate` already passes `{"subscription": SubscriptionMeter()}` (`operations/translate_drain.py`, merged with the claude-code engine in PR #410). Add `"characters": CharacterMeter(guard)` beside it, for an engine whose unit is `characters`. `run_translate_ui` still passes `{}`, so a characters engine exits 2 there until it gets the same wiring. The neuron path is unchanged.
 6. **Ledger check.** `check_neuron_ledger` becomes `check_ledger(engine)`. It checks the resource that matches the engine's unit: `neurons` for neurons, `azure_translator_chars` for characters. Other units are skipped. The mapping is one dictionary in `translation/meter.py`.
 7. **Report.** The drain report and the CLI summary gain `characters_used` beside the existing counters. It is reported as an integer character count.
 

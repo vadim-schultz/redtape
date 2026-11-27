@@ -38,7 +38,7 @@ execution: chapter-implementer
 
 # Chapter 16 — Cutover and runbook
 
-**Repo:** `redtape` (`apps/discovery-ingest`, `apps/api`, `.github/workflows`, `docs/operations`) · **Depends on:** chapters [01](01-ledger-resource.md)–[15](15-language-menu-flags.md) · **Decisions:** [D2](../gaps-and-decisions.md#d2--azure-ai-translator-f0-first-a-19-million-character-monthly-cap), [D3](../gaps-and-decisions.md#d3--languages-are-the-embedding-set), [D9](../gaps-and-decisions.md#d9--independent-of-the-claude-engine-the-cloudflare-translation-role-is-retired-later) · **Rules:** [../../../CLAUDE.md](../../../CLAUDE.md) (package registries) · **Status:** planned
+**Repo:** `redtape` (`apps/discovery-ingest`, `apps/api`, `.github/workflows`, `docs/operations`) · **Depends on:** chapters [01](01-ledger-resource.md)–[15](15-language-menu-flags.md) · **Decisions:** [D2](../gaps-and-decisions.md#d2--azure-ai-translator-f0-first-a-19-million-character-monthly-cap), [D3](../gaps-and-decisions.md#d3--languages-are-the-embedding-set), [D9](../gaps-and-decisions.md#d9--the-claude-engine-is-on-main-cloudflare-translation-is-retired-later) · **Rules:** [../../../CLAUDE.md](../../../CLAUDE.md) (package registries) · **Status:** planned
 
 ## Goal
 

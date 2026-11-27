@@ -12,7 +12,7 @@ isProject: false
 
 Translation runs today on the Cloudflare Workers AI LLM adapter (`llm`, `@cf/qwen/qwen3-30b-a3b-fp8`, `apps/discovery-ingest/discovery_ingest/translation/adapters/cloudflare_llm.py`). Workers AI neurons are a daily allowance. That allowance ran out on 2026-11-11, with `tr` and `uk` enabled and about 7,757 card tasks still pending ([run ledger](../search-first/run-ledger.md)). There is no machine-translation model in the stack.
 
-A `claude-code` engine (chapter 19 of search-first) exists only on `feat/plans-search-first`. It is not on `main`, and this suite does not depend on it.
+A `claude-code` engine (chapter 19 of search-first) reached `main` through PR #410. The port now carries `limits` and a `subscription` usage unit, and this suite builds on both. Chapter 17 removes the engine together with the Cloudflare translation adapter.
 
 Azure AI Translator is metered per character, has a free monthly allowance, and reports the billed characters in a response header. That fits batch translation better than neurons, provided spend is reserved before each call and settled after it.
 
@@ -87,7 +87,7 @@ flowchart LR
 
 ### Interface strings and locales
 
-- The five non-German interface locales already have complete bundles and review manifest entries from C11 and C19. All are marked `machine`.
+- The five non-German interface locales already have complete bundles and review manifest entries from search-first C11 and PRs #400 and #404. All are marked `machine`.
 - Acceptance: a locale is enabled only at 100% German key coverage, with either a native-speaker `reviewed` status or an operator's `machine_accepted` decision that names the operator and the date. A tool is never the recorded reviewer ([D5](gaps-and-decisions.md#d5--machine-output-is-labelled-and-no-tool-is-ever-the-reviewer)).
 - Machine-made locales show a code (`TR`) and a "machine translated" note in the switcher. The emoji flags stay, because they do not render as flags on Windows.
 - Plurals: MT drops the German inflection note, so the plural categories are produced from representative CLDR sample numbers, and `{count}` is restored after translation.

@@ -531,7 +531,7 @@ Status: planned — no chapter started. First batch: C1 (pgvector infra and embe
 
 ### [azure-translation/](azure-translation/) — Azure AI Translator for cards, documents and interface strings
 
-Replace the Cloudflare translation role with Azure AI Translator (NMT). The card unit, complete procedure pages (stored as blocks in object storage and shown in a collapsed accordion item) and interface strings are translated through the same queue drain. Spend is metered on a monthly character ledger, where documents may use only the share above a protected card band, and it is shown on the discovery coverage page. Machine-accepted interface locales get a code and a note in the switcher. Sixteen chapters, then a deferred retirement of the Cloudflare translation adapter.
+Replace the Cloudflare translation role with Azure AI Translator (NMT). The card unit, complete procedure pages (stored as blocks in object storage and shown in a collapsed accordion item) and interface strings are translated through the same queue drain. Spend is metered on a monthly character ledger, where documents may use only the share above a protected card band, and it is shown on the discovery coverage page. Machine-accepted interface locales get a code and a note in the switcher. Sixteen chapters, then a deferred retirement of the Cloudflare translation adapter and the claude-code engine.
 
 | Doc | What it is |
 | --- | --- |
