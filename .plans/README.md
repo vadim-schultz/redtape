@@ -555,6 +555,19 @@ Use every free allotment the discovery pipeline has (Actions minutes, Cloudflare
 
 Status: merged to the loop branch `feat/plans-pipeline-optimisation`, awaiting the release pull request to `main`. Chapters 1 to 14 are merged and chapter 10 is a no-go spike; chapter 15 awaits its merge into the loop branch. Not shipped until the release pull request merges. The activation steps are in [pipeline-activation.md](../docs/operations/pipeline-activation.md).
 
+### [local-queue-drain/](local-queue-drain/) — Local and hosted workers on the discovery queue
+
+Drain the discovery queues on this machine next to Cloudflare and GitHub: local embedding behind a parity gate, local browser rendering, a local translation engine with its own lane, local LLM extraction, and a bounded daemon. Six chapters. Every local stage is gated by a measurement, and the stale minute-cap docs are fixed first.
+
+| Doc | What it is |
+| --- | --- |
+| [00-architecture.md](local-queue-drain/00-architecture.md) | Queue audit, what binds a local worker, hardware, model and tool state |
+| [01-rollout.md](local-queue-drain/01-rollout.md) | Six chapters, dependency graph, batches, per-chapter and final gates |
+| [gaps-and-decisions.md](local-queue-drain/gaps-and-decisions.md) | Settled decisions and open questions with their defaults |
+| [chapters/](local-queue-drain/chapters/) | One executable plan per chapter |
+
+Status: planned — no chapter started. Loop branch `feat/plans-local-queue-drain`; the work is in the worktree `/mnt/projects/redtape-wt/local-queue-drain`, uncommitted.
+
 ## Conventions
 
 - **Frontmatter.** Each plan opens with YAML: `name`, `overview`, an optional `todos` list, and `isProject`.
