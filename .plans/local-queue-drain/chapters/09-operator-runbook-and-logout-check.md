@@ -27,7 +27,7 @@ The workers keep running after the operator logs out (D25). An operator runbook 
 
 ## Green
 
-- `docs/operations/local-worker-fleet.md` covers: what the fleet is; the install command (C10); the environment file and its required mode; `workers up`, `down`, `status` and `restart`; the dashboard command; where the logs are; and recovery. Recovery covers a worker in `error` after a setup error: fix the environment file, then `discovery-ingest workers restart <type>`. Recovery after a reboot is `discovery-ingest workers up`.
+- `docs/operations/local-worker-fleet.md` covers: what the fleet is; the install command (C10); the environment file and its required mode; `workers up`, `down`, `status` and `restart`; the caps of each type in `worker_types.py` (slots, threads, VRAM) and the nice level (D27); the dashboard command; where the logs are; and recovery. Recovery covers a worker in `error` after a setup error: fix the environment file, then `discovery-ingest workers restart <type>`. Recovery after a reboot is `discovery-ingest workers up`.
 
 ## Refactor
 

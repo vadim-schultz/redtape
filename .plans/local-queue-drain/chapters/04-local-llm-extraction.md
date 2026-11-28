@@ -8,12 +8,12 @@ Drain `llm_extract` tasks on this machine with a local Qwen model served by llam
 
 ## Measurement gate first (no code)
 
-The P2000 is not usable until the machine reboots (O1), so the first measurement is CPU only.
+The P2000 works since the reboot of 2026-11-28 (D28), with about 4.1 GiB free beside the desktop. The `llm` type's VRAM cap is 2048 MiB, so neither model fits whole. Measure CPU first, then partial GPU offload.
 
-1. Build llama.cpp from source in the scratchpad: `cmake` and `ninja` from PyPI, the CPU build with AVX2 enabled (the default on this CPU). Record the commit.
+1. Build llama.cpp from source in the scratchpad: `cmake` and `ninja` from PyPI, the CPU build with AVX2 enabled (the default on this CPU). Record the commit. Build a CUDA version for `sm_61` against a CUDA 12.x toolkit, since CUDA 13 has no offline compilation for Pascal (D28). Record both commits and both builds' versions.
 2. Download the 4-bit K-quant GGUF builds of `Qwen3.8-27B` (dense) and `Qwen3.6-35B-A3B` (mixture of experts, about 3B active) from the official `ggml-org` organisation on Hugging Face (`ggml-org/Qwen3.8-27B-GGUF` and `ggml-org/Qwen3.6-35B-A3B-GGUF`) into the scratchpad. Record each file's size. Do not put weights in the repo.
-3. Run `llama-bench` with `-t` set to the physical core count (28), `-p 2048` for prompt processing and `-n 256` for generation. Record prompt tokens per second and generation tokens per second for each model. The dense 27B model reads all its weights for every token, so expect it to be the slower of the two.
-4. Compute the target. A page's cleaned input is about `DEFAULT_MAX_CHARS` characters (`extract/clean.py`); the output is a JSON answer of a few hundred tokens. Pages per hour = 3600 / (prefill time for the input + generation time for the output), with the server running `-np` parallel slots. Gate: at least 300 pages per hour for the whole machine, which is more than the Workers AI run completes in a day. If neither model reaches it, the stage stops and the ledger records the numbers.
+3. Run `llama-bench` with `-t 6`, the thread count of the `llm` type (D27), `-p 2048` for prompt processing and `-n 256` for generation. Repeat with the largest `-ngl` that fits the type's 2048 MiB, and, for the mixture-of-experts model, with its expert tensors kept on the CPU if this build has that option. Record prompt tokens per second and generation tokens per second for each model and each setting. The dense 27B model reads all its weights for every token, so expect it to be the slower of the two.
+4. Compute the target. A page's cleaned input is about `DEFAULT_MAX_CHARS` characters (`extract/clean.py`); the output is a JSON answer of a few hundred tokens. Pages per hour = 3600 / (prefill time for the input + generation time for the output), with the server running `-np` parallel slots. Gate: at least 300 pages per hour from the `llm` type within its caps (6 threads, 2048 MiB), which is more than the Workers AI run completes in a day. If neither model reaches it, the stage stops and the ledger records the numbers.
 5. Quality gate: run the labelled sample used by `extract/llm/evaluation` through the local model and through Workers AI. Gate: JSON validity ≥ the Workers AI run, and the grounded-mention agreement within the threshold the evaluation harness already defines.
 
 ## Slices (red → green → refactor each)
@@ -37,7 +37,7 @@ The P2000 is not usable until the machine reboots (O1), so the first measurement
 
 - Implement `LocalChatClient` behind `LlmClient`, against the llama.cpp `/v1/chat/completions` endpoint with a JSON schema constraint. Reuse the message builder and the schema from `extract/llm/prompt.py` and `schema.py`.
 - Add a `--provider local` switch and a local model string (a setting, not a Workers AI price).
-- Each claim takes one task (`limit=1`, D11). The run report records the local model string (D12).
+- Each claim takes one task (`limit=1`, D11), and the type's two slots map to llama-server's `-np 2`. The run report records the local model string (D12).
 - Keep `CloudflareAiClient` as it is.
 
 ## Refactor

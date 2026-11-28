@@ -4,13 +4,13 @@
 
 ## Goal
 
-Render and screenshot `render_page` and `capture_screenshot` tasks in a local headless Chromium, behind the existing `BrowserClient` port, without spending Cloudflare Browser Run seconds.
+Render and screenshot `render_page` and `capture_screenshot` tasks in a local headless Chromium, behind the existing `BrowserClient` port, without spending Cloudflare Browser Run seconds. Both kinds run in one `browser` process, so one per-host pacer covers renders and screenshots (I6, D29).
 
 ## Measurement gate first (no code)
 
 1. Confirm the local render path passes `screenshot_sweep_limit=None` (D10), so the run queues no `capture_screenshot` tasks of its own.
 2. Install Playwright with `uv` into the scratchpad venv, then `playwright install chromium`. The CDN answered on probe, but the install is the real test. If it fails, stop: record the failure and the proxy or certificate reason.
-3. Run the 50 canary pages (`browser/canary.py` holds the list) through a throwaway Playwright script in the scratchpad. Record, per page: HTTP status, final URL, HTML length, JPEG length and time. This is the local baseline.
+3. Run the 50 canary pages (`browser/canary.py` holds the list) through a throwaway Playwright script in the scratchpad. Record, per page: HTTP status, final URL, HTML length, JPEG length and time. Also record the CPU seconds (user plus system) the browser used per page, to check the `browser` type against the fleet's thread cap (D27). This is the local baseline.
 4. Run the same 50 pages through `CloudflareBrowserClient` (the canary already does this) and compare the status, the final URL and the HTML length. Gate: the final URL and status agree on at least 45 of 50, and the screenshot is a readable JPEG on every page that Cloudflare returned one for.
 5. Repeat step 3 with Patchright. Record the blocked count. The probe decides O5: switch to Patchright only if stock Playwright blocks materially more of the 50 pages than Patchright does.
 
@@ -34,14 +34,14 @@ Render and screenshot `render_page` and `capture_screenshot` tasks in a local he
 ### Slice 2d — pacing
 
 - **Happy:** two sequential renders of different hosts run with no added delay beyond the per-host pacing.
-- **Negative:** two renders of the same host run one after the other, never overlapping (I6), even with the browser concurrency set to 4. The test uses a fixture that records start and end times.
+- **Negative:** renders and screenshots of the same host never overlap (I6), even with the `browser` type's three slots running. The test uses a fixture that records start and end times.
 
 ## Green
 
 - Implement `LocalPlaywrightBrowser` behind `BrowserClient`. Reuse `CONSENT_HIDE_CSS` and `CONSENT_ACCEPT_SCRIPT` from `browser/consent.py`. Use `GOTO_OPTIONS`, `VIEWPORT` and `JPEG_QUALITY` from `browser/payloads.py`, so there is one source of truth.
 - A fused call (HTML and screenshot from one page session) serves `FusedRenderPageHandler`. Keep the fused flag off by default, as today.
 - Wire the local provider into `browser_setup.py` behind a `--provider local` switch.
-- The local path claims one task per claim (D11) and passes `screenshot_sweep_limit=None` (D10).
+- The local path claims one task per claim (D11) in the `browser` type's slot loops (C5), and passes `screenshot_sweep_limit=None` (D10). The type's caps are 3 slots and 2 threads in `worker_types.py`.
 
 ## Refactor
 

@@ -557,16 +557,16 @@ Status: merged to the loop branch `feat/plans-pipeline-optimisation`, awaiting t
 
 ### [local-queue-drain/](local-queue-drain/) — Local and hosted workers on the discovery queue
 
-Drain the discovery queues on this machine next to Cloudflare and GitHub: local embedding behind a parity gate, local browser rendering, a local translation engine with its own lane, local LLM extraction, and a bounded daemon. Then a process fleet facade, a read-only monitor facade, a terminal dashboard, an operator runbook and an installable package. Eleven chapters. Every local stage is gated by a measurement, and the stale minute-cap docs are fixed first.
+Drain the discovery queues on this machine next to Cloudflare and GitHub: local embedding behind a parity gate, local browser rendering, a local translation engine with its own lane, local LLM extraction, and a bounded daemon. Then a process fleet facade, a read-only monitor facade, a terminal dashboard, an operator runbook and an installable package. Eleven chapters. Every local stage is gated by a measurement within fixed CPU and VRAM caps, and the stale minute-cap docs are fixed first.
 
 | Doc | What it is |
 | --- | --- |
 | [00-architecture.md](local-queue-drain/00-architecture.md) | Queue audit, what binds a local worker, hardware, model and tool state |
-| [01-rollout.md](local-queue-drain/01-rollout.md) | Six chapters, dependency graph, batches, per-chapter and final gates |
+| [01-rollout.md](local-queue-drain/01-rollout.md) | Eleven chapters, dependency graph, batches, per-chapter and final gates |
 | [gaps-and-decisions.md](local-queue-drain/gaps-and-decisions.md) | Settled decisions and open questions with their defaults |
 | [chapters/](local-queue-drain/chapters/) | One executable plan per chapter |
 
-Status: planned — no chapter started. Loop branch `feat/plans-local-queue-drain`; the work is in the worktree `/mnt/projects/redtape-wt/local-queue-drain`, uncommitted.
+Status: planned, on `main` — no chapter started. The loop branch is created from `main` when the loop starts.
 
 ## Conventions
 

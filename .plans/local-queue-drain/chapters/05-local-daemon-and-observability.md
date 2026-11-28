@@ -30,16 +30,27 @@ Run the local drains unattended on this machine: a bounded loop that claims in s
 
 ### Slice 5d — heartbeats
 
-- **Happy:** after one batch that completes three tasks, the heartbeat file for the type holds `state="idle"`, `completed=3`, and a current `updated_at`.
+- **Happy:** after three tasks settle, the heartbeat file for the type holds `state="idle"`, `completed=3`, and a current `updated_at`.
 - **Negative:** the heartbeat directory is read-only. The write fails, the failure is logged, and the drain continues. The drain's report is unchanged.
+
+### Slice 5e — slots
+
+- **Happy:** a daemon of type `browser` with two slots runs two claim loops at once. A fake machine client records each claim's start and end, and the two claims overlap in time. Every claim passes `limit=1`.
+- **Negative:** a slot count of 0, or above the type's maximum in the table, is refused at startup with a `ValueError` that names the type. No claim is made.
+
+### Slice 5f — fleet caps
+
+- **Happy:** the shipped `worker_types.py` sums to at most 16 threads and 3584 MiB, and a started daemon's heartbeat reports `nice` 10.
+- **Negative:** a table whose threads sum to 17 fails the cap test, and the message names the sum and the cap (I15).
 
 ## Green
 
 - Add `apps/discovery-ingest/discovery_ingest/daemon.py` with the loop, reusing `drain_until_stop` semantics for the bounds. Keep it small: one function per concern (`_next_action`, `_run_once`, `_backoff`).
-- Write a heartbeat after every batch and every state change. `WorkerStateStore` writes `<state dir>/redtape-workers/<type>.json` atomically: a temporary file, then a rename. Fields: `worker_type`, `provider`, `host`, `pid`, `state` (`running`, `idle`, `backoff`, `error` or `stopped`), `run_id`, `claimed`, `completed`, `failed`, `last_report`, `last_error`, `started_at`, `updated_at` and `heartbeat_interval_seconds`. C7 reads these files. The store and `process_matches(pid, worker_type)` live in `worker_state.py`. `process_matches` reads `/proc/<pid>/cmdline`, so a reused pid is never taken for a worker. C6 and C7 import both.
-- Add `worker_types.py`: one table that lists each worker type with its kinds, its provider and its resource limits. The provider switches of C1–C4 map onto it. C6 and C7 import it, and they do not repeat it.
+- Write a heartbeat after every claim settles and every state change. `WorkerStateStore` writes `<state dir>/redtape-workers/<type>.json` atomically: a temporary file, then a rename. Fields: `worker_type`, `provider`, `host`, `pid`, `state` (`running`, `idle`, `backoff`, `error` or `stopped`), `run_id`, `claimed`, `completed`, `failed`, `last_report`, `last_error`, `started_at`, `updated_at`, `heartbeat_interval_seconds`, `slots`, `threads` and `nice`. C7 reads these files. The store and `process_matches(pid, worker_type)` live in `worker_state.py`. `process_matches` reads `/proc/<pid>/cmdline`, so a reused pid is never taken for a worker. C6 and C7 import both.
+- Add `worker_types.py`: one table that lists each worker type with its kinds, its provider and its caps: `slots`, `threads` and `vram_mib` (D27). The six types are `browser`, `extract`, `llm`, `embed`, `translate` and `seed` (D29). The provider switches of C1–C4 map onto it. C6 and C7 import it, and they do not repeat it.
 - Expose it as `discovery_ingest daemon run --type <worker type>`. The type selects the kinds, the provider and the limits from `worker_types.py`.
-- Each claim takes one task (`limit=1`, D11), and the daemon sets `screenshot_sweep_limit=None` (D10).
+- The daemon runs `slots` claim loops in threads (D11, D27). Each loop claims one task (`limit=1`), settles it, and claims again. It does not use the batch waves of `worker/batch.py`, because those claim a batch before they settle anything.
+- The daemon sets `screenshot_sweep_limit=None` (D10), applies the type's `threads` to its runtime, and calls `os.nice(10)` at start (D27).
 - The daemon writes its log to stderr. The fleet redirects that stream into the type's log file (C6).
 
 ## Refactor
@@ -56,10 +67,11 @@ cd apps/discovery-ingest && .venv/bin/python -m ruff check discovery_ingest && .
 cd apps/api && ./ci.sh
 ```
 
-Then the eight-hour unattended run, recorded in the ledger: the run count, the longest run, every stop reason, and the flow page state before and after.
+Then the eight-hour unattended run, recorded in the ledger: the run count, the longest run, every stop reason, the flow page state before and after, and the fleet's summed CPU sampled once a minute (I15).
 
 ## Exit
 
 - The eight-hour run passes: no run older than the stale window, no unhandled error, backoff while the queue is empty.
+- The fleet's summed CPU stays under 16 logical CPUs for the whole run, and no type exceeds its thread cap (D27).
 - The flow page shows the local runs. The Cloudflare and Azure figures do not move because of local work.
 - The daemon's start, stop and check steps are in the runbook (C9).

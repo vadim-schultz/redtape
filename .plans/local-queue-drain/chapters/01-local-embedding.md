@@ -4,7 +4,7 @@
 
 ## Goal
 
-Drain `embedding_task` rows on this machine with Qwen3-Embedding-0.6B on CPU, writing vectors that search can use, and only after proving they match Workers AI.
+Drain `embedding_task` rows on this machine with Qwen3-Embedding-0.6B, on the local GPU when its parity gate passes and on CPU otherwise, writing vectors that search can use, and only after proving they match Workers AI.
 
 ## Measurement gate first (no code)
 
@@ -13,10 +13,10 @@ The Workers AI model is `@cf/qwen/qwen3-embedding-0.6b` (`llm_settings.py`). Tha
 1. Download `Qwen/Qwen3-Embedding-0.6B` with `huggingface_hub` into the scratchpad, not the repo.
 2. Embed 50 texts drawn from stored candidate text. Use the raw text, no instruction prefix, as the worker does (`EmbeddingClaimResponse` says "raw, no instruction prefix").
 3. Call the Workers AI model on the same 50 texts through `CloudflareEmbeddingClient`, using `embed_body` and `read_embeddings`.
-4. Compare per text: cosine similarity, vector length (must be 1024, `EMBEDDING_DIM`), and the norm.
-5. Gate: every cosine ≥ 0.999 and every length 1024. Below that, the chapter stops: no adapter is written, and the ledger records the cosine range. Pooling or normalisation differences show up here first.
+4. Compare per text: cosine similarity, vector length (must be 1024, `EMBEDDING_DIM`), and the norm. Run the probe on CPU and on the GPU, in the runtime that would serve it. A GPU runtime must be a CUDA 12.x build, because CUDA 13 has no offline compilation for Pascal (D28). The probe records the device, the runtime version and the peak VRAM.
+5. Gate: every cosine ≥ 0.999 and every length 1024, on at least one device. The device that passes and is faster serves the work. If neither device passes, the chapter stops: no adapter is written, and the ledger records the cosine range. Pooling or normalisation differences show up here first.
 
-The probe is a script in `apps/discovery-ingest/discovery_ingest/extract/embedding/probe_local.py` if it passes. Its output is a parity record (`model`, `weights_revision`, `cosine_min`, `sample_size`, `date`) committed under `docs/operations/` or the run ledger.
+The probe is a script in `apps/discovery-ingest/discovery_ingest/extract/embedding/probe_local.py` if it passes. Its output is a parity record (`model`, `weights_revision`, `device`, `cosine_min`, `sample_size`, `date`) committed under `docs/operations/` or the run ledger.
 
 ## Slices (red → green → refactor each)
 
@@ -38,7 +38,7 @@ The probe is a script in `apps/discovery-ingest/discovery_ingest/extract/embeddi
 ## Green
 
 - Implement the parity comparison, the local embedder behind the `Embedder` protocol, and the local budget API in a new module (`budget_local.py`). Add the `--provider local` switch to the embed CLI.
-- Each claim takes one task (`limit=1`, D11). The parity run records the throughput cost of one text per forward pass in the ledger.
+- Each claim takes one task (`limit=1`, D11). The `embed` type has one slot, so one claim loop runs (C5). The parity run records the throughput cost of one text per forward pass in the ledger. On the GPU, the embedder's VRAM stays within the type's 1536 MiB.
 - Keep the query path on Workers AI. Do not change `cloudflare_embedder.py`.
 
 ## Refactor

@@ -12,9 +12,8 @@
 | --- | --- | --- | --- |
 | `QueueSource` | one machine `GET /tasks/summary` for the kinds that the local worker types drain (from `worker_types.py`) | 15 s | `QueueRow` per kind |
 | `RateTracker` | two successive queue samples | with the queues | completed per minute, and an ETA |
-| `BudgetSource` | machine `GET /budgets` | 60 s | `BudgetRow` per resource |
 | `HostSource` | psutil (`cpu_percent(percpu=True)`, `virtual_memory`); `nvidia-smi --query-gpu=...` when it is on PATH; llama-server `GET http://127.0.0.1:<port>/health` with a 1 s timeout | 5 s | `HostState` |
-| `WorkerStateSource` | the heartbeat files of C5, read through `worker_state.py`, with `process_matches` for each pid | 5 s | `WorkerRow` per type |
+| `WorkerStateSource` | the heartbeat files of C5, read through `worker_state.py`, with `process_matches` for each pid; the threads and VRAM of the types whose pid matches (D27) | 5 s | `WorkerRow` per type and `FleetCap` |
 | `LogSource` | the last 64 KiB of one selected type's log file | on demand | `LogTail` |
 
 An absent GPU is `gpu=None`, not an error. A heartbeat older than three heartbeat intervals shows state `stale`. The log source reads only the end of the file, never the whole file.
@@ -31,10 +30,10 @@ An absent GPU is `gpu=None`, not an error. A heartbeat older than three heartbea
 - **Happy:** completed is 100 at t = 0 s and 160 at t = 60 s, with 40 pending. The rate is 60 per minute, and the ETA is 40 seconds.
 - **Negative:** the completed count drops, after a requeue or a reset. The rate is `None`, never negative.
 
-### Slice 7c — budgets
+### Slice 7c — fleet caps
 
-- **Happy:** a `BudgetSnapshot` with 1,200 neurons left of 9,500 gives a `BudgetRow` with fraction 0.126.
-- **Negative:** the ledger is unreachable (`httpx.ConnectError`). The source returns `SourceError`.
+- **Happy:** two running types, `browser` (2 threads) and `llm` (6 threads, 2048 MiB), give `FleetCap(threads=8, threads_cap=16, vram_mib=2048, vram_cap=3584)`. The caps come from `worker_types.py`, not from the heartbeats.
+- **Negative:** a type whose heartbeat says `running` but whose pid fails `process_matches` counts for zero threads and zero VRAM.
 
 ### Slice 7d — host
 
@@ -74,9 +73,9 @@ cd apps/discovery-ingest && .venv/bin/python -m pytest tests -k "monitor" -q
 cd apps/discovery-ingest && .venv/bin/python -m ruff check discovery_ingest && .venv/bin/python -m mypy discovery_ingest
 ```
 
-Then one live, read-only snapshot against the API, recorded in the ledger: the queue rows, the budgets, and each source's status.
+Then one live, read-only snapshot against the API, recorded in the ledger: the queue rows and each source's status.
 
 ## Exit
 
-- The live snapshot shows queues and budgets from the API. Each other source shows data or a named error.
+- The live snapshot shows the queue rows from the API. Each other source shows data or a named error.
 - The fence and read-only tests pass.
